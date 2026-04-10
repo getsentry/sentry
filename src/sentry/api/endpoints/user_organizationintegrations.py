@@ -53,6 +53,6 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: [item for item in serialize(x, request.user) if item is not None],
             paginator_cls=OffsetPaginator,
         )

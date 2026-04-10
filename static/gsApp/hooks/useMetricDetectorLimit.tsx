@@ -1,7 +1,8 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks/index';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks/index';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 
@@ -25,43 +26,36 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const hasFlag = organization.features.includes('workflow-engine-metric-detector-limit');
 
   const {
+    data: detectorXHits = NO_COUNT,
     isLoading: isDetectorsLoading,
     isError: isDetectorsError,
-    getResponseHeader: getDetectorsResponseHeader,
-  } = useDetectorsQuery(
-    {
+  } = useQuery({
+    ...detectorListApiOptions(organization, {
       query: 'type:metric',
       limit: 1,
-    },
-    {
-      enabled: hasFlag && isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
-      staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
-    }
-  );
+    }),
+    enabled: hasFlag && isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
+    staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
+    select: data => data.headers['X-Hits'],
+  });
 
   const {
+    data: alertRulesXHits = NO_COUNT,
     isLoading: isMetricRulesLoading,
     isError: isMetricRulesError,
-    getResponseHeader: getMetricRulesResponseHeader,
-  } = useApiQuery<any[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/alert-rules/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {limit: 1}},
-    ],
-    {
-      enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
+  } = useQuery({
+    ...apiOptions.as<unknown[]>()('/organizations/$organizationIdOrSlug/alert-rules/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
-    }
-  );
+      query: {limit: 1},
+    }),
+    enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
+    select: data => data.headers['X-Hits'],
+  });
 
   const isLoading = isWorkflowEngine ? isDetectorsLoading : isMetricRulesLoading;
   const isError = isWorkflowEngine ? isDetectorsError : isMetricRulesError;
-  const detectorHits = isWorkflowEngine
-    ? getDetectorsResponseHeader?.('X-Hits')
-    : getMetricRulesResponseHeader?.('X-Hits');
-  const detectorCount = detectorHits ? parseInt(detectorHits, 10) : NO_COUNT;
+  const detectorCount = isWorkflowEngine ? detectorXHits : alertRulesXHits;
 
   if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
     return {

@@ -20,6 +20,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -42,6 +44,7 @@ export function ReleaseHeader({
   releaseMeta,
   refetchData,
 }: Props) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
@@ -165,14 +168,25 @@ export function ReleaseHeader({
         </Layout.Title>
       </Layout.HeaderContent>
 
-      <Layout.HeaderActions>
-        <ReleaseActions
-          projectSlug={project.slug}
-          release={release}
-          releaseMeta={releaseMeta}
-          refetchData={refetchData}
-        />
-      </Layout.HeaderActions>
+      {hasPageFrameFeature ? (
+        <TopBar.Slot name="actions">
+          <ReleaseActions
+            projectSlug={project.slug}
+            release={release}
+            releaseMeta={releaseMeta}
+            refetchData={refetchData}
+          />
+        </TopBar.Slot>
+      ) : (
+        <Layout.HeaderActions>
+          <ReleaseActions
+            projectSlug={project.slug}
+            release={release}
+            releaseMeta={releaseMeta}
+            refetchData={refetchData}
+          />
+        </Layout.HeaderActions>
+      )}
 
       <Layout.HeaderTabs value={getActiveTabTo()}>
         <TabList>

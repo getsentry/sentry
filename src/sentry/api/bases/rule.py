@@ -62,7 +62,9 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
         if use_workflow_engine:
             try:
                 arw = AlertRuleWorkflow.objects.get(
-                    rule_id=rule_id, workflow__organization=project.organization
+                    rule_id=rule_id,
+                    workflow__organization=project.organization,
+                    workflow__status=ObjectStatus.ACTIVE,
                 )
                 kwargs["rule"] = arw.workflow
             except AlertRuleWorkflow.DoesNotExist:

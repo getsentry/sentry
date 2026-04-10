@@ -254,7 +254,7 @@ function TextField({
   );
 }
 
-export type FormField = {
+type FormField = {
   // The rest is configuration for the form field
   [key: string]: any;
   // Type of form fields

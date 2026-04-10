@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 import logging
 import operator
 from datetime import timedelta
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentry.models.environment import Environment
 
 import sentry_sdk
 from django import forms
@@ -54,7 +60,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
      - `user`: The user from `request.user`
     """
 
-    environment = EnvironmentField(required=False, allow_null=True)
+    environment = serializers.CharField(required=False, allow_null=True)
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
         required=False,
@@ -119,6 +125,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         AlertRuleThresholdType.ABOVE: lambda threshold: threshold + 100,
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
+
+    def validate_environment(self, value: str | None) -> Environment | None:
+        field = EnvironmentField()
+        field.bind("environment", self)
+        return field.to_internal_value(value)
 
     def validate_threshold_type(self, threshold_type):
         try:

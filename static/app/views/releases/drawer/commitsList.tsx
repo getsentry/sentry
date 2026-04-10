@@ -45,17 +45,17 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
     releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 
   const {
-    data: commitList = [],
+    data,
     isPending: isLoadingCommitList,
     error: commitListError,
     refetch,
-    getResponseHeader,
   } = useReleaseCommits({
     release,
     projectSlug,
     activeRepository: activeReleaseRepo,
     cursor: rdCiCursor,
   });
+  const commitList = data?.json ?? [];
 
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
@@ -85,7 +85,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
             </PanelBody>
           </Panel>
           <Pagination
-            pageLinks={getResponseHeader?.('Link')}
+            pageLinks={data?.headers.Link}
             onCursor={(cursor, path, searchQuery) => {
               navigate({
                 pathname: path,

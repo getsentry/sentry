@@ -38,6 +38,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
+    "spans.buffer.enforce-segment-size": False,
     "spans.process-segments.schema-validation": 1.0,
     "spans.buffer.chunk-oversized-segments": False,
 }
@@ -840,6 +841,123 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
     # The entire segment should be dropped because it exceeds max_segment_bytes.
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
     assert segment.spans == []
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: SpansBuffer) -> None:
+    """When a segment's cumulative ingested bytes exceed max-segment-bytes, subsequent
+    subsegments are written to a detached (salted) key so that overflow spans are not lost."""
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    # Each payload is ~30 bytes. With limit=40, the Lua script detaches on
+    # the 3rd batch (cumulative 60 > 40). The flusher also enforces the limit,
+    # so the normal segment (60 bytes) is dropped, but the detached segment
+    # (30 bytes) is kept.
+    batch1 = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    batch2 = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    batch3 = [
+        Span(
+            payload=_payload("d" * 16),
+            trace_id="a" * 32,
+            span_id="d" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+
+    with override_options(
+        {"spans.buffer.max-segment-bytes": 70, "spans.buffer.enforce-segment-size": True}
+    ):
+        buffer.process_spans(batch1, now=0)
+        buffer.process_spans(batch2, now=0)
+        buffer.process_spans(batch3, now=0)
+        rv = buffer.flush_segments(now=61)
+
+    assert len(rv) == 2
+
+    normal_key = _segment_id(1, "a" * 32, "a" * 16)
+    normal_segment = rv.get(normal_key)
+    assert normal_segment is not None
+    assert len(normal_segment.spans) == 2
+
+    # The new segment (salt) contains the overflow span
+    detached_keys = [k for k in rv if k != normal_key]
+    assert len(detached_keys) == 1
+    detached_segment = rv[detached_keys[0]]
+    assert len(detached_segment.spans) == 1
+    assert detached_segment.spans[0].payload["span_id"] == "d" * 16
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_max_segment_bytes_under_limit_merges_normally(
+    mock_project_model, buffer: SpansBuffer
+) -> None:
+    """When a segment is within max-segment-bytes, subsegments merge normally."""
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    batch1 = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    batch2 = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+
+    # Large limit so both batches fit
+    with override_options(
+        {
+            "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
+            "spans.buffer.enforce-segment-size": True,
+        }
+    ):
+        buffer.process_spans(batch1, now=0)
+        buffer.process_spans(batch2, now=0)
+        rv = buffer.flush_segments(now=61)
+
+    # Both spans merged into a single segment
+    assert len(rv) == 1
+    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
+    assert len(segment.spans) == 2
+    span_ids = {s.payload["span_id"] for s in segment.spans}
+    assert span_ids == {"b" * 16, "c" * 16}
 
 
 @mock.patch("sentry.spans.buffer.Project")

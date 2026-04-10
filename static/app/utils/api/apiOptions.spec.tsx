@@ -54,6 +54,23 @@ describe('apiOptions', () => {
     ]);
   });
 
+  it('should not include options in queryKey when all deep values are undefined', () => {
+    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
+      staleTime: 0,
+      path: {tokenId: '123'},
+      query: {
+        foo: undefined,
+        bar: undefined,
+      },
+      method: undefined,
+    });
+
+    expect(options.queryKey).toEqual([
+      {infinite: false, version: 'v2'},
+      '/api-tokens/123/',
+    ]);
+  });
+
   it('should strip undefined values from options in queryKey', () => {
     const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
       staleTime: 0,

@@ -451,6 +451,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                     rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                 )
                 scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                # The Rule's scheduled deletion should take care of the workflow, but
+                # we mark it pending immediately so we don't return it while the deletion is in progress.
+                for workflow in Workflow.objects.filter(alertruleworkflow__rule_id=rule.id):
+                    workflow.update(status=ObjectStatus.PENDING_DELETION)
 
             self.create_audit_entry(
                 request=request,

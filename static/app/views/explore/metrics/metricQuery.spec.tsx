@@ -1,10 +1,15 @@
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   decodeMetricsQueryParams,
+  defaultMetricQuery,
   encodeMetricQueryParams,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 describe('decodeMetricsQueryParams', () => {
   it('parses all visualizes', () => {
@@ -112,5 +117,43 @@ describe('decodeMetricsQueryParams', () => {
     expect(decoded?.queryParams.aggregateFields).toEqual(
       original.queryParams.aggregateFields
     );
+  });
+});
+
+describe('defaultMetricQuery', () => {
+  it('returns a default metric query', () => {
+    const result = defaultMetricQuery();
+    expect(result).toEqual({
+      metric: {name: '', type: ''},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.SAMPLES,
+        query: '',
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction('sum(value)')],
+        aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
+      }),
+    });
+  });
+
+  it('returns a default metric query with an equation', () => {
+    const result = defaultMetricQuery({type: 'equation'});
+    expect(result).toEqual({
+      metric: {name: '', type: ''},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.SAMPLES,
+        query: '',
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeEquation(EQUATION_PREFIX)],
+        aggregateSortBys: [{field: EQUATION_PREFIX, kind: 'desc'}],
+      }),
+    });
   });
 });

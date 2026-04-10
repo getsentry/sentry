@@ -26,7 +26,7 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         # QuerySubscriptionDeletionTask sees no remaining AlertRule referencing
         # the SnubaQuery and can safely delete it.
         alert_rule_ids = list(
-            AlertRuleDetector.objects.filter(detector_id=instance.id).values_list(
+            AlertRuleDetector.objects_for_deletion.filter(detector_id=instance.id).values_list(
                 "alert_rule_id", flat=True
             )
         )

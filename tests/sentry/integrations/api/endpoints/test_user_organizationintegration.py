@@ -72,3 +72,18 @@ class UserOrganizationIntegationTest(APITestCase):
             assert response.status_code == 200
             content = orjson.loads(response.content)
             assert content == []
+
+    def test_serialization_error_filtered_from_response(self) -> None:
+        """An exception during serialization should produce an empty list, not null entries."""
+        integration = self.create_provider_integration(provider="github")
+        self.create_organization_integration(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        with patch(
+            "sentry.integrations.base.IntegrationInstallation.get_dynamic_display_information",
+            side_effect=RuntimeError("boom"),
+        ):
+            response = self.get_success_response(self.user.id)
+
+        assert response.data == []

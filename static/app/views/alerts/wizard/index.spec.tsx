@@ -124,9 +124,7 @@ describe('AlertWizard', () => {
     });
 
     await userEvent.click(screen.getByText('Throughput'));
-    expect(
-      screen.getByText(/Throughput is the total number of spans/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/total number of spans/)).toBeInTheDocument();
   });
 
   it('hides logs aggregate alerts according to feature flag', () => {
@@ -188,9 +186,7 @@ describe('AlertWizard', () => {
     });
 
     await userEvent.click(screen.getByText('Throughput'));
-    expect(
-      screen.getByText(/Throughput is the total number of transactions/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/total number of spans/)).toBeInTheDocument();
   });
 
   it('hides custom metrics alerts when feature flag is disabled', () => {
