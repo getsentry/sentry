@@ -69,11 +69,6 @@ def test_global_config() -> None:
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
 
-    # Relay's normalizer strips fields it doesn't know about yet.
-    # Remove them from our config before comparing so the test passes
-    # until Relay adds support for these fields.
-    config.pop("aiModelMetadata", None)
-
     assert normalized == config
 
 
@@ -129,10 +124,7 @@ def test_return_global_config_on_right_version(
 @django_db_all
 def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
-    normalized = normalize_global_config(config)
-    # Relay's normalizer strips fields it doesn't know about yet.
-    config.pop("aiModelMetadata", None)
-    assert config == normalized
+    assert config == normalize_global_config(config)
 
 
 @django_db_all
