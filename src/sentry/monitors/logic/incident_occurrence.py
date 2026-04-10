@@ -217,6 +217,8 @@ def send_incident_occurrence(
             "monitor.slug": str(monitor_env.monitor.slug),
             "monitor.incident": str(incident.id),
         },
+        # option 1: timestamp <- received.isoformat().  This seems reasonable, because the cron incident starts not when
+        # we've processed it, but when relay got the message (which is approximately when the cron failure occurred.)
         "timestamp": current_timestamp.isoformat(),
     }
 
@@ -293,6 +295,8 @@ def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
         project_id=project_id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
+        # option 2: make this current_time.  Then, because of monitor ordering guarantees, this will always be ahead of
+        # the start time
         update_date=incident.resolving_timestamp,
     )
     produce_occurrence_to_kafka(
