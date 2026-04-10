@@ -14,7 +14,7 @@ class SeerNightShiftRun(DefaultFieldsModel):
     One row is created per org each time run_night_shift_for_org executes.
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     triage_strategy = models.CharField(max_length=64)
@@ -39,7 +39,7 @@ class SeerNightShiftRunIssue(DefaultFieldsModel):
     for looking up details in Seer's database.
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Excluded
 
     run = FlexibleForeignKey(
         "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="issues"
