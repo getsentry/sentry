@@ -59,7 +59,11 @@ export function MultiMetricsQueryParamsProvider({
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const rawQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
+  const rawQueries = useMemo(
+    () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
+    [location, allowUpTo]
+  );
+
   const labels = useStableLabels(rawQueries);
 
   const value = useMemo(() => {
