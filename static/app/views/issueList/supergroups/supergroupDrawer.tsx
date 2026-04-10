@@ -311,6 +311,7 @@ const MatchedIcon = styled('div')`
   top: 23px;
   /* Positioned after where the checkbox will go */
   left: -2px;
+  padding-left: 0;
   transform: translateY(-50%);
   z-index: 1;
   color: ${p => p.theme.tokens.graphics.accent.vibrant};
