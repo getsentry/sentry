@@ -81,6 +81,7 @@ def _unfurl_explore(
             continue
 
         params = link.args["query"]
+        chart_type = link.args.get("chart_type")
 
         y_axes = params.getlist("yAxis")
         if not y_axes:
@@ -110,9 +111,11 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        chart_data = {
+        chart_data: dict[str, Any] = {
             "timeSeries": resp.data.get("timeSeries", []),
         }
+        if chart_type is not None:
+            chart_data["type"] = chart_type
 
         try:
             url = charts.generate_chart(style, chart_data)
@@ -138,27 +141,37 @@ def _unfurl_explore(
     return unfurls
 
 
+CHART_TYPE_TO_DISPLAY_TYPE = {
+    0: "bar",
+    1: "line",
+    2: "area",
+}
+
+
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
     Extracts explore arguments from the explore link's query string.
-    Parses aggregateField JSON params to extract yAxes and groupBy.
+    Parses visualize/aggregateField JSON params to extract yAxes, groupBy, and chartType.
     """
     # Slack uses HTML escaped ampersands in its Event Links
     url = html.unescape(url)
     parsed_url = urlparse(url)
     raw_query = QueryDict(parsed_url.query)
 
-    # Parse aggregateField JSON params
-    aggregate_fields = raw_query.getlist("aggregateField")
+    # Parse visualize (spans explore) or aggregateField (logs explore) JSON params
+    visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     y_axes: list[str] = []
     group_bys: list[str] = []
-    for field_json in aggregate_fields:
+    chart_type: str | None = None
+    for field_json in visualize_fields:
         try:
             parsed = json.loads(field_json)
             if "yAxes" in parsed and isinstance(parsed["yAxes"], list):
                 y_axes.extend(parsed["yAxes"])
             if "groupBy" in parsed and parsed["groupBy"]:
                 group_bys.append(parsed["groupBy"])
+            if chart_type is None and "chartType" in parsed:
+                chart_type = CHART_TYPE_TO_DISPLAY_TYPE.get(parsed["chartType"])
         except (json.JSONDecodeError, TypeError):
             continue
 
@@ -178,7 +191,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         if values:
             query.setlist(param, values)
 
-    return dict(**args, query=query)
+    return dict(**args, query=query, chart_type=chart_type)
 
 
 explore_traces_link_regex = re.compile(
