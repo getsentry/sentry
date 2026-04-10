@@ -132,7 +132,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="new" />,
           recordAnalytics: true,
         },
         {
@@ -175,7 +174,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
         {

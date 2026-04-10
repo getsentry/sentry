@@ -630,7 +630,7 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: ['onboarding-scm'],
+      features: ['onboarding-scm-experiment'],
     });
 
     const githubProvider = GitHubIntegrationProviderFixture({
@@ -995,7 +995,7 @@ describe('Onboarding', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/javascript-react-slug/keys/`,
+      url: '/projects/org-slug/javascript-react-slug/keys/',
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });

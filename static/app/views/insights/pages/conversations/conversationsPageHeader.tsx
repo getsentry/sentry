@@ -8,7 +8,6 @@ import {
   CONVERSATIONS_LANDING_SUB_PATH,
   CONVERSATIONS_LANDING_TITLE,
   CONVERSATIONS_SIDEBAR_LABEL,
-  MODULES,
 } from 'sentry/views/insights/pages/conversations/settings';
 import {
   DomainViewHeader,
@@ -18,13 +17,13 @@ import {
 type Props = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
-  module?: HeaderProps['selectedModule'];
 };
 
 export function ConversationsPageHeader({
-  module,
   headerActions,
+  headerTitle,
   breadcrumbs,
   hideDefaultTabs,
 }: Props) {
@@ -39,13 +38,15 @@ export function ConversationsPageHeader({
       domainBaseUrl={conversationsBaseUrl}
       domainTitle={CONVERSATIONS_SIDEBAR_LABEL}
       headerTitle={
-        <Fragment>
-          {CONVERSATIONS_LANDING_TITLE}
-          <FeatureBadge type="alpha" />
-        </Fragment>
+        headerTitle ?? (
+          <Fragment>
+            {CONVERSATIONS_LANDING_TITLE}
+            <FeatureBadge type="alpha" />
+          </Fragment>
+        )
       }
-      modules={MODULES}
-      selectedModule={module}
+      modules={[]}
+      selectedModule={undefined}
       additonalHeaderActions={headerActions}
       additionalBreadCrumbs={breadcrumbs}
       hideDefaultTabs={hideDefaultTabs}

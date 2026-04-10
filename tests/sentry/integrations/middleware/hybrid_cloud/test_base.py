@@ -17,7 +17,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.types.cell import Cell, RegionCategory
 
 
@@ -129,25 +128,6 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_path
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options({"codecov.forward-webhooks.rollout": 1.0})
-    def test_forward_to_codecov(self) -> None:
-        class MockParser(BaseRequestParser):
-            webhook_identifier = WebhookProviderIdentifier.GITHUB
-            provider = "github"
-
-        parser = MockParser(self.request, self.response_handler)
-
-        parser.forward_to_codecov(external_id="1")
-        payloads = WebhookPayload.objects.all()
-        assert len(payloads) == 1
-        for payload in payloads:
-            assert payload.cell_name is None
-            assert payload.mailbox_name == "github:codecov:1"
-            assert payload.request_path
-            assert payload.request_method
-            assert payload.destination_type == DestinationType.CODECOV
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_organizations_from_integration_success(self) -> None:

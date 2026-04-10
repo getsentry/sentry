@@ -55,7 +55,7 @@ _SEER_LOADING_MESSAGES = [
     "Hold on, I've seen this one before...",
     "It worked on my machine...",
 ]
-SLACK_PROVIDERS = {IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING}
+SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 
 @all_silo_endpoint  # Only challenge verification is handled at control
@@ -208,13 +208,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 if link_type is None or args is None:
                     continue
 
+                feature_flag = {
+                    LinkType.DISCOVER: "organizations:discover-basic",
+                    LinkType.EXPLORE: "organizations:data-browsing-widget-unfurl",
+                }.get(link_type)
+
                 if (
                     organization
-                    and link_type == LinkType.DISCOVER
+                    and feature_flag
                     and not slack_request.has_identity
-                    and features.has(
-                        "organizations:discover-basic", organization, actor=request.user
-                    )
+                    and features.has(feature_flag, organization, actor=request.user)
                 ):
                     try:
                         analytics.record(
@@ -289,7 +292,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
             sentry_sdk.set_tag("organization.slug", organization.slug)
         identity_user = slack_request.get_identity_user()
         if identity_user:
-            sentry_sdk.set_tag("user.email", identity_user.email)
+            sentry_sdk.set_user(
+                {
+                    "id": str(identity_user.id),
+                    "email": identity_user.email,
+                    "username": identity_user.username,
+                }
+            )
 
         logger_params = {
             "integration_id": slack_request.integration.id,
@@ -342,6 +351,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
         Returns ``(organization_id, installation)`` or ``None`` when the
         event should be halted (the halt reason is already recorded).
 
+        We also check that the requesting user is a member of the organization that Seer is accessing.
+
         Note: There is a limitation here of only grabbing the first organization with access to Seer.
         If a Slack installation corresponds to multiple organizations with Seer access, this will not work,
         and must be revisited.
@@ -355,6 +366,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
             lifecycle.record_halt(SeerSlackHaltReason.NO_VALID_INTEGRATION)
             return None
 
+        identity_user = slack_request.get_identity_user()
+
         lifecycle.add_extra("organization_ids", [oi.organization_id for oi in ois])
         for oi in ois:
             organization_id = oi.organization_id
@@ -363,16 +376,21 @@ class SlackEventEndpoint(SlackDMEndpoint):
             except Organization.DoesNotExist:
                 continue
 
-            installation = slack_request.integration.get_installation(
-                organization_id=organization_id
-            )
-            assert isinstance(installation, SlackIntegration)
-
             if organization.status != OrganizationStatus.ACTIVE:
                 continue
 
             if not SlackExplorerEntrypoint.has_access(organization):
                 continue
+
+            # When the user's identity is linked, verify they belong to this
+            # org. If not linked the downstream task will prompt to link.
+            if identity_user and not organization.has_access(identity_user):
+                continue
+
+            installation = slack_request.integration.get_installation(
+                organization_id=organization_id
+            )
+            assert isinstance(installation, SlackIntegration)
 
             return organization_id, installation
         lifecycle.record_halt(SeerSlackHaltReason.NO_VALID_ORGANIZATION)
@@ -385,7 +403,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
     ) -> Response | None:
         """Shared handler for app mentions and DMs that trigger the Seer workflow.
 
-        Returns ``None`` when the feature flag is off (DM messages only),
+        Returns ``None`` when org resolution fails (DM messages only),
         allowing the caller to fall back to alternative handling.
         """
         with MessagingInteractionEvent(
@@ -402,8 +420,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
             result = self._resolve_seer_organization(slack_request, lifecycle)
             if result is None:
-                # For DMs, return None on feature-flag halt so caller can
-                # fall back to the help message.
+                # For DMs, return None on org resolution failure so caller
+                # can fall back to the help message.
                 if interaction_type == MessagingInteractionType.DM_MESSAGE:
                     return None
                 return self.respond()

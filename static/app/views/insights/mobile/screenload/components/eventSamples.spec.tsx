@@ -40,7 +40,7 @@ describe('ScreenLoadEventSamples', () => {
       isLoading: false,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       method: 'GET',
       match: [
         MockApiClient.matchQuery({

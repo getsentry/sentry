@@ -37,7 +37,10 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
@@ -173,7 +176,10 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, GitHubIssueSyncSpec, CommitContextIntegration
+    RepositoryIntegration[GitHubEnterpriseApiClient],
+    GitHubIssuesSpec,
+    GitHubIssueSyncSpec,
+    CommitContextIntegration,
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -220,13 +226,14 @@ class GitHubEnterpriseIntegration(
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RepositoryInfo]:
         if not query:
             all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
+                    "external_id": self.get_repo_external_id(i),
                     "default_branch": i.get("default_branch"),
                 }
                 for i in all_repos
@@ -239,6 +246,7 @@ class GitHubEnterpriseIntegration(
             {
                 "name": i["name"],
                 "identifier": i["full_name"],
+                "external_id": self.get_repo_external_id(i),
                 "default_branch": i.get("default_branch"),
             }
             for i in response.get("items", [])

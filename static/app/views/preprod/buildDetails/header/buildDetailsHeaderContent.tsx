@@ -31,6 +31,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   isSizeInfoCompleted,
@@ -48,7 +50,14 @@ interface BuildDetailsHeaderContentProps {
   projectType: string | null;
 }
 
+const buildDetailsFeedbackOptions = {
+  tags: {
+    'feedback.source': 'preprod.buildDetails',
+  },
+};
+
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
@@ -173,129 +182,245 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
         </Layout.Title>
       </Layout.HeaderContent>
 
-      <Layout.HeaderActions>
-        <Flex align="center" gap="sm" flexShrink={0}>
-          <FeedbackButton
-            feedbackOptions={{
-              tags: {
-                'feedback.source': 'preprod.buildDetails',
-              },
-            }}
-          />
-          <Button
-            size="sm"
-            priority="default"
-            icon={<IconTelescope />}
-            onClick={handleCompareClick}
-            disabled={!areActionsEnabled}
-            tooltipProps={{
-              title: areActionsEnabled
-                ? undefined
-                : t('Size analysis must be completed to compare builds'),
-            }}
-          >
-            {t('Compare Build')}
-          </Button>
-          <Feature features="organizations:preprod-frontend-routes">
-            {project && (
-              <LinkButton
-                size="sm"
-                icon={<IconSettings />}
-                aria-label={t('Settings')}
-                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
-              />
-            )}
-          </Feature>
-          <ConfirmDelete
-            message={t(
-              'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
-            )}
-            confirmInput={artifactId}
-            onConfirm={handleConfirmDelete}
-          >
-            {({open: openDeleteModal}) => {
-              const menuItems: MenuItemProps[] = [
-                {
-                  key: 'rerun-status-checks',
-                  label: (
-                    <Flex align="center" gap="sm">
-                      <IconRefresh size="sm" />
-                      {t('Rerun Status Checks')}
-                    </Flex>
-                  ),
-                  onAction: handleRerunStatusChecksAction,
-                  textValue: t('Rerun Status Checks'),
-                  disabled: !canRerunStatusChecks,
-                  tooltip: canRerunStatusChecks
-                    ? undefined
-                    : t('Size analysis must be completed to rerun status checks'),
-                },
-                {
-                  key: 'delete',
-                  label: (
-                    <Flex align="center" gap="sm">
-                      <IconDelete size="sm" variant="danger" />
-                      <Text variant="danger">{t('Delete Build')}</Text>
-                    </Flex>
-                  ),
-                  onAction: openDeleteModal,
-                  textValue: t('Delete Build'),
-                },
-              ];
-
-              if (isSentryEmployee) {
-                menuItems.push({
-                  key: 'admin-section',
-                  label: t('Admin (Sentry Employees only)'),
-                  children: [
-                    {
-                      key: 'rerun',
-                      label: (
-                        <Flex align="center" gap="sm">
-                          <IconRefresh size="sm" />
-                          {t('Rerun Analysis')}
-                        </Flex>
-                      ),
-                      onAction: handleRerunAction,
-                      textValue: t('Rerun Analysis'),
-                    },
-                    {
-                      key: 'download',
-                      label: (
-                        <Flex align="center" gap="sm">
-                          <IconDownload size="sm" />
-                          {t('Download Build')}
-                        </Flex>
-                      ),
-                      onAction: handleDownloadAction,
-                      textValue: t('Download Build'),
-                    },
-                  ],
-                });
-              }
-
-              return (
-                <DropdownMenu
-                  items={menuItems}
-                  trigger={(triggerProps, _isOpen) => (
-                    <DropdownButton
-                      {...triggerProps}
-                      size="sm"
-                      aria-label="More actions"
-                      showChevron={false}
-                      disabled={
-                        isDeletingArtifact || isRerunningStatusChecks || !artifactId
-                      }
-                    >
-                      <IconEllipsis />
-                    </DropdownButton>
-                  )}
+      {hasPageFrameFeature ? (
+        <React.Fragment>
+          <TopBar.Slot name="actions">
+            <Button
+              priority="default"
+              icon={<IconTelescope />}
+              onClick={handleCompareClick}
+              disabled={!areActionsEnabled}
+              tooltipProps={{
+                title: areActionsEnabled
+                  ? undefined
+                  : t('Size analysis must be completed to compare builds'),
+              }}
+            >
+              {t('Compare Build')}
+            </Button>
+            <Feature features="organizations:preprod-frontend-routes">
+              {project && (
+                <LinkButton
+                  icon={<IconSettings />}
+                  aria-label={t('Settings')}
+                  to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
                 />
-              );
-            }}
-          </ConfirmDelete>
-        </Flex>
-      </Layout.HeaderActions>
+              )}
+            </Feature>
+            <ConfirmDelete
+              message={t(
+                'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
+              )}
+              confirmInput={artifactId}
+              onConfirm={handleConfirmDelete}
+            >
+              {({open: openDeleteModal}) => {
+                const menuItems: MenuItemProps[] = [
+                  {
+                    key: 'rerun-status-checks',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconRefresh size="sm" />
+                        {t('Rerun Status Checks')}
+                      </Flex>
+                    ),
+                    onAction: handleRerunStatusChecksAction,
+                    textValue: t('Rerun Status Checks'),
+                    disabled: !canRerunStatusChecks,
+                    tooltip: canRerunStatusChecks
+                      ? undefined
+                      : t('Size analysis must be completed to rerun status checks'),
+                  },
+                  {
+                    key: 'delete',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconDelete size="sm" variant="danger" />
+                        <Text variant="danger">{t('Delete Build')}</Text>
+                      </Flex>
+                    ),
+                    onAction: openDeleteModal,
+                    textValue: t('Delete Build'),
+                  },
+                ];
+
+                if (isSentryEmployee) {
+                  menuItems.push({
+                    key: 'admin-section',
+                    label: t('Admin (Sentry Employees only)'),
+                    children: [
+                      {
+                        key: 'rerun',
+                        label: (
+                          <Flex align="center" gap="sm">
+                            <IconRefresh size="sm" />
+                            {t('Rerun Analysis')}
+                          </Flex>
+                        ),
+                        onAction: handleRerunAction,
+                        textValue: t('Rerun Analysis'),
+                      },
+                      {
+                        key: 'download',
+                        label: (
+                          <Flex align="center" gap="sm">
+                            <IconDownload size="sm" />
+                            {t('Download Build')}
+                          </Flex>
+                        ),
+                        onAction: handleDownloadAction,
+                        textValue: t('Download Build'),
+                      },
+                    ],
+                  });
+                }
+
+                return (
+                  <DropdownMenu
+                    items={menuItems}
+                    trigger={(triggerProps, _isOpen) => (
+                      <DropdownButton
+                        {...triggerProps}
+                        size="sm"
+                        aria-label="More actions"
+                        showChevron={false}
+                        disabled={
+                          isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                        }
+                      >
+                        <IconEllipsis />
+                      </DropdownButton>
+                    )}
+                  />
+                );
+              }}
+            </ConfirmDelete>
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions}>
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        </React.Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Flex align="center" gap="sm" flexShrink={0}>
+            <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions} />
+            <Button
+              size="sm"
+              priority="default"
+              icon={<IconTelescope />}
+              onClick={handleCompareClick}
+              disabled={!areActionsEnabled}
+              tooltipProps={{
+                title: areActionsEnabled
+                  ? undefined
+                  : t('Size analysis must be completed to compare builds'),
+              }}
+            >
+              {t('Compare Build')}
+            </Button>
+            <Feature features="organizations:preprod-frontend-routes">
+              {project && (
+                <LinkButton
+                  size="sm"
+                  icon={<IconSettings />}
+                  aria-label={t('Settings')}
+                  to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
+                />
+              )}
+            </Feature>
+            <ConfirmDelete
+              message={t(
+                'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
+              )}
+              confirmInput={artifactId}
+              onConfirm={handleConfirmDelete}
+            >
+              {({open: openDeleteModal}) => {
+                const menuItems: MenuItemProps[] = [
+                  {
+                    key: 'rerun-status-checks',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconRefresh size="sm" />
+                        {t('Rerun Status Checks')}
+                      </Flex>
+                    ),
+                    onAction: handleRerunStatusChecksAction,
+                    textValue: t('Rerun Status Checks'),
+                    disabled: !canRerunStatusChecks,
+                    tooltip: canRerunStatusChecks
+                      ? undefined
+                      : t('Size analysis must be completed to rerun status checks'),
+                  },
+                  {
+                    key: 'delete',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconDelete size="sm" variant="danger" />
+                        <Text variant="danger">{t('Delete Build')}</Text>
+                      </Flex>
+                    ),
+                    onAction: openDeleteModal,
+                    textValue: t('Delete Build'),
+                  },
+                ];
+
+                if (isSentryEmployee) {
+                  menuItems.push({
+                    key: 'admin-section',
+                    label: t('Admin (Sentry Employees only)'),
+                    children: [
+                      {
+                        key: 'rerun',
+                        label: (
+                          <Flex align="center" gap="sm">
+                            <IconRefresh size="sm" />
+                            {t('Rerun Analysis')}
+                          </Flex>
+                        ),
+                        onAction: handleRerunAction,
+                        textValue: t('Rerun Analysis'),
+                      },
+                      {
+                        key: 'download',
+                        label: (
+                          <Flex align="center" gap="sm">
+                            <IconDownload size="sm" />
+                            {t('Download Build')}
+                          </Flex>
+                        ),
+                        onAction: handleDownloadAction,
+                        textValue: t('Download Build'),
+                      },
+                    ],
+                  });
+                }
+
+                return (
+                  <DropdownMenu
+                    items={menuItems}
+                    trigger={(triggerProps, _isOpen) => (
+                      <DropdownButton
+                        {...triggerProps}
+                        size="sm"
+                        aria-label="More actions"
+                        showChevron={false}
+                        disabled={
+                          isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                        }
+                      >
+                        <IconEllipsis />
+                      </DropdownButton>
+                    )}
+                  />
+                );
+              }}
+            </ConfirmDelete>
+          </Flex>
+        </Layout.HeaderActions>
+      )}
     </React.Fragment>
   );
 }

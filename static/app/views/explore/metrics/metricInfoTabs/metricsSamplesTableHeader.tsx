@@ -3,9 +3,7 @@ import type {ReactNode} from 'react';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
 import {
-  NumericSimpleTableHeaderCell,
   StyledSimpleTableHeader,
   StyledSimpleTableHeaderCell,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
@@ -16,12 +14,6 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
-
-const HEADER_LABELS: Partial<Record<VirtualTableSampleColumnKey, string>> = {
-  [VirtualTableSampleColumnKey.LOGS]: t('Logs'),
-  [VirtualTableSampleColumnKey.SPANS]: t('Spans'),
-  [VirtualTableSampleColumnKey.ERRORS]: t('Errors'),
-};
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];
@@ -37,7 +29,6 @@ export function MetricsSamplesTableHeader({
   return (
     <StyledSimpleTableHeader>
       {columns.map((field, i) => {
-        const columnType = getMetricTableColumnType(field);
         const label = getFieldLabel(field);
 
         return (
@@ -48,11 +39,7 @@ export function MetricsSamplesTableHeader({
             sort={sorts.find(s => s.field === field)?.kind}
             embedded={embedded}
           >
-            {columnType === 'stat'
-              ? HEADER_LABELS[field as VirtualTableSampleColumnKey]
-              : null}
-            {columnType === 'metric_value' ? label : null}
-            {columnType === 'value' ? label : null}
+            {label}
           </FieldHeaderCellWrapper>
         );
       })}
@@ -75,20 +62,7 @@ function FieldHeaderCellWrapper({
 }) {
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
-  const hasPadding = !NoPaddingColumns.includes(field as VirtualTableSampleColumnKey);
-
-  if (columnType === 'stat') {
-    return (
-      <NumericSimpleTableHeaderCell
-        key={`stat-${index}`}
-        divider={false}
-        data-column-name={field}
-        embedded={embedded}
-      >
-        {children}
-      </NumericSimpleTableHeaderCell>
-    );
-  }
+  const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
 
   if (columnType === 'metric_value') {
     return (
@@ -125,13 +99,11 @@ function FieldHeaderCellWrapper({
 function getFieldLabel(field: SampleTableColumnKey): ReactNode {
   const fieldLabels: Record<SampleTableColumnKey, () => ReactNode> = {
     [VirtualTableSampleColumnKey.EXPAND_ROW]: () => null,
-    [TraceMetricKnownFieldKey.TRACE]: () => t('Trace'),
+    [TraceMetricKnownFieldKey.TRACE]: () => t('Trace ID'),
     [TraceMetricKnownFieldKey.METRIC_VALUE]: () => t('Value'),
     [TraceMetricKnownFieldKey.TIMESTAMP]: () => t('Timestamp'),
     [TraceMetricKnownFieldKey.METRIC_NAME]: () => t('Metric'),
-    [VirtualTableSampleColumnKey.LOGS]: () => t('Logs'),
-    [VirtualTableSampleColumnKey.SPANS]: () => t('Spans'),
-    [VirtualTableSampleColumnKey.ERRORS]: () => t('Errors'),
+    [VirtualTableSampleColumnKey.PROJECT_BADGE]: () => t('Project'),
   };
   return fieldLabels[field]?.() ?? null;
 }

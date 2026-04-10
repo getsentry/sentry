@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -11,9 +12,8 @@ import {t, tn} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {userDisplayName} from 'sentry/utils/formatters';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 type GroupedAuthorCommits = Record<
   string,
@@ -27,18 +27,19 @@ type Props = {
 };
 
 export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
-  const commitsEndpoint = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
-    {
-      path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectSlug, version},
-    }
-  );
-
   const {
     data: commits,
     isPending,
     isError,
-  } = useApiQuery<Commit[]>([commitsEndpoint], {staleTime: 0});
+  } = useQuery(
+    apiOptions.as<Commit[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
+      {
+        path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectSlug, version},
+        staleTime: 0,
+      }
+    )
+  );
 
   if (isPending) {
     return <LoadingIndicator />;

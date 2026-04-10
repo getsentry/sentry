@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
@@ -75,7 +76,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -436,12 +437,14 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const received = !!firstIssue;
 
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
-  const tracesQuery = useTraces({
+  const tracesQuery = useQuery({
+    ...useTracesApiOptions({
+      limit: 1,
+      sort: 'timestamp',
+    }),
     enabled: received,
-    limit: 1,
-    sort: 'timestamp',
     refetchInterval: query => {
-      const trace = query.state.data?.[0]?.data?.[0]?.trace;
+      const trace = query.state.data?.json?.data?.[0]?.trace;
       return trace ? false : 5000; // 5s
     },
   });

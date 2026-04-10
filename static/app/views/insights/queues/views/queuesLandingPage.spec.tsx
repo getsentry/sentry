@@ -23,7 +23,7 @@ describe('queuesLandingPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/queues/`,
       query: {statsPeriod: '10d', project: '1'},
     },
-    route: `/organizations/:orgId/insights/backend/queues/`,
+    route: '/organizations/:orgId/insights/backend/queues/',
   };
 
   jest.mocked(useReleaseStats).mockReturnValue({

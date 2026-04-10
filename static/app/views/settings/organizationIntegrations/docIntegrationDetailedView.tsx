@@ -27,7 +27,7 @@ export default function DocIntegrationDetailsView() {
 
   const {data: doc, isPending} = useApiQuery<DocIntegration>(
     [
-      getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+      getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
         path: {docIntegrationIdOrSlug: integrationSlug},
       }),
     ],

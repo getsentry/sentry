@@ -97,12 +97,12 @@ export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
         </Tooltip>
       </Flex>
       {email ? (
-        <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
+        <Tooltip title={t('Email %s', user)} containerDisplayMode="flex">
           <LinkButton
             href={mailToHref}
             external
             icon={<IconMail variant="muted" />}
-            aria-label={t(`Email %s`, user)}
+            aria-label={t('Email %s', user)}
             priority="transparent"
             size="zero"
           />

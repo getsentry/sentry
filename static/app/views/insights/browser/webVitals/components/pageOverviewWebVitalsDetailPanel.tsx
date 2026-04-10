@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
@@ -23,7 +24,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
@@ -85,7 +85,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const routes = useRoutes();
+  const matches = useMatches();
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
 
@@ -93,7 +93,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
 
-  const replayLinkGenerator = generateReplayLink(routes);
+  const replayLinkGenerator = generateReplayLink(matches);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),

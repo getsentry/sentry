@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, ClassVar, NotRequired, TypedDict
+from typing import Any, ClassVar, Generic, NotRequired, TypedDict, TypeVar, cast
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -14,11 +14,11 @@ from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.integrations.analytics import IntegrationRepoAddedEvent
-from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcCreateRepository, RpcRepository
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -26,6 +26,8 @@ from sentry.signals import repo_linked
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
+
+InstT = TypeVar("InstT", bound="RepositoryIntegration[Any]", default=RepositoryIntegration)
 
 
 class RepositoryInputConfig(TypedDict):
@@ -81,7 +83,7 @@ def get_integration_repository_provider(integration):
     return provider_cls(id=provider_key)
 
 
-class IntegrationRepositoryProvider:
+class IntegrationRepositoryProvider(Generic[InstT]):
     """
     Repository Provider for Integrations in the Sentry Repository.
     Does not include plugins.
@@ -98,7 +100,7 @@ class IntegrationRepositoryProvider:
         self,
         integration_id: int | None,
         organization_id: int,
-    ) -> IntegrationInstallation:
+    ) -> InstT:
         if integration_id is None:
             raise IntegrationError(f"{self.name} requires an integration id.")
 
@@ -114,7 +116,7 @@ class IntegrationRepositoryProvider:
         if rpc_org_integration is None:
             raise Integration.DoesNotExist("Integration matching query does not exist.")
 
-        return rpc_integration.get_installation(organization_id=organization_id)
+        return cast(InstT, rpc_integration.get_installation(organization_id=organization_id))
 
     def create_repository(
         self,
@@ -240,13 +242,21 @@ class IntegrationRepositoryProvider:
         self,
         configs: list[RepositoryInputConfig],
         organization: RpcOrganization,
-    ):
+    ) -> tuple[list[RpcRepository], list[RpcRepository], list[RepositoryConfig]]:
+        """
+        Create or update repositories from configs.
+        Returns (created, reactivated, missing) — newly created repos, repos that
+        were reactivated or updated from a hidden/unlinked state, and repo configs
+        that could not be created because a repository with that configuration
+        already exists.
+        """
         external_id_to_repo_config: dict[str, RepositoryConfig] = {}
         for config in configs:
             result = self.build_repository_config(organization=organization, data=config)
             external_id_to_repo_config[result["external_id"]] = result
 
         repos_to_update: list[RpcRepository] = []
+        created_repos: list[RpcRepository] = []
 
         hidden_repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -272,6 +282,7 @@ class IntegrationRepositoryProvider:
                 organization_id=organization.id, create=create_repository
             )
             if new_repository is not None:
+                created_repos.append(new_repository)
                 continue
 
             missing_repos.append(repo_config)
@@ -299,8 +310,7 @@ class IntegrationRepositoryProvider:
                 updates=repos_to_update,
             )
 
-        if missing_repos:
-            raise RepoExistsError(repos=missing_repos)
+        return created_repos, repos_to_update, missing_repos
 
     def dispatch(self, request: Request, organization, **kwargs):
         try:

@@ -46,7 +46,7 @@ export const displayCrashFreePercent = (
   }
 
   if (formatLessThanOnePercent && percent < 1 && percent > 0) {
-    return `<1\u0025`;
+    return '<1\u0025';
   }
 
   const rounded = getCrashFreePercent(

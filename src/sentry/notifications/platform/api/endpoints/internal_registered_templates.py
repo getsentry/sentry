@@ -12,7 +12,7 @@ from sentry.notifications.platform.discord.provider import DiscordRenderable, Di
 from sentry.notifications.platform.email.provider import EmailRenderer
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MSTeamsRenderer
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.slack.provider import SlackRenderer
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -92,13 +92,14 @@ def serialize_slack_preview[T: NotificationData](
 ) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
-    message = SlackRenderer.render(data=data, rendered_template=rendered_template)
+    renderer = SlackNotificationProvider.get_renderer(data=data, category=template.category)
+    message = renderer.render(data=data, rendered_template=rendered_template)
 
     serialized_blocks = []
     for block in message.get("blocks", []):
         serialized_blocks.append(block.to_dict())
 
-    return {"blocks": serialized_blocks}
+    return {"blocks": serialized_blocks, "attachments": message.get("attachments")}
 
 
 def serialize_discord_preview[T: NotificationData](

@@ -76,7 +76,7 @@ export default function ProjectCspReports() {
     refetch: refetchKeyList,
   } = useApiQuery<ProjectKey[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
       }),
     ],
@@ -91,7 +91,7 @@ export default function ProjectCspReports() {
     refetch: refetchProject,
   } = useApiQuery<Project>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
       }),
     ],
@@ -117,7 +117,7 @@ export default function ProjectCspReports() {
 
   const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
   const projectQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
     }),
   ];

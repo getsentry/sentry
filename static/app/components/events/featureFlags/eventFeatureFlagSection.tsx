@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -20,7 +21,7 @@ import {
   OrderBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
@@ -77,14 +78,16 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
   const eventView = useIssueDetailsEventView({group});
-  const {data: rawFlagData} = useOrganizationFlagLog({
-    organization,
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-  });
+  const {data: rawFlagData} = useQuery(
+    organizationFlagLogOptions({
+      organization,
+      query: {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      },
+    })
+  );
   const location = useLocation();
 
   // issue list params we want to preserve in the search

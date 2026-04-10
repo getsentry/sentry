@@ -108,7 +108,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     detectedPlatforms,
     isPending: isDetecting,
     isError: isDetectionError,
-  } = useScmPlatformDetection(hasScmConnected ? selectedRepository.id : undefined);
+  } = useScmPlatformDetection(selectedRepository);
 
   const currentFeatures = useMemo(
     () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
@@ -445,7 +445,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               }}
               styles={{container: base => ({...base, width: '100%'})}}
             />
-            {hasScmConnected && !isDetectionError && (
+            {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
               <Button size="xs" priority="link" onClick={handleBackToRecommended}>
                 {t('Back to recommended platforms')}
               </Button>

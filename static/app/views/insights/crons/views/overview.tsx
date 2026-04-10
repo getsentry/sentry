@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -28,7 +29,7 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -43,8 +44,9 @@ import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
-import type {Monitor} from 'sentry/views/insights/crons/types';
-import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const CronsListPageHeader = HookOrDefault({
   hookName: 'component:crons-list-page-header',
@@ -55,23 +57,27 @@ function CronsOverview() {
   const navigate = useNavigate();
   const location = useLocation();
   const {guideVisible} = useCronsUpsertGuideState();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
 
-  const queryKey = makeMonitorListQueryKey(organization, location.query);
-
-  const {
-    data: monitorList,
-    getResponseHeader: monitorListHeaders,
-    isPending,
-    refetch,
-  } = useApiQuery<Monitor[]>(queryKey, {
-    staleTime: 0,
+  const {data, isPending, refetch} = useQuery({
+    ...monitorListApiOptions(organization, {
+      cursor: location.query.cursor,
+      query: location.query.query,
+      project: location.query.project,
+      environment: location.query.environment,
+      owner: location.query.owner,
+      sort: location.query.sort,
+      asc: location.query.asc,
+    }),
+    select: selectJsonWithHeaders,
   });
+  const monitorList = data?.json;
 
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
 
-  const monitorListPageLinks = monitorListHeaders?.('Link');
+  const monitorListPageLinks = data?.headers.Link;
 
   const handleSearch = (query: string) => {
     const currentQuery = {...location.query, cursor: undefined};
@@ -94,29 +100,56 @@ function CronsOverview() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton />
-            <Button
-              icon={<IconList />}
-              size="sm"
-              onClick={() =>
-                openBulkEditMonitorsModal({
-                  onClose: () => refetch(),
-                })
-              }
-              analyticsEventKey="crons.bulk_edit_modal_button_clicked"
-              analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
-            >
-              {t('Manage Monitors')}
-            </Button>
-            {!guideVisible && (
-              <NewMonitorButton size="sm" icon={<IconAdd />}>
-                {t('Add Cron Monitor')}
-              </NewMonitorButton>
-            )}
-          </Grid>
-        </Layout.HeaderActions>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <Button
+                icon={<IconList />}
+                onClick={() =>
+                  openBulkEditMonitorsModal({
+                    onClose: () => refetch(),
+                  })
+                }
+                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+              >
+                {t('Manage Monitors')}
+              </Button>
+              {!guideVisible && (
+                <NewMonitorButton icon={<IconAdd />}>
+                  {t('Add Cron Monitor')}
+                </NewMonitorButton>
+              )}
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton />
+              <Button
+                icon={<IconList />}
+                size="sm"
+                onClick={() =>
+                  openBulkEditMonitorsModal({
+                    onClose: () => refetch(),
+                  })
+                }
+                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+              >
+                {t('Manage Monitors')}
+              </Button>
+              {!guideVisible && (
+                <NewMonitorButton size="sm" icon={<IconAdd />}>
+                  {t('Add Cron Monitor')}
+                </NewMonitorButton>
+              )}
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">

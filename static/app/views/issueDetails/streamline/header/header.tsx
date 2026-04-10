@@ -52,6 +52,8 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -84,12 +86,23 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
 
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
-    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS;
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
+    group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2;
   const feedbackSource =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
       ? 'issue_details_query_injection'
-      : 'issue_details_n_plus_one_api_calls';
+      : group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2
+        ? 'issue_details_llm_detected_experimental_v2'
+        : 'issue_details_n_plus_one_api_calls';
   const {feedback} = useFeedbackSDKIntegration();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  const feedbackOptions = {
+    messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
+    tags: {
+      ['feedback.source']: feedbackSource,
+    },
+  };
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -147,18 +160,22 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
               </LinkButton>
             )}
             {hasFeedbackForm && feedback ? (
-              <FeedbackButton
-                aria-label={t('Give feedback on the issue Sentry detected')}
-                size="xs"
-                feedbackOptions={{
-                  messagePlaceholder: t(
-                    'Please provide feedback on the issue Sentry detected.'
-                  ),
-                  tags: {
-                    ['feedback.source']: feedbackSource,
-                  },
-                }}
-              />
+              hasPageFrameFeature ? (
+                <TopBar.Slot name="feedback">
+                  <FeedbackButton
+                    aria-label={t('Give feedback on the issue Sentry detected')}
+                    feedbackOptions={feedbackOptions}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </TopBar.Slot>
+              ) : (
+                <FeedbackButton
+                  aria-label={t('Give feedback on the issue Sentry detected')}
+                  size="xs"
+                  feedbackOptions={feedbackOptions}
+                />
+              )
             ) : (
               <NewIssueExperienceButton />
             )}

@@ -377,7 +377,6 @@ from sentry.issues.endpoints.organization_issues_resolved_in_release import (
 )
 from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
-from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.issues.endpoints.project_issues_resolved_in_release import (
     ProjectIssuesResolvedInReleaseEndpoint,
 )
@@ -562,9 +561,6 @@ from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgentTranslateEndpoint
 from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
     OrganizationSupergroupDetailsEndpoint,
-)
-from sentry.seer.supergroups.endpoints.organization_supergroups import (
-    OrganizationSupergroupsEndpoint,
 )
 from sentry.seer.supergroups.endpoints.organization_supergroups_by_group import (
     OrganizationSupergroupsByGroupEndpoint,
@@ -2440,11 +2436,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-update",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/$",
-        OrganizationSupergroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-supergroups",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/by-group/$",
         OrganizationSupergroupsByGroupEndpoint.as_view(),
         name="sentry-api-0-organization-supergroups-by-group",
@@ -3285,12 +3276,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",
         ProjectRepoPathParsingEndpoint.as_view(),
         name="sentry-api-0-project-repo-path-parsing",
-    ),
-    # Grouping configs
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/grouping-configs/$",
-        ProjectGroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-project-grouping-configs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

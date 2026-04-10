@@ -29,7 +29,7 @@ export const kbdStyles = (theme: Theme, variant?: KbdProps['variant']) => css`
   box-shadow: none;
 `;
 
-export interface KbdProps extends React.HTMLAttributes<HTMLElement> {
+interface KbdProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   variant?: 'embossed' | 'debossed';
 }

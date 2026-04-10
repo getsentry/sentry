@@ -74,3 +74,14 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
             {"date": now - timedelta(hours=1), "count": 1},
             {"date": now, "count": 0},
         ]
+
+    def test_invalid_date_range(self) -> None:
+        rule = self.create_project_rule(project=self.event.project)
+        self.login_as(self.user)
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            rule.id,
+            start="invalid",
+            status_code=400,
+        )

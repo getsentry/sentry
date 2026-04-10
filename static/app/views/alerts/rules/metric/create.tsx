@@ -51,7 +51,7 @@ export function MetricRulesCreate(props: Props) {
         }
       : {
           pathname: makeAlertsPathname({
-            path: `/rules/`,
+            path: '/rules/',
             organization,
           }),
           query: {project: project.id},

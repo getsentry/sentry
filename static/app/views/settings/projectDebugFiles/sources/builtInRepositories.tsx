@@ -118,5 +118,5 @@ export function BuiltInRepositories({
 }
 
 const StyledSelectField = styled(SelectField)`
-  ${p => p.disabled && `cursor: not-allowed`}
+  ${p => p.disabled && 'cursor: not-allowed'}
 `;

@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
@@ -8,9 +10,10 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {defined} from 'sentry/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -55,10 +58,11 @@ export function getAutomationActionsWarning(
 }
 
 export function useAutomationProjectSlugs(automation: Automation) {
-  const {data: detectors, isLoading} = useDetectorsQuery(
-    {ids: automation.detectorIds},
-    {enabled: automation.detectorIds.length > 0}
-  );
+  const organization = useOrganization();
+  const {data: detectors, isLoading} = useQuery({
+    ...detectorListApiOptions(organization, {ids: automation.detectorIds}),
+    enabled: automation.detectorIds.length > 0,
+  });
 
   const projectIds = [
     ...new Set(detectors?.map(detector => detector.projectId).filter(defined) ?? []),

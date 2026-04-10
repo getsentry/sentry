@@ -52,6 +52,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "name": "sentry",
                 "identifier": "getsentry/sentry",
                 "default_branch": "master",
+                "external_id": "12345",
             },
         ]
 
@@ -68,7 +69,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         with (
             self.feature(
                 {
-                    "organizations:onboarding-scm": True,
+                    "organizations:onboarding-scm-experiment": True,
                     "organizations:integrations-github-platform-detection": True,
                 }
             ),
@@ -122,7 +123,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_onboarding_skip_integration(self) -> None:
         """Skip flow: welcome → skip connect → manual platform → create project."""
-        with self.feature({"organizations:onboarding-scm": True}):
+        with self.feature({"organizations:onboarding-scm-experiment": True}):
             self.start_onboarding()
 
             # SCM Connect: skip
@@ -162,6 +163,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "name": "sentry",
                 "identifier": "getsentry/sentry",
                 "default_branch": "master",
+                "external_id": "12345",
             },
         ]
 
@@ -178,7 +180,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         with (
             self.feature(
                 {
-                    "organizations:onboarding-scm": True,
+                    "organizations:onboarding-scm-experiment": True,
                     "organizations:integrations-github-platform-detection": True,
                 }
             ),
@@ -273,13 +275,14 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "name": "sentry",
                 "identifier": "getsentry/sentry",
                 "default_branch": "master",
+                "external_id": "12345",
             },
         ]
 
         with (
             self.feature(
                 {
-                    "organizations:onboarding-scm": True,
+                    "organizations:onboarding-scm-experiment": True,
                     "organizations:integrations-github-platform-detection": True,
                 }
             ),
@@ -339,7 +342,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         self.create_github_integration()
 
         with (
-            self.feature({"organizations:onboarding-scm": True}),
+            self.feature({"organizations:onboarding-scm-experiment": True}),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=[],

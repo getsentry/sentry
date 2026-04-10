@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
@@ -13,7 +14,6 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -37,14 +37,14 @@ export function StaticReplayPreview({
   replay,
 }: StaticReplayPreviewProps) {
   const organization = useOrganization();
-  const routes = useRoutes();
+  const matches = useMatches();
   const fullReplayUrl = {
     pathname: makeReplaysPathname({
       path: `/${replayId}/`,
       organization,
     }),
     query: {
-      referrer: getRouteStringFromRoutes(routes),
+      referrer: getRouteStringFromRoutes({matches}),
       t_main: focusTab ?? TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },

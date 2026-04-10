@@ -53,7 +53,7 @@ export function useReplayTraceMeta(
     data: TableDataRow[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
