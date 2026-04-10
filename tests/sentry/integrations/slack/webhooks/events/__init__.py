@@ -17,7 +17,7 @@ SEER_EXPLORER_FEATURES = {
 }
 
 
-LINK_SHARED_EVENT = """{
+LINK_SHARED_EVENT = {
     "type": "link_shared",
     "channel": "Cxxxxxx",
     "channel_name": "general",
@@ -25,20 +25,17 @@ LINK_SHARED_EVENT = """{
     "message_ts": "123456789.9875",
     "team_id": "TXXXXXXX1",
     "links": [
+        {"domain": "example.com", "url": "http://testserver/organizations/test-org/issues/foo/"},
         {
             "domain": "example.com",
-            "url": "http://testserver/organizations/test-org/issues/foo/"
+            "url": "http://testserver/organizations/test-org/issues/bar/baz/",
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/organizations/test-org/issues/bar/baz/"
+            "url": "http://testserver/organizations/test-org/issues/bar/baz/",
         },
-        {
-            "domain": "example.com",
-            "url": "http://testserver/organizations/test-org/issues/bar/baz/"
-        }
-    ]
-}"""
+    ],
+}
 
 
 def build_test_block(link):
