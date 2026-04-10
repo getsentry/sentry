@@ -1,12 +1,17 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
+
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -173,7 +178,18 @@ export function AutomationListTable({
         />
       )}
       {isSuccess && automations.length === 0 && (
-        <SimpleTable.Empty>{t('No alerts found')}</SimpleTable.Empty>
+        {/* TODO - pull this out so it's on it's own */}
+        <SimpleTable.Empty>
+          {/* TODO - Gap 16px, padding 56px */}
+          <Flex direction="column" align="center">
+            <img src={NoAlertsImage} />
+            <Text as="h5">{t('No alerts found.')}</Text>
+            <Text>{t('Looking for a monitor? Try looking on the monitors page')}</Text>
+            <Button icon={<IconSearch />} priority="primary">
+              {t('Search Monitors')}
+            </Button>
+          </Flex>
+        </SimpleTable.Empty>
       )}
       {isError && <LoadingError message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
