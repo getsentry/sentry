@@ -184,7 +184,6 @@ export function VolumeSliders({
                     </div>
                   </SpaceBetweenGrid>
                   <RangeSlider
-                    showLabel={false}
                     name={category}
                     id={sliderId}
                     aria-label={

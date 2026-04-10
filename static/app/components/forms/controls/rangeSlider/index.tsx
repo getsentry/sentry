@@ -76,10 +76,6 @@ type SliderProps = {
    * Show input control for custom values
    */
   showCustomInput?: boolean;
-  /**
-   * Show label with current value
-   */
-  showLabel?: boolean;
   step?: number;
 };
 
@@ -97,7 +93,6 @@ export function RangeSlider({
   onChangeEnd,
   ref,
   disabledReason,
-  showLabel = true,
   ...props
 }: SliderProps) {
   const [sliderValue, setSliderValue] = useState(
@@ -182,7 +177,7 @@ export function RangeSlider({
 
   return (
     <div className={className} ref={ref}>
-      {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
+      {!showCustomInput && <SliderLabel>{labelText}</SliderLabel>}
       <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
         <SliderAndInputWrapper showCustomInput={showCustomInput}>
           <StyledSlider
@@ -197,7 +192,6 @@ export function RangeSlider({
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
-            formatLabel={showLabel ? undefined : () => null}
           />
           {showCustomInput && (
             <StyledInput
