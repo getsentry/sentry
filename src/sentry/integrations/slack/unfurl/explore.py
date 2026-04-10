@@ -235,7 +235,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
                 y_axes.extend(parsed["yAxes"])
             if "groupBy" in parsed and parsed["groupBy"]:
                 group_bys.append(parsed["groupBy"])
-            if chart_type is None and "chartType" in parsed:
+            if chart_type is None and isinstance(parsed.get("chartType"), int):
                 chart_type = parsed["chartType"]
         except (json.JSONDecodeError, TypeError):
             continue
