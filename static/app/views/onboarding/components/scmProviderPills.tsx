@@ -27,7 +27,9 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
       <Grid
         columns={{
           xs: '1fr 1fr',
-          md: `repeat(${primaryProviders.length}, 1fr) min-content`,
+          md: primaryProviders.length
+            ? `repeat(${primaryProviders.length}, 1fr) min-content`
+            : 'min-content',
         }}
         rows={{xs: 2}}
         justify="center"
