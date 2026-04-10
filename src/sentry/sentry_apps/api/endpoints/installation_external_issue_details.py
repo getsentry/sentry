@@ -6,6 +6,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
+from sentry.sentry_apps.api.bases.sentryapps import (
+    rpc_user_from_request,
+)
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
@@ -29,6 +32,7 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
             organization_id=installation.organization_id,
             installation=installation,
             external_issue_id=external_issue_id,
+            user=rpc_user_from_request(request),
         )
 
         if result.error:

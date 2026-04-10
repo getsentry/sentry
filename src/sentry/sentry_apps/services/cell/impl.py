@@ -44,6 +44,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         uri: str,
+        user: RpcUser,
         project_id: int | None = None,
         query: str | None = None,
         dependent_data: str | None = None,
@@ -55,8 +56,35 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         project_slug: str | None = None
         if project_id is not None:
             project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
-            if project:
-                project_slug = project.slug
+            if not project:
+                return RpcSelectRequesterResult(
+                    error=RpcSentryAppError(
+                        message="Could not find the given project for this organization.",
+                        status_code=404,
+                    )
+                )
+            try:
+                organization = Organization.objects.get(id=organization_id)
+            except Organization.DoesNotExist:
+                return RpcSelectRequesterResult(
+                    error=RpcSentryAppError(
+                        message="Could not find the given project for this organization.",
+                        status_code=404,
+                    )
+                )
+            access = self._access_for_installation_user(
+                organization=organization,
+                installation=installation,
+                user=user,
+            )
+            if not access.has_project_access(project):
+                return RpcSelectRequesterResult(
+                    error=RpcSentryAppError(
+                        message="You do not have permission to access this project.",
+                        status_code=403,
+                    )
+                )
+            project_slug = project.slug
 
         try:
             result = SelectRequester(
@@ -149,12 +177,13 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         web_url: str,
         project: str,
         identifier: str,
+        user: RpcUser,
     ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issues.py @ POST
         """
         try:
-            group = Group.objects.get(
+            group = Group.objects.select_related("project").get(
                 id=group_id,
                 project_id__in=Project.objects.filter(organization_id=organization_id),
             )
@@ -163,6 +192,29 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 error=RpcSentryAppError(
                     message="Could not find the corresponding issue for the given issueId",
                     status_code=404,
+                )
+            )
+
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="Could not find the corresponding issue for the given issueId",
+                    status_code=404,
+                )
+            )
+
+        access = self._access_for_installation_user(
+            organization=organization,
+            installation=installation,
+            user=user,
+        )
+        if not access.has_project_access(group.project):
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="You do not have permission to create an external issue for this issue.",
+                    status_code=403,
                 )
             )
 
@@ -187,14 +239,17 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         external_issue_id: int,
+        user: RpcUser,
     ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
         """
         try:
-            platform_external_issue = PlatformExternalIssue.objects.get(
+            platform_external_issue = PlatformExternalIssue.objects.select_related(
+                "group", "group__project", "project"
+            ).get(
                 id=external_issue_id,
-                project__organization_id=organization_id,
+                group__project__organization_id=organization_id,
                 service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
@@ -203,6 +258,33 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 error=RpcSentryAppError(
                     message="Could not find the corresponding external issue from given external_issue_id",
                     status_code=404,
+                ),
+            )
+
+        issue_project = platform_external_issue.project or platform_external_issue.group.project
+
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="Could not find the corresponding external issue from given external_issue_id",
+                    status_code=404,
+                ),
+            )
+
+        access = self._access_for_installation_user(
+            organization=organization,
+            installation=installation,
+            user=user,
+        )
+        if not access.has_project_access(issue_project):
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="You do not have permission to delete this external issue.",
+                    status_code=403,
                 ),
             )
 

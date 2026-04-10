@@ -51,6 +51,7 @@ class SentryAppCellService(RpcService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         uri: str,
+        user: RpcUser,
         project_id: int | None = None,
         query: str | None = None,
         dependent_data: str | None = None,
@@ -85,6 +86,7 @@ class SentryAppCellService(RpcService):
         web_url: str,
         project: str,
         identifier: str,
+        user: RpcUser,
     ) -> RpcPlatformExternalIssueResult:
         """Invokes ExternalIssueCreator to create an external issue."""
         pass
@@ -97,6 +99,7 @@ class SentryAppCellService(RpcService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         external_issue_id: int,
+        user: RpcUser,
     ) -> RpcEmptyResult:
         """Deletes a PlatformExternalIssue."""
         pass

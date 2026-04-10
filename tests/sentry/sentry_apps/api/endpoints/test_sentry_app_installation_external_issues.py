@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
+from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -66,13 +67,49 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def test_invalid_group_id(self) -> None:
         self._set_up_sentry_app("Testin", ["event:write"])
         data = self._post_data()
-        data["issueId"] = self.create_group(project=self.create_project()).id
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        data["issueId"] = self.create_group(project=other_project).id
 
         response = self.client.post(
             self.url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
 
         assert response.status_code == 404
+
+    def test_rejects_issue_from_inaccessible_project(self) -> None:
+        self._set_up_sentry_app("Testin", ["event:write"])
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        user_team = self.create_team(organization=self.org, name="sei-user-team")
+        other_team = self.create_team(organization=self.org, name="sei-other-team")
+        self.create_project(organization=self.org, teams=[user_team], name="sei-user-proj")
+        other_project = self.create_project(
+            organization=self.org, teams=[other_team], name="sei-other-proj"
+        )
+        other_group = self.create_group(project=other_project)
+
+        limited_user = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=limited_user,
+            role="member",
+            teams=[user_team],
+            teamRole="admin",
+        )
+
+        data = self._post_data()
+        data["issueId"] = other_group.id
+
+        self.login_as(user=limited_user)
+        response = self.client.post(self.url, data=data)
+
+        assert response.status_code == 403
+        assert response.data["detail"] == (
+            "You do not have permission to create an external issue for this issue."
+        )
 
     def test_invalid_scopes(self) -> None:
         self._set_up_sentry_app("Testin", ["project:read"])

@@ -1,4 +1,3 @@
-from django.utils.functional import empty
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,27 +6,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppInstallationBaseEndpoint,
+    rpc_user_from_request,
+)
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
-from sentry.users.models.user import User
-from sentry.users.services.user.serial import serialize_rpc_user
-
-
-def _extract_lazy_object(lo):
-    """
-    Unwrap a LazyObject and return the inner object. Whatever that may be.
-
-    ProTip: This is relying on `django.utils.functional.empty`, which may
-    or may not be removed in the future. It's 100% undocumented.
-    """
-    if not hasattr(lo, "_wrapped"):
-        return lo
-    if lo._wrapped is empty:
-        lo._setup()
-    return lo._wrapped
 
 
 class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
@@ -57,10 +43,6 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         action = data.pop("action")
         uri = data.pop("uri")
 
-        user = _extract_lazy_object(request.user)
-        if isinstance(user, User):
-            user = serialize_rpc_user(user)
-
         result = sentry_app_cell_service.create_issue_link(
             organization_id=installation.organization_id,
             installation=installation,
@@ -68,7 +50,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
             action=action,
             fields=data,
             uri=uri,
-            user=user,
+            user=rpc_user_from_request(request),
         )
 
         if result.error:

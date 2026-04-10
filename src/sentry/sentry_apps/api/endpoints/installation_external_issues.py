@@ -9,6 +9,9 @@ from sentry.api.serializers import serialize
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
+from sentry.sentry_apps.api.bases.sentryapps import (
+    rpc_user_from_request,
+)
 from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
@@ -48,6 +51,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
             web_url=data["webUrl"],
             project=data["project"],
             identifier=data["identifier"],
+            user=rpc_user_from_request(request),
         )
 
         if result.error:

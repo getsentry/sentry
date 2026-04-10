@@ -7,7 +7,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppInstallationBaseEndpoint,
+    rpc_user_from_request,
+)
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 
@@ -30,6 +33,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
             organization_id=installation.organization_id,
             installation=installation,
             uri=request.GET.get("uri"),
+            user=rpc_user_from_request(request),
             project_id=int(request.GET["projectId"]) if request.GET.get("projectId") else None,
             query=request.GET.get("query"),
             dependent_data=request.GET.get("dependentData"),
