@@ -20,7 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/';
 
-export function WorkflowEngineFeatureTourButton() {
+export function AlertsMonitorsShowcaseButton() {
   const organization = useOrganization();
 
   const handleClick = useCallback(() => {
@@ -60,62 +60,65 @@ export function WorkflowEngineFeatureTourButton() {
               {t('Monitors detect problems and create issues')}
             </FeatureShowcase.StepTitle>
             <FeatureShowcase.StepContent>
-              {t(
-                'Set conditions across your data and when a threshold is breached, Sentry creates an issue.'
-              )}
+              <Text>
+                {t(
+                  'Set conditions across your data and when a threshold is breached, Sentry creates an issue.'
+                )}
+              </Text>
+              <Stack gap="sm">
+                <Text bold>{t('Types of Monitors:')}</Text>
+                <ul>
+                  <li>
+                    <Text>
+                      <Text bold as="span">
+                        {t('Metric')}
+                      </Text>
+                      {' — '}
+                      {t('span attributes, logs, custom metrics, and more')}
+                    </Text>
+                  </li>
+                  <li>
+                    <Text>
+                      <Text bold as="span">
+                        {t('Cron')}
+                      </Text>
+                      {' — '}
+                      {t('scheduled, recurring job health')}
+                    </Text>
+                  </li>
+                  <li>
+                    <Text>
+                      <Text bold as="span">
+                        {t('Uptime')}
+                      </Text>
+                      {' — '}
+                      {t('service availability and reliability')}
+                    </Text>
+                  </li>
+                  <li>
+                    <Text>
+                      <Text bold as="span">
+                        {t('Mobile Builds')}
+                      </Text>
+                      {' — '}
+                      {t('build size and regressions')}
+                    </Text>
+                  </li>
+                  <li>
+                    <Text>
+                      <Text bold as="span">
+                        {t('Error')}
+                      </Text>{' '}
+                      {t('(managed by Sentry)')}
+                      {' — '}
+                      {t(
+                        'groups incoming errors into issues based on your project settings'
+                      )}
+                    </Text>
+                  </li>
+                </ul>
+              </Stack>
             </FeatureShowcase.StepContent>
-            <Stack gap="sm">
-              <Text bold>{t('Types of Monitors:')}</Text>
-              <ul>
-                <li>
-                  <Text>
-                    <Text bold as="span">
-                      {t('Metric')}
-                    </Text>
-                    {' — '}
-                    {t('count, attributes, tags, custom metrics, and more')}
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    <Text bold as="span">
-                      {t('Error')}
-                    </Text>
-                    {' — '}
-                    {t('unhandled, recurring, or volume-based')}
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    <Text bold as="span">
-                      {t('Uptime')}
-                    </Text>
-                    {' — '}
-                    {t('service availability and reliability')}
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    <Text bold as="span">
-                      {t('Mobile Builds')}
-                    </Text>
-                    {' — '}
-                    {t('build size and regressions')}
-                  </Text>
-                </li>
-                <li>
-                  <Text>
-                    <Text bold as="span">
-                      {t('Cron')}
-                    </Text>
-                    {' — '}
-                    {t(
-                      'group incoming errors into issues based on your project settings'
-                    )}
-                  </Text>
-                </li>
-              </ul>
-            </Stack>
             <FeatureShowcase.StepActions />
           </FeatureShowcase.Step>
           <FeatureShowcase.Step>
@@ -127,14 +130,16 @@ export function WorkflowEngineFeatureTourButton() {
               {t('Alerts notify your team')}
             </FeatureShowcase.StepTitle>
             <FeatureShowcase.StepContent>
-              {t(
-                'Alerts notify your team. Define who gets paged, when, and how — via Slack, email, PagerDuty, and more.'
-              )}
-            </FeatureShowcase.StepContent>
-            <FeatureShowcase.StepContent>
-              {t(
-                'Scale and connect to many monitors, projects, and issue types. Configure your routing so the right people get notified when it matters.'
-              )}
+              <Text>
+                {t(
+                  'Alerts notify your team. Define who gets paged, when, and how — via Slack, email, PagerDuty, and more.'
+                )}
+              </Text>
+              <Text>
+                {t(
+                  'Scale and connect to many monitors, projects, and issue types. Configure your routing so the right people get notified when it matters.'
+                )}
+              </Text>
             </FeatureShowcase.StepContent>
             <FeatureShowcase.StepActions />
           </FeatureShowcase.Step>
@@ -147,19 +152,21 @@ export function WorkflowEngineFeatureTourButton() {
               {t('Connecting Alerts & Monitors')}
             </FeatureShowcase.StepTitle>
             <FeatureShowcase.StepContent>
-              {t(
-                'When creating a Monitor you have the option of setting up a new Alert or connecting to an existing Alert at the same time.'
-              )}
-            </FeatureShowcase.StepContent>
-            <FeatureShowcase.StepContent>
-              {t(
-                'When creating or editing Alerts you can connect to existing routing without ever touching your Monitor logic.'
-              )}
-            </FeatureShowcase.StepContent>
-            <FeatureShowcase.StepContent>
-              {tct('For more information, [link:read the docs].', {
-                link: <ExternalLink href={DOCS_URL} />,
-              })}
+              <Text>
+                {t(
+                  'When creating a Monitor you have the option of setting up a new Alert or connecting to an existing Alert at the same time.'
+                )}
+              </Text>
+              <Text>
+                {t(
+                  'When creating or editing Alerts you can connect to existing routing without ever touching your Monitor logic.'
+                )}
+              </Text>
+              <Text>
+                {tct('For more information, [link:read the docs].', {
+                  link: <ExternalLink href={DOCS_URL} />,
+                })}
+              </Text>
             </FeatureShowcase.StepContent>
             <FeatureShowcase.StepActions />
           </FeatureShowcase.Step>

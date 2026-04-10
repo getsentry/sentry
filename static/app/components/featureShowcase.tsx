@@ -62,7 +62,7 @@ function StepTitle({children}: {children: ReactNode}) {
 }
 
 function StepContent({children}: {children: ReactNode}) {
-  return <Text as="p">{children}</Text>;
+  return <Stack gap="xl">{children}</Stack>;
 }
 
 /**
