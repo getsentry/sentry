@@ -184,12 +184,13 @@ export function MetricPanel({
   );
 }
 
-interface DnDPlaceholderProps {
+function DnDPlaceholder({
+  contentHeight,
+  isDragging,
+}: {
   contentHeight: number | null;
   isDragging: boolean | undefined;
-}
-
-function DnDPlaceholder({contentHeight, isDragging}: DnDPlaceholderProps) {
+}) {
   return (
     <Container padding="md">
       <Placeholder height={contentHeight ? `${contentHeight}px` : '200px'}>
