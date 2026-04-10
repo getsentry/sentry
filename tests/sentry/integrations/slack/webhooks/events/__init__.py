@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import orjson
@@ -17,7 +18,7 @@ SEER_EXPLORER_FEATURES = {
 }
 
 
-LINK_SHARED_EVENT = {
+LINK_SHARED_EVENT: dict[str, Any] = {
     "type": "link_shared",
     "channel": "Cxxxxxx",
     "channel_name": "general",

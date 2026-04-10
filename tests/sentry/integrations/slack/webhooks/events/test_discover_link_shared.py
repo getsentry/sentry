@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qsl
 
@@ -11,7 +12,7 @@ from sentry.integrations.slack.unfurl.types import Handler, LinkType, make_type_
 
 from . import LINK_SHARED_EVENT, BaseEventTest
 
-LINK_SHARED_EVENT_NO_CHANNEL_NAME = {
+LINK_SHARED_EVENT_NO_CHANNEL_NAME: dict[str, Any] = {
     "type": "link_shared",
     "channel": "Cxxxxxx",
     "user": "Uxxxxxxx",
