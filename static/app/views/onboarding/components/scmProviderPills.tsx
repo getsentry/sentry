@@ -1,6 +1,6 @@
 import {Fragment, useRef} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
@@ -27,34 +27,44 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
   const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.has(p.key));
 
   return (
-    <Flex gap="lg" wrap="wrap" justify="center">
-      {primaryProviders.map(provider => (
-        <IntegrationContext
-          key={provider.key}
-          value={{
-            provider,
-            type: 'first_party',
-            installStatus: 'Not Installed',
-            analyticsParams: {
-              view: 'onboarding_scm',
-              already_installed: false,
-            },
-          }}
-        >
-          <IntegrationButton
-            userHasAccess
-            onAddIntegration={onInstall}
-            onExternalClick={() => {}}
-            buttonProps={{
-              icon: getIntegrationIcon(provider.key, 'sm'),
-              buttonText: provider.name,
+    <Flex justify="center">
+      <Grid
+        columns={{
+          xs: '1fr 1fr',
+          md: `repeat(${primaryProviders.length}, 1fr) min-content`,
+        }}
+        rows={{xs: 2}}
+        justify="center"
+        gap="lg"
+      >
+        {primaryProviders.map(provider => (
+          <IntegrationContext
+            key={provider.key}
+            value={{
+              provider,
+              type: 'first_party',
+              installStatus: 'Not Installed',
+              analyticsParams: {
+                view: 'onboarding_scm',
+                already_installed: false,
+              },
             }}
-          />
-        </IntegrationContext>
-      ))}
-      {moreProviders.length > 0 && (
-        <MoreProvidersDropdown providers={moreProviders} onInstall={onInstall} />
-      )}
+          >
+            <IntegrationButton
+              userHasAccess
+              onAddIntegration={onInstall}
+              onExternalClick={() => {}}
+              buttonProps={{
+                icon: getIntegrationIcon(provider.key, 'sm'),
+                buttonText: provider.name,
+              }}
+            />
+          </IntegrationContext>
+        ))}
+        {moreProviders.length > 0 && (
+          <MoreProvidersDropdown providers={moreProviders} onInstall={onInstall} />
+        )}
+      </Grid>
     </Flex>
   );
 }
