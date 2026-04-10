@@ -153,9 +153,8 @@ def _unfurl_explore(
 
         chart_data: dict[str, Any] = {
             "timeSeries": resp.data.get("timeSeries", []),
+            "type": _resolve_display_type(chart_type, y_axes),
         }
-        if chart_type is not None:
-            chart_data["type"] = chart_type
 
         try:
             url = charts.generate_chart(style, chart_data, size=EXPLORE_CHART_SIZE)
@@ -189,6 +188,28 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     2: "area",
 }
 
+# Aggregates that default to bar charts in Explore's determineDefaultChartType.
+# All other aggregates default to line.
+_BAR_AGGREGATES = {"count", "count_unique", "sum"}
+
+
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
+    """Return the display type string for the chart.
+
+    Uses the explicit chartType from the URL when present, otherwise
+    mirrors the frontend's ``determineDefaultChartType`` logic which
+    maps count/count_unique/sum aggregates to bar and everything else
+    to line.
+    """
+    if chart_type is not None:
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "line")
+
+    for y_axis in y_axes:
+        func_name = y_axis.split("(")[0] if "(" in y_axis else ""
+        if func_name in _BAR_AGGREGATES:
+            return "bar"
+    return "line"
+
 
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
@@ -206,7 +227,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     y_axes: list[str] = []
     group_bys: list[str] = []
-    chart_type: str | None = None
+    chart_type: int | None = None
     for field_json in visualize_fields:
         try:
             parsed = json.loads(field_json)
@@ -215,7 +236,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
             if "groupBy" in parsed and parsed["groupBy"]:
                 group_bys.append(parsed["groupBy"])
             if chart_type is None and "chartType" in parsed:
-                chart_type = CHART_TYPE_TO_DISPLAY_TYPE.get(parsed["chartType"])
+                chart_type = parsed["chartType"]
         except (json.JSONDecodeError, TypeError):
             continue
 

@@ -15,6 +15,7 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
@@ -199,7 +200,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=avg(span.duration)&project=1&statsPeriod=24h"),
                     "chart_type": None,
-                    "dataset": "spans",
+                    "dataset": SupportedTraceItemType.SPANS,
                 },
             ),
         ),
@@ -211,7 +212,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h"),
                     "chart_type": None,
-                    "dataset": "spans",
+                    "dataset": SupportedTraceItemType.SPANS,
                 },
             ),
         ),
@@ -223,7 +224,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=sum(payload_size)&project=1&statsPeriod=24h"),
                     "chart_type": None,
-                    "dataset": "logs",
+                    "dataset": SupportedTraceItemType.LOGS,
                 },
             ),
         ),
@@ -235,7 +236,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=count(payload_size)&statsPeriod=24h"),
                     "chart_type": None,
-                    "dataset": "logs",
+                    "dataset": SupportedTraceItemType.LOGS,
                 },
             ),
         ),
@@ -1766,10 +1767,11 @@ class UnfurlTest(TestCase):
         "sentry.integrations.slack.unfurl.explore.client.get",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_explore_without_chart_type_omits_type(
+    def test_unfurl_explore_without_chart_type_defaults_to_line(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
         mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # avg() is not a bar aggregate, so should default to line
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1785,7 +1787,35 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
-        assert "type" not in chart_data
+        assert chart_data["type"] == "line"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_without_chart_type_count_defaults_to_bar(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)")
+        )
+        # count() should default to bar
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "bar"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
@@ -1830,7 +1860,7 @@ class UnfurlTest(TestCase):
 
         assert link_type == LinkType.EXPLORE
         assert args["dataset"] == "logs"
-        assert args["chart_type"] == "bar"
+        assert args["chart_type"] == 0
 
         links = [
             UnfurlableUrl(url=url, args=args),
