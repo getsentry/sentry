@@ -28,9 +28,9 @@ import {
 import {IconChevron, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
@@ -164,41 +164,34 @@ function SupergroupIssueList({
   const pageGroupIds = groupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   // Fetch all groups on this page
-  const {data: allGroups, isPending: allPending} = useApiQuery<Group[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          group: pageGroupIds.map(String),
-          project: ALL_ACCESS_PROJECTS,
-        },
+  const {data: allGroups, isPending: allPending} = useQuery(
+    apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        group: pageGroupIds.map(String),
+        project: ALL_ACCESS_PROJECTS,
       },
-    ],
-    {staleTime: 30_000}
+      staleTime: 30_000,
+    })
   );
 
   // Search with the stream query to find which ones match
-  const {data: matchedGroups, isPending: matchPending} = useApiQuery<Group[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project,
-          environment,
-          statsPeriod,
-          start,
-          end,
-          query: `${query} ${issueIdFilter}`,
-          limit: groupIds.length,
-        },
+  const {data: matchedGroups, isPending: matchPending} = useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project,
+        environment,
+        statsPeriod,
+        start,
+        end,
+        query: `${query} ${issueIdFilter}`,
+        limit: groupIds.length,
       },
-    ],
-    {staleTime: 30_000, enabled: !!filterWithCurrentSearch}
-  );
+      staleTime: 30_000,
+    }),
+    enabled: !!filterWithCurrentSearch,
+  });
 
   const isPending = allPending || (!!filterWithCurrentSearch && matchPending);
 
