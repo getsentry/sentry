@@ -34,3 +34,10 @@ export const canUseMetricsStatsBytesUI = (organization: Organization) => {
     organization.features.includes('tracemetrics-stats-bytes-ui')
   );
 };
+
+export const canUseMetricsEquations = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-equations-in-explore')
+  );
+};

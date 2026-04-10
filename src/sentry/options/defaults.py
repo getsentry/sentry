@@ -1460,16 +1460,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Run an experimental grouping config in background for performance analysis
-register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Fraction of events that will pass through background grouping
-register(
-    "store.background-grouping-sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3195,6 +3185,13 @@ register(
 # When enabled, oversized segments are split into chunks instead of being dropped.
 register(
     "spans.buffer.chunk-oversized-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether to enforce max-segment-bytes during ingestion via the Lua script.
+register(
+    "spans.buffer.enforce-segment-size",
+    type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -3,7 +3,9 @@ import {useCallback, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsFrozenContextProvider,
   type MetricsFrozenForTracesProviderProps,
@@ -18,9 +20,10 @@ import {
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
+  isVisualizeEquation,
   isVisualizeFunction,
   parseVisualize,
-  VisualizeFunction,
+  Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
@@ -117,17 +120,30 @@ function getUpdatedValue<T>(
   return undefined;
 }
 
-export function useMetricVisualize(): VisualizeFunction {
+export function useMetricVisualize(): Visualize {
+  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  if (visualizes.length > 0 && isVisualizeFunction(visualizes[0]!)) {
+  const hasEquations = canUseMetricsEquations(organization);
+  if (
+    visualizes.length > 0 &&
+    (isVisualizeFunction(visualizes[0]!) ||
+      (isVisualizeEquation(visualizes[0]!) && hasEquations))
+  ) {
     return visualizes[0];
   }
   throw new Error('No visualize found');
 }
 
-export function useMetricVisualizes(): readonly VisualizeFunction[] {
+export function useMetricVisualizes(): readonly Visualize[] {
+  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  if (visualizes.length > 0 && visualizes.every(isVisualizeFunction)) {
+  const hasEquations = canUseMetricsEquations(organization);
+  if (
+    visualizes.length > 0 &&
+    visualizes.every(
+      v => isVisualizeFunction(v) || (isVisualizeEquation(v) && hasEquations)
+    )
+  ) {
     return visualizes;
   }
   throw new Error('Only visualize functions are allowed');
@@ -142,11 +158,13 @@ export function useMetricLabel(): string {
   const visualize = useMetricVisualize();
   const {metric} = useTraceMetricContext();
 
-  if (!visualize.parsedFunction) {
-    return metric.name;
+  if (isVisualizeEquation(visualize)) {
+    return visualize.expression.text;
   }
-
-  return `${visualize.parsedFunction.name}(${metric.name})`;
+  if (isVisualizeFunction(visualize) && visualize.parsedFunction) {
+    return `${visualize.parsedFunction.name}(${metric.name})`;
+  }
+  return metric.name;
 }
 
 export function useTraceMetric(): TraceMetric {
@@ -167,7 +185,7 @@ export function useRemoveMetric() {
 export function useSetMetricVisualize() {
   const setVisualizes = useSetQueryParamsVisualizes();
   const setVisualize = useCallback(
-    (newVisualize: VisualizeFunction) => {
+    (newVisualize: Visualize) => {
       setVisualizes([newVisualize.serialize()]);
     },
     [setVisualizes]
@@ -178,7 +196,7 @@ export function useSetMetricVisualize() {
 export function useSetMetricVisualizes() {
   const setVisualizes = useSetQueryParamsVisualizes();
   const setMetricVisualizes = useCallback(
-    (newVisualizes: VisualizeFunction[]) => {
+    (newVisualizes: Visualize[]) => {
       setVisualizes(newVisualizes.map(v => v.serialize()));
     },
     [setVisualizes]

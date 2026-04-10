@@ -88,6 +88,7 @@ import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
+import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardEditSeerChat} from './dashboardEditSeerChat';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -161,6 +162,8 @@ type State = {
   isSavingDashboardFilters: boolean;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
+  seerEditApplied: boolean;
+  seerRunId: number | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   newlyAddedWidget?: Widget;
@@ -217,6 +220,8 @@ class DashboardDetail extends Component<Props, State> {
     openWidgetTemplates: undefined,
     newlyAddedWidget: undefined,
     isCommittingChanges: false,
+    seerEditApplied: false,
+    seerRunId: null,
   };
 
   componentDidMount() {
@@ -859,6 +864,18 @@ class DashboardDetail extends Component<Props, State> {
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
+              const seerRunId = location.query?.seerRunId
+                ? Number(location.query.seerRunId)
+                : null;
+              if (seerRunId) {
+                Sentry.metrics.count('dashboards.seer.create.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
@@ -902,6 +919,8 @@ class DashboardDetail extends Component<Props, State> {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
+              seerEditApplied: false,
+              seerRunId: null,
             });
             return;
           }
@@ -915,11 +934,22 @@ class DashboardDetail extends Component<Props, State> {
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
+              if (this.state.seerEditApplied && this.state.seerRunId) {
+                Sentry.metrics.count('dashboards.seer.edit.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: this.state.seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
                   modifiedDashboard: null,
                   isCommittingChanges: false,
+                  seerEditApplied: false,
+                  seerRunId: null,
                 },
                 () => {
                   if (dashboard && newDashboard.id !== dashboard.id) {
@@ -944,6 +974,8 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
+          seerEditApplied: false,
+          seerRunId: null,
         });
         break;
       }
@@ -952,6 +984,8 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
+          seerEditApplied: false,
+          seerRunId: null,
         });
         break;
       }
@@ -964,21 +998,37 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  handleSeerDashboardUpdate = ({
-    title,
-    widgets,
-  }: Pick<DashboardDetails, 'title' | 'widgets'>) => {
-    this.setState(state => {
-      const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
-      return {
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        modifiedDashboard: {
+  handleSeerDashboardUpdate = (
+    {title, widgets}: Pick<DashboardDetails, 'title' | 'widgets'>,
+    seerRunId: number | null
+  ) => {
+    const {organization} = this.props;
+    this.setState(
+      state => {
+        const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
+        const updatedDashboard = {
           ...dashboard,
           widgets,
           ...(title === undefined ? {} : {title}),
-        },
-      };
-    });
+        };
+        return {
+          widgetLimitReached: widgets.length >= MAX_WIDGETS,
+          seerEditApplied: true,
+          seerRunId,
+          modifiedDashboard: updatedDashboard,
+        };
+      },
+      () => {
+        if (this.state.modifiedDashboard) {
+          validateDashboardAndRecordMetrics({
+            organization,
+            dashboard: this.state.modifiedDashboard,
+            seerRunId,
+            source: 'edit',
+          });
+        }
+      }
+    );
   };
 
   handleUpdateEditStateWidgets = (widgets: Widget[]) => {
