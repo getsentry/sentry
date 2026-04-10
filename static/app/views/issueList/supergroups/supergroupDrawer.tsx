@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -25,7 +24,7 @@ import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
   StreamGroup,
 } from 'sentry/components/stream/group';
-import {IconChevron, IconFocus} from 'sentry/icons';
+import {IconChevron, IconFilter, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -37,6 +36,7 @@ import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupF
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 const DRAWER_COLUMNS: GroupListColumn[] = [
+  'graph',
   'event',
   'users',
   'assignee',
@@ -198,7 +198,7 @@ function SupergroupIssueList({
   if (isPending) {
     return (
       <PanelContainer>
-        <GroupListHeader withChart={false} withColumns={DRAWER_COLUMNS} />
+        <GroupListHeader withChart withColumns={DRAWER_COLUMNS} />
         <PanelBody>
           {pageGroupIds.map(id => (
             <PlaceholderRow key={id}>
@@ -228,25 +228,38 @@ function SupergroupIssueList({
 
   return (
     <Fragment>
+      {matchedIds.size > 0 && (
+        <Flex align="center" gap="xs" padding="0 0 md 0">
+          <IconFilter size="xs" variant="accent" />
+          <Text size="sm" variant="muted">
+            {t('Matches current filters')}
+          </Text>
+        </Flex>
+      )}
       <PanelContainer>
-        <GroupListHeader withChart={false} withColumns={DRAWER_COLUMNS} />
+        <GroupListHeader withChart withColumns={DRAWER_COLUMNS} />
         <PanelBody>
           {sortedGroups.map(group => {
             const members = memberList?.[group.project?.slug]
               ? memberList[group.project.slug]
               : undefined;
             return (
-              <HighlightableRow key={group.id} highlighted={matchedIds.has(group.id)}>
+              <IssueRow key={group.id}>
+                {matchedIds.has(group.id) && (
+                  <MatchedIcon>
+                    <IconFilter size="xs" />
+                  </MatchedIcon>
+                )}
                 <StreamGroup
                   group={group}
                   canSelect={false}
-                  withChart={false}
+                  withChart
                   withColumns={DRAWER_COLUMNS}
                   memberList={members}
                   statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
                   source="supergroup-drawer"
                 />
-              </HighlightableRow>
+              </IssueRow>
             );
           })}
         </PanelBody>
@@ -294,12 +307,23 @@ const PlaceholderRow = styled('div')`
   }
 `;
 
-const HighlightableRow = styled('div')<{highlighted: boolean}>`
-  ${p =>
-    !p.highlighted &&
-    css`
-      opacity: 0.6;
-    `}
+const IssueRow = styled('div')`
+  position: relative;
+
+  > * {
+    /* Leave room for checkbox + filter icon */
+    padding-left: 12px;
+  }
+`;
+
+const MatchedIcon = styled('div')`
+  position: absolute;
+  top: 22px;
+  /* Positioned after where the checkbox will go */
+  left: -2px;
+  transform: translateY(-50%);
+  z-index: 1;
+  color: ${p => p.theme.tokens.graphics.accent.vibrant};
 `;
 
 const StyledMarkedText = styled(MarkedText)`
