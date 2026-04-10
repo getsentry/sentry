@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -43,26 +42,26 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const theme = useTheme();
   const showingPlatformGuide = useIsShowingPlatformGuide();
 
-  const formSections = (
-    <Fragment>
-      {dataSource?.queryObj.isUpserting && (
-        <Alert variant="warning">
-          {t(
-            'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
-          )}
-        </Alert>
-      )}
-      <PreviewSection />
-      {FORM_SECTIONS.map((FormSection, index) => (
-        <FormSection key={index} step={index + 1} />
-      ))}
-    </Fragment>
-  );
-
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       {!detector && <InstrumentationGuide />}
-      {!showingPlatformGuide && formSections}
+      <Stack
+        data-test-id="form-sections"
+        style={showingPlatformGuide ? {display: 'none'} : undefined}
+        gap="2xl"
+      >
+        {dataSource?.queryObj.isUpserting && (
+          <Alert variant="warning">
+            {t(
+              'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
+            )}
+          </Alert>
+        )}
+        <PreviewSection />
+        {FORM_SECTIONS.map((FormSection, index) => (
+          <FormSection key={index} step={index + 1} />
+        ))}
+      </Stack>
     </Stack>
   );
 }

@@ -227,4 +227,58 @@ describe('OrgDashboards', () => {
 
     expect(router.location.query).toEqual({});
   });
+
+  it('applies saved filters after navigating back from a dashboard without filters', async () => {
+    const mockDashboardWithFilters = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Test Dashboard',
+      widgets: [],
+      projects: [1],
+      filters: {},
+    };
+    const mockDashboardWithoutFilters = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '2',
+      title: 'Test Dashboard',
+      widgets: [],
+      projects: [],
+      filters: {},
+    };
+    const dashboardWithoutFiltersPath = `/organizations/${organization.slug}/dashboard/2/`;
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'GET',
+      body: mockDashboardWithFilters,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'GET',
+      body: mockDashboardWithoutFilters,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockDashboardWithFilters, mockDashboardWithoutFilters],
+    });
+
+    const {router} = render(<OrgDashboards>{renderChildFn}</OrgDashboards>, {
+      initialRouterConfig,
+      organization,
+    });
+
+    await waitFor(() => expect(router.location.query.project).toBe('1'));
+
+    router.navigate(dashboardWithoutFiltersPath);
+
+    // Since we navigate to a URL without parameters, the empty query assertion
+    // trivially succeeds - wait on loading to be complete so that we know the
+    // dashboard filter hook has run, and _then_ make sure the query is (still)
+    // empty.
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    await waitFor(() => expect(router.location.query).toEqual({}));
+
+    router.navigate(dashboardPath);
+
+    await waitFor(() => expect(router.location.query.project).toBe('1'));
+  });
 });

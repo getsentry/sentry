@@ -121,6 +121,68 @@ describe('useSeerDashboardSession', () => {
     );
   });
 
+  it('sends current dashboard state as on_page_context with follow-up messages', async () => {
+    const dashboard = {
+      title: 'My Dashboard',
+      widgets: [
+        {
+          title: 'Count',
+          displayType: DisplayType.LINE,
+          interval: '1h',
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: ['count()'],
+              columns: [],
+              aggregates: ['count()'],
+              orderby: '',
+            },
+          ],
+        },
+      ],
+    };
+
+    MockApiClient.addMockResponse({
+      url: apiUrl,
+      body: COMPLETED_SESSION,
+    });
+
+    const postMock = MockApiClient.addMockResponse({
+      url: apiUrl,
+      method: 'POST',
+      body: {},
+    });
+
+    const onDashboardUpdate = jest.fn();
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useSeerDashboardSession({
+          seerRunId: SEER_RUN_ID,
+          dashboard,
+          onDashboardUpdate,
+        }),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.sendFollowUpMessage('Add an error rate widget');
+    });
+
+    expect(postMock).toHaveBeenCalledWith(
+      apiUrl,
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({
+          query: 'Add an error rate widget',
+          on_page_context:
+            'The user is editing an existing dashboard. The current dashboard state is:\n\n{"title":"My Dashboard","widgets":[{"title":"Count","displayType":"line","interval":"1h","queries":[{"name":"","conditions":"","fields":["count()"],"columns":[],"aggregates":["count()"],"orderby":""}]}]}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change.',
+        }),
+      })
+    );
+  });
+
   it('starts a new session via the generate endpoint when dashboard is provided without seerRunId', async () => {
     const dashboard = {
       title: 'My Dashboard',

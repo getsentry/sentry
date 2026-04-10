@@ -12,6 +12,7 @@
 import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {makeDiscoverCharts} from './discover';
+import {makeExploreCharts} from './explore';
 import {makeMetricAlertCharts} from './metricAlert';
 import {makeMetricDetectorCharts} from './metricDetector';
 import {makePerformanceCharts} from './performance';
@@ -42,6 +43,7 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
   renderConfig.set(renderDescriptor.key, renderDescriptor);
 
 makeDiscoverCharts(lightTheme).forEach(register);
+makeExploreCharts(lightTheme).forEach(register);
 makeMetricAlertCharts(lightTheme).forEach(register);
 makeMetricDetectorCharts(lightTheme).forEach(register);
 makePerformanceCharts(lightTheme).forEach(register);

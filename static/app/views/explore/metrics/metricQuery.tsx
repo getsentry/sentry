@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
@@ -11,6 +11,7 @@ import {
   isBaseVisualize,
   isVisualize,
   Visualize,
+  VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
@@ -103,7 +104,11 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   });
 }
 
-export function defaultMetricQuery(): BaseMetricQuery {
+export function defaultMetricQuery({
+  type = 'aggregate',
+}: {type?: 'aggregate' | 'equation'} = {}): BaseMetricQuery {
+  const newFields =
+    type === 'equation' ? [defaultAggregateEquation()] : defaultAggregateFields();
   return {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
@@ -116,8 +121,8 @@ export function defaultMetricQuery(): BaseMetricQuery {
       sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
-      aggregateFields: defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
+      aggregateFields: newFields,
+      aggregateSortBys: defaultAggregateSortBys(newFields),
     }),
   };
 }
@@ -162,6 +167,10 @@ function defaultGroupBys(): GroupBy[] {
 
 export function defaultAggregateFields(): AggregateField[] {
   return [defaultVisualize(), ...defaultGroupBys()];
+}
+
+function defaultAggregateEquation() {
+  return new VisualizeEquation(EQUATION_PREFIX);
 }
 
 export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {

@@ -7,8 +7,8 @@ import {usePipeline} from './usePipeline';
 const organization = OrganizationFixture();
 const API_URL = `/organizations/${organization.slug}/pipeline/integration_pipeline/`;
 
-function TestHarness() {
-  const pipeline = usePipeline('integration', 'dummy');
+function TestHarness({onComplete}: {onComplete?: (data: any) => void} = {}) {
+  const pipeline = usePipeline('integration', 'dummy', {onComplete});
 
   return (
     <div>
@@ -237,6 +237,71 @@ describe('usePipeline', () => {
     expect(await screen.findByText('Hello!')).toBeInTheDocument();
     expect(screen.getByTestId('step')).toHaveTextContent('step_one');
     expect(screen.getByTestId('step-index')).toHaveTextContent('0');
+  });
+
+  it('renders the completion view and defers onComplete until finish is called', async () => {
+    const onComplete = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 2,
+        provider: 'dummy',
+        data: {message: 'Enter your name'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        status: 'advance',
+        step: 'step_two',
+        stepIndex: 1,
+        totalSteps: 2,
+        provider: 'dummy',
+        data: {greeting: 'Hello, Test!'},
+      },
+      match: [MockApiClient.matchData({name: 'Test'})],
+    });
+
+    render(<TestHarness onComplete={onComplete} />, {organization});
+
+    // Advance through step one
+    expect(await screen.findByText('Enter your name')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Your name'}), 'Test');
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    // Advance through step two
+    expect(await screen.findByText('Hello, Test!')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        status: 'complete',
+        data: {result: 'Pipeline finished successfully'},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Finish'}));
+
+    // Completion view should render with the result text and a Done button
+    expect(await screen.findByText('Pipeline finished successfully')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
+    expect(screen.getByTestId('is-complete')).toHaveTextContent('true');
+
+    // onComplete should NOT have been called yet — it's deferred
+    expect(onComplete).not.toHaveBeenCalled();
+
+    // Clicking Done calls finish(), which fires onComplete
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+
+    expect(onComplete).toHaveBeenCalledWith({result: 'Pipeline finished successfully'});
   });
 
   it('does not initialize when enabled is false', async () => {

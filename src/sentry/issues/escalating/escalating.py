@@ -462,7 +462,8 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
             snuba_count,
             eap_count,
             "issues.escalating.is_escalating",
-            reasonable_match_comparator=lambda snuba, eap: either_used_cache or eap <= snuba,
+            reasonable_match_comparator=lambda snuba, eap: either_used_cache
+            or eap <= max(snuba, 1) * 1.1,
             debug_context={
                 "organization_id": group.project.organization_id,
                 "project_id": group.project.id,

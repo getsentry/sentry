@@ -79,8 +79,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         )
         featuredata = {k.feature: k.data for k in result_qs}
         if len(features) == 1:
-            result = result_qs.first()
-            data = None if result is None else result.data
+            data = featuredata.get(features[0])
             return Response({"data": data, "features": featuredata})
         else:
             return Response({"features": featuredata})

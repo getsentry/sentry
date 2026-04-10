@@ -133,13 +133,21 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
     // current filters based on location
     const locationFilters = getCurrentPageFilters(location);
+
+    if (!selectedDashboard) {
+      // Still loading.
+      return;
+    }
+
     if (
-      !selectedDashboard ||
       !hasSavedPageFilters(selectedDashboard) ||
       // Apply redirect once for each dashboard id
       dashboardRedirectRef.current === selectedDashboard.id ||
       hasSavedPageFilters(locationFilters)
     ) {
+      // Mark the redirect check complete even though we didn't redirect (so
+      // that switching to another dashboard reruns the check.)
+      dashboardRedirectRef.current = selectedDashboard.id;
       return;
     }
 

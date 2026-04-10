@@ -1,5 +1,5 @@
+import {Fragment, useMemo} from 'react';
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -181,19 +181,25 @@ function SpansTabHeader() {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <StarSavedQueryButton />
-          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
-            </TopBar.Slot>
-          ) : (
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
             <FeedbackButton />
-          )}
-        </Grid>
-      </Layout.HeaderActions>
+          </Grid>
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }
