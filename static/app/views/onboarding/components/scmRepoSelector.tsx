@@ -9,7 +9,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmSearchControl} from './scmSearchControl';
-import {useScmRepoSearch} from './useScmRepoSearch';
+import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
+import {useScmRepos} from './useScmRepos';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
 interface ScmRepoSelectorProps {
@@ -20,14 +21,10 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   const organization = useOrganization();
   const {selectedRepository, setSelectedRepository, clearDerivedState} =
     useOnboardingContext();
-  const {
-    reposByIdentifier,
-    dropdownItems,
-    isFetching,
-    isError,
-    debouncedSearch,
-    setSearch,
-  } = useScmRepoSearch(integration.id, selectedRepository);
+  const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
+    integration.id,
+    selectedRepository
+  );
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
@@ -58,7 +55,6 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
     clearDerivedState();
 
     if (option === null) {
-      setSearch('');
       handleRemove();
     } else {
       const repo = reposByIdentifier.get(option.value);
@@ -75,14 +71,11 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
 
   function noOptionsMessage() {
     if (isError) {
-      return t('Failed to search repositories. Please try again.');
+      return t('Failed to load repositories. Please try again.');
     }
-    if (debouncedSearch) {
-      return t(
-        'No repositories found. Check your installation permissions to ensure your integration has access.'
-      );
-    }
-    return t('Type to search repositories');
+    return t(
+      'No repositories found. Check your installation permissions to ensure your integration has access.'
+    );
   }
 
   return (
@@ -91,19 +84,12 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
       options={options}
       value={selectedRepository?.externalSlug ?? null}
       onChange={handleChange}
-      onInputChange={(value, actionMeta) => {
-        if (actionMeta.action === 'input-change') {
-          setSearch(value);
-        }
-      }}
-      // Disable client-side filtering; search is handled server-side.
-      filterOption={() => true}
       noOptionsMessage={noOptionsMessage}
       isLoading={isFetching}
       isDisabled={busy}
       clearable
       searchable
-      components={{Control: ScmSearchControl}}
+      components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
     />
   );
 }

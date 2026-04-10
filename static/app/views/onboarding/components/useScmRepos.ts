@@ -1,21 +1,18 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 
 import type {IntegrationRepository, Repository} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface ScmRepoSearchResult {
+interface ScmReposResult {
   repos: IntegrationRepository[];
 }
 
-export function useScmRepoSearch(integrationId: string, selectedRepo?: Repository) {
+export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
   const organization = useOrganization();
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
 
-  const searchQuery = useQuery({
+  const reposQuery = useQuery({
     queryKey: [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
@@ -26,22 +23,20 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
           },
         }
       ),
-      {method: 'GET', query: {search: debouncedSearch, accessibleOnly: true}},
+      {method: 'GET'},
     ] as const,
     queryFn: async context => {
-      return fetchDataQuery<ScmRepoSearchResult>(context);
+      return fetchDataQuery<ScmReposResult>(context);
     },
     retry: 0,
     staleTime: 20_000,
-    placeholderData: previousData => (debouncedSearch ? previousData : undefined),
-    enabled: !!debouncedSearch,
   });
 
   const selectedRepoSlug = selectedRepo?.externalSlug;
 
   const {reposByIdentifier, dropdownItems} = useMemo(
     () =>
-      (searchQuery.data?.[0]?.repos ?? []).reduce<{
+      (reposQuery.data?.[0]?.repos ?? []).reduce<{
         dropdownItems: Array<{
           disabled: boolean;
           label: string;
@@ -63,15 +58,13 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
           dropdownItems: [],
         }
       ),
-    [searchQuery.data, selectedRepoSlug]
+    [reposQuery.data, selectedRepoSlug]
   );
 
   return {
     reposByIdentifier,
     dropdownItems,
-    isFetching: searchQuery.isFetching,
-    isError: searchQuery.isError,
-    debouncedSearch,
-    setSearch,
+    isFetching: reposQuery.isFetching,
+    isError: reposQuery.isError,
   };
 }
