@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {IntegrationRepository, Repository} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ScmReposResult {
@@ -12,31 +12,21 @@ interface ScmReposResult {
 export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
   const organization = useOrganization();
 
-  const reposQuery = useQuery({
-    queryKey: [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId,
-          },
-        }
-      ),
-      {method: 'GET'},
-    ] as const,
-    queryFn: async context => {
-      return fetchDataQuery<ScmReposResult>(context);
-    },
-    retry: 0,
-    staleTime: 20_000,
-  });
+  const reposQuery = useQuery(
+    apiOptions.as<ScmReposResult>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
+      {
+        path: {organizationIdOrSlug: organization.slug, integrationId},
+        staleTime: 20_000,
+      }
+    )
+  );
 
   const selectedRepoSlug = selectedRepo?.externalSlug;
 
   const {reposByIdentifier, dropdownItems} = useMemo(
     () =>
-      (reposQuery.data?.[0]?.repos ?? []).reduce<{
+      (reposQuery.data?.repos ?? []).reduce<{
         dropdownItems: Array<{
           disabled: boolean;
           label: string;
