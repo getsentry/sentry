@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from sentry_sdk import capture_exception
@@ -215,26 +215,6 @@ def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> li
     else:
         metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
-
-
-class SlidingWindow(TypedDict):
-    windowSeconds: int
-    granularitySeconds: int
-
-
-class CardinalityLimit(TypedDict):
-    id: str
-    passive: NotRequired[bool]
-    window: SlidingWindow
-    limit: int
-    scope: Literal["organization", "project"]
-    namespace: str | None
-
-
-class CardinalityLimitOption(TypedDict):
-    rollout_rate: NotRequired[float]
-    limit: CardinalityLimit
-    projects: NotRequired[list[int]]
 
 
 def get_project_config(
