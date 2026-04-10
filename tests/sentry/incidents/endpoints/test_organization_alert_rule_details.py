@@ -63,6 +63,7 @@ from sentry.snuba.models import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -368,6 +369,21 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         new_data = new_resp.data
 
         self.assert_alert_detail_results_match(old_data, new_data)
+
+    @with_feature("organizations:incidents")
+    @freeze_time("2024-12-11 03:21:34")
+    def test_workflow_engine_trigger_order_matches_legacy(self) -> None:
+        """The frontend uses array position to determine critical vs warning.
+        Verify the workflow engine returns triggers in the same order as legacy."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        old_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert_serializer_parity(old=old_resp.data, new=new_resp.data)
 
     @with_feature("organizations:incidents")
     @freeze_time("2024-12-11 03:21:34")

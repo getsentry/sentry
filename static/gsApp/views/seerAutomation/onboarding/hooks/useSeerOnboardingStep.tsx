@@ -1,9 +1,15 @@
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import {useQuery} from '@tanstack/react-query';
+
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
 export function useSeerOnboardingStep(): {initialStep: Steps; isPending: boolean} {
-  const {isPending, data} = useSeerOnboardingCheck({staleTime: 60_000});
+  const organization = useOrganization();
+  const {isPending, data} = useQuery(
+    getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000})
+  );
 
   let initialStep = Steps.CONNECT_GITHUB;
 

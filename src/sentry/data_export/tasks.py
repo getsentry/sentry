@@ -3,7 +3,7 @@ import logging
 import tempfile
 from hashlib import sha1
 from io import BufferedRandom
-from typing import Any
+from typing import Any, NamedTuple
 
 import sentry_sdk
 from django.core.files.base import ContentFile
@@ -43,6 +43,18 @@ from .base import (
 
 logger = logging.getLogger(__name__)
 
+Processor = (
+    IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor | TraceItemFullExportProcessor
+)
+
+
+class AssembleChunkResult(NamedTuple):
+    processor: Processor
+    next_offset: int
+    rows: list[dict[str, Any]]
+    new_bytes_written: int
+    bytes_written_after_chunk: int
+
 
 def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     dataset = data_export.query_info.get("dataset", "None")
@@ -69,6 +81,202 @@ def _page_token_b64_from_processor(
     return None
 
 
+def _normalize_export_limit(export_limit: int | None) -> int:
+    if export_limit is None:
+        return EXPORTED_ROWS_LIMIT
+    return min(export_limit, EXPORTED_ROWS_LIMIT)
+
+
+def _fetch_exported_data_req_obj(
+    data_export_id: int, first_page: bool, extra: dict[str, Any]
+) -> ExportedData | None:
+    try:
+        if first_page:
+            logger.info("dataexport.start", extra=extra)
+        data_export = ExportedData.objects.get(id=data_export_id)
+        if first_page:
+            metrics.incr(
+                "dataexport.start",
+                tags={**_export_metric_tags(data_export), "success": True},
+                sample_rate=1.0,
+            )
+        return data_export
+    except ExportedData.DoesNotExist:
+        if first_page:
+            metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
+        logger.exception("assemble_download: ExportedData.DoesNotExist", extra=extra)
+        return None
+
+
+def _should_stop_fetching_more_fragments(
+    processor: Processor,
+    rows: list[dict[str, Any]],
+    batch_size: int,
+    tf: BufferedRandom,
+    starting_pos: int,
+) -> bool:
+    """True when this activation should flush the chunk: no rows, size cap, or trace pagination end."""
+    if not rows:
+        return True
+    partial_batch = len(rows) < batch_size
+    partial_full_trace_batch = (
+        isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None
+    )
+    if partial_batch and not partial_full_trace_batch:
+        return True
+    if tf.tell() - starting_pos >= MAX_BATCH_SIZE:
+        return True
+    if isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is None:
+        return True
+    return False
+
+
+def _write_exported_chunk_to_blob(
+    *,
+    data_export: ExportedData,
+    export_limit: int,
+    batch_size: int,
+    offset: int,
+    bytes_written: int,
+    environment_id: int | None,
+    page_token: str | None,
+    last_emitted_item_id_hex: str | None,
+    first_page: bool,
+) -> AssembleChunkResult:
+    """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
+    output_mode = OutputMode.from_value(data_export.export_format)
+    processor = get_processor(
+        data_export,
+        environment_id,
+        output_mode,
+        page_token_b64=page_token,
+        last_emitted_item_id_hex=last_emitted_item_id_hex,
+    )
+
+    with tempfile.TemporaryFile(mode="w+b") as tf:
+        writer = FileWriter(
+            buffer=tf,
+            output_mode=output_mode,
+            csv_headers=processor.header_fields,
+            escapechar="\\",
+            extrasaction="ignore",
+        )
+        if first_page:
+            writer.writeheader()
+
+        starting_pos = tf.tell()
+        fragment_offset = 0
+        next_offset = offset + fragment_offset
+        rows: list[dict[str, Any]] = []
+
+        for _ in range(MAX_FRAGMENTS_PER_BATCH):
+            remaining = export_limit - next_offset
+            if remaining <= 0:
+                break
+            fragment_row_count = min(batch_size, remaining)
+            rows = process_rows(processor, data_export, fragment_row_count, next_offset)
+            writer.writerows(rows)
+
+            fragment_offset += len(rows)
+            next_offset = offset + fragment_offset
+
+            if _should_stop_fetching_more_fragments(processor, rows, batch_size, tf, starting_pos):
+                break
+
+        tf.seek(0)
+        new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
+        bytes_written_after_chunk = bytes_written + new_bytes_written
+
+    return AssembleChunkResult(
+        processor=processor,
+        next_offset=next_offset,
+        rows=rows,
+        new_bytes_written=new_bytes_written,
+        bytes_written_after_chunk=bytes_written_after_chunk,
+    )
+
+
+def _schedule_retry(
+    *,
+    data_export_id: int,
+    export_limit: int,
+    batch_size: int,
+    offset: int,
+    base_bytes_written: int,
+    environment_id: int | None,
+    export_retries: int,
+    page_token: str | None,
+    last_emitted_item_id_hex: str | None,
+) -> None:
+    assemble_download.apply_async(
+        args=[data_export_id],
+        kwargs={
+            "export_limit": export_limit,
+            "batch_size": batch_size // 2,
+            "offset": offset,
+            "bytes_written": base_bytes_written,
+            "environment_id": environment_id,
+            "export_retries": export_retries - 1,
+            "page_token": page_token,
+            "last_emitted_item_id_hex": last_emitted_item_id_hex,
+        },
+    )
+
+
+def _schedule_next_task(
+    *,
+    data_export_id: int,
+    chunk: AssembleChunkResult,
+    export_limit: int,
+    batch_size: int,
+    environment_id: int | None,
+    export_retries: int,
+) -> None:
+    processor = chunk.processor
+    next_offset = chunk.next_offset
+    rows = chunk.rows
+    new_bytes_written = chunk.new_bytes_written
+    bytes_written = chunk.bytes_written_after_chunk
+
+    cont_kwargs: dict[str, Any] = {
+        "export_limit": export_limit,
+        "batch_size": batch_size,
+        "offset": next_offset,
+        "bytes_written": bytes_written,
+        "environment_id": environment_id,
+        "export_retries": export_retries,
+        "page_token": _page_token_b64_from_processor(processor),
+    }
+    if isinstance(processor, TraceItemFullExportProcessor):
+        cont_kwargs["last_emitted_item_id_hex"] = processor.last_emitted_item_id_hex
+
+    should_continue = (
+        new_bytes_written
+        and next_offset < export_limit
+        and (
+            (
+                isinstance(processor, TraceItemFullExportProcessor)
+                and processor.page_token is not None
+            )
+            or (
+                not isinstance(processor, TraceItemFullExportProcessor)
+                and rows
+                and len(rows) >= batch_size
+            )
+        )
+    )
+
+    if should_continue:
+        assemble_download.apply_async(
+            args=[data_export_id],
+            kwargs=cont_kwargs,
+        )
+    else:
+        metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
+        metrics.distribution("dataexport.file_size", bytes_written, sample_rate=1.0, unit="byte")
+        merge_export_blobs.delay(data_export_id)
+
+
 @instrumented_task(
     name="sentry.data_export.tasks.assemble_download",
     namespace=export_tasks,
@@ -90,6 +298,7 @@ def assemble_download(
     *,
     page_token: str | None = None,
     last_emitted_item_id_hex: str | None = None,
+    run_sync: bool = False,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -97,21 +306,8 @@ def assemble_download(
     extra: dict[str, Any] = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="assemble"):
         first_page = offset == 0
-
-        try:
-            if first_page:
-                logger.info("dataexport.start", extra=extra)
-            data_export = ExportedData.objects.get(id=data_export_id)
-            if first_page:
-                metrics.incr(
-                    "dataexport.start",
-                    tags={**_export_metric_tags(data_export), "success": True},
-                    sample_rate=1.0,
-                )
-        except ExportedData.DoesNotExist:
-            if first_page:
-                metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
-            logger.exception("assemble_download: ExportedData.DoesNotExist", extra=extra)
+        data_export = _fetch_exported_data_req_obj(data_export_id, first_page, extra)
+        if data_export is None:
             return
 
         _set_data_on_scope(data_export)
@@ -122,96 +318,32 @@ def assemble_download(
             {"query": str(data_export.payload), "organization_id": data_export.organization_id}
         )
 
+        export_limit = _normalize_export_limit(export_limit)
+
         try:
-            # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
-            if export_limit is None:
-                export_limit = EXPORTED_ROWS_LIMIT
-            else:
-                export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
-
-            output_mode = OutputMode.from_value(data_export.export_format)
-            processor = get_processor(
-                data_export,
-                environment_id,
-                output_mode,
-                page_token_b64=page_token,
+            chunk = _write_exported_chunk_to_blob(
+                data_export=data_export,
+                export_limit=export_limit,
+                batch_size=batch_size,
+                offset=offset,
+                bytes_written=bytes_written,
+                environment_id=environment_id,
+                page_token=page_token,
                 last_emitted_item_id_hex=last_emitted_item_id_hex,
+                first_page=first_page,
             )
-
-            with tempfile.TemporaryFile(mode="w+b") as tf:
-                writer = FileWriter(
-                    buffer=tf,
-                    output_mode=output_mode,
-                    csv_headers=processor.header_fields,
-                    escapechar="\\",
-                    extrasaction="ignore",
-                )
-                if first_page:
-                    writer.writeheader()
-
-                # the position in the file at the end of the headers
-                starting_pos = tf.tell()
-
-                # the row offset relative to the start of the current task
-                # this offset tells you the number of rows written during this batch fragment
-                fragment_offset = 0
-
-                # the absolute row offset from the beginning of the export
-                next_offset = offset + fragment_offset
-
-                rows = []
-
-                for _ in range(MAX_FRAGMENTS_PER_BATCH):
-                    remaining = export_limit - next_offset
-                    if remaining <= 0:
-                        break
-                    fragment_row_count = min(batch_size, remaining)
-                    rows = process_rows(processor, data_export, fragment_row_count, next_offset)
-                    writer.writerows(rows)
-
-                    fragment_offset += len(rows)
-                    next_offset = offset + fragment_offset
-
-                    partial_batch = len(rows) < batch_size
-                    # Wide JSONL trace export uses Snuba page_token, not row offset. Stopping only
-                    # because we got fewer than batch_size rows would skip remaining pages when Snuba
-                    # still returns a continuation token (or when the next fragment fills the page).
-                    trace_partial_ok = (
-                        isinstance(processor, TraceItemFullExportProcessor)
-                        and processor.page_token is not None
-                    )
-                    if (
-                        not rows
-                        or (partial_batch and not trace_partial_ok)
-                        # the batch may exceed MAX_BATCH_SIZE but immediately stops
-                        or tf.tell() - starting_pos >= MAX_BATCH_SIZE
-                        # TraceItemFullExportProcessor ignores offset; the next fragment would repeat
-                        # the first page if Snuba did not return a continuation token.
-                        or (
-                            isinstance(processor, TraceItemFullExportProcessor)
-                            and processor.page_token is None
-                        )
-                    ):
-                        break
-
-                tf.seek(0)
-
-                new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
-                bytes_written += new_bytes_written
         except ExportError as error:
             if error.recoverable and export_retries > 0:
-                assemble_download.apply_async(
-                    args=[data_export_id],
-                    kwargs={
-                        "export_limit": export_limit,
-                        "batch_size": batch_size // 2,
-                        "offset": offset,
-                        "bytes_written": base_bytes_written,
-                        "environment_id": environment_id,
-                        "export_retries": export_retries - 1,
-                        "page_token": page_token,
-                        "last_emitted_item_id_hex": last_emitted_item_id_hex,
-                    },
+                _schedule_retry(
+                    data_export_id=data_export_id,
+                    export_limit=export_limit,
+                    batch_size=batch_size,
+                    offset=offset,
+                    base_bytes_written=base_bytes_written,
+                    environment_id=environment_id,
+                    export_retries=export_retries,
+                    page_token=page_token,
+                    last_emitted_item_id_hex=last_emitted_item_id_hex,
                 )
             else:
                 metrics.incr(
@@ -243,45 +375,14 @@ def assemble_download(
                 )
                 return data_export.email_failure(message="Internal processing failure")
         else:
-            cont_kwargs: dict[str, Any] = {
-                "export_limit": export_limit,
-                "batch_size": batch_size,
-                "offset": next_offset,
-                "bytes_written": bytes_written,
-                "environment_id": environment_id,
-                "export_retries": export_retries,
-                "page_token": _page_token_b64_from_processor(processor),
-            }
-            if isinstance(processor, TraceItemFullExportProcessor):
-                cont_kwargs["last_emitted_item_id_hex"] = processor.last_emitted_item_id_hex
-
-            should_continue = (
-                new_bytes_written
-                and next_offset < export_limit
-                and (
-                    (
-                        isinstance(processor, TraceItemFullExportProcessor)
-                        and processor.page_token is not None
-                    )
-                    or (
-                        not isinstance(processor, TraceItemFullExportProcessor)
-                        and rows
-                        and len(rows) >= batch_size
-                    )
-                )
+            _schedule_next_task(
+                data_export_id=data_export_id,
+                chunk=chunk,
+                export_limit=export_limit,
+                batch_size=batch_size,
+                environment_id=environment_id,
+                export_retries=export_retries,
             )
-
-            if should_continue:
-                assemble_download.apply_async(
-                    args=[data_export_id],
-                    kwargs=cont_kwargs,
-                )
-            else:
-                metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
-                metrics.distribution(
-                    "dataexport.file_size", bytes_written, sample_rate=1.0, unit="byte"
-                )
-                merge_export_blobs.delay(data_export_id)
 
 
 def get_processor(
@@ -336,10 +437,7 @@ def get_processor(
 
 
 def process_rows(
-    processor: IssuesByTagProcessor
-    | DiscoverProcessor
-    | ExploreProcessor
-    | TraceItemFullExportProcessor,
+    processor: Processor,
     data_export: ExportedData,
     batch_size: int,
     offset: int,

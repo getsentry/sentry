@@ -353,7 +353,6 @@ describe('desktop navigation', () => {
           [`${ORG}/insights/ai-agents/`, 'Insights', 'Agents'],
           [`${ORG}/insights/mcp/`, 'Insights', 'MCP'],
           [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Crons'],
-          [`${ORG}/insights/projects/`, 'Insights', 'All Projects'],
           // Monitors
           [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           [`${ORG}/monitors/my-monitors/`, 'Monitors', 'My Monitors'],

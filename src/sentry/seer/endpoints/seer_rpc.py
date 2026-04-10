@@ -83,6 +83,7 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     get_project_seer_preferences,
+    read_preference_from_sentry_db,
     resolve_repository_ids,
     write_preference_to_sentry_db,
 )
@@ -615,17 +616,24 @@ def trigger_coding_agent_launch(
             },
         )
         try:
-            project = Project.objects.get_from_cache(id=project_id)
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
-                preference_response = get_project_seer_preferences(project.id)
-                if preference_response and preference_response.preference:
-                    updated_preference = preference_response.preference.copy(
-                        update={"automation_handoff": None}
-                    )
-                    validated_pref = SeerProjectPreference.validate(updated_preference)
-                    resolved_pref = resolve_repository_ids(organization.id, [validated_pref])
-                    write_preference_to_sentry_db(project, resolved_pref[0])
+                project = Project.objects.get_from_cache(id=project_id)
+
+                if features.has(
+                    "organizations:seer-project-settings-read-from-sentry", organization
+                ):
+                    preference = read_preference_from_sentry_db(project)
+                else:
+                    preference = get_project_seer_preferences(project.id).preference
+
+                if preference and preference.automation_handoff is not None:
+                    updated_preference = preference.copy(update={"automation_handoff": None})
+                    resolved_preference = resolve_repository_ids(
+                        organization.id, [SeerProjectPreference.validate(updated_preference)]
+                    )[0]
+                    write_preference_to_sentry_db(project, resolved_preference)
+                    # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
         except Exception:
             logger.exception(
                 "coding_agent.clear_handoff_preference_failed",
