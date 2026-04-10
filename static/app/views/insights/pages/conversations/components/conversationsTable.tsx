@@ -214,7 +214,7 @@ const BodyCell = memo(function BodyCell({
       return (
         <Tooltip title={displayName} showOnlyOnOverflow>
           <Flex align="center" gap="xs" minWidth={0}>
-            <IconUser size="md" color="subText" />
+            <IconUser size="md" variant="muted" />
             <Text ellipsis>{displayName}</Text>
           </Flex>
         </Tooltip>

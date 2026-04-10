@@ -19,7 +19,7 @@ function ConversationsLayout() {
           <ConversationsPageHeader
             hideDefaultTabs
             headerTitle={<Fragment />}
-            breadcrumbs={[{label: conversationId!.slice(0, 8)}]}
+            breadcrumbs={[{label: conversationId.slice(0, 8)}]}
           />
         </DetailHeaderWrapper>
       ) : (

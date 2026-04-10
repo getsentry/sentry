@@ -50,7 +50,7 @@ function ConversationDetailContent() {
 
   const conversation = useMemo(
     () => ({
-      conversationId: conversationId!,
+      conversationId,
       startTimestamp: queryState.start ?? undefined,
       endTimestamp: queryState.end ?? undefined,
     }),
@@ -72,11 +72,11 @@ function ConversationDetailContent() {
         width="full"
         style={{display: 'flex', flexDirection: 'column', flex: 1}}
       >
-        <Flex direction="column" gap="md" padding="none none xl none">
+        <Flex direction="column" gap="md" padding="0 0 xl 0">
           <ConversationSummary
             nodes={nodes}
             nodeTraceMap={nodeTraceMap}
-            conversationId={conversationId!}
+            conversationId={conversationId}
             isLoading={isLoading}
           />
         </Flex>
