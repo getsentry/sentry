@@ -41,6 +41,7 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   traceMetric: TraceMetric;
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
+  isDragging?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   references?: Set<string>;
 }
@@ -51,6 +52,7 @@ export function MetricPanel({
   references,
   dragListeners,
   isAnyDragging,
+  isDragging,
   style,
   ref,
   ...rest
@@ -137,11 +139,13 @@ export function MetricPanel({
                       contentHeightRef.current ? `${contentHeightRef.current}px` : '200px'
                     }
                   >
-                    <Text variant="muted">
-                      {t(
-                        'Hold on to your butts! Charts are tucked away while you reorder. Too expensive to drag along for the ride.'
-                      )}
-                    </Text>
+                    {isDragging && (
+                      <Text variant="muted">
+                        {t(
+                          'Hold on to your butts! Charts are tucked away while you reorder. Too expensive to drag along for the ride.'
+                        )}
+                      </Text>
+                    )}
                   </Placeholder>
                 </Container>
               ) : (
