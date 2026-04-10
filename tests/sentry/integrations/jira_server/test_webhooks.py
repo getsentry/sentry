@@ -9,7 +9,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import ActorType, get_viewer_context
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
@@ -93,6 +95,27 @@ class JiraServerWebhookEndpointTest(APITestCase):
                 "issue": EXAMPLE_PAYLOAD["issue"],
             },
         )
+
+    @override_options({"viewer-context.enabled": True})
+    @patch.object(JiraServerIntegration, "sync_status_inbound")
+    def test_post_update_status_sets_viewer_context(self, mock_sync: MagicMock) -> None:
+        captured_contexts: list = []
+
+        def capture_context(*args: object, **kwargs: object) -> None:
+            captured_contexts.append(get_viewer_context())
+
+        mock_sync.side_effect = capture_context
+
+        project = self.create_project()
+        self.create_group(project=project)
+
+        self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
+
+        assert len(captured_contexts) == 1
+        vc = captured_contexts[0]
+        assert vc is not None
+        assert vc.organization_id == self.organization.id
+        assert vc.actor_type == ActorType.INTEGRATION
 
     @responses.activate
     def test_post_update_status_token_error(self) -> None:

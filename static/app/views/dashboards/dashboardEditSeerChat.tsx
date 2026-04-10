@@ -8,7 +8,10 @@ import {useSeerDashboardSession} from './useSeerDashboardSession';
 
 interface DashboardEditSeerChatProps {
   dashboard: DashboardDetails;
-  onDashboardUpdate: (dashboard: Pick<DashboardDetails, 'title' | 'widgets'>) => void;
+  onDashboardUpdate: (
+    dashboard: Pick<DashboardDetails, 'title' | 'widgets'>,
+    seerRunId: number | null
+  ) => void;
 }
 
 export function DashboardEditSeerChat({
@@ -22,8 +25,8 @@ export function DashboardEditSeerChat({
     organization.features.includes('dashboards-ai-generate');
 
   const handleDashboardUpdate = useCallback(
-    (data: {title: string; widgets: Widget[]}) => {
-      onDashboardUpdate({title: data.title, widgets: data.widgets});
+    (data: {title: string; widgets: Widget[]}, seerRunId: number | null) => {
+      onDashboardUpdate({title: data.title, widgets: data.widgets}, seerRunId);
     },
     [onDashboardUpdate]
   );

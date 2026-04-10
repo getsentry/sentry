@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -7,12 +8,13 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
+import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupUserFeedback} from 'sentry/views/issueDetails/useGroupUserFeedback';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
@@ -28,17 +30,14 @@ function GroupUserFeedback() {
     groupId: params.groupId,
   });
 
-  const {
-    data: reportList,
-    isPending,
-    isError,
-    refetch,
-    getResponseHeader,
-  } = useGroupUserFeedback({
-    groupId: params.groupId,
-    query: {
-      cursor: location.query.cursor as string | undefined,
-    },
+  const {data, isPending, isError, refetch} = useQuery({
+    ...groupUserFeedbackApiOptions(organization, {
+      groupId: params.groupId,
+      query: {
+        cursor: location.query.cursor,
+      },
+    }),
+    select: selectJsonWithHeaders,
   });
 
   if (isError || isErrorGroup) {
@@ -62,7 +61,8 @@ function GroupUserFeedback() {
     );
   }
 
-  const pageLinks = getResponseHeader?.('Link');
+  const reportList = data?.json ?? [];
+  const pageLinks = data?.headers.Link;
   const hasUserFeedback = group.project.hasUserReports;
 
   return (

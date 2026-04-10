@@ -1,5 +1,8 @@
+import {queryOptions, skipToken} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
@@ -10,6 +13,7 @@ import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {
   ApiQueryKey,
@@ -82,14 +86,14 @@ interface UseAutomationsQueryOptions {
 }
 export function useAutomationsQuery(
   options: UseAutomationsQueryOptions = {},
-  queryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
+  useApiQueryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
 ) {
   const {slug: orgSlug} = useOrganization();
 
   return useApiQuery<Automation[]>(makeAutomationsQueryKey({orgSlug, ...options}), {
     staleTime: 0,
     retry: false,
-    ...queryOptions,
+    ...useApiQueryOptions,
   });
 }
 
@@ -102,45 +106,33 @@ export function useAutomationQuery(automationId: string) {
   });
 }
 
-const makeAutomationFireHistoryQueryKey = ({
-  orgSlug,
-  automationId,
-  cursor,
-  limit,
-  query = {},
-}: {
+interface AutomationFireHistoryApiOptionsParams {
   automationId: string;
-  orgSlug: string;
-  cursor?: string;
-  limit?: number;
-  query?: Record<string, any>;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/', {
-    path: {organizationIdOrSlug: orgSlug, workflowId: automationId},
-  }),
-  {query: {...query, per_page: limit, cursor}},
-];
-
-interface UseAutomationFireHistoryQueryOptions {
-  automationId: string;
+  organization: Organization;
   cursor?: string;
   limit?: number;
   query?: Record<string, any>;
 }
-export function useAutomationFireHistoryQuery(
-  options: UseAutomationFireHistoryQueryOptions,
-  queryOptions: Partial<UseApiQueryOptions<AutomationFireHistory[]>> = {}
-) {
-  const {slug} = useOrganization();
-
-  return useApiQuery<AutomationFireHistory[]>(
-    makeAutomationFireHistoryQueryKey({orgSlug: slug, ...options}),
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: false,
-      ...queryOptions,
-    }
-  );
+export function automationFireHistoryApiOptions({
+  automationId,
+  cursor,
+  limit,
+  organization,
+  query = {},
+}: AutomationFireHistoryApiOptionsParams) {
+  return queryOptions({
+    ...apiOptions.as<AutomationFireHistory[]>()(
+      '/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/',
+      {
+        path: automationId
+          ? {organizationIdOrSlug: organization.slug, workflowId: automationId}
+          : skipToken,
+        query: {...query, per_page: limit, cursor},
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      }
+    ),
+    retry: false,
+  });
 }
 
 export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {

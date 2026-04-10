@@ -24,6 +24,12 @@ describe('MetricSelectRow', () => {
     mockedUseNavigate.mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
@@ -37,6 +43,21 @@ describe('MetricSelectRow', () => {
             ['metric.type']: 'counter',
             ['count(metric.name)']: 1,
           },
+          {
+            ['metric.name']: 'counter_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'distribution_metric',
+            ['metric.type']: 'distribution',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'gauge_metric',
+            ['metric.type']: 'gauge',
+            ['count(metric.name)']: 1,
+          },
         ],
       },
     });
@@ -44,6 +65,7 @@ describe('MetricSelectRow', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders the same metric for all rows', async () => {
@@ -165,25 +187,6 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates when changing to an incompatible metric type', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
@@ -248,25 +251,6 @@ describe('MetricSelectRow', () => {
   });
 
   it('preserves valid aggregates when changing metric type', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
@@ -331,25 +315,6 @@ describe('MetricSelectRow', () => {
   });
 
   it('handles mixed valid and invalid aggregates on metric change', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
@@ -438,25 +403,6 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates for big number display', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
@@ -519,24 +465,6 @@ describe('MetricSelectRow', () => {
   });
 
   it('uses avg for gauge metrics', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow

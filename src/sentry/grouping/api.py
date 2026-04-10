@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 
-from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.context import GroupingContext
@@ -147,15 +146,6 @@ class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
 
     option_name = "sentry:secondary_grouping_config"
     cache_prefix = "secondary-grouping-enhancements:"
-
-
-class BackgroundGroupingConfigLoader(GroupingConfigLoader):
-    """Does not affect grouping, runs in addition to measure performance impact"""
-
-    cache_prefix = "background-grouping-enhancements:"
-
-    def _get_config_id(self, _project: Project) -> str:
-        return options.get("store.background-grouping-config-id")
 
 
 @sentry_sdk.tracing.trace

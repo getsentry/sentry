@@ -12,6 +12,7 @@ import {Tabs} from '@sentry/scraps/tabs';
 
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
@@ -137,7 +138,16 @@ export const HeaderActions = styled('div')`
  * Includes flex gap for additional items placed with the text (such as feature
  * badges or ID badges)
  */
-export const Title = styled('h1')<{withMargins?: boolean}>`
+export function Title(props: React.ComponentProps<typeof LegacyTitle>) {
+  const hasPageFrame = useHasPageFrameFeature();
+
+  if (hasPageFrame) {
+    return <TopBar.Slot name="title">{props.children}</TopBar.Slot>;
+  }
+
+  return <LegacyTitle {...props} />;
+}
+const LegacyTitle = styled('h1')<{withMargins?: boolean}>`
   width: 100%;
   white-space: nowrap;
   overflow: hidden;

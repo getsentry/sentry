@@ -19,6 +19,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {FeatureFilter} from './featureFilter';
 import {PrCommentsToggle} from './prCommentsToggle';
+import {SnapshotPrCommentsToggle} from './snapshotPrCommentsToggle';
 import {SnapshotStatusChecks} from './snapshotStatusChecks';
 import {StatusCheckRules} from './statusCheckRules';
 
@@ -120,7 +121,14 @@ export default function PreprodSettings() {
             </Feature>
           </Fragment>
         )}
-        {tab === 'snapshots' && <SnapshotStatusChecks />}
+        {tab === 'snapshots' && (
+          <Fragment>
+            <SnapshotStatusChecks />
+            <Feature features="organizations:preprod-snapshot-pr-comments">
+              <SnapshotPrCommentsToggle />
+            </Feature>
+          </Fragment>
+        )}
       </Stack>
     </Feature>
   );

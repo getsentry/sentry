@@ -174,6 +174,7 @@ export function fetchDataQuery<TResponseData = unknown>(
  * response data. This does not include the ApiResult type. For that you can
  * manually call queryClient.getQueryData.
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey

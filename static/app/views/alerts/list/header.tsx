@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
@@ -66,38 +68,61 @@ export function AlertHeader({activeTab}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <CreateAlertButton
-            organization={organization}
-            iconProps={{size: 'sm'}}
-            size="sm"
-            priority="primary"
-            referrer="alert_stream"
-            projectSlug={
-              selection.projects.length === 1
-                ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
-                : undefined
-            }
-          >
-            {t('Create Alert')}
-          </CreateAlertButton>
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
-            </TopBar.Slot>
-          ) : (
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <CreateAlertButton
+              organization={organization}
+              iconProps={{size: 'sm'}}
+              priority="primary"
+              referrer="alert_stream"
+              projectSlug={
+                selection.projects.length === 1
+                  ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+                  : undefined
+              }
+            >
+              {t('Create Alert')}
+            </CreateAlertButton>
+            <LinkButton
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="sm" />}
+              aria-label={t('Settings')}
+            />
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <CreateAlertButton
+              organization={organization}
+              iconProps={{size: 'sm'}}
+              size="sm"
+              priority="primary"
+              referrer="alert_stream"
+              projectSlug={
+                selection.projects.length === 1
+                  ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+                  : undefined
+              }
+            >
+              {t('Create Alert')}
+            </CreateAlertButton>
             <FeedbackButton />
-          )}
-          <LinkButton
-            size="sm"
-            onClick={handleNavigateToSettings}
-            href="#"
-            icon={<IconSettings size="sm" />}
-            aria-label={t('Settings')}
-          />
-        </Grid>
-      </Layout.HeaderActions>
+            <LinkButton
+              size="sm"
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="sm" />}
+              aria-label={t('Settings')}
+            />
+          </Grid>
+        </Layout.HeaderActions>
+      )}
       <Layout.HeaderTabs value={activeTab}>
         <TabList>
           {alertRulesLink}

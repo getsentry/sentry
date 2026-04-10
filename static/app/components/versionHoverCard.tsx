@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -19,9 +20,9 @@ import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {uniqueId} from 'sentry/utils/guid';
-import {useDeploys} from 'sentry/utils/useDeploys';
-import {useRelease} from 'sentry/utils/useRelease';
+import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {parseVersion} from 'sentry/utils/versions/parseVersion';
 
@@ -41,19 +42,23 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     data: release,
     isPending: isReleaseLoading,
     isError: isReleaseError,
-  } = useRelease({
-    orgSlug: organization.slug,
-    projectSlug,
-    releaseVersion,
-  });
+  } = useQuery(
+    releaseApiOptions({
+      orgSlug: organization.slug,
+      projectSlug,
+      releaseVersion,
+    })
+  );
   const {
     data: deploys,
     isPending: isDeploysLoading,
     isError: isDeploysError,
-  } = useDeploys({
-    orgSlug: organization.slug,
-    releaseVersion,
-  });
+  } = useQuery(
+    deploysApiOptions({
+      orgSlug: organization.slug,
+      releaseVersion,
+    })
+  );
 
   function getRepoLink() {
     const orgSlug = organization.slug;

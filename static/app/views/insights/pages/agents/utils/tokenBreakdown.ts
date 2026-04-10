@@ -1,4 +1,4 @@
-export interface TokenBreakdown {
+interface TokenBreakdown {
   cached: number;
   netNewInput: number;
   output: number;

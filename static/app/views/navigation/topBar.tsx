@@ -18,7 +18,9 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const);
+const Slot = slot(['title', 'actions', 'feedback'] as const, {
+  providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
+});
 
 function TopBarContent() {
   const theme = useTheme();

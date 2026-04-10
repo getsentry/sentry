@@ -6,6 +6,7 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   OPTIONS_BY_TYPE,
@@ -18,10 +19,14 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 interface MultiMetricsQueryParamsContextValue {
   metricQueries: MetricQuery[];
@@ -182,22 +187,35 @@ export function useMultiMetricsQueryParams() {
   return metricQueries;
 }
 
-export function useAddMetricQuery() {
+export function useAddMetricQuery({
+  type = 'aggregate',
+}: {type?: 'aggregate' | 'equation'} = {}) {
   const location = useLocation();
   const navigate = useNavigate();
-  const {metricQueries} = useMultiMetricsQueryParamsContext();
+  const organization = useOrganization();
+  const {metricQueries}: {metricQueries: BaseMetricQuery[]} =
+    useMultiMetricsQueryParamsContext();
+  const hasEquations = canUseMetricsEquations(organization);
 
   return function () {
     const target = {...location, query: {...location.query}};
-
-    const newMetricQueries = [
-      ...metricQueries,
-      metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
-    ]
+    const equationStart = metricQueries.findIndex(metricQuery =>
+      isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
+    );
+    const insertAt =
+      hasEquations && equationStart !== -1 && type === 'aggregate'
+        ? equationStart
+        : metricQueries.length;
+    const lastAggregate = metricQueries.at(insertAt - 1) ?? defaultMetricQuery();
+    const canDuplicate =
+      type === 'aggregate' &&
+      lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
+    const newQuery = canDuplicate ? lastAggregate : defaultMetricQuery({type});
+    const newMetricQueries = metricQueries.toSpliced(insertAt, 0, newQuery);
+    target.query.metric = newMetricQueries
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)
       .filter(Boolean);
-    target.query.metric = newMetricQueries;
 
     navigate(target);
   };

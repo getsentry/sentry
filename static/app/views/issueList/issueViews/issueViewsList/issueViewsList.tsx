@@ -333,10 +333,10 @@ const issueViewsFeedbackOptions = {
 };
 
 export default function IssueViewsList() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
@@ -375,56 +375,96 @@ export default function IssueViewsList() {
           <Layout.HeaderContent>
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              {hasPageFrameFeature ? (
-                <TopBar.Slot name="feedback">
-                  <FeedbackButton feedbackOptions={issueViewsFeedbackOptions}>
-                    {null}
-                  </FeedbackButton>
-                </TopBar.Slot>
-              ) : (
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="actions">
+                <Feature
+                  features="organizations:issue-views"
+                  hookName="feature-disabled:issue-views"
+                  renderDisabled={props => (
+                    <Hovercard
+                      body={
+                        <FeatureDisabled
+                          features={props.features}
+                          hideHelpToggle
+                          featureName={t('Issue Views')}
+                        />
+                      }
+                    >
+                      {typeof props.children === 'function'
+                        ? props.children(props)
+                        : props.children}
+                    </Hovercard>
+                  )}
+                >
+                  {({hasFeature}) => (
+                    <Button
+                      priority="primary"
+                      icon={<IconAdd />}
+                      disabled={!hasFeature || isCreatingView}
+                      busy={isCreatingView}
+                      onClick={() => {
+                        trackAnalytics('issue_views.table.create_view_clicked', {
+                          organization,
+                        });
+                        handleCreateView();
+                      }}
+                    >
+                      {t('Create View')}
+                    </Button>
+                  )}
+                </Feature>
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions}>
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
                 <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions} />
-              )}
-              <Feature
-                features="organizations:issue-views"
-                hookName="feature-disabled:issue-views"
-                renderDisabled={props => (
-                  <Hovercard
-                    body={
-                      <FeatureDisabled
-                        features={props.features}
-                        hideHelpToggle
-                        featureName={t('Issue Views')}
-                      />
-                    }
-                  >
-                    {typeof props.children === 'function'
-                      ? props.children(props)
-                      : props.children}
-                  </Hovercard>
-                )}
-              >
-                {({hasFeature}) => (
-                  <Button
-                    priority="primary"
-                    icon={<IconAdd />}
-                    size="sm"
-                    disabled={!hasFeature || isCreatingView}
-                    busy={isCreatingView}
-                    onClick={() => {
-                      trackAnalytics('issue_views.table.create_view_clicked', {
-                        organization,
-                      });
-                      handleCreateView();
-                    }}
-                  >
-                    {t('Create View')}
-                  </Button>
-                )}
-              </Feature>
-            </Grid>
-          </Layout.HeaderActions>
+                <Feature
+                  features="organizations:issue-views"
+                  hookName="feature-disabled:issue-views"
+                  renderDisabled={props => (
+                    <Hovercard
+                      body={
+                        <FeatureDisabled
+                          features={props.features}
+                          hideHelpToggle
+                          featureName={t('Issue Views')}
+                        />
+                      }
+                    >
+                      {typeof props.children === 'function'
+                        ? props.children(props)
+                        : props.children}
+                    </Hovercard>
+                  )}
+                >
+                  {({hasFeature}) => (
+                    <Button
+                      priority="primary"
+                      icon={<IconAdd />}
+                      size="sm"
+                      disabled={!hasFeature || isCreatingView}
+                      busy={isCreatingView}
+                      onClick={() => {
+                        trackAnalytics('issue_views.table.create_view_clicked', {
+                          organization,
+                        });
+                        handleCreateView();
+                      }}
+                    >
+                      {t('Create View')}
+                    </Button>
+                  )}
+                </Feature>
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
         <Layout.Body>
           <MainTableLayout width="full">
