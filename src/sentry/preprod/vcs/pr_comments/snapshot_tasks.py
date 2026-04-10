@@ -11,12 +11,12 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.vcs.pr_comments.snapshot_templates import format_snapshot_pr_comment
 from sentry.preprod.vcs.pr_comments.tasks import find_existing_comment_id, save_pr_comment_result
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     FAIL_ON_ADDED_OPTION_KEY,
     FAIL_ON_REMOVED_OPTION_KEY,
-    _build_changes_map,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -157,7 +157,7 @@ def create_preprod_snapshot_pr_comment_task(
 
         fail_on_added = artifact.project.get_option(FAIL_ON_ADDED_OPTION_KEY, default=False)
         fail_on_removed = artifact.project.get_option(FAIL_ON_REMOVED_OPTION_KEY, default=True)
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             all_artifacts,
             snapshot_metrics_map,
             comparisons_map,

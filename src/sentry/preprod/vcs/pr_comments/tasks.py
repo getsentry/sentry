@@ -129,7 +129,7 @@ def create_preprod_pr_comment_task(
         if not installable_siblings:
             return
 
-        existing_comment_id = _find_existing_comment_id(all_for_pr)
+        existing_comment_id = find_existing_comment_id(all_for_pr, "build_distribution")
         comment_body = format_pr_comment(installable_siblings, project=artifact.project)
 
         try:
@@ -165,28 +165,13 @@ def create_preprod_pr_comment_task(
             if isinstance(e, ApiError):
                 extra["status_code"] = e.code
             logger.exception("preprod.pr_comments.create.failed", extra=extra)
-            _save_pr_comment_result(cc, success=False, error=e)
+            save_pr_comment_result(cc, "build_distribution", success=False, error=e)
             api_error = e
         else:
-            _save_pr_comment_result(cc, success=True, comment_id=comment_id)
+            save_pr_comment_result(cc, "build_distribution", success=True, comment_id=comment_id)
 
     if api_error is not None:
         raise api_error
-
-
-def _find_existing_comment_id(
-    comparisons: Sequence[CommitComparison],
-) -> str | None:
-    return find_existing_comment_id(comparisons, "build_distribution")
-
-
-def _save_pr_comment_result(
-    commit_comparison: CommitComparison,
-    success: bool,
-    comment_id: str | None = None,
-    error: Exception | None = None,
-) -> None:
-    save_pr_comment_result(commit_comparison, "build_distribution", success, comment_id, error)
 
 
 def find_existing_comment_id(
