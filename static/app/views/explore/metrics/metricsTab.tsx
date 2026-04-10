@@ -213,14 +213,19 @@ function useSortableMetricQueries() {
   const reorderMetricQueries = useReorderMetricQueries();
   const [isDragging, setIsDragging] = useState(false);
 
-  // Map from encoded query identity → stable unique ID. This correctly
-  // handles deletions and mid-list insertions (unlike an index-based array).
-  // Map from positional key (encoded query + index) → stable unique ID.
-  // Including the index ensures duplicate queries get distinct keys.
+  // Map from encoded query identity → stable unique ID. Uses occurrence
+  // count (not array index) to disambiguate duplicate queries, so keys
+  // remain stable across reorders.
   const idMapRef = useRef<Map<string, string>>(new Map());
   const sortableItems = useMemo(() => {
+    const occurrences = new Map<string, number>();
+    const activeKeys = new Set<string>();
     const items = metricQueries.map((metricQuery, i) => {
-      const key = `${i}::${encodeMetricQueryParams(metricQuery)}`;
+      const encoded = encodeMetricQueryParams(metricQuery);
+      const occurrence = occurrences.get(encoded) ?? 0;
+      occurrences.set(encoded, occurrence + 1);
+      const key = `${encoded}#${occurrence}`;
+      activeKeys.add(key);
       let uid = idMapRef.current.get(key);
       if (!uid) {
         uid = uniqueId();
@@ -229,9 +234,6 @@ function useSortableMetricQueries() {
       return {id: i + 1, uniqueId: uid, metricQuery};
     });
     // Prune stale entries for queries that no longer exist.
-    const activeKeys = new Set(
-      items.map((item, i) => `${i}::${encodeMetricQueryParams(item.metricQuery)}`)
-    );
     for (const key of idMapRef.current.keys()) {
       if (!activeKeys.has(key)) {
         idMapRef.current.delete(key);
