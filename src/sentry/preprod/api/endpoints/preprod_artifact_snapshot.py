@@ -78,6 +78,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "additionalProperties": ImageMetadata.schema(),
             "maxProperties": 50000,
         },
+        "diff_threshold": {"type": "number", "minimum": 0.0, "maximum": 1.0},
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -466,6 +467,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         app_id = data.get("app_id")
         images = data.get("images", {})
+        diff_threshold = data.get("diff_threshold")
 
         # VCS info
         head_sha = data.get("head_sha")
@@ -524,7 +526,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(images=images)
+            manifest = SnapshotManifest(images=images, diff_threshold=diff_threshold)
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 

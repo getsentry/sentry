@@ -381,6 +381,8 @@ def compare_snapshots(
             comparison.save(update_fields=["state", "error_code", "date_updated"])
             return
 
+        diff_threshold = head_manifest.diff_threshold
+
         head_images = head_manifest.images
         base_images = base_manifest.images
 
@@ -571,11 +573,36 @@ def compare_snapshots(
                     )
                     session.put(diff_mask_bytes, key=diff_mask_key, content_type="image/png")
 
-                    is_changed = diff_result.changed_pixels > 0
+                    diff_pct = (
+                        diff_result.changed_pixels / diff_result.total_pixels
+                        if diff_result.total_pixels > 0
+                        else 0
+                    )
+                    hashes_differ = head_hash != base_hash
+                    effective_threshold = diff_threshold if diff_threshold is not None else 0.0
+                    is_changed = diff_pct > effective_threshold
+                    if not is_changed and hashes_differ and diff_result.changed_pixels == 0:
+                        logger.warning(
+                            "compare_snapshots: odiff reported 0 diff for %s but content hashes differ, forcing changed",
+                            name,
+                            extra={"head_artifact_id": head_artifact_id},
+                        )
+                        is_changed = True
                     if is_changed:
                         changed_count += 1
                     else:
                         unchanged_count += 1
+
+                    logger.debug(
+                        "compare_snapshots: %s diff_pct=%.6f threshold=%s is_changed=%s pixels=%d/%d",
+                        name,
+                        diff_pct,
+                        diff_threshold,
+                        is_changed,
+                        diff_result.changed_pixels,
+                        diff_result.total_pixels,
+                        extra={"head_artifact_id": head_artifact_id},
+                    )
 
                     diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
 
