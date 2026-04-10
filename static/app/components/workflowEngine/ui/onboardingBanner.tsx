@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -39,30 +39,30 @@ export function OnboardingBanner() {
           aria-label={t('Dismiss banner')}
           icon={<IconClose variant="accent" />}
           priority="transparent"
-          onClick={dismissPrompt}
+          onClick={() => dismissPrompt()}
           size="zero"
         />
       }
     >
-      <Stack gap="md">
+      <Stack gap="xl">
         <Text as="p">
           {tct(
             '[bold:Alerts are now Monitors & Alerts.] Monitors detect problems and create issues. Issues trigger Alerts to notify your team. Your existing Alert Rules migrated automatically.',
             {bold: <strong />}
           )}
         </Text>
-        <Text as="p">
-          {tct("[tourButton:Take a tour.] [docsLink:Read what's changed.]", {
-            tourButton: (
-              <Button
-                priority="link"
-                onClick={() => openAlertsMonitorsShowcase({organization})}
-                aria-label={t('Take a tour')}
-              />
-            ),
-            docsLink: <ExternalLink href="https://docs.sentry.io/workflow-engine/" />,
-          })}
-        </Text>
+        <Flex gap="md" align="center">
+          <Button
+            size="xs"
+            onClick={() => openAlertsMonitorsShowcase({organization})}
+            aria-label={t('Take a tour')}
+          >
+            {t('Take a tour')}
+          </Button>
+          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/48882501173915">
+            {t("Read what's changed")}
+          </ExternalLink>
+        </Flex>
       </Stack>
     </Alert>
   );
