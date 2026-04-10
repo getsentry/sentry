@@ -1,20 +1,17 @@
 import {useCallback, useMemo} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_RELEASES_SORT, ReleasesSortOption} from 'sentry/constants/releases';
 import type {Release} from 'sentry/types/release';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  fetchDataQuery,
-  useApiQuery,
-  useQueries,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQueries, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -59,30 +56,24 @@ export function useReleases(
       : (sortBy ?? DEFAULT_RELEASES_SORT);
 
   // Fetch releases
-  const releaseResults = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: projects,
-          per_page: 50,
-          environment: environments,
-          query: searchTerm,
-          sort: activeSort,
-          // flatten=1 groups releases across projects when sorting by non-date fields,
-          // flatten=0 keeps releases separate per project for date sorting
-          flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
-        },
+  const releaseResults = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: projects,
+        per_page: 50,
+        environment: environments,
+        query: searchTerm,
+        sort: activeSort,
+        // flatten=1 groups releases across projects when sorting by non-date fields,
+        // flatten=0 keeps releases separate per project for date sorting
+        flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       },
-    ],
-    {
       staleTime: Infinity,
-      enabled: isReady,
-      retry: false,
-    }
-  );
+    }),
+    enabled: isReady,
+    retry: false,
+  });
 
   const allReleases = useMemo(() => releaseResults.data ?? [], [releaseResults.data]);
 

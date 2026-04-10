@@ -1,18 +1,19 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useRelease} from 'sentry/utils/useRelease';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   MissingFrame,
@@ -71,10 +72,12 @@ export function DatabaseSpanDescription({
 
   const project = projects.find(p => p.id === indexedSpan?.['project.id']?.toString());
 
-  const {data: release} = useRelease({
-    orgSlug: organization.slug,
-    projectSlug: project?.slug ?? '',
-    releaseVersion: indexedSpan?.release ?? '',
+  const {data: release} = useQuery({
+    ...releaseApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: project?.slug ?? '',
+      releaseVersion: indexedSpan?.release ?? '',
+    }),
     enabled: indexedSpan?.release !== undefined,
   });
 

@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -57,6 +58,7 @@ class ExplorerChatRequest(TypedDict):
     intelligence_level: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_code_mode_tools: NotRequired[bool]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -68,6 +70,7 @@ class ExplorerChatRequest(TypedDict):
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
+    user_auth_token: NotRequired[str | None]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -295,6 +298,34 @@ def collect_user_org_context(
         "user_projects": user_projects,
         "all_org_projects": all_org_projects,
     }
+
+
+def create_explorer_api_token(user: SentryUser | RpcUser, organization: Organization) -> str | None:
+    """Create a short-lived read-only API token for Seer to call back into Sentry."""
+    try:
+        from sentry.models.apitoken import ApiToken
+        from sentry.types.token import AuthTokenType
+        from sentry.users.models.user import User as UserModel
+
+        real_user = UserModel.objects.get(id=user.id)
+        token = ApiToken.objects.create(
+            user=real_user,
+            token_type=AuthTokenType.USER,
+            scoping_organization_id=organization.id,
+            scope_list=[
+                "org:read",
+                "project:read",
+                "event:read",
+                "alerts:read",
+                "member:read",
+                "team:read",
+            ],
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        return token.plaintext_token
+    except Exception:
+        logger.exception("Failed to create short-lived API token for Seer Explorer")
+        return None
 
 
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:

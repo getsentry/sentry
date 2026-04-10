@@ -103,6 +103,7 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
             release="1.0.0",
             environment="production",
             platform="javascript",
+            title="ReferenceError: undefined variable",
             sdk={"name": "sentry.javascript.browser", "version": "7.0.0"},
         )
         errors = [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
