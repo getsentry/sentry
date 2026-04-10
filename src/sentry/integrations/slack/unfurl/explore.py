@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.http.request import QueryDict
 
 from sentry import analytics, features
@@ -110,6 +111,10 @@ def _unfurl_explore(
 
         if not org:
             continue
+
+        sentry_sdk.set_tag("organization.slug", org_slug)
+        if user:
+            sentry_sdk.set_tag("user.email", getattr(user, "email", None))
 
         params = link.args["query"]
         chart_type = link.args.get("chart_type")
