@@ -189,7 +189,11 @@ export function getProjectStoppingPointMutationOptions({
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
 
-      if (previousPreference?.preference) {
+      if (stoppingPoint !== 'off' && previousPreference?.preference) {
+        // If stopping point is 'off' then we're not updating the handoff value.
+        // Instead we'll just leave it (and the preferred agent value) as-is.
+        // The tuning value will take precedence and stop execution before we
+        // look at the handoff value.
         setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
           ...previousPreference,
           preference: {
