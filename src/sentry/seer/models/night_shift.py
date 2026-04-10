@@ -25,6 +25,7 @@ class SeerNightShiftRun(DefaultFieldsModel):
         db_table = "seer_nightshiftrun"
         indexes = [
             models.Index(fields=["organization", "date_added"]),
+            models.Index(fields=["date_added"]),
         ]
 
     __repr__ = sane_repr("organization_id", "triage_strategy", "date_added")
