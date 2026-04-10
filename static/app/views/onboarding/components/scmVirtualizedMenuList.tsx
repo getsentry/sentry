@@ -55,6 +55,15 @@ export function ScmVirtualizedMenuList({
     );
   }
 
+  // Fallback when the virtualizer can't measure the container (e.g. jsdom)
+  if (virtualItems.length === 0 && items.length > 0) {
+    return (
+      <div ref={combinedRef} {...innerProps} style={{maxHeight, overflowY: 'auto'}}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div ref={combinedRef} {...innerProps} style={{maxHeight, overflowY: 'auto'}}>
       <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
