@@ -325,6 +325,7 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             data.append(
                 {
                     "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
+                    "repo_name": repo["name"],
                     "identifier": str(repo["id"]),
                     "external_id": self.get_repo_external_id(repo),
                     "url": repo["_links"]["web"]["href"],

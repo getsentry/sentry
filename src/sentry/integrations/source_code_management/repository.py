@@ -42,6 +42,7 @@ class RepositoryInfo(TypedDict):
     path: NotRequired[str]  # GitLab (path_with_namespace)
     project_id: NotRequired[int]  # GitLab
     repo: NotRequired[str]  # Bitbucket Server
+    repo_name: NotRequired[str]  # VSTS (bare repo name for API calls)
 
 
 class BaseRepositoryIntegration(ABC):
