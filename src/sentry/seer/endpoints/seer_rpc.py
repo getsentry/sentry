@@ -627,7 +627,7 @@ def trigger_coding_agent_launch(
                 else:
                     preference = get_project_seer_preferences(project.id).preference
 
-                if preference:
+                if preference and preference.automation_handoff is not None:
                     updated_preference = preference.copy(update={"automation_handoff": None})
                     resolved_preference = resolve_repository_ids(
                         organization.id, [SeerProjectPreference.validate(updated_preference)]

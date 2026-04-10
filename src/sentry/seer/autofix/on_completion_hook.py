@@ -522,7 +522,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 )
                 return
 
-        if not preference:
+        if not preference or preference.automation_handoff is None:
             return
 
         updated_preference = preference.copy(update={"automation_handoff": None})
