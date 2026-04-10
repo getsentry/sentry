@@ -626,24 +626,27 @@ def _write_preferences_to_sentry_db(
                         repo_def.branch_overrides
                     )
 
-        # Create project repos.
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+        if project_repos_to_create:
+            # Create project repos.
+            created_project_repos = SeerProjectRepository.objects.bulk_create(
+                project_repos_to_create
+            )
 
-        # Create branch overrides using the created project repos.
-        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
-        for seer_project_repo in created_project_repos:
-            for override in overrides_by_key.get(
-                (seer_project_repo.project_id, seer_project_repo.repository_id), []
-            ):
-                overrides_to_create.append(
-                    SeerProjectRepositoryBranchOverride(
-                        seer_project_repository=seer_project_repo,
-                        tag_name=override.tag_name,
-                        tag_value=override.tag_value,
-                        branch_name=override.branch_name,
+            # Create branch overrides using the created project repos.
+            overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+            for seer_project_repo in created_project_repos:
+                for override in overrides_by_key.get(
+                    (seer_project_repo.project_id, seer_project_repo.repository_id), []
+                ):
+                    overrides_to_create.append(
+                        SeerProjectRepositoryBranchOverride(
+                            seer_project_repository=seer_project_repo,
+                            tag_name=override.tag_name,
+                            tag_value=override.tag_value,
+                            branch_name=override.branch_name,
+                        )
                     )
-                )
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
         # Write ProjectOptions last so cache updates only happen after all DB writes succeed
         # (cache cannot be rolled back by the transaction).
