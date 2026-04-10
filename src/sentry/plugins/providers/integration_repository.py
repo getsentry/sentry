@@ -131,7 +131,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             existing_repo.name = name
             existing_repo.integration_id = integration_id
             existing_repo.url = url
-            existing_repo.config = result.get("config") or {}
+            existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )
@@ -167,7 +167,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             )
             # update from params
             for field_name, field_value in repo_update_params.items():
-                setattr(repo, field_name, field_value)
+                if field_name == "config":
+                    repo.config = {**repo.config, **field_value}
+                else:
+                    setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
@@ -207,7 +210,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         repo.status = ObjectStatus.ACTIVE
 
         for field_name, field_value in config.items():
-            setattr(repo, field_name, field_value)
+            if field_name == "config":
+                # Merge to preserve keys like webhook_id that are set by on_create_repository
+                repo.config = {**repo.config, **field_value}
+            else:
+                setattr(repo, field_name, field_value)
         return repo
 
     def _update_repositories(
