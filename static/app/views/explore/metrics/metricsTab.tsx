@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import type {DragEndEvent} from '@dnd-kit/core';
 import {
   closestCenter,
@@ -215,25 +215,30 @@ function useSortableMetricQueries() {
 
   // Map from encoded query identity → stable unique ID. This correctly
   // handles deletions and mid-list insertions (unlike an index-based array).
+  // Map from positional key (encoded query + index) → stable unique ID.
+  // Including the index ensures duplicate queries get distinct keys.
   const idMapRef = useRef<Map<string, string>>(new Map());
-  const sortableItems = metricQueries.map((metricQuery, i) => {
-    const key = encodeMetricQueryParams(metricQuery);
-    let uid = idMapRef.current.get(key);
-    if (!uid) {
-      uid = uniqueId();
-      idMapRef.current.set(key, uid);
+  const sortableItems = useMemo(() => {
+    const items = metricQueries.map((metricQuery, i) => {
+      const key = `${i}::${encodeMetricQueryParams(metricQuery)}`;
+      let uid = idMapRef.current.get(key);
+      if (!uid) {
+        uid = uniqueId();
+        idMapRef.current.set(key, uid);
+      }
+      return {id: i + 1, uniqueId: uid, metricQuery};
+    });
+    // Prune stale entries for queries that no longer exist.
+    const activeKeys = new Set(
+      items.map((item, i) => `${i}::${encodeMetricQueryParams(item.metricQuery)}`)
+    );
+    for (const key of idMapRef.current.keys()) {
+      if (!activeKeys.has(key)) {
+        idMapRef.current.delete(key);
+      }
     }
-    return {id: i + 1, uniqueId: uid, metricQuery};
-  });
-  // Prune stale entries for queries that no longer exist.
-  const activeKeys = new Set(
-    sortableItems.map(item => encodeMetricQueryParams(item.metricQuery))
-  );
-  for (const key of idMapRef.current.keys()) {
-    if (!activeKeys.has(key)) {
-      idMapRef.current.delete(key);
-    }
-  }
+    return items;
+  }, [metricQueries]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),

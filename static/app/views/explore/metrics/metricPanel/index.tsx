@@ -114,7 +114,7 @@ export function MetricPanel({
     if (!isAnyDragging && contentRef.current) {
       contentHeightRef.current = contentRef.current.offsetHeight;
     }
-  });
+  }, [isAnyDragging]);
 
   if (hasMetricsUIRefresh) {
     return (

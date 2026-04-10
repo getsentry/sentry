@@ -61,11 +61,11 @@ export function MetricToolbar({
     [setVisualize, visualize]
   );
 
-  const dndGrid = dragListeners ? 'auto' : '';
+  const dndGrid = dragListeners ? 'auto ' : '';
   const removeMetric = canRemoveMetric ? '24px' : '0';
   const columns = isVisualizeFunction(visualize)
-    ? `${dndGrid} auto 2fr 3fr 6fr ${removeMetric}`
-    : `${dndGrid} auto 1fr ${removeMetric}`;
+    ? `${dndGrid}auto 2fr 3fr 6fr ${removeMetric}`
+    : `${dndGrid}auto 1fr ${removeMetric}`;
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
