@@ -412,7 +412,7 @@ describe('CommandPalette', () => {
             display={{label: 'Async Group'}}
             resource={() => ({
               queryKey: ['test-resource-default-limit'],
-              queryFn: async () => actions,
+              queryFn: () => actions,
             })}
           >
             {data =>
@@ -537,7 +537,7 @@ describe('CommandPalette', () => {
             limit={2}
             resource={() => ({
               queryKey: ['test-resource-search-limit'],
-              queryFn: async () => actions,
+              queryFn: () => actions,
             })}
           >
             {data =>
@@ -573,7 +573,7 @@ describe('CommandPalette', () => {
             limit={2}
             resource={() => ({
               queryKey: ['test-resource-custom-limit'],
-              queryFn: async () => actions,
+              queryFn: () => actions,
             })}
           >
             {data =>
