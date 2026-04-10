@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -78,7 +78,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
 
   return (
     <PanelNoMargin>
-      <PanelHeader>{t('Autofix Handoff')}</PanelHeader>
+      <PanelHeader>{t('Autofix')}</PanelHeader>
       <PanelBody>
         {isPending ? (
           <Flex justify="center" align="center" padding="xl">
@@ -88,22 +88,29 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           <LoadingError />
         ) : (
           <Fragment>
-            {/* If the `agent` is undefined then we have a problem! Show an alert? */}
+            {/* If the `agent` is undefined then we default to Seer Agent */}
             <SelectField
               disabled={Boolean(disabledReason)}
               disabledReason={disabledReason}
               name="autofixAgent"
-              label={t('Autofix Handoff')}
+              label={t('Preferred Coding Agent')}
               help={tct(
-                'Seer will orchestrate the autofix process, and automatically hand off issue data to the coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
+                'Select the coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
                 {
-                  docsLink: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
+                  manageLink: (
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/integrations/`,
+                        query: {category: 'coding agent'},
+                      }}
+                    >
+                      {t('Manage Coding Agent Integrations')}
+                    </Link>
                   ),
                 }
               )}
               options={options.data ?? []}
-              value={selected}
+              value={selected ?? 'seer'}
               onChange={(integration: 'seer' | CodingAgentIntegration) => {
                 mutateSelectedAgent(integration, {
                   onSuccess: () =>
