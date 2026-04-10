@@ -1,12 +1,19 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {
   CrumbContainer,
@@ -15,8 +22,9 @@ import {
 } from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {
@@ -26,14 +34,25 @@ import {
 } from 'sentry/components/stream/group';
 import {IconChevron, IconFilter, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ActionSet} from 'sentry/views/issueList/actions/actionSet';
+import {COLUMN_BREAKPOINTS, ConfirmAction} from 'sentry/views/issueList/actions/utils';
+import {
+  IssueSelectionProvider,
+  useIssueSelectionActions,
+  useIssueSelectionSummary,
+} from 'sentry/views/issueList/issueSelectionContext';
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 const DRAWER_COLUMNS: GroupListColumn[] = [
   'graph',
@@ -198,7 +217,10 @@ function SupergroupIssueList({
   if (isPending) {
     return (
       <PanelContainer>
-        <GroupListHeader withChart withColumns={DRAWER_COLUMNS} />
+        <LoadingHeader>
+          <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
+          <DrawerColumnHeaders />
+        </LoadingHeader>
         <PanelBody>
           {pageGroupIds.map(id => (
             <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
@@ -224,6 +246,8 @@ function SupergroupIssueList({
       return 0;
     });
 
+  const visibleGroupIds = sortedGroups.map(g => g.id);
+
   return (
     <Fragment>
       {matchedIds.size > 0 && (
@@ -234,34 +258,36 @@ function SupergroupIssueList({
           </Text>
         </Flex>
       )}
-      <PanelContainer>
-        <GroupListHeader withChart withColumns={DRAWER_COLUMNS} />
-        <PanelBody>
-          {sortedGroups.map(group => {
-            const members = memberList?.[group.project?.slug]
-              ? memberList[group.project.slug]
-              : undefined;
-            return (
-              <IssueRow key={group.id}>
-                {matchedIds.has(group.id) && (
-                  <MatchedIcon>
-                    <IconFilter size="xs" />
-                  </MatchedIcon>
-                )}
-                <StreamGroup
-                  group={group}
-                  canSelect={false}
-                  withChart
-                  withColumns={DRAWER_COLUMNS}
-                  memberList={members}
-                  statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-                  source="supergroup-drawer"
-                />
-              </IssueRow>
-            );
-          })}
-        </PanelBody>
-      </PanelContainer>
+      <IssueSelectionProvider visibleGroupIds={visibleGroupIds}>
+        <PanelContainer>
+          <DrawerActionsBar groupIds={visibleGroupIds} />
+          <PanelBody>
+            {sortedGroups.map(group => {
+              const members = memberList?.[group.project?.slug]
+                ? memberList[group.project.slug]
+                : undefined;
+              return (
+                <IssueRow key={group.id}>
+                  {matchedIds.has(group.id) && (
+                    <MatchedIndicator>
+                      <IconFilter size="xs" />
+                    </MatchedIndicator>
+                  )}
+                  <StreamGroup
+                    group={group}
+                    canSelect
+                    withChart
+                    withColumns={DRAWER_COLUMNS}
+                    memberList={members}
+                    statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+                    source="supergroup-drawer"
+                  />
+                </IssueRow>
+              );
+            })}
+          </PanelBody>
+        </PanelContainer>
+      </IssueSelectionProvider>
       {totalPages > 1 && (
         <Flex justify="end" align="center" gap="sm" padding="md 0">
           <Text size="sm" variant="muted">
@@ -289,6 +315,229 @@ function SupergroupIssueList({
   );
 }
 
+function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
+  const api = useApi();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const {selection} = usePageFilters();
+  const {toggleSelectAllVisible, deselectAll} = useIssueSelectionActions();
+  const {pageSelected, anySelected, multiSelected, selectedIdsSet} =
+    useIssueSelectionSummary();
+
+  const selectedProjectSlug = useMemo(() => {
+    const projects = [...selectedIdsSet]
+      .map(id => GroupStore.get(id))
+      .filter((group): group is Group => !!group?.project)
+      .map(group => group.project.slug);
+    const uniqProjects = uniq(projects);
+    return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+  }, [selectedIdsSet]);
+
+  const handleUpdate = useCallback(
+    (data: IssueUpdateData) => {
+      const itemIds = [...selectedIdsSet];
+      if (itemIds.length) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
+      bulkUpdate(
+        api,
+        {
+          orgId: organization.slug,
+          itemIds,
+          data,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        },
+        {
+          success: () => {
+            clearIndicators();
+            for (const itemId of itemIds) {
+              queryClient.invalidateQueries({
+                queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
+                exact: false,
+              });
+            }
+          },
+          error: () => {
+            clearIndicators();
+            addErrorMessage(t('Unable to update issues'));
+          },
+        }
+      );
+      deselectAll();
+    },
+    [api, organization.slug, selectedIdsSet, selection, queryClient, deselectAll]
+  );
+
+  const handleDelete = useCallback(() => {
+    const itemIds = [...selectedIdsSet];
+    bulkDelete(
+      api,
+      {
+        orgId: organization.slug,
+        itemIds,
+        project: selection.projects,
+        environment: selection.environments,
+        ...selection.datetime,
+      },
+      {}
+    );
+    deselectAll();
+  }, [api, organization.slug, selectedIdsSet, selection, deselectAll]);
+
+  const handleMerge = useCallback(() => {
+    const itemIds = [...selectedIdsSet];
+    mergeGroups(
+      api,
+      {
+        orgId: organization.slug,
+        itemIds,
+        project: selection.projects,
+        environment: selection.environments,
+        ...selection.datetime,
+      },
+      {}
+    );
+    deselectAll();
+  }, [api, organization.slug, selectedIdsSet, selection, deselectAll]);
+
+  const onShouldConfirm = useCallback(
+    (action: ConfirmAction) => {
+      switch (action) {
+        case ConfirmAction.RESOLVE:
+        case ConfirmAction.UNRESOLVE:
+        case ConfirmAction.ARCHIVE:
+        case ConfirmAction.SET_PRIORITY:
+        case ConfirmAction.UNBOOKMARK:
+          return pageSelected && selectedIdsSet.size > 1;
+        case ConfirmAction.BOOKMARK:
+          return selectedIdsSet.size > 1;
+        case ConfirmAction.MERGE:
+        case ConfirmAction.DELETE:
+        default:
+          return true;
+      }
+    },
+    [pageSelected, selectedIdsSet.size]
+  );
+
+  return (
+    <ActionsBarContainer>
+      <Checkbox
+        onChange={toggleSelectAllVisible}
+        checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+        aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+      />
+      {anySelected ? (
+        <HeaderButtonsWrapper>
+          <ActionSet
+            queryCount={groupIds.length}
+            query=""
+            issues={selectedIdsSet}
+            allInQuerySelected={false}
+            anySelected={anySelected}
+            multiSelected={multiSelected}
+            selectedProjectSlug={selectedProjectSlug}
+            onShouldConfirm={onShouldConfirm}
+            onDelete={handleDelete}
+            onMerge={handleMerge}
+            onUpdate={handleUpdate}
+          />
+        </HeaderButtonsWrapper>
+      ) : (
+        <Fragment>
+          <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
+          <DrawerColumnHeaders />
+        </Fragment>
+      )}
+    </ActionsBarContainer>
+  );
+}
+
+function DrawerColumnHeaders() {
+  return (
+    <Fragment>
+      {DRAWER_COLUMNS.includes('lastSeen') && (
+        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+          {t('Last Seen')}
+        </ColumnLabel>
+      )}
+      {DRAWER_COLUMNS.includes('firstSeen') && (
+        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+          {t('Age')}
+        </ColumnLabel>
+      )}
+      {DRAWER_COLUMNS.includes('graph') && (
+        <GraphColumnLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          {t('Graph')}
+        </GraphColumnLabel>
+      )}
+      {DRAWER_COLUMNS.includes('event') && (
+        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
+          {t('Events')}
+        </ColumnLabel>
+      )}
+      {DRAWER_COLUMNS.includes('users') && (
+        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+          {t('Users')}
+        </ColumnLabel>
+      )}
+      {DRAWER_COLUMNS.includes('assignee') && (
+        <AssigneeColumnLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
+          {t('Assignee')}
+        </AssigneeColumnLabel>
+      )}
+    </Fragment>
+  );
+}
+
+const ActionsBarContainer = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  height: 36px;
+  padding: 0;
+  padding-left: ${p => p.theme.space.xl};
+  align-items: center;
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+const HeaderButtonsWrapper = styled('div')`
+  flex: 1;
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  white-space: nowrap;
+`;
+
+const IssueLabel = styled(IssueStreamHeaderLabel)`
+  flex: 1;
+`;
+
+const ColumnLabel = styled(IssueStreamHeaderLabel)`
+  width: 60px;
+`;
+
+const GraphColumnLabel = styled(IssueStreamHeaderLabel)`
+  width: 175px;
+`;
+
+const AssigneeColumnLabel = styled(IssueStreamHeaderLabel)`
+  width: 66px;
+`;
+
+const LoadingHeader = styled('div')`
+  display: flex;
+  min-height: 36px;
+  padding: ${p => p.theme.space.xs} 0;
+  padding-left: ${p => p.theme.space.xl};
+  align-items: center;
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
 `;
@@ -300,20 +549,19 @@ const PanelContainer = styled(Panel)`
 const IssueRow = styled('div')`
   position: relative;
 
-  > * {
-    /* Leave room for checkbox + filter icon */
-    padding-left: 12px;
+  /* Hide the unread indicator — the filter icon replaces it in this context */
+  [data-test-id='unread-issue-indicator'] {
+    display: none;
   }
 `;
 
-const MatchedIcon = styled('div')`
+const MatchedIndicator = styled('div')`
   position: absolute;
-  top: 23px;
-  /* Positioned after where the checkbox will go */
-  left: -2px;
-  transform: translateY(-50%);
-  z-index: 1;
+  top: 14px;
+  left: 18px;
+  z-index: 2;
   color: ${p => p.theme.tokens.graphics.accent.vibrant};
+  pointer-events: none;
 `;
 
 const StyledMarkedText = styled(MarkedText)`
