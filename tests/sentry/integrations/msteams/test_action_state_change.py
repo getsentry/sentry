@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -371,7 +372,7 @@ class StatusActionTest(APITestCase):
 
         original_refresh = Group.refresh_from_db
 
-        def capturing_refresh(self_group: object, *args: object, **kwargs: object) -> None:
+        def capturing_refresh(self_group: Any, *args: Any, **kwargs: Any) -> None:
             captured_contexts.append(get_viewer_context())
             return original_refresh(self_group, *args, **kwargs)
 
