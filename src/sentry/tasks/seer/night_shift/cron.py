@@ -13,7 +13,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
+from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -98,7 +98,7 @@ def run_night_shift_for_org(organization_id: int) -> None:
         )
         return
 
-    candidates = fixability_score_strategy(eligible_projects)
+    candidates = agentic_triage_strategy(eligible_projects, organization)
 
     logger.info(
         "night_shift.candidates_selected",

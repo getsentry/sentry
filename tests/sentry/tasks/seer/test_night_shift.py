@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -14,6 +14,16 @@ from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strateg
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
+
+
+def _mock_llm_response(group_ids: list[int], action: str = "autofix") -> MagicMock:
+    verdicts = [{"group_id": gid, "action": action, "reason": "test"} for gid in group_ids]
+    content = json.dumps({"verdicts": verdicts})
+    response = MagicMock()
+    response.status = 200
+    response.data = json.dumps({"content": content}).encode()
+    return response
 
 
 @django_db_all
@@ -152,7 +162,13 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             seer_autofix_last_triggered=timezone.now(),
         )
 
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.agentic_triage.make_llm_generate_request",
+                return_value=_mock_llm_response([high_fix.id, low_fix.id]),
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+        ):
             run_night_shift_for_org(org.id)
 
             call_extra = mock_logger.info.call_args.kwargs["extra"]
@@ -175,7 +191,13 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project_b, "high-group", seer_fixability_score=0.95
         )
 
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.agentic_triage.make_llm_generate_request",
+                return_value=_mock_llm_response([high_group.id, low_group.id]),
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+        ):
             run_night_shift_for_org(org.id)
 
             candidates = mock_logger.info.call_args.kwargs["extra"]["candidates"]

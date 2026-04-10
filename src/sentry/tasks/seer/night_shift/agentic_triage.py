@@ -29,6 +29,10 @@ class _TriageVerdict(pydantic.BaseModel):
 class _TriageResponse(pydantic.BaseModel):
     verdicts: list[_TriageVerdict]
 
+    @pydantic.validator("verdicts")
+    def filter_skips(cls, v: list[_TriageVerdict]) -> list[_TriageVerdict]:
+        return [verdict for verdict in v if verdict.action != TriageAction.SKIP]
+
 
 def agentic_triage_strategy(
     projects: Sequence[Project],
@@ -87,7 +91,7 @@ def _triage_candidates(
             )
             return []
 
-        triage_response: _TriageResponse = _TriageResponse.model_validate_json(content)
+        triage_response = _TriageResponse.parse_raw(content)
     except Exception:
         logger.exception(
             "night_shift.triage_request_error",
