@@ -67,7 +67,7 @@ function useReminderData() {
         </Flex>
       ),
       description: t(
-        'Seer is enabled but projects are not connected to repos. Connecting your source code and run Root Cause Analysis, Solution generation, and PR creation.'
+        'Seer is enabled but projects are not connected to repos. Connect your source code and run Root Cause Analysis, Solution generation, and PR creation.'
       ),
     };
   }
