@@ -1,7 +1,12 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
+import {useSourceContext} from 'sentry/components/events/interfaces/frame/useSourceContext';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
+import {
+  hasContextSource,
+  hasPotentialSourceContext,
+} from 'sentry/components/events/interfaces/frame/utils';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {
   useStackTraceContext,
@@ -25,25 +30,47 @@ function getLineCoverage(
 
 export function IssueStackTraceFrameContext() {
   const {event, frame, isExpanded} = useStackTraceFrameContext();
-  const {project} = useStackTraceContext();
+  const {hasScmSourceContext, project} = useStackTraceContext();
   const {hasCoverageData, setHasCoverageData} = useLineCoverageContext();
-  const organization = useOrganization({allowNull: true});
+  const organization = useOrganization();
 
-  const contextLines = isExpanded ? (frame.context ?? []) : [];
+  const hasEmbeddedContext = hasContextSource(frame);
+  const shouldFetchSourceContext =
+    hasScmSourceContext &&
+    defined(project) &&
+    !hasEmbeddedContext &&
+    isExpanded &&
+    hasPotentialSourceContext(frame);
+
+  const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
+    {
+      event,
+      frame,
+      orgSlug: organization.slug,
+      projectSlug: project?.slug,
+    },
+    {enabled: shouldFetchSourceContext}
+  );
+
+  const scmContext = useMemo(() => {
+    if (!sourceContextData?.context?.length) {
+      return undefined;
+    }
+    return sourceContextData.context;
+  }, [sourceContextData]);
+
+  const effectiveContext = hasEmbeddedContext ? frame.context : scmContext;
+  const contextLines = isExpanded ? (effectiveContext ?? []) : [];
 
   const {data: coverageData, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
-      orgSlug: organization?.slug || '',
+      orgSlug: organization.slug,
       projectSlug: project?.slug,
     },
     {
-      enabled:
-        isExpanded &&
-        defined(organization) &&
-        defined(project) &&
-        !!organization.codecovAccess,
+      enabled: isExpanded && defined(project) && !!organization.codecovAccess,
     }
   );
 
@@ -66,5 +93,11 @@ export function IssueStackTraceFrameContext() {
     }
   }, [coverageData, hasCoverageData, isLoadingCoverage, setHasCoverageData]);
 
-  return <FrameContent sourceLineCoverage={sourceLineCoverage} />;
+  return (
+    <FrameContent
+      sourceLineCoverage={sourceLineCoverage}
+      effectiveContext={effectiveContext}
+      isLoadingSourceContext={shouldFetchSourceContext && isLoadingSourceContext}
+    />
+  );
 }

@@ -713,6 +713,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
   [TraceItemDataset.PROCESSING_ERRORS]: undefined,
+  [TraceItemDataset.ERRORS]: undefined,
 };
 
 /**

@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.seer.models import SeerApiError
-from sentry.tasks.seer.cleanup import cleanup_seer_repository_preferences
+from sentry.tasks.seer.cleanup import (
+    bulk_cleanup_seer_repository_preferences,
+    cleanup_seer_repository_preferences,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -69,3 +72,40 @@ class TestSeerRepositoryCleanup(TestCase):
             "repo_provider": self.repo_provider,
             "repo_external_id": self.repo_external_id,
         }
+
+
+class TestBulkSeerRepositoryCleanup(TestCase):
+    def setUp(self) -> None:
+        self.organization = self.create_organization()
+        self.repos = [
+            {"repo_external_id": "123", "repo_provider": "github"},
+            {"repo_external_id": "456", "repo_provider": "github"},
+        ]
+
+    @patch("sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request")
+    def test_bulk_cleanup_success(self, mock_request: MagicMock) -> None:
+        """Test successful bulk cleanup of Seer repository preferences."""
+        mock_request.return_value.status = 200
+
+        bulk_cleanup_seer_repository_preferences(
+            organization_id=self.organization.id,
+            repos=self.repos,
+        )
+
+        mock_request.assert_called_once()
+        body = mock_request.call_args[0][0]
+        assert body["organization_id"] == self.organization.id
+        assert len(body["repositories"]) == 2
+        assert body["repositories"][0] == {"repo_provider": "github", "repo_external_id": "123"}
+        assert body["repositories"][1] == {"repo_provider": "github", "repo_external_id": "456"}
+
+    @patch("sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request")
+    def test_bulk_cleanup_api_error(self, mock_request: MagicMock) -> None:
+        """Test handling of Seer API errors."""
+        mock_request.return_value.status = 500
+
+        with pytest.raises(SeerApiError):
+            bulk_cleanup_seer_repository_preferences(
+                organization_id=self.organization.id,
+                repos=self.repos,
+            )

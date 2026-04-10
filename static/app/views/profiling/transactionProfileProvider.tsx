@@ -47,7 +47,7 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       setProfile={setProfile}
     >
       <ProfileTransactionContext value={profileTransaction}>
-        <LayoutPageWithHiddenFooter>
+        <LayoutPageWithHiddenFooter flex={1}>
           <ProfileHeader
             eventId={params.eventId!}
             projectId={projectSlug}

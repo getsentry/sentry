@@ -89,7 +89,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_actions.py @ POST
         """
         try:
-            group = Group.objects.get(
+            group = Group.objects.select_related("project").get(
                 id=group_id,
                 project_id__in=Project.objects.filter(organization_id=organization_id),
             )
@@ -98,6 +98,29 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 error=RpcSentryAppError(
                     message="Could not find the corresponding issue for the given groupId",
                     status_code=404,
+                )
+            )
+
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="Could not find the corresponding issue for the given groupId",
+                    status_code=404,
+                )
+            )
+
+        access = self._access_for_installation_user(
+            organization=organization,
+            installation=installation,
+            user=user,
+        )
+        if not access.has_project_access(group.project):
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="You do not have permission to link this issue.",
+                    status_code=403,
                 )
             )
 
@@ -187,6 +210,21 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
 
         return RpcEmptyResult()
 
+    def _access_for_installation_user(
+        self,
+        *,
+        organization: Organization,
+        installation: RpcSentryAppInstallation,
+        user: RpcUser,
+    ) -> Access:
+        if user.is_sentry_app:
+            return OrganizationGlobalMembership(
+                organization=organization,
+                scopes=installation.sentry_app.scope_list,
+                sso_is_valid=True,
+            )
+        return from_user(user=user, organization=organization)
+
     def _determine_access(
         self,
         *,
@@ -200,13 +238,11 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             raise SentryAppSentryError(message="Organization not found")
         if not (user := auth_context.user):
             raise SentryAppSentryError(message="User not found")
-        if user.is_sentry_app:
-            return OrganizationGlobalMembership(
-                organization=organization,
-                scopes=installation.sentry_app.scope_list,
-                sso_is_valid=True,
-            )
-        return from_user(user=user, organization=organization)
+        return self._access_for_installation_user(
+            organization=organization,
+            installation=installation,
+            user=user,
+        )
 
     def get_service_hook_projects(
         self,

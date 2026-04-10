@@ -2,7 +2,7 @@ import {Activity, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -14,6 +14,7 @@ import {
   hasContextRegisters,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {
   useStackTraceContext,
@@ -31,10 +32,16 @@ const COVERAGE_TEXT: Record<Coverage, string | undefined> = {
 };
 
 interface FrameContentProps {
+  effectiveContext?: Array<[number, string | null]>;
+  isLoadingSourceContext?: boolean;
   sourceLineCoverage?: Array<Coverage | undefined>;
 }
 
-export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
+export function FrameContent({
+  sourceLineCoverage = [],
+  effectiveContext,
+  isLoadingSourceContext,
+}: FrameContentProps) {
   const {event, frame, frameContextId, frameIndex, isExpanded, platform} =
     useStackTraceFrameContext();
   const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
@@ -46,12 +53,7 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
     hasBeenExpandedRef.current = true;
   }
 
-  const contextLines = isExpanded ? (frame.context ?? []) : [];
-  const maxLineNumber = contextLines.reduce(
-    (max, [lineNo]) => Math.max(max, lineNo ?? 0),
-    0
-  );
-  const lineNumberDigits = String(maxLineNumber).length;
+  const contextLines = isExpanded ? (effectiveContext ?? frame.context ?? []) : [];
   const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({
     contextLines,
@@ -67,7 +69,11 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
   const hasFrameVariables = !!frameVariables && Object.keys(frameVariables).length > 0;
   const hasFrameRegisters = !!expandedFrameRegisters;
   const hasAnyFrameDetails =
-    hasSourceContext || hasFrameVariables || hasFrameRegisters || hasFrameAssembly;
+    hasSourceContext ||
+    isLoadingSourceContext ||
+    hasFrameVariables ||
+    hasFrameRegisters ||
+    hasFrameAssembly;
   const shouldShowNoDetails =
     frameIndex === lastFrameIndex && frameIndex === 0 && !hasAnyFrameDetails;
 
@@ -83,13 +89,17 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
         overflowX="hidden"
         data-test-id="core-stacktrace-frame-context"
       >
-        {hasSourceContext ? (
+        {isLoadingSourceContext ? (
+          <Container padding="sm md">
+            <LoadingIndicator mini size={16} />
+            {t('Loading source context…')}
+          </Container>
+        ) : hasSourceContext ? (
           <FrameSourceGrid>
             {contextLines.map(([lineNumber, lineValue], lineIndex) => (
               <FrameSourceRow
                 key={`${lineNumber}-${lineIndex}`}
                 isActive={lineNumber === frame.lineNo}
-                lineNumberDigits={lineNumberDigits}
               >
                 <Tooltip
                   skipWrapper
@@ -158,16 +168,16 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
 
 const FrameSourceGrid = styled('div')`
   display: grid;
+  grid-template-columns: minmax(min-content, max-content) 1fr;
   width: 100%;
   min-width: 0;
 `;
 
-const FrameSourceRow = styled(Grid)<{isActive: boolean; lineNumberDigits: number}>`
-  grid-template-columns:
-    calc(${p => Math.max(p.lineNumberDigits, 3) + 1}ch)
-    1fr;
+const FrameSourceRow = styled('div')<{isActive: boolean}>`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: start;
-  column-gap: ${p => p.theme.space.sm};
   min-width: 0;
   background: ${p => (p.isActive ? p.theme.tokens.background.secondary : 'transparent')};
 `;
@@ -186,8 +196,7 @@ const FrameSourceLineNumber = styled('div')<{
   line-height: 1.8;
   text-align: right;
   user-select: none;
-  padding-left: ${p => p.theme.space.xs};
-  padding-right: ${p => p.theme.space.xs};
+  padding-inline: 1ch;
   border-right: 3px solid transparent;
 
   ${p =>
@@ -242,8 +251,9 @@ const FrameSourceCode = styled('code')`
   line-height: 1.8;
   display: block;
   min-width: 0;
+  padding-inline: 1ch;
   background: transparent;
-  padding: 0;
+  padding-block: 0;
   border-radius: 0;
 
   && {

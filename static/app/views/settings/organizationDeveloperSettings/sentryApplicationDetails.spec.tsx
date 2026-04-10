@@ -167,7 +167,7 @@ describe('Sentry Application Details', () => {
   describe('Renders public app', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -229,7 +229,7 @@ describe('Sentry Application Details', () => {
   describe('Renders for internal apps', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -295,7 +295,7 @@ describe('Sentry Application Details', () => {
   describe('Renders masked values', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -342,7 +342,7 @@ describe('Sentry Application Details', () => {
   describe('Editing internal app tokens', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -429,7 +429,7 @@ describe('Sentry Application Details', () => {
   describe('Editing an existing public Sentry App', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };
@@ -517,7 +517,7 @@ describe('Sentry Application Details', () => {
   describe('Editing an existing public Sentry App with a scope error', () => {
     const initialRouterConfig: RouterConfig = {
       location: {
-        pathname: `/sentry-apps/sample-app/`,
+        pathname: '/sentry-apps/sample-app/',
       },
       route: '/sentry-apps/:appSlug/',
     };

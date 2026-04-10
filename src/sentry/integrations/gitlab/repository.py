@@ -1,4 +1,7 @@
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -6,8 +9,11 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError
 
+if TYPE_CHECKING:
+    from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
 
-class GitlabRepositoryProvider(IntegrationRepositoryProvider):
+
+class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"]):
     name = "Gitlab"
     repo_provider = IntegrationProviderSlug.GITLAB.value
 
@@ -27,7 +33,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider):
                 "instance": instance,
                 "path": project["path_with_namespace"],
                 "name": project["name_with_namespace"],
-                "external_id": "{}:{}".format(instance, project["id"]),
+                "external_id": installation.get_repo_external_id(project),
                 "project_id": project["id"],
                 "url": project["web_url"],
             }
@@ -35,7 +41,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: dict[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()

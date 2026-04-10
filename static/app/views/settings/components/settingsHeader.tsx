@@ -22,7 +22,7 @@ export const SettingsHeader = styled((props: ContainerProps<'div'>) => {
       borderBottom="primary"
       background="primary"
       style={{zIndex: theme.zIndex.header + HEADER_Z_INDEX_OFFSET}}
-      padding="xl 3xl"
+      padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'xl 3xl'}
       radius={hasPageFrame ? 'lg 0 0 0' : undefined}
       {...props}
     />

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -6,6 +7,8 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {ConfigureReplayCard} from 'sentry/components/replays/header/configureReplayCard';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ReplayItemDropdown} from 'sentry/views/replays/detail/header/replayItemDropdown';
 
 interface Props {
@@ -13,6 +16,7 @@ interface Props {
 }
 
 export function ReplayDetailsHeaderActions({readerResult}: Props) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <ReplayLoadingState
       readerResult={readerResult}
@@ -21,32 +25,67 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderThrottled={() => null}
       renderLoading={() => <Placeholder height="32px" width="352px" />}
       renderMissing={() => null}
-      renderProcessingError={({replayRecord, projectSlug}) => (
-        <ButtonActionsWrapper>
-          <FeedbackButton size="xs" />
-          <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
-          <ReplayItemDropdown
-            projectSlug={projectSlug}
-            replay={undefined}
-            replayRecord={replayRecord}
-          />
-        </ButtonActionsWrapper>
-      )}
+      renderProcessingError={({replayRecord, projectSlug}) =>
+        hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
+              <ReplayItemDropdown
+                projectSlug={projectSlug}
+                replay={undefined}
+                replayRecord={replayRecord}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <ButtonActionsWrapper>
+            <FeedbackButton size="xs" />
+            <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
+            <ReplayItemDropdown
+              projectSlug={projectSlug}
+              replay={undefined}
+              replayRecord={replayRecord}
+            />
+          </ButtonActionsWrapper>
+        )
+      }
     >
-      {({replay}) => (
-        <ButtonActionsWrapper>
-          <FeedbackButton size="xs" />
-          <ConfigureReplayCard
-            isMobile={replay.isVideoReplay()}
-            replayRecord={replay.getReplay()}
-          />
-          <ReplayItemDropdown
-            projectSlug={readerResult.projectSlug}
-            replay={replay}
-            replayRecord={replay.getReplay()}
-          />
-        </ButtonActionsWrapper>
-      )}
+      {({replay}) =>
+        hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <ConfigureReplayCard
+                isMobile={replay.isVideoReplay()}
+                replayRecord={replay.getReplay()}
+              />
+              <ReplayItemDropdown
+                projectSlug={readerResult.projectSlug}
+                replay={replay}
+                replayRecord={replay.getReplay()}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <ButtonActionsWrapper>
+            <FeedbackButton size="xs" />
+            <ConfigureReplayCard
+              isMobile={replay.isVideoReplay()}
+              replayRecord={replay.getReplay()}
+            />
+            <ReplayItemDropdown
+              projectSlug={readerResult.projectSlug}
+              replay={replay}
+              replayRecord={replay.getReplay()}
+            />
+          </ButtonActionsWrapper>
+        )
+      }
     </ReplayLoadingState>
   );
 }

@@ -44,10 +44,11 @@ export function IntegrationReposAddRepository({
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const query = useQuery({
     queryKey: [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
         {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
       ),
       {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},

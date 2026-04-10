@@ -4,13 +4,20 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 import type {DistributedOmit} from 'type-fest';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Stack,
+  type FlexProps,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
@@ -310,13 +317,20 @@ function PrimaryNavigationUnreadIndicator({
 }: PrimaryNavigationUnreadIndicatorProps) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+  const indicatorPosition: Pick<
+    ContainerProps<'div'>,
+    'top' | 'right' | 'left'
+  > = hasPageFrame
+    ? layout === 'mobile'
+      ? {top: '0', right: '0'}
+      : {top: '0', right: '0'}
+    : layout === 'mobile'
+      ? {left: '11px', top: `-${theme.space['2xs']}`}
+      : {top: '0', right: '0'};
+
   return (
-    <Container
-      position="absolute"
-      top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
-      right={layout === 'mobile' ? 'auto' : '0px'}
-      left={layout === 'mobile' ? '11px' : 'auto'}
-    >
+    <Container position="absolute" {...indicatorPosition}>
       {p => (
         <StatusIndicator
           {...mergeProps(p, props)}
@@ -430,7 +444,7 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
       justify={layout === 'mobile' && !hasPageFrame ? 'start' : 'center'}
     >
       {p => (
-        <Button
+        <ButtonWithOverflowVisible
           {...p}
           {...props}
           {...(layout === 'mobile'
@@ -443,6 +457,18 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
     </Flex>
   );
 }
+
+/**
+ * @TODO(JonasBadalic) Scraps buttons have been setting overflow hidden onto the inner surface wrapper ever since
+ * we inherited that component, and we need to override that to ensure that the indicator is visible as it will
+ * otherwise clip the indicator and StatusIndicator animation. We need to unwind this and remove the overflow
+ * from buttons from ever being set.
+ */
+const ButtonWithOverflowVisible = styled(Button)`
+  > span:last-child {
+    overflow: initial;
+  }
+`;
 
 function PrimaryNavigationButtonBar(props: ButtonBarProps) {
   return <ButtonBar {...props} width="100%" />;
@@ -732,11 +758,19 @@ export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
  */
 function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayProps) {
   const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
+  const isDesktop = layout !== 'mobile';
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.modal} {...props.overlayProps}>
-        <ScrollableOverlay>{props.children}</ScrollableOverlay>
+        <motion.div
+          initial={isDesktop ? {opacity: 0, scale: 0.98} : undefined}
+          animate={isDesktop ? {opacity: 1, scale: 1} : undefined}
+          transition={isDesktop ? theme.motion.framer.enter.moderate : undefined}
+        >
+          <ScrollableOverlay>{props.children}</ScrollableOverlay>
+        </motion.div>
       </PositionWrapper>
     </FocusScope>,
     document.body

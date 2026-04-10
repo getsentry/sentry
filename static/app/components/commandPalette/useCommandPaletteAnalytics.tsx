@@ -32,7 +32,7 @@ function getLinkedListDepth(node: LinkedList | null): number {
  */
 export function useCommandPaletteAnalytics(filteredActionCount: number): {
   recordAction: (
-    action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>,
+    action: CommandPaletteActionWithKey,
     resultIndex: number,
     group: string
   ) => void;
@@ -136,7 +136,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   return useMemo(
     () => ({
       recordAction(
-        action: Exclude<CommandPaletteActionWithKey, {type: 'group'}>,
+        action: CommandPaletteActionWithKey,
         resultIndex: number,
         group: string
       ) {
@@ -149,7 +149,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
           organization,
           action: label,
           query: s.state.query,
-          action_type: action.type,
+          action_type: 'to' in action ? 'navigate' : 'callback',
           group,
           result_index: resultIndex,
           session_id: s.sessionId,
@@ -167,7 +167,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
           action: action.display.label,
           query: s.state.query,
           action_type: 'group',
-          group: action.groupingKey ?? '',
+          group: '',
           result_index: resultIndex,
           session_id: s.sessionId,
         });

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -12,6 +13,7 @@ import {
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
 import {
+  collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -21,9 +23,9 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {Placeholder} from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconRefresh} from 'sentry/icons';
+import {IconCopy, IconRefresh} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -32,8 +34,8 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
-import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 interface AutofixCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -46,13 +48,15 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
-  const {runState, startStep} = autofix;
-  const runId = runState?.run_id;
+  const {startStep} = autofix;
 
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
       {section.status === 'processing' ? (
-        <LoadingDetails messages={section.messages} />
+        <LoadingDetails
+          messages={section.messages}
+          loadingMessage={t('Finding the root cause\u2026')}
+        />
       ) : artifact?.data ? (
         <Fragment>
           <Text>{artifact.data.one_line_description}</Text>
@@ -94,7 +98,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
             <Button
               priority="primary"
               icon={<IconRefresh />}
-              onClick={() => startStep('root_cause', runId)}
+              onClick={() => startStep('root_cause')}
             >
               {t('Re-run')}
             </Button>
@@ -117,7 +121,10 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
   return (
     <ArtifactCard icon={<IconList />} title={t('Plan')}>
       {section.status === 'processing' ? (
-        <LoadingDetails messages={section.messages} />
+        <LoadingDetails
+          messages={section.messages}
+          loadingMessage={t('Formulating a plan\u2026')}
+        />
       ) : artifact?.data ? (
         <Fragment>
           <Text>{artifact.data.one_line_summary}</Text>
@@ -167,22 +174,14 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
-  const patchesForRepos = useMemo(() => {
-    const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-    for (const patch of artifact ?? []) {
-      const existing = patchesByRepo.get(patch.repo_name) || [];
-      existing.push(patch);
-      patchesByRepo.set(patch.repo_name, existing);
-    }
-    return patchesByRepo;
-  }, [artifact]);
+  const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
-    const reposChanged = patchesForRepos.size;
+    const reposChanged = patchesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
+    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
       for (const patch of patchesForRepo) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
@@ -197,7 +196,7 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     }
 
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
-  }, [patchesForRepos]);
+  }, [patchesByRepo]);
 
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
@@ -205,13 +204,16 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
       {section.status === 'processing' ? (
-        <LoadingDetails messages={section.messages} />
+        <LoadingDetails
+          messages={section.messages}
+          loadingMessage={t('Implementing changes\u2026')}
+        />
       ) : (
         <Fragment>
-          {patchesForRepos.size ? (
+          {patchesByRepo.size ? (
             <Fragment>
               <Text>{summary}</Text>
-              {[...patchesForRepos.entries()].map(([repo, patches]) => (
+              {[...patchesByRepo.entries()].map(([repo, patches]) => (
                 <ArtifactDetails key={repo}>
                   <Flex gap="lg">
                     <Text bold>{t('Repository:')}</Text>
@@ -258,6 +260,7 @@ export function PullRequestsCard({section}: AutofixCardProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
+  const {copy} = useCopyToClipboard();
 
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
@@ -276,14 +279,27 @@ export function PullRequestsCard({section}: AutofixCardProps) {
           pullRequest.pr_number
         ) {
           return (
-            <LinkButton
-              key={pullRequest.repo_name}
-              external
-              href={pullRequest.pr_url}
-              priority="primary"
-            >
-              {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
-            </LinkButton>
+            <Flex key={pullRequest.repo_name} gap="xs" align="center">
+              <LinkButton
+                external
+                href={pullRequest.pr_url}
+                priority="primary"
+                icon={<IconOpen />}
+              >
+                {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
+              </LinkButton>
+              <Button
+                priority="primary"
+                icon={<IconCopy size="xs" />}
+                aria-label={t('Copy PR URL')}
+                tooltipProps={{title: t('Copy PR URL')}}
+                onClick={() =>
+                  copy(pullRequest.pr_url!, {
+                    successMessage: t('PR URL copied to clipboard.'),
+                  })
+                }
+              />
+            </Flex>
           );
         }
 
@@ -370,7 +386,7 @@ interface ArtifactCardProps {
 
 function ArtifactCard({children, icon, title}: ArtifactCardProps) {
   return (
-    <Container border="primary" radius="md" padding="md" background="primary">
+    <Container border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
         <Disclosure.Title>
           <Flex gap="md" align="center">
@@ -379,7 +395,7 @@ function ArtifactCard({children, icon, title}: ArtifactCardProps) {
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
-          <Flex direction="column" gap="md">
+          <Flex direction="column" gap="lg">
             {children}
           </Flex>
         </Disclosure.Content>
@@ -394,17 +410,18 @@ interface ArtifactDetailsProps extends FlexProps {
 
 function ArtifactDetails({children, ...flexProps}: ArtifactDetailsProps) {
   return (
-    <Flex direction="column" borderTop="primary" gap="md" paddingTop="md" {...flexProps}>
+    <Flex direction="column" borderTop="primary" gap="md" paddingTop="lg" {...flexProps}>
       {children}
     </Flex>
   );
 }
 
 interface LoadingDetailsProps {
+  loadingMessage: string;
   messages: AutofixSection['messages'];
 }
 
-function LoadingDetails({messages}: LoadingDetailsProps) {
+function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -448,10 +465,15 @@ function LoadingDetails({messages}: LoadingDetailsProps) {
 
           return null;
         })}
-        <div ref={bottomRef}>
-          <Placeholder height="1.5rem" />
-        </div>
+        <Flex ref={bottomRef} direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text variant="muted">{loadingMessage}</Text>
+        </Flex>
       </Flex>
     </ArtifactDetails>
   );
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;

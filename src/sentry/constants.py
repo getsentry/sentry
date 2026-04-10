@@ -727,7 +727,6 @@ AUTO_ENABLE_CODE_REVIEW = False
 # Seer Org level default for code review triggers
 DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
     "on_ready_for_review",
-    "on_new_commit",
 ]
 SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
 SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT = "code_changes"

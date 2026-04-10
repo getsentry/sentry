@@ -309,12 +309,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/stories/*',
       withOrgPath: true,
-      // eslint-disable-next-line boundaries/element-types -- storybook entrypoint
+      // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
-      // eslint-disable-next-line boundaries/element-types -- debug tools entrypoint
+      // eslint-disable-next-line boundaries/dependencies -- debug tools entrypoint
       component: make(() => import('sentry/debug/notifications/views/index')),
       withOrgPath: true,
     },
@@ -569,7 +569,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'seer/',
       name: t('Seer'),
-      // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
       component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {
@@ -2030,7 +2030,7 @@ function buildRoutes(): RouteObject[] {
     },
     // Redirect old links to the new mcp landing page
     {
-      path: `ai/mcp/`,
+      path: 'ai/mcp/',
       redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${MCP_LANDING_SUB_PATH}/`,
     },
     {
@@ -2084,16 +2084,9 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
-    // Redirect old conversations links to the new explore location
-    {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/*`,
-      component: make(
-        () => import('sentry/views/insights/pages/conversations/conversationsRedirect')
-      ),
-    },
     // Redirect old links to the new agents landing page
     {
-      path: `ai/*`,
+      path: 'ai/*',
       redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
     },
     {
@@ -2245,11 +2238,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'summary/:projectId/',
-      component: make(() => import('sentry/views/profiling/profileSummary')),
-    },
-    {
-      path: 'profile/:projectId/differential-flamegraph/',
-      component: make(() => import('sentry/views/profiling/differentialFlamegraph')),
+      component: make(() => import('sentry/views/profiling/profileSummaryRedirect')),
     },
     traceView,
     {
@@ -2328,9 +2317,14 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/conversations/overview')
+          ),
+        },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
           ),
         },
         transactionSummaryRoute,
@@ -2545,10 +2539,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/recent/',
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
-    },
-    {
-      path: 'supergroups/',
-      component: make(() => import('sentry/views/issueList/pages/supergroups')),
     },
     {
       path: 'views/:viewId/',

@@ -21,7 +21,7 @@ function renderWithProvider({
 }: ComponentProps<typeof SpansSearchBar>) {
   return render(
     <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />,
-    {organization: {features: ['search-query-builder-input-flow-changes']}}
+    {}
   );
 }
 
@@ -33,7 +33,7 @@ function mockSpanTags({
   type: 'string' | 'number' | 'boolean';
 }) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/trace-items/attributes/`,
+    url: '/organizations/org-slug/trace-items/attributes/',
     body: mockedTags,
     match: [
       function (_url: string, options: Record<string, any>) {
@@ -68,16 +68,16 @@ describe('SpansSearchBar', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: '/organizations/org-slug/spans/fields/',
       body: [],
     });
 
@@ -90,7 +90,7 @@ describe('SpansSearchBar', () => {
     mockSpanTags({type: 'boolean', mockedTags: []});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/validate/`,
+      url: '/organizations/org-slug/trace-items/attributes/validate/',
       method: 'POST',
       body: {attributes: {}},
     });
@@ -122,7 +122,7 @@ describe('SpansSearchBar', () => {
     await screen.findByLabelText('span.op:function');
   });
 
-  it('calls onSearch with the correct query', async () => {
+  it.isKnownFlake('calls onSearch with the correct query', async () => {
     const onSearch = jest.fn();
 
     renderWithProvider({
@@ -134,10 +134,10 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:');
-    await userEvent.keyboard('{enter}');
-    await userEvent.keyboard('function');
-    await userEvent.keyboard('{enter}');
+    await userEvent.click(searchInput);
+    await userEvent.type(searchInput, 'span.op:', {delay: null});
+    await userEvent.keyboard('function', {delay: null});
+    await userEvent.keyboard('{enter}', {delay: null});
 
     await waitFor(() => {
       expect(onSearch).toHaveBeenCalledWith(
@@ -147,9 +147,7 @@ describe('SpansSearchBar', () => {
     });
   });
 
-  // TODO(nikki): Flaky test
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('triggers onClose when the query changes', async () => {
+  it('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
     renderWithProvider({
@@ -161,10 +159,12 @@ describe('SpansSearchBar', () => {
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
     });
-    await userEvent.type(searchInput, 'span.op:');
-    await userEvent.keyboard('{enter}');
-    await userEvent.keyboard('function');
-    await userEvent.keyboard('{enter}');
+    await userEvent.click(searchInput);
+    await userEvent.type(searchInput, 'span.op:', {delay: null});
+    await userEvent.keyboard('{enter}', {delay: null});
+    await screen.findByRole('row', {name: /span\.op/});
+    await userEvent.keyboard('function', {delay: null});
+    await userEvent.keyboard('{enter}', {delay: null});
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();

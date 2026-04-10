@@ -21,6 +21,8 @@ import {
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -42,11 +44,18 @@ interface BuildCompareHeaderContentProps {
   onRerunComparison?: () => void;
 }
 
+const buildCompareFeedbackOptions = {
+  tags: {
+    'feedback.source': 'preprod.buildDetails',
+  },
+};
+
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {buildDetails, headArtifactId, baseArtifactId, onRerunComparison, isRerunning} =
     props;
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
@@ -141,13 +150,15 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
       </Stack>
       <Flex align="center" gap="sm">
-        <FeedbackButton
-          feedbackOptions={{
-            tags: {
-              'feedback.source': 'preprod.buildDetails',
-            },
-          }}
-        />
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="feedback">
+            <FeedbackButton feedbackOptions={buildCompareFeedbackOptions}>
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        ) : (
+          <FeedbackButton feedbackOptions={buildCompareFeedbackOptions} />
+        )}
         {isSentryEmployee &&
           headArtifactId &&
           baseArtifactId &&

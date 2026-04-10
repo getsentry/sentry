@@ -1,5 +1,6 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -23,6 +24,7 @@ import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,12 +32,12 @@ import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -134,20 +136,24 @@ export function TracesTable({
 
   const {cursor, setCursor} = useTableCursor();
 
-  const tracesRequest = useTraces({
-    query: combinedQuery,
-    sort: `-timestamp`,
-    keepPreviousData: true,
-    cursor,
-    limit,
+  const tracesRequest = useQuery({
+    ...useTracesApiOptions({
+      query: combinedQuery,
+      sort: '-timestamp',
+      cursor,
+      limit,
+    }),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
   });
 
-  const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
+  const pageLinks = tracesRequest?.data?.headers.Link;
+  const tracesData = tracesRequest.data?.json?.data;
 
   const spansRequest = useSpans(
     {
       // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
-      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesData?.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
         'count_if(gen_ai.operation.type,equals,ai_client)',
@@ -155,8 +161,8 @@ export function TracesTable({
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.cost.total_tokens)',
       ],
-      limit: tracesRequest.data?.data.length ?? 0,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      limit: tracesData?.length ?? 0,
+      enabled: Boolean(tracesData && tracesData.length > 0),
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -165,11 +171,11 @@ export function TracesTable({
 
   const agentsRequest = useSpans(
     {
-      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
+      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}]`,
       fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      enabled: Boolean(tracesData && tracesData.length > 0),
     },
     Referrer.TRACES_TABLE
   );
@@ -191,10 +197,10 @@ export function TracesTable({
 
   const traceErrorRequest = useSpans(
     {
-      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
+      search: `span.status:internal_error trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
-      limit: tracesRequest.data?.data.length ?? 0,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      limit: tracesData?.length ?? 0,
+      enabled: Boolean(tracesData && tracesData.length > 0),
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -239,11 +245,11 @@ export function TracesTable({
   }, [spansRequest.data, traceErrorRequest.data]);
 
   const tableData = useMemo(() => {
-    if (!tracesRequest.data) {
+    if (!tracesData) {
       return [];
     }
 
-    return tracesRequest.data.data.map(span => ({
+    return tracesData.map(span => ({
       traceId: span.trace,
       transaction: span.name ?? '',
       duration: span.duration,
@@ -258,7 +264,7 @@ export function TracesTable({
       isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
   }, [
-    tracesRequest.data,
+    tracesData,
     spanDataMap,
     spansRequest.isLoading,
     traceErrorRequest.isLoading,
@@ -421,11 +427,7 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isSpanDataLoading) {
         return <NumberPlaceholder />;
       }
-      return (
-        <TextAlignRight>
-          <LLMCosts cost={dataRow.totalCost} />
-        </TextAlignRight>
-      );
+      return <CurrencyCell value={dataRow.totalCost} />;
     case 'timestamp':
       return (
         <TextAlignRight>

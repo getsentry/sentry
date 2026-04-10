@@ -810,6 +810,13 @@ class ProjectUpdateTest(APITestCase):
             ],
         )
 
+    def test_preprod_snapshot_pr_comments_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsEnabled=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
+
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
@@ -836,6 +843,20 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
+
+    def test_security_token_header_max_length(self) -> None:
+        # exactly 64 characters should succeed
+        value = "X-" + "A" * 62
+        assert len(value) == 64
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
+        assert self.project.get_option("sentry:token_header") == value
+        assert resp.data["securityTokenHeader"] == value
+
+        # 65 characters should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, securityTokenHeader="X-" + "A" * 63, status_code=400
+        )
+        assert b"securityTokenHeader" in resp.content
 
     def test_verify_ssl(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)

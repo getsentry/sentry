@@ -21,13 +21,6 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsSidePanelUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-attributes-dropdown-side-panel')
-  );
-};
-
 export const canUseMetricsUIRefresh = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
@@ -39,5 +32,12 @@ export const canUseMetricsStatsBytesUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
     organization.features.includes('tracemetrics-stats-bytes-ui')
+  );
+};
+
+export const canUseMetricsEquations = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-equations-in-explore')
   );
 };

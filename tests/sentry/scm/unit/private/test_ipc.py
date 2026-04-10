@@ -3,6 +3,7 @@ from unittest import mock
 import msgspec
 import pytest
 
+from sentry.scm.errors import SCMProviderEventNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream
 from sentry.scm.private.ipc import (
     AuthorParser,
@@ -774,6 +775,7 @@ def test_produce_to_listeners_returns_none_for_unsupported_events() -> None:
         "type": "github",
     }
 
-    with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", lambda e: None):
+    with pytest.raises(SCMProviderEventNotSupported):
         produce_to_listeners(subscription_event, "region", mock_produce)
-        assert len(produced_messages) == 0
+
+    assert len(produced_messages) == 0

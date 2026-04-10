@@ -80,7 +80,7 @@ export function PreviewTable({
       return null;
     }
     const pageIssues = page * 5 + groups.length;
-    return tct(`Showing [pageIssues] of [issueCount] issues`, {pageIssues, issueCount});
+    return tct('Showing [pageIssues] of [issueCount] issues', {pageIssues, issueCount});
   };
 
   const renderPagination = () => {

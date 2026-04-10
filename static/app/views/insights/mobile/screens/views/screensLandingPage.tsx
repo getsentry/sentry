@@ -2,6 +2,8 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -123,7 +125,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.slow_frames,mobile.total_frames)` as const,
+      field: 'division(mobile.slow_frames,mobile.total_frames)' as const,
       dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -140,7 +142,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.frozen_frames,mobile.total_frames)` as const,
+      field: 'division(mobile.frozen_frames,mobile.total_frames)' as const,
       dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -159,7 +161,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `avg(mobile.frames_delay)` as const,
+      field: 'avg(mobile.frames_delay)' as const,
       dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -177,7 +179,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_initial_display)` as const,
+      field: 'avg(measurements.time_to_initial_display)' as const,
       dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -195,7 +197,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_full_display)` as const,
+      field: 'avg(measurements.time_to_full_display)' as const,
       dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -264,7 +266,7 @@ function ScreensLandingPage() {
       moduleName={ModuleName.MOBILE_VITALS}
       maxPickableDays={maxPickableDays.maxPickableDays}
     >
-      <Layout.Page>
+      <Stack flex={1}>
         <PageAlertProvider>
           <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
@@ -323,7 +325,7 @@ function ScreensLandingPage() {
             </Layout.Body>
           </ModuleFeature>
         </PageAlertProvider>
-      </Layout.Page>
+      </Stack>
     </ModulePageProviders>
   );
 }

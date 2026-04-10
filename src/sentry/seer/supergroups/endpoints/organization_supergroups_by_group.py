@@ -12,10 +12,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models.group import Group
+from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import (
+    RCASource,
     SeerViewerContext,
+    SupergroupsByGroupIdsResponse,
     make_supergroups_get_by_group_ids_request,
 )
 
@@ -55,6 +57,13 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_400_BAD_REQUEST,
             )
 
+        status_param = request.GET.get("status")
+        if status_param is not None and status_param not in STATUS_QUERY_CHOICES:
+            return Response(
+                {"detail": "Invalid status parameter"},
+                status=status_codes.HTTP_400_BAD_REQUEST,
+            )
+
         valid_group_ids = set(
             Group.objects.filter(
                 id__in=group_ids,
@@ -69,8 +78,16 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_404_NOT_FOUND,
             )
 
+        rca_source = (
+            RCASource.LIGHTWEIGHT
+            if features.has(
+                "organizations:supergroups-lightweight-rca-clustering-read", organization
+            )
+            else RCASource.EXPLORER
+        )
+
         response = make_supergroups_get_by_group_ids_request(
-            {"organization_id": organization.id, "group_ids": group_ids},
+            {"organization_id": organization.id, "group_ids": group_ids, "rca_source": rca_source},
             SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
             timeout=10,
         )
@@ -81,4 +98,31 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=response.status,
             )
 
-        return Response(orjson.loads(response.data))
+        data: SupergroupsByGroupIdsResponse = orjson.loads(response.data)
+
+        if not status_param:
+            return Response(data)
+
+        # Seer returns all group_ids per supergroup regardless of status.
+        # We can't filter before the Seer call because Seer expands group_ids
+        # to include the full supergroup membership, not just the requested IDs.
+        # Instead, collect every group_id from the response, check status in
+        # bulk, and strip out non-matching ones.
+        all_response_group_ids: list[int] = []
+        for sg in data["data"]:
+            all_response_group_ids.extend(sg["group_ids"])
+
+        matching_ids = set(
+            Group.objects.filter(
+                id__in=all_response_group_ids,
+                project__organization=organization,
+                status=STATUS_QUERY_CHOICES[status_param],
+            ).values_list("id", flat=True)
+        )
+
+        for sg in data["data"]:
+            sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
+        # Drop supergroups that have no matching groups after filtering
+        data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
+
+        return Response(data)

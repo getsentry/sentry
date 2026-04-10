@@ -59,7 +59,10 @@ function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   };
 }
 
-const mockRepository = RepositoryFixture({id: '42'});
+const mockRepository = RepositoryFixture({
+  id: '42',
+  provider: {id: 'integrations:github', name: 'GitHub'},
+});
 
 describe('ScmPlatformFeatures', () => {
   const organization = OrganizationFixture({

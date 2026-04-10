@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -20,9 +21,10 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -34,11 +36,15 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
 import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {
+  type TracesTableResult,
+  useExploreTracesTableApiOptions,
+} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
@@ -61,7 +67,7 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
@@ -90,30 +96,18 @@ export function SpansTabOnboarding({
   );
 }
 
-function useControlSectionExpanded() {
-  const [controlSectionExpanded, _setControlSectionExpanded] = useLocalStorageState(
-    'explore-spans-toolbar',
-    'expanded'
-  );
-
-  const setControlSectionExpanded = useCallback(
-    (expanded: boolean) => {
-      _setControlSectionExpanded(expanded ? 'expanded' : '');
-    },
-    [_setControlSectionExpanded]
-  );
-
-  return [controlSectionExpanded === 'expanded', setControlSectionExpanded] as const;
-}
-
 interface SpanTabProps {
   datePageFilterProps: DatePageFilterProps;
 }
 
+const SPANS_TOOLBAR_STORAGE_KEY = 'explore-spans-toolbar';
+
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
-  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
+  const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
+    SPANS_TOOLBAR_STORAGE_KEY
+  );
 
   return (
     <Fragment>
@@ -229,15 +223,22 @@ function SpanTabContentSection({
       ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
     },
   });
-  const tracesTableResult = useExploreTracesTable({
-    query,
-    limit,
+  const tracesTableQuery = useQuery({
+    ...useExploreTracesTableApiOptions({
+      query,
+      limit,
+      queryExtras: {
+        caseInsensitive,
+        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      },
+    }),
+    select: selectJsonWithHeaders,
     enabled: isReady && queryType === 'traces',
-    queryExtras: {
-      caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
-    },
   });
+  const tracesTableResult = {
+    result: tracesTableQuery,
+    error: parseError(tracesTableQuery.error),
+  } satisfies TracesTableResult;
 
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
@@ -277,7 +278,7 @@ function SpanTabContentSection({
     : queryType === 'samples'
       ? spansTableResult.result.error
       : queryType === 'traces'
-        ? tracesTableResult.result.error
+        ? tracesTableResult.error
         : queryType === 'aggregate'
           ? aggregatesTableResult.result.error
           : null;
@@ -365,7 +366,7 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-const ChevronButton = styled(Button)<{expanded: boolean}>`
+export const ChevronButton = styled(Button)<{expanded: boolean}>`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

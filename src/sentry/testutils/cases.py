@@ -1050,13 +1050,16 @@ class SnubaTestCase(BaseTestCase):
 
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
+    reset_snuba_data: bool = True
 
     def setUp(self):
         super().setUp()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba, call_snuba):
+    def initialize(self, request, call_snuba):
+        if self.reset_snuba_data:
+            request.getfixturevalue("reset_snuba")
         self.call_snuba = call_snuba
 
     def create_project(self, **kwargs) -> Project:
@@ -2978,7 +2981,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 

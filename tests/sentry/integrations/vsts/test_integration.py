@@ -728,7 +728,15 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
         result = installation.get_repositories()
         assert len(result) == 1
-        assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
+        assert {
+            "name": "ProjectA/cool-service",
+            "repo_name": "cool-service",
+            "identifier": str(self.repo_id),
+            "external_id": str(self.repo_id),
+            "url": f"https://{self.vsts_account_name.lower()}.visualstudio.com/_git/{self.repo_name}",
+            "instance": self.vsts_base_url,
+            "project": "ProjectA",
+        } == result[0]
 
     def test_get_repositories_identity_error(self) -> None:
         self.assert_installation()

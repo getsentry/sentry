@@ -4,7 +4,8 @@ import time
 from collections.abc import MutableMapping
 
 import pytest
-from confluent_kafka import Consumer, Producer
+from arroyo.processing import StreamProcessor
+from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 
 from sentry.testutils.pytest import xdist
@@ -73,7 +74,7 @@ def scope_consumers():
     be created once per test session).
 
     """
-    all_consumers: MutableMapping[str, Consumer | None] = {
+    all_consumers: MutableMapping[str, StreamProcessor | None] = {
         xdist.get_kafka_topic("ingest-events"): None,
         xdist.get_kafka_topic("outcomes"): None,
     }

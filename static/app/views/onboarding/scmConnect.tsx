@@ -3,7 +3,7 @@ import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -42,7 +42,7 @@ export function ScmConnect({onComplete}: StepProps) {
   } = useScmProviders();
 
   // Pre-warm platform detection so results are cached when the user advances
-  useScmPlatformDetection(selectedRepository?.id);
+  useScmPlatformDetection(selectedRepository);
 
   // Derive integration from explicit selection, falling back to existing
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
@@ -86,13 +86,15 @@ export function ScmConnect({onComplete}: StepProps) {
             width="100%"
             maxWidth={SCM_STEP_CONTENT_WIDTH}
           >
-            <Tag variant="success" icon={<IconCheckmark />}>
-              {t(
-                'Connected to %s org %s',
-                effectiveIntegration.provider.name,
-                effectiveIntegration.name
-              )}
-            </Tag>
+            <Container>
+              <Tag variant="success" icon={<IconCheckmark />}>
+                {t(
+                  'Connected to %s org %s',
+                  effectiveIntegration.provider.name,
+                  effectiveIntegration.name
+                )}
+              </Tag>
+            </Container>
             <ScmRepoSelector integration={effectiveIntegration} />
             <AnimatePresence>
               {selectedRepository ? (

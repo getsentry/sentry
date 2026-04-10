@@ -25,8 +25,8 @@ export function useUpdateOrganization(
         data: variables,
       });
     },
-    onSuccess: (newOrg, variables, context) => {
-      options?.onSuccess?.(newOrg, variables, context);
+    onSuccess: (newOrg, variables, onMutateResult, context) => {
+      options?.onSuccess?.(newOrg, variables, onMutateResult, context);
       OrganizationStore.onUpdate(newOrg);
     },
   });

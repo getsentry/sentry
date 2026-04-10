@@ -44,6 +44,7 @@ class MessagingInteractionType(StrEnum):
     UNFURL_ISSUES = "UNFURL_ISSUES"
     UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
     UNFURL_DISCOVER = "UNFURL_DISCOVER"
+    UNFURL_EXPLORE = "UNFURL_EXPLORE"
 
     GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
@@ -118,4 +119,4 @@ class AppMentionHaltReason(StrEnum):
     ORGANIZATION_NOT_FOUND = "organization_not_found"
     ORGANIZATION_NOT_ACTIVE = "organization_not_active"
     FEATURE_NOT_ENABLED = "feature_not_enabled"
-    MISSING_CHANNEL_OR_TEXT = "missing_channel_or_text"
+    MISSING_EVENT_DATA = "missing_event_data"

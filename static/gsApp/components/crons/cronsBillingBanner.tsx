@@ -53,7 +53,7 @@ export function CronsBillingBanner({organization, subscription}: Props) {
 
   const {data, isPending} = useApiQuery<MonitorCountResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/monitor-count/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/monitor-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

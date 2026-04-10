@@ -248,7 +248,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["name"]
         assert response.data["filters"][0]["name"]
 
-    @with_feature("organizations:workflow-engine-projectruledetailsendpoint-get")
+    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
     def test_workflow_engine_granular_flag_dual_written_rule(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -257,7 +257,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
 
-    @with_feature("organizations:workflow-engine-projectruledetailsendpoint-get")
+    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
     def test_workflow_engine_granular_flag_single_written_rule(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
@@ -266,6 +266,16 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
         assert response.data["filters"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
+    def test_deleted_dual_written_rule_returns_404(self) -> None:
+        rule = self.create_project_rule(self.project)
+        # DELETE schedules deletion but we intentionally do NOT run it
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, method="delete", status_code=202
+        )
+        # GET should 404 even though the scheduled deletion hasn't executed
+        self.get_error_response(self.organization.slug, rule.project.slug, rule.id, status_code=404)
 
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
@@ -1976,6 +1986,47 @@ class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
 
         assert legacy_response.data["id"] == str(rule.id)
         assert_serializer_parity(old=legacy_response.data, new=we_response.data)
+
+    def test_snoozed_rule_for_everyone_parity(self) -> None:
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Snoozed for everyone alert",
+            action_match="any",
+            frequency=60,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+        self.snooze_rule(owner_id=self.user.id, rule=rule)
+
+        legacy_response = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200
+        )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug, self.project.slug, rule.id, status_code=200
+            )
+
+        assert legacy_response.data["id"] == str(rule.id)
+        assert legacy_response.data["snooze"]
+        assert legacy_response.data["snoozeForEveryone"]
+        assert_serializer_parity(
+            old=legacy_response.data,
+            new=we_response.data,
+            known_differences={"snoozeCreatedBy"},
+        )
 
     def test_dual_written_rule_with_filters_parity(self) -> None:
         rule = self.create_project_rule(

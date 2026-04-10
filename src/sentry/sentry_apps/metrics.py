@@ -60,6 +60,7 @@ class SentryAppWebhookFailureReason(StrEnum):
     EVENT_NOT_IN_SERVCEHOOK = "event_not_in_servicehook"
     MISSING_ISSUE_OCCURRENCE = "missing_issue_occurrence"
     MISSING_USER = "missing_user"
+    MULTIPLE_INSTALLATIONS = "multiple_installations"
 
 
 class SentryAppWebhookHaltReason(StrEnum):
@@ -71,6 +72,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     RESTRICTED_IP = "restricted_ip"
     CONNECTION_RESET = "connection_reset"
     HARD_TIMEOUT = "hard_timeout"
+    CIRCUIT_BROKEN = "circuit_broken"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):

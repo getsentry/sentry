@@ -50,6 +50,15 @@ describe('MetricSelector', () => {
         {key: 'release', type: 'string'},
       ],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'device.name', type: 'string'},
+        {key: 'release', type: 'string'},
+      ],
+    });
   });
 
   afterEach(() => {
@@ -207,7 +216,9 @@ describe('MetricSelector', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
 
-      expect(searchInput).toHaveFocus();
+      await waitFor(() => {
+        expect(searchInput).toHaveFocus();
+      });
     });
 
     it('shows search input in open dropdown', async () => {
@@ -315,6 +326,14 @@ describe('MetricSelector', () => {
 
       // Simulate search that narrows the list by re-mocking with fewer results
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {key: 'device.name', type: 'string'},
+          {key: 'release', type: 'string'},
+        ],
+      });
       setupEventsMock(
         createTraceMetricFixtures(organization, project, new Date()).baseFixtures.slice(
           0,
@@ -460,26 +479,9 @@ describe('MetricSelector', () => {
       expect(within(requestCountOption).queryByText('none')).not.toBeInTheDocument();
     });
 
-    it('does not show side panel without tracemetrics-attributes-dropdown-side-panel feature', async () => {
+    it('renders side panel', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: 'bar'});
-
-      expect(screen.queryByText('Type')).not.toBeInTheDocument();
-    });
-
-    it('renders side panel with tracemetrics-attributes-dropdown-side-panel feature', async () => {
-      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -492,13 +494,7 @@ describe('MetricSelector', () => {
 
     it('side panel defaults to current metric when no option is hovered', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -510,13 +506,7 @@ describe('MetricSelector', () => {
 
     it('shows attributes section in side panel', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -528,13 +518,7 @@ describe('MetricSelector', () => {
 
     it('side panel updates when hovering over a different metric option', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));

@@ -1,4 +1,5 @@
 import {
+  AGENT_NAME_FIELDS,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -8,6 +9,8 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+const FILTERED = '[Filtered]';
 
 export interface ToolCall {
   hasError: boolean;
@@ -21,7 +24,9 @@ export interface ConversationMessage {
   nodeId: string;
   role: 'user' | 'assistant';
   timestamp: number;
+  agentName?: string;
   duration?: number;
+  modelName?: string;
   toolCalls?: ToolCall[];
   userEmail?: string;
 }
@@ -152,7 +157,10 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   for (const turn of turns) {
     const timestamp = getNodeTimestamp(turn.generation);
 
-    if (turn.userContent && !seenUserContent.has(turn.userContent)) {
+    if (
+      turn.userContent &&
+      (turn.userContent === FILTERED || !seenUserContent.has(turn.userContent))
+    ) {
       seenUserContent.add(turn.userContent);
       messages.push({
         id: `user-${turn.generation.id}`,
@@ -164,7 +172,11 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       });
     }
 
-    if (turn.assistantContent && !seenAssistantContent.has(turn.assistantContent)) {
+    if (
+      turn.assistantContent &&
+      (turn.assistantContent === FILTERED ||
+        !seenAssistantContent.has(turn.assistantContent))
+    ) {
       seenAssistantContent.add(turn.assistantContent);
 
       // Duration: from start of generation span to end of last span (generation or tool)
@@ -178,6 +190,15 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       const endTs = Math.max(genEnd, lastToolEnd);
       const duration = endTs > startTs ? endTs - startTs : undefined;
 
+      let agentName: string | undefined;
+      for (const field of AGENT_NAME_FIELDS) {
+        agentName = getStringAttr(turn.generation, field);
+        if (agentName) {
+          break;
+        }
+      }
+      const modelName = getStringAttr(turn.generation, SpanFields.GEN_AI_RESPONSE_MODEL);
+
       messages.push({
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
@@ -186,6 +207,8 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         nodeId: turn.generation.id,
         toolCalls: turn.toolCalls.length > 0 ? turn.toolCalls : undefined,
         duration,
+        agentName: agentName || undefined,
+        modelName: modelName || undefined,
       });
     }
   }
@@ -215,6 +238,10 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     return null;
   }
 
+  if (requestMessages === FILTERED) {
+    return FILTERED;
+  }
+
   try {
     const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
     const userMessage = messagesArray.findLast(
@@ -233,6 +260,10 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
   const outputMessages = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
 
   if (outputMessages) {
+    if (outputMessages === FILTERED) {
+      return FILTERED;
+    }
+
     try {
       const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
       const assistantMessage = messagesArray.findLast(

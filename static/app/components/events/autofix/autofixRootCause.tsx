@@ -33,7 +33,6 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -99,7 +98,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -113,7 +112,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 export function replaceHeadersWithBold(markdown: string) {
@@ -334,8 +333,12 @@ function SolutionActionButton({
         const actionLabel = needsSetup
           ? t('Setup %s', integration.name)
           : t('Send to %s', integration.name);
+        const textValue = hasDuplicateNames
+          ? `${actionLabel} (${integration.id ?? integration.provider})`
+          : actionLabel;
         return {
           key: `agent:${integration.id ?? integration.provider}`,
+          textValue,
           label: (
             <Flex gap="md" align="center">
               <PluginIcon pluginId={integration.provider} size={20} />

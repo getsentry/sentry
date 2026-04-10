@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 import {type JsonFormAdapterFieldConfig} from './types';
-import {BackendJsonFormAdapter} from './';
 
 const VERCEL_PROJECTS = [
   {value: 'proj-1', label: 'my-vercel-project', url: 'https://vercel.com/proj-1'},
@@ -42,7 +42,7 @@ const mutationOptions = {
 describe('ProjectMapperAdapter', () => {
   it('renders empty state with two dropdowns and disabled Add button', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[]}
         mutationOptions={mutationOptions}
@@ -59,7 +59,7 @@ describe('ProjectMapperAdapter', () => {
 
   it('renders existing mappings with icon, label, link, arrow, IdBadge, delete', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[[101, 'proj-1']]}
         mutationOptions={mutationOptions}
@@ -82,7 +82,7 @@ describe('ProjectMapperAdapter', () => {
 
   it('shows "Deleted" for unknown mapped items', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[[101, 'unknown-value']]}
         mutationOptions={mutationOptions}
@@ -97,7 +97,7 @@ describe('ProjectMapperAdapter', () => {
 
   it('shows "Deleted" for unknown Sentry projects', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[[999, 'proj-1']]}
         mutationOptions={mutationOptions}
@@ -112,7 +112,7 @@ describe('ProjectMapperAdapter', () => {
 
   it('add mapping triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[]}
         mutationOptions={mutationOptions}
@@ -132,15 +132,18 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add project'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        project_mappings: [[101, 'proj-1']],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          project_mappings: [[101, 'proj-1']],
+        },
+        expect.anything()
+      );
     });
   });
 
   it('delete mapping triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[
           [101, 'proj-1'],
@@ -156,15 +159,18 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(deleteButtons[0]!);
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        project_mappings: [[102, 'proj-2']],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          project_mappings: [[102, 'proj-2']],
+        },
+        expect.anything()
+      );
     });
   });
 
   it('filters already-used external items from mapped dropdown', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[[101, 'proj-1']]}
         mutationOptions={mutationOptions}
@@ -187,7 +193,7 @@ describe('ProjectMapperAdapter', () => {
 
   it('does not filter Sentry projects (many-to-one)', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[[101, 'proj-1']]}
         mutationOptions={mutationOptions}
@@ -209,7 +215,7 @@ describe('ProjectMapperAdapter', () => {
 
   it('Add button disabled until both selections are made', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[]}
         mutationOptions={mutationOptions}
@@ -244,7 +250,7 @@ describe('ProjectMapperAdapter', () => {
     };
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[
           [101, 'proj-1'],

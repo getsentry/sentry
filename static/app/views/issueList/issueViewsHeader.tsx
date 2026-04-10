@@ -28,6 +28,8 @@ import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -218,10 +220,37 @@ export function IssueViewsHeader({
   headerActions,
 }: IssueViewsHeaderProps) {
   const {viewId} = useParams<{viewId?: string}>();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const realtimeLabel = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
+
+  if (hasPageFrameFeature) {
+    return (
+      <Layout.Header noActionWrap unified>
+        <Layout.HeaderContent unified>
+          <PageTitle title={title} description={description} />
+        </Layout.HeaderContent>
+        <TopBar.Slot name="actions">
+          {headerActions}
+          {!viewId && (
+            <DisableInDemoMode>
+              <Button
+                size="sm"
+                tooltipProps={{title: realtimeLabel}}
+                aria-label={realtimeLabel}
+                icon={realtimeActive ? <IconPause /> : <IconPlay />}
+                onClick={() => onRealtimeChange(!realtimeActive)}
+              />
+            </DisableInDemoMode>
+          )}
+          <IssueViewStarButton />
+          <IssueViewEditMenu />
+        </TopBar.Slot>
+      </Layout.Header>
+    );
+  }
 
   return (
     <Layout.Header noActionWrap unified>

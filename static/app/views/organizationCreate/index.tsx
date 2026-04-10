@@ -41,7 +41,7 @@ function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const relocationUrl = normalizeUrl(`/relocation/`);
+  const relocationUrl = normalizeUrl('/relocation/');
   const regionChoices = getRegionChoices();
   const client = useApi();
 

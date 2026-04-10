@@ -5,9 +5,9 @@ import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 
-import {createPlottableFromTimeSeries} from './createPlottableFromTimeSeries';
+import {createPlottableFromTimeSeriesAndWidget} from './createPlottableFromTimeSeries';
 
-describe('createPlottableFromTimeSeries', () => {
+describe('createPlottableFromTimeSeriesAndWidget', () => {
   const mockTimeSeries = {
     yAxis: 'count()',
     values: [
@@ -23,28 +23,28 @@ describe('createPlottableFromTimeSeries', () => {
 
   it('creates Line instance for LINE display type', () => {
     const widget = WidgetFixture({displayType: DisplayType.LINE});
-    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+    const plottable = createPlottableFromTimeSeriesAndWidget(mockTimeSeries, widget);
 
     expect(plottable).toBeInstanceOf(Line);
   });
 
   it('creates Area instance for AREA display type', () => {
     const widget = WidgetFixture({displayType: DisplayType.AREA});
-    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+    const plottable = createPlottableFromTimeSeriesAndWidget(mockTimeSeries, widget);
 
     expect(plottable).toBeInstanceOf(Area);
   });
 
   it('creates Bars instance for BAR display type', () => {
     const widget = WidgetFixture({displayType: DisplayType.BAR});
-    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+    const plottable = createPlottableFromTimeSeriesAndWidget(mockTimeSeries, widget);
 
     expect(plottable).toBeInstanceOf(Bars);
   });
 
   it('returns null for TABLE display type', () => {
     const widget = WidgetFixture({displayType: DisplayType.TABLE});
-    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+    const plottable = createPlottableFromTimeSeriesAndWidget(mockTimeSeries, widget);
 
     expect(plottable).toBeNull();
   });

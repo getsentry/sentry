@@ -8,8 +8,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 import type {JsonFormAdapterFieldConfig} from './types';
-import {BackendJsonFormAdapter} from './';
 
 function makeConfig(
   overrides?: Partial<Extract<JsonFormAdapterFieldConfig, {type: 'table'}>>
@@ -34,7 +34,7 @@ const mutationOptions = {
 describe('TableAdapter', () => {
   it('renders empty state with only Add button visible', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[]}
         mutationOptions={mutationOptions}
@@ -50,7 +50,7 @@ describe('TableAdapter', () => {
 
   it('renders existing rows with column headers and input fields', () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[
           {id: '1', service: 'My Service', integration_key: 'abc123'},
@@ -79,7 +79,7 @@ describe('TableAdapter', () => {
 
   it('add row does NOT immediately save', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[]}
         mutationOptions={mutationOptions}
@@ -96,7 +96,7 @@ describe('TableAdapter', () => {
 
   it('edit cell does NOT save on every keystroke', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={mutationOptions}
@@ -114,7 +114,7 @@ describe('TableAdapter', () => {
 
   it('edit cell triggers mutation on blur when all fields filled', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={mutationOptions}
@@ -128,15 +128,20 @@ describe('TableAdapter', () => {
     await userEvent.click(document.body); // blur
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '1', service: 'Updated Service', integration_key: 'abc123'}],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          service_table: [
+            {id: '1', service: 'Updated Service', integration_key: 'abc123'},
+          ],
+        },
+        expect.anything()
+      );
     });
   });
 
   it('blur does NOT save if any non-id field is empty', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={mutationOptions}
@@ -153,7 +158,7 @@ describe('TableAdapter', () => {
 
   it('delete row triggers mutation after confirmation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[
           {id: '1', service: 'My Service', integration_key: 'abc123'},
@@ -173,15 +178,18 @@ describe('TableAdapter', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '2', service: 'Other Service', integration_key: 'def456'}],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          service_table: [{id: '2', service: 'Other Service', integration_key: 'def456'}],
+        },
+        expect.anything()
+      );
     });
   });
 
   it('delete confirmation shows custom message', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={mutationOptions}
@@ -199,7 +207,7 @@ describe('TableAdapter', () => {
 
   it('pressing Enter in a cell triggers save when all fields are filled', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={mutationOptions}
@@ -218,15 +226,20 @@ describe('TableAdapter', () => {
     await userEvent.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '1', service: 'Updated Service', integration_key: 'abc123'}],
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          service_table: [
+            {id: '1', service: 'Updated Service', integration_key: 'abc123'},
+          ],
+        },
+        expect.anything()
+      );
     });
   });
 
   it('pressing Enter in a cell does NOT save when a field is empty', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={mutationOptions}
@@ -253,7 +266,7 @@ describe('TableAdapter', () => {
     };
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
         mutationOptions={pendingMutationOptions}

@@ -1,7 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import {
   EnvironmentField,
@@ -13,9 +13,13 @@ export type {EnvironmentConfig};
 
 interface ProjectEnvironmentSectionProps {
   environment?: EnvironmentConfig;
+  step?: number;
 }
 
-export function ProjectEnvironmentSection({environment}: ProjectEnvironmentSectionProps) {
+export function ProjectEnvironmentSection({
+  environment,
+  step,
+}: ProjectEnvironmentSectionProps) {
   const environmentConfig = {
     includeAllEnvironments: true,
     ...environment,
@@ -23,7 +27,8 @@ export function ProjectEnvironmentSection({environment}: ProjectEnvironmentSecti
 
   return (
     <Container>
-      <Section
+      <FormSection
+        step={step}
         title={t('Choose the Project and Environment')}
         description={t('This is where issues will be created.')}
       >
@@ -34,7 +39,7 @@ export function ProjectEnvironmentSection({environment}: ProjectEnvironmentSecti
             {...(environmentConfig.fieldProps ?? {})}
           />
         </Flex>
-      </Section>
+      </FormSection>
     </Container>
   );
 }

@@ -9,7 +9,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {BackendJsonFormAdapter} from 'sentry/components/backendJsonFormAdapter';
+import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
 import {Confirm} from 'sentry/components/confirm';
 import {List} from 'sentry/components/list';
@@ -50,7 +50,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {AddIntegration} from './addIntegration';
+import {useAddIntegration} from './addIntegration';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
@@ -67,7 +67,7 @@ const makeIntegrationQuery = (
   integrationId: string
 ): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/$integrationId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
       path: {organizationIdOrSlug: organization.slug, integrationId},
     }),
   ];
@@ -75,7 +75,7 @@ const makeIntegrationQuery = (
 
 const makePluginQuery = (organization: Organization): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
   ];
@@ -103,7 +103,7 @@ function ConfigureIntegration() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -256,23 +256,12 @@ function ConfigureIntegration() {
   const getAction = () => {
     if (provider.key === 'pagerduty') {
       return (
-        <AddIntegration
+        <PagerdutyAddServicesButton
           provider={provider}
           onInstall={onUpdateIntegration}
           account={integration.domainName}
           organization={organization}
-        >
-          {onClick => (
-            <Button
-              priority="primary"
-              size="sm"
-              icon={<IconAdd />}
-              onClick={() => onClick()}
-            >
-              {t('Add Services')}
-            </Button>
-          )}
-        </AddIntegration>
+        />
       );
     }
 
@@ -410,7 +399,7 @@ function ConfigureIntegration() {
             }
           >
             {integration.configOrganization.map(fieldConfig => (
-              <BackendJsonFormAdapter
+              <BackendJsonAutoSaveForm
                 key={fieldConfig.name}
                 field={fieldConfig}
                 initialValue={
@@ -561,6 +550,26 @@ function ConfigureIntegration() {
         title={t('Configure %s', integration.provider.name)}
       />
     </Fragment>
+  );
+}
+
+function PagerdutyAddServicesButton({
+  provider,
+  onInstall,
+  account,
+  organization,
+}: {
+  account: string | null;
+  onInstall: () => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+}) {
+  const {startFlow} = useAddIntegration({provider, onInstall, account, organization});
+
+  return (
+    <Button priority="primary" size="sm" icon={<IconAdd />} onClick={() => startFlow()}>
+      {t('Add Services')}
+    </Button>
   );
 }
 

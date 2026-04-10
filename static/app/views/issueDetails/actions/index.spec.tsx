@@ -197,7 +197,7 @@ describe('GroupActions', () => {
         location: {
           pathname: `/organizations/${org.slug}/issues/${group.id}/`,
         },
-        route: `/organizations/:orgId/issues/:groupId/`,
+        route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
         <Fragment>
@@ -248,7 +248,7 @@ describe('GroupActions', () => {
         location: {
           pathname: `/organizations/${org.slug}/issues/${issuePlatformGroup.id}/`,
         },
-        route: `/organizations/:orgId/issues/:groupId/`,
+        route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
         <Fragment>
@@ -399,7 +399,7 @@ describe('GroupActions', () => {
       expect(groupFetchApi).toHaveBeenCalledTimes(1);
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,

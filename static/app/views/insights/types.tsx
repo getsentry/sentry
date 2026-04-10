@@ -129,6 +129,13 @@ export enum SpanFields {
   AI_TOTAL_COST = 'ai.total_cost',
   AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
 
+  // Span Operation Breakdown fields
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_RESOURCE = 'spans.resource',
+  SPANS_UI = 'spans.ui',
+
   // DB fields
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
@@ -314,7 +321,6 @@ export type NonNullableStringFields =
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_CATEGORY
   | SpanFields.SPAN_SYSTEM
   | SpanFields.TIMESTAMP
@@ -331,7 +337,7 @@ export type NonNullableStringFields =
   | SpanFields.USER_DISPLAY
   | SpanFields.SENTRY_ORIGIN;
 
-type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION;
+type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
 export type SpanStringFields = NullableStringFields | NonNullableStringFields;
 

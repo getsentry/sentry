@@ -1,8 +1,9 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {NotFound} from 'sentry/components/errors/notFound';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -132,13 +133,21 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
     // current filters based on location
     const locationFilters = getCurrentPageFilters(location);
+
+    if (!selectedDashboard) {
+      // Still loading.
+      return;
+    }
+
     if (
-      !selectedDashboard ||
       !hasSavedPageFilters(selectedDashboard) ||
       // Apply redirect once for each dashboard id
       dashboardRedirectRef.current === selectedDashboard.id ||
       hasSavedPageFilters(locationFilters)
     ) {
+      // Mark the redirect check complete even though we didn't redirect (so
+      // that switching to another dashboard reruns the check.)
+      dashboardRedirectRef.current = selectedDashboard.id;
       return;
     }
 
@@ -202,9 +211,9 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
   if (isDashboardsPending || isSelectedDashboardLoading || isPrebuiltDashboardLoading) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -218,9 +227,9 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // the URL does not contain filters yet. The filters can either match the
     // saved filters, or can be different (i.e. sharing an unsaved state)
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 

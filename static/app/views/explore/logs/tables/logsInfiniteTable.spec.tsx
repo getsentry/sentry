@@ -32,17 +32,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('sentry/utils/useRelease', () => ({
-  useRelease: jest.fn().mockReturnValue({
-    data: {
-      id: 10,
-      lastCommit: {
-        id: '1e5a9462e6ac23908299b218e18377837297bda1',
-      },
-    },
-  }),
-}));
-
 jest.mock('@tanstack/react-virtual', () => {
   return {
     useWindowVirtualizer: jest.fn().mockReturnValue({
@@ -52,6 +41,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      measure: jest.fn(),
       options: {
         scrollMargin: 0,
       },
@@ -66,6 +56,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      measure: jest.fn(),
       options: {
         scrollMargin: 0,
       },
@@ -161,6 +152,16 @@ describe('LogsInfiniteTable', () => {
         },
       })
     );
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/1.0.0/`,
+      body: {
+        id: 10,
+        lastCommit: {
+          id: '1e5a9462e6ac23908299b218e18377837297bda1',
+        },
+      },
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

@@ -63,7 +63,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
     return (
       <Flex
         direction="column"
-        padding="lg lg md lg"
+        padding="lg lg md md"
         background="secondary"
         minHeight="100%"
       >
@@ -75,7 +75,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   return (
     <Flex
       direction="column"
-      padding="lg lg md lg"
+      padding="lg lg md md"
       background="secondary"
       minHeight="100%"
     >
@@ -91,7 +91,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader>
+              <MessageHeader role={message.role}>
                 {message.role === 'user' ? (
                   <Text bold size="sm">
                     {message.userEmail || t('User')}
@@ -99,7 +99,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 ) : (
                   <Flex align="baseline" gap="sm" flex={1}>
                     <Text bold size="sm">
-                      {t('Assistant')}
+                      {message.agentName || message.modelName || t('Assistant')}
                     </Text>
                     {message.duration !== undefined && message.duration > 0 && (
                       <Text size="xs" variant="muted">
@@ -109,6 +109,14 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   </Flex>
                 )}
               </MessageHeader>
+              {isAssistant && message.toolCalls && message.toolCalls.length > 0 && (
+                <MessageToolCalls
+                  toolCalls={message.toolCalls}
+                  selectedNodeId={selectedNodeId}
+                  nodeMap={nodeMap}
+                  onSelectNode={onSelectNode}
+                />
+              )}
               <StyledClippedBox
                 clipHeight={200}
                 buttonProps={{priority: 'default', size: 'xs'}}
@@ -120,14 +128,6 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   </MessageText>
                 </Container>
               </StyledClippedBox>
-              {isAssistant && message.toolCalls && message.toolCalls.length > 0 && (
-                <MessageToolCalls
-                  toolCalls={message.toolCalls}
-                  selectedNodeId={selectedNodeId}
-                  nodeMap={nodeMap}
-                  onSelectNode={onSelectNode}
-                />
-              )}
             </MessageBubble>
           );
         })}
@@ -136,22 +136,27 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   );
 }
 
-const MessageHeader = styled('div')`
+const MessageHeader = styled('div')<{role: 'user' | 'assistant'}>`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  padding-bottom: ${p => (p.role === 'user' ? '0' : p.theme.space.sm)};
   justify-content: flex-start;
 
-  &::after {
-    content: '';
-    position: absolute;
-    left: ${p => p.theme.space.md};
-    right: ${p => p.theme.space.md};
-    bottom: 0;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-  position: relative;
+  ${p =>
+    p.role === 'assistant' &&
+    `
+    position: relative;
+    &::after {
+      content: '';
+      position: absolute;
+      left: ${p.theme.space.md};
+      right: ${p.theme.space.md};
+      bottom: 0;
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
+    }
+  `}
 `;
 
 const MessageText = styled(Text)`
@@ -167,22 +172,26 @@ const MessageBubble = styled('div')<{
   z-index: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  width: 90%;
-  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
-  background-color: ${p =>
+  width: 100%;
+  align-self: flex-start;
+
+  ${p =>
     p.role === 'assistant'
-      ? p.theme.tokens.background.primary
-      : p.theme.tokens.background.secondary};
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-    border-radius: inherit;
-    box-sizing: border-box;
-    z-index: 1;
-    pointer-events: none;
-  }
+      ? `
+    background-color: ${p.theme.tokens.background.primary};
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid ${p.theme.tokens.border.primary};
+      border-radius: inherit;
+      box-sizing: border-box;
+      z-index: 1;
+      pointer-events: none;
+    }
+  `
+      : ''}
+
   ${p =>
     p.isClickable &&
     `

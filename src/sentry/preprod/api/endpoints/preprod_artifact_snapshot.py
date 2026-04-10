@@ -23,17 +23,23 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
-from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
+from sentry.preprod.analytics import (
+    PreprodArtifactApiDeleteEvent,
+    PreprodArtifactApiGetSnapshotDetailsEvent,
+)
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
+    SnapshotApprovalInfo,
+    SnapshotApprover,
     SnapshotComparisonRunInfo,
     SnapshotDetailsApiResponse,
     SnapshotImageResponse,
 )
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
@@ -48,13 +54,17 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.tasks import compare_snapshots
-from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.snapshots.utils import (
+    find_base_snapshot_artifact,
+    find_head_snapshot_artifacts_awaiting_base,
+)
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     create_preprod_snapshot_status_check_task,
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -103,8 +113,63 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (OrganizationReleasePermission,)
+
+    def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+        if not settings.IS_DEV and not features.has(
+            "organizations:preprod-snapshots", organization, actor=request.user
+        ):
+            return Response({"detail": "Feature not enabled"}, status=403)
+
+        try:
+            artifact = PreprodArtifact.objects.select_related("project").get(
+                id=snapshot_id, project__organization_id=organization.id
+            )
+        except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "Snapshot not found"}, status=404)
+
+        try:
+            artifact.preprodsnapshotmetrics
+        except PreprodSnapshotMetrics.DoesNotExist:
+            return Response({"detail": "Artifact is not a snapshot"}, status=400)
+
+        try:
+            result = delete_artifacts_and_eap_data([artifact])
+        except Exception:
+            logger.exception(
+                "preprod_snapshot.delete_failed",
+                extra={"artifact_id": artifact.id},
+            )
+            return Response(
+                {"detail": "Internal error deleting snapshot."},
+                status=500,
+            )
+
+        analytics.record(
+            PreprodArtifactApiDeleteEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+            )
+        )
+
+        logger.info(
+            "preprod_snapshot.deleted",
+            extra={
+                "artifact_id": artifact.id,
+                "user_id": request.user.id if request.user else None,
+                "files_deleted": result.files_deleted,
+                "size_metrics_deleted": result.size_metrics_deleted,
+                "artifacts_deleted": result.artifacts_deleted,
+            },
+        )
+
+        return Response(status=204)
 
     def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
         if not settings.IS_DEV and not features.has(
@@ -116,7 +181,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
                 id=snapshot_id, project__organization_id=organization.id
             )
-        except PreprodArtifact.DoesNotExist:
+        except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
 
         try:
@@ -272,6 +337,79 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 duration_ms=int(duration.total_seconds() * 1000),
             )
 
+        approval_info: SnapshotApprovalInfo | None = None
+        all_approvals = list(
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact=artifact,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            )
+        )
+        approved = [
+            a
+            for a in all_approvals
+            if a.approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED
+        ]
+
+        if approved:
+            sentry_user_ids = list({a.approved_by_id for a in approved if a.approved_by_id})
+            users_by_id = {u.id: u for u in user_service.get_many_by_id(ids=sentry_user_ids)}
+
+            approver_list: list[SnapshotApprover] = []
+            seen_approver_keys: set[str] = set()
+            for approval in approved:
+                if approval.approved_by_id:
+                    key = f"sentry:{approval.approved_by_id}"
+                    if key in seen_approver_keys:
+                        continue
+                    seen_approver_keys.add(key)
+                    user = users_by_id.get(approval.approved_by_id)
+                    if user:
+                        approver_list.append(
+                            SnapshotApprover(
+                                id=str(user.id),
+                                name=user.get_display_name(),
+                                email=user.email,
+                                username=user.username,
+                                approved_at=approval.approved_at.isoformat()
+                                if approval.approved_at
+                                else None,
+                                source="sentry",
+                            )
+                        )
+                elif approval.extras and "github" in approval.extras:
+                    gh = approval.extras["github"]
+                    gh_id = gh.get("id")
+                    key = f"github:{gh_id or gh.get('login')}"
+                    if key in seen_approver_keys:
+                        continue
+                    seen_approver_keys.add(key)
+                    approver_list.append(
+                        SnapshotApprover(
+                            id=str(gh_id) if gh_id is not None else None,
+                            name=gh.get("login"),
+                            username=gh.get("login"),
+                            avatar_url=f"https://avatars.githubusercontent.com/u/{gh_id}"
+                            if gh_id is not None
+                            else None,
+                            approved_at=approval.approved_at.isoformat()
+                            if approval.approved_at
+                            else None,
+                            source="github",
+                        )
+                    )
+            is_auto_approved = any((a.extras or {}).get("auto_approval") is True for a in approved)
+            approval_info = SnapshotApprovalInfo(
+                status="approved",
+                approvers=approver_list,
+                is_auto_approved=is_auto_approved,
+            )
+        elif all_approvals:
+            # If records exist but none are APPROVED, they must be NEEDS_APPROVAL
+            approval_info = SnapshotApprovalInfo(
+                status="requires_approval",
+                approvers=[],
+            )
+
         return Response(
             SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
@@ -295,6 +433,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
+                approval_info=approval_info,
             ).dict()
         )
 
@@ -395,7 +534,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "preprod_artifact_id": artifact.id,
                 "snapshot_metrics_id": snapshot_metrics.id,
                 "project_id": project.id,
-                "organization_id": project.organization_id,
+                "organization_slug": project.organization.slug,
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
@@ -501,6 +640,51 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         "head_artifact_id": artifact.id,
                         "base_sha": base_sha,
                     },
+                )
+
+        # Trigger comparisons for any head artifacts that were uploaded before this base.
+        # Handles possible out-of-order uploads where heads arrive before their base build.
+        if commit_comparison is not None:
+            try:
+                waiting_heads = find_head_snapshot_artifacts_awaiting_base(
+                    organization_id=project.organization_id,
+                    base_sha=commit_comparison.head_sha,
+                    base_repo_name=commit_comparison.head_repo_name,
+                    project_id=project.id,
+                    app_id=artifact.app_id,
+                    build_configuration=artifact.build_configuration,
+                )
+                for head_artifact in waiting_heads:
+                    head_metrics = head_artifact.preprodsnapshotmetrics
+                    logger.info(
+                        "Found head artifact awaiting base, triggering snapshot comparison",
+                        extra={
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": artifact.id,
+                            "base_sha": commit_comparison.head_sha,
+                        },
+                    )
+                    try:
+                        PreprodSnapshotComparison.objects.get_or_create(
+                            head_snapshot_metrics=head_metrics,
+                            base_snapshot_metrics=snapshot_metrics,
+                            defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                        )
+                    except IntegrityError:
+                        pass
+
+                    compare_snapshots.apply_async(
+                        kwargs={
+                            "project_id": project.id,
+                            "org_id": project.organization_id,
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": artifact.id,
+                        },
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to trigger comparisons for head artifacts awaiting base",
+                    extra={"base_artifact_id": artifact.id},
                 )
 
         return Response(

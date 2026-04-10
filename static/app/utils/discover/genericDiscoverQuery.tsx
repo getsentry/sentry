@@ -230,7 +230,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
 
     const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol(`tableFetchID`);
+    const tableFetchID = Symbol('tableFetchID');
     const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(this.props);
 
     this.setState({isLoading: true, tableFetchID});
@@ -406,8 +406,8 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
   const additionalQueryKey = props.options?.additionalQueryKey ?? [];
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {

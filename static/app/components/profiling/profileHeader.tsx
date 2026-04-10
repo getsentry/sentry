@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -13,6 +13,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 function getTransactionName(input: Profiling.ProfileInput): string {
@@ -36,6 +38,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
   const profiles = useProfiles();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const transactionName =
     profiles.type === 'resolved' ? getTransactionName(profiles.data) : '';
@@ -88,14 +91,29 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
-      <StyledHeaderActions>
-        <FeedbackButton />
-        {transactionTarget && (
-          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
-            {t('Go to Trace')}
-          </LinkButton>
-        )}
-      </StyledHeaderActions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          {transactionTarget && (
+            <TopBar.Slot name="actions">
+              <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
+                {t('Go to Trace')}
+              </LinkButton>
+            </TopBar.Slot>
+          )}
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <StyledHeaderActions>
+          <FeedbackButton />
+          {transactionTarget && (
+            <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+              {t('Go to Trace')}
+            </LinkButton>
+          )}
+        </StyledHeaderActions>
+      )}
     </SmallerLayoutHeader>
   );
 }

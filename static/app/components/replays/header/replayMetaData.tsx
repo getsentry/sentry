@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
@@ -13,7 +14,6 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -30,8 +30,8 @@ export function ReplayMetaData({
   const nonFeedbackErrors = replayErrors.filter(e => !e.title.includes('User Feedback'));
 
   const location = useLocation();
-  const routes = useRoutes();
-  const referrer = getRouteStringFromRoutes(routes);
+  const matches = useMatches();
+  const referrer = getRouteStringFromRoutes({matches});
   const eventView = EventView.fromLocation(location);
 
   const breadcrumbTab = {

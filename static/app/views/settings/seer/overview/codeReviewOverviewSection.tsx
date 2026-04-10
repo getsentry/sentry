@@ -15,7 +15,7 @@ import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/
 import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
-import {IconRefresh, IconSettings} from 'sentry/icons';
+import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -65,7 +65,6 @@ export function CodeReviewOverviewSection({
   isPending,
   organization,
   data,
-  refetch,
 }: Props) {
   const queryClient = useQueryClient();
 
@@ -174,16 +173,8 @@ export function CodeReviewOverviewSection({
     <FieldGroup
       title={
         <Flex justify="between" gap="md" flexGrow={1}>
-          <Flex align="center" gap="md">
-            <span>{t('Code Review')}</span>
-            <Button
-              size="zero"
-              priority="link"
-              icon={<IconRefresh size="xs" />}
-              aria-label={t('Reload repositories')}
-              onClick={() => refetch()}
-            />
-          </Flex>
+          <span>{t('Code Review')}</span>
+
           <Text uppercase={false}>
             <Link to={`/settings/${organization.slug}/seer/repos/`}>
               <Flex align="center" gap="xs">

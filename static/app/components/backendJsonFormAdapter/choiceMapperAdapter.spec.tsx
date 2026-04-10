@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {BackendJsonFormAdapter} from './';
+import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 
 const org = OrganizationFixture();
 const mutationOptions = {
@@ -12,7 +12,7 @@ const mutationOptions = {
 describe('ChoiceMapperAdapter', () => {
   it('renders choice_mapper with empty value showing only Add button', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -56,7 +56,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('renders choice_mapper table with existing values', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -110,7 +110,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper add row does not immediately submit', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -150,7 +150,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper add row then fill select triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -189,15 +189,18 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(await screen.findByText('Closed'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {repo1: {on_resolve: 'closed'}},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {repo1: {on_resolve: 'closed'}},
+        },
+        expect.anything()
+      );
     });
   });
 
   it('choice_mapper does not submit until all columns in every row are filled', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -249,15 +252,18 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(await screen.findByText('Reopened'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {repo1: {on_resolve: 'closed', on_unresolve: 'reopened'}},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {repo1: {on_resolve: 'closed', on_unresolve: 'reopened'}},
+        },
+        expect.anything()
+      );
     });
   });
 
   it('choice_mapper remove row triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -286,15 +292,18 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {},
+        },
+        expect.anything()
+      );
     });
   });
 
   it('choice_mapper update cell value triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -326,9 +335,12 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(await screen.findByText('Open'));
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        status_mapping: {repo1: {on_resolve: 'open'}},
-      });
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
+        {
+          status_mapping: {repo1: {on_resolve: 'open'}},
+        },
+        expect.anything()
+      );
     });
   });
 
@@ -344,7 +356,7 @@ describe('ChoiceMapperAdapter', () => {
     });
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -405,7 +417,7 @@ describe('ChoiceMapperAdapter', () => {
     });
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -457,7 +469,7 @@ describe('ChoiceMapperAdapter', () => {
     };
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',

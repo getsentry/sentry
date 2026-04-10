@@ -8,7 +8,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type RepositorySettings =
+type RepositorySettings =
   | {
       enabledCodeReview: boolean;
       repositoryIds: string[];
@@ -43,7 +43,7 @@ export function useBulkUpdateRepositorySettings(
       });
     },
     ...options,
-    onSettled: (data, error, variables, context) => {
+    onSettled: (data, error, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organization.slug}/repos/`],
       });
@@ -52,7 +52,7 @@ export function useBulkUpdateRepositorySettings(
         queryClient.invalidateQueries({queryKey});
         queryClient.setQueryData(queryKey, [repo, undefined, undefined]);
       });
-      options?.onSettled?.(data, error, variables, context);
+      options?.onSettled?.(data, error, variables, onMutateResult, context);
     },
   });
 }

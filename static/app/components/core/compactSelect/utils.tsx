@@ -36,7 +36,7 @@ export function getSearchConfig<Value extends SelectKey>(
   return search;
 }
 
-export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
+export function getEscapedKey(value: SelectKey): string {
   return CSS.escape(String(value));
 }
 
@@ -287,8 +287,8 @@ export function getSortedItems<Value extends SelectKey>(
  * selected, then this function selects all of them. If all of the options are selected,
  * then this function unselects all of them.
  */
-function toggleOptions<Value extends SelectKey>(
-  optionKeys: Value[],
+function toggleOptions(
+  optionKeys: SelectKey[],
   selectionManager: ListState<any>['selectionManager']
 ) {
   const {selectedKeys} = selectionManager;

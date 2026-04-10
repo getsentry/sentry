@@ -180,7 +180,7 @@ class SlackRequestParser(BaseRequestParser):
 
         convert_to_async_slack_response.apply_async(
             kwargs={
-                "region_names": [r.name for r in cells],
+                "cell_names": [r.name for r in cells],
                 "payload": create_async_request_payload(self.request),
                 "response_url": self.response_url,
             }

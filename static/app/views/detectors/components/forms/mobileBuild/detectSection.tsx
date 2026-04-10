@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
@@ -24,6 +25,7 @@ import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
+  isDiffThreshold,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from 'sentry/views/settings/project/preprod/types';
@@ -58,8 +60,7 @@ export function MobileBuildDetectSection() {
   return (
     <Fragment>
       <Container>
-        <Stack gap="md">
-          <Heading as="h3">{t('Choose Your Measurement')}</Heading>
+        <FormSection step={2} title={t('Choose Your Measurement')}>
           <MetricField
             name={PREPROD_DETECTOR_FORM_FIELDS.measurement}
             choices={metricOptions}
@@ -67,39 +68,35 @@ export function MobileBuildDetectSection() {
             flexibleControlStateSize
             preserveOnUnmount
           />
-        </Stack>
+        </FormSection>
       </Container>
 
       <Container>
-        <Stack gap="lg">
-          <section>
-            <Heading as="h3">{t('Issue Detection')}</Heading>
-            <MeasurementField
-              name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
-              choices={thresholdTypeOptions}
-              inline={false}
-              flexibleControlStateSize
-              preserveOnUnmount
-            />
-            {(thresholdType === 'absolute_diff' || thresholdType === 'relative_diff') && (
-              <Flex align="center" gap="sm">
-                <IconInfo size="xs" />
-                <Text variant="muted" size="sm">
-                  {tct(
-                    "Compares against the previous build matching this monitor's filters, [platform], [packageName], and [buildConfiguration].",
-                    {
-                      platform: <InlineCode>platform</InlineCode>,
-                      packageName: <InlineCode>package_name</InlineCode>,
-                      buildConfiguration: <InlineCode>build_configuration</InlineCode>,
-                    }
-                  )}
-                </Text>
-              </Flex>
-            )}
-          </section>
-
+        <FormSection step={3} title={t('Issue Detection')}>
+          <MeasurementField
+            name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
+            choices={thresholdTypeOptions}
+            inline={false}
+            flexibleControlStateSize
+            preserveOnUnmount
+          />
+          {isDiffThreshold(thresholdType) && (
+            <Flex align="center" gap="sm">
+              <IconInfo size="xs" />
+              <Text variant="muted" size="sm">
+                {tct(
+                  "Compares against the previous build matching this monitor's filters, [platform], [packageName], and [buildConfiguration].",
+                  {
+                    platform: <InlineCode>platform</InlineCode>,
+                    packageName: <InlineCode>package_name</InlineCode>,
+                    buildConfiguration: <InlineCode>build_configuration</InlineCode>,
+                  }
+                )}
+              </Text>
+            </Flex>
+          )}
           <ThresholdSection thresholdType={thresholdType} />
-        </Stack>
+        </FormSection>
       </Container>
     </Fragment>
   );
