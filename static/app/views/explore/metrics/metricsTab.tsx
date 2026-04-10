@@ -314,6 +314,7 @@ function MetricsTabBodySection() {
                         queryIndex={index}
                         references={references}
                         isAnyDragging={isDragging}
+                        canDrag={sortableItems.length > 1}
                       />
                     </MetricsQueryParamsProvider>
                   );

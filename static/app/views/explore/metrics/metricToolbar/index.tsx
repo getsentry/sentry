@@ -61,27 +61,25 @@ export function MetricToolbar({
     [setVisualize, visualize]
   );
 
+  const dndGrid = dragListeners ? 'auto' : '';
+  const removeMetric = canRemoveMetric ? '24px' : '0';
+  const columns = isVisualizeFunction(visualize)
+    ? `${dndGrid} auto 2fr 3fr 6fr ${removeMetric}`
+    : `${dndGrid} auto 1fr ${removeMetric}`;
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <Grid
         width="100%"
         align="center"
         gap="md"
-        columns={
-          isVisualizeFunction(visualize)
-            ? `auto auto 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`
-            : `auto auto 1fr ${canRemoveMetric ? '24px' : '0'}`
-        }
+        columns={columns}
         data-test-id="metric-toolbar"
         paddingLeft="md"
         paddingRight="lg"
         paddingTop="md"
       >
-        {dragListeners ? (
-          <DragReorderButton iconSize="sm" {...dragListeners} />
-        ) : (
-          <span />
-        )}
+        {dragListeners ? <DragReorderButton iconSize="sm" {...dragListeners} /> : null}
         <VisualizeLabel
           index={queryIndex}
           visualize={visualize}

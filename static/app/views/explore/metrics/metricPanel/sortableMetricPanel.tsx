@@ -5,6 +5,7 @@ import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface SortableMetricPanelProps {
+  canDrag: boolean;
   isAnyDragging: boolean;
   queryIndex: number;
   sortableId: number;
@@ -18,6 +19,7 @@ export function SortableMetricPanel({
   queryIndex,
   references,
   isAnyDragging,
+  canDrag,
 }: SortableMetricPanelProps) {
   const {attributes, listeners, setNodeRef, transform, isDragging} = useSortable({
     id: sortableId,
@@ -34,7 +36,7 @@ export function SortableMetricPanel({
       traceMetric={traceMetric}
       queryIndex={queryIndex}
       references={references}
-      dragListeners={listeners}
+      dragListeners={canDrag ? listeners : undefined}
       isAnyDragging={isAnyDragging}
       {...attributes}
     />
