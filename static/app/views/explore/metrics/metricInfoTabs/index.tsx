@@ -52,8 +52,8 @@ export function MetricInfoTabs({
     >
       {orientation === 'right' || visualize.visible ? (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
-          {additionalActions}
           <MetricInfoTabList orientation={orientation} contentsHidden={contentsHidden} />
+          {additionalActions}
         </Flex>
       ) : null}
       {visualize.visible && !contentsHidden ? (
