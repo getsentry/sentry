@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {useCallback, useMemo, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -219,4 +219,22 @@ export function useAddMetricQuery({
 
     navigate(target);
   };
+}
+
+export function useReorderMetricQueries() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return useCallback(
+    (reorderedQueries: BaseMetricQuery[]) => {
+      const target = {...location, query: {...location.query}};
+      target.query.metric = reorderedQueries
+        .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+        .filter(defined)
+        .filter(Boolean);
+
+      navigate(target);
+    },
+    [location, navigate]
+  );
 }
