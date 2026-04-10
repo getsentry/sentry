@@ -92,4 +92,7 @@ def fixability_score_strategy(
 def priority_label(priority: int | None) -> str | None:
     if priority is None:
         return None
-    return PriorityLevel(priority).name.lower()
+    try:
+        return PriorityLevel(priority).name.lower()
+    except ValueError:
+        return None
