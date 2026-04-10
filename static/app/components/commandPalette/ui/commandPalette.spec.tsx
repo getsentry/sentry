@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -24,47 +24,18 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
-import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
+import {
+  CMDKAction,
+  CommandPaletteProvider,
+} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
-function GlobalActionsComponent({
-  children,
-  onAction,
-}: {
-  children?: React.ReactNode;
-  onAction?: (
-    action: CollectionTreeNode<CMDKActionData>,
-    options?: {modifierKeys?: {shiftKey: boolean}}
-  ) => void;
-}) {
-  const navigate = useNavigate();
-
-  const handleAction = useCallback(
-    (
-      action: CollectionTreeNode<CMDKActionData>,
-      options?: {modifierKeys?: {shiftKey: boolean}}
-    ) => {
-      if (onAction) {
-        onAction(action, options);
-      } else if ('to' in action) {
-        navigate(action.to);
-      } else if ('onAction' in action) {
-        action.onAction();
-      }
-      closeModal();
-    },
-    [navigate, onAction]
-  );
-
+function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   return (
     <CommandPaletteProvider>
       {children}
-      <CommandPalette onAction={handleAction} />
+      <CommandPalette closeModal={closeModal} />
     </CommandPaletteProvider>
   );
 }
@@ -118,12 +89,12 @@ describe('CommandPalette', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('shift-enter on an internal link forwards modifier keys and closes modal', async () => {
+  it('shift-enter on an internal link opens in a new tab and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const onAction = jest.fn();
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
 
     render(
-      <GlobalActionsComponent onAction={onAction}>
+      <GlobalActionsComponent>
         <CMDKAction to="/target/" display={{label: 'Go to route'}} />
       </GlobalActionsComponent>
     );
@@ -131,10 +102,14 @@ describe('CommandPalette', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
-    expect(onAction).toHaveBeenCalledWith(expect.objectContaining({to: '/target/'}), {
-      modifierKeys: {shiftKey: true},
-    });
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('target'),
+      '_blank',
+      'noreferrer'
+    );
     expect(closeSpy).toHaveBeenCalledTimes(1);
+
+    openSpy.mockRestore();
   });
 
   it('shows internal and external trailing link indicators for link actions', async () => {
@@ -398,18 +373,6 @@ describe('CommandPalette', () => {
       const secondaryCallback = jest.fn();
       const closeSpy = jest.spyOn(modalActions, 'closeModal');
 
-      // Mirror the updated modal.tsx handleSelect: invoke callback, skip close when
-      // action has children so the palette can push into the secondary actions.
-      const handleAction = (action: CollectionTreeNode<CMDKActionData>) => {
-        if ('onAction' in action) {
-          action.onAction();
-          if (action.children.length > 0) {
-            return;
-          }
-        }
-        closeModal();
-      };
-
       // Top-level groups become section headers (disabled), so the action-with-callback
       // must be a child item — matching how "Parent Group Action" works in allActions.
       render(
@@ -422,7 +385,7 @@ describe('CommandPalette', () => {
               />
             </CMDKAction>
           </CMDKAction>
-          <CommandPalette onAction={handleAction} />
+          <CommandPalette closeModal={closeModal} />
         </CommandPaletteProvider>
       );
 
@@ -522,7 +485,7 @@ describe('CommandPalette', () => {
             <CommandPaletteSlot name="task">
               <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
             </CommandPaletteSlot>
-            <CommandPalette onAction={jest.fn()} />
+            <CommandPalette closeModal={jest.fn()} />
           </CommandPaletteSlot.Provider>
         </CommandPaletteProvider>
       );
@@ -541,9 +504,7 @@ describe('CommandPalette', () => {
             <CommandPaletteSlot name="task">
               <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
             </CommandPaletteSlot>
-            <CommandPalette
-              onAction={node => ('onAction' in node ? node.onAction() : null)}
-            />
+            <CommandPalette closeModal={jest.fn()} />
           </CommandPaletteSlot.Provider>
         </CommandPaletteProvider>
       );
@@ -559,7 +520,7 @@ describe('CommandPalette', () => {
             <CommandPaletteSlot name="page">
               <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
             </CommandPaletteSlot>
-            <CommandPalette onAction={jest.fn()} />
+            <CommandPalette closeModal={jest.fn()} />
           </CommandPaletteSlot.Provider>
         </CommandPaletteProvider>
       );
@@ -578,9 +539,7 @@ describe('CommandPalette', () => {
             <CommandPaletteSlot name="page">
               <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
             </CommandPaletteSlot>
-            <CommandPalette
-              onAction={node => ('onAction' in node ? node.onAction() : null)}
-            />
+            <CommandPalette closeModal={jest.fn()} />
           </CommandPaletteSlot.Provider>
         </CommandPaletteProvider>
       );
@@ -606,7 +565,7 @@ describe('CommandPalette', () => {
             <CommandPaletteSlot name="page">
               <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
             </CommandPaletteSlot>
-            <CommandPalette onAction={jest.fn()} />
+            <CommandPalette closeModal={jest.fn()} />
           </CommandPaletteSlot.Provider>
         </CommandPaletteProvider>
       );
@@ -630,7 +589,7 @@ describe('CommandPalette', () => {
             <CommandPaletteSlot name="task">
               <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
             </CommandPaletteSlot>
-            <CommandPalette onAction={jest.fn()} />
+            <CommandPalette closeModal={jest.fn()} />
           </CommandPaletteSlot.Provider>
         </CommandPaletteProvider>
       );
@@ -659,7 +618,7 @@ describe('CommandPalette', () => {
 
       render(
         <CommandPaletteProvider>
-          <CommandPalette onAction={jest.fn()}>
+          <CommandPalette closeModal={jest.fn()}>
             <ActionsViaGlobalSlot />
           </CommandPalette>
         </CommandPaletteProvider>
@@ -678,7 +637,7 @@ describe('CommandPalette', () => {
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Empty Group'}} />
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette onAction={jest.fn()} />
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -692,7 +651,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Direct Action'}} onAction={jest.fn()} />
-          <CommandPalette onAction={jest.fn()} />
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
