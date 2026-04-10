@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 export function useMetricReferences() {
   const metricQueries = useMultiMetricsQueryParams();
@@ -12,8 +13,7 @@ export function useMetricReferences() {
         .filter(metricQuery =>
           metricQuery.queryParams.visualizes.some(isVisualizeFunction)
         )
-        .map(metricQuery => metricQuery.label!)
-        .filter(Boolean)
+        .map((metricQuery, index) => metricQuery.label ?? getVisualizeLabel(index, false))
     );
   }, [metricQueries]);
 }

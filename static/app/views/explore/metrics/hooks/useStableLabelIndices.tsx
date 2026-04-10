@@ -96,6 +96,6 @@ export function useStableLabelIndices(queries: BaseMetricQuery[]) {
         labelsRef.current = labelsRef.current.filter((_, j) => j !== position);
       },
     }),
-    [] // stable — all methods close over labelsRef which is a stable ref
+    []
   );
 }

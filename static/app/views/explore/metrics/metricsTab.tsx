@@ -178,10 +178,9 @@ function MetricsQueryBuilderSection() {
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
         {metricQueries.map((metricQuery, index) => {
-          const key = `queryBuilder-${metricQuery.label ?? index}`;
           return (
             <MetricsQueryParamsProvider
-              key={key}
+              key={`queryBuilder-${metricQuery.label ?? index}`}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               traceMetric={metricQuery.metric}
@@ -250,10 +249,9 @@ function MetricsTabBodySection() {
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
-              const key = `queryPanel-${metricQuery.label ?? index}`;
               return (
                 <MetricsQueryParamsProvider
-                  key={key}
+                  key={`queryPanel-${metricQuery.label ?? index}`}
                   queryParams={metricQuery.queryParams}
                   setQueryParams={metricQuery.setQueryParams}
                   traceMetric={metricQuery.metric}
@@ -297,10 +295,9 @@ function MetricsTabBodySection() {
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
-              const key = `queryPanel-${metricQuery.label ?? index}`;
               return (
                 <MetricsQueryParamsProvider
-                  key={key}
+                  key={`queryPanel-${metricQuery.label ?? index}`}
                   queryParams={metricQuery.queryParams}
                   setQueryParams={metricQuery.setQueryParams}
                   traceMetric={metricQuery.metric}
