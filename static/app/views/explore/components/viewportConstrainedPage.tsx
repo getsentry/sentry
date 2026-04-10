@@ -25,7 +25,7 @@ export function ViewportConstrainedPage({
   ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return <Layout.Main width="full" {...rest} />;
+    return <FlexMain width="full" {...rest} />;
   }
 
   return (
@@ -39,7 +39,13 @@ export function ViewportConstrainedPage({
   );
 }
 
-const ConstrainedMain = styled(Layout.Main)`
+const FlexMain = styled(Layout.Main)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const ConstrainedMain = styled(FlexMain)`
   contain: size;
 
   @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
