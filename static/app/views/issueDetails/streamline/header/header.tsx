@@ -118,20 +118,39 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <StyledBreadcrumbs
-              crumbs={[
-                {
-                  label: 'Issues',
-                  to: {
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query,
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="title">
+                <StyledBreadcrumbs
+                  crumbs={[
+                    {
+                      label: 'Issues',
+                      to: {
+                        pathname: `/organizations/${organization.slug}/issues/`,
+                        query,
+                      },
+                    },
+                    {
+                      label: <IssueIdBreadcrumb project={project} group={group} />,
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
+            ) : (
+              <StyledBreadcrumbs
+                crumbs={[
+                  {
+                    label: 'Issues',
+                    to: {
+                      pathname: `/organizations/${organization.slug}/issues/`,
+                      query,
+                    },
                   },
-                },
-                {
-                  label: <IssueIdBreadcrumb project={project} group={group} />,
-                },
-              ]}
-            />
+                  {
+                    label: <IssueIdBreadcrumb project={project} group={group} />,
+                  },
+                ]}
+              />
+            )}
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
