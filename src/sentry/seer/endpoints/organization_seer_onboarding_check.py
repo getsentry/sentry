@@ -59,9 +59,7 @@ def is_autofix_enabled(organization: Organization) -> bool:
     """
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
         return SeerProjectRepository.objects.filter(
-            project__organization_id=organization.id,
-            project__status=ObjectStatus.ACTIVE,
-            repository__status=ObjectStatus.ACTIVE,
+            project__organization_id=organization.id, project__status=ObjectStatus.ACTIVE
         ).exists()
 
     project_ids = list(
