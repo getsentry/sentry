@@ -30,16 +30,6 @@ from sentry.utils import metrics
 InstT = TypeVar("InstT", bound="RepositoryIntegration[Any]", default=RepositoryIntegration)
 
 
-class RepositoryInputConfig(TypedDict):
-    """Input config passed to create_repositories / build_repository_config.
-    Providers may include additional keys beyond these."""
-
-    external_id: str
-    integration_id: int
-    identifier: str
-    installation: int
-
-
 class RepositoryConfig(TypedDict):
     name: str
     external_id: str
@@ -240,7 +230,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def create_repositories(
         self,
-        configs: list[RepositoryInputConfig],
+        configs: list[dict[str, Any]],
         organization: RpcOrganization,
     ) -> tuple[list[RpcRepository], list[RpcRepository], list[RepositoryConfig]]:
         """
