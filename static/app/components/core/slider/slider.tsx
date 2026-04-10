@@ -14,8 +14,6 @@ interface BaseProps extends Omit<
 > {
   defaultValue?: number;
   disabled?: boolean;
-  /** @deprecated Use `formatOptions` (Intl.NumberFormatOptions) instead. */
-  formatLabel?: (value: number | '') => React.ReactNode;
   /** Intl.NumberFormat options for automatic numeric formatting */
   formatOptions?: Intl.NumberFormatOptions;
   /** ID applied to the hidden input element (enables label `htmlFor` linking) */
@@ -55,7 +53,6 @@ export function Slider({
   step = 1,
   disabled = false,
   ticks,
-  formatLabel,
   formatOptions,
   name,
   id,
@@ -142,11 +139,11 @@ export function Slider({
   const getFormattedValue = useCallback(
     (val: number | '') => {
       if (val === '') {
-        return formatLabel ? formatLabel('') : '';
+        return '';
       }
-      return formatLabel ? formatLabel(val) : state.getFormattedValue(val);
+      return state.getFormattedValue(val);
     },
-    [formatLabel, state]
+    [state]
   );
 
   const hasTicks = allTickValues.length > 0;
