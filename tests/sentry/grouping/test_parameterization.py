@@ -61,8 +61,9 @@ standard_cases = [
         "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
         "traceparent: <traceparent>",
     ),
-    ("ip - too many initial characters", "12345:6:789", "<int>:<int>:<int>"),
-    ("ip - too many final characters", "123:4:56789", "<int>:<int>:<int>"),
+    ("ip - too few segments", "12:31:99", "<int>:<int>:<int>"),
+    ("ip - too many initial characters", "12345::6:789", "<int>::<int>:<int>"),
+    ("ip - too many final characters", "123:4::56789", "<int>:<int>::<int>"),
     ("traceparent - aws", "1-67891233-abcdef012345678912345678", "<traceparent>"),
     (
         "traceparent - aws, but not word boundary",
