@@ -1098,6 +1098,15 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
+    def test_delete_allowed_without_metric_subscription_feature(self) -> None:
+        with self.feature({"organizations:incidents": False}):
+            with outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+
     def test_error_group_type(self) -> None:
         """
         Test that we do not delete the required error detector

@@ -242,4 +242,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Delete a monitor
         """
+        # Intentionally no _check_metric_detector_allowed gate here:
+        # orgs should be able to delete detectors they can no longer use
+        # (e.g. after a plan downgrade).
         return remove_detector(request, organization, detector)
