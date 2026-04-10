@@ -21,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
@@ -103,7 +104,13 @@ function ReplayDetailsContent() {
           wrap="wrap"
           padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
         >
-          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+            </TopBar.Slot>
+          ) : (
+            <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+          )}
           <ReplayDetailsHeaderActions readerResult={readerResult} />
         </Flex>
         <Flex
