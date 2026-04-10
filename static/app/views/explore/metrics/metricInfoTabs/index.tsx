@@ -78,7 +78,7 @@ export function MetricInfoTabs({
   );
 }
 
-export function MetricInfoTabList({
+function MetricInfoTabList({
   orientation,
   contentsHidden,
 }: {
