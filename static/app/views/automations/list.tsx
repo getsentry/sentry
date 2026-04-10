@@ -26,7 +26,6 @@ import {AutomationSearch} from 'sentry/views/automations/components/automationLi
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
-import {AlertsRedirectNotice} from 'sentry/views/detectors/list/common/alertsRedirectNotice';
 
 export default function AutomationsList() {
   const organization = useOrganization();
@@ -83,9 +82,6 @@ export default function AutomationsList() {
         )}
         docsUrl="https://docs.sentry.io/product/new-monitors-and-alerts/alerts/"
       >
-        <AlertsRedirectNotice>
-          {t('Alert Rules have been moved to Monitors and Alerts.')}
-        </AlertsRedirectNotice>
         <TableHeader />
         <div>
           <VisuallyCompleteWithData
