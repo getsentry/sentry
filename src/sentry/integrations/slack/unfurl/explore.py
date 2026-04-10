@@ -186,7 +186,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         query.setlist("groupBy", group_bys)
 
     # Copy standard params
-    for param in ("project", "statsPeriod", "start", "end", "query", "environment"):
+    for param in ("project", "statsPeriod", "start", "end", "query", "environment", "interval"):
         values = raw_query.getlist(param)
         if values:
             query.setlist(param, values)
