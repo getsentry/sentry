@@ -268,9 +268,9 @@ def update_existing_message(
 def send_identity_link_prompt(
     *,
     integration: RpcIntegration,
-    channel_id: str,
-    thread_ts: str,
     slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
     is_welcome_message: bool = False,
 ) -> None:
     from sentry.integrations.slack.integration import SlackIntegration

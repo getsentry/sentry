@@ -392,9 +392,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             result["error_reason"] = SeerSlackHaltReason.IDENTITY_NOT_LINKED
             send_identity_link_prompt(
                 integration=slack_request.integration,
-                channel_id=slack_request.channel_id,
-                thread_ts=slack_request.thread_ts,
                 slack_user_id=slack_request.user_id,
+                channel_id=slack_request.channel_id,
+                thread_ts=slack_request.thread_ts or None,
                 is_welcome_message=slack_request.is_assistant_thread_event,
             )
             return result
