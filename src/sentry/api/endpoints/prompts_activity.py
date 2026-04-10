@@ -36,7 +36,10 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 
 class PromptsActivityPermission(OrganizationPermission):
-    scope_map = {"GET": ["org:read"], "PUT": ["org:read"]}
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+    }
 
 
 @cell_silo_endpoint
