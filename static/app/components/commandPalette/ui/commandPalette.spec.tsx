@@ -24,6 +24,7 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -406,11 +407,13 @@ describe('CommandPalette', () => {
           <CMDKAction
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
-            resource={() => ({
-              queryKey: ['prompt-action-test'],
-              queryFn: () => null,
-              enabled: false,
-            })}
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['prompt-action-test'],
+                queryFn: () => null,
+                enabled: false,
+              })
+            }
           />
         </CMDKAction>
       );

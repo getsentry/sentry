@@ -20,6 +20,7 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -108,11 +109,13 @@ describe('CommandPaletteModal', () => {
           <CMDKAction
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
-            resource={() => ({
-              queryKey: ['prompt-modal-test'],
-              queryFn: () => null,
-              enabled: false,
-            })}
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['prompt-modal-test'],
+                queryFn: () => null,
+                enabled: false,
+              })
+            }
           />
         </CMDKAction>
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />

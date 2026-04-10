@@ -107,7 +107,7 @@ export function CMDKAction({
 
   const resourceOptions = resource
     ? resource(query)
-    : {queryKey: [], queryFn: () => null};
+    : {queryKey: [] as unknown[], queryFn: () => null, enabled: false};
 
   const {data} = useQuery({
     ...resourceOptions,
