@@ -15,14 +15,27 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureShowcase} from 'sentry/components/featureShowcase';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const DOCS_URL = 'https://docs.sentry.io/product/new-monitors-and-alerts/';
 
 export function WorkflowEngineFeatureTourButton() {
+  const organization = useOrganization();
+
   const handleClick = useCallback(() => {
+    trackAnalytics('monitors.onboarding_modal_viewed', {organization, step: 0});
     openModal(
       deps => (
-        <FeatureShowcase {...deps}>
+        <FeatureShowcase
+          {...deps}
+          onStepChange={step => {
+            trackAnalytics('monitors.onboarding_modal_viewed', {
+              organization,
+              step,
+            });
+          }}
+        >
           <FeatureShowcase.Step>
             <FeatureShowcase.Image
               src={monitorsTourIntroImage}
@@ -163,7 +176,7 @@ export function WorkflowEngineFeatureTourButton() {
         `,
       }
     );
-  }, []);
+  }, [organization]);
 
   return (
     <Button

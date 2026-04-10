@@ -7,8 +7,8 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Pagination} from 'sentry/components/pagination';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {WorkflowEngineFeatureTourButton} from 'sentry/components/workflowEngine/featureTourButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
+import {WorkflowEngineFeatureTourButton} from 'sentry/components/workflowEngine/workflowEngineFeatureTourButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';

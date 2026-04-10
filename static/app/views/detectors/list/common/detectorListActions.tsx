@@ -3,7 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {WorkflowEngineFeatureTourButton} from 'sentry/components/workflowEngine/featureTourButton';
+import {WorkflowEngineFeatureTourButton} from 'sentry/components/workflowEngine/workflowEngineFeatureTourButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
