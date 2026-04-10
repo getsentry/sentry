@@ -10,7 +10,7 @@ import {
 
 import {Button} from '@sentry/scraps/button';
 import {Image, type ImageProps} from '@sentry/scraps/image';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -162,16 +162,21 @@ function FeatureShowcase({closeModal, children, onStepChange}: FeatureShowcasePr
   };
 
   return (
-    <Container data-test-id="feature-showcase">
+    <Stack data-test-id="feature-showcase" gap="md">
       <Flex justify="end">
-        <Button priority="transparent" onClick={closeModal} aria-label={t('Close tour')}>
+        <Button
+          priority="transparent"
+          size="sm"
+          onClick={closeModal}
+          aria-label={t('Close tour')}
+        >
           <IconClose size="xs" />
         </Button>
       </Flex>
       <ShowcaseContext.Provider value={contextValue}>
         {activeStep}
       </ShowcaseContext.Provider>
-    </Container>
+    </Stack>
   );
 }
 

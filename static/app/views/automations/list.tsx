@@ -3,8 +3,6 @@ import {useCallback} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import type {TourStep} from 'sentry/components/modals/featureTourModal';
-import {TourText} from 'sentry/components/modals/featureTourModal';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Pagination} from 'sentry/components/pagination';
@@ -21,42 +19,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-
-const AUTOMATION_DOCS_URL =
-  'https://docs.sentry.io/product/new-monitors-and-alerts/alerts/';
-
-const AUTOMATION_TOUR_STEPS: TourStep[] = [
-  {
-    title: t('What are Alerts?'),
-    body: (
-      <TourText>
-        {t(
-          'Alerts are triggered when issues change state, are created, or pass a threshold. They perform actions like sending notifications, creating tickets, or calling webhooks.'
-        )}
-      </TourText>
-    ),
-  },
-  {
-    title: t('Creating an Alert'),
-    body: (
-      <TourText>
-        {t(
-          'Create alerts to define what happens when a monitor triggers. Connect them to monitors and configure actions like Slack notifications, PagerDuty incidents, or Jira tickets.'
-        )}
-      </TourText>
-    ),
-  },
-  {
-    title: t('Managing Alerts'),
-    body: (
-      <TourText>
-        {t(
-          'Use this page to view, search, and manage all your alerts. You can filter by project and see which monitors are connected to each alert.'
-        )}
-      </TourText>
-    ),
-  },
-];
 import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
@@ -190,10 +152,7 @@ function Actions() {
   const organization = useOrganization();
   return (
     <Flex gap="sm">
-      <WorkflowEngineFeatureTourButton
-        steps={AUTOMATION_TOUR_STEPS}
-        doneUrl={AUTOMATION_DOCS_URL}
-      />
+      <WorkflowEngineFeatureTourButton />
       <AutomationFeedbackButton />
       <LinkButton
         to={makeAutomationCreatePathname(organization.slug)}
