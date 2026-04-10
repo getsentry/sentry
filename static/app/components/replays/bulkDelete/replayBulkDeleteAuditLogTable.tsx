@@ -7,7 +7,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 
 export function ReplayBulkDeleteAuditLogTable({
@@ -15,7 +15,7 @@ export function ReplayBulkDeleteAuditLogTable({
   isPending,
   rows,
 }: {
-  error: RequestError | null;
+  error: Error | null;
   isPending: boolean;
   rows: ReplayBulkDeleteAuditLog[] | undefined;
 }) {
@@ -79,18 +79,17 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content max-content 1fr max-content max-content;
 `;
 
-function getErrorMessage(fetchError: RequestError) {
-  if (typeof fetchError === 'string') {
-    return fetchError;
-  }
-  if (typeof fetchError?.responseJSON?.detail === 'string') {
-    return fetchError.responseJSON.detail;
-  }
-  if (fetchError?.responseJSON?.detail?.message) {
-    return fetchError.responseJSON.detail.message;
-  }
-  if (fetchError.name === ERROR_MAP[500]) {
-    return t('There was an internal systems error.');
+function getErrorMessage(fetchError: Error) {
+  if (fetchError instanceof RequestError) {
+    if (typeof fetchError?.responseJSON?.detail === 'string') {
+      return fetchError.responseJSON.detail;
+    }
+    if (fetchError?.responseJSON?.detail?.message) {
+      return fetchError.responseJSON.detail.message;
+    }
+    if (fetchError.name === ERROR_MAP[500]) {
+      return t('There was an internal systems error.');
+    }
   }
   return t(
     'This could be due to invalid search parameters or an internal systems error.'

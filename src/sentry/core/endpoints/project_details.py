@@ -229,7 +229,7 @@ E.g. `['release', 'environment']`""",
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
     )
     securityTokenHeader = serializers.RegexField(
-        r"^[a-zA-Z0-9_\-]+$", max_length=20, allow_blank=True
+        r"^[a-zA-Z0-9_\-]+$", max_length=64, allow_blank=True
     )
     verifySSL = serializers.BooleanField(required=False)
 

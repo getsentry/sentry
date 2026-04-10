@@ -2,6 +2,15 @@ import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {
+  getFirstToolInputValue,
+  getStringAttr,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  GenAiOperationType,
+  getGenAiOperationTypeFromSpanOp,
+} from 'sentry/views/insights/pages/agents/utils/query';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
@@ -13,6 +22,43 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
+/**
+ * Returns an enriched description for AI spans when attributes are available.
+ * - Tool spans: "toolName: firstInputValue"
+ * - AI client spans: responseModel (e.g., "gpt-4o")
+ * Falls back to undefined so the caller can use the default description.
+ */
+function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
+  const attrs = node.attributes;
+  if (!attrs) {
+    return undefined;
+  }
+
+  const opType =
+    (attrs[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
+    getGenAiOperationTypeFromSpanOp(node.op);
+
+  if (!opType) {
+    return undefined;
+  }
+
+  if (opType === GenAiOperationType.TOOL) {
+    const toolName = getStringAttr(node as any, SpanFields.GEN_AI_TOOL_NAME);
+    const firstValue = getFirstToolInputValue(node as any);
+    if (toolName && firstValue) {
+      return `${toolName}: ${firstValue}`;
+    }
+    return toolName ?? undefined;
+  }
+
+  if (opType === GenAiOperationType.AI_CLIENT) {
+    const responseModel = getStringAttr(node as any, SpanFields.GEN_AI_RESPONSE_MODEL);
+    return responseModel ?? undefined;
+  }
+
+  return undefined;
+}
+
 export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
   const spanId = props.node.id;
 
@@ -22,7 +68,10 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
     <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
   );
 
-  const description = props.node.description || props.node.value.name;
+  const description =
+    getAIEnhancedDescription(props.node) ||
+    props.node.description ||
+    props.node.value.name;
 
   return (
     <div
