@@ -12,7 +12,7 @@ import {
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import {
-  getNextLabelIndex,
+  getNextLabel,
   useStableLabelIndices,
 } from 'sentry/views/explore/metrics/hooks/useStableLabelIndices';
 import {
@@ -36,7 +36,7 @@ export const MAX_METRIC_QUERIES = 8;
 export const MAX_EQUATION_QUERIES = 8;
 
 interface MultiMetricsQueryParamsContextValue {
-  insertLabelAtIndex: (position: number, labelIndex: number) => void;
+  insertLabelAtIndex: (position: number, label: string) => void;
   metricQueries: MetricQuery[];
 }
 
@@ -67,7 +67,7 @@ export function MultiMetricsQueryParamsProvider({
       ...query,
       // Labels are injected adhoc so each session maintains a label for each query
       // but the labels will compact sequentially on fresh page loads.
-      labelIndex: labels.getLabel(i),
+      label: labels.getLabel(i),
     }));
 
     function setQueryParamsForIndex(i: number) {
@@ -82,7 +82,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               metric: metricQuery.metric,
               queryParams: newQueryParams,
-              labelIndex: metricQuery.labelIndex,
+              label: metricQuery.label,
             };
           })
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
@@ -134,7 +134,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               queryParams: metricQuery.queryParams.replace({aggregateFields}),
               metric: newTraceMetric,
-              labelIndex: metricQuery.labelIndex,
+              label: metricQuery.label,
             };
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
@@ -219,12 +219,19 @@ export function useAddMetricQuery({
   const hasEquations = canUseMetricsEquations(organization);
 
   return function () {
-    const nextLabel = getNextLabelIndex(metricQueries, type);
+    const nextLabel = getNextLabel(metricQueries, type);
 
-    if (type === 'aggregate' && nextLabel >= MAX_METRIC_QUERIES) {
+    const aggregateCount = metricQueries.filter(q =>
+      isVisualizeFunction(q.queryParams.visualizes[0]!)
+    ).length;
+    const equationCount = metricQueries.filter(q =>
+      isVisualizeEquation(q.queryParams.visualizes[0]!)
+    ).length;
+
+    if (type === 'aggregate' && aggregateCount >= MAX_METRIC_QUERIES) {
       return;
     }
-    if (type === 'equation' && nextLabel > MAX_EQUATION_QUERIES) {
+    if (type === 'equation' && equationCount >= MAX_EQUATION_QUERIES) {
       return;
     }
 
@@ -241,7 +248,7 @@ export function useAddMetricQuery({
       type === 'aggregate' &&
       lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
     const newQuery = canDuplicate
-      ? {...lastAggregate, labelIndex: nextLabel}
+      ? {...lastAggregate, label: nextLabel}
       : defaultMetricQuery({type});
 
     // Update label ref before navigating so labels stay stable

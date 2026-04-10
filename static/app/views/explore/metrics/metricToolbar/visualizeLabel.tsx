@@ -8,22 +8,16 @@ import {IconChevron, IconShow} from 'sentry/icons';
 import {IconHide} from 'sentry/icons/iconHide';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
-import {
-  isVisualizeEquation,
-  type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeLabelProps {
-  index: number;
+  label: string;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
 }
 
-export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+export function VisualizeLabel({label, onClick, visualize}: VisualizeLabelProps) {
   const organization = useOrganization();
-  const isEquation = isVisualizeEquation(visualize);
-  const label = getVisualizeLabel(index, isEquation);
 
   if (canUseMetricsUIRefresh(organization)) {
     return (

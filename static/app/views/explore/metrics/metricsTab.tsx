@@ -43,7 +43,6 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -94,8 +93,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
-    metricCount >= MAX_METRIC_QUERIES ||
-    getFunctionLabel(Math.max(...metricQueries.map(q => q.labelIndex ?? 0))) === 'Z';
+    metricCount >= MAX_METRIC_QUERIES || metricQueries.some(q => q.label === 'Z');
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -174,16 +172,13 @@ function MetricsQueryBuilderSection() {
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
-    metricCount >= MAX_METRIC_QUERIES ||
-    getFunctionLabel(Math.max(...metricQueries.map(q => q.labelIndex ?? 0))) === 'Z';
+    metricCount >= MAX_METRIC_QUERIES || metricQueries.some(q => q.label === 'Z');
 
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
         {metricQueries.map((metricQuery, index) => {
-          // The key needs to differentiate between equations and functions to
-          // avoid key collisions since the label indices can overlap
-          const key = `queryBuilder-${isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) ? 'eq' : 'm'}-${metricQuery.labelIndex ?? index}`;
+          const key = `queryBuilder-${metricQuery.label ?? index}`;
           return (
             <MetricsQueryParamsProvider
               key={key}
@@ -195,7 +190,7 @@ function MetricsQueryBuilderSection() {
             >
               <MetricToolbar
                 traceMetric={metricQuery.metric}
-                queryIndex={metricQuery.labelIndex ?? index}
+                queryLabel={metricQuery.label ?? ''}
                 references={references}
               />
             </MetricsQueryParamsProvider>
@@ -247,8 +242,7 @@ function MetricsTabBodySection() {
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
-    metricCount >= MAX_METRIC_QUERIES ||
-    getFunctionLabel(Math.max(...metricQueries.map(q => q.labelIndex ?? 0))) === 'Z';
+    metricCount >= MAX_METRIC_QUERIES || metricQueries.some(q => q.label === 'Z');
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -256,9 +250,7 @@ function MetricsTabBodySection() {
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
-              // The key needs to differentiate between equations and functions to
-              // avoid key collisions since the label indices can overlap
-              const key = `queryPanel-${isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) ? 'eq' : 'm'}-${metricQuery.labelIndex ?? index}`;
+              const key = `queryPanel-${metricQuery.label ?? index}`;
               return (
                 <MetricsQueryParamsProvider
                   key={key}
@@ -270,7 +262,8 @@ function MetricsTabBodySection() {
                 >
                   <MetricPanel
                     traceMetric={metricQuery.metric}
-                    queryIndex={metricQuery.labelIndex ?? index}
+                    queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
                     references={references}
                   />
                 </MetricsQueryParamsProvider>
@@ -304,9 +297,7 @@ function MetricsTabBodySection() {
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
-              // The key needs to differentiate between equations and functions to
-              // avoid key collisions since the label indices can overlap
-              const key = `queryPanel-${isVisualizeEquation(metricQuery.queryParams.visualizes[0]!) ? 'eq' : 'm'}-${metricQuery.labelIndex ?? index}`;
+              const key = `queryPanel-${metricQuery.label ?? index}`;
               return (
                 <MetricsQueryParamsProvider
                   key={key}
@@ -318,7 +309,8 @@ function MetricsTabBodySection() {
                 >
                   <MetricPanel
                     traceMetric={metricQuery.metric}
-                    queryIndex={metricQuery.labelIndex ?? index}
+                    queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
                     references={references}
                   />
                 </MetricsQueryParamsProvider>

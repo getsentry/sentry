@@ -5,38 +5,68 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {
+  getFunctionLabel,
+  getVisualizeLabel,
+} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 /**
- * Assigns sequential label indices to queries based on their type.
- * Metrics get 0-based indices (A, B, C...), equations get 1-based (f1, f2...).
+ * Assigns sequential labels to queries based on their type.
+ * Metrics get letter labels (A, B, C...), equations get function labels (ƒ1, ƒ2...).
  */
-function assignSequentialLabels(queries: BaseMetricQuery[]): number[] {
+function assignSequentialLabels(queries: BaseMetricQuery[]): string[] {
   let nextMetricIndex = 0;
   let nextEquationIndex = 1;
   return queries.map(query => {
     const isEquation = isVisualizeEquation(query.queryParams.visualizes[0]!);
-    return isEquation ? nextEquationIndex++ : nextMetricIndex++;
+    return getVisualizeLabel(
+      isEquation ? nextEquationIndex++ : nextMetricIndex++,
+      isEquation
+    );
   });
 }
 
 /**
- * Returns the next available label index for the given query type.
- * Metrics are 0-based (A=0, B=1...), equations are 1-based (f1=1, f2=2...).
+ * Returns the next available label for the given query type.
  */
-export function getNextLabelIndex(
+export function getNextLabel(
   metricQueries: BaseMetricQuery[],
   type: 'aggregate' | 'equation'
-): number {
-  const queryFilter = type === 'equation' ? isVisualizeEquation : isVisualizeFunction;
+): string {
+  const isEquation = type === 'equation';
+  const queryFilter = isEquation ? isVisualizeEquation : isVisualizeFunction;
   const relevant = metricQueries.filter(q => queryFilter(q.queryParams.visualizes[0]!));
   if (relevant.length === 0) {
-    return type === 'equation' ? 1 : 0;
+    return getVisualizeLabel(0, isEquation);
   }
-  return Math.max(...relevant.map((q, i) => q.labelIndex ?? i)) + 1;
+  const maxIndex = Math.max(
+    ...relevant.map((q, i) => {
+      const label = q.label;
+      if (!label) {
+        return i;
+      }
+      return isEquation ? parseEquationIndex(label) : parseFunctionIndex(label);
+    })
+  );
+  return getVisualizeLabel(maxIndex + 1, isEquation);
 }
 
 /**
- * Maintains stable label indices across query mutations within a session.
+ * Parses "A" → 0, "B" → 1, etc.
+ */
+function parseFunctionIndex(label: string): number {
+  return label.charCodeAt(0) - 'A'.charCodeAt(0);
+}
+
+/**
+ * Parses "ƒ1" → 1, "ƒ2" → 2, etc.
+ */
+function parseEquationIndex(label: string): number {
+  return parseInt(label.slice(1), 10) || 0;
+}
+
+/**
+ * Maintains stable labels across query mutations within a session.
  *
  * Labels are compacted sequentially (A, B, C...) on fresh page loads, but
  * preserved with gaps during a session (e.g. deleting B keeps A, C rather
@@ -48,24 +78,24 @@ export function getNextLabelIndex(
  * navigation), labels are reassigned sequentially.
  */
 export function useStableLabelIndices(queries: BaseMetricQuery[]) {
-  const indicesRef = useRef<number[]>([]);
+  const labelsRef = useRef<string[]>([]);
 
-  if (indicesRef.current.length !== queries.length) {
-    indicesRef.current = assignSequentialLabels(queries);
+  if (labelsRef.current.length !== queries.length) {
+    labelsRef.current = assignSequentialLabels(queries);
   }
 
   return useMemo(
     () => ({
-      getLabel(i: number): number {
-        return indicesRef.current[i] ?? i;
+      getLabel(i: number): string {
+        return labelsRef.current[i] ?? getFunctionLabel(i);
       },
-      insert(position: number, labelIndex: number) {
-        indicesRef.current = indicesRef.current.toSpliced(position, 0, labelIndex);
+      insert(position: number, label: string) {
+        labelsRef.current = labelsRef.current.toSpliced(position, 0, label);
       },
       remove(position: number) {
-        indicesRef.current = indicesRef.current.filter((_, j) => j !== position);
+        labelsRef.current = labelsRef.current.filter((_, j) => j !== position);
       },
     }),
-    []
+    [] // stable — all methods close over labelsRef which is a stable ref
   );
 }

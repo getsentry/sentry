@@ -28,7 +28,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     expect(result.current).toEqual([
       {
-        labelIndex: 0,
+        label: 'A',
         metric: {name: '', type: ''},
         queryParams: new ReadableQueryParams({
           extrapolate: true,
