@@ -39,15 +39,15 @@ from sentry.utils.cursored_scheduler import CursoredScheduler
 logger = logging.getLogger(__name__)
 
 # Providers to include in the periodic sync. Each must implement
-# get_repositories() returning RepositoryInfo with external_id.
-# GitLab, Bitbucket, and Bitbucket Server are excluded because their
-# build_repository_config creates webhooks as a side effect, and
-# create_repositories calls it for every repo before checking if it already
-# exists. This needs to be fixed before adding those providers.
+# get_repositories() returning RepositoryInfo with all fields needed
+# by their build_repository_config.
 # Perforce is excluded because it cannot derive external_id from its API.
 SCM_SYNC_PROVIDERS = [
     "github",
     "github_enterprise",
+    "gitlab",
+    "bitbucket",
+    "bitbucket_server",
     "vsts",
 ]
 
