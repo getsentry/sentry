@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -107,16 +107,7 @@ export function MetricPanel({
     panelIndex: queryIndex,
   });
 
-  const contentRef = useRef<HTMLDivElement>(null);
   const contentHeightRef = useRef<number | null>(null);
-
-  // Capture the content height after layout so the placeholder can match it
-  // exactly and avoid layout shift during drag.
-  useLayoutEffect(() => {
-    if (!isAnyDragging && contentRef.current) {
-      contentHeightRef.current = contentRef.current.offsetHeight;
-    }
-  }, [isAnyDragging]);
 
   if (hasMetricsUIRefresh) {
     return (
@@ -133,23 +124,18 @@ export function MetricPanel({
             </Container>
             {visualize.visible ? (
               isAnyDragging ? (
-                <Container padding="md">
-                  <Placeholder
-                    height={
-                      contentHeightRef.current ? `${contentHeightRef.current}px` : '200px'
-                    }
-                  >
-                    {isDragging && (
-                      <Text variant="muted">
-                        {t(
-                          'Hold on to your butts! Charts are tucked away while you reorder. Too expensive to drag along for the ride.'
-                        )}
-                      </Text>
-                    )}
-                  </Placeholder>
-                </Container>
+                <DnDPlaceholder
+                  isDragging={isDragging}
+                  contentHeight={contentHeightRef.current}
+                />
               ) : (
-                <div ref={contentRef}>
+                <Container
+                  ref={containerRef => {
+                    if (!isAnyDragging && containerRef) {
+                      contentHeightRef.current = containerRef.offsetHeight ?? null;
+                    }
+                  }}
+                >
                   <SideBySideOrientation
                     timeseriesResult={timeseriesResult}
                     traceMetric={traceMetric}
@@ -159,7 +145,7 @@ export function MetricPanel({
                     setInfoContentHidden={setInfoContentHidden}
                     isMetricOptionsEmpty={isMetricOptionsEmpty}
                   />
-                </div>
+                </Container>
               )
             ) : null}
           </Stack>
@@ -195,5 +181,26 @@ export function MetricPanel({
         )}
       </PanelBody>
     </Panel>
+  );
+}
+
+interface DnDPlaceholderProps {
+  contentHeight: number | null;
+  isDragging: boolean | undefined;
+}
+
+function DnDPlaceholder({contentHeight, isDragging}: DnDPlaceholderProps) {
+  return (
+    <Container padding="md">
+      <Placeholder height={contentHeight ? `${contentHeight}px` : '200px'}>
+        {isDragging ? (
+          <Text>
+            {t(
+              'Hold on to your butts! Charts are tucked away while you reorder. Too expensive to drag along for the ride.'
+            )}
+          </Text>
+        ) : null}
+      </Placeholder>
+    </Container>
   );
 }
