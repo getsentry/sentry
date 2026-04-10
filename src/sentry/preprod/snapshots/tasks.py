@@ -14,7 +14,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.snapshots.image_diff.compare import compare_images_batch
+from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
@@ -668,6 +668,7 @@ def compare_snapshots(
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
+        extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
         comparison.extras = extras
         comparison.save(
             update_fields=[

@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # This is NOT a minimum % changed value, but
 # rather adjusts the sensitivity of pixel change detection.
 ODIFF_SENSITIVITY_DIFF_THRESHOLD = 0.01
+DIFF_ALGORITHM_VERSION = 1
 
 
 def _as_image(source: bytes | Image.Image) -> Image.Image:
