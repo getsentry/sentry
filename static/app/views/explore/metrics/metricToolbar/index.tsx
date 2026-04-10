@@ -75,8 +75,8 @@ export function MetricToolbar({
         gap="md"
         columns={columns}
         data-test-id="metric-toolbar"
-        paddingLeft="lg"
-        paddingRight="lg"
+        paddingLeft="md"
+        paddingRight="md"
         paddingTop="md"
       >
         {dragListeners ? <DragReorderButton iconSize="sm" {...dragListeners} /> : null}

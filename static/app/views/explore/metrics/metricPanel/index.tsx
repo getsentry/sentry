@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -191,17 +191,16 @@ function DnDPlaceholder({
   contentHeight: number | null;
   isDragging: boolean | undefined;
 }) {
+  const placeholderHeight = contentHeight ? `${contentHeight}px` : '200px';
+
   return (
-    <Container padding="md">
-      <Placeholder height={contentHeight ? `${contentHeight}px` : '200px'}>
-        {isDragging ? (
-          <Text>
-            {t(
-              'Charts are hidden while reordering. Too expensive to drag along for the ride.'
-            )}
-          </Text>
-        ) : null}
-      </Placeholder>
+    <Container padding="lg md">
+      <Grid columns="1fr 1fr" gap="xl">
+        <Placeholder height={placeholderHeight}>
+          {isDragging ? <Text>{t('Charts are hidden while reordering.')}</Text> : null}
+        </Placeholder>
+        <Placeholder height={placeholderHeight} />
+      </Grid>
     </Container>
   );
 }
