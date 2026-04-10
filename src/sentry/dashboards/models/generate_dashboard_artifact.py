@@ -82,7 +82,7 @@ Polarity = Literal["+", "-"]
 
 
 class GeneratedWidgetThresholds(BaseModel):
-    """Color-coded thresholds for big_number widgets. max1 and max2 define thresholds for three zones whose color meaning depends on preferred_polarity."""
+    """Color-coded thresholds for big_number and timeseries widgets. max1 and max2 define thresholds for three zones whose color meaning depends on preferred_polarity."""
 
     max_values: dict[str, float] = Field(
         ...,
