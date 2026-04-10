@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Activity, Fragment, useRef, useState} from 'react';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
@@ -124,30 +124,33 @@ export function MetricPanel({
               />
             </Container>
             {visualize.visible ? (
-              isAnyDragging ? (
-                <DnDPlaceholder
-                  isDragging={isDragging}
-                  contentHeight={contentHeightRef.current}
-                />
-              ) : (
-                <Container
-                  ref={containerRef => {
-                    if (!isAnyDragging && containerRef) {
-                      contentHeightRef.current = containerRef.offsetHeight ?? null;
-                    }
-                  }}
-                >
-                  <SideBySideOrientation
-                    timeseriesResult={timeseriesResult}
-                    traceMetric={traceMetric}
-                    setOrientation={setUserPreferenceOrientation}
-                    orientation={orientation}
-                    infoContentHidden={infoContentHidden}
-                    setInfoContentHidden={setInfoContentHidden}
-                    isMetricOptionsEmpty={isMetricOptionsEmpty}
+              <Fragment>
+                {isAnyDragging ? (
+                  <DnDPlaceholder
+                    isDragging={isDragging}
+                    contentHeight={contentHeightRef.current}
                   />
-                </Container>
-              )
+                ) : null}
+                <Activity mode={isAnyDragging ? 'hidden' : 'visible'}>
+                  <Container
+                    ref={containerRef => {
+                      if (!isAnyDragging && containerRef) {
+                        contentHeightRef.current = containerRef.offsetHeight ?? null;
+                      }
+                    }}
+                  >
+                    <SideBySideOrientation
+                      timeseriesResult={timeseriesResult}
+                      traceMetric={traceMetric}
+                      setOrientation={setUserPreferenceOrientation}
+                      orientation={orientation}
+                      infoContentHidden={infoContentHidden}
+                      setInfoContentHidden={setInfoContentHidden}
+                      isMetricOptionsEmpty={isMetricOptionsEmpty}
+                    />
+                  </Container>
+                </Activity>
+              </Fragment>
             ) : null}
           </Stack>
         </PanelBody>
@@ -193,7 +196,7 @@ function DnDPlaceholder({
   isDragging: boolean | undefined;
 }) {
   return (
-    <Container style={contentHeight ? {height: `${contentHeight}px`} : undefined}>
+    <Container height={contentHeight ? `${contentHeight}px` : undefined}>
       <Grid columns="1fr 1fr" gap="sm" height="100%">
         <Container padding="md">
           <Placeholder height="100%">
@@ -213,9 +216,7 @@ function DnDPlaceholder({
           <Placeholder style={{flex: 1, flexShrink: 1, minHeight: 0}}>
             {isDragging ? (
               <Text>
-                {t(
-                  "Tables are hidden, they're also pretty expensive to drag along for the ride."
-                )}
+                {t("We gotta hide the tables too, they're also pretty expensive.")}
               </Text>
             ) : null}
           </Placeholder>
