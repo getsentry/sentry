@@ -4,7 +4,7 @@ import html
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 from django.http.request import QueryDict
@@ -25,6 +25,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -33,8 +34,38 @@ from sentry.utils import json
 _logger = logging.getLogger(__name__)
 
 DEFAULT_PERIOD = "14d"
-DEFAULT_Y_AXIS = "count(span.duration)"
 TOP_N = 5
+
+
+class ExploreDatasetDefaults(TypedDict):
+    title: str
+    y_axis: str
+
+
+EXPLORE_DATASET_DEFAULTS: dict[SupportedTraceItemType, ExploreDatasetDefaults] = {
+    SupportedTraceItemType.SPANS: {
+        "title": "Explore Traces",
+        "y_axis": "count(span.duration)",
+    },
+    SupportedTraceItemType.LOGS: {
+        "title": "Explore Logs",
+        "y_axis": "count(message)",
+    },
+}
+
+
+def _get_explore_dataset_defaults(dataset: SupportedTraceItemType) -> ExploreDatasetDefaults:
+    """Returns the default title and y_axis for the given explore dataset."""
+    return EXPLORE_DATASET_DEFAULTS.get(
+        dataset, EXPLORE_DATASET_DEFAULTS[SupportedTraceItemType.SPANS]
+    )
+
+
+def _get_explore_dataset(url: str) -> SupportedTraceItemType:
+    """Returns the dataset based on the explore URL."""
+    if explore_logs_link_regex.match(url) or customer_domain_explore_logs_link_regex.match(url):
+        return SupportedTraceItemType.LOGS
+    return SupportedTraceItemType.SPANS
 
 
 def unfurl_explore(
@@ -83,9 +114,12 @@ def _unfurl_explore(
         params = link.args["query"]
         chart_type = link.args.get("chart_type")
 
+        explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)
+        defaults = _get_explore_dataset_defaults(explore_dataset)
+
         y_axes = params.getlist("yAxis")
         if not y_axes:
-            y_axes = [DEFAULT_Y_AXIS]
+            y_axes = [defaults["y_axis"]]
             params.setlist("yAxis", y_axes)
 
         group_bys = params.getlist("groupBy")
@@ -97,7 +131,7 @@ def _unfurl_explore(
         if not params.get("statsPeriod") and not params.get("start"):
             params["statsPeriod"] = DEFAULT_PERIOD
 
-        params["dataset"] = "spans"
+        params["dataset"] = explore_dataset.value
         params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
 
         try:
@@ -124,7 +158,7 @@ def _unfurl_explore(
             continue
 
         unfurls[link.url] = SlackDiscoverMessageBuilder(
-            title="Explore Traces",
+            title=defaults["title"],
             chart_url=url,
         ).build()
 
@@ -158,6 +192,8 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     parsed_url = urlparse(url)
     raw_query = QueryDict(parsed_url.query)
 
+    explore_dataset = _get_explore_dataset(url)
+
     # Parse visualize (spans explore) or aggregateField (logs explore) JSON params
     visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     y_axes: list[str] = []
@@ -176,7 +212,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
             continue
 
     if not y_axes:
-        y_axes = [DEFAULT_Y_AXIS]
+        y_axes = [_get_explore_dataset_defaults(explore_dataset)["y_axis"]]
 
     # Build query params
     query = QueryDict(mutable=True)
@@ -191,7 +227,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         if values:
             query.setlist(param, values)
 
-    return dict(**args, query=query, chart_type=chart_type)
+    return dict(**args, query=query, chart_type=chart_type, dataset=explore_dataset)
 
 
 explore_traces_link_regex = re.compile(
@@ -202,11 +238,21 @@ customer_domain_explore_traces_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/traces/"
 )
 
+explore_logs_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/logs/"
+)
+
+customer_domain_explore_logs_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/logs/"
+)
+
 explore_handler = Handler(
     fn=unfurl_explore,
     matcher=[
         explore_traces_link_regex,
         customer_domain_explore_traces_link_regex,
+        explore_logs_link_regex,
+        customer_domain_explore_logs_link_regex,
     ],
     arg_mapper=map_explore_query_args,
 )
