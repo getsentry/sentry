@@ -1522,7 +1522,9 @@ class UnfurlTest(TestCase):
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(title="Explore Traces", chart_url="chart-url").build()
+            == SlackDiscoverMessageBuilder(
+                title="Explore Traces - avg(span.duration)", chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
@@ -1695,7 +1697,9 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(title="Explore Traces", chart_url="chart-url").build()
+            == SlackDiscoverMessageBuilder(
+                title="Explore Traces - avg(span.duration)", chart_url="chart-url"
+            ).build()
         )
 
     @patch(
@@ -1806,7 +1810,9 @@ class UnfurlTest(TestCase):
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(title="Explore Logs", chart_url="chart-url").build()
+            == SlackDiscoverMessageBuilder(
+                title="Explore Logs - sum(payload_size)", chart_url="chart-url"
+            ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]

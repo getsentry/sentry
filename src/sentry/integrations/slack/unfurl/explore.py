@@ -7,7 +7,6 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
-import sentry_sdk
 from django.http.request import QueryDict
 
 from sentry import analytics, features
@@ -112,10 +111,6 @@ def _unfurl_explore(
         if not org:
             continue
 
-        sentry_sdk.set_tag("organization.slug", org_slug)
-        if user:
-            sentry_sdk.set_tag("user.email", getattr(user, "email", None))
-
         params = link.args["query"]
         chart_type = link.args.get("chart_type")
 
@@ -162,8 +157,10 @@ def _unfurl_explore(
             _logger.warning("Failed to generate chart for explore unfurl")
             continue
 
+        # Only one chart/y-axis is supported at a time in Explore
+        title = f"{defaults['title']} - {y_axes[0]}"
         unfurls[link.url] = SlackDiscoverMessageBuilder(
-            title=defaults["title"],
+            title=title,
             chart_url=url,
         ).build()
 
