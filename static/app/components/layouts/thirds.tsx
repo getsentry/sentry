@@ -1,4 +1,4 @@
-import {useContext, type HTMLAttributes} from 'react';
+import {useContext} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -200,7 +200,7 @@ export const Body = styled((props: ContainerProps<'div'> & {noRowGap?: boolean})
   }
 `;
 
-interface MainProps extends HTMLAttributes<HTMLElement> {
+export interface MainProps extends ContainerProps {
   children: React.ReactNode;
   /**
    * Set the width of the main content.

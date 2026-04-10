@@ -25,7 +25,7 @@ export default function ErrorsContent() {
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
-      <Layout.Page>
+      <Layout.Main width="full">
         <ErrorsHeader />
         <PageFiltersContainer>
           <ExploreBodySearch>
@@ -33,7 +33,7 @@ export default function ErrorsContent() {
           </ExploreBodySearch>
         </PageFiltersContainer>
         <ErrorsBody />
-      </Layout.Page>
+      </Layout.Main>
     </SentryDocumentTitle>
   );
 }
