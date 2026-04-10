@@ -202,9 +202,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         *,
         integration_id: int,
         channel_id: str,
-        thread_ts: str,
         renderable: SlackRenderable,
         slack_user_id: str,
+        thread_ts: str | None,
     ) -> None:
         """
         In most cases, you should use the instance method instead, so an organization is associated
