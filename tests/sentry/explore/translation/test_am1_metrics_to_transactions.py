@@ -81,9 +81,6 @@ class SnapshotSnubaQueryTest(AM1MetricsToTransactionsTestCase):
 
         assert snuba_query.query_snapshot is not None
         assert snuba_query.query_snapshot["metrics_to_transactions"] is True
-        assert snuba_query.query_snapshot["dataset"] == Dataset.PerformanceMetrics.value
-        assert snuba_query.query_snapshot["query"] == "event.type:transaction"
-        assert snuba_query.query_snapshot["aggregate"] == "count()"
 
     def test_snapshot_snuba_query_skips_non_performance_metrics_dataset(self) -> None:
         snuba_query = self._create_snuba_query(dataset=Dataset.Transactions)
@@ -114,9 +111,6 @@ class TranslateAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
     def test_translate_migrates_performance_metrics_to_transactions(self, mock_create_snql) -> None:
         mock_create_snql.return_value = "test-subscription-id"
         snuba_query = self._create_snuba_query()
-        original_dataset = snuba_query.dataset
-        original_query = snuba_query.query
-        original_aggregate = snuba_query.aggregate
         self._setup_detector(snuba_query)
 
         with self.tasks():
@@ -126,9 +120,7 @@ class TranslateAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
         assert snuba_query.dataset == Dataset.Transactions.value
         assert snuba_query.query_snapshot is not None
         assert snuba_query.query_snapshot["metrics_to_transactions"] is True
-        assert snuba_query.query_snapshot["dataset"] == original_dataset
-        assert snuba_query.query_snapshot["query"] == original_query
-        assert snuba_query.query_snapshot["aggregate"] == original_aggregate
+
         assert mock_create_snql.called
 
     @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")

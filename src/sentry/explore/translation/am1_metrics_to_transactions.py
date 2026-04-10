@@ -4,6 +4,7 @@ import sentry_sdk
 from django.db import router
 
 from sentry import features
+from sentry.explore.translation.alerts_translation import _get_old_query_info
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -24,23 +25,11 @@ def snapshot_snuba_query(snuba_query: SnubaQuery):
     ]:
         query_snapshot = {
             "metrics_to_transactions": True,
-            "dataset": snuba_query.dataset,
-            "query": snuba_query.query,
-            "aggregate": snuba_query.aggregate,
         }
         snuba_query.query_snapshot = query_snapshot
         snuba_query.save()
 
     return snuba_query
-
-
-def _get_old_query_info(snuba_query: SnubaQuery):
-    old_query_type = SnubaQuery.Type(snuba_query.type)
-    old_dataset = Dataset(snuba_query.dataset)
-    old_query = snuba_query.query
-    old_aggregate = snuba_query.aggregate
-
-    return old_query_type, old_dataset, old_query, old_aggregate
 
 
 def translate_am1_metrics_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
@@ -149,9 +138,7 @@ def rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_q
         )
     ):
         snuba_query.update(
-            dataset=snapshot["dataset"],
-            query=snapshot["query"],
-            aggregate=snapshot["aggregate"],
+            dataset=Dataset.PerformanceMetrics.value,
         )
 
         query_subscriptions = list(snuba_query.subscriptions.all())
