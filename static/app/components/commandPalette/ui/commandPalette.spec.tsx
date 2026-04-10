@@ -396,6 +396,86 @@ describe('CommandPalette', () => {
     });
   });
 
+  describe('resource limit', () => {
+    const makeActions = (count: number) =>
+      Array.from({length: count}, (_, i) => ({
+        display: {label: `Action ${i + 1}`},
+        to: `/action-${i + 1}/`,
+      }));
+
+    it('limits async resource results to 4 by default', async () => {
+      const actions = makeActions(6);
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            display={{label: 'Async Group'}}
+            resource={() => ({
+              queryKey: ['test-resource-default-limit'],
+              queryFn: async () => actions,
+            })}
+          >
+            {data =>
+              data.map(action =>
+                'to' in action ? (
+                  <CMDKAction
+                    key={action.display.label}
+                    display={action.display}
+                    to={action.to}
+                  />
+                ) : null
+              )
+            }
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await screen.findByRole('option', {name: 'Action 1'});
+      const actionOptions = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'));
+      expect(actionOptions).toHaveLength(4);
+      expect(screen.queryByRole('option', {name: 'Action 5'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Action 6'})).not.toBeInTheDocument();
+    });
+
+    it('respects a custom limit prop', async () => {
+      const actions = makeActions(6);
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            display={{label: 'Async Group'}}
+            limit={2}
+            resource={() => ({
+              queryKey: ['test-resource-custom-limit'],
+              queryFn: async () => actions,
+            })}
+          >
+            {data =>
+              data.map(action =>
+                'to' in action ? (
+                  <CMDKAction
+                    key={action.display.label}
+                    display={action.display}
+                    to={action.to}
+                  />
+                ) : null
+              )
+            }
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await screen.findByRole('option', {name: 'Action 1'});
+      const actionOptions = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'));
+      expect(actionOptions).toHaveLength(2);
+      expect(screen.queryByRole('option', {name: 'Action 3'})).not.toBeInTheDocument();
+    });
+  });
+
   describe('query restoration', () => {
     it('drilling into a group clears the active query', async () => {
       render(

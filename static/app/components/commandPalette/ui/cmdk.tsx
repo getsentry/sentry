@@ -64,6 +64,10 @@ interface CMDKActionProps {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   keywords?: string[];
+  /**
+   * Maximum number of results to show when using a resource. Defaults to 4.
+   */
+  limit?: number;
   onAction?: () => void;
   resource?: (query: string) => CMDKQueryOptions;
   to?: LocationDescriptor;
@@ -82,6 +86,7 @@ export function CMDKAction({
   to,
   onAction,
   resource,
+  limit = 4,
 }: CMDKActionProps) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
 
@@ -108,7 +113,11 @@ export function CMDKAction({
   }
 
   const resolvedChildren =
-    typeof children === 'function' ? (data ? children(data) : null) : children;
+    typeof children === 'function'
+      ? data
+        ? children(data.slice(0, limit))
+        : null
+      : children;
 
   return (
     <CMDKCollection.Context.Provider value={key}>
