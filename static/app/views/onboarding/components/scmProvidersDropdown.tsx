@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
@@ -74,7 +74,9 @@ function ScmProviderFlowSetup({
     },
   });
 
-  flowMapRef.current.set(provider.key, startFlow);
+  useEffect(() => {
+    flowMapRef.current.set(provider.key, startFlow);
+  }, [flowMapRef, provider.key, startFlow]);
 
   return null;
 }

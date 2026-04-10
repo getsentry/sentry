@@ -89,9 +89,10 @@ describe('ScmProviderPills', () => {
   });
 
   it('triggers install flow when clicking a dropdown item', async () => {
-    const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
-    (global as any).open = open;
+    const open = jest.spyOn(window, 'open').mockReturnValue({
+      focus: jest.fn(),
+      close: jest.fn(),
+    } as any);
 
     const providers = [
       GitHubIntegrationProviderFixture(),
