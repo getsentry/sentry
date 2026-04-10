@@ -20,6 +20,7 @@ interface DisplayProps {
 interface CMDKActionDataBase {
   display: DisplayProps;
   keywords?: string[];
+  limit?: number;
   ref?: React.RefObject<HTMLElement | null>;
 }
 
@@ -65,7 +66,8 @@ interface CMDKActionProps {
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   keywords?: string[];
   /**
-   * Maximum number of results to show when using a resource. Defaults to 4.
+   * Maximum number of results to show. For async resources the default is 4;
+   * for static children there is no limit unless this prop is set explicitly.
    */
   limit?: number;
   onAction?: () => void;
@@ -86,16 +88,20 @@ export function CMDKAction({
   to,
   onAction,
   resource,
-  limit = 4,
+  limit,
 }: CMDKActionProps) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
+
+  // For async resources, default to 4 when no explicit limit is given.
+  // For static children, undefined means no limit.
+  const effectiveLimit = limit ?? (resource ? 4 : undefined);
 
   const nodeData: CMDKActionData =
     to === undefined
       ? onAction === undefined
-        ? {display, keywords, ref, resource}
-        : {display, keywords, ref, onAction}
-      : {display, keywords, ref, to};
+        ? {display, keywords, ref, resource, limit: effectiveLimit}
+        : {display, keywords, ref, onAction, limit: effectiveLimit}
+      : {display, keywords, ref, to, limit: effectiveLimit};
 
   const key = CMDKCollection.useRegisterNode(nodeData);
   const {query} = useCommandPaletteState();
@@ -113,11 +119,7 @@ export function CMDKAction({
   }
 
   const resolvedChildren =
-    typeof children === 'function'
-      ? data
-        ? children(data.slice(0, limit))
-        : null
-      : children;
+    typeof children === 'function' ? (data ? children(data) : null) : children;
 
   return (
     <CMDKCollection.Context.Provider value={key}>

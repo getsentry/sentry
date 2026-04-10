@@ -479,7 +479,9 @@ function flattenActions(
 
       results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
-        for (const child of node.children) {
+        const visibleChildren =
+          node.limit === undefined ? node.children : node.children.slice(0, node.limit);
+        for (const child of visibleChildren) {
           results.push({...child, listItemType: 'action'});
         }
       }
@@ -513,32 +515,39 @@ function flattenActions(
     return maxScore(b) - maxScore(a);
   });
 
+  // Track processed keys inline so children beyond a group's limit cannot
+  // resurface as standalone flat items later in the traversal.
+  const seen = new Set<string>();
+
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
+    if (seen.has(item.key)) return [];
+    seen.add(item.key);
+
     if (item.children.length > 0) {
       const matched = item.children.filter(c => scores.get(c.key)?.score.matched);
       if (!matched.length) return [];
+      const sortedMatches = matched.sort(
+        (a, b) =>
+          (scores.get(b.key)?.score.score ?? 0) - (scores.get(a.key)?.score.score ?? 0)
+      );
+      const limitedMatches =
+        item.limit === undefined ? sortedMatches : sortedMatches.slice(0, item.limit);
+      // Mark every child as seen — including those beyond the limit — so they
+      // cannot appear as independent flat items after the group is processed.
+      for (const child of item.children) {
+        seen.add(child.key);
+      }
       return [
         // Suffix the header key so a group used as both a section header and
         // an action item inside its parent doesn't produce duplicate React keys.
         {...item, key: `${item.key}:header`, listItemType: 'section'},
-        ...matched
-          .sort(
-            (a, b) =>
-              (scores.get(b.key)?.score.score ?? 0) -
-              (scores.get(a.key)?.score.score ?? 0)
-          )
-          .map(c => ({...c, listItemType: 'action' as const})),
+        ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
       ];
     }
     return scores.get(item.key)?.score.matched ? [{...item, listItemType: 'action'}] : [];
   });
 
-  const seen = new Set<string>();
-  return flattened.filter(item => {
-    if (seen.has(item.key)) return false;
-    seen.add(item.key);
-    return true;
-  });
+  return flattened;
 }
 
 function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {

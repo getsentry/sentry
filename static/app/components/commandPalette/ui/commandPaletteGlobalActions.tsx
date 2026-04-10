@@ -208,7 +208,10 @@ export function GlobalCommandPaletteActions() {
           )}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
+        <CMDKAction
+          display={{label: t('Project Settings'), icon: <IconSettings />}}
+          limit={4}
+        >
           {projects.map(project => (
             <CMDKAction
               key={project.id}
@@ -287,6 +290,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction
           display={{label: t('Project DSN Keys'), icon: <IconLock locked />}}
           keywords={[t('client keys'), t('dsn keys')]}
+          limit={4}
         >
           {projects.map(project => (
             <CMDKAction
@@ -375,7 +379,7 @@ export function GlobalCommandPaletteActions() {
               select: data => {
                 const results = [];
                 for (const index of data) {
-                  for (const hit of index.hits.slice(0, 3)) {
+                  for (const hit of index.hits) {
                     results.push({
                       display: {
                         label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),

@@ -439,6 +439,130 @@ describe('CommandPalette', () => {
       expect(screen.queryByRole('option', {name: 'Action 6'})).not.toBeInTheDocument();
     });
 
+    it('limits static children when limit prop is set', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await screen.findByRole('option', {name: 'Item 1'});
+      const actionOptions = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'));
+      expect(actionOptions).toHaveLength(2);
+      expect(screen.queryByRole('option', {name: 'Item 3'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Item 4'})).not.toBeInTheDocument();
+    });
+
+    it('does not limit static children when limit prop is not set', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}}>
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 5'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await screen.findByRole('option', {name: 'Item 5'});
+      const actionOptions = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'));
+      expect(actionOptions).toHaveLength(5);
+    });
+
+    it('items beyond the limit are still searchable', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction display={{label: 'Alpha 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Alpha 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Beta 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Beta 4'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      // Without a query, only the first 2 items should be visible
+      await screen.findByRole('option', {name: 'Alpha 1'});
+      expect(screen.queryByRole('option', {name: 'Beta 3'})).not.toBeInTheDocument();
+
+      // Searching for "Beta" should surface items 3 and 4 even though they are
+      // beyond the default limit — the limit must be applied after filtering,
+      // not before, so it never hides matching results from the user.
+      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'Beta');
+
+      expect(await screen.findByRole('option', {name: 'Beta 3'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Beta 4'})).toBeInTheDocument();
+    });
+
+    it('limit is applied after search — only top matches up to the limit are shown', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'Item');
+
+      expect(await screen.findByRole('option', {name: 'Item 1'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Item 2'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Item 3'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Item 4'})).not.toBeInTheDocument();
+    });
+
+    it('limit is applied after search for async resource results', async () => {
+      const actions = makeActions(6);
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            display={{label: 'Async Group'}}
+            limit={2}
+            resource={() => ({
+              queryKey: ['test-resource-search-limit'],
+              queryFn: async () => actions,
+            })}
+          >
+            {data =>
+              data.map(action =>
+                'to' in action ? (
+                  <CMDKAction
+                    key={action.display.label}
+                    display={action.display}
+                    to={action.to}
+                  />
+                ) : null
+              )
+            }
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'Action');
+
+      expect(await screen.findByRole('option', {name: 'Action 1'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Action 2'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Action 3'})).not.toBeInTheDocument();
+    });
+
     it('respects a custom limit prop', async () => {
       const actions = makeActions(6);
 
