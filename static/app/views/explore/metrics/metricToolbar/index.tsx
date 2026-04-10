@@ -75,7 +75,7 @@ export function MetricToolbar({
         gap="md"
         columns={columns}
         data-test-id="metric-toolbar"
-        paddingLeft="md"
+        paddingLeft="lg"
         paddingRight="lg"
         paddingTop="md"
       >
