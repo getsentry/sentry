@@ -15,7 +15,9 @@ export const docs: Docs = {
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
-  featureFlagOnboarding: featureFlag,
+  featureFlagOnboarding: featureFlag({
+    packageName: '@sentry/nestjs',
+  }),
   logsOnboarding: logs,
   metricsOnboarding: metrics,
   agentMonitoringOnboarding: agentMonitoring({

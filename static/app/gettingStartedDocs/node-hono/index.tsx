@@ -14,7 +14,7 @@ export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
-  featureFlagOnboarding: featureFlag,
+  featureFlagOnboarding: featureFlag(),
   logsOnboarding: logs,
   profilingOnboarding: profiling,
   agentMonitoringOnboarding: agentMonitoring(),

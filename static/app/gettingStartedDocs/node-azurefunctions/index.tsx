@@ -13,7 +13,7 @@ export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
-  featureFlagOnboarding: featureFlag,
+  featureFlagOnboarding: featureFlag(),
   logsOnboarding: logs,
   agentMonitoringOnboarding: agentMonitoring(),
   mcpOnboarding: mcp,

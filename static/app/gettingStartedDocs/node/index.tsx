@@ -21,7 +21,7 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   profilingOnboarding: profiling,
-  featureFlagOnboarding: featureFlag,
+  featureFlagOnboarding: featureFlag(),
   logsOnboarding: logs,
   metricsOnboarding: getNodeMetricsOnboarding({
     docsPlatform: 'node',

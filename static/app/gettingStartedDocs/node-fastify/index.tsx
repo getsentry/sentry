@@ -18,7 +18,7 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  featureFlagOnboarding: featureFlag,
+  featureFlagOnboarding: featureFlag(),
   profilingOnboarding: profiling,
   logsOnboarding: logs,
   metricsOnboarding: metrics,

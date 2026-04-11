@@ -11,41 +11,48 @@ type FeatureFlagConfiguration = {
 // Node.js only supports the generic featureFlagsIntegration. Vendor-specific
 // integrations (LaunchDarkly, OpenFeature, etc.) are browser-only in @sentry/browser.
 // All providers therefore use the same generic setup.
-const genericConfig: FeatureFlagConfiguration = {
-  makeConfigureCode: (dsn: string) => `import * as Sentry from "@sentry/node";
+function getGenericConfig(packageName: `@sentry/${string}`): FeatureFlagConfiguration {
+  return {
+    makeConfigureCode: (dsn: string) => `import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${dsn}",
   integrations: [Sentry.featureFlagsIntegration()],
 });`,
-  makeVerifyCode:
-    () => `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
+    makeVerifyCode:
+      () => `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>("FeatureFlags");
 if (flagsIntegration) {
   flagsIntegration.addFeatureFlag("test-flag", false);
 } else {
   // Something went wrong, check your DSN and/or integrations
 }
 Sentry.captureException(new Error("Something went wrong!"));`,
-};
+  };
+}
 
-const FEATURE_FLAG_CONFIGURATION_MAP: Record<
-  FeatureFlagProviderEnum,
-  FeatureFlagConfiguration
-> = {
-  [FeatureFlagProviderEnum.GENERIC]: genericConfig,
-  [FeatureFlagProviderEnum.LAUNCHDARKLY]: genericConfig,
-  [FeatureFlagProviderEnum.OPENFEATURE]: genericConfig,
-  [FeatureFlagProviderEnum.STATSIG]: genericConfig,
-  [FeatureFlagProviderEnum.UNLEASH]: genericConfig,
-};
+function getFeatureFlagConfigurationMap(
+  packageName: `@sentry/${string}`
+): Record<FeatureFlagProviderEnum, FeatureFlagConfiguration> {
+  const config = getGenericConfig(packageName);
+  return {
+    [FeatureFlagProviderEnum.GENERIC]: config,
+    [FeatureFlagProviderEnum.LAUNCHDARKLY]: config,
+    [FeatureFlagProviderEnum.OPENFEATURE]: config,
+    [FeatureFlagProviderEnum.STATSIG]: config,
+    [FeatureFlagProviderEnum.UNLEASH]: config,
+  };
+}
 
-export const featureFlag: OnboardingConfig = {
+export const featureFlag = ({
+  packageName = '@sentry/node',
+}: {
+  packageName?: `@sentry/${string}`;
+} = {}): OnboardingConfig => ({
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
+    const configMap = getFeatureFlagConfigurationMap(packageName);
     const {makeConfigureCode, makeVerifyCode} =
-      FEATURE_FLAG_CONFIGURATION_MAP[
-        featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
-      ];
+      configMap[featureFlagOptions.integration as keyof typeof configMap];
 
     return [
       {
@@ -61,17 +68,17 @@ export const featureFlag: OnboardingConfig = {
               {
                 label: 'npm',
                 language: 'bash',
-                code: 'npm install --save @sentry/node',
+                code: `npm install --save ${packageName}`,
               },
               {
                 label: 'yarn',
                 language: 'bash',
-                code: 'yarn add @sentry/node',
+                code: `yarn add ${packageName}`,
               },
               {
                 label: 'pnpm',
                 language: 'bash',
-                code: 'pnpm add @sentry/node',
+                code: `pnpm add ${packageName}`,
               },
             ],
           },
@@ -123,4 +130,4 @@ export const featureFlag: OnboardingConfig = {
   },
   verify: () => [],
   nextSteps: () => [],
-};
+});
