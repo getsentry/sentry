@@ -9,6 +9,11 @@ import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
+import jwt as pyjwt
+from django.conf import settings
+
+from sentry.utils import jwt as jwt_utils
+
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
 
@@ -124,8 +129,6 @@ def _get_jwt_secret(key: str | None = None) -> str:
     if key is not None:
         return key
 
-    from django.conf import settings
-
     secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
     if secret:
         return secret
@@ -140,10 +143,6 @@ def encode_viewer_context(
     ttl: int | None = None,
 ) -> str:
     """Encode a :class:`ViewerContext` as a signed HS256 JWT."""
-    from django.conf import settings
-
-    from sentry.utils import jwt as jwt_utils
-
     secret = _get_jwt_secret(key)
 
     if ttl is None:
@@ -167,8 +166,6 @@ def decode_viewer_context(
     leeway: int = 5,
 ) -> ViewerContext:
     """Decode and verify an HS256 JWT into a :class:`ViewerContext`."""
-    import jwt as pyjwt
-
     secret = _get_jwt_secret(key)
 
     claims = pyjwt.decode(
