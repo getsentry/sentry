@@ -234,7 +234,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return attrs
 
-    def _validate_metric_subscription_allowed(self, attrs: dict) -> None:
+    def _validate_metric_subscription_allowed(self, attrs: dict[str, Any]) -> None:
         organization = self.context.get("organization")
         if organization is None:
             raise serializers.ValidationError("Missing organization context")
