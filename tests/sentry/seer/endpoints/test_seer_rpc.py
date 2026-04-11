@@ -112,16 +112,21 @@ class TestSeerRpc(APITestCase):
         path = self._get_path("get_organization_slug")
         data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
 
-        with patch(
-            "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
-        ) as mock_dispatch:
-            mock_dispatch.side_effect = RuntimeError("Unexpected internal error")
+        for is_test_environment in [True, False]:
+            with patch(
+                "sentry.seer.endpoints.seer_rpc.in_test_environment",
+                return_value=is_test_environment,
+            ):
+                with patch(
+                    "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
+                ) as mock_dispatch:
+                    mock_dispatch.side_effect = RuntimeError("Unexpected internal error")
 
-            response = self.client.post(
-                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-            )
+                    response = self.client.post(
+                        path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+                    )
 
-        assert response.status_code == 500
+                assert response.status_code == 500
 
 
 class TestSeerRpcMethods(APITestCase):
