@@ -14,3 +14,5 @@ class SlackScope(StrEnum):
     """Allows the bot to read message history in private groups."""
     APP_MENTIONS_READ = "app_mentions:read"
     """Allows the bot to read mentions in app messages."""
+    ASSISTANT_WRITE = "assistant:write"
+    """Allows the bot to act as a Slack Agent."""

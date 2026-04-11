@@ -36,8 +36,13 @@ class RepositoryInfo(TypedDict):
     identifier: str
     external_id: str
     default_branch: NotRequired[str | None]  # GitHub, GitHub Enterprise
-    project: NotRequired[str]  # Bitbucket Server
+    url: NotRequired[str]  # GitLab, VSTS
+    instance: NotRequired[str]  # GitLab, VSTS
+    project: NotRequired[str]  # Bitbucket Server, VSTS
+    path: NotRequired[str]  # GitLab (path_with_namespace)
+    project_id: NotRequired[int]  # GitLab
     repo: NotRequired[str]  # Bitbucket Server
+    repo_name: NotRequired[str]  # VSTS (bare repo name for API calls)
 
 
 class BaseRepositoryIntegration(ABC):

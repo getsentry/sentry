@@ -26,6 +26,7 @@ from sentry.seer.autofix.issue_summary import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1557,3 +1558,20 @@ class TestGetAutomationStoppingPoint(TestCase):
         mock_preference.return_value = "open_pr"
 
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.ROOT_CAUSE
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.issue_summary.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_reads_stopping_point_from_sentry_db(
+        self, mock_fixability, mock_preference, mock_read_db
+    ):
+        mock_fixability.return_value = 0.80
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="solution",
+        )
+
+        assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.SOLUTION

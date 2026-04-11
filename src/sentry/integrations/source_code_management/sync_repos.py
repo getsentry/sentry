@@ -28,10 +28,7 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.organizations.services.organization import organization_service
-from sentry.plugins.providers.integration_repository import (
-    RepositoryInputConfig,
-    get_integration_repository_provider,
-)
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -43,16 +40,15 @@ logger = logging.getLogger(__name__)
 
 # Providers to include in the periodic sync. Each must implement
 # get_repositories() returning RepositoryInfo with external_id.
+# GitLab, Bitbucket, and Bitbucket Server are excluded because their
+# build_repository_config creates webhooks as a side effect, and
+# create_repositories calls it for every repo before checking if it already
+# exists. This needs to be fixed before adding those providers.
 # Perforce is excluded because it cannot derive external_id from its API.
-# Providers to include in the periodic sync.
-# Other providers (GitLab, Bitbucket, Bitbucket Server, VSTS) have
-# build_repository_config methods that expect additional data beyond what
-# RepositoryInfo provides (e.g. url, instance, project_id). They need
-# follow-up work to either enrich the sync config or simplify their
-# build_repository_config before they can be added here.
 SCM_SYNC_PROVIDERS = [
     "github",
     "github_enterprise",
+    "vsts",
 ]
 
 
@@ -203,11 +199,12 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
 
         if new_ids:
             integration_repo_provider = get_integration_repository_provider(integration)
-            repo_configs: list[RepositoryInputConfig] = [
+            repo_configs = [
                 {
-                    "external_id": repo["external_id"],
-                    "integration_id": integration.id,
+                    **repo,
                     "identifier": str(repo["identifier"]),
+                    "integration_id": integration.id,
+                    "installation": integration.id,
                 }
                 for repo in provider_repos
                 if repo["external_id"] in new_ids

@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {YAxis} from 'sentry/components/charts/components/yAxis';
 import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {LineSeries} from 'sentry/components/charts/series/lineSeries';
@@ -9,10 +10,22 @@ import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeri
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
+
+/**
+ * Builds a y-axis axisLabel formatter from the first timeseries metadata.
+ */
+function makeYAxisFormatter(timeSeries: TimeSeries[]) {
+  const firstSeries = timeSeries[0];
+  const valueType = firstSeries?.meta?.valueType ?? 'number';
+  const valueUnit = firstSeries?.meta?.valueUnit;
+
+  return (value: number) => formatYAxisValue(value, valueType, valueUnit ?? undefined);
+}
 
 type ExploreChartData = {
   timeSeries: TimeSeries[];
@@ -67,6 +80,16 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
         };
       }
 
+      const exploreYAxis = YAxis({
+        theme,
+        splitNumber: 3,
+        axisLabel: {
+          fontSize: 11,
+          fontFamily: DEFAULT_FONT_FAMILY,
+          formatter: makeYAxisFormatter(timeSeries),
+        },
+      });
+
       const hasGroups = timeSeries.some(ts => ts.groupBy && ts.groupBy.length > 0);
 
       if (!hasGroups) {
@@ -81,6 +104,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
 
         return {
           ...slackChartDefaults,
+          yAxis: exploreYAxis,
           xAxis: exploreXAxis,
           useUTC: true,
           color,
@@ -110,6 +134,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
 
       return {
         ...slackChartDefaults,
+        yAxis: exploreYAxis,
         xAxis: exploreXAxis,
         useUTC: true,
         color,

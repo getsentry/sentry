@@ -36,6 +36,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -468,7 +469,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_response.preference = mock_preference
         mock_get_preferences.return_value = mock_response
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is True
         mock_cache.set.assert_called_once_with(
@@ -492,7 +493,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_get_preferences.return_value = mock_response
         mock_get_code_mappings.return_value = []
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is False
         mock_cache.set.assert_called_once_with(
@@ -514,7 +515,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_get_preferences.return_value = mock_response
         mock_get_code_mappings.return_value = []
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is False
         mock_cache.set.assert_called_once_with(
@@ -538,7 +539,7 @@ class TestHasProjectConnectedRepos(TestCase):
             {"provider": "github", "owner": "test", "name": "repo"}
         ]
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is True
         mock_get_code_mappings.assert_called_once()
@@ -554,7 +555,7 @@ class TestHasProjectConnectedRepos(TestCase):
         """Test returns cached True value without calling API."""
         mock_cache.get.return_value = True
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is True
         mock_get_preferences.assert_not_called()
@@ -566,7 +567,7 @@ class TestHasProjectConnectedRepos(TestCase):
         """Test returns cached False value without calling API."""
         mock_cache.get.return_value = False
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is False
         mock_get_preferences.assert_not_called()
@@ -583,7 +584,7 @@ class TestHasProjectConnectedRepos(TestCase):
         mock_response.preference = mock_preference
         mock_get_preferences.return_value = mock_response
 
-        result = has_project_connected_repos(self.organization.id, self.project.id, skip_cache=True)
+        result = has_project_connected_repos(self.organization, self.project, skip_cache=True)
 
         assert result is True  # Fresh value from API, not cached False
         mock_cache.get.assert_not_called()  # Cache not checked
@@ -603,10 +604,36 @@ class TestHasProjectConnectedRepos(TestCase):
             {"provider": "github", "owner": "test", "name": "repo"}
         ]
 
-        result = has_project_connected_repos(self.organization.id, self.project.id)
+        result = has_project_connected_repos(self.organization, self.project)
 
         assert result is True
         mock_get_code_mappings.assert_called_once()
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.utils.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.utils.cache")
+    def test_reads_from_sentry_db(self, mock_cache, mock_get_prefs, mock_read_db):
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        mock_cache.get.return_value = None
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(provider="github", owner="owner", name="repo", external_id="123")
+            ],
+        )
+
+        result = has_project_connected_repos(self.organization, self.project)
+
+        assert result is True
+        mock_get_prefs.assert_not_called()
+        mock_read_db.assert_called_once()
+        mock_cache.set.assert_called_once_with(
+            f"seer-project-has-repos:{self.organization.id}:{self.project.id}",
+            True,
+            timeout=60 * 15,
+        )
 
 
 class TestSetProjectSeerPreference(TestCase):

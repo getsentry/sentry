@@ -3,6 +3,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {OnboardingBanner} from 'sentry/components/workflowEngine/ui/alertsMonitorsOnboardingBanner';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -49,6 +50,7 @@ export function WorkflowEngineListLayout({
         <Layout.Body>
           <Layout.Main width="full">
             <Flex direction="column" gap="lg">
+              <OnboardingBanner />
               {children}
             </Flex>
           </Layout.Main>

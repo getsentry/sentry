@@ -45,10 +45,7 @@ export function useSessionsRequest({
     end,
     interval: interval
       ? interval
-      : getSessionsInterval(
-          {start, end, period: statsPeriod},
-          {highFidelity: organization.features.includes('minute-resolution-sessions')}
-        ),
+      : getSessionsInterval({start, end, period: statsPeriod}),
   };
 
   const sessionQuery = useApiQuery<SessionApiResponse>(
