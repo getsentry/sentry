@@ -14,8 +14,8 @@ interface BaseProps extends Omit<
 > {
   defaultValue?: number;
   disabled?: boolean;
-  /** Intl.NumberFormat options for automatic numeric formatting */
-  formatOptions?: Intl.NumberFormatOptions;
+  /** Intl.NumberFormat options for automatic numeric formatting. Pass `'hidden'` to hide all labels. */
+  formatOptions?: Intl.NumberFormatOptions | 'hidden';
   /** ID applied to the hidden input element (enables label `htmlFor` linking) */
   id?: string;
   max?: number;
@@ -75,7 +75,8 @@ export function Slider({
 
   const htmlProps = restProps;
 
-  const numberFormatter = useNumberFormatter(formatOptions ?? {});
+  const isHidden = formatOptions === 'hidden';
+  const numberFormatter = useNumberFormatter(isHidden ? {} : (formatOptions ?? {}));
 
   const ariaProps: AriaSliderProps = {
     minValue: min,
@@ -190,44 +191,48 @@ export function Slider({
           </VisuallyHidden>
         </SliderThumbHitbox>
 
-        <ValueLabel
-          aria-hidden
-          style={
-            {
-              '--thumb-value': `${thumbPercent * 100}%`,
-              '--thumb-offset': `${(2 * thumbPercent - 1) * 12}px`,
-            } as React.CSSProperties
-          }
-        >
-          {getFormattedValue(thumbValue)}
-        </ValueLabel>
+        {!isHidden && (
+          <ValueLabel
+            aria-hidden
+            style={
+              {
+                '--thumb-value': `${thumbPercent * 100}%`,
+                '--thumb-offset': `${(2 * thumbPercent - 1) * 12}px`,
+              } as React.CSSProperties
+            }
+          >
+            {getFormattedValue(thumbValue)}
+          </ValueLabel>
+        )}
       </TrackArea>
 
-      <TrackLabels aria-hidden>
-        <TrackLabel data-position="start" style={{transitionDelay: '0ms'}}>
-          {getFormattedValue(min)}
-        </TrackLabel>
-        {hasTicks &&
-          intermediateTickValues.map((tickValue, index) => (
-            <TrackLabel
-              key={tickValue}
-              data-intermediate
-              data-show={ticks?.labels || undefined}
-              style={{
-                transitionDelay: `${((index + 1) * tickDelay).toFixed(2)}ms`,
-                left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
-              }}
-            >
-              {getFormattedValue(tickValue)}
-            </TrackLabel>
-          ))}
-        <TrackLabel
-          data-position="end"
-          style={{transitionDelay: `${tickAnimationDuration}ms`}}
-        >
-          {getFormattedValue(max)}
-        </TrackLabel>
-      </TrackLabels>
+      {!isHidden && (
+        <TrackLabels aria-hidden>
+          <TrackLabel data-position="start" style={{transitionDelay: '0ms'}}>
+            {getFormattedValue(min)}
+          </TrackLabel>
+          {hasTicks &&
+            intermediateTickValues.map((tickValue, index) => (
+              <TrackLabel
+                key={tickValue}
+                data-intermediate
+                data-show={ticks?.labels || undefined}
+                style={{
+                  transitionDelay: `${((index + 1) * tickDelay).toFixed(2)}ms`,
+                  left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
+                }}
+              >
+                {getFormattedValue(tickValue)}
+              </TrackLabel>
+            ))}
+          <TrackLabel
+            data-position="end"
+            style={{transitionDelay: `${tickAnimationDuration}ms`}}
+          >
+            {getFormattedValue(max)}
+          </TrackLabel>
+        </TrackLabels>
+      )}
     </SliderWrapper>
   );
 }
