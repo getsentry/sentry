@@ -241,6 +241,8 @@ export function CommandPalette(props: CommandPaletteProps) {
   const debouncedQuery = useDebouncedValue(state.query, 300);
 
   const isLoading = state.query.length > 0 && debouncedQuery !== state.query;
+  const isEmptyPromptQuery =
+    state.action?.value.prompt !== undefined && state.query.length === 0;
 
   return (
     <Fragment>
@@ -360,7 +362,9 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        <CommandPaletteNoResults />
+        isEmptyPromptQuery ? null : (
+          <CommandPaletteNoResults />
+        )
       ) : (
         <ResultsList
           direction="column"
