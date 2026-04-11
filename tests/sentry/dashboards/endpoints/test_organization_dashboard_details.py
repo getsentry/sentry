@@ -3114,8 +3114,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:performance-use-metrics": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -3167,8 +3166,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:performance-use-metrics": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)

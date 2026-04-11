@@ -308,7 +308,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
         }
-        self.features = {"organizations:performance-use-metrics": True}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query=None, features=None):
         if features is None:

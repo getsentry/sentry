@@ -1063,7 +1063,6 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         if features is None:
             features = {
                 "organizations:performance-view": True,
-                "organizations:performance-use-metrics": True,
             }
         features.update(self.features)
         self.login_as(user=self.user)
