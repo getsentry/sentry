@@ -25,9 +25,9 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 50
-INTER_BATCH_DELAY_S = 1
-MAX_FAILURES_PER_BATCH = 20
+BATCH_SIZE = 25
+INTER_BATCH_DELAY_S = 10
+MAX_FAILURES_PER_BATCH = 10
 
 
 @instrumented_task(
