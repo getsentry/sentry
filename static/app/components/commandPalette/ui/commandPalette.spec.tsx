@@ -397,9 +397,6 @@ describe('CommandPalette', () => {
   });
 
   describe('prompt actions', () => {
-    // The prompt action is nested inside an outer group so that it appears as a
-    // selectable 'action' item in browse mode (top-level resource nodes with no
-    // children are filtered out by flattenActions).
     function PromptAction() {
       return (
         <CMDKAction display={{label: 'DSN Tools'}}>
@@ -415,6 +412,38 @@ describe('CommandPalette', () => {
         </CMDKAction>
       );
     }
+
+    it('a top-level prompt action is not filtered out in browse mode', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Reverse DSN lookup'}} prompt="Paste a DSN..." />
+          <CommandPalette onAction={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+      expect(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      ).toBeInTheDocument();
+    });
+
+    it('a prompt action appearing as a direct top-level child after drilling into its parent group is visible', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Outer'}}>
+            <CMDKAction display={{label: 'Inner Group'}}>
+              <CMDKAction display={{label: 'Prompt Child'}} prompt="Enter value..." />
+            </CMDKAction>
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      // Drill into Inner Group (shown as an action item under Outer)
+      await userEvent.click(await screen.findByRole('option', {name: 'Inner Group'}));
+
+      // Prompt Child must be visible — previously it was filtered out by flattenActions
+      expect(
+        await screen.findByRole('option', {name: 'Prompt Child'})
+      ).toBeInTheDocument();
+    });
 
     it('clicking a prompt action pushes onto the nav stack instead of closing', async () => {
       const closeSpy = jest.spyOn(modalActions, 'closeModal');
