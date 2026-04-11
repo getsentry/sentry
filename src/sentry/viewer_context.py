@@ -4,6 +4,8 @@ import contextlib
 import contextvars
 import dataclasses
 import enum
+import hashlib
+import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
@@ -93,3 +95,97 @@ def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:
 def get_viewer_context() -> ViewerContext | None:
     """Return the current ``ViewerContext``, or ``None`` if not set."""
     return _viewer_context_var.get()
+
+
+# ---------------------------------------------------------------------------
+# JWT encoding / decoding for cross-service propagation
+# ---------------------------------------------------------------------------
+
+_JWT_STANDARD_CLAIMS = frozenset({"iat", "exp", "iss", "aud", "nbf", "jti", "sub"})
+
+
+def _key_id(key: str) -> str:
+    """Short stable identifier for a key (first 8 hex chars of SHA-256).
+
+    Embedded as ``kid`` in the JWT header so the receiver can look up the
+    correct verification key without trying every key it knows about.
+    """
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
+
+
+def _get_jwt_secret(key: str | None = None) -> str:
+    """Return the symmetric key to use for JWT signing/verification.
+
+    Resolution: explicit *key* → ``SEER_API_SHARED_SECRET``.
+
+    TODO: Add a dedicated ``VIEWER_CONTEXT_JWT_SECRET`` setting so that
+    ViewerContext signing is not coupled to the Seer shared secret.
+    """
+    if key is not None:
+        return key
+
+    from django.conf import settings
+
+    secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
+    if secret:
+        return secret
+
+    raise ValueError("No signing key available. Set SEER_API_SHARED_SECRET in settings.")
+
+
+def encode_viewer_context(
+    viewer_context: ViewerContext,
+    *,
+    key: str | None = None,
+    ttl: int | None = None,
+) -> str:
+    """Encode a :class:`ViewerContext` as a signed HS256 JWT."""
+    from django.conf import settings
+
+    from sentry.utils import jwt as jwt_utils
+
+    secret = _get_jwt_secret(key)
+
+    if ttl is None:
+        ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 60)
+
+    now = time.time()
+    payload: dict[str, Any] = {
+        **viewer_context.serialize(),
+        "iat": now,
+        "exp": now + ttl,
+        "iss": "sentry",
+    }
+
+    return jwt_utils.encode(payload, secret, headers={"kid": _key_id(secret)})
+
+
+def decode_viewer_context(
+    token: str,
+    *,
+    key: str | None = None,
+    leeway: int = 5,
+) -> ViewerContext:
+    """Decode and verify an HS256 JWT into a :class:`ViewerContext`."""
+    import jwt as pyjwt
+
+    secret = _get_jwt_secret(key)
+
+    claims = pyjwt.decode(
+        token,
+        secret,
+        algorithms=["HS256"],
+        options={"require": ["iat", "exp", "iss"]},
+        issuer="sentry",
+        leeway=leeway,
+    )
+    vc_data = {k: v for k, v in claims.items() if k not in _JWT_STANDARD_CLAIMS}
+    return ViewerContext.deserialize(vc_data)
+
+
+def is_jwt_viewer_context(header_value: str) -> bool:
+    """Heuristic to distinguish a JWT from a raw JSON payload.
+
+    JWTs contain dots separating base64url segments; raw JSON starts with ``{``.
+    """
+    return "." in header_value and not header_value.startswith("{")
