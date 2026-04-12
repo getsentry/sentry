@@ -164,6 +164,7 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction to="https://docs.sentry.io" display={{label: 'External Link'}} />
         </CommandPaletteSlot>
@@ -188,6 +189,7 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction to="/target/" display={{label: 'Internal Link'}} />
         </CommandPaletteSlot>
