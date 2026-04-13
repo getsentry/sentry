@@ -53,7 +53,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     label: t('Sentry Configuration'),
     key: 'sentry-configuration',
     description: t(
-      'Issues detected from SDK or tooling configuration problems, such as missing or broken source maps.'
+      'Issues detected from SDK or tooling configuration problems that degrade your ability to debug telemetry using Sentry.'
     ),
   },
 };
