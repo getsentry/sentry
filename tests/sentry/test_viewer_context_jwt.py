@@ -58,7 +58,7 @@ class TestEncodeViewerContext(TestCase):
         assert "iat" in claims
         assert "exp" in claims
         assert claims["iss"] == "sentry"
-        assert claims["exp"] - claims["iat"] == 300  # default TTL
+        assert claims["exp"] - claims["iat"] == 900  # default TTL
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_custom_ttl(self):
@@ -96,8 +96,7 @@ class TestEncodeViewerContext(TestCase):
         assert result.token is None
 
         claims = pyjwt.decode(jwt_token, options={"verify_signature": False})
-        assert "token" in claims  # serialize() includes it
-        assert claims["token"]["kind"] == "api_token"
+        assert "token" not in claims
 
 
 class TestDecodeViewerContext(TestCase):

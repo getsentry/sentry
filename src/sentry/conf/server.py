@@ -784,7 +784,7 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 SEER_API_SHARED_SECRET: str = ""
 
 # TTL in seconds for ViewerContext JWT tokens.
-VIEWER_CONTEXT_JWT_TTL: int = 300
+VIEWER_CONTEXT_JWT_TTL: int = 900
 
 # Sign requests to the SCM RPC endpoint
 # First element is used to sign requests; request is accepted if signed with any element in the list.

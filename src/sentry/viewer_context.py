@@ -63,8 +63,6 @@ class ViewerContext:
             result["organization_id"] = self.organization_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
-        if self.token is not None:
-            result["token"] = {"kind": self.token.kind, "scopes": list(self.token.get_scopes())}
         return result
 
     @classmethod
@@ -144,7 +142,7 @@ def encode_viewer_context(
     secret = _get_jwt_secret(key)
 
     if ttl is None:
-        ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 300)
+        ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
 
     now = time.time()
     payload: dict[str, Any] = {
