@@ -753,6 +753,46 @@ describe('CommandPalette', () => {
       expect(screen.getByRole('option', {name: 'Item 4'})).toBeInTheDocument();
     });
 
+    it('clicking see more does not inherit the parent callback', async () => {
+      const parentCallback = jest.fn();
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            display={{label: 'Static Group'}}
+            limit={2}
+            onAction={parentCallback}
+          >
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
+
+      expect(parentCallback).not.toHaveBeenCalled();
+      expect(await screen.findByRole('option', {name: 'Item 3'})).toBeInTheDocument();
+    });
+
+    it('clicking see more does not inherit the parent link indicator', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2} to="/group/">
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const seeMore = await screen.findByRole('option', {name: 'See all'});
+      expect(
+        seeMore.querySelector('[data-test-id="command-palette-link-indicator"]')
+      ).not.toBeInTheDocument();
+    });
+
     it('keeps expanded search results sorted by match quality after clicking see more', async () => {
       render(
         <GlobalActionsComponent>

@@ -661,11 +661,16 @@ function shouldShowSeeMore(childCount: number, limit?: number): boolean {
 
 function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatItem {
   return {
-    ...node,
+    children: node.children,
     key: `${node.key}:see-more`,
+    parent: node.parent,
     listItemType: 'action',
+    limit: node.limit,
+    ref: node.ref,
+    keywords: node.keywords,
     display: {
-      label: 'See all',
+      details: node.display.details,
+      label: t('See all'),
       icon: <IconArrow direction="right" />,
     },
   };
