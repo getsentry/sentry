@@ -2593,6 +2593,21 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
         self.assert_releases(response, [self.release2, self.release3, self.release5])
 
+    def test_environment_query_param_and_environment_filter_are_anded(self) -> None:
+        """Both ?environment= and environment: in query are applied as AND conditions."""
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
+        )
+        # ?environment=prod alone → release1, release5
+        # query=environment:staging alone → release2, release3, release5
+        # Both together → only release5 (in both prod and staging)
+        response = self.client.get(
+            url,
+            format="json",
+            data={"environment": self.env1.name, "query": f"environment:{self.env2.name}"},
+        )
+        self.assert_releases(response, [self.release5])
+
     def test_environment_wildcard_in_query_param(self) -> None:
         """environment: with wildcard patterns in the query string should use substring matching"""
         url = reverse(
