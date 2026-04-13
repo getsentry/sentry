@@ -178,9 +178,9 @@ function SupergroupIssueList({
     end,
   } = location.query;
   const query = typeof searchQuery === 'string' ? searchQuery : '';
-  const issueIdFilter = `issue.id:[${groupIds.join(',')}]`;
   const totalPages = Math.ceil(groupIds.length / PAGE_SIZE);
   const pageGroupIds = groupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const issueIdFilter = `issue.id:[${pageGroupIds.join(',')}]`;
 
   // Fetch all groups on this page
   const {data: allGroups, isPending: allPending} = useQuery(
@@ -205,7 +205,6 @@ function SupergroupIssueList({
         start,
         end,
         query: `${query} ${issueIdFilter}`,
-        limit: groupIds.length,
       },
       staleTime: 30_000,
     }),
