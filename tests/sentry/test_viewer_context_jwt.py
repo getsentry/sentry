@@ -59,7 +59,7 @@ class TestEncodeViewerContext(TestCase):
         assert "iat" in claims
         assert "exp" in claims
         assert claims["iss"] == "sentry"
-        assert claims["exp"] - claims["iat"] == 60  # default TTL
+        assert claims["exp"] - claims["iat"] == 300  # default TTL
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_custom_ttl(self):
