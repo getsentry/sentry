@@ -6,7 +6,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
+import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
@@ -80,7 +80,7 @@ function createNodeFromApiSpan(
 ): AITraceSpanNode {
   const operationType =
     apiSpan['gen_ai.operation.type'] ||
-    getGenAiOperationTypeFromSpanOp(apiSpan['span.name']);
+    getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
 
   const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
   const value: TraceTree.EAPSpan = {
