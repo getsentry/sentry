@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -20,13 +21,13 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
@@ -98,26 +99,22 @@ function DetectorAutomationsTable({
   const priorityDetector =
     triggeredBySort === 'desc' ? detectorId : (issueStreamDetectorId ?? detectorId);
 
-  const {
-    data: automations,
-    isPending,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useAutomationsQuery(
-    {
+  const org = useOrganization();
+  const {data, isPending, isError, isSuccess} = useQuery({
+    ...automationsApiOptions(org, {
       detector: detectorIds.filter(defined),
       limit: AUTOMATIONS_PER_PAGE,
       cursor,
       query: searchQuery || undefined,
       priorityDetector,
-    },
-    {enabled: !issueStreamDetectorsPending}
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled: !issueStreamDetectorsPending,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const automations = data?.json;
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
   const paginationCaption = useMemo(() => {
     if (!automations || automations.length === 0 || isPending) {
@@ -162,11 +159,11 @@ function DetectorAutomationsTable({
           </SimpleTable.Header>
           {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
           {isError && <LoadingError />}
-          {isSuccess && automations.length === 0 && (
+          {isSuccess && automations?.length === 0 && (
             <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
           )}
           {isSuccess &&
-            automations.map(automation => (
+            automations?.map(automation => (
               <SimpleTable.Row
                 key={automation.id}
                 variant={automation.enabled ? 'default' : 'faded'}
@@ -241,17 +238,13 @@ export function DetectorDetailsAutomations({detector}: Props) {
             addSuccessMessage(t('Connected alerts updated'));
             // Invalidate the Connected Alerts table query
             queryClient.invalidateQueries({
-              queryKey: [
-                getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-                  path: {organizationIdOrSlug: organization.slug},
-                }),
-              ],
+              queryKey: automationsApiOptions(organization).queryKey,
             });
           },
         }
       );
     },
-    [detector.id, updateDetector, queryClient, organization.slug]
+    [detector.id, updateDetector, queryClient, organization]
   );
 
   const toggleDrawer = () => {

@@ -158,6 +158,9 @@ class AttributeArgumentDefinition(BaseArgumentDefinition):
 @dataclass
 class VirtualColumnDefinition:
     constructor: Callable[[SnubaParams, Any], VirtualColumnContext]
+    # Need a type for the attributes endpoint
+    search_type: constants.SearchType
+    secondary_alias: bool = False
     # Allows additional processing to the term after its been resolved
     term_resolver: (
         Callable[
@@ -255,7 +258,9 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
     trace_filter: TraceItemFilter | None
 
     @property
-    def proto_definition(self) -> AttributeAggregation | AttributeConditionalAggregation:
+    def proto_definition(
+        self,
+    ) -> AttributeAggregation | AttributeConditionalAggregation:
         if self.trace_metric is None and self.trace_filter is None:
             return AttributeAggregation(
                 aggregate=self.internal_name,
@@ -460,9 +465,11 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
             ),
             key=cast(AttributeKey, resolved_attribute),
             trace_metric=trace_metric,
-            trace_filter=cast(TraceItemFilter, resolved_arguments[0])
-            if isinstance(self, ConditionalTraceMetricAggregateDefinition)
-            else None,
+            trace_filter=(
+                cast(TraceItemFilter, resolved_arguments[0])
+                if isinstance(self, ConditionalTraceMetricAggregateDefinition)
+                else None
+            ),
         )
 
 
@@ -674,7 +681,9 @@ class ColumnDefinitions:
     column_to_alias: Callable[[str], str | None] | None
 
 
-def attribute_key_to_tuple(attribute_key: AttributeKey) -> tuple[str, AttributeKey.Type.ValueType]:
+def attribute_key_to_tuple(
+    attribute_key: AttributeKey,
+) -> tuple[str, AttributeKey.Type.ValueType]:
     return (attribute_key.name, attribute_key.type)
 
 
@@ -731,9 +740,11 @@ def extract_trace_metric_aggregate_arguments(
         return TraceMetric(
             metric_name=cast(str, resolved_arguments[offset + 1]),
             metric_type=cast(TraceMetricType, resolved_arguments[offset + 2]),
-            metric_unit=None
-            if resolved_arguments[offset + 3] == "-"
-            else cast(str, resolved_arguments[offset + 3]),
+            metric_unit=(
+                None
+                if resolved_arguments[offset + 3] == "-"
+                else cast(str, resolved_arguments[offset + 3])
+            ),
         )
     elif all(resolved_argument == "" for resolved_argument in resolved_arguments[offset + 1 :]):
         # no metrics were specified, assume we query all metrics

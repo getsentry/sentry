@@ -158,10 +158,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: '/accept/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
@@ -2321,6 +2317,14 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/conversations/overview')
           ),
         },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
       ],
     },
     {

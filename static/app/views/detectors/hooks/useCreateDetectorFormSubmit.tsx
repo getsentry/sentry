@@ -9,9 +9,11 @@ import type {
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
+import {getDetectorResponseErrorMessage} from 'sentry/views/detectors/components/forms/common/getDetectorResponseErrorMessage';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
@@ -79,14 +81,18 @@ export function useCreateDetectorFormSubmit<
         }
 
         onSubmitSuccess?.(resultDetector);
-      } catch (error) {
+      } catch (error: unknown) {
         trackAnalytics('monitor.created', {
           organization,
           detector_type: payload.type,
           success: false,
         });
 
-        addErrorMessage(t('Unable to create monitor'));
+        addErrorMessage(
+          (error instanceof RequestError
+            ? getDetectorResponseErrorMessage(error.responseJSON)
+            : null) ?? t('Unable to create monitor')
+        );
 
         if (onError) {
           onError(error);

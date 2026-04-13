@@ -120,7 +120,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const shouldRedirectToWorkflowEngineUI = !hasRedirectOptOut && hasWorkflowEngineUI;
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? `${makeAutomationBasePathname(organization.slug)}?alertsRedirect=true`
+    ? makeAutomationBasePathname(organization.slug)
     : `${baseUrl}/alerts/rules/`;
 
   return (

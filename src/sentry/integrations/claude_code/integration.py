@@ -15,7 +15,7 @@ from typing import Any, Literal
 from django import forms
 from django.conf import settings as django_settings
 from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -76,7 +76,15 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     environment_id: str | None = None
     workspace_name: str | None = "default"
     agent_id: str | None = None
-    agent_version: str | None = None
+    agent_version: int | None = None
+
+    @validator("agent_version", pre=True)
+    def coerce_agent_version(cls, v: object) -> int | None:
+        # Old SDK stored version as a timestamp string — drop it so the agent is recreated.
+        # New versions come from the API as integers, so any string value is stale.
+        if isinstance(v, str):
+            return None
+        return v  # type: ignore[return-value]
 
 
 metadata = IntegrationMetadata(

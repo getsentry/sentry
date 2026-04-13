@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
@@ -13,7 +14,7 @@ import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationActionSummary} from 'sentry/views/automations/components/automationActionSummary';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
@@ -26,9 +27,11 @@ type DetectorListConnectedAutomationsProps = {
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
   const organization = useOrganization();
   const shownAutomations = automationIds.slice(0, 5);
-  const {data, isPending, isError} = useAutomationsQuery({
-    ids: automationIds.slice(0, 5),
-  });
+  const {data, isPending, isError} = useQuery(
+    automationsApiOptions(organization, {
+      ids: automationIds.slice(0, 5),
+    })
+  );
   const hasMore = automationIds.length > 5;
   const hasMoreText = hasMore ? (
     <MoreText>{tn('%s more', '%s more', automationIds.length - 5)}</MoreText>

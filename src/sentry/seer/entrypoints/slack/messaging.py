@@ -5,10 +5,12 @@ from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
+from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from slack_sdk.models.blocks.blocks import Block
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import (
@@ -258,5 +260,69 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
+
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)
+
+
+def send_identity_link_prompt(
+    *,
+    integration: RpcIntegration,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
+    is_welcome_message: bool = False,
+) -> None:
+    from sentry.integrations.slack.integration import SlackIntegration
+    from sentry.integrations.slack.message_builder.types import SlackAction
+    from sentry.integrations.slack.views.link_identity import build_linking_url
+
+    # TODO(leander): We'll need to revisit the UX around linking. We can't pass threads here so while
+    # the linking start message is correctly located and ephemeral, the success message afterwards is not.
+    # By omitting the response_url here, it will arrive as a DM, but it doesn't accept threads so this is the best we can do for now.
+    associate_url = build_linking_url(
+        integration=integration,
+        slack_id=slack_user_id,
+        channel_id=channel_id,
+        response_url=None,
+    )
+    message = (
+        "Link your Slack account to Sentry — so bugs find you, not the other way around."
+        if is_welcome_message
+        else "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
+    )
+    renderable = SlackRenderable(
+        blocks=[
+            MarkdownBlock(text=message),
+            ActionsBlock(
+                elements=[
+                    ButtonElement(text="Cancel", value="ignore"),
+                    LinkButtonElement(
+                        text="Link",
+                        url=associate_url,
+                        style="primary",
+                        action_id=SlackAction.LINK_IDENTITY.value,
+                    ),
+                ]
+            ),
+        ],
+        text=message,
+    )
+    try:
+        SlackIntegration.send_threaded_ephemeral_message_static(
+            integration_id=integration.id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+        )
+    except Exception:
+        logger.exception(
+            "send_identity_link_prompt.error",
+            extra={
+                "integration_id": integration.id,
+                "channel_id": channel_id,
+                "thread_ts": thread_ts,
+                "slack_user_id": slack_user_id,
+            },
+        )

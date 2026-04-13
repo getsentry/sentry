@@ -276,6 +276,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
 src/sentry/api/endpoints/organization_attribute_mappings.py                 @getsentry/data-browsing
 
+/src/sentry/integrations/slack/unfurl/explore.py                           @getsentry/data-browsing
+
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing

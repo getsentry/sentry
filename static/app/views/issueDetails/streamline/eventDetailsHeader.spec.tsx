@@ -19,11 +19,6 @@ jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockUseNavigate,
 }));
 
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/utils'),
-  useHasStreamlinedUI: () => true,
-}));
-
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({

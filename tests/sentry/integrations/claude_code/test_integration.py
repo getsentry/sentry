@@ -157,7 +157,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
                 environment_id="env-456",
                 workspace_name="my-ws",
                 agent_id="agent-123",
-                agent_version="v1",
+                agent_version=1,
             ),
         )
         installation = integration.get_installation(organization_id=self.organization.id)
@@ -171,7 +171,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             environment_id="env-456",
             workspace_name="my-ws",
             agent_id="agent-123",
-            agent_version="v1",
+            agent_version=1,
         )
 
     def test_get_client_class_not_configured(self) -> None:
@@ -180,6 +180,27 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         with self.settings(CLAUDE_CODE_CLIENT_CLASS=None):
             with pytest.raises(IntegrationConfigurationError, match="not configured"):
                 installation.get_client()
+
+    # ── agent_version coercion ───────────────────────────────────────
+
+    def test_agent_version_int_is_preserved(self) -> None:
+        installation = self._create_installation(agent_id="agent-123", agent_version=3)
+        metadata = installation._get_metadata()
+        assert metadata.agent_version == 3
+
+    def test_agent_version_old_timestamp_string_is_dropped(self) -> None:
+        # Old SDK stored version as a large timestamp string — should be coerced to None.
+        installation = self._create_installation(
+            agent_id="agent-123", agent_version="1772585501101368014"
+        )
+        metadata = installation._get_metadata()
+        assert metadata.agent_version is None
+        assert metadata.agent_id == "agent-123"
+
+    def test_agent_version_none_stays_none(self) -> None:
+        installation = self._create_installation()
+        metadata = installation._get_metadata()
+        assert metadata.agent_version is None
 
     # ── Property getters ─────────────────────────────────────────────
 
@@ -337,9 +358,9 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             environment_id="env-same",
             client_environment_id="env-same",
             agent_id="agent-same",
-            agent_version="v-same",
+            agent_version=1,
             client_agent_id="agent-same",
-            client_agent_version="v-same",
+            client_agent_version=1,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -354,7 +375,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             environment_id="env-existing",
             client_environment_id=None,
             agent_id="agent-existing",
-            agent_version="v-existing",
+            agent_version=1,
             client_agent_id=None,
             client_agent_version=None,
         )
@@ -370,14 +391,14 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         installation, mock_client, mock_cls, request = self._setup_launch(
             agent_id=None,
             client_agent_id="agent-new-123",
-            client_agent_version="v-new",
+            client_agent_version=2,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
             installation.launch(request=request)
 
         assert installation.model.metadata["agent_id"] == "agent-new-123"
-        assert installation.model.metadata["agent_version"] == "v-new"
+        assert installation.model.metadata["agent_version"] == 2
 
     def test_launch_updates_both_environment_and_agent_when_changed(self) -> None:
         """When both IDs change, both should be persisted in a single update."""
@@ -386,7 +407,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             client_environment_id="env-new",
             agent_id=None,
             client_agent_id="agent-new",
-            client_agent_version="v-new",
+            client_agent_version=2,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -394,4 +415,4 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert installation.model.metadata["environment_id"] == "env-new"
         assert installation.model.metadata["agent_id"] == "agent-new"
-        assert installation.model.metadata["agent_version"] == "v-new"
+        assert installation.model.metadata["agent_version"] == 2

@@ -92,7 +92,7 @@ Check in this order — **use the highest-level framework found** (e.g., if usin
 
 | Library | Node.js | Browser | Python | How to Name the Agent |
 |---------|---------|---------|--------|-----------------------|
-| Vercel AI SDK | Auto (needs \`experimental_telemetry\`) | - | - | \`experimental_telemetry.functionId\` |
+| Vercel AI SDK | Auto (needs \`experimental_telemetry\` or \`ToolLoopAgent\`) | - | - | \`experimental_telemetry.functionId\` or \`telemetry.functionId\` |
 | LangGraph | Auto | \`instrumentLangGraph()\` | Auto | \`name\` param on \`create_agent\` |
 | LangChain | Auto | \`createLangChainCallbackHandler()\` | Auto | \`name\` param on \`create_agent\` |
 | OpenAI Agents | - | - | Auto | \`name\` param on \`Agent()\` (required) |
@@ -114,8 +114,9 @@ Check in this order — **use the highest-level framework found** (e.g., if usin
 
 For Node.js (\`@sentry/node\`, \`@sentry/nestjs\`, etc.), AI integrations are **automatically enabled** — just ensure Sentry is initialized with tracing.
 
-**Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` to every call:
+**Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` to every \`generateText\`/\`streamText\` call, or configure \`telemetry\` on the \`ToolLoopAgent\` constructor:
 \`\`\`javascript
+// Option 1: generateText / streamText / generateObject
 const result = await generateText({
   model: openai("gpt-5.4"),
   prompt: "Tell me a joke",
@@ -126,6 +127,19 @@ const result = await generateText({
     recordOutputs: true,
   },
 });
+
+// Option 2: ToolLoopAgent class
+const agent = new ToolLoopAgent({
+  model: "openai/gpt-5.4",
+  tools: { /* ... */ },
+  telemetry: {
+    isEnabled: true,
+    functionId: "my_agent",  // Names the agent in Sentry
+    recordInputs: true,
+    recordOutputs: true,
+  },
+});
+const agentResult = await agent.generate({ prompt: "Tell me a joke" });
 \`\`\`
 
 ### Browser (Manual Client Wrapping)

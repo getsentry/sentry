@@ -372,7 +372,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
       <ScmStepHeader
-        stepNumber={2}
         heading={t('Platform & features')}
         subtitle={t('Select your SDK first, then choose the features to enable.')}
       />
