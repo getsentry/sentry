@@ -18,11 +18,6 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
-// Avoid pulling in the full global actions tree (needs org context, feature flags, etc.)
-jest.mock('sentry/components/commandPalette/ui/commandPaletteGlobalActions', () => ({
-  GlobalCommandPaletteActions: () => null,
-}));
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
