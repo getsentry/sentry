@@ -930,9 +930,7 @@ def get_autofix_repos_from_project_code_mappings(
             repo_dict = {
                 "repository_id": repo.id,
                 "organization_id": repo.organization_id,
-                "integration_id": (
-                    str(repo.integration_id) if repo.integration_id is not None else None
-                ),
+                "integration_id": str(repo.integration_id),
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),
