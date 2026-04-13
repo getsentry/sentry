@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -50,28 +49,29 @@ function UnstyledSettingsPageHeader({
   const isNarrow = !subtitle;
 
   return (
-    <Fragment>
-      {hasPageFrame && action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
-      <div {...props}>
-        <TitleAndActions isNarrow={isNarrow}>
-          <TitleWrapper>
-            {icon && <Icon>{icon}</Icon>}
-            {title && (
-              <Title tabs={tabs} styled={noTitleStyles}>
-                <Layout.Title>{title}</Layout.Title>
-                {subtitle && (
-                  <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>
-                )}
-              </Title>
-            )}
-          </TitleWrapper>
-          {!hasPageFrame && action && <Action isNarrow={isNarrow}>{action}</Action>}
-        </TitleAndActions>
+    <div {...props}>
+      <TitleAndActions isNarrow={isNarrow}>
+        <TitleWrapper>
+          {icon && <Icon>{icon}</Icon>}
+          {title && (
+            <Title tabs={tabs} styled={noTitleStyles}>
+              <Layout.Title>{title}</Layout.Title>
+              {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
+            </Title>
+          )}
+        </TitleWrapper>
+        {action ? (
+          hasPageFrame ? (
+            <TopBar.Slot name="actions">{action}</TopBar.Slot>
+          ) : (
+            <Action isNarrow={isNarrow}>{action}</Action>
+          )
+        ) : null}
+      </TitleAndActions>
 
-        {body && <BodyWrapper>{body}</BodyWrapper>}
-        {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
-      </div>
-    </Fragment>
+      {body && <BodyWrapper>{body}</BodyWrapper>}
+      {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
+    </div>
   );
 }
 
