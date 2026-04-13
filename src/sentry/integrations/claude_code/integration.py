@@ -77,6 +77,7 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     workspace_name: str | None = "default"
     agent_id: str | None = None
     agent_version: int | None = None
+    model: str | None = None
 
     @validator("agent_version", pre=True)
     def coerce_agent_version(cls, v: object) -> int | None:
@@ -199,6 +200,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
             api_key=api_key,
             environment_id=environment_id,
             workspace_name=workspace_name,
+            model=client.model,
         )
 
         return {
@@ -297,6 +299,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             workspace_name=metadata.workspace_name,
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
+            model=metadata.model,
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
