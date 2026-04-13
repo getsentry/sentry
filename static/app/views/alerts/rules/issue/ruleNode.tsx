@@ -9,6 +9,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import {transformChoices} from 'sentry/components/backendJsonFormAdapter/utils';
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
@@ -39,7 +41,6 @@ import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrati
 interface FieldProps {
   data: Props['data'];
   disabled: boolean;
-  fieldConfig: IssueAlertRuleFormField;
   index: number;
   name: string;
   onMemberTeamChange: (data: Props['data']) => void;
@@ -49,17 +50,61 @@ interface FieldProps {
   project: Project;
 }
 
-function NumberField({
-  data,
-  index,
-  disabled,
-  name,
-  fieldConfig,
-  onPropertyChange,
-}: FieldProps) {
-  const placeholder = fieldConfig.type === 'number' ? fieldConfig.placeholder : undefined;
+/**
+ * Maps a backend alert rule form field to the JsonFormAdapterFieldConfig shape.
+ */
+function mapAlertRuleField(
+  name: string,
+  field: IssueAlertRuleFormField
+): JsonFormAdapterFieldConfig {
+  switch (field.type) {
+    case 'choice':
+      return {
+        name,
+        label: '',
+        type: 'select',
+        placeholder: field.placeholder,
+        default:
+          field.initial === null || field.initial === undefined
+            ? undefined
+            : String(field.initial),
+        choices: field.choices?.map(([value, label]) => [String(value), label]),
+      };
+    case 'number':
+      return {
+        name,
+        label: '',
+        type: 'number',
+        placeholder:
+          field.placeholder === null || field.placeholder === undefined
+            ? undefined
+            : String(field.placeholder),
+      };
+    case 'string':
+      return {
+        name,
+        label: '',
+        type: 'string',
+        placeholder: field.placeholder,
+      };
+    default:
+      return {name, label: '', type: 'string'};
+  }
+}
 
-  const value =
+function InlineField({
+  data,
+  disabled,
+  index,
+  name,
+  field,
+  resetsForm,
+  onPropertyChange,
+  onReset,
+}: FieldProps & {field: JsonFormAdapterFieldConfig; resetsForm?: boolean}) {
+  const placeholder = field.type === 'number' ? field.placeholder : undefined;
+
+  const numValue =
     (data[name] && typeof data[name] !== 'boolean') || data[name] === 0
       ? Number(data[name])
       : NaN;
@@ -68,7 +113,7 @@ function NumberField({
   useEffect(() => {
     if (
       data.id === IssueAlertFilterType.ISSUE_OCCURRENCES &&
-      isNaN(value) &&
+      isNaN(numValue) &&
       !isNaN(Number(placeholder))
     ) {
       onPropertyChange(index, name, String(placeholder));
@@ -77,21 +122,76 @@ function NumberField({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onPropertyChange, index, name, placeholder, data.id]);
 
-  if (fieldConfig.type !== 'number') {
-    return null;
-  }
+  switch (field.type) {
+    case 'select':
+    case 'choice': {
+      const allOptions = transformChoices(field.choices);
 
-  return (
-    <InlineNumberInput
-      min={0}
-      name={name}
-      value={value}
-      placeholder={String(placeholder)}
-      disabled={disabled}
-      onChange={newVal => onPropertyChange(index, name, String(newVal))}
-      aria-label={t('Value')}
-    />
-  );
+      let selectedValue: string | undefined;
+      if (data[name] === undefined && allOptions.length > 0) {
+        selectedValue = field.default ? String(field.default) : allOptions[0]?.value;
+      } else {
+        selectedValue = String(data[name]);
+      }
+
+      const options = filterCategoryChoices(data, name, allOptions, selectedValue);
+
+      return (
+        <InlineSelectControl
+          isClearable={false}
+          name={name}
+          value={selectedValue}
+          styles={{
+            control: (provided: any) => ({
+              ...provided,
+              minHeight: '28px',
+              height: '28px',
+            }),
+          }}
+          disabled={disabled}
+          options={options}
+          onChange={({value}: {value: string}) => {
+            if (resetsForm) {
+              onReset(index, name, value);
+            } else {
+              onPropertyChange(index, name, value);
+            }
+          }}
+        />
+      );
+    }
+    case 'number':
+      return (
+        <InlineNumberInput
+          min={0}
+          name={name}
+          value={numValue}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          onChange={newVal => onPropertyChange(index, name, String(newVal))}
+          aria-label={t('Value')}
+        />
+      );
+    case 'string':
+    case 'text': {
+      const textValue =
+        data[name] && typeof data[name] !== 'boolean' ? String(data[name]) : '';
+      return (
+        <InlineInput
+          type="text"
+          name={name}
+          value={textValue}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onPropertyChange(index, name, e.target.value)
+          }
+        />
+      );
+    }
+    default:
+      return null;
+  }
 }
 
 function AssigneeFilterFields({
@@ -181,114 +281,23 @@ function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
   )?.[1];
 }
 
-function getChoices({
-  data,
-  choices,
-  name,
-  selectedValue,
-}: Pick<FieldProps, 'data' | 'name'> & {
-  choices: Array<[key: string | number, name: string]>;
-  selectedValue?: string;
-}) {
+/**
+ * For the issue category filter, hide deprecated categories unless already selected.
+ */
+function filterCategoryChoices(
+  data: Props['data'],
+  name: string,
+  options: Array<{label: string; value: string}>,
+  selectedValue?: string
+) {
   if (data.id === IssueAlertFilterType.ISSUE_CATEGORY && name === 'value') {
-    return choices.filter(
-      ([value, label]: [string | number, string]) =>
-        VALID_ISSUE_CATEGORIES.includes(label as IssueCategory) || value === selectedValue
+    return options.filter(
+      opt =>
+        VALID_ISSUE_CATEGORIES.includes(opt.label as IssueCategory) ||
+        opt.value === selectedValue
     );
   }
-
-  return choices;
-}
-
-function ChoiceField({
-  data,
-  disabled,
-  index,
-  onPropertyChange,
-  onReset,
-  name,
-  fieldConfig,
-}: FieldProps) {
-  if (fieldConfig.type !== 'choice') {
-    return null;
-  }
-
-  const choices = fieldConfig.choices ?? [];
-
-  // Select the first item on this list
-  // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-  let initialVal: string | undefined;
-  if (data[name] === undefined && choices.length > 0) {
-    initialVal = fieldConfig.initial ? `${fieldConfig.initial}` : `${choices[0]![0]}`;
-  } else {
-    initialVal = `${data[name]}`;
-  }
-
-  // All `value`s are cast to string
-  // There are integrations that give the form field choices with the value as number, but
-  // when the integration configuration gets saved, it gets saved and returned as a string
-  const options = getChoices({
-    data,
-    choices,
-    name,
-    selectedValue: initialVal,
-  }).map(([value, label]: [string | number, string]) => ({
-    value: `${value}`,
-    label,
-  }));
-
-  return (
-    <InlineSelectControl
-      isClearable={false}
-      name={name}
-      value={initialVal}
-      styles={{
-        control: (provided: any) => ({
-          ...provided,
-          minHeight: '28px',
-          height: '28px',
-        }),
-      }}
-      disabled={disabled}
-      options={options}
-      onChange={({value}: {value: string}) => {
-        if (fieldConfig.resetsForm) {
-          onReset(index, name, value);
-        } else {
-          onPropertyChange(index, name, value);
-        }
-      }}
-    />
-  );
-}
-
-function TextField({
-  data,
-  index,
-  onPropertyChange,
-  disabled,
-  name,
-  fieldConfig,
-}: FieldProps) {
-  if (fieldConfig.type !== 'string') {
-    return null;
-  }
-
-  const value =
-    data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
-
-  return (
-    <InlineInput
-      type="text"
-      name={name}
-      value={value}
-      placeholder={fieldConfig.placeholder}
-      disabled={disabled}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onPropertyChange(index, name, e.target.value)
-      }
-    />
-  );
+  return options;
 }
 
 interface Props {
@@ -336,7 +345,6 @@ export function RuleNode({
     const fieldProps: FieldProps = {
       index,
       name,
-      fieldConfig,
       data,
       organization,
       project,
@@ -346,28 +354,33 @@ export function RuleNode({
       onReset,
     };
 
-    if (name === 'environment') {
-      const envFieldConfig: IssueAlertRuleFormField = {
-        type: 'choice',
-        choices: project.environments.map(env => [env, env]),
-      };
-      return <ChoiceField {...fieldProps} fieldConfig={envFieldConfig} />;
+    // mailAction and assignee are special member/team pickers, not generic form fields
+    if (fieldConfig.type === 'mailAction') {
+      return <MailActionFields {...fieldProps} />;
+    }
+    if (fieldConfig.type === 'assignee') {
+      return <AssigneeFilterFields {...fieldProps} />;
     }
 
-    switch (fieldConfig.type) {
-      case 'choice':
-        return <ChoiceField {...fieldProps} />;
-      case 'number':
-        return <NumberField {...fieldProps} />;
-      case 'string':
-        return <TextField {...fieldProps} />;
-      case 'mailAction':
-        return <MailActionFields {...fieldProps} />;
-      case 'assignee':
-        return <AssigneeFilterFields {...fieldProps} />;
-      default:
-        return null;
+    // Map backend field config to the adapter type system
+    let adapterField = mapAlertRuleField(name, fieldConfig);
+
+    // Override environment choices with project-specific values
+    if (name === 'environment') {
+      adapterField = {
+        ...adapterField,
+        type: 'select',
+        choices: project.environments.map(env => [env, env]),
+      };
     }
+
+    return (
+      <InlineField
+        {...fieldProps}
+        field={adapterField}
+        resetsForm={fieldConfig.type === 'choice' ? fieldConfig.resetsForm : undefined}
+      />
+    );
   }
 
   function renderRow() {
