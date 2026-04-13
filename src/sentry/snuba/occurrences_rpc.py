@@ -15,6 +15,7 @@ from sentry.models.group import Group
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
@@ -59,6 +60,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
         occurrence_category: OccurrenceCategory | None = None,
+        extra_conditions: TraceItemFilter | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -73,7 +75,10 @@ class Occurrences(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params, config),
                 page_token=page_token,
                 additional_queries=additional_queries,
-                extra_conditions=cls._build_category_filter(occurrence_category),
+                extra_conditions=and_trace_item_filters(
+                    cls._build_category_filter(occurrence_category),
+                    extra_conditions,
+                ),
             ),
             params.debug,
         )

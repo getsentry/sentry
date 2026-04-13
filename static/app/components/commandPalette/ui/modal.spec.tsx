@@ -25,6 +25,7 @@ jest.mock('sentry/components/commandPalette/ui/commandPaletteGlobalActions', () 
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -84,7 +85,40 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call closeModal when an action with children is selected', async () => {
+  it('keeps the modal open when a prompt action is selected', async () => {
+    const closeModalSpy = jest.fn();
+
+    render(
+      <CommandPaletteProvider>
+        <CMDKAction display={{label: 'DSN Tools'}}>
+          <CMDKAction
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['prompt-modal-test'],
+                queryFn: () => null,
+                enabled: false,
+              })
+            }
+          />
+        </CMDKAction>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+    );
+
+    expect(closeModalSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Paste a DSN...'
+    );
+  });
+
+  it('invokes an expandable action callback once and keeps the modal open', async () => {
     // Actions with children push into secondary actions — the modal stays open.
     const closeModalSpy = jest.fn();
     const onActionSpy = jest.fn();

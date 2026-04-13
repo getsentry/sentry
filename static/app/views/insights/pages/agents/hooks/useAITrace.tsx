@@ -35,6 +35,8 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_OPERATION_NAME,
   SpanFields.SPAN_STATUS,
   'status',
+  'gen_ai.tool.call.arguments',
+  'gen_ai.tool.input',
 ];
 
 export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceResult {

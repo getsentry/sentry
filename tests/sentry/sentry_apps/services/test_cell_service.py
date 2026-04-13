@@ -148,6 +148,92 @@ class TestSentryAppCellService(TestCase):
         assert result.error.webhook_context["error_type"] == "external_issue.linked.bad_response"
         assert result.error.status_code == 500
 
+    def test_create_issue_link_denied_without_project_access(self) -> None:
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        user_team = self.create_team(organization=self.org, name="user-team")
+        other_team = self.create_team(organization=self.org, name="other-team")
+        self.create_project(organization=self.org, teams=[user_team], name="user-proj")
+        other_project = self.create_project(
+            organization=self.org, teams=[other_team], name="other-proj"
+        )
+        other_group = self.create_group(project=other_project)
+
+        limited_user = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=limited_user,
+            role="member",
+            teams=[user_team],
+            teamRole="admin",
+        )
+
+        result = sentry_app_cell_service.create_issue_link(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            group_id=other_group.id,
+            action="create",
+            fields={"title": "nope"},
+            uri="/link-issue",
+            user=serialize_rpc_user(limited_user),
+        )
+
+        assert result.error is not None
+        assert result.error.status_code == 403
+        assert result.external_issue is None
+
+    @responses.activate
+    def test_create_issue_link_allowed_with_project_access(self) -> None:
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        user_team = self.create_team(organization=self.org, name="allowed-team")
+        accessible_project = self.create_project(organization=self.org, teams=[user_team])
+        accessible_group = self.create_group(project=accessible_project)
+
+        limited_user = self.create_user()
+        self.create_member(
+            organization=self.org,
+            user=limited_user,
+            role="member",
+            teams=[user_team],
+            teamRole="admin",
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            json={
+                "project": "Projectname",
+                "webUrl": "https://example.com/project/issue-id",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert (
+                PlatformExternalIssue.objects.filter(group_id=accessible_group.id).exists() is False
+            )
+
+        result = sentry_app_cell_service.create_issue_link(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            group_id=accessible_group.id,
+            action="create",
+            fields={"title": "An Issue"},
+            uri="/link-issue",
+            user=serialize_rpc_user(limited_user),
+        )
+
+        assert result.error is None
+        assert result.external_issue is not None
+        assert result.external_issue.group_id == accessible_group.id
+
     def test_create_external_issue(self) -> None:
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(group_id=self.group.id).exists() is False

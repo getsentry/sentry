@@ -7,7 +7,6 @@ import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import {AnimatePresence, motion} from 'framer-motion';
-import type {LocationDescriptor} from 'history';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -28,13 +27,17 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  getLocationHref,
+  isExternalLocation,
+} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -56,20 +59,6 @@ function makeLeadingItemAnimation(theme: Theme) {
       transition: theme.motion.framer.enter.slow,
     },
   };
-}
-
-function getLocationHref(to: LocationDescriptor): string {
-  const resolved = locationDescriptorToTo(to);
-  if (typeof resolved === 'string') {
-    return resolved;
-  }
-  return `${resolved.pathname ?? ''}${resolved.search ?? ''}${resolved.hash ?? ''}`;
-}
-
-function isExternalLocation(to: LocationDescriptor): boolean {
-  const currentUrl = new URL(window.location.href);
-  const targetUrl = new URL(getLocationHref(to), currentUrl.href);
-  return targetUrl.origin !== currentUrl.origin;
 }
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {
@@ -238,11 +227,21 @@ export function CommandPalette(props: CommandPaletteProps) {
       if (action.children.length > 0) {
         analytics.recordGroupAction(action, resultIndex);
         if ('onAction' in action) {
-          // Invoke the callback but keep the modal open so users can select
-          // secondary actions from the children that follow.
+          // Run the primary callback before drilling into the secondary actions.
+          // Modifier keys are irrelevant here — this is not a link navigation.
           action.onAction();
         }
         dispatch({type: 'push action', key: action.key, label: action.display.label});
+        return;
+      }
+
+      if ('prompt' in action && action.prompt) {
+        dispatch({
+          type: 'push action',
+          key: action.key,
+          label: action.display.label,
+          prompt: action.prompt,
+        });
         return;
       }
 
@@ -287,8 +286,12 @@ export function CommandPalette(props: CommandPaletteProps) {
   }, []);
 
   const debouncedQuery = useDebouncedValue(state.query, 300);
+  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
 
-  const isLoading = state.query.length > 0 && debouncedQuery !== state.query;
+  const isLoading =
+    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
+  const isEmptyPromptQuery =
+    state.action?.value.prompt !== undefined && state.query.length === 0;
 
   return (
     <Fragment>
@@ -342,9 +345,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                   value={state.query}
                   aria-label={t('Search commands')}
                   placeholder={
-                    state.action?.value.label
+                    state.action?.value.prompt ??
+                    (state.action?.value.label
                       ? t('Search inside %s...', state.action.value.label)
-                      : t('Search for commands...')
+                      : t('Search for commands...'))
                   }
                   {...mergeProps(collectionProps, {
                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,8 +379,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                       }
 
                       if (e.key === 'Enter' || e.key === 'Tab') {
+                        // Only forward shiftKey for Enter — Shift+Tab is reverse tab
+                        // navigation, not an "open in new tab" gesture.
                         onActionSelection(treeState.selectionManager.focusedKey, {
-                          modifierKeys: {shiftKey: e.shiftKey},
+                          modifierKeys: {shiftKey: e.key === 'Enter' && e.shiftKey},
                         });
                         return;
                       }
@@ -422,7 +428,9 @@ export function CommandPalette(props: CommandPaletteProps) {
         )}
       </CommandPaletteSlot.Outlet>
       {treeState.collection.size === 0 ? (
-        <CommandPaletteNoResults />
+        isEmptyPromptQuery ? null : (
+          <CommandPaletteNoResults />
+        )
       ) : (
         <ResultsList
           direction="column"
@@ -445,7 +453,6 @@ export function CommandPalette(props: CommandPaletteProps) {
               onActionSelection(key, {
                 modifierKeys: modifierKeysRef.current,
               });
-              modifierKeysRef.current = {shiftKey: false};
             }}
           />
         </ResultsList>
@@ -534,17 +541,29 @@ function flattenActions(
     const results: CMDKFlatItem[] = [];
     for (const node of nodes) {
       const isGroup = node.children.length > 0;
-      // Skip groups that have no children and no executable action — they are
-      // empty section headers (e.g. a CMDKGroup whose children didn't render).
+      // Skip non-group nodes that have no executable action — they are
+      // empty placeholders (e.g. a CMDKGroup whose children didn't render).
+      // Prompt/resource nodes are actionable leaf items even though they lack
+      // `to` or `onAction`, so only skip when none of the four action types apply.
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
-        continue;
+        const hasPromptOrResource =
+          ('prompt' in node && !!node.prompt) || ('resource' in node && !!node.resource);
+        if (!hasPromptOrResource || isEmptyResourceNode(node)) {
+          continue;
+        }
       }
 
-      results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
-        for (const child of node.children) {
-          results.push({...child, listItemType: 'action'});
+        const children = node.children
+          .filter(child => !isEmptyResourceNode(child))
+          .map(child => ({...child, listItemType: 'action' as const}));
+        if (!children.length) {
+          continue;
         }
+        results.push({...node, listItemType: 'section'});
+        results.push(...children);
+      } else {
+        results.push({...node, listItemType: 'action'});
       }
     }
     return results;
@@ -578,7 +597,9 @@ function flattenActions(
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
     if (item.children.length > 0) {
-      const matched = item.children.filter(c => scores.get(c.key)?.score.matched);
+      const matched = item.children.filter(
+        c => scores.get(c.key)?.score.matched && !isEmptyResourceNode(c)
+      );
       if (!matched.length) return [];
       return [
         // Suffix the header key so a group used as both a section header and
@@ -593,6 +614,11 @@ function flattenActions(
           .map(c => ({...c, listItemType: 'action' as const})),
       ];
     }
+    // Skip resource nodes with no children — they are async group containers that
+    // returned 0 results and have no executable action of their own.
+    if (isEmptyResourceNode(item)) {
+      return [];
+    }
     return scores.get(item.key)?.score.matched ? [{...item, listItemType: 'action'}] : [];
   });
 
@@ -602,6 +628,16 @@ function flattenActions(
     seen.add(item.key);
     return true;
   });
+}
+
+function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean {
+  return (
+    node.children.length === 0 &&
+    'resource' in node &&
+    !('to' in node) &&
+    !('onAction' in node) &&
+    !('prompt' in node && node.prompt)
+  );
 }
 
 function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -28,8 +29,7 @@ import type {Project} from 'sentry/types/project';
 import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -89,71 +89,60 @@ function useSourceMapUploads({
   cursor,
 }: UseSourceMapUploadsProps) {
   const {
-    data: archivesData,
-    getResponseHeader: archivesHeaders,
+    data: archivesResponse,
     isPending: archivesLoading,
     refetch: archivesRefetch,
-  } = useApiQuery<SourceMapsArchive[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<SourceMapsArchive[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         query: {query, cursor, sortBy: '-date_added'},
-      },
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+  });
+
+  const archivesData = archivesResponse?.json;
 
   const {
-    data: debugIdBundlesData,
-    getResponseHeader: debugIdBundlesHeaders,
+    data: debugIdBundlesResponse,
     isPending: debugIdBundlesLoading,
     refetch: debugIdBundlesRefetch,
-  } = useApiQuery<DebugIdBundle[]>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }
-      ),
+  } = useQuery({
+    ...apiOptions.as<DebugIdBundle[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         query: {query, cursor, sortBy: '-date_added'},
-      },
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+  });
+
+  const debugIdBundlesData = debugIdBundlesResponse?.json;
 
   const mergedData = mergeReleaseAndDebugIdBundles(archivesData, debugIdBundlesData);
   const releaseVersions = mergedData.flatMap(data =>
     data.associations.map(association => `"${association.release}"`)
   );
 
-  const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: [project.id],
-          query: `release:[${releaseVersions.join(',')}]`,
-        },
+  const {data: releasesData, isPending: releasesLoading} = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: [project.id],
+        query: `release:[${releaseVersions.join(',')}]`,
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-      enabled: !debugIdBundlesLoading && !archivesLoading,
-    }
-  );
+    }),
+    retry: false,
+    enabled: !debugIdBundlesLoading && !archivesLoading,
+  });
 
   const existingReleaseNames = new Set((releasesData ?? []).map(r => r.version));
 
@@ -167,9 +156,8 @@ function useSourceMapUploads({
             exists: existingReleaseNames.has(association.release),
           })),
         })),
-    headers: (header: string) => {
-      return debugIdBundlesHeaders?.(header) ?? archivesHeaders?.(header);
-    },
+    pageLinks:
+      debugIdBundlesResponse?.headers.Link ?? archivesResponse?.headers.Link ?? '',
     isPending: archivesLoading || debugIdBundlesLoading,
     refetch: () => {
       archivesRefetch();
@@ -188,7 +176,7 @@ export function SourceMapsList({project}: Props) {
 
   const {
     data: sourceMapUploads,
-    headers,
+    pageLinks,
     isPending,
     refetch,
   } = useSourceMapUploads({
@@ -244,7 +232,7 @@ export function SourceMapsList({project}: Props) {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
         docsLink={sourceMapsLinks.sourcemaps}
-        pageLinks={headers?.('Link') ?? ''}
+        pageLinks={pageLinks}
       />
     </Fragment>
   );

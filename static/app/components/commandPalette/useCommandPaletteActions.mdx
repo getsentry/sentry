@@ -93,7 +93,10 @@ import type {CommandPaletteAsyncResult} from 'sentry/components/commandPalette/t
     queryFn: () => fetchProjects(query),
     // transform response into CommandPaletteAsyncResult[]
     select: (data): CommandPaletteAsyncResult[] =>
-      data.map(p => ({display: {label: p.name}, to: `/projects/${p.slug}/`})),
+      data.map(p => ({
+        display: {label: p.name},
+        to: `/projects/${p.slug}/`,
+      })),
   })}
 >
   {(results: CommandPaletteAsyncResult[]) =>

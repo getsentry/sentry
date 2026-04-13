@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -24,44 +25,67 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderThrottled={() => null}
       renderLoading={() => <Placeholder height="32px" width="352px" />}
       renderMissing={() => null}
-      renderProcessingError={({replayRecord, projectSlug}) => (
-        <ButtonActionsWrapper>
-          {hasPageFrameFeature ? (
+      renderProcessingError={({replayRecord, projectSlug}) =>
+        hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
+              <ReplayItemDropdown
+                projectSlug={projectSlug}
+                replay={undefined}
+                replayRecord={replayRecord}
+              />
+            </TopBar.Slot>
             <TopBar.Slot name="feedback">
               <FeedbackButton>{null}</FeedbackButton>
             </TopBar.Slot>
-          ) : (
+          </Fragment>
+        ) : (
+          <ButtonActionsWrapper>
             <FeedbackButton size="xs" />
-          )}
-          <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
-          <ReplayItemDropdown
-            projectSlug={projectSlug}
-            replay={undefined}
-            replayRecord={replayRecord}
-          />
-        </ButtonActionsWrapper>
-      )}
+            <ConfigureReplayCard isMobile={false} replayRecord={replayRecord} />
+            <ReplayItemDropdown
+              projectSlug={projectSlug}
+              replay={undefined}
+              replayRecord={replayRecord}
+            />
+          </ButtonActionsWrapper>
+        )
+      }
     >
-      {({replay}) => (
-        <ButtonActionsWrapper>
-          {hasPageFrameFeature ? (
+      {({replay}) =>
+        hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <ConfigureReplayCard
+                isMobile={replay.isVideoReplay()}
+                replayRecord={replay.getReplay()}
+              />
+              <ReplayItemDropdown
+                projectSlug={readerResult.projectSlug}
+                replay={replay}
+                replayRecord={replay.getReplay()}
+              />
+            </TopBar.Slot>
             <TopBar.Slot name="feedback">
               <FeedbackButton>{null}</FeedbackButton>
             </TopBar.Slot>
-          ) : (
+          </Fragment>
+        ) : (
+          <ButtonActionsWrapper>
             <FeedbackButton size="xs" />
-          )}
-          <ConfigureReplayCard
-            isMobile={replay.isVideoReplay()}
-            replayRecord={replay.getReplay()}
-          />
-          <ReplayItemDropdown
-            projectSlug={readerResult.projectSlug}
-            replay={replay}
-            replayRecord={replay.getReplay()}
-          />
-        </ButtonActionsWrapper>
-      )}
+            <ConfigureReplayCard
+              isMobile={replay.isVideoReplay()}
+              replayRecord={replay.getReplay()}
+            />
+            <ReplayItemDropdown
+              projectSlug={readerResult.projectSlug}
+              replay={replay}
+              replayRecord={replay.getReplay()}
+            />
+          </ButtonActionsWrapper>
+        )
+      }
     </ReplayLoadingState>
   );
 }

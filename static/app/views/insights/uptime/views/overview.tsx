@@ -85,27 +85,40 @@ export default function UptimeOverview() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton>{null}</FeedbackButton>
-              </TopBar.Slot>
-            ) : (
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <LinkButton
+                priority="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
               <FeedbackButton />
-            )}
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={makeAlertsPathname({path: '/new/uptime/', organization})}
-              icon={<IconAdd />}
-              disabled={!canCreateAlert}
-              tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
-            >
-              {t('Add Uptime Monitor')}
-            </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+              <LinkButton
+                size="sm"
+                priority="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">

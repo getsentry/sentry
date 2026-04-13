@@ -6,6 +6,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {
   CMDKQueryOptions,
   CommandPaletteAction,
@@ -35,7 +36,7 @@ import {
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT, queryOptions, useMutation} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -63,10 +64,10 @@ const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
-    return <CMDKAction key={index} display={item.display} to={item.to} />;
+    return <CMDKAction key={index} {...item} />;
   }
   if ('onAction' in item) {
-    return <CMDKAction key={index} display={item.display} onAction={item.onAction} />;
+    return <CMDKAction key={index} {...item} />;
   }
   return null;
 }
@@ -309,8 +310,9 @@ export function GlobalCommandPaletteActions() {
               ),
               icon: <IconSearch />,
             }}
+            prompt={t('Paste a DSN...')}
             resource={(query: string): CMDKQueryOptions => {
-              return queryOptions({
+              return cmdkQueryOptions({
                 ...apiOptions.as<DsnLookupResponse>()(
                   '/organizations/$organizationIdOrSlug/dsn-lookup/',
                   {
@@ -358,7 +360,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction
           display={{label: t('Search Results')}}
           resource={(query: string): CMDKQueryOptions => {
-            return queryOptions({
+            return cmdkQueryOptions({
               queryKey: ['command-palette-help-search', query, helpSearch],
               queryFn: () =>
                 helpSearch.query(

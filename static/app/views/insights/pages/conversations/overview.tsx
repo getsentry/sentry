@@ -31,13 +31,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
-import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
 import {useShowConversationOnboarding} from 'sentry/views/insights/pages/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/insights/pages/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
-import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
@@ -76,12 +73,6 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
-
-  const [urlState] = useConversationDrawerQueryState();
-  // Start fetching data and open drawer without
-  // waiting for table to finish loading
-  useConversation({conversationId: urlState.conversationId ?? ''});
-  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -180,9 +171,7 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
               ) : showOnboarding ? (
                 <ConversationOnboarding onDismiss={refetchOnboarding} />
               ) : (
-                <ConversationsTable
-                  openConversationViewDrawer={openConversationViewDrawer}
-                />
+                <ConversationsTable />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

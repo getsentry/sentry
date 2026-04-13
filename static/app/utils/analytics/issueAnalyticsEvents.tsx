@@ -121,6 +121,10 @@ export type IssueEventParameters = {
   };
   'issue_details.issue_status_docs_clicked': Record<string, unknown>;
   'issue_details.issue_tags_click': Record<string, unknown>;
+  'issue_details.merged_issues.drawer_opened': {
+    group_id: string;
+    project_id: string;
+  };
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -136,6 +140,10 @@ export type IssueEventParameters = {
     parent_group_id?: string;
     project_id?: string;
     shouldBeGrouped?: string;
+  };
+  'issue_details.similar_issues.drawer_opened': {
+    group_id: string;
+    project_id: string;
   };
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
     groupId: string;
@@ -323,6 +331,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue.engaged_view': 'Issue: Engaged View',
+  'issue_details.similar_issues.drawer_opened':
+    'Issue Details: Similar Issues Drawer Opened',
+  'issue_details.merged_issues.drawer_opened':
+    'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':

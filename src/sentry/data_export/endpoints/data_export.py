@@ -261,11 +261,7 @@ class DataExportEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationDataExportPermission,)
 
-    def post(self, request: Request, organization: Organization) -> Response:
-        """
-        Create a new asynchronous file export task, and
-        email user upon completion,
-        """
+    def _get_project_id(self, request: Request) -> str:
         query_info: dict[str, Any] | None = None
         if request.data and hasattr(request.data, "post"):
             query_info = request.data.get("query_info", {})
@@ -273,10 +269,29 @@ class DataExportEndpoint(OrganizationEndpoint):
         project_id = ""
         if query_info is not None and "project" in query_info:
             project_id = query_info["project"]
+        return project_id
+
+    def _parse_limit(self, request: Request) -> int | None:
+        limit = None
+        if request.data and hasattr(request.data, "get"):
+            limit = request.data.get("limit")
+
+        if limit is not None:
+            try:
+                limit = int(limit)
+            except (TypeError, ValueError):
+                limit = None
+        return limit
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Create a new asynchronous or sync file export task depending on requested file size,
+        and email user upon completion.
+        """
 
         extra = {
             "organization_id": organization.id,
-            "project": project_id,
+            "project": self._get_project_id(request),
             "user": request.user,
         }
         logger.info("API Request started", extra=extra)
@@ -293,9 +308,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         except Environment.DoesNotExist as error:
             return Response(error, status=400)
 
-        limit = None
-        if request.data and hasattr(request.data, "get"):
-            limit = request.data.get("limit")
+        limit = self._parse_limit(request)
 
         # Validate the data export payload
         serializer = DataExportQuerySerializer(
@@ -328,25 +341,14 @@ class DataExportEndpoint(OrganizationEndpoint):
             )
             status = 200
             if created:
-                qi = validated_data["query_info"]
-                export_format = validated_data["format"]
-                dataset = qi.get("dataset")
-                metrics.incr(
-                    "dataexport.enqueue",
-                    tags={
-                        "query_type": validated_data["query_type"],
-                        "format": export_format,
-                        "dataset": str(dataset) if dataset is not None else "none",
-                    },
-                    sample_rate=1.0,
-                )
-                assemble_download.delay(
-                    data_export_id=data_export.id, export_limit=limit, environment_id=environment_id
-                )
+                self._schedule_export_task(data_export, environment_id, limit, validated_data)
                 status = 201
             # This value can be used to find the schedule task in the GCP logs
             extra["data_export_id"] = data_export.id
-            extra["status"] = "done" if status == 200 else "assemble_download.task_scheduled"
+            if status == 200:
+                extra["status"] = "done"
+            else:
+                extra["status"] = "assemble_download.task_scheduled"
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
@@ -359,3 +361,29 @@ class DataExportEndpoint(OrganizationEndpoint):
 
         logger.info("API Request completed", extra=extra)
         return Response(serialize(data_export, request.user), status=status)
+
+    def _schedule_export_task(
+        self,
+        data_export: ExportedData,
+        environment_id: int | None,
+        limit: int | None,
+        validated_data: dict[str, Any],
+    ) -> None:
+        qi = validated_data["query_info"]
+        export_format = validated_data["format"]
+        dataset = qi.get("dataset")
+        metrics.incr(
+            "dataexport.enqueue",
+            tags={
+                "query_type": validated_data["query_type"],
+                "format": export_format,
+                "dataset": str(dataset) if dataset is not None else "none",
+            },
+            sample_rate=1.0,
+        )
+
+        assemble_download.delay(
+            data_export_id=data_export.id,
+            export_limit=limit,
+            environment_id=environment_id,
+        )

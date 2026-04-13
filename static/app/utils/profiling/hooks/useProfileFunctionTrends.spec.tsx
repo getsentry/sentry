@@ -42,7 +42,9 @@ describe('useProfileFunctionTrendss', () => {
           isLoading: false,
           isFetched: true,
           data: expect.objectContaining({
-            data: expect.any(Array),
+            json: expect.objectContaining({
+              data: expect.any(Array),
+            }),
           }),
         })
       )

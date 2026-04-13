@@ -30,6 +30,8 @@ import {
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ReplaysFilters} from 'sentry/views/replays/list/filters';
 import {ReplayIndexContainer} from 'sentry/views/replays/list/replayIndexContainer';
 import {ReplayIndexTimestampPrefPicker} from 'sentry/views/replays/list/replayIndexTimestampPrefPicker';
@@ -48,6 +50,7 @@ function ReplaysHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -81,9 +84,15 @@ function ReplaysHeader() {
           )}
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ReplayIndexTimestampPrefPicker />
-      </Layout.HeaderActions>
+      {hasPageFrameFeature ? (
+        <TopBar.Slot name="actions">
+          <ReplayIndexTimestampPrefPicker />
+        </TopBar.Slot>
+      ) : (
+        <Layout.HeaderActions>
+          <ReplayIndexTimestampPrefPicker />
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }

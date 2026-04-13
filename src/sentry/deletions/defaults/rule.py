@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.deletions.defaults.alertrule import AlertRuleDetectorDeletionTask
 from sentry.models.rule import Rule
 from sentry.workflow_engine.models import Workflow
 
@@ -19,7 +20,11 @@ class RuleDeletionTask(ModelDeletionTask[Rule]):
             ModelRelation(GroupRuleStatus, {"rule_id": instance.id}),
             ModelRelation(RuleFireHistory, {"rule_id": instance.id}),
             ModelRelation(RuleActivity, {"rule_id": instance.id}),
-            ModelRelation(AlertRuleDetector, {"rule_id": instance.id}),
+            ModelRelation(
+                AlertRuleDetector,
+                {"rule_id": instance.id},
+                task=AlertRuleDetectorDeletionTask,
+            ),
         ]
 
         alert_rule_workflow = AlertRuleWorkflow.objects.filter(rule_id=instance.id).first()

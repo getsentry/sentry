@@ -24,6 +24,8 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
+import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -413,6 +415,127 @@ describe('CommandPalette', () => {
     });
   });
 
+  describe('prompt actions', () => {
+    function PromptAction() {
+      return (
+        <CMDKAction display={{label: 'DSN Tools'}}>
+          <CMDKAction
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['prompt-action-test'],
+                queryFn: () => null,
+                enabled: false,
+              })
+            }
+          />
+        </CMDKAction>
+      );
+    }
+
+    it('a top-level prompt action is not filtered out in browse mode', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Reverse DSN lookup'}} prompt="Paste a DSN..." />
+          <CommandPalette />
+        </CommandPaletteProvider>
+      );
+      expect(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      ).toBeInTheDocument();
+    });
+
+    it('a prompt action appearing as a direct top-level child after drilling into its parent group is visible', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Outer'}}>
+            <CMDKAction display={{label: 'Inner Group'}}>
+              <CMDKAction display={{label: 'Prompt Child'}} prompt="Enter value..." />
+            </CMDKAction>
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      // Drill into Inner Group (shown as an action item under Outer)
+      await userEvent.click(await screen.findByRole('option', {name: 'Inner Group'}));
+
+      // Prompt Child must be visible — previously it was filtered out by flattenActions
+      expect(
+        await screen.findByRole('option', {name: 'Prompt Child'})
+      ).toBeInTheDocument();
+    });
+
+    it('clicking a prompt action pushes onto the nav stack instead of closing', async () => {
+      const closeSpy = jest.spyOn(modalActions, 'closeModal');
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+
+      expect(closeSpy).not.toHaveBeenCalled();
+    });
+
+    it('shows the prompt as the input placeholder when inside a prompt action context', async () => {
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+          'placeholder',
+          'Paste a DSN...'
+        );
+      });
+    });
+
+    it('clears the input query when entering a prompt action context', async () => {
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'reverse');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+
+      await waitFor(() => expect(input).toHaveValue(''));
+    });
+
+    it('backspace from prompt context restores the previous query', async () => {
+      render(
+        <GlobalActionsComponent>
+          <PromptAction />
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'reverse');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+      );
+      await waitFor(() => expect(input).toHaveValue(''));
+
+      await userEvent.keyboard('{Backspace}');
+
+      await waitFor(() => expect(input).toHaveValue('reverse'));
+    });
+  });
+
   describe('query restoration', () => {
     it('drilling into a group clears the active query', async () => {
       render(
@@ -481,12 +604,10 @@ describe('CommandPalette', () => {
     it('task slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot.Provider>
-            <CommandPaletteSlot name="task">
-              <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
-            </CommandPaletteSlot>
-            <CommandPalette closeModal={jest.fn()} />
-          </CommandPaletteSlot.Provider>
+          <CommandPaletteSlot name="task">
+            <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -500,12 +621,10 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot.Provider>
-            <CommandPaletteSlot name="task">
-              <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
-            </CommandPaletteSlot>
-            <CommandPalette closeModal={jest.fn()} />
-          </CommandPaletteSlot.Provider>
+          <CommandPaletteSlot name="task">
+            <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
+          </CommandPaletteSlot>
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -516,12 +635,10 @@ describe('CommandPalette', () => {
     it('page slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot.Provider>
-            <CommandPaletteSlot name="page">
-              <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-            </CommandPaletteSlot>
-            <CommandPalette closeModal={jest.fn()} />
-          </CommandPaletteSlot.Provider>
+          <CommandPaletteSlot name="page">
+            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -535,12 +652,10 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot.Provider>
-            <CommandPaletteSlot name="page">
-              <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
-            </CommandPaletteSlot>
-            <CommandPalette closeModal={jest.fn()} />
-          </CommandPaletteSlot.Provider>
+          <CommandPaletteSlot name="page">
+            <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
+          </CommandPaletteSlot>
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -558,15 +673,13 @@ describe('CommandPalette', () => {
       // so page slot actions should always take priority in the list order.
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot.Provider>
-            {/* Global action registered directly — simulates e.g. GlobalCommandPaletteActions */}
-            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
-            {/* Page-specific action portaled via the page slot */}
-            <CommandPaletteSlot name="page">
-              <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-            </CommandPaletteSlot>
-            <CommandPalette closeModal={jest.fn()} />
-          </CommandPaletteSlot.Provider>
+          {/* Global action registered directly — simulates e.g. GlobalCommandPaletteActions */}
+          <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+          {/* Page-specific action portaled via the page slot */}
+          <CommandPaletteSlot name="page">
+            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -579,18 +692,16 @@ describe('CommandPalette', () => {
     it('task < page < global ordering when all three slots are populated', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot.Provider>
-            <CommandPaletteSlot name="global">
-              <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
-            </CommandPaletteSlot>
-            <CommandPaletteSlot name="page">
-              <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-            </CommandPaletteSlot>
-            <CommandPaletteSlot name="task">
-              <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
-            </CommandPaletteSlot>
-            <CommandPalette closeModal={jest.fn()} />
-          </CommandPaletteSlot.Provider>
+          <CommandPaletteSlot name="global">
+            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
+          <CommandPaletteSlot name="page">
+            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
+          <CommandPaletteSlot name="task">
+            <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 
@@ -658,6 +769,142 @@ describe('CommandPalette', () => {
       await screen.findByRole('option', {name: 'Direct Action'});
       expect(screen.getAllByRole('option', {name: 'Direct Action'})).toHaveLength(1);
       expect(screen.getAllByRole('option')).toHaveLength(1);
+    });
+  });
+
+  describe('resource action with 0 results', () => {
+    function emptyResource() {
+      return cmdkQueryOptions({
+        queryKey: ['test-empty-resource'] as const,
+        queryFn: (): CommandPaletteAction[] => [],
+      });
+    }
+
+    it('is omitted from browse mode at the top level', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+            {data =>
+              data.map((_, i) => (
+                <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+              ))
+            }
+          </CMDKAction>
+          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          <CommandPalette closeModal={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Real Action'});
+      expect(
+        screen.queryByRole('option', {name: 'Async Resource'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is omitted from browse mode when nested inside a group', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Group'}}>
+            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+              {data =>
+                data.map((_, i) => (
+                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                ))
+              }
+            </CMDKAction>
+            <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          </CMDKAction>
+          <CommandPalette closeModal={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Real Action'});
+      expect(
+        screen.queryByRole('option', {name: 'Async Resource'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('group whose only children are empty resource nodes is omitted entirely in browse mode', async () => {
+      // Regression: browse mode pushed the section header unconditionally before
+      // iterating children. If every child was an empty resource node and got
+      // skipped, an orphaned, non-selectable section header was left in the list.
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'All Empty Group'}}>
+            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+              {data =>
+                data.map((_, i) => (
+                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                ))
+              }
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          <CommandPalette closeModal={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Real Action'});
+      // Neither the section header nor any item for the all-empty group should appear.
+      expect(
+        screen.queryByRole('option', {name: 'All Empty Group'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is omitted from search mode when nested inside a group whose label matches the query', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Navigate'}}>
+            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+              {data =>
+                data.map((_, i) => (
+                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                ))
+              }
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+          <CommandPalette closeModal={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'navigate');
+
+      // Wait for search to take effect — 'Other' should be filtered out since it doesn't match
+      await waitFor(() => {
+        expect(screen.queryByRole('option', {name: 'Other'})).not.toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole('option', {name: 'Async Resource'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is omitted from search mode even when the label matches the query', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+            {data =>
+              data.map((_, i) => (
+                <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+              ))
+            }
+          </CMDKAction>
+          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+          <CommandPalette closeModal={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'async');
+
+      // Wait for search to take effect — 'Other' should be filtered out since it doesn't match
+      await waitFor(() => {
+        expect(screen.queryByRole('option', {name: 'Other'})).not.toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole('option', {name: 'Async Resource'})
+      ).not.toBeInTheDocument();
     });
   });
 });
