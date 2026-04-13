@@ -127,9 +127,11 @@ function InlineField({
     case 'choice': {
       const allOptions = transformChoices(field.choices);
 
+      const defaultValue = typeof field.default === 'string' ? field.default : undefined;
+
       let selectedValue: string | undefined;
       if (data[name] === undefined && allOptions.length > 0) {
-        selectedValue = field.default ? String(field.default) : allOptions[0]?.value;
+        selectedValue = defaultValue ?? allOptions[0]?.value;
       } else {
         selectedValue = String(data[name]);
       }
