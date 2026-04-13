@@ -203,7 +203,7 @@ describe('Core StackTrace', () => {
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
-  it('starts all frames collapsed when collapseAll is set', async () => {
+  it('starts all frames collapsed when collapseAll is set', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     render(
