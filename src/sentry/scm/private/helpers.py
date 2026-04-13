@@ -9,10 +9,9 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
-from sentry.scm.private.ipc import record_count_metric
+from sentry.scm.errors import SCMCodedError
 from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
-from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
+from sentry.scm.types import ExternalId, Provider, ProviderName, Repository
 
 
 def map_integration_to_provider(
@@ -81,50 +80,3 @@ def fetch_repository(
         return None
 
     return map_repository_model_to_repository(repo)
-
-
-def initialize_provider(
-    organization_id: int,
-    repository_id: RepositoryId,
-    *,
-    fetch_repository: Callable[[int, RepositoryId], Repository | None] = fetch_repository,
-    fetch_service_provider: Callable[[int, Repository], Provider | None] = fetch_service_provider,
-) -> Provider:
-    repository = fetch_repository(organization_id, repository_id)
-    if not repository:
-        raise SCMCodedError(organization_id, repository_id, code="repository_not_found")
-    if not repository["is_active"]:
-        raise SCMCodedError(repository, code="repository_inactive")
-    if repository["organization_id"] != organization_id:
-        raise SCMCodedError(repository, code="repository_organization_mismatch")
-
-    provider = fetch_service_provider(organization_id, repository)
-    if provider is None:
-        raise SCMCodedError(code="integration_not_found")
-
-    return provider
-
-
-def exec_provider_fn[P: Provider, T](
-    provider: P,
-    *,
-    referrer: Referrer = "shared",
-    provider_fn: Callable[[], T],
-    record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
-) -> T:
-    if provider.is_rate_limited(referrer):
-        raise SCMCodedError(provider, referrer, code="rate_limit_exceeded")
-
-    provider_name = provider.__class__.__name__
-
-    try:
-        result = provider_fn()
-        record_count("sentry.scm.actions.success_by_provider", 1, {"provider": provider_name})
-        record_count("sentry.scm.actions.success_by_referrer", 1, {"referrer": referrer})
-        return result
-    except SCMError:
-        raise
-    except Exception as e:
-        record_count("sentry.scm.actions.failed_by_provider", 1, {"provider": provider_name})
-        record_count("sentry.scm.actions.failed_by_referrer", 1, {"referrer": referrer})
-        raise SCMUnhandledException from e

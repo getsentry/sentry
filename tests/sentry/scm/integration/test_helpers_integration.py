@@ -1,20 +1,18 @@
 from unittest.mock import MagicMock
 
 import pytest
+from scm.errors import SCMCodedError
+from scm.providers.github.provider import GitHubProvider
+from scm.types import Repository
 
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError, SCMProviderException, SCMUnhandledException
 from sentry.scm.private.helpers import (
-    exec_provider_fn,
     fetch_repository,
     fetch_service_provider,
-    initialize_provider,
     map_integration_to_provider,
     map_repository_model_to_repository,
 )
-from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Repository
 from sentry.testutils.cases import TestCase
 
 
@@ -202,139 +200,3 @@ def _make_provider(is_rate_limited: bool = False):
     provider = MagicMock()
     provider.is_rate_limited.return_value = is_rate_limited
     return provider
-
-
-class TestInitializeProvider(TestCase):
-    def test_raises_repository_not_found(self) -> None:
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                99999,
-                fetch_repository=lambda _, __: None,
-            )
-        assert exc_info.value.code == "repository_not_found"
-
-    def test_raises_repository_inactive(self) -> None:
-        repository: Repository = {
-            "integration_id": 1,
-            "name": "test-org/test-repo",
-            "organization_id": self.organization.id,
-            "is_active": False,
-            "external_id": None,
-        }
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                1,
-                fetch_repository=lambda _, __: repository,
-            )
-        assert exc_info.value.code == "repository_inactive"
-
-    def test_raises_repository_organization_mismatch(self) -> None:
-        repository = _make_active_repository(organization_id=99999)
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                1,
-                fetch_repository=lambda _, __: repository,
-            )
-        assert exc_info.value.code == "repository_organization_mismatch"
-
-    def test_raises_integration_not_found(self) -> None:
-        repository = _make_active_repository(self.organization.id)
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            initialize_provider(
-                self.organization.id,
-                1,
-                fetch_repository=lambda _, __: repository,
-                fetch_service_provider=lambda _, __: None,
-            )
-        assert exc_info.value.code == "integration_not_found"
-
-
-class TestExecProviderFn(TestCase):
-    def test_returns_provider_fn_result(self) -> None:
-        provider = _make_provider()
-
-        result = exec_provider_fn(
-            provider,
-            provider_fn=lambda: "success",
-        )
-
-        assert result == "success"
-
-    def test_raises_rate_limit_exceeded(self) -> None:
-        with pytest.raises(SCMCodedError) as exc_info:
-            exec_provider_fn(
-                _make_provider(is_rate_limited=True),
-                provider_fn=lambda: None,
-            )
-        assert exc_info.value.code == "rate_limit_exceeded"
-
-    def test_scm_provider_exception_is_reraised(self) -> None:
-        """SCMError subclasses from provider_fn should pass through unwrapped."""
-
-        def raise_scm_provider_exception():
-            raise SCMProviderException("API failure")
-
-        with pytest.raises(SCMProviderException, match="API failure"):
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_scm_provider_exception,
-            )
-
-    def test_scm_coded_error_is_reraised(self) -> None:
-        """SCMCodedError from provider_fn should pass through unwrapped."""
-
-        def raise_scm_coded_error():
-            raise SCMCodedError(code="unsupported_integration")
-
-        with pytest.raises(SCMCodedError) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_scm_coded_error,
-            )
-        assert exc_info.value.code == "unsupported_integration"
-
-    def test_generic_exception_wrapped_in_scm_unhandled_exception(self) -> None:
-        """Non-SCMError exceptions should be wrapped in SCMUnhandledException."""
-
-        def raise_value_error():
-            raise ValueError("something unexpected")
-
-        with pytest.raises(SCMUnhandledException) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_value_error,
-            )
-        assert isinstance(exc_info.value.__cause__, ValueError)
-        assert "something unexpected" in str(exc_info.value.__cause__)
-
-    def test_key_error_wrapped_in_scm_unhandled_exception(self) -> None:
-        """KeyError (e.g. from malformed response) should be wrapped."""
-
-        def raise_key_error():
-            raise KeyError("missing_field")
-
-        with pytest.raises(SCMUnhandledException) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_key_error,
-            )
-        assert isinstance(exc_info.value.__cause__, KeyError)
-
-    def test_runtime_error_wrapped_in_scm_unhandled_exception(self) -> None:
-        """RuntimeError should be wrapped in SCMUnhandledException."""
-
-        def raise_runtime_error():
-            raise RuntimeError("unexpected state")
-
-        with pytest.raises(SCMUnhandledException) as exc_info:
-            exec_provider_fn(
-                _make_provider(),
-                provider_fn=raise_runtime_error,
-            )
-        assert isinstance(exc_info.value.__cause__, RuntimeError)
