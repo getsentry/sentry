@@ -17,11 +17,13 @@ import {
 type Props = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
 };
 
 export function ConversationsPageHeader({
   headerActions,
+  headerTitle,
   breadcrumbs,
   hideDefaultTabs,
 }: Props) {
@@ -36,10 +38,12 @@ export function ConversationsPageHeader({
       domainBaseUrl={conversationsBaseUrl}
       domainTitle={CONVERSATIONS_SIDEBAR_LABEL}
       headerTitle={
-        <Fragment>
-          {CONVERSATIONS_LANDING_TITLE}
-          <FeatureBadge type="alpha" />
-        </Fragment>
+        headerTitle ?? (
+          <Fragment>
+            {CONVERSATIONS_LANDING_TITLE}
+            <FeatureBadge type="alpha" />
+          </Fragment>
+        )
       }
       modules={[]}
       selectedModule={undefined}

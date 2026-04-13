@@ -69,10 +69,12 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         user = request.user
         now = int(datetime.datetime.now(datetime.UTC).timestamp())
         exp = now + JWT_VALIDITY_WINDOW_SECONDS
+        # intercom creates chat history based on this ID so we need one per (org, user) pair
+        intercom_user_id = f"{user.id}-{organization.id}"
 
         # Build JWT claims - user_id is required by Intercom
         claims = {
-            "user_id": str(user.id),
+            "user_id": intercom_user_id,
             "email": user.email,
             "iat": now,
             "exp": exp,
@@ -90,7 +92,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
             created_at = int(user.last_active.timestamp())
 
         user_data = {
-            "userId": str(user.id),
+            "userId": intercom_user_id,
             "email": user.email,
             "name": user.get_display_name(),
             "createdAt": created_at,

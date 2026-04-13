@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,6 +19,7 @@ import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -44,40 +46,42 @@ export function FlagDetailsDrawerContent({group}: Props) {
     data: flagLog,
     isPending,
     isError,
-    getResponseHeader,
-  } = useOrganizationFlagLog({
-    organization,
-    query: {
-      flag: tagKey,
-      per_page: 50,
-      queryReferrer: 'featureFlagDetailsDrawer',
-      sort: '-created_at',
-      cursor: location.query.flagDrawerCursor,
-    },
+  } = useQuery({
+    ...organizationFlagLogOptions({
+      organization,
+      query: {
+        flag: tagKey,
+        per_page: 50,
+        queryReferrer: 'featureFlagDetailsDrawer',
+        sort: '-created_at',
+        cursor: location.query.flagDrawerCursor,
+      },
+    }),
+    select: selectJsonWithHeaders,
   });
-  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const pageLinks = flagLog?.headers.Link ?? null;
 
   const analyticsArea = useAnalyticsArea();
   useEffect(() => {
     if (!isPending && !isError) {
       trackAnalytics('flags.drawer_details_rendered', {
         organization,
-        numLogs: flagLog.data.length,
+        numLogs: flagLog.json.data.length,
       });
     }
-  }, [organization, flagLog?.data.length, isPending, isError]);
+  }, [organization, flagLog?.json.data.length, isPending, isError]);
 
   if (isPending) {
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || !flagLog) {
     return (
       <LoadingError message={t('There was an error loading feature flag details.')} />
     );
   }
 
-  if (!flagLog.data.length) {
+  if (!flagLog.json.data.length) {
     return (
       <Stack align="center">
         <StyledEmptyStateWarning withIcon={false} small>
@@ -109,14 +113,14 @@ export function FlagDetailsDrawerContent({group}: Props) {
           </ColumnTitle>
         </Header>
         <Body>
-          {flagLog.data.map((flag, i) => {
-            const prev = flagLog.data[i - 1];
+          {flagLog.json.data.map((flag, i) => {
+            const prev = flagLog.json.data[i - 1];
 
             return (
               <Fragment key={`${flag.id}-${i}`}>
                 {group.firstSeen > flag.createdAt &&
                 (i === 0 ||
-                  (flagLog.data && prev && prev.createdAt > group.firstSeen)) ? (
+                  (flagLog.json.data && prev && prev.createdAt > group.firstSeen)) ? (
                   <GroupFirstSeenRow group={group} />
                 ) : null}
                 <FlagDetailsRow flagValue={flag} />

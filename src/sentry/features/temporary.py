@@ -126,6 +126,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the 'translate' functionality for GenAI on the explore > traces page
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable AI search bar on the explore > metrics tab
+    manager.add("organizations:gen-ai-explore-metrics-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable increased issue_owners rate limit for auto-assignment
@@ -144,6 +146,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:github-repo-auto-sync-apply", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:github_enterprise-repo-auto-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:github_enterprise-repo-auto-sync-apply", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:gitlab-repo-auto-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:gitlab-repo-auto-sync-apply", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:bitbucket-repo-auto-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:bitbucket-repo-auto-sync-apply", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:bitbucket_server-repo-auto-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:bitbucket_server-repo-auto-sync-apply", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:vsts-repo-auto-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:vsts-repo-auto-sync-apply", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:integrations-perforce", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:scm-source-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -152,6 +162,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integration-api-pipeline-gitlab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integration-api-pipeline-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integration-api-pipeline-bitbucket", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:integration-api-pipeline-aws-lambda", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github_enterprise-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -577,7 +588,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable lightweight RCA clustering read path (query lightweight embeddings in supergroup APIs)
-    manager.add("organizations:supergroups-lightweight-rca-clustering-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:supergroups-lightweight-rca-clustering-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

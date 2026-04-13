@@ -50,7 +50,7 @@ export function DatabaseSpanDescription({
 
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({'span.group': groupId}),
+      search: MutableSearch.fromQueryObject({'span.group': groupId ?? undefined}),
       limit: 1,
       fields: [
         SpanFields.PROJECT_ID,

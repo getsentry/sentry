@@ -626,24 +626,27 @@ def _write_preferences_to_sentry_db(
                         repo_def.branch_overrides
                     )
 
-        # Create project repos.
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+        if project_repos_to_create:
+            # Create project repos.
+            created_project_repos = SeerProjectRepository.objects.bulk_create(
+                project_repos_to_create
+            )
 
-        # Create branch overrides using the created project repos.
-        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
-        for seer_project_repo in created_project_repos:
-            for override in overrides_by_key.get(
-                (seer_project_repo.project_id, seer_project_repo.repository_id), []
-            ):
-                overrides_to_create.append(
-                    SeerProjectRepositoryBranchOverride(
-                        seer_project_repository=seer_project_repo,
-                        tag_name=override.tag_name,
-                        tag_value=override.tag_value,
-                        branch_name=override.branch_name,
+            # Create branch overrides using the created project repos.
+            overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+            for seer_project_repo in created_project_repos:
+                for override in overrides_by_key.get(
+                    (seer_project_repo.project_id, seer_project_repo.repository_id), []
+                ):
+                    overrides_to_create.append(
+                        SeerProjectRepositoryBranchOverride(
+                            seer_project_repository=seer_project_repo,
+                            tag_name=override.tag_name,
+                            tag_value=override.tag_value,
+                            branch_name=override.branch_name,
+                        )
                     )
-                )
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
         # Write ProjectOptions last so cache updates only happen after all DB writes succeed
         # (cache cannot be rolled back by the transaction).
@@ -827,51 +830,46 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
 
 
 def has_project_connected_repos(
-    organization_id: int, project_id: int, *, skip_cache: bool = False
+    organization: Organization, project: Project, *, skip_cache: bool = False
 ) -> bool:
     """
     Check if a project has connected repositories for Seer automation.
     Checks Seer preferences first, then falls back to Sentry code mappings.
     Results are cached for 15 minutes to minimize API calls.
     """
-    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
+    cache_key = f"seer-project-has-repos:{organization.id}:{project.id}"
     if not skip_cache:
         cached_value = cache.get(cache_key)
         if cached_value is not None:
             return cached_value
 
     has_repos = False
-
-    try:
-        project_preferences = get_project_seer_preferences(project_id)
-        has_repos = bool(
-            project_preferences.preference and project_preferences.preference.repositories
-        )
-    except (SeerApiError, SeerApiResponseValidationError):
-        pass
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preference = read_preference_from_sentry_db(project)
+        has_repos = bool(preference and preference.repositories)
+    else:
+        try:
+            preference = get_project_seer_preferences(project.id).preference
+            has_repos = bool(preference and preference.repositories)
+        except (SeerApiError, SeerApiResponseValidationError):
+            pass
 
     if not has_repos:
         # If it's the first autofix run of project we check code mapping.
-        try:
-            project = Project.objects.get(id=project_id)
-            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
-        except Project.DoesNotExist:
-            pass
+        has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
 
     logger.info(
         "Checking if project has repositories connected",
-        extra={
-            "org_id": organization_id,
-            "project_id": project_id,
-            "has_repos": has_repos,
-        },
+        extra={"org_id": organization.id, "project_id": project.id, "has_repos": has_repos},
     )
 
     cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
     return has_repos
 
 
-def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+def bulk_get_project_preferences(
+    organization_id: int, project_ids: list[int]
+) -> dict[str, dict | None]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
     viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_get_project_preferences_request(
