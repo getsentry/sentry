@@ -251,6 +251,30 @@ class SeerSlackRendererExplorerTest(TestCase):
         assert isinstance(blocks[0], MarkdownBlock)
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
 
+    def test_render_explorer_response_with_missing_scope_footer(self) -> None:
+        data = SeerExplorerResponse(
+            run_id=MOCK_RUN_ID,
+            organization_id=self.organization.id,
+            summary="Some analysis",
+            missing_scope_settings_url="https://sentry.io/settings/test/integrations/slack/",
+        )
+        renderable = SeerSlackRenderer._render_explorer_response(data)
+
+        blocks = renderable["blocks"]
+        assert len(blocks) == 2
+        assert blocks[-1].type == "context"
+        footer_text = blocks[-1].elements[0].text
+        assert "Reinstall" in footer_text
+        assert "Thread context is unavailable" in footer_text
+
+    def test_render_explorer_response_no_footer_when_url_not_set(self) -> None:
+        data = self._create_explorer_response(summary="Some analysis")
+        assert data.missing_scope_settings_url is None
+        renderable = SeerSlackRenderer._render_explorer_response(data)
+
+        for block in renderable["blocks"]:
+            assert block.type != "context"
+
     def test_render_dispatches_to_explorer_response(self) -> None:
         data = self._create_explorer_response(summary="Test")
         from sentry.notifications.platform.types import NotificationRenderedTemplate

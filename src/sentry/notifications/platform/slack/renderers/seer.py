@@ -208,6 +208,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
 
+        if data.missing_scope_settings_url:
+            blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
+
         return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 
     @classmethod

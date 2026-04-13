@@ -643,133 +643,75 @@ class SlackExplorerEntrypointTest(TestCase):
         # Still schedules the thread update even without a fresh integration
         mock_schedule.assert_called_once()
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
     )
-    def test_send_thread_update_explorer_response_missing_scope_has_footer(
-        self, mock_has_history_scope, mock_send_threaded_message
-    ):
-        data = SeerExplorerResponse(
-            run_id=12345,
-            organization_id=self.organization.id,
+    def test_on_explorer_update_sets_missing_scope_url(self, mock_has_history_scope, mock_schedule):
+        """When history scope is missing, on_explorer_update sets missing_scope_settings_url."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_explorer_cache_payload()
+
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
             summary="Test summary",
-        )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
-
-        send_thread_update(install=install, thread=thread, data=data)
-
-        mock_send_threaded_message.assert_called_once()
-        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
-        last_block = renderable["blocks"][-1]
-        assert last_block.type == "context"
-        footer_text = last_block.elements[0].text
-        assert "Reinstall" in footer_text
-        assert "Thread context is unavailable" in footer_text
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=False,
-    )
-    def test_send_thread_update_explorer_response_missing_scope_no_footer_on_second_message(
-        self, mock_has_history_scope, mock_send_threaded_message
-    ):
-        """Subsequent explorer responses in the same thread should not repeat the footer."""
-        data = SeerExplorerResponse(
             run_id=12345,
-            organization_id=self.organization.id,
-            summary="Test summary",
         )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
-        # First call — footer should be present
-        send_thread_update(install=install, thread=thread, data=data)
-        renderable_first = mock_send_threaded_message.call_args.kwargs["renderable"]
-        assert renderable_first["blocks"][-1].type == "context"
+        call_data = mock_schedule.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerExplorerResponse)
+        assert call_data.missing_scope_settings_url is not None
+        assert "/integrations/slack/" in call_data.missing_scope_settings_url
 
-        mock_send_threaded_message.reset_mock()
-
-        # Second call in same thread — footer should be absent
-        send_thread_update(install=install, thread=thread, data=data)
-        renderable_second = mock_send_threaded_message.call_args.kwargs["renderable"]
-        for block in renderable_second["blocks"]:
-            assert block.type != "context"
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=False,
-    )
-    def test_send_thread_update_explorer_response_missing_scope_different_thread_gets_footer(
-        self, mock_has_history_scope, mock_send_threaded_message
-    ):
-        """Different threads should each get their own first-time footer."""
-        data = SeerExplorerResponse(
-            run_id=12345,
-            organization_id=self.organization.id,
-            summary="Test summary",
-        )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        thread_a = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
-        thread_b = SlackThreadDetails(thread_ts="9999999999.999999", channel_id=self.channel_id)
-
-        send_thread_update(install=install, thread=thread_a, data=data)
-        renderable_a = mock_send_threaded_message.call_args.kwargs["renderable"]
-        assert renderable_a["blocks"][-1].type == "context"
-
-        mock_send_threaded_message.reset_mock()
-
-        send_thread_update(install=install, thread=thread_b, data=data)
-        renderable_b = mock_send_threaded_message.call_args.kwargs["renderable"]
-        assert renderable_b["blocks"][-1].type == "context"
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
-    def test_send_thread_update_explorer_response_with_scope_no_footer(
-        self, mock_has_history_scope, mock_send_threaded_message
+    def test_on_explorer_update_no_missing_scope_url_when_has_scope(
+        self, mock_has_history_scope, mock_schedule
     ):
-        data = SeerExplorerResponse(
-            run_id=12345,
-            organization_id=self.organization.id,
+        """When history scope is present, missing_scope_settings_url should be None."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_explorer_cache_payload()
+
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
             summary="Test summary",
+            run_id=12345,
         )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
-        send_thread_update(install=install, thread=thread, data=data)
+        call_data = mock_schedule.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerExplorerResponse)
+        assert call_data.missing_scope_settings_url is None
 
-        mock_send_threaded_message.assert_called_once()
-        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
-        for block in renderable["blocks"]:
-            assert block.type != "context"
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_on_explorer_update_missing_scope_url_cached_per_thread(
+        self, mock_has_history_scope, mock_schedule
+    ):
+        """Second call for the same thread should not set the URL (cached)."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_explorer_cache_payload()
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
-    def test_send_thread_update_autofix_no_footer_regardless(self, mock_send_threaded_message):
-        data = SeerAutofixUpdate(
-            run_id=MOCK_RUN_ID,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.group.id,
-            current_point=AutofixStoppingPoint.ROOT_CAUSE,
-            group_link=self.group.get_absolute_url(),
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
+            summary="First response",
+            run_id=12345,
         )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+        first_data = mock_schedule.call_args.kwargs["data"]
+        assert first_data.missing_scope_settings_url is not None
 
-        send_thread_update(install=install, thread=thread, data=data)
+        mock_schedule.reset_mock()
 
-        mock_send_threaded_message.assert_called_once()
-        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
-        for block in renderable["blocks"]:
-            if block.type == "context":
-                # Autofix context blocks (like debug run IDs) are fine;
-                # ensure none contain the missing-scope text.
-                for elem in block.elements:
-                    assert "Thread context is unavailable" not in getattr(elem, "text", "")
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
+            summary="Second response",
+            run_id=12346,
+        )
+        second_data = mock_schedule.call_args.kwargs["data"]
+        assert second_data.missing_scope_settings_url is None

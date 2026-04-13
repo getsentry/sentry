@@ -21,7 +21,7 @@ from sentry.notifications.platform.service import (
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerResponse
+from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.metrics import (
@@ -31,7 +31,6 @@ from sentry.seer.entrypoints.metrics import (
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.utils.cache import cache
 from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:
@@ -40,14 +39,7 @@ if TYPE_CHECKING:
     from sentry.seer.entrypoints.slack.entrypoint import SlackThreadDetails
 
 
-# TTL for the "missing scope footer already shown" cache key (1 hour).
-MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
-
 logger = logging.getLogger(__name__)
-
-
-def _missing_scope_footer_cache_key(integration_id: int, channel_id: str, thread_ts: str) -> str:
-    return f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
 
 
 def send_thread_update(
@@ -77,21 +69,6 @@ def send_thread_update(
             data=data, template=template_cls(), provider=provider
         )
 
-        if isinstance(data, SeerExplorerResponse) and not install.has_history_scope(
-            thread["channel_id"]
-        ):
-            footer_key = _missing_scope_footer_cache_key(
-                install.model.id, thread["channel_id"], thread["thread_ts"]
-            )
-            # cache.add is atomic: returns True only the first time (key didn't exist).
-            if cache.add(footer_key, True, timeout=MISSING_SCOPE_FOOTER_CACHE_TIMEOUT):
-                settings_url = install.organization.absolute_url(
-                    f"/settings/{install.organization.slug}/integrations/slack/"
-                )
-                renderable["blocks"].extend(
-                    SeerSlackRenderer.render_missing_scope_footer(settings_url)
-                )
-
         try:
             if ephemeral_user_id:
                 install.send_threaded_ephemeral_message(
@@ -110,7 +87,6 @@ def send_thread_update(
             lifecycle.record_halt(halt_reason=e)
         except IntegrationError as e:
             lifecycle.record_failure(failure_reason=e)
-            # Retry, hopefully it's transient
             raise
 
 
