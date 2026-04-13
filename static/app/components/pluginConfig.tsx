@@ -56,9 +56,13 @@ function getDetailMessage(response: unknown): string {
     typeof response === 'object' &&
     response !== null &&
     'detail' in response &&
-    typeof response.detail === 'string'
+    response.detail !== undefined &&
+    response.detail !== null
   ) {
-    return response.detail;
+    if (typeof response.detail === 'string') {
+      return response.detail;
+    }
+    return JSON.stringify(response.detail);
   }
   return '';
 }
@@ -210,7 +214,7 @@ export function PluginConfig({
         data: {test: true},
       });
       const detail = getDetailMessage(response);
-      setTestResults(JSON.stringify(detail));
+      setTestResults(detail);
       addSuccessMessage(t('Test Complete!'));
     } catch {
       addErrorMessage(

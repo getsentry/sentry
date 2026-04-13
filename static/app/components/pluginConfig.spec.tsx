@@ -40,7 +40,7 @@ describe('PluginConfig', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Test Plugin'}));
 
-    expect(await screen.findByText('"No errors returned"')).toBeInTheDocument();
+    expect(await screen.findByText('No errors returned')).toBeInTheDocument();
     expect(testWebhookMock).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
