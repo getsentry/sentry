@@ -254,7 +254,7 @@ export function getMenuOptions(
         : undefined,
       to: multiQueryUnsupported
         ? undefined
-        : getWidgetExploreUrl(
+        : (getWidgetExploreUrl(
             widget,
             dashboardFilters,
             selection,
@@ -263,7 +263,7 @@ export function getMenuOptions(
               ? Mode.AGGREGATE
               : Mode.SAMPLES,
             getReferrer(widget.displayType)
-          ),
+          ) ?? undefined),
     });
   }
 

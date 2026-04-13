@@ -316,9 +316,10 @@ describe('getWidgetExploreUrl', () => {
     });
 
     const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).not.toBeNull();
 
     // Provide a fake base URL to allow parsing the relative URL
-    const urlObject = new URL(url, 'https://www.example.com');
+    const urlObject = new URL(url!, 'https://www.example.com');
     expect(urlObject.pathname).toBe('/organizations/org-slug/explore/traces/compare/');
 
     expect(urlObject.searchParams.get('interval')).toBe('30m');
@@ -455,11 +456,12 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
   });
 });
 
-function expectUrl(url: string) {
+function expectUrl(url: string | null) {
   return {
     toMatch({path, params}: {params: Array<[string, string]>; path: string}) {
+      expect(url).not.toBeNull();
       expect(url).toMatch(new RegExp(`^${path}\\?`));
-      const urlParams = new URLSearchParams(url.substring(path.length));
+      const urlParams = new URLSearchParams(url!.substring(path.length));
       function compareFn(a: [string, string], b: [string, string]) {
         if (a[0] < b[0]) {
           return -1;
