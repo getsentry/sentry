@@ -53,10 +53,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('shows onboarding when no data and no localStorage entry', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [],
       isLoading: false,
@@ -73,10 +70,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('does not show onboarding when query returns data', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [{id: 'span-1'}],
       isLoading: false,
@@ -93,10 +87,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('stores project IDs in localStorage when data is found', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [{id: 'span-1'}],
       isLoading: false,
@@ -113,10 +104,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('does not show onboarding when localStorage knows projects have data even if query returns empty', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [1],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [],
       isLoading: false,
@@ -144,10 +132,7 @@ describe('useShowConversationOnboarding', () => {
       },
     } as any);
 
-    mockUseLocalStorageState.mockReturnValue([
-      [1],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [],
       isLoading: false,
@@ -163,10 +148,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('skips loading state when localStorage already knows projects have data', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [1],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -194,10 +176,7 @@ describe('useShowConversationOnboarding', () => {
       },
     } as any);
 
-    mockUseLocalStorageState.mockReturnValue([
-      [1],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [{id: 'span-1'}],
       isLoading: false,
@@ -214,10 +193,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('does not update localStorage when all project IDs are already stored', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [1],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: [{id: 'span-1'}],
       isLoading: false,
@@ -236,10 +212,7 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('shows loading when query is loading and localStorage has no data', () => {
-    mockUseLocalStorageState.mockReturnValue([
-      [],
-      mockSetProjectsWithConversations,
-    ]);
+    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
       data: undefined,
       isLoading: true,

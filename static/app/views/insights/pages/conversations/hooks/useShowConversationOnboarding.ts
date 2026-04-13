@@ -1,9 +1,9 @@
 import {useEffect, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -18,16 +18,13 @@ export function useShowConversationOnboarding(): {
   const organization = useOrganization();
 
   const selectedProjectIds = useMemo(
-    () =>
-      getSelectedProjectList(selection.projects, projects).map(p => Number(p.id)),
+    () => getSelectedProjectList(selection.projects, projects).map(p => Number(p.id)),
     [selection.projects, projects]
   );
 
-  const [projectsWithConversations, setProjectsWithConversations] =
-    useLocalStorageState<number[]>(
-      `conversations-onboarding-projects-with-data:${organization.slug}`,
-      []
-    );
+  const [projectsWithConversations, setProjectsWithConversations] = useLocalStorageState<
+    number[]
+  >(`conversations-onboarding-projects-with-data:${organization.slug}`, []);
 
   const request = useSpans(
     {
