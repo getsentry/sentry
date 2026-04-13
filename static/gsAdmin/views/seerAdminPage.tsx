@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -78,15 +78,7 @@ export function SeerAdminPage() {
           }}
         />
 
-        <Grid
-          columns="1fr 1fr"
-          gap="xl"
-          css={css`
-            @media (max-width: 768px) {
-              grid-template-columns: 1fr;
-            }
-          `}
-        >
+        <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleNightShiftSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
@@ -98,24 +90,18 @@ export function SeerAdminPage() {
                 <label htmlFor="organizationId">
                   <Text bold>Organization ID:</Text>
                 </label>
-                <Input
+                <StyledInput
                   type="text"
                   name="organizationId"
                   value={organizationId}
                   onChange={e => setOrganizationId(e.target.value)}
                   placeholder="Enter organization ID"
-                  css={css`
-                    width: 100%;
-                    max-width: 300px;
-                  `}
                 />
                 <Button
                   priority="primary"
                   type="submit"
                   disabled={!organizationId.trim() || !region || isNightShiftPending}
-                  css={css`
-                    width: fit-content;
-                  `}
+                  style={{width: 'fit-content'}}
                 >
                   Trigger Night Shift
                 </Button>
@@ -127,3 +113,8 @@ export function SeerAdminPage() {
     </div>
   );
 }
+
+const StyledInput = styled(Input)`
+  width: 100%;
+  max-width: 300px;
+`;
