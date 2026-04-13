@@ -120,8 +120,11 @@ function computeDefaultValues(
   const defaults: Record<string, unknown> = {};
   for (const field of fields) {
     if (field.name && field.type !== 'blank') {
+      const initialValue = initialValues?.[field.name];
       defaults[field.name] =
-        initialValues?.[field.name] ?? field.default ?? getDefaultForField(field);
+        initialValue === undefined
+          ? (field.default ?? getDefaultForField(field))
+          : initialValue;
     }
   }
   return defaults;
