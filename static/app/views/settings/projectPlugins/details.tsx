@@ -85,7 +85,7 @@ export default function ProjectPluginDetails() {
         organization,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       addSuccessMessage(t('Plugin was reset'));
       trackAnalytics('integrations.uninstall_completed', {
         integration: pluginId,
@@ -93,6 +93,7 @@ export default function ProjectPluginDetails() {
         view: 'plugin_details',
         organization,
       });
+      await Promise.all([refetchPlugins(), refetchPluginDetails()]);
     },
     onError: () => {
       addErrorMessage(t('An error occurred'));

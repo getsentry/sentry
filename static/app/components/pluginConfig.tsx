@@ -39,10 +39,10 @@ interface BackendPluginField {
   default?: unknown;
   defaultValue?: unknown;
   hasSavedValue?: boolean;
-  help?: string;
+  help?: null | string;
   isDeprecated?: boolean;
   isHidden?: boolean;
-  placeholder?: string;
+  placeholder?: null | string;
   prefix?: string;
   readonly?: boolean;
   required?: boolean;
@@ -78,13 +78,23 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
     case 'boolean':
       return {...base, type: 'boolean', default: defaultValue as boolean | undefined};
     case 'select':
-    case 'choice':
+    case 'choice': {
+      const emptyChoiceLabel = field.choices?.find(([value]) => value === '')?.[1];
+      const normalizedChoices = field.choices?.filter(([value]) => value !== '');
+
+      // Legacy plugin configs often encode placeholder text as an empty option.
+      // Preserve that UX by treating it as placeholder, not as a selectable value.
+      const placeholder = base.placeholder ?? emptyChoiceLabel ?? undefined;
+      const normalizedDefault = defaultValue === '' ? undefined : defaultValue;
+
       return {
         ...base,
         type,
-        default: defaultValue,
-        choices: field.choices,
+        placeholder,
+        default: normalizedDefault,
+        choices: normalizedChoices,
       };
+    }
     case 'secret':
       return {
         ...base,
@@ -121,7 +131,7 @@ export function PluginConfig({
   onDisablePlugin,
 }: PluginConfigProps) {
   const organization = useOrganization();
-  const isEnabled = typeof enabled === 'undefined' ? plugin.enabled : enabled;
+  const isEnabled = enabled ?? plugin.enabled;
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const [testResults, setTestResults] = useState('');
 
@@ -149,6 +159,12 @@ export function PluginConfig({
   const wasConfigured = config.some(field => field.value);
 
   const fields = config.map(mapPluginField);
+  const formKey = config
+    .map(
+      field =>
+        `${field.name}:${JSON.stringify(field.value)}:${JSON.stringify(field.defaultValue)}`
+    )
+    .join(',');
   const initialValues: Record<string, unknown> = {};
   for (const field of config) {
     initialValues[field.name] = field.value ?? field.defaultValue ?? '';
@@ -304,6 +320,7 @@ export function PluginConfig({
           <LoadingError onRetry={refetch} />
         ) : fields.length > 0 ? (
           <BackendJsonSubmitForm
+            key={formKey}
             fields={fields}
             initialValues={initialValues}
             onSubmit={handleSubmit}

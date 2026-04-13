@@ -333,6 +333,7 @@ export function BackendJsonSubmitForm({
                             required={field.required}
                           >
                             <fieldApi.SelectAsync
+                              clearable
                               value={fieldApi.state.value as string | null}
                               onChange={handleChange}
                               disabled={field.disabled}
@@ -365,6 +366,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Select
+                            clearable
                             value={fieldApi.state.value as string | null}
                             onChange={handleChange}
                             options={transformChoices(field.choices)}
