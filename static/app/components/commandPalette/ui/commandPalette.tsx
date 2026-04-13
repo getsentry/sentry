@@ -413,7 +413,6 @@ export function CommandPalette(props: CommandPaletteProps) {
               onActionSelection(key, {
                 modifierKeys: modifierKeysRef.current,
               });
-              modifierKeysRef.current = {shiftKey: false};
             }}
           />
         </ResultsList>
