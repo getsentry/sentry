@@ -22,7 +22,6 @@ describe('decodeMetricsQueryParams', () => {
 
     const result = decodeMetricsQueryParams(json);
 
-    expect(result).not.toBeNull();
     expect(result?.queryParams.aggregateFields).toEqual([
       new VisualizeFunction('p50(value,test_metric,distribution,-)'),
       new VisualizeFunction('p75(value,test_metric,distribution,-)'),
@@ -75,7 +74,6 @@ describe('decodeMetricsQueryParams', () => {
 
     const result = decodeMetricsQueryParams(json);
 
-    expect(result).not.toBeNull();
     expect(result?.queryParams.aggregateFields).toEqual([
       new VisualizeFunction('p50(value,test_metric,distribution,-)'),
       new VisualizeFunction('p75(value,test_metric,distribution,-)'),
@@ -107,7 +105,6 @@ describe('decodeMetricsQueryParams', () => {
     const encoded = encodeMetricQueryParams(original);
     const decoded = decodeMetricsQueryParams(encoded);
 
-    expect(decoded).not.toBeNull();
     expect(decoded?.metric).toEqual(original.metric);
     expect(decoded?.queryParams.aggregateFields).toEqual(
       original.queryParams.aggregateFields
@@ -136,7 +133,6 @@ describe('decodeMetricsQueryParams', () => {
     const encoded = encodeMetricQueryParams(original);
     const decoded = decodeMetricsQueryParams(encoded);
 
-    expect(decoded).not.toBeNull();
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'value', kind: 'asc'}]);
   });
 
@@ -151,7 +147,6 @@ describe('decodeMetricsQueryParams', () => {
 
     const result = decodeMetricsQueryParams(json);
 
-    expect(result).not.toBeNull();
     expect(result?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
   });
 
@@ -167,7 +162,6 @@ describe('decodeMetricsQueryParams', () => {
 
     const result = decodeMetricsQueryParams(json);
 
-    expect(result).not.toBeNull();
     expect(result?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
   });
 
@@ -183,7 +177,6 @@ describe('decodeMetricsQueryParams', () => {
 
     const result = decodeMetricsQueryParams(json);
 
-    expect(result).not.toBeNull();
     expect(result?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
   });
 });
