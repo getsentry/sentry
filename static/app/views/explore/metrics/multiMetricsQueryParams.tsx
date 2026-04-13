@@ -32,8 +32,7 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-export const MAX_METRIC_QUERIES = 8;
-export const MAX_EQUATION_QUERIES = 8;
+export const MAX_METRICS_ALLOWED = 8;
 
 interface MultiMetricsQueryParamsContextValue {
   insertLabelAtIndex: (position: number, label: string) => void;
@@ -224,20 +223,6 @@ export function useAddMetricQuery({
 
   return function () {
     const nextLabel = getNextLabel(metricQueries, type);
-
-    const aggregateCount = metricQueries.filter(q =>
-      isVisualizeFunction(q.queryParams.visualizes[0]!)
-    ).length;
-    const equationCount = metricQueries.filter(q =>
-      isVisualizeEquation(q.queryParams.visualizes[0]!)
-    ).length;
-
-    if (type === 'aggregate' && aggregateCount >= MAX_METRIC_QUERIES) {
-      return;
-    }
-    if (type === 'equation' && equationCount >= MAX_EQUATION_QUERIES) {
-      return;
-    }
 
     const target = {...location, query: {...location.query}};
     const equationStart = metricQueries.findIndex(metricQuery =>

@@ -29,8 +29,7 @@ import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQu
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
 import {
-  MAX_EQUATION_QUERIES,
-  MAX_METRIC_QUERIES,
+  MAX_METRICS_ALLOWED,
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
@@ -39,10 +38,6 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
-import {
-  isVisualizeEquation,
-  isVisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -84,16 +79,10 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
 
-  const metricCount = metricQueries.filter(
-    q => !isVisualizeEquation(q.queryParams.visualizes[0]!)
-  ).length;
-  const equationCount = metricQueries.filter(q =>
-    isVisualizeEquation(q.queryParams.visualizes[0]!)
-  ).length;
-
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
-    metricCount >= MAX_METRIC_QUERIES || metricQueries.some(q => q.label === 'Z');
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -120,7 +109,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
                 <ToolbarVisualizeAddChart
                   display="button"
                   add={addEquationQuery}
-                  disabled={equationCount >= MAX_EQUATION_QUERIES}
+                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
                   label={t('Add Equation')}
                 />
               )}
@@ -159,20 +148,14 @@ function MetricsQueryBuilderSection() {
   const hasEquations = canUseMetricsEquations(organization);
   const references = useMetricReferences();
 
-  const metricCount = metricQueries.filter(
-    q => !isVisualizeEquation(q.queryParams.visualizes[0]!)
-  ).length;
-  const equationCount = metricQueries.filter(q =>
-    isVisualizeEquation(q.queryParams.visualizes[0]!)
-  ).length;
-
   if (canUseMetricsUIRefresh(organization)) {
     return null;
   }
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
-    metricCount >= MAX_METRIC_QUERIES || metricQueries.some(q => q.label === 'Z');
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
 
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
@@ -204,7 +187,7 @@ function MetricsQueryBuilderSection() {
           {hasEquations && (
             <ToolbarVisualizeAddChart
               add={addEquationQuery}
-              disabled={equationCount >= MAX_EQUATION_QUERIES}
+              disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
               label={t('Add Equation')}
             />
           )}
@@ -232,16 +215,10 @@ function MetricsTabBodySection() {
   });
   const references = useMetricReferences();
 
-  const metricCount = metricQueries.filter(q =>
-    isVisualizeFunction(q.queryParams.visualizes[0]!)
-  ).length;
-  const equationCount = metricQueries.filter(q =>
-    isVisualizeEquation(q.queryParams.visualizes[0]!)
-  ).length;
-
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
-    metricCount >= MAX_METRIC_QUERIES || metricQueries.some(q => q.label === 'Z');
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
@@ -278,7 +255,7 @@ function MetricsTabBodySection() {
                 <ToolbarVisualizeAddChart
                   display="button"
                   add={addEquationQuery}
-                  disabled={equationCount >= MAX_EQUATION_QUERIES}
+                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
                   label={t('Add Equation')}
                 />
               )}
