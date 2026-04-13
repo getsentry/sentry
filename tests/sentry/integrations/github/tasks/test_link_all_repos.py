@@ -272,29 +272,3 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert end2.args[0] == EventLifecycleOutcome.SUCCESS
         assert end1.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.integrations.services.repository.repository_service.create_repository")
-    @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
-    @responses.activate
-    def test_link_all_repos_repo_creation_exception(
-        self, mock_delete_repo, mock_create_repository, mock_record, _
-    ):
-        mock_create_repository.return_value = None
-        mock_delete_repo.side_effect = Exception
-
-        self._add_responses()
-
-        with pytest.raises(Exception):
-            link_all_repos(
-                integration_key=self.key,
-                integration_id=self.integration.id,
-                organization_id=self.organization.id,
-            )
-
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, end2, end1 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert end2.args[0] == EventLifecycleOutcome.SUCCESS
-        assert end1.args[0] == EventLifecycleOutcome.FAILURE

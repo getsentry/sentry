@@ -18,10 +18,6 @@ import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {
-  MEPState,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,21 +41,6 @@ import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetC
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
-
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
-
-export const useIndexedEventsWarning = (): string | null => {
-  const {isMetricsData} = useDashboardsMEPContext();
-  const organization = useOrganization();
-  const metricSettingContext = useMEPSettingContext();
-
-  return !organization.features.includes('performance-mep-bannerless-ui') &&
-    isMetricsData === false &&
-    metricSettingContext &&
-    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
-    ? t('Indexed')
-    : null;
-};
 
 export const useTransactionsDeprecationWarning = ({
   widget,
@@ -186,7 +167,6 @@ export function getMenuOptions(
   organization: Organization,
   selection: PageFilters,
   widget: Widget,
-  isMetricsData: boolean,
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
@@ -217,9 +197,7 @@ export function getMenuOptions(
         widget,
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       menuOptions.push({
         key: 'open-in-discover',
@@ -249,7 +227,6 @@ export function getMenuOptions(
           openDashboardWidgetQuerySelectorModal({
             organization,
             widget,
-            isMetricsData,
             dashboardFilters,
           });
         },

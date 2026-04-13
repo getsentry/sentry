@@ -12,6 +12,10 @@ import {
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import {
+  getNextLabel,
+  useStableLabels,
+} from 'sentry/views/explore/metrics/hooks/useStableLabels';
+import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
@@ -28,7 +32,10 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
+export const MAX_METRICS_ALLOWED = 8;
+
 interface MultiMetricsQueryParamsContextValue {
+  insertLabelAtIndex: (position: number, label: string) => void;
   metricQueries: MetricQuery[];
 }
 
@@ -51,9 +58,20 @@ export function MultiMetricsQueryParamsProvider({
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const rawQueries = useMemo(
+    () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
+    [location, allowUpTo]
+  );
+
+  const labels = useStableLabels(rawQueries);
 
   const value = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
+    const metricQueries = rawQueries.map((query, i) => ({
+      ...query,
+      // Labels are injected adhoc so each session maintains a label for each query
+      // but the labels will compact sequentially on fresh page loads.
+      label: labels.getLabel(i),
+    }));
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
@@ -67,6 +85,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               metric: metricQuery.metric,
               queryParams: newQueryParams,
+              label: metricQuery.label,
             };
           })
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
@@ -118,6 +137,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               queryParams: metricQuery.queryParams.replace({aggregateFields}),
               metric: newTraceMetric,
+              label: metricQuery.label,
             };
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
@@ -135,6 +155,9 @@ export function MultiMetricsQueryParamsProvider({
           return;
         }
 
+        // Update labels before navigating so they stay stable
+        labels.remove(i);
+
         const target = {...location, query: {...location.query}};
 
         const newMetricQueries = metricQueries
@@ -149,6 +172,7 @@ export function MultiMetricsQueryParamsProvider({
     }
 
     return {
+      insertLabelAtIndex: labels.insert,
       metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
         return {
           ...metric,
@@ -158,7 +182,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [allowUpTo, location, navigate]);
+  }, [labels, location, navigate, rawQueries]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -193,11 +217,13 @@ export function useAddMetricQuery({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {metricQueries}: {metricQueries: BaseMetricQuery[]} =
+  const {metricQueries, insertLabelAtIndex}: MultiMetricsQueryParamsContextValue =
     useMultiMetricsQueryParamsContext();
   const hasEquations = canUseMetricsEquations(organization);
 
   return function () {
+    const nextLabel = getNextLabel(metricQueries, type);
+
     const target = {...location, query: {...location.query}};
     const equationStart = metricQueries.findIndex(metricQuery =>
       isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
@@ -210,8 +236,15 @@ export function useAddMetricQuery({
     const canDuplicate =
       type === 'aggregate' &&
       lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
-    const newQuery = canDuplicate ? lastAggregate : defaultMetricQuery({type});
-    const newMetricQueries = metricQueries.toSpliced(insertAt, 0, newQuery);
+    const newQuery = canDuplicate
+      ? {...lastAggregate, label: nextLabel}
+      : defaultMetricQuery({type});
+
+    // Update label ref before navigating so labels stay stable
+    insertLabelAtIndex(insertAt, nextLabel);
+
+    const baseQueries: BaseMetricQuery[] = metricQueries;
+    const newMetricQueries = baseQueries.toSpliced(insertAt, 0, newQuery);
     target.query.metric = newMetricQueries
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)

@@ -134,6 +134,14 @@ export function getProjectStoppingPointMutationOptions({
     project.slug
   );
 
+  function resolveStoppingPointValue(stoppingPoint: SelectValue) {
+    return stoppingPoint === 'root_cause'
+      ? ('root_cause' as const)
+      : organization.autoOpenPrs
+        ? ('open_pr' as const)
+        : ('code_changes' as const);
+  }
+
   return mutationOptions({
     mutationFn: async ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
@@ -144,38 +152,58 @@ export function getProjectStoppingPointMutationOptions({
         data: {autofixAutomationTuning: tuning},
       });
 
-      let preferencePromise: Promise<SeerPreferencesResponse | undefined> =
-        Promise.resolve(undefined);
-      if (stoppingPoint !== 'off') {
-        const repositories = preference?.repositories ?? [];
-        const automationHandoff = preference?.automation_handoff;
+      if (stoppingPoint === 'off') {
+        // When the stopping pointis set to 'off' we can leave the stoppingPoint
+        // value as-is because the tuning will take precedence and stop execution
+        // before we look at the handoff value.
+        // If we wanted to update the handoff what would we set it to? We can't
+        // clear it beacuse that would/could change the preferred agent value.
+        // Therefore we'll skip any update.
+        return await Promise.all([projectPromise, Promise.resolve(undefined)]);
+      }
 
-        const stoppingPointValue =
-          stoppingPoint === 'root_cause'
-            ? ('root_cause' as const)
-            : organization.autoOpenPrs
-              ? ('open_pr' as const)
-              : ('code_changes' as const);
+      const stoppingPointValue = resolveStoppingPointValue(stoppingPoint);
+      const repositories = preference?.repositories ?? [];
+      const automationHandoff = preference?.automation_handoff;
 
-        const preferencePayload = {
-          repositories,
-          automated_run_stopping_point: stoppingPointValue,
-          automation_handoff: automationHandoff
-            ? {
-                ...automationHandoff,
-                auto_create_pr: stoppingPointValue === 'open_pr',
-              }
-            : automationHandoff,
-        };
+      const preferencePayload = {
+        repositories,
+        automated_run_stopping_point: stoppingPointValue,
+        automation_handoff: automationHandoff,
+      };
 
-        preferencePromise = fetchMutation<SeerPreferencesResponse>({
-          method: 'POST',
-          url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-          data: preferencePayload as unknown as Record<string, unknown>,
+      const preferencePromise = fetchMutation<SeerPreferencesResponse>({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        data: preferencePayload as unknown as Record<string, unknown>,
+      });
+      return await Promise.all([projectPromise, preferencePromise]);
+    },
+    onMutate: ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
+      const previousProject = ProjectsStore.getById(project.id);
+      const previousPreference = getApiQueryData<SeerPreferencesResponse>(
+        queryClient,
+        seerPrefsQueryKey
+      );
+
+      const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+      ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
+
+      if (stoppingPoint !== 'off' && previousPreference?.preference) {
+        // If stopping point is 'off' then we're not updating the handoff value.
+        // Instead we'll just leave it (and the preferred agent value) as-is.
+        // The tuning value will take precedence and stop execution before we
+        // look at the handoff value.
+        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+          ...previousPreference,
+          preference: {
+            ...previousPreference.preference,
+            automated_run_stopping_point: resolveStoppingPointValue(stoppingPoint),
+          },
         });
       }
 
-      return await Promise.all([projectPromise, preferencePromise]);
+      return {previousProject, previousPreference};
     },
     onSuccess: ([updatedProject, preferencePayload]) => {
       ProjectsStore.onUpdateSuccess(updatedProject);
@@ -195,6 +223,24 @@ export function getProjectStoppingPointMutationOptions({
             },
           });
         }
+      }
+    },
+    onError: (_error: unknown, _variables: unknown, context: unknown) => {
+      const ctx = context as
+        | {
+            previousPreference: SeerPreferencesResponse | undefined;
+            previousProject: Project | undefined;
+          }
+        | undefined;
+      if (ctx?.previousProject) {
+        ProjectsStore.onUpdateSuccess(ctx.previousProject);
+      }
+      if (ctx?.previousPreference) {
+        setApiQueryData<SeerPreferencesResponse>(
+          queryClient,
+          seerPrefsQueryKey,
+          ctx.previousPreference
+        );
       }
     },
     onSettled: () => {

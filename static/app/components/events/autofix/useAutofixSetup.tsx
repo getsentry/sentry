@@ -13,7 +13,6 @@ interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
 }
 
 export interface AutofixSetupResponse {
-  autofixEnabled: boolean;
   billing: {
     hasAutofixQuota: boolean;
   } | null;
@@ -61,7 +60,6 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
-    autofixEnabled: Boolean(queryData.data?.autofixEnabled),
     canStartAutofix: Boolean(queryData.data?.integration.ok),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   /**
@@ -40,6 +42,7 @@ function UnstyledSettingsPageHeader({
   noTitleStyles = false,
   ...props
 }: Props) {
+  const hasPageFrame = useHasPageFrameFeature();
   // If Header is narrow, use align-items to center <Action>.
   // Otherwise, use a fixed margin to prevent an odd alignment.
   // This is needed as Actions could be a button or a dropdown.
@@ -57,7 +60,13 @@ function UnstyledSettingsPageHeader({
             </Title>
           )}
         </TitleWrapper>
-        {action && <Action isNarrow={isNarrow}>{action}</Action>}
+        {action ? (
+          hasPageFrame ? (
+            <TopBar.Slot name="actions">{action}</TopBar.Slot>
+          ) : (
+            <Action isNarrow={isNarrow}>{action}</Action>
+          )
+        ) : null}
       </TitleAndActions>
 
       {body && <BodyWrapper>{body}</BodyWrapper>}

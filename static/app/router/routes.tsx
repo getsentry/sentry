@@ -158,10 +158,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: '/accept/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },

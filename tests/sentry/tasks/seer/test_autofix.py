@@ -8,14 +8,20 @@ from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
 from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
-from sentry.seer.models import SeerApiError, SummarizeIssueResponse, SummarizeIssueScores
-from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models import (
+    SeerApiError,
+    SeerProjectPreference,
+    SeerRepoDefinition,
+    SummarizeIssueResponse,
+    SummarizeIssueScores,
+)
 from sentry.tasks.seer.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -466,14 +472,16 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == existing_repos
 
+    @with_feature("organizations:seer-project-settings-dual-write")
+    @patch("sentry.tasks.seer.autofix.bulk_write_preferences_to_sentry_db")
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_creates_seer_project_repository(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
+    def test_writes_to_sentry_db(
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_bulk_write_db: MagicMock
     ) -> None:
-        """Test that SeerProjectRepository is created when feature flag is enabled."""
+        """When feature flag enabled, writes to Sentry DB instead of Seer API."""
         project = self.create_project(organization=self.organization)
-        repo = Repository.objects.create(
+        Repository.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
             provider="github",
@@ -494,8 +502,48 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             }
         }
 
-        with self.feature("organizations:seer-project-settings-dual-write"):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
+        configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        seer_repo = SeerProjectRepository.objects.get(project=project)
-        assert seer_repo.repository_id == repo.id
+        mock_bulk_write_db.assert_called_once()
+        preferences = mock_bulk_write_db.call_args[0][1]
+        assert len(preferences) == 1
+        assert preferences[0].project_id == project.id
+        assert preferences[0].repositories[0].owner == "test-org"
+        assert preferences[0].repositories[0].name == "test-repo"
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
+    @patch("sentry.tasks.seer.autofix.bulk_read_preferences_from_sentry_db")
+    def test_reads_from_sentry_db(
+        self, mock_bulk_read_db: MagicMock, mock_bulk_set: MagicMock
+    ) -> None:
+        project = self.create_project(organization=self.organization)
+
+        mock_bulk_read_db.return_value = {
+            project.id: SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        owner="test-org",
+                        name="test-repo",
+                        external_id="ext123",
+                    )
+                ],
+                automated_run_stopping_point=None,
+            )
+        }
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        mock_bulk_read_db.assert_called_once()
+        assert mock_bulk_set.called
+        preferences = mock_bulk_set.call_args[0][1]
+        assert len(preferences) == 1
+        repos = preferences[0]["repositories"]
+        assert len(repos) == 1
+        assert repos[0]["provider"] == "github"
+        assert repos[0]["owner"] == "test-org"
+        assert repos[0]["name"] == "test-repo"
+        assert repos[0]["external_id"] == "ext123"

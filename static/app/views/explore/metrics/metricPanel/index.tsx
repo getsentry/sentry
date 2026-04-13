@@ -34,11 +34,17 @@ const TWO_MINUTE_DELAY = 120;
 
 interface MetricPanelProps {
   queryIndex: number;
+  queryLabel: string;
   traceMetric: TraceMetric;
   references?: Set<string>;
 }
 
-export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelProps) {
+export function MetricPanel({
+  traceMetric,
+  queryIndex,
+  queryLabel,
+  references,
+}: MetricPanelProps) {
   const organization = useOrganization();
   const {
     orientation,
@@ -97,7 +103,7 @@ export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelPr
             <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
               <MetricToolbar
                 traceMetric={traceMetric}
-                queryIndex={queryIndex}
+                queryLabel={queryLabel}
                 references={references}
               />
             </Container>

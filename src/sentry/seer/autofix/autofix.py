@@ -40,11 +40,12 @@ from sentry.seer.autofix.utils import (
     get_project_seer_preferences,
     make_autofix_start_request,
     make_autofix_update_request,
+    read_preference_from_sentry_db,
     set_project_seer_preference,
     write_preference_to_sentry_db,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models import SeerApiError, SeerApiResponseValidationError, SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.utils import get_github_username_for_user
 from sentry.services import eventstore
@@ -638,16 +639,27 @@ def get_all_tags_overview(
 
 def _resolve_project_preference(
     organization: Organization, project: Project, fallback_repos: list[dict]
-) -> SeerProjectPreference:
+) -> SeerProjectPreference | None:
     """
     Resolve the Seer project preference for a project before triggering autofix.
 
     If an existing preference is found in Seer, returns it.
     If not, creates one from fallback_repos.
     """
-    preference_response = get_project_seer_preferences(project.id)
-    if preference_response.preference:
-        return preference_response.preference
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preference = read_preference_from_sentry_db(project)
+    else:
+        try:
+            preference = get_project_seer_preferences(project.id).preference
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "seer.resolve_project_preference.get_failed",
+                extra={"project_id": project.id, "organization_id": organization.id},
+            )
+            return None
+
+    if preference:
+        return preference
 
     default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
     preference = SeerProjectPreference(
@@ -658,7 +670,14 @@ def _resolve_project_preference(
         automation_handoff=default_handoff,
     )
 
-    set_project_seer_preference(preference)
+    try:
+        set_project_seer_preference(preference)
+    except (SeerApiError, SeerApiResponseValidationError):
+        logger.exception(
+            "seer.resolve_project_preference.set_failed",
+            extra={"project_id": project.id, "organization_id": organization.id},
+        )
+        return None
 
     if features.has("organizations:seer-project-settings-dual-write", organization):
         try:
@@ -719,22 +738,19 @@ def trigger_autofix(
         return _respond_with_error("Cannot fix issues without an event.", 400)
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
-    repos = get_autofix_repos_from_project_code_mappings(group.project, code_mappings=code_mappings)
+    code_mappings_repos = get_autofix_repos_from_project_code_mappings(
+        group.project, code_mappings=code_mappings
+    )
 
     # Resolve the project preference from Seer, or bootstrap one from code mapping repos.
     # On success, preference.repositories becomes the source of truth for repos
     # (even if empty — matching Seer's behavior of unconditionally using preference repos).
     # On failure, we fall back to the original code mapping repos above.
-    preference: SeerProjectPreference | None = None
-    try:
-        preference = _resolve_project_preference(group.organization, group.project, repos)
+    preference = _resolve_project_preference(group.organization, group.project, code_mappings_repos)
+    if preference:
         repos = [repo.dict() for repo in preference.repositories]
-    except Exception:
-        logger.exception(
-            "seer.write_preferences.resolve_project_preference.failed",
-            extra={"project_id": group.project.id, "organization_id": group.organization.id},
-            exc_info=True,
-        )
+    else:
+        repos = code_mappings_repos
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.

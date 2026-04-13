@@ -8,7 +8,11 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features, quotas
 from sentry.constants import ObjectStatus
-from sentry.incidents.logic import enable_disable_subscriptions
+from sentry.incidents.logic import (
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    enable_disable_subscriptions,
+    get_alert_resolution,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
@@ -245,6 +249,27 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
             )
 
+    def _get_resolution_for_window(
+        self,
+        time_window_seconds: int | float,
+        detection_type: str | None,
+        comparison_delta: int | float | None,
+    ) -> timedelta:
+        """
+        Compute the appropriate SnubaQuery resolution for a given time window
+        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
+        """
+        organization = self.context["organization"]
+
+        if detection_type == AlertRuleDetectionType.DYNAMIC:
+            resolution = timedelta(seconds=time_window_seconds)
+        else:
+            resolution = get_alert_resolution(int(time_window_seconds) // 60, organization)
+            if comparison_delta is not None:
+                resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+
+        return resolution
+
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
         request = self.context.get("request")
@@ -295,7 +320,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return False
 
     def update_data_source(
-        self, instance: Detector, data_source: SnubaQueryDataSourceType, seer_updated: bool = False
+        self,
+        instance: Detector,
+        data_source: SnubaQueryDataSourceType,
+        seer_updated: bool = False,
     ) -> None:
         try:
             source_instance = DataSource.objects.get(detector=instance)
@@ -312,7 +340,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             except SnubaQuery.DoesNotExist:
                 raise serializers.ValidationError("SnubaQuery not found, can't update")
 
-        event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+        event_types = snuba_query.event_types
 
         if self.is_editing_transaction_dataset(snuba_query, data_source):
             raise serializers.ValidationError(
@@ -342,16 +370,23 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             data_source.get("extrapolation_mode", snuba_query.extrapolation_mode)
         )
 
+        new_time_window = data_source.get("time_window", snuba_query.time_window)
+        resolution = self._get_resolution_for_window(
+            new_time_window,
+            instance.config.get("detection_type"),
+            instance.config.get("comparison_delta"),
+        )
+
         update_snuba_query(
             snuba_query=snuba_query,
-            query_type=data_source.get("query_type", snuba_query.type),
-            dataset=data_source.get("dataset", snuba_query.dataset),
+            query_type=data_source.get("query_type", SnubaQuery.Type(snuba_query.type)),
+            dataset=data_source.get("dataset", Dataset(snuba_query.dataset)),
             query=data_source.get("query", snuba_query.query),
             aggregate=data_source.get("aggregate", snuba_query.aggregate),
-            time_window=timedelta(seconds=data_source.get("time_window", snuba_query.time_window)),
-            resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
+            time_window=timedelta(seconds=new_time_window),
+            resolution=resolution,
             environment=data_source.get("environment", snuba_query.environment),
-            event_types=data_source.get("event_types", [event_type for event_type in event_types]),
+            event_types=data_source.get("event_types", event_types),
             extrapolation_mode=extrapolation_mode,
         )
 
@@ -413,6 +448,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if data_source is not None:
             self.update_data_source(instance, data_source, seer_updated)
+        elif "config" in validated_data:
+            # Config changed (e.g. detection_type or comparison_delta) without a
+            # data_source update — recalculate resolution to match the new config.
+            self.update_data_source(instance, {}, seer_updated)
 
         instance.save()
 
@@ -421,9 +460,19 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def create(self, validated_data: dict[str, Any]) -> Detector:
         if "data_sources" in validated_data:
+            config = validated_data.get("config", {})
+            detection_type = config.get("detection_type")
+            comparison_delta = config.get("comparison_delta")
+
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
                 self._validate_extrapolation_mode(validated_data_source.get("extrapolation_mode"))
+
+                time_window = validated_data_source.get("time_window")
+                if time_window is not None:
+                    validated_data_source["resolution"] = self._get_resolution_for_window(
+                        time_window, detection_type, comparison_delta
+                    )
 
         detector = super().create(validated_data)
 

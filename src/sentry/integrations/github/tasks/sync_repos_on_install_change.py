@@ -16,15 +16,12 @@ from sentry.integrations.source_code_management.metrics import (
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.plugins.providers.integration_repository import (
-    RepositoryInputConfig,
-    get_integration_repository_provider,
-)
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
 
-from .link_all_repos import get_repo_config
+from .link_all_repos import GitHubRepoInputConfig, get_repo_config
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +107,7 @@ def _sync_repos_for_org(
 ) -> None:
     if repos_added:
         integration_repo_provider = get_integration_repository_provider(integration)
-        repo_configs: list[RepositoryInputConfig] = []
+        repo_configs: list[GitHubRepoInputConfig] = []
         for repo in repos_added:
             try:
                 repo_configs.append(get_repo_config(repo, integration.id))
