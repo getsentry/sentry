@@ -99,7 +99,7 @@ describe('PluginConfig', () => {
     expect(screen.getByRole('button', {name: 'Associate Identity'})).toBeInTheDocument();
   });
 
-  it('submits typed defaults for unsaved boolean and select fields', async () => {
+  it('submits typed defaults when backend returns null for non-select fields', async () => {
     const webhookPlugin = WebhookPluginConfigFixture({enabled: true});
     const url = `/projects/${organization.slug}/${project.slug}/plugins/${webhookPlugin.id}/`;
 
@@ -111,6 +111,7 @@ describe('PluginConfig', () => {
           label: 'Automatically create tickets',
           type: 'bool',
           required: false,
+          value: null,
         },
         {
           name: 'repository',
@@ -121,6 +122,7 @@ describe('PluginConfig', () => {
             ['getsentry/sentry', 'getsentry/sentry'],
           ],
           required: false,
+          value: null,
         },
       ],
     };

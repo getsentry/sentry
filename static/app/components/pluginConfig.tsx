@@ -188,8 +188,13 @@ export function PluginConfig({
     }
 
     const type = field.type === 'bool' ? 'boolean' : field.type;
-    initialValues[field.name] =
-      (type === 'select' || type === 'choice') && field.value === '' ? null : field.value;
+    const isSelect = type === 'select' || type === 'choice';
+
+    if (field.value === null && !isSelect) {
+      continue;
+    }
+
+    initialValues[field.name] = isSelect && field.value === '' ? null : field.value;
   }
 
   const handleTestPlugin = async () => {
