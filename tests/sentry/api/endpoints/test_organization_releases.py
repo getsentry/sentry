@@ -2578,6 +2578,36 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
         assert response.status_code == 404
 
+    def test_environment_in_query_param(self) -> None:
+        """environment: in the query string should filter the same as ?environment="""
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
+        )
+        response = self.client.get(
+            url, format="json", data={"query": f"environment:{self.env1.name}"}
+        )
+        self.assert_releases(response, [self.release1, self.release5])
+
+        response = self.client.get(
+            url, format="json", data={"query": f"environment:{self.env2.name}"}
+        )
+        self.assert_releases(response, [self.release2, self.release3, self.release5])
+
+    def test_environment_wildcard_in_query_param(self) -> None:
+        """environment: with wildcard patterns in the query string should use substring matching"""
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
+        )
+        # env1="prod" contains "rod"; env2="staging" does not
+        response = self.client.get(url, format="json", data={"query": "environment:*rod*"})
+        self.assert_releases(response, [self.release1, self.release5])
+
+        # The frontend sends Contains via private-use unicode delimiters — same semantics
+        response = self.client.get(
+            url, format="json", data={"query": "!environment:\uf00dContains\uf00dprod"}
+        )
+        self.assert_releases(response, [self.release2, self.release3, self.release4])
+
     def test_specify_project_ids(self) -> None:
         url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}

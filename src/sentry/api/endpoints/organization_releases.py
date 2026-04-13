@@ -26,6 +26,7 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.release_search import (
+    ENVIRONMENT_KEY,
     FINALIZED_KEY,
     RELEASE_CREATED_KEY,
     RELEASE_FREE_TEXT_KEY,
@@ -179,6 +180,33 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                     f"date_added__{OPERATOR_TO_DJANGO[search_filter.operator]}": search_filter.value.raw_value
                 }
             )
+
+        if search_filter.key.name == ENVIRONMENT_KEY:
+            negated = search_filter.operator in ("!=", "NOT IN")
+            kind, value_o = search_filter.value.classify_and_format_wildcard()
+            project_ids = filter_params["project_id"]
+            if kind == "infix":
+                env_q = Q(
+                    releaseprojectenvironment__environment__name__icontains=value_o,
+                    releaseprojectenvironment__project_id__in=project_ids,
+                )
+            elif kind == "prefix":
+                env_q = Q(
+                    releaseprojectenvironment__environment__name__istartswith=value_o,
+                    releaseprojectenvironment__project_id__in=project_ids,
+                )
+            elif kind == "suffix":
+                env_q = Q(
+                    releaseprojectenvironment__environment__name__iendswith=value_o,
+                    releaseprojectenvironment__project_id__in=project_ids,
+                )
+            else:
+                env_names = value_o if isinstance(value_o, list) else [value_o]
+                env_q = Q(
+                    releaseprojectenvironment__environment__name__in=env_names,
+                    releaseprojectenvironment__project_id__in=project_ids,
+                )
+            queryset = queryset.exclude(env_q) if negated else queryset.filter(env_q)
 
     return queryset
 
