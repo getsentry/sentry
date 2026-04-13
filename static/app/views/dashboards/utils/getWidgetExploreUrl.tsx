@@ -93,13 +93,15 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
 
 /**
  * Returns whether the given widget type supports multiple queries in the Explore view.
- * Currently only spans supports multi-query explore.
  */
 export function widgetTypeSupportsExploreMultiQuery(
   widgetType: WidgetType | undefined
 ): boolean {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widgetType);
-  return traceItemDataset === TraceItemDataset.SPANS;
+  return (
+    traceItemDataset === TraceItemDataset.SPANS ||
+    traceItemDataset === TraceItemDataset.TRACEMETRICS
+  );
 }
 
 export function getWidgetExploreUrl(
@@ -377,10 +379,10 @@ function _getWidgetExploreUrlForMultipleQueries(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  traceItemDataset: TraceItemDataset,
+  _traceItemDataset: TraceItemDataset,
   referrer?: string
 ): string | null {
-  if (traceItemDataset !== TraceItemDataset.SPANS) {
+  if (!widgetTypeSupportsExploreMultiQuery(widget.widgetType)) {
     return null;
   }
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
