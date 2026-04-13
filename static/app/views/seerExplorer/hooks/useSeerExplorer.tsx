@@ -117,7 +117,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
-  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useState<boolean>(true);
+  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useState<boolean>(false);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
