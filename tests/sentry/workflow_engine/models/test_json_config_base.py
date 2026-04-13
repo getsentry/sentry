@@ -6,7 +6,7 @@ from jsonschema import ValidationError
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, get_detector_settings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -97,6 +97,10 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
         super().setUp()
         self.metric_alert = self.create_alert_rule(threshold_period=1)
 
+        metric_issue_settings = get_detector_settings(MetricIssue)
+        assert metric_issue_settings is not None
+        metric_issue_schema = metric_issue_settings.config_schema
+
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
             type_id = 3
@@ -104,7 +108,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             description = "Metric alert fired"
             category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(
-                config_schema=MetricIssue.detector_settings.config_schema,
+                config_schema=metric_issue_schema,
             )
 
     def test_detector_correct_schema(self) -> None:

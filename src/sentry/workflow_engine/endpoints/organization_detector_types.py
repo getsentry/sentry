@@ -17,6 +17,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
+from sentry.workflow_engine.types import get_detector_settings
 
 
 @cell_silo_endpoint
@@ -46,7 +47,7 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         type_slugs = [
             gt.slug
             for gt in grouptype.registry.get_visible(organization)
-            if gt.detector_settings is not None and gt.detector_settings.handler is not None
+            if (ds := get_detector_settings(gt)) is not None and ds.handler is not None
         ]
         type_slugs.sort()
 
