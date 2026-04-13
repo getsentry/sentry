@@ -64,26 +64,26 @@ function ChangeCounts({
   unchanged: number;
 }) {
   if (!comparisonState) {
-    return <Tag>{t('Base')}</Tag>;
+    return <Tag variant="info">{t('Base')}</Tag>;
   }
   if (comparisonState === 'pending') {
     return (
       <Tooltip title={t('Waiting to start comparison')}>
-        <Tag>{t('Pending')}</Tag>
+        <Tag variant="muted">{t('Pending')}</Tag>
       </Tooltip>
     );
   }
   if (comparisonState === 'processing') {
     return (
       <Tooltip title={t('Comparing against base snapshot')}>
-        <Tag>{t('Processing')}</Tag>
+        <Tag variant="muted">{t('Processing')}</Tag>
       </Tooltip>
     );
   }
   if (comparisonState === 'failed') {
     return (
       <Tooltip title={errorMessage || t('Comparison failed')}>
-        <Tag variant="error">{t('Failed')}</Tag>
+        <Tag variant="danger">{t('Failed')}</Tag>
       </Tooltip>
     );
   }

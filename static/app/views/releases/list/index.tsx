@@ -515,44 +515,42 @@ export default function ReleasesList() {
                     >
                       {t('Releases')}
                     </TabList.Item>
-                    {shouldShowMobileBuildsTab && (
-                      <TabList.Item
-                        key="mobile-builds"
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: 'mobile-builds',
-                          },
-                        }}
-                        textValue={t('Mobile Builds')}
-                      >
-                        <Flex align="center" gap="sm">
-                          {t('Mobile Builds')}
-                          <FeatureBadge type="new" />
-                        </Flex>
-                      </TabList.Item>
-                    )}
-                    {shouldShowSnapshotsTab && (
-                      <TabList.Item
-                        key="snapshots"
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: 'snapshots',
-                          },
-                        }}
-                        textValue={t('Snapshots')}
-                      >
-                        <Flex align="center" gap="sm">
-                          {t('Snapshots')}
-                          <FeatureBadge type="alpha" />
-                        </Flex>
-                      </TabList.Item>
-                    )}
+                    <TabList.Item
+                      key="mobile-builds"
+                      hidden={!shouldShowMobileBuildsTab}
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'mobile-builds',
+                        },
+                      }}
+                      textValue={t('Mobile Builds')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Mobile Builds')}
+                        <FeatureBadge type="new" />
+                      </Flex>
+                    </TabList.Item>
+                    <TabList.Item
+                      key="snapshots"
+                      hidden={!shouldShowSnapshotsTab}
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'snapshots',
+                        },
+                      }}
+                      textValue={t('Snapshots')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Snapshots')}
+                        <FeatureBadge type="alpha" />
+                      </Flex>
+                    </TabList.Item>
                   </TabList>
                 </Layout.HeaderTabs>
               )}
