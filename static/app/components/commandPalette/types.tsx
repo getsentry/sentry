@@ -32,7 +32,7 @@ export type CMDKQueryOptions = Omit<
 export function cmdkQueryOptions(
   options: Omit<CMDKQueryOptions, 'meta'>
 ): CMDKQueryOptions {
-  return queryOptions({meta: {cmdk: true}, ...options}) as CMDKQueryOptions;
+  return queryOptions({...options, meta: {cmdk: true}}) as CMDKQueryOptions;
 }
 
 export interface CommandPaletteActionLink extends Action {
