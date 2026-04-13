@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
@@ -49,26 +51,31 @@ function UnstyledSettingsPageHeader({
   const isNarrow = !subtitle;
 
   return (
-    <div
-      {...props}
-      className={hasPageFrame ? `${className ?? ''} has-page-frame` : className}
-    >
-      <TitleAndActions isNarrow={isNarrow}>
-        <TitleWrapper>
-          {icon && <Icon>{icon}</Icon>}
-          {title && (
-            <Title tabs={tabs} styled={noTitleStyles}>
-              <Layout.Title>{title}</Layout.Title>
-              {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
-            </Title>
-          )}
-        </TitleWrapper>
-        {action && <Action isNarrow={isNarrow}>{action}</Action>}
-      </TitleAndActions>
+    <Fragment>
+      {hasPageFrame && action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
+      <div
+        {...props}
+        className={hasPageFrame ? `${className ?? ''} has-page-frame` : className}
+      >
+        <TitleAndActions isNarrow={isNarrow}>
+          <TitleWrapper>
+            {icon && <Icon>{icon}</Icon>}
+            {title && (
+              <Title tabs={tabs} styled={noTitleStyles}>
+                <Layout.Title>{title}</Layout.Title>
+                {subtitle && (
+                  <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>
+                )}
+              </Title>
+            )}
+          </TitleWrapper>
+          {!hasPageFrame && action && <Action isNarrow={isNarrow}>{action}</Action>}
+        </TitleAndActions>
 
-      {body && <BodyWrapper>{body}</BodyWrapper>}
-      {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
-    </div>
+        {body && <BodyWrapper>{body}</BodyWrapper>}
+        {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
+      </div>
+    </Fragment>
   );
 }
 
