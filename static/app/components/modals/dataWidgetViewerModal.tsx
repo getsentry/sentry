@@ -914,13 +914,20 @@ function OpenButton({
       path = getWidgetReleasesUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.SPANS:
+    case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      const exploreUrl = getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization
+      );
+      if (!exploreUrl) {
+        return null;
+      }
+      path = exploreUrl;
       break;
-    case WidgetType.LOGS:
-      openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
-      break;
+    }
     case WidgetType.TRACEMETRICS:
       openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);

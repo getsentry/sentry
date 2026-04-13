@@ -340,6 +340,30 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.query).toBe('is_transaction:false');
   });
 
+  it('returns null for log widgets with multiple queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.LOGS,
+      queries: [
+        WidgetQueryFixture({
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'level:error',
+          orderby: '',
+        }),
+        WidgetQueryFixture({
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'level:warning',
+          orderby: '',
+        }),
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
+  });
+
   it('adds referrer query parameter if provided', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import type {PageFilters} from 'sentry/types/core';
@@ -92,6 +91,17 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.ERRORS]: undefined,
 };
 
+/**
+ * Returns whether the given widget type supports multiple queries in the Explore view.
+ * Currently only spans supports multi-query explore.
+ */
+export function widgetTypeSupportsExploreMultiQuery(
+  widgetType: WidgetType | undefined
+): boolean {
+  const traceItemDataset = getTraceItemDatasetFromWidgetType(widgetType);
+  return traceItemDataset === TraceItemDataset.SPANS;
+}
+
 export function getWidgetExploreUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
@@ -99,17 +109,10 @@ export function getWidgetExploreUrl(
   organization: Organization,
   preferMode?: Mode,
   referrer?: string
-) {
+): string | null {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
 
   if (widget.queries.length > 1) {
-    if (traceItemDataset === TraceItemDataset.LOGS) {
-      Sentry.captureException(
-        new Error(
-          `getWidgetExploreUrl: multiple queries for logs is unsupported, widget_id: ${widget.id}, organization_id: ${organization.id}, dashboard_id: ${widget.dashboardId}`
-        )
-      );
-    }
     return _getWidgetExploreUrlForMultipleQueries(
       widget,
       dashboardFilters,
@@ -374,9 +377,12 @@ function _getWidgetExploreUrlForMultipleQueries(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  _traceItemDataset: TraceItemDataset,
+  traceItemDataset: TraceItemDataset,
   referrer?: string
-): string {
+): string | null {
+  if (traceItemDataset !== TraceItemDataset.SPANS) {
+    return null;
+  }
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
   const datetime = {
