@@ -93,6 +93,7 @@ export default function ProjectPluginDetails() {
         view: 'plugin_details',
         organization,
       });
+      // Keep both the toggle state and config form in sync after reset.
       await Promise.all([refetchPlugins(), refetchPluginDetails()]);
     },
     onError: () => {
