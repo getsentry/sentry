@@ -101,6 +101,17 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert result["metadata"]["model"] == "claude-sonnet-4-6"
 
+    def test_build_integration_omits_model_when_client_has_no_model_attr(self) -> None:
+        mock_client = MagicMock(spec=["validate_api_key"])
+        mock_client.validate_api_key.return_value = True
+        mock_cls = MagicMock(return_value=mock_client)
+        state: Mapping[str, Any] = {"api_key": "sk-ant-test-api-key-123"}
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            result = self.provider().build_integration(state)
+
+        assert result["metadata"]["model"] is None
+
     def test_build_integration_no_supported_model_raises(self) -> None:
         mock_cls, _ = _mock_client_class(
             validate_side_effect=ValueError(

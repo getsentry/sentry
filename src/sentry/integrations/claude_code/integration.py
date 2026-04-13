@@ -200,7 +200,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
             api_key=api_key,
             environment_id=environment_id,
             workspace_name=workspace_name,
-            model=client.model,
+            model=getattr(client, "model", None),
         )
 
         return {
