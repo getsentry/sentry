@@ -26,7 +26,10 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {isExternalLocation} from 'sentry/components/commandPalette/ui/locationUtils';
+import {
+  getLocationHref,
+  isExternalLocation,
+} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,7 +39,9 @@ import {t} from 'sentry/locale';
 import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
@@ -66,14 +71,12 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 };
 
 interface CommandPaletteProps {
-  onAction: (
-    action: CollectionTreeNode<CMDKActionData>,
-    options?: {modifierKeys?: {shiftKey: boolean}}
-  ) => void;
+  closeModal?: () => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
   const theme = useTheme();
+  const navigate = useNavigate();
   const store = CMDKCollection.useStore();
 
   const state = useCommandPaletteState();
@@ -204,6 +207,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     disallowTypeAhead: true,
   });
 
+  const {closeModal} = props;
   const onActionSelection = useCallback(
     (
       key: string | number | null,
@@ -241,9 +245,21 @@ export function CommandPalette(props: CommandPaletteProps) {
 
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
-      props.onAction(action, options);
+
+      if ('to' in action) {
+        const normalizedTo = normalizeUrl(action.to);
+        if (isExternalLocation(normalizedTo) || options?.modifierKeys?.shiftKey) {
+          window.open(getLocationHref(normalizedTo), '_blank', 'noreferrer');
+        } else {
+          navigate(normalizedTo);
+        }
+      } else if ('onAction' in action) {
+        action.onAction();
+      }
+
+      closeModal?.();
     },
-    [actions, analytics, dispatch, props]
+    [actions, analytics, closeModal, dispatch, navigate]
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
@@ -432,8 +448,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
 /**
  * Pre-sorts the root-level nodes by DOM position of their slot outlet element.
- * Outlets are rendered in task → page → global order inside CommandPaletteProvider,
- * so compareDocumentPosition gives the correct priority ordering for free.
+ * Outlets are declared in priority order inside CommandPalette (task → page → global),
+ * so compareDocumentPosition gives the correct ordering for free.
  * Nodes sharing the same outlet (same slot) retain their existing relative order.
  * Nodes without a slot ref are not reordered relative to each other.
  */

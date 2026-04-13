@@ -48,9 +48,12 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
-// Outlets live in the navigation in production; tests that exercise slot
-// behaviour must render them explicitly so slot consumers have a target to
-// portal into.
+/**
+ * Renders the slot outlets that live outside CommandPalette in the real app
+ * (they are mounted in navigation/index.tsx). Tests that use
+ * <CommandPaletteSlot name="…"> must include this component so slot consumers
+ * have a registered outlet element to portal into.
+ */
 function SlotOutlets() {
   return (
     <div style={{display: 'none'}}>
@@ -82,10 +85,10 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Leaf Action'}} onAction={onActionSpy} />
         </CommandPaletteSlot>
+        <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
     );
@@ -140,7 +143,6 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Outer Group'}}>
             <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy}>
@@ -148,6 +150,7 @@ describe('CommandPaletteModal', () => {
             </CMDKAction>
           </CMDKAction>
         </CommandPaletteSlot>
+        <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
     );
@@ -167,10 +170,10 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction to="https://docs.sentry.io" display={{label: 'External Link'}} />
         </CommandPaletteSlot>
+        <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
     );
@@ -192,10 +195,10 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction to="/target/" display={{label: 'Internal Link'}} />
         </CommandPaletteSlot>
+        <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
     );

@@ -51,13 +51,6 @@ export const CMDKCollection = makeCollection<CMDKActionData>();
 /**
  * Root provider for the command palette. Wrap the component tree that
  * contains CMDKAction registrations and the CommandPalette UI.
- *
- * Slot outlets are rendered separately in the navigation (see
- * CommandPaletteSlotOutlets in navigation/index.tsx) in task → page → global
- * DOM order so that presortBySlotRef's compareDocumentPosition sorting works
- * correctly. Keeping the outlets in the navigation (rather than here) means
- * this provider introduces no DOM nodes — tests that assert an empty container
- * are unaffected.
  */
 export function CommandPaletteProvider({children}: {children: React.ReactNode}) {
   return (

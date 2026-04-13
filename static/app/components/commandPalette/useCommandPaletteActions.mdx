@@ -34,33 +34,14 @@ Wrap your tree in `CommandPaletteProvider` and place the `CommandPalette` UI com
 </Storybook.Demo>
 
 ```tsx
-import {useCallback} from 'react';
-
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
-import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
-import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 function YourComponent() {
-  const navigate = useNavigate();
-
-  const handleAction = useCallback(
-    (action: CollectionTreeNode<CMDKActionData>) => {
-      if ('to' in action) {
-        navigate(normalizeUrl(String(action.to)));
-      } else if ('onAction' in action) {
-        action.onAction();
-      }
-    },
-    [navigate]
-  );
-
   return (
     <CommandPaletteProvider>
       {/* Navigation action */}
@@ -80,7 +61,7 @@ function YourComponent() {
         />
       </CMDKAction>
 
-      {/* Inline actions declared as siblings to the palette */}
+      {/* Inline actions — register them directly inside the provider */}
       <CMDKAction display={{label: 'Issues List'}}>
         <CMDKAction
           display={{label: 'Select all'}}
@@ -93,7 +74,7 @@ function YourComponent() {
       </CMDKAction>
 
       {/* The command palette UI */}
-      <CommandPalette onAction={handleAction} />
+      <CommandPalette />
     </CommandPaletteProvider>
   );
 }
