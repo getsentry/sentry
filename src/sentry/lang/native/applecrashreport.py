@@ -213,20 +213,23 @@ class AppleCrashReport:
         exceptions = self.exceptions or []
         threads = self.threads or []
 
-        # When an exception's thread_id matches a thread's id, prefer the
-        # thread entry (it carries richer metadata like name/crashed state).
-        thread_ids = {t.get("id") for t in threads if t.get("id") is not None}
-
-        for exception_info in exceptions:
-            # Skip exceptions whose thread already exists in the threads list
-            if exception_info.get("thread_id") in thread_ids:
-                continue
-            thread_string = self.get_thread_apple_string(exception_info)
-            if thread_string is not None:
-                rv.append(thread_string)
-
+        # Process threads first, tracking which ones produced output.
+        # When an exception's thread_id matches a thread that produced
+        # output, we skip the exception to avoid duplication (the thread
+        # carries richer metadata like name/crashed state).
+        output_thread_ids = set()
         for thread_info in threads:
             thread_string = self.get_thread_apple_string(thread_info)
+            if thread_string is not None:
+                rv.append(thread_string)
+                thread_id = thread_info.get("id")
+                if thread_id is not None:
+                    output_thread_ids.add(thread_id)
+
+        for exception_info in exceptions:
+            if exception_info.get("thread_id") in output_thread_ids:
+                continue
+            thread_string = self.get_thread_apple_string(exception_info)
             if thread_string is not None:
                 rv.append(thread_string)
 
