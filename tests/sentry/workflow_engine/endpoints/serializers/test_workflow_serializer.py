@@ -94,12 +94,15 @@ class TestWorkflowSerializer(TestCase):
             group=self.group,
             event_id=self.event.event_id,
         )
-        # Too old, shouldn't be used.
-        WorkflowFireHistory.objects.create(
+        # Too old, shouldn't be used — pin its date_added so it's always before
+        # history, regardless of how fast or slow the test machine is.
+        old_history = WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
         )
+        old_history.date_added = workflow.date_added - timedelta(seconds=1)
+        old_history.save()
         history.date_added = workflow.date_added + timedelta(seconds=1)
         history.save()
 
