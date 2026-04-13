@@ -68,7 +68,6 @@ def send_thread_update(
         renderable = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
-
         try:
             if ephemeral_user_id:
                 install.send_threaded_ephemeral_message(
@@ -87,6 +86,7 @@ def send_thread_update(
             lifecycle.record_halt(halt_reason=e)
         except IntegrationError as e:
             lifecycle.record_failure(failure_reason=e)
+            # Retry, hopefully it's transient
             raise
 
 
