@@ -900,8 +900,7 @@ def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]
     """Bulk get Seer project preferences.
 
     Returns a dict keyed by stringified project ID. Values are preference dicts or None
-    for projects with no configured preferences. Projects that don't belong to the
-    given organization are silently excluded from the result.
+    for projects with no configured preferences.
     """
     organization = Organization.objects.get_from_cache(id=organization_id)
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
