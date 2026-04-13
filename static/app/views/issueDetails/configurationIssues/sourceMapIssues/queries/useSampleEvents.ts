@@ -5,7 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SampleRow = {
   event_id: string;
-  group_id: string;
+  group_id: string | null;
   timestamp: string;
   title: string;
 };
@@ -16,7 +16,7 @@ interface SamplesResult {
 
 interface SampleEvent {
   eventId: string;
-  groupId: string;
+  groupId: string | null;
   timestamp: string;
   title: string;
 }

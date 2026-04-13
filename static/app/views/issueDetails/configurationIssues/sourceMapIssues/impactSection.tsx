@@ -27,8 +27,8 @@ function EventsCount({project}: {project: Project}) {
   if (isError) {
     return <LoadingError message={t('Unable to load impact data.')} />;
   }
-  if (count === null) {
-    return null;
+  if (!count) {
+    return <Text>{t('No impacted events found in the last 30 days.')}</Text>;
   }
   return (
     <Text>
@@ -44,29 +44,35 @@ function EventsCount({project}: {project: Project}) {
 function AffectedReleases({project}: {project: Project}) {
   const {releases, isLoading, isError} = useAffectedReleases({project});
 
-  if (isLoading) {
-    return <LoadingIndicator mini />;
+  function renderContent() {
+    if (isLoading) {
+      return <LoadingIndicator mini />;
+    }
+    if (isError) {
+      return <LoadingError message={t('Unable to load affected releases.')} />;
+    }
+    if (releases.length === 0) {
+      return <Text>{t('No affected releases found in the last 30 days.')}</Text>;
+    }
+    return (
+      <Stack gap="xs">
+        {releases.map(({release, count}) => (
+          <Flex key={release} align="baseline" gap="sm">
+            <Version version={release} />
+            <Text variant="muted">&middot;</Text>
+            <Text variant="muted">{tn('%s event', '%s events', count)}</Text>
+          </Flex>
+        ))}
+      </Stack>
+    );
   }
-  if (isError) {
-    return <LoadingError message={t('Unable to load affected releases.')} />;
-  }
-  if (releases.length === 0) {
-    return null;
-  }
+
   return (
     <Fragment>
       <SectionDivider orientation="horizontal" margin="xs 0" />
       <Stack gap="md">
-        <Text bold>{t('Affected releases')}</Text>
-        <Stack gap="xs">
-          {releases.map(({release, count}) => (
-            <Flex key={release} align="baseline" gap="sm">
-              <Version version={release} />
-              <Text variant="muted">&middot;</Text>
-              <Text variant="muted">{tn('%s event', '%s events', count)}</Text>
-            </Flex>
-          ))}
-        </Stack>
+        <Heading as="h4">{t('Affected releases')}</Heading>
+        {renderContent()}
       </Stack>
     </Fragment>
   );
@@ -76,23 +82,21 @@ function SampleEvents({project}: {project: Project}) {
   const organization = useOrganization();
   const {events, isLoading, isError} = useSampleEvents({project});
 
-  if (isLoading) {
-    return <LoadingIndicator mini />;
-  }
-  if (isError) {
-    return <LoadingError message={t('Unable to load sample events.')} />;
-  }
-  if (events.length === 0) {
-    return null;
-  }
-  return (
-    <Fragment>
-      <SectionDivider orientation="horizontal" margin="xs 0" />
-      <Stack gap="md">
-        <Text bold>{t('Sample events')}</Text>
-        <Stack gap="xs">
-          {events.map(({eventId, groupId, title, timestamp}) => (
-            <Flex key={eventId} align="center" gap="sm">
+  function renderContent() {
+    if (isLoading) {
+      return <LoadingIndicator mini />;
+    }
+    if (isError) {
+      return <LoadingError message={t('Unable to load sample events.')} />;
+    }
+    if (events.length === 0) {
+      return <Text>{t('No sample events found in the last 30 days.')}</Text>;
+    }
+    return (
+      <Stack gap="xs">
+        {events.map(({eventId, groupId, title, timestamp}) => (
+          <Flex key={eventId} align="center" gap="sm">
+            {groupId ? (
               <Link
                 to={normalizeUrl(
                   `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
@@ -100,13 +104,25 @@ function SampleEvents({project}: {project: Project}) {
               >
                 {title}
               </Link>
-              <Text variant="muted">&middot;</Text>
-              <Text variant="muted">
-                <TimeSince date={timestamp} unitStyle="short" />
-              </Text>
-            </Flex>
-          ))}
-        </Stack>
+            ) : (
+              <Text variant="muted">{title}</Text>
+            )}
+            <Text variant="muted">&middot;</Text>
+            <Text variant="muted">
+              <TimeSince date={timestamp} unitStyle="short" />
+            </Text>
+          </Flex>
+        ))}
+      </Stack>
+    );
+  }
+
+  return (
+    <Fragment>
+      <SectionDivider orientation="horizontal" margin="xs 0" />
+      <Stack gap="md">
+        <Heading as="h4">{t('Sample events')}</Heading>
+        {renderContent()}
       </Stack>
     </Fragment>
   );
