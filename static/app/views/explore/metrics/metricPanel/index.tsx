@@ -28,6 +28,7 @@ import {
   useQueryParamsMode,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
@@ -53,10 +54,6 @@ export function MetricPanel({
   } = useTableOrientationControl();
   const [infoContentHidden, setInfoContentHidden] = useState(false);
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
-  const {result: timeseriesResult} = useMetricTimeseries({
-    traceMetric,
-    enabled: !isMetricOptionsEmpty,
-  });
 
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
@@ -81,6 +78,13 @@ export function MetricPanel({
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
+
+  const {result: timeseriesResult} = useMetricTimeseries({
+    traceMetric,
+    enabled:
+      !isMetricOptionsEmpty ||
+      (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
+  });
 
   useMetricsPanelAnalytics({
     interval,
