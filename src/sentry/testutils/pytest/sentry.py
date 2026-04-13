@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import collections.abc
 import os
 import random
 import shutil
@@ -218,15 +219,23 @@ def pytest_configure(config: pytest.Config) -> None:
 
     if snuba_url := xdist.get_snuba_url():
         settings.SENTRY_SNUBA = snuba_url
+        # Also set the env var that _SnubaPool._get() prefers; this is immune
+        # to Django override_settings resets that can happen mid-session.
+        os.environ["_SENTRY_SNUBA_POOL_URL"] = snuba_url
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
+    redis_db = xdist.get_redis_db()
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
+            # Each xdist worker gets its own Redis DB so that teardown
+            # flushdb() only affects that worker's data.  Isolation is
+            # intra-shard (within a single pytest process); each CI shard
+            # job runs on its own runner with its own Redis service.
+            "redis.clusters": {"default": {"hosts": {0: {"db": redis_db}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -266,6 +275,21 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+
+    # Flush the options store's local cache so that any redis.clusters value
+    # that may have been cached before this configure hook (e.g. during early
+    # Django import) is evicted.  The next access will re-read from settings
+    # and pick up the worker-specific DB number.
+    from sentry import options as sentry_options
+
+    sentry_options.default_manager.store.flush_local_cache()
+
+    # Also bust the redis_clusters manager's cluster cache so it re-creates
+    # the connection with the correct DB on first use.
+    from sentry.utils.redis import redis_clusters
+
+    redis_clusters._clusters_bytes.clear()
+    redis_clusters._clusters_str.clear()
 
     _configure_test_env_cells()
 
@@ -378,8 +402,41 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
 
+    # When running shuffled tests with --exitfirst, record the first failing
+    # test ID so the CI workflow can pass it to detect-test-pollution.
+    failing_testid = getattr(session, "_shuffle_failing_testid", None)
+    if failing_testid and exitstatus != 0:
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        with open(f"{outdir}/failing-testid", "w") as f:
+            f.write(failing_testid + "\n")
+        longrepr = getattr(session, "_shuffle_failing_longrepr", None)
+        if longrepr:
+            with open(f"{outdir}/failing-testid-longrepr", "w") as f:
+                f.write(longrepr)
+
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
+    # Ensure the _SnubaPool proxy uses the correct per-worker Snuba URL before
+    # each test.  The proxy caches settings.SENTRY_SNUBA on first use; if that
+    # first use happened before configure_for_worker updated the setting (or if
+    # the setting was never updated because xdist.get_snuba_url() returned None
+    # due to a stale module-level env read), the pool may point at 1218.
+    #
+    # Re-read the target URL from env here (call-time, not import-time) and
+    # force the proxy to rebuild the pool if the cached URL doesn't match.
+    snuba_url = xdist.get_snuba_url()
+    if snuba_url:
+        # Set an env var that _SnubaPool._get() prefers over settings.SENTRY_SNUBA.
+        # Environment variables are immune to Django's override_settings and
+        # TestCase isolation mechanisms that can reset the Django setting mid-session.
+        os.environ["_SENTRY_SNUBA_POOL_URL"] = snuba_url
+        settings.SENTRY_SNUBA = snuba_url
+        if "sentry.utils.snuba" in sys.modules:
+            snuba_mod = sys.modules["sentry.utils.snuba"]
+            pool_proxy = getattr(snuba_mod, "_snuba_pool", None)
+            if pool_proxy is not None and pool_proxy._url != snuba_url:
+                pool_proxy._url = None  # force _get() to rebuild pool at correct URL
+
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
@@ -522,9 +579,27 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if shuffle_enabled:
         _shuffle(items, random.Random(seed))
 
+        # Write the final ordered test IDs to a file for detect-test-pollution
+        outdir = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+        with open(f"{outdir}/testids-full", "w") as f:
+            f.write("\n".join(item.nodeid for item in items) + "\n")
+
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> collections.abc.Generator[None]:
+    outcome = yield
+    report = outcome.get_result()
+    # Track the last failing test for detect-test-pollution (written to disk
+    # in pytest_sessionfinish only when the session actually fails).
+    if os.environ.get("SENTRY_SHUFFLE_TESTS") and report.failed and report.when == "call":
+        item.session._shuffle_failing_testid = item.nodeid  # type: ignore[attr-defined]
+        item.session._shuffle_failing_longrepr = str(report.longrepr)  # type: ignore[attr-defined]
 
 
 def pytest_xdist_setupnodes() -> None:
