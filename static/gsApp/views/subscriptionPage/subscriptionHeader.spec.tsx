@@ -18,35 +18,35 @@ describe('SubscriptionHeader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/billing-config/`,
+      url: '/customers/org-slug/billing-config/',
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM1),
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/billing-details/`,
+      url: '/customers/org-slug/billing-details/',
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/`,
+      url: '/customers/org-slug/',
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/promotions/trigger-check/`,
+      url: '/organizations/org-slug/promotions/trigger-check/',
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/plan-migrations/`,
+      url: '/customers/org-slug/plan-migrations/',
       query: {scheduled: 1, applied: 0},
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/prompts-activity/`,
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/subscription/next-bill/`,
+      url: '/customers/org-slug/subscription/next-bill/',
       method: 'GET',
     });
   });

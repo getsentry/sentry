@@ -600,10 +600,12 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert data["comparisons"][0]["comparison_id"] == comparison.id
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_post_comparison_existing_failed_comparison(self) -> None:
-        """Test POST endpoint returns existing failed comparison when comparison exists and failed"""
-        # Create a failed comparison
-        comparison = self.create_preprod_artifact_size_comparison(
+    @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
+    def test_post_comparison_existing_failed_comparison_auto_retries(
+        self, mock_apply_async
+    ) -> None:
+        """Test POST endpoint auto-retries when all existing comparisons are failed"""
+        self.create_preprod_artifact_size_comparison(
             head_size_analysis=self.head_size_metric,
             base_size_analysis=self.base_size_metric,
             organization=self.organization,
@@ -616,12 +618,13 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "exists"
+        assert data["status"] == "created"
         assert len(data["comparisons"]) == 1
         comparison_data = data["comparisons"][0]
-        assert comparison_data["state"] == comparison.state
-        assert comparison_data["error_code"] == str(comparison.error_code)
-        assert comparison_data["error_message"] == comparison.error_message
+        assert comparison_data["state"] == PreprodArtifactSizeComparison.State.PENDING
+        assert comparison_data["comparison_id"] is None
+
+        mock_apply_async.assert_called_once()
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_post_comparison_cannot_compare_size_metrics(self) -> None:
@@ -804,3 +807,68 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         )
         assert response.status_code == 404
         assert response.data["detail"] == "This build's size data has expired."
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
+    def test_post_rerun_as_staff_deletes_and_recreates(self, mock_apply_async):
+        """Test POST with rerun=true as active staff deletes existing and creates new comparisons"""
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=12345,
+        )
+
+        staff_user = self.create_user(is_staff=True)
+        self.organization.member_set.create(user_id=staff_user.id)
+        self.login_as(user=staff_user)
+
+        with patch(
+            "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.is_active_staff",
+            return_value=True,
+        ):
+            response = self.client.post(f"{self._get_url()}?rerun=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "created"
+        assert len(data["comparisons"]) == 1
+        assert data["comparisons"][0]["state"] == PreprodArtifactSizeComparison.State.PENDING
+        mock_apply_async.assert_called_once()
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_post_rerun_as_non_staff_returns_403(self):
+        """Test POST with rerun=true as non-staff returns 403"""
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=12345,
+        )
+
+        response = self.client.post(f"{self._get_url()}?rerun=true")
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Only staff can rerun comparisons."
+
+    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
+    def test_post_rerun_as_inactive_staff_raises_staff_required(self):
+        """Test POST with rerun=true as is_staff user without active staff session raises StaffRequired"""
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=self.head_size_metric,
+            base_size_analysis=self.base_size_metric,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=12345,
+        )
+
+        staff_user = self.create_user(is_staff=True)
+        self.organization.member_set.create(user_id=staff_user.id)
+        self.login_as(user=staff_user)
+
+        response = self.client.post(f"{self._get_url()}?rerun=true")
+
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "staff-required"

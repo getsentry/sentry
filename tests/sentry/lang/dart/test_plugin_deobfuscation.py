@@ -146,6 +146,9 @@ class DartPluginDeobfuscationTest(TestCase):
         assert exception_values[2]["type"] == "FileNotFoundException"
         assert exception_values[2]["value"] == "File error: def not found"
 
+    def test_missing_sdk(self) -> None:
+        self.plugin.get_event_preprocessors({"sdk": None})
+
     def test_dart_partial_deobfuscation_direct(self) -> None:
         """Test partial deobfuscation when some symbols are not in the map."""
         # Upload symbols that only contain xyz mapping, using a distinct debug_id

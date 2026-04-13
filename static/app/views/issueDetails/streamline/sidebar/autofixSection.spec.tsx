@@ -43,7 +43,6 @@ describe('AutofixSection', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: true,
-        autofixEnabled: true,
       }),
     });
 
@@ -74,7 +73,7 @@ describe('AutofixSection', () => {
       organization,
     });
 
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
   });
 
   it('renders Resources section when AI features are disabled', () => {
@@ -162,6 +161,10 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=true')
+    );
   });
 
   it('renders solution artifact', async () => {
@@ -381,7 +384,7 @@ describe('AutofixSection', () => {
     });
 
     // The Seer title should still render
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
@@ -397,7 +400,7 @@ describe('AutofixSection', () => {
     });
 
     // The Seer title should still render
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
   });
 
@@ -524,37 +527,6 @@ describe('AutofixSection', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: false,
-        autofixEnabled: true,
-      }),
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {
-      name: 'Set Up Seer for This Project',
-    });
-    expect(link).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
-    );
-  });
-
-  it('shows project setup UI when autofix is not enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-        seerReposLinked: true,
-        autofixEnabled: false,
       }),
     });
 
@@ -596,5 +568,9 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=true')
+    );
   });
 });

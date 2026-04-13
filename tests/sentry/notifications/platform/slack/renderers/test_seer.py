@@ -242,6 +242,24 @@ class SeerSlackRendererExplorerTest(TestCase):
         data = self._create_explorer_response(
             summary="Found a spike in 500 errors from the auth service."
         )
+        with self.feature("organizations:seer-run-id-in-slack"):
+            renderable = SeerSlackRenderer._render_explorer_response(data)
+
+        assert renderable["text"] == "Seer Explorer has finished"
+        blocks = renderable["blocks"]
+        assert len(blocks) == 2
+
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert "Found a spike in 500 errors from the auth service." in blocks[0].text
+
+        assert isinstance(blocks[1], ContextBlock)
+        assert isinstance(blocks[1].elements[0], PlainTextObject)
+        assert f"Run ID: {MOCK_RUN_ID}" in blocks[1].elements[0].text
+
+    def test_render_explorer_response_without_run_id_flag(self) -> None:
+        data = self._create_explorer_response(
+            summary="Found a spike in 500 errors from the auth service."
+        )
         renderable = SeerSlackRenderer._render_explorer_response(data)
 
         assert renderable["text"] == "Seer Explorer has finished"

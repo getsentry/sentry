@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import orderBy from 'lodash/orderBy';
 
 import type {FormProps} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -11,10 +12,10 @@ import type {
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useProjects} from 'sentry/utils/useProjects';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
@@ -45,7 +46,19 @@ export function NewDetectorLayout<
   const location = useLocation();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const formContext = useDetectorFormContext();
+  const {projects} = useProjects();
+
+  const initialProjectId = useMemo(() => {
+    const queryProjectId = location.query.project as string | undefined;
+    if (queryProjectId) {
+      const match = projects.find(p => p.id === queryProjectId);
+      if (match) {
+        return match.id;
+      }
+    }
+    const sorted = orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc']);
+    return sorted[0]?.id ?? '';
+  }, [location.query.project, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
@@ -57,7 +70,7 @@ export function NewDetectorLayout<
 
   const initialData = useMemo(() => {
     return {
-      projectId: formContext.project.id,
+      projectId: initialProjectId,
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
@@ -65,7 +78,7 @@ export function NewDetectorLayout<
       ...initialFormData,
     };
   }, [
-    formContext.project.id,
+    initialProjectId,
     initialFormData,
     location.query.environment,
     location.query.name,

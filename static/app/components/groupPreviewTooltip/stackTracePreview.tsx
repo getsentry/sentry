@@ -79,16 +79,10 @@ export function StackTracePreviewContent({
     | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
-    return (
-      <NativeContent
-        {...commonProps}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hideIcon
-      />
-    );
+    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
-  return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;
+  return <StackTraceContent {...commonProps} expandFirstFrame={false} />;
 }
 
 type StackTracePreviewProps = {

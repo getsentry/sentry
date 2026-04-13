@@ -1,10 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
@@ -16,30 +18,36 @@ import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardin
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
 
 import {MobileBuildsChart} from './mobileBuildsChart';
 
 type Props = {
   organization: Organization;
   selectedProjectIds: string[];
+  defaultDisplay?: PreprodBuildsDisplay;
+  hideDisplayToggle?: boolean;
 };
 
-export function MobileBuilds({organization, selectedProjectIds}: Props) {
+export function MobileBuilds({
+  organization,
+  selectedProjectIds,
+  defaultDisplay,
+  hideDisplayToggle,
+}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const [searchQuery] = useQueryState('query', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display),
-    [location.query.display]
+    () => defaultDisplay ?? getPreprodBuildsDisplay(location.query.display),
+    [defaultDisplay, location.query.display]
   );
 
   const buildsQueryParams = useMemo(() => {
@@ -72,25 +80,15 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
   }, [activeDisplay, cursor, location, searchQuery, selectedProjectIds]);
 
   const {
-    data: buildsData,
+    data: buildsResponse,
     isPending: isLoadingBuilds,
     error: buildsError,
     refetch,
-    getResponseHeader,
-  }: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> = useApiQuery<
-    BuildDetailsApiResponse[]
-  >(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: buildsQueryParams},
-    ],
-    {
-      staleTime: 0,
-      enabled: selectedProjectIds.length > 0,
-    }
-  );
+  } = useQuery({
+    ...buildDetailsApiOptions({organization, queryParams: buildsQueryParams}),
+    select: selectJsonWithHeaders,
+    enabled: selectedProjectIds.length > 0,
+  });
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -106,18 +104,27 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
     (display: PreprodBuildsDisplay) => {
       navigate({
         ...location,
-        query: {...location.query, cursor: undefined, display},
+        query: {
+          ...location.query,
+          cursor: undefined,
+          display,
+          query: getUpdatedQueryForDisplay(searchQuery, display),
+        },
       });
     },
-    [location, navigate]
+    [location, navigate, searchQuery]
   );
 
-  const builds = buildsData ?? [];
-  const pageLinks = getResponseHeader?.('Link') ?? undefined;
+  const builds = buildsResponse?.json ?? [];
+  const pageLinks = buildsResponse?.headers.Link ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
-  const showProjectColumn = selectedProjectIds.length > 1;
+  const showProjectColumn =
+    selectedProjectIds.length > 1 ||
+    (selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`);
   const projectId = selectedProjectIds[0];
   const shouldShowOnboarding =
+    activeDisplay !== PreprodBuildsDisplay.SNAPSHOT &&
     builds.length === 0 &&
     !isLoadingBuilds &&
     !buildsError &&
@@ -134,7 +141,10 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
     enabled: selectedProjectIds.length > 0,
     error: !!buildsError,
     isLoading: isLoadingBuilds,
-    pageSource: 'releases_mobile_builds_tab',
+    pageSource:
+      activeDisplay === PreprodBuildsDisplay.SNAPSHOT
+        ? 'releases_snapshots_tab'
+        : 'releases_mobile_builds_tab',
     projectCount: selectedProjectIds.length,
     searchQuery,
   });
@@ -170,6 +180,7 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
         initialQuery={searchQuery ?? ''}
         display={activeDisplay}
         projects={selectedProjectIds.map(Number)}
+        hideDisplayToggle={hideDisplayToggle}
         onSearch={handleSearch}
         onDisplayChange={handleDisplayChange}
       />

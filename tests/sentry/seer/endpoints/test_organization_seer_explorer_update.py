@@ -140,3 +140,52 @@ class TestOrganizationSeerExplorerUpdateFeatureFlags(APITestCase):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Feature flag not enabled" in str(response.data)
+
+
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
+class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.organization = self.create_organization(owner=self.user)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
+    )
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    def test_coding_payload_blocked_when_coding_disabled(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        for payload_type in ("select_solution", "create_branch", "create_pr"):
+            response = self.client.post(
+                self.url, data={"payload": {"type": payload_type}}, format="json"
+            )
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["detail"] == "Code generation is disabled for this organization"
+
+        mock_request.assert_not_called()
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
+    )
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    def test_non_coding_payload_allowed_when_coding_disabled(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {}
+
+        response = self.client.post(
+            self.url, data={"payload": {"type": "interrupt"}}, format="json"
+        )
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        mock_request.assert_called_once()

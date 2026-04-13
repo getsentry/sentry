@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -35,6 +35,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -50,6 +52,7 @@ import {ProjectTeamAccess} from './projectTeamAccess';
 export function ProjectDetail() {
   const api = useApi();
   const params = useParams<{orgId: string; projectId: string}>();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -152,20 +155,20 @@ export function ProjectDetail() {
 
   if (!loadingProjects && !project) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingError
           message={t('This project could not be found.')}
           onRetry={onRetryProjects}
         />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   if (!loadingProjects && project && !project.hasAccess) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <MissingProjectMembership organization={organization} project={project} />
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -176,7 +179,7 @@ export function ProjectDetail() {
         skipLoadLastUsed
         showAbsolute={!hasOnlyBasicChart}
       >
-        <Layout.Page>
+        <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
               <Layout.HeaderContent unified>
@@ -205,7 +208,13 @@ export function ProjectDetail() {
 
               <Layout.HeaderActions>
                 <Grid flow="column" align="center" gap="md">
-                  <FeedbackButton />
+                  {hasPageFrameFeature ? (
+                    <TopBar.Slot name="feedback">
+                      <FeedbackButton>{null}</FeedbackButton>
+                    </TopBar.Slot>
+                  ) : (
+                    <FeedbackButton />
+                  )}
                   <LinkButton
                     size="sm"
                     to={
@@ -308,7 +317,7 @@ export function ProjectDetail() {
               </Layout.Side>
             </Layout.Body>
           </NoProjectMessage>
-        </Layout.Page>
+        </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

@@ -60,7 +60,6 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
-          show: () => !organization?.hideAiFeatures,
         },
         {
           path: `${pathPrefix}/user-feedback/`,

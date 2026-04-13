@@ -80,7 +80,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const api = useApi({persistInFlight: true});
 
   const makeProjectSettingsQueryKey: ApiQueryKey = [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
     }),
   ];
@@ -365,6 +365,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           fields={[
             fields.allowedDomains,
             fields.scrapeJavaScript,
+            fields.scmSourceContextEnabled,
             fields.securityToken,
             fields.securityTokenHeader,
             fields.verifySSL,

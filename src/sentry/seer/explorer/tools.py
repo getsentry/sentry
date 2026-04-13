@@ -32,8 +32,10 @@ from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
+from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.constants import ISSUE_ID_ALIAS
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
@@ -370,7 +372,9 @@ def execute_trace_table_query(
         raise
 
 
-def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
+def get_trace_waterfall(
+    trace_id: str, organization_id: int, additional_attributes: list[str] | None = None
+) -> EAPTrace | None:
     """
     Get the full span waterfall and connected errors for a trace.
 
@@ -381,6 +385,8 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     Returns:
         The spans and errors in the trace, along with the full 32-character trace ID.
     """
+    if additional_attributes is None:
+        additional_attributes = ["span.status_code"]
 
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -415,7 +421,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     events = query_trace_data(
         snuba_params,
         full_trace_id,
-        additional_attributes=["span.status_code"],
+        additional_attributes=additional_attributes,
         referrer=Referrer.SEER_EXPLORER_TOOLS,
         organization=organization,
     )
@@ -427,8 +433,10 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
     )
 
 
-def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, Any]:
-    trace = get_trace_waterfall(trace_id, organization_id)
+def rpc_get_trace_waterfall(
+    trace_id: str, organization_id: int, additional_attributes: list[str] | None = None
+) -> dict[str, Any]:
+    trace = get_trace_waterfall(trace_id, organization_id, additional_attributes)
     return trace.dict() if trace else {}
 
 
@@ -776,7 +784,7 @@ def _get_issue_event_timeseries(
         dataset=dataset,
         y_axes=["count()"],
         group_by=[],
-        query=f"issue:{group.qualified_short_id}",
+        query=f"{ISSUE_ID_ALIAS}:{group.id}",
         start=start.isoformat(),
         end=end.isoformat(),
         interval=interval,
@@ -1248,6 +1256,7 @@ def get_event_details(
                         organization_id=organization_id,
                         project_ids=project_ids,
                     ),
+                    eap_conditions=build_event_id_in_filter([event_id]),
                     limit=1,
                     tenant_ids={"organization_id": organization_id},
                     dataset=dataset,
@@ -1348,6 +1357,7 @@ def get_issue_and_event_details_v2(
                         organization_id=organization_id,
                         project_ids=project_ids,
                     ),
+                    eap_conditions=build_event_id_in_filter([event_id]),
                     limit=1,
                     tenant_ids={"organization_id": organization_id},
                     dataset=dataset,

@@ -1,5 +1,7 @@
 import enum
 
+CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
+
 # An issue group must have >= this number of occurrences in order to be
 # a target for 'workflow' autofix.
 AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
@@ -52,6 +54,7 @@ class AutofixReferrer(enum.StrEnum):
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
+    NIGHT_SHIFT = "night_shift"
     UNKNOWN = "unknown"
 
 
@@ -59,3 +62,4 @@ class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     ALERT = "alert"
     POST_PROCESS = "post_process"
+    NIGHT_SHIFT = "night_shift"

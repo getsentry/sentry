@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -157,12 +157,9 @@ export default function AlertWizard() {
     );
   }
 
-  const hasMetricIssues = organization.features.includes(
-    'workflow-engine-metric-issue-ui'
-  );
-  const panelContent = getAlertWizardPanelContent({hasMetricIssues})[alertOption];
+  const panelContent = getAlertWizardPanelContent()[alertOption];
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <SentryDocumentTitle title={t('Alert Creation Wizard')} projectSlug={projectSlug} />
 
       <Layout.Header>
@@ -237,7 +234,7 @@ export default function AlertWizard() {
           </Flex>
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 

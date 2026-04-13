@@ -26,7 +26,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
   const {data: authProvider, isPending: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
       ],

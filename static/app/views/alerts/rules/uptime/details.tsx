@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
@@ -31,6 +31,8 @@ import {
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
@@ -40,6 +42,7 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 export default function UptimeAlertDetails() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {detectorId, projectId} = useParams<{detectorId: string; projectId: string}>();
 
   const api = useApi();
@@ -121,7 +124,7 @@ export default function UptimeAlertDetails() {
   );
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -130,7 +133,7 @@ export default function UptimeAlertDetails() {
               {
                 label: t('Alerts'),
                 to: makeAlertsPathname({
-                  path: `/rules/`,
+                  path: '/rules/',
                   organization,
                 }),
               },
@@ -149,17 +152,15 @@ export default function UptimeAlertDetails() {
             {detector.name}
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="actions">
             <StatusToggleButton
               uptimeDetector={detector}
               onToggleStatus={data => toggleStatus(data)}
-              size="sm"
               disabled={!canEdit}
               {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
             />
             <LinkButton
-              size="sm"
               icon={<IconEdit />}
               disabled={!canEdit}
               tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
@@ -170,8 +171,32 @@ export default function UptimeAlertDetails() {
             >
               {t('Edit Rule')}
             </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+          </TopBar.Slot>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <StatusToggleButton
+                uptimeDetector={detector}
+                onToggleStatus={data => toggleStatus(data)}
+                size="sm"
+                disabled={!canEdit}
+                {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
+              />
+              <LinkButton
+                size="sm"
+                icon={<IconEdit />}
+                disabled={!canEdit}
+                tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+                to={makeAlertsPathname({
+                  path: `/uptime-rules/${project.slug}/${detectorId}/`,
+                  organization,
+                })}
+              >
+                {t('Edit Rule')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main>
@@ -213,7 +238,7 @@ export default function UptimeAlertDetails() {
           />
         </Layout.Side>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 

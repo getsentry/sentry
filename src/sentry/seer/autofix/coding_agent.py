@@ -11,8 +11,28 @@ from django.conf import settings as django_settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
-from sentry import features
-from sentry.constants import ObjectStatus
+from sentry import analytics, features
+from sentry.models.project import Project
+
+
+class IntegrationNotFound(NotFound):
+    pass
+
+
+class OrganizationNotFound(NotFound):
+    pass
+
+
+class AutofixStateNotFound(NotFound):
+    pass
+
+
+class StateReposNotFound(NotFound):
+    pass
+
+
+from sentry.analytics.events.autofix_events import AiAutofixAgentHandoffEvent
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
 )
@@ -38,6 +58,7 @@ from sentry.seer.autofix.utils import (
     get_coding_agent_prompt,
     get_project_seer_preferences,
     make_store_coding_agent_states_request,
+    read_preference_from_sentry_db,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
@@ -118,7 +139,7 @@ def _validate_and_get_integration(organization, integration_id: int):
     )
 
     if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
-        raise NotFound("Integration not found")
+        raise IntegrationNotFound("Integration not found")
 
     integration = integration_service.get_integration(
         organization_integration_id=org_integration.id,
@@ -126,7 +147,7 @@ def _validate_and_get_integration(organization, integration_id: int):
     )
 
     if not integration:
-        raise NotFound("Integration not found")
+        raise IntegrationNotFound("Integration not found")
 
     # Verify it's a coding agent integration
     if integration.provider not in get_coding_agent_providers():
@@ -212,20 +233,35 @@ def _launch_agents_for_repos(
 
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
-    try:
-        preference_response = get_project_seer_preferences(autofix_state.request.project_id)
-        if preference_response and preference_response.preference:
-            if preference_response.preference.automation_handoff:
-                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "coding_agent.get_project_seer_preferences_error",
-            extra={
-                "organization_id": organization.id,
-                "run_id": run_id,
-                "project_id": autofix_state.request.project_id,
-            },
-        )
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        try:
+            project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
+            preference = read_preference_from_sentry_db(project)
+            if preference and preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
+        except Project.DoesNotExist:
+            logger.exception(
+                "coding_agent.project_not_found",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "project_id": autofix_state.request.project_id,
+                },
+            )
+    else:
+        try:
+            preference = get_project_seer_preferences(autofix_state.request.project_id).preference
+            if preference and preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "coding_agent.get_project_seer_preferences_error",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "project_id": autofix_state.request.project_id,
+                },
+            )
 
     repos = set(
         _extract_repos_from_root_cause(autofix_state)
@@ -252,7 +288,7 @@ def _launch_agents_for_repos(
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound(
+        raise StateReposNotFound(
             "There are no repos in the Seer state to launch coding agents with, make sure you have repos connected to Seer and rerun this Issue Fix."
         )
 
@@ -401,6 +437,8 @@ def launch_coding_agents_for_run(
     trigger_source: AutofixTriggerSource = AutofixTriggerSource.SOLUTION,
     instruction: str | None = None,
     user_id: int | None = None,
+    initiator: str | None = None,
+    referrer: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an autofix run.
@@ -426,7 +464,10 @@ def launch_coding_agents_for_run(
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        raise NotFound("Organization not found")
+        raise OrganizationNotFound("Organization not found")
+
+    if not organization.get_option("sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT):
+        raise PermissionDenied("Code generation is disabled for this organization")
 
     integration = None
     installation: CodingAgentIntegration | None = None
@@ -454,7 +495,7 @@ def launch_coding_agents_for_run(
 
     autofix_state = _get_autofix_state(run_id, organization)
     if autofix_state is None:
-        raise NotFound("Autofix state not found")
+        raise AutofixStateNotFound("Autofix state not found")
 
     logger.info(
         "coding_agent.launch_request",
@@ -490,6 +531,18 @@ def launch_coding_agents_for_run(
             "repos_succeeded": len(results["successes"]),
             "repos_failed": len(results["failures"]),
         },
+    )
+
+    coding_agent_name = provider or (integration.provider if integration else None)
+    analytics.record(
+        AiAutofixAgentHandoffEvent(
+            organization_id=organization.id,
+            project_id=autofix_state.request.project_id,
+            group_id=autofix_state.request.issue["id"],
+            referrer=referrer,
+            coding_agent=coding_agent_name,
+            initiator=initiator,
+        )
     )
 
     return results
@@ -654,7 +707,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
 
     if (
         last_event_type == ClaudeSessionEventStatus.IDLE
-        or last_event_type == ClaudeSessionEventStatus.CLOSED
+        or last_event_type == ClaudeSessionEventStatus.TERMINATED
     ):
         new_status = CodingAgentStatus.COMPLETED
 
@@ -679,7 +732,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
             },
         )
 
-    elif last_event_type == ClaudeSessionEventStatus.PENDING:
+    elif last_event_type == ClaudeSessionEventStatus.RESCHEDULING:
         if agent_state.status != CodingAgentStatus.PENDING:
             update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
 
@@ -744,7 +797,7 @@ def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | 
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
     for event in reversed(events):
-        if event.type != "agent":
+        if event.type != "agent.message":
             continue
         for block in getattr(event, "content", []):
             if isinstance(block, dict) and block.get("type") == "text":

@@ -32,7 +32,7 @@ export function PolicyDetails() {
     refetch,
   } = useApiQuery<Policy>(
     [
-      getApiUrl(`/policies/$policySlug/`, {
+      getApiUrl('/policies/$policySlug/', {
         path: {policySlug},
       }),
     ],

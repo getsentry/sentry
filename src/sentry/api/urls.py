@@ -270,6 +270,9 @@ from sentry.integrations.api.endpoints.organization_integration_channels import 
 from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_integration_direct_enable import (
+    OrganizationIntegrationDirectEnableEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
@@ -374,7 +377,6 @@ from sentry.issues.endpoints.organization_issues_resolved_in_release import (
 )
 from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
-from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.issues.endpoints.project_issues_resolved_in_release import (
     ProjectIssuesResolvedInReleaseEndpoint,
 )
@@ -525,6 +527,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
+from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -559,9 +562,6 @@ from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgentTranslateEndpoint
 from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
     OrganizationSupergroupDetailsEndpoint,
-)
-from sentry.seer.supergroups.endpoints.organization_supergroups import (
-    OrganizationSupergroupsEndpoint,
 )
 from sentry.seer.supergroups.endpoints.organization_supergroups_by_group import (
     OrganizationSupergroupsByGroupEndpoint,
@@ -618,6 +618,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
+from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -1971,6 +1972,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-integrations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/direct-enable/(?P<provider_key>[^/]+)/$",
+        OrganizationIntegrationDirectEnableEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-direct-enable",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/coding-agents/$",
         OrganizationCodingAgentsEndpoint.as_view(),
         name="sentry-api-0-organization-coding-agents",
@@ -2429,11 +2435,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
         OrganizationSeerExplorerUpdateEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/$",
-        OrganizationSupergroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-supergroups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/by-group/$",
@@ -3277,12 +3278,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectRepoPathParsingEndpoint.as_view(),
         name="sentry-api-0-project-repo-path-parsing",
     ),
-    # Grouping configs
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/grouping-configs/$",
-        ProjectGroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-project-grouping-configs",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingProfileEndpoint.as_view(),
@@ -3652,8 +3647,18 @@ INTERNAL_URLS = [
         OrgCellMappingsEndpoint.as_view(),
         name="sentry-api-0-org-cell-mappings",
     ),
+    re_path(
+        r"^projectkey-cell-mappings/$",
+        ProjectKeyCellMappingsEndpoint.as_view(),
+        name="sentry-api-0-projectkey-cell-mappings",
+    ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
+    re_path(
+        r"^seer/night-shift/trigger/$",
+        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        name="sentry-admin-seer-night-shift-trigger",
+    ),
 ]
 
 urlpatterns = [
@@ -3782,11 +3787,6 @@ urlpatterns = [
         r"^data-export/notifications/google-cloud/$",
         DataExportNotificationsEndpoint.as_view(),
         name="sentry-api-0-data-export-notifications",
-    ),
-    re_path(
-        r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
-        AcceptOrganizationInvite.as_view(),
-        name="sentry-api-0-accept-organization-invite",
     ),
     re_path(
         r"^notification-defaults/$",

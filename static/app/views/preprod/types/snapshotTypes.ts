@@ -23,6 +23,22 @@ export interface SnapshotComparisonRunInfo {
   state?: ComparisonState;
 }
 
+export interface SnapshotApprover {
+  source: 'sentry' | 'github';
+  approved_at?: string | null;
+  avatar_url?: string | null;
+  email?: string | null;
+  id?: string | null;
+  name?: string | null;
+  username?: string | null;
+}
+
+export interface SnapshotApprovalInfo {
+  approvers: SnapshotApprover[];
+  status: 'approved' | 'requires_approval';
+  is_auto_approved?: boolean;
+}
+
 export interface SnapshotDetailsApiResponse {
   comparison_type: 'solo' | 'diff';
   head_artifact_id: string;
@@ -33,6 +49,10 @@ export interface SnapshotDetailsApiResponse {
   vcs_info: BuildDetailsVcsInfo;
 
   comparison_run_info?: SnapshotComparisonRunInfo | null;
+
+  approval_info?: SnapshotApprovalInfo | null;
+
+  diff_threshold?: number | null;
 
   // Diff fields
   added: SnapshotImage[];

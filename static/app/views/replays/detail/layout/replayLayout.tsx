@@ -8,8 +8,14 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayController} from 'sentry/components/replays/replayController';
 import {ReplayView} from 'sentry/components/replays/replayView';
-import {LayoutKey, useReplayLayout} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  LayoutKey,
+  useDefaultReplayLayout,
+  useReplayLayout,
+} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {FocusArea} from 'sentry/views/replays/detail/layout/focusArea';
 import {FocusTabs} from 'sentry/views/replays/detail/layout/focusTabs';
@@ -32,8 +38,9 @@ export function ReplayLayout({
   replayRecord: ReplayRecord | undefined;
   isVideoReplay?: boolean;
 }) {
-  const {getLayout} = useReplayLayout();
-  const layout = getLayout() ?? LayoutKey.TOPBAR;
+  const organization = useOrganization();
+  const defaultLayout = useDefaultReplayLayout();
+  const [layout, setLayout] = useReplayLayout();
 
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -47,7 +54,21 @@ export function ReplayLayout({
     <VideoSection ref={fullscreenRef}>
       <TooltipContext value={{container: fullscreenRef.current}}>
         <ErrorBoundary mini>
-          <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
+          <ReplayView
+            isLoading={isLoading}
+            layout={layout}
+            toggleFullscreen={toggleFullscreen}
+            toggleLayout={() => {
+              const chosenLayout =
+                layout === LayoutKey.VIDEO_ONLY ? defaultLayout : LayoutKey.VIDEO_ONLY;
+              trackAnalytics('replay.details-layout-changed', {
+                organization,
+                default_layout: defaultLayout,
+                chosen_layout: chosenLayout,
+              });
+              setLayout(chosenLayout);
+            }}
+          />
         </ErrorBoundary>
       </TooltipContext>
     </VideoSection>
@@ -66,8 +87,10 @@ export function ReplayLayout({
   if (layout === LayoutKey.VIDEO_ONLY) {
     return (
       <BodyGrid>
-        {video}
-        {controller}
+        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
+          {video}
+          {controller}
+        </Stack>
       </BodyGrid>
     );
   }
@@ -103,6 +126,7 @@ export function ReplayLayout({
         <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
           {hasSize ? (
             <SplitPanel
+              layout={layout}
               key={layout}
               availableSize={width}
               left={{
@@ -126,6 +150,7 @@ export function ReplayLayout({
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
+            layout={layout}
             key={layout}
             availableSize={height}
             top={{

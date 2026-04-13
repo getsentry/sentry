@@ -285,6 +285,72 @@ class TestMain:
         assert "test-count=0" in gh
         assert output.read_text() == ""
 
+    def test_renamed_file_queries_old_path(self, tmp_path):
+        """When a file is renamed, the old path should be queried against the coverage DB."""
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                # Coverage DB still has the old filename
+                "../sentry/src/sentry/models/old_name.py": [
+                    "../sentry/tests/sentry/test_old_name.py::T::test|run",
+                ],
+            },
+        )
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+            _run(
+                [
+                    "--coverage-db",
+                    str(db_path),
+                    "--changed-files",
+                    "src/sentry/models/new_name.py",
+                    "--previous-filenames",
+                    "src/sentry/models/old_name.py",
+                    "--output",
+                    str(output),
+                    "--github-output",
+                ],
+                {"GITHUB_OUTPUT": str(gh_output)},
+            )
+
+        gh = gh_output.read_text()
+        assert "has-selected-tests=true" in gh
+        assert "test-count=1" in gh
+        assert output.read_text().strip() == "tests/sentry/test_old_name.py"
+
+    def test_renamed_file_without_previous_misses_coverage(self, tmp_path):
+        """Without --previous-filenames, a renamed file gets no coverage hits."""
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                "../sentry/src/sentry/models/old_name.py": [
+                    "../sentry/tests/sentry/test_old_name.py::T::test|run",
+                ],
+            },
+        )
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        _run(
+            [
+                "--coverage-db",
+                str(db_path),
+                "--changed-files",
+                "src/sentry/models/new_name.py",
+                "--github-output",
+            ],
+            {"GITHUB_OUTPUT": str(gh_output)},
+        )
+
+        gh = gh_output.read_text()
+        assert "has-selected-tests=true" in gh
+        assert "test-count=0" in gh
+
     def test_missing_db_returns_error(self):
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])
         assert ret == 1

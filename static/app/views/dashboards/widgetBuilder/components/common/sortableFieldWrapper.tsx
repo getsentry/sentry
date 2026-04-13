@@ -53,6 +53,7 @@ export function SortableVisualizeFieldWrapper({
 
 const StyledDragReorderButton = styled(DragReorderButton)<{isDragging: boolean}>`
   height: ${p => p.theme.form.md.height};
+  cursor: grab;
 
   ${p => p.isDragging && p.theme.visuallyHidden}
 `;

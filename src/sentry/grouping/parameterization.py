@@ -1,9 +1,40 @@
 import dataclasses
+import logging
 import re
-from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections import Counter, OrderedDict, defaultdict
+from collections.abc import Sequence
+from ipaddress import ip_address, ip_interface, ip_network
+from typing import Any, Callable
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.events.grouping")
+
+
+# Counter for logging a set amount of example data. Not meant to be used directly. (Use the
+# `_log_example_data` helper instead.)
+LOGGING_COUNTER: Counter[str] = Counter()
+
+# Function parameterization regexes can specify to provide a customized replacement string. Can also
+# be used to do conditional replacement, by returning the original value in cases where replacement
+# shouldn't happen.
+ParameterizationReplacementFunction = Callable[[str], str]
+
+
+# Log examples, up to the given limit.
+def _log_example_data(
+    key: str,  # Key used for tracking log count and in logger `event` string
+    extra: dict[str, Any],  # Extra data to add to the log (should include example data)
+    limit: int = 100,  # Number of logs to be gathered per deployment
+) -> None:
+    # Note: In a multi-threaded environment, it's possible to run into a race condition where
+    # multiple threads are simultaneously logging what should theoretically be the last example. As
+    # result, we may end up logging a few more examples than the given limit. To fix this, we'd need
+    # to wrap everything here in a lock, but given that a few extra logs don't hurt anything, it's
+    # not worth blocking ingest by doing so.
+    if LOGGING_COUNTER[key] < limit:
+        logger.info(f"grouping.parameterization.{key}", extra=extra)
+        LOGGING_COUNTER[key] += 1
 
 
 @dataclasses.dataclass
@@ -11,8 +42,8 @@ class ParameterizationRegex:
     name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
     raw_pattern_experimental: str | None = None
-    lookbehind: str | None = None  # positive lookbehind prefix if needed
-    lookahead: str | None = None  # positive lookahead postfix if needed
+    # Function which takes the matched value and returns the replacement value.
+    replacement_callback: ParameterizationReplacementFunction | None = None
 
     # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
@@ -29,11 +60,28 @@ class ParameterizationRegex:
 
     def _get_pattern(self, raw_pattern: str) -> str:
         """
-        Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
+        Returns the regex pattern inside of a named matching group.
         """
-        prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
-        postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
+        return rf"(?P<{self.name}>{raw_pattern})"
+
+
+def is_valid_ip(maybe_ip_str: str) -> bool:
+    # Validate the string by attempting to pass it to the three built-in factory functions for
+    # creating different types of ip address objects. If any of them succeeds, it's a valid IP. If
+    # all three raise an error, it's not.
+    for fn, kwargs in (
+        (ip_address, {}),
+        (ip_interface, {}),
+        (ip_network, {"strict": False}),  # `strict: False` allows host bits
+    ):
+        try:
+            fn(maybe_ip_str, **kwargs)
+        except ValueError:
+            pass
+        else:
+            return True
+
+    return False
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
@@ -53,42 +101,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 (com|net|org|jp|de|uk|fr|br|it|ru|es|me|gov|pl|ca|au|cn|co|in|nl|edu|info|eu|ch|id|at|kr|cz|mx|be|tv|se|tr|tw|al|ua|ir|vn|cl|sk|ly|cc|to|no|fi|us|pt|dk|ar|hu|tk|gr|il|news|ro|my|biz|ie|za|nz|sg|ee|th|io|xyz|pe|bg|hk|rs|lt|link|ph|club|si|site|mobi|by|cat|wiki|la|ga|xxx|cf|hr|ng|jobs|online|kz|ug|gq|ae|is|lv|pro|fm|tips|ms|sa|app)
             )
             \b
-        """,
-    ),
-    ParameterizationRegex(
-        name="ip",
-        raw_pattern=r"""
-            # This negative lookbehind ensures two things (depending on the pattern):
-            #     - We don't match starting in the middle of a valid set of initial characters
-            #     - We don't match things like `::` when they appear in expressions like `SomeClass::someMethod()`
-            (?<![0-9a-zA-Z_])
-            (
-                ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
-                ([0-9a-fA-F]{1,4}:){1,7}:|
-                ([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|
-                ([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|
-                ([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|
-                ([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|
-                ([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|
-                [0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|
-                :((:[0-9a-fA-F]{1,4}){1,7}|:)|
-                fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|
-                ::(ffff(:0{1,4}){0,1}:){0,1}
-                ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
-                (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|
-                ([0-9a-fA-F]{1,4}:){1,4}:
-                ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
-                (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            )
-            # This negative lookahead works with the negative lookbehind above to block false
-            # positives on expressions of the form `SomeClass::someMethod()`, ensuring that even if
-            # the class name is valid hex, the method name being invalid will block the match
-            (?![0-9a-zA-Z])
-            |
-            (
-                \b((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
-                (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            )
         """,
     ),
     ParameterizationRegex(
@@ -191,6 +203,52 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
+    # IPv6 addresses
+    ParameterizationRegex(
+        name="ip",
+        # The rules for IP address (specifically IPv6 addresses) are sufficiently complicated that
+        # trying to write a regex to handle all cases would be (indeed, has been) quite hard and
+        # error-prone. Instead, we use our regex to find things which look like they *might* be
+        # valid IPs, and then let python's built-in `ipaddress` functions verify that we're right.
+        raw_pattern=r"""
+            # IPv4-like strings
+            (::[fF]{4}:)? # Optional prefix mapping the IPv4 address which follows to IPv6 format
+            (
+                \b
+                (\d{1,3}\.){3} # Three sets of 1-3 digits, each followed by a literal dot
+                \d{1,3} # Final set of 1-3 digits
+                (/\d{1,2})? # Optional CIDR suffix
+                \b
+            )
+            |
+            # IPv6-like strings
+            #
+            # Note: We can't use word boundaries here as we did with IPv4s because IPv6s contain
+            # non-word characters. Instead, we use a negative lookbehind and a negative lookahead,
+            # respectively, to specify the beginning and end of the pattern. These protect against
+            # two things:
+            #   - Cases where the initial or end characters are all valid, but there are too many of
+            #     them. (IOW, we don't want to match `2345:...` inside of an otherwise-invalid IP
+            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.)
+            #   - Cases where `::` (which is a valid IPv6 address) appears inside of expressions
+            #     like `SomeClass::someMethod()`, especially when the characters bordering the `::`
+            #     are valid hex, like `Space::explore()`.
+            # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
+            # 5 characters on either side, but those are presumably pretty rare.
+            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (
+                ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
+                [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (%\S+)? # Optional zone ID
+                (/\d{1,3})? # Optional CIDR suffix
+            )
+            (?![0-9a-zA-Z]) # Negative lookahead
+        """,
+        # Validate that the matched string actually is an IP address before replacing it. If not,
+        # leave it alone.
+        replacement_callback=lambda orig_value: "<ip>" if is_valid_ip(orig_value) else orig_value,
+    ),
     ParameterizationRegex(
         name="swift_txn_id",
         raw_pattern=r"""
@@ -207,23 +265,40 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (between 8 and 128 digits, including a number, and
-            # either all uppercase or all lowercase - we're more conservative here on all three
-            # scores in order to reduce false positives).
-            #
-            # Note: We use a lookahead for `0-9` but don't need one for `a-f/A-F` since if
-            #   a) the value consists of nothing but potential hex digits, but
-            #   b) none of those potential hex digits is a letter
-            # then the <int> pattern would already have caught it. Given that we're here, it didn't,
-            # so the only thing we need the lookahead to guard against is it being all letters.
-            #
-            # Each regex consists of two parts, the lookahead and the hex characters themselves. For
-            # example, for the lowercase pattern we have:
-            #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
-            #                         preceded by some number of hex letters
-            #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
-            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+            # Hex value without `0x/0X` prefix (at least 4 characters long, containing both a letter
+            # and number if shorter than 8 characters, and either all uppercase or all lowercase -
+            # we're more conservative here in order to reduce false positives).
+            (
+                # Regular word boundary (for positive values)
+                \b
+                |
+                # Alphanumeric negative lookbehind before the dash in negative values to ensure it's
+                # only considered a minus sign if it doesn't connect two alphanumeric strings. (No
+                # word boundary here because the dash serves as the word boundary, since it's not a
+                # word character.)
+                (?<!\w)-
+            )
+            (
+                # The patterns for hex strings 4-6 characters long each consist of three parts:
+                #   - Lookahead to guarantee at least one digit (any number of letters, followed by
+                #     a single digit - doesn't have to cover the entire match, so there can continue
+                #     to be letters and numbers after the digit is found)
+                #   - Lookahead to guarantee at least one letter (any number of numbers, followed by
+                #     a single letter - as above, doesn't have to cover the entire match)
+                #   - The matcher itself - between 4 and 6 hex characters (7-character strings
+                #     aren't included because those are classified as git SHAs)
+                (?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{4,6} |
+                (?=[A-F]*[0-9])(?=[0-9]*[A-F])[0-9A-F]{4,6} |
+                # The patterns for hex strings 8-128 characters long are less restrictive. We don't
+                # require a number because exceedingly few 8+-letter words consist of only the
+                # letters A-E - the string 'fabaceae' is much more likely to be hex than the Latin
+                # name for the plant family which includes legumes. And we don't require a letter
+                # because long strings of digits are probably more likely to be hex than to be giant
+                # integers.
+                [0-9a-f]{8,128} |
+                [0-9A-F]{8,128}
+            )
+            \b
         """,
     ),
     ParameterizationRegex(
@@ -238,82 +313,104 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
-    ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
+    ParameterizationRegex(
+        name="int",
+        raw_pattern=r"""
+            (
+                # Regular word boundary for positive ints
+                \b
+                |
+                # Alphanumeric negative lookbehind before the dash in negative ints (logic the same
+                # as in the hex pattern above)
+                (?<!\w)-
+            )
+            \d{1,7} # Anything 8 digits and up is considered hex
+            \b
+        """,
+    ),
     ParameterizationRegex(
         name="quoted_str",
         raw_pattern=r"""
-            '([^']+)' | "([^"]+)"
+            # Lookbehind to ensure we'll only match the value half of `<key>=<value>`-type key-value
+            # pairs, rather than all quoted strings
+            (?<=[=])
+            (
+                '([^']+)' |
+                "([^"]+)"
+            )
         """,
-        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
-        # rather than all quoted strings
-        lookbehind="=",
     ),
     ParameterizationRegex(
         name="bool",
         raw_pattern=r"""
-            True |
-            true |
-            False |
-            false
+            # Lookbehind to ensure we'll only match the value half of `<key>=<value>`-type key-value
+            # pairs, rather than all instances of the words 'true' and 'false'
+            (?<=[=])
+            (
+                True | true | False | false
+            )
         """,
-        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
-        # rather than all instances of the words 'true' and 'false'.
-        lookbehind="=",
     ),
 ]
-
-
-# Patterns to use for each match type when not in experimental mode.
-DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
-
-# Patterns to use when in experimental mode. If no experimental pattern exists for a given type of
-# match, falls back to the default pattern.
-EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
-    for r in DEFAULT_PARAMETERIZATION_REGEXES
-}
 
 
 class Parameterizer:
     def __init__(
         self,
+        # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
+        # the default set will be used.
+        regexes: Sequence[ParameterizationRegex] = DEFAULT_PARAMETERIZATION_REGEXES,
+        *,
         # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
         # use all available parameterization, omit this argument.
-        regex_pattern_keys: Sequence[str] | None = None,
+        regex_keys: Sequence[str] | None = None,
         # Whether to use experimental patterns, if available. (Pattern types without an experimental
         # pattern will fall back to the standard pattern.)
         use_experimental_regexes: bool = False,
     ):
-        self._experimental = (
+        # Filter regexes by the specified keys, if given
+        if regex_keys:
+            regexes = [r for r in regexes if r.name in regex_keys]
+
+        self.is_experimental = (
             use_experimental_regexes
             # Only mark the parameterizer as experimental if there are actually any experiments
             # running. If there aren't, then both parameterizers use the default regex patterns, so
             # the "experimental" parameterizer isn't actually experimental.
-            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
-        )
-        self._parameterization_regex = self._make_regex_from_patterns(
-            regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
+            and any(r.experimental_pattern is not None for r in regexes)
         )
 
-    def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
-        """
-        Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
+        if self.is_experimental:
+            # This uses an `OrderedDict` to guarantee we apply the patterns in the given order.
+            patterns_by_name = OrderedDict(
+                (
+                    r.name,
+                    r.experimental_pattern if r.experimental_pattern else r.pattern,
+                )
+                for r in regexes
+            )
+        else:
+            patterns_by_name = OrderedDict((r.name, r.pattern) for r in regexes)
 
-        @param pattern_keys: A list of keys to match in the _parameterization_regex_components dict.
-        @returns: A compiled regex pattern that matches any of the given keys.
-        @raises: KeyError on pattern key not in the _parameterization_regex_components dict
-
-        The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
-        so we can use newlines and indentation for better legibility in patterns above.
-        """
-
-        regexes_map = (
-            EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP
-            if self._experimental
-            else DEFAULT_PARAMETERIZATION_REGEXES_MAP
+        # Combine the individual patterns into one giant regex to check against. (This is faster
+        # than checking each pattern individually because it entails less overhead.)
+        self.combined_regex = re.compile(
+            # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace, so we
+            # can use newlines and indentation for better legibility when defining regexes
+            rf"(?x){'|'.join(patterns_by_name.values())}"
         )
 
-        return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
+        # Collect replacement callbacks, if any
+        self.replacement_functions = {
+            r.name: r.replacement_callback for r in regexes if r.replacement_callback
+        }
+
+        # Store the individual regexes in case we need to handle replacement function false
+        # positives by manually looping through the patterns. This uses an `OrderedDict` to
+        # guarantee we apply them in the same order as in the main/combined regex.
+        self.compiled_regexes_by_name = OrderedDict(
+            (name, re.compile(rf"(?x){pattern}")) for name, pattern in patterns_by_name.items()
+        )
 
     def parameterize(self, input_str: str) -> str:
         """
@@ -323,27 +420,91 @@ class Parameterizer:
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
-        matches_counter: defaultdict[str, int] = defaultdict(int)
+        replacement_counts: defaultdict[str, int] = defaultdict(int)
+        # Track whether any regex matches don't lead to a replacement
+        found_false_positive = False
+        # Flag allowing us to only count false positives during the main parameterization, not the
+        # fallback run
+        emit_false_positive_metric = True
 
         def _handle_regex_match(match: re.Match[str]) -> str:
-            # Find the first (should be only) non-None match entry, and sub in the placeholder. For
-            # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
-            # replacement for the original value in the string.
-            for key, value in match.groupdict().items():
-                if value is not None:
-                    matches_counter[key] += 1
-                    return f"<{key}>"
-            return ""
+            # Ensure we're dealing with the flag from the outer scope, rather than shadowing it
+            nonlocal found_false_positive
+
+            # This handler gets called on two types of regexes:
+            #   - The main/combination regex, which consists of a bunch of named capturing groups
+            #     (with no nested named groups) separated by `|`.
+            #   - Individual regexes for each pattern type, each consisting of one of the
+            #     alternatives in the main regex.
+            # In the former case, only one alternative can have been matched, so its group name will
+            # be the only (and therefore last) matched group name. In the latter case, there is only
+            # one named group to match, so its name will automatically be the only/last matched
+            # group name. Thus `lastgroup` should give us the group name in either case.
+            matched_key = match.lastgroup
+            orig_value = match.groupdict().get(
+                matched_key or ""  # Empty string for mypy appeasment
+            )
+
+            if not matched_key or not orig_value:  # Insurance - shouldn't happen IRL
+                return ""
+
+            replacement_callback = self.replacement_functions.get(matched_key)
+            replacement_string = (
+                replacement_callback(orig_value) if replacement_callback else f"<{matched_key}>"
+            )
+
+            # The replacement callback might return the original value, if it determines it's not
+            # something which should be replaced, and we don't want to count that
+            if replacement_string != orig_value:
+                replacement_counts[matched_key] += 1
+            else:
+                found_false_positive = True
+
+                # This is only true during the main combo-regex parameterization, not during
+                # fallback, so that we don't double-count these occurrences
+                if emit_false_positive_metric:
+                    # Track the number of false positive matches, and what pattern produced them. We
+                    # can compare this to the same key's `grouping.value_parameterized` metric below
+                    # to see how often our maybe-matches pan out to be actual matches.
+                    metrics.incr(
+                        "grouping.parameterization_false_positive", tags={"key": matched_key}
+                    )
+                    # TODO: Remove this once we have enough sample data
+                    _log_example_data(
+                        "ip_false_positive", extra={"input_str": input_str, "value": orig_value}
+                    )
+
+            return replacement_string
 
         with metrics.timer(
-            "grouping.parameterize", tags={"experimental": self._experimental}
+            "grouping.parameterize", tags={"experimental": self.is_experimental}
         ) as metric_tags:
-            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            parameterized = self.combined_regex.sub(_handle_regex_match, input_str)
+
+            # Our big combo regex will short-circuit when it finds a match, which is great for
+            # performance but problematic in cases where a replacement callback declines to
+            # parameterize a value, because then the value never gets checked against later
+            # patterns. To protect against that, in those cases we cycle through all patterns
+            # individually, which is slower but ensures we check them all.
+            if found_false_positive:
+                metric_tags["false_positive"] = True
+
+                # Reset values before applying the patterns again
+                replacement_counts = defaultdict(int)
+                parameterized = input_str
+
+                # Prevent double-counting of false positives
+                emit_false_positive_metric = False
+
+                # Apply patterns one by one, with no short-circuiting
+                for regex_key, regex in self.compiled_regexes_by_name.items():
+                    parameterized = regex.sub(_handle_regex_match, parameterized)
+
             metric_tags["changed"] = parameterized != input_str
 
-        for key, value in matches_counter.items():
+        for regex_key, count in replacement_counts.items():
             # Track the kinds of replacements being made
-            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+            metrics.incr("grouping.value_parameterized", amount=count, tags={"key": regex_key})
 
         return parameterized
 

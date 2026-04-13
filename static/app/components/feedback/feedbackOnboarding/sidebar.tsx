@@ -1,13 +1,14 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
@@ -42,7 +43,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -197,13 +197,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     textValue?: string;
   }>(jsFrameworkSelectOptions[0]!);
 
-  const defaultTab = 'npm';
   const location = useLocation();
   const crashReportOnboarding = location.hash === CRASH_REPORT_HASH;
 
-  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+  const [setupMode, setSetupMode] = useQueryState(
     'mode',
-    defaultTab
+    parseAsStringLiteral(['npm', 'jsLoader'] as const).withDefault('npm')
   );
 
   const currentPlatform = currentProject.platform
@@ -211,7 +210,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     : otherPlatform;
 
   const webBackendPlatform = replayBackendPlatforms.includes(currentPlatform.id);
-  const showJsFrameworkInstructions = webBackendPlatform && setupMode() === 'npm';
+  const showJsFrameworkInstructions = webBackendPlatform && setupMode === 'npm';
 
   const crashApiPlatform = feedbackCrashApiPlatforms.includes(currentPlatform.id);
   const widgetPlatform = feedbackWidgetPlatforms.includes(currentPlatform.id);
@@ -261,48 +260,50 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const radioButtons = (
     <Header>
       {showRadioButtons ? (
-        <StyledRadioGroup
-          label="mode"
-          choices={[
-            [
-              'npm',
-              webBackendPlatform ? (
-                <Flex align="center" wrap="wrap" gap="md" key="platform-select">
-                  {tct('I use [platformSelect]', {
-                    platformSelect: (
-                      <CompactSelect
-                        size="xs"
-                        trigger={triggerProps => (
-                          <OverlayTrigger.Button {...triggerProps}>
-                            {jsFramework.label ?? triggerProps.children}
-                          </OverlayTrigger.Button>
-                        )}
-                        value={jsFramework.value}
-                        onChange={setJsFramework}
-                        options={jsFrameworkSelectOptions}
-                        position="bottom-end"
-                        key={jsFramework.textValue}
-                        disabled={setupMode() === 'jsLoader'}
+        <Container padding="md 0">
+          <RadioGroup<typeof setupMode>
+            label="mode"
+            choices={[
+              [
+                'npm',
+                webBackendPlatform ? (
+                  <Flex align="center" wrap="wrap" gap="md" key="platform-select">
+                    {tct('I use [platformSelect]', {
+                      platformSelect: (
+                        <CompactSelect
+                          size="xs"
+                          trigger={triggerProps => (
+                            <OverlayTrigger.Button {...triggerProps}>
+                              {jsFramework.label ?? triggerProps.children}
+                            </OverlayTrigger.Button>
+                          )}
+                          value={jsFramework.value}
+                          onChange={setJsFramework}
+                          options={jsFrameworkSelectOptions}
+                          position="bottom-end"
+                          key={jsFramework.textValue}
+                          disabled={setupMode === 'jsLoader'}
+                        />
+                      ),
+                    })}
+                    {jsFrameworkDocs?.platformOptions && (
+                      <PlatformOptionDropdown
+                        platformOptions={jsFrameworkDocs?.platformOptions}
+                        disabled={setupMode === 'jsLoader'}
                       />
-                    ),
-                  })}
-                  {jsFrameworkDocs?.platformOptions && (
-                    <PlatformOptionDropdown
-                      platformOptions={jsFrameworkDocs?.platformOptions}
-                      disabled={setupMode() === 'jsLoader'}
-                    />
-                  )}
-                </Flex>
-              ) : (
-                t('I use NPM or Yarn')
-              ),
-            ],
-            ['jsLoader', t('I use HTML templates (Loader Script)')],
-          ]}
-          value={setupMode()}
-          onChange={setSetupMode}
-          tooltipPosition="top-start"
-        />
+                    )}
+                  </Flex>
+                ) : (
+                  t('I use NPM or Yarn')
+                ),
+              ],
+              ['jsLoader', t('I use HTML templates (Loader Script)')],
+            ]}
+            value={setupMode}
+            onChange={value => setSetupMode(value)}
+            tooltipPosition="top-start"
+          />
+        </Container>
       ) : (
         (newDocs?.platformOptions?.siblingOption ||
           newDocs?.platformOptions?.packageManager) &&
@@ -370,9 +371,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       return 'feedbackOnboardingCrashApi';
     }
     if (
-      setupMode() === 'npm' || // switched to NPM option
-      (!setupMode() && defaultTab === 'npm' && widgetPlatform) || // default value for FE frameworks when ?mode={...} in URL is not set yet
-      npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks)
+      setupMode === 'npm' || // switched to NPM option
+      npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
     ) {
       return 'feedbackOnboardingNpm';
     }
@@ -430,8 +430,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${p => p.theme.space.md} 0;
 `;

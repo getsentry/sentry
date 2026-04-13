@@ -140,7 +140,7 @@ describe('IssueRuleEditor', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       body: {},
       match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
@@ -151,14 +151,14 @@ describe('IssueRuleEditor', () => {
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/`,
+      url: '/organizations/org-slug/integrations/',
       body: [],
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/`,
+        url: '/organizations/org-slug/config/integrations/',
         match: [MockApiClient.matchQuery({provider_key: providerKey})],
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
       });
@@ -500,11 +500,13 @@ describe('IssueRuleEditor', () => {
         body: {uuid},
       });
       const {router} = createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(() => jest.advanceTimersByTimeAsync(600));
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(() => jest.advanceTimersByTimeAsync(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
@@ -524,12 +526,15 @@ describe('IssueRuleEditor', () => {
         statusCode: 202,
         body: {uuid},
       });
+
       createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(() => jest.advanceTimersByTimeAsync(600));
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(() => jest.advanceTimersByTimeAsync(1000));
       expect(addLoadingMessage).toHaveBeenCalledTimes(2);
       expect(pollingMock).toHaveBeenCalledTimes(1);
       expect(await screen.findByTestId('loading-mask')).toBeInTheDocument();
@@ -547,11 +552,13 @@ describe('IssueRuleEditor', () => {
         body: {uuid},
       });
       createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(() => jest.advanceTimersByTimeAsync(600));
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(() => jest.advanceTimersByTimeAsync(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledTimes(1);

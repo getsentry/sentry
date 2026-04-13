@@ -21,7 +21,7 @@ export function useCodeMappings({enabled}: UseCodeMappingsParams) {
     isError,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

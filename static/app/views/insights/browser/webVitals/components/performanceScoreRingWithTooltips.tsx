@@ -383,6 +383,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
 // Hover element on mouse
 const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   position: absolute;
+  z-index: ${p => p.theme.zIndex.tooltip};
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};

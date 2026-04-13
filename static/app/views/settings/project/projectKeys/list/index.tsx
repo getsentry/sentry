@@ -51,7 +51,7 @@ export default function ProjectKeys() {
     getResponseHeader,
   } = useApiQuery<ProjectKey[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
       {
@@ -101,7 +101,7 @@ export default function ProjectKeys() {
         }
       );
     },
-    onMutate: ({data}: {data: ProjectKey}) => {
+    onMutate: ({data}) => {
       addLoadingMessage(t('Saving changes\u2026'));
       setKeyListState(
         keyList.map(key => {

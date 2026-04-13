@@ -277,6 +277,20 @@ class TeamWithProjectsSerializerTest(TestCase):
             "externalTeams": [],
         }
 
+    def test_project_on_multiple_teams_no_duplicate_features(self) -> None:
+        """A project belonging to multiple teams should not have its features list duplicated."""
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        team1 = self.create_team(organization=organization)
+        team2 = self.create_team(organization=organization)
+        self.create_project(teams=[team1, team2], organization=organization)
+
+        result = serialize([team1, team2], user, TeamWithProjectsSerializer())
+        features = result[0]["projects"][0]["features"]
+
+        assert len(features) > 0
+        assert features == list(dict.fromkeys(features))
+
 
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self) -> None:

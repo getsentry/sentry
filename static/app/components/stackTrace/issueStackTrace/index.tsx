@@ -40,6 +40,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -148,6 +149,8 @@ function IssueStackTraceContent({
   isStandalone,
 }: IssueStackTraceBaseProps & {isStandalone: boolean; values: ExceptionValue[]}) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
+  const organization = useOrganization();
+  const hasScmSourceContext = organization.features.includes('scm-source-context');
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
@@ -181,6 +184,8 @@ function IssueStackTraceContent({
           rawStacktraceContent({
             data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
             platform: event.platform,
+            exception: isStandalone ? undefined : exc,
+            isMinified,
           })
         )
         .join('\n\n'),
@@ -208,7 +213,7 @@ function IssueStackTraceContent({
                       ? (exc.rawStacktrace ?? exc.stacktrace)
                       : exc.stacktrace,
                     platform: event.platform,
-                    exception: exc,
+                    exception: isStandalone ? undefined : exc,
                     isMinified,
                   })
                 )
@@ -256,6 +261,7 @@ function IssueStackTraceContent({
           <StackTraceProvider
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
+            hasScmSourceContext={hasScmSourceContext}
             stacktrace={exc.stacktrace}
             minifiedStacktrace={exc.rawStacktrace ?? undefined}
             meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
@@ -342,6 +348,7 @@ function IssueStackTraceContent({
                   <StackTraceProvider
                     exceptionIndex={exc.exceptionIndex}
                     event={event}
+                    hasScmSourceContext={hasScmSourceContext}
                     stacktrace={exc.stacktrace}
                     minifiedStacktrace={exc.rawStacktrace ?? undefined}
                     meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}

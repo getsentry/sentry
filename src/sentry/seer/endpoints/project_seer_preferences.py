@@ -21,6 +21,7 @@ from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
     make_get_project_preference_request,
     make_set_project_preference_request,
+    read_preference_from_sentry_db,
     write_preference_to_sentry_db,
 )
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
@@ -152,28 +153,32 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
-        body = GetProjectPreferenceRequest(project_id=project.id)
-        viewer_context = SeerViewerContext(
-            organization_id=project.organization.id, user_id=request.user.id
-        )
-        response = make_get_project_preference_request(
-            body,
-            connection_pool=seer_autofix_default_connection_pool,
-            viewer_context=viewer_context,
-        )
+        if features.has(
+            "organizations:seer-project-settings-read-from-sentry", project.organization
+        ):
+            preference = read_preference_from_sentry_db(project)
+        else:
+            body = GetProjectPreferenceRequest(project_id=project.id)
+            viewer_context = SeerViewerContext(
+                organization_id=project.organization.id, user_id=request.user.id
+            )
+            response = make_get_project_preference_request(
+                body,
+                connection_pool=seer_autofix_default_connection_pool,
+                viewer_context=viewer_context,
+            )
 
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
+            if response.status >= 400:
+                raise SeerApiError("Seer request failed", response.status)
 
-        result = response.json()
+            result = response.json()
+            preference = result.get("preference")
 
         code_mapping_repos = get_autofix_repos_from_project_code_mappings(project)
 
         return Response(
-            PreferenceResponse.validate(
-                {
-                    **result,
-                    "code_mapping_repos": code_mapping_repos,
-                }
+            PreferenceResponse(
+                preference=preference,
+                code_mapping_repos=code_mapping_repos,
             ).dict()
         )

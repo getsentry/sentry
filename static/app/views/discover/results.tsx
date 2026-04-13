@@ -7,6 +7,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
@@ -66,7 +67,7 @@ import {
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
-import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
+import {ResultsHeaderWrapper as ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
@@ -105,7 +106,6 @@ type State = {
   savedQuery?: SavedQuery;
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
-  showMetricsAlert?: boolean;
   showQueryIncompatibleWithDataset?: boolean;
   showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
@@ -178,16 +178,6 @@ export class Results extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
-    if (location.query.fromMetric) {
-      this.setState({showMetricsAlert: true});
-      navigate(
-        {
-          ...location,
-          query: {...location.query, fromMetric: undefined},
-        },
-        {replace: true}
-      );
-    }
     if (location.query[SHOW_UNPARAM_BANNER]) {
       this.setState({showUnparameterizedBanner: true});
       navigate(
@@ -602,21 +592,6 @@ export class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    const {organization} = this.props;
-    if (
-      !organization.features.includes('performance-mep-bannerless-ui') &&
-      this.state.showMetricsAlert
-    ) {
-      return (
-        <Alert.Container>
-          <Alert variant="info">
-            {t(
-              "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
@@ -836,7 +811,7 @@ export class Results extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <Layout.Page>
+        <Stack flex={1}>
           <ResultsHeader
             setSavedQuery={setSavedQuery}
             errorCode={errorCode}
@@ -941,7 +916,7 @@ export class Results extends Component<Props, State> {
               </Confirm>
             </CustomMeasurementsProvider>
           </Layout.Body>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }

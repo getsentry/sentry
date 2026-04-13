@@ -18,6 +18,8 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, options, tagstore
@@ -44,6 +46,8 @@ from sentry.issues.priority import (
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
+from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -434,6 +438,14 @@ class GroupManager(BaseManager["Group"]):
                 event_ids=[event_id],
                 project_ids=project_ids,
                 conditions=[["group_id", "IS NOT NULL", None]],
+            ),
+            eap_conditions=and_trace_item_filters(
+                build_event_id_in_filter([event_id]),
+                TraceItemFilter(
+                    exists_filter=ExistsFilter(
+                        key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT)
+                    )
+                ),
             ),
             limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",

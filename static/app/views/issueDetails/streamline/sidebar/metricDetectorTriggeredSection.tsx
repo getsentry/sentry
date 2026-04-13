@@ -363,7 +363,10 @@ function TriggeredConditionDetails({
   const {conditions, dataSources, value} = evidenceData;
   const dataSource = dataSources[0];
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
-  const triggeredCondition = conditions[0];
+  const triggeredCondition = conditions.reduce<MetricCondition | undefined>(
+    (max, c) => (!max || c.conditionResult > max.conditionResult ? c : max),
+    undefined
+  );
   const [fallbackEndDate] = useState(() => new Date().toISOString());
   const detectionType = evidenceData.config?.detectionType ?? 'static';
   const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({

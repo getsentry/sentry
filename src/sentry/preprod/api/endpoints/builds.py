@@ -77,8 +77,16 @@ class BuildsEndpoint(OrganizationEndpoint):
         try:
             queryset = queryset_for_query(query, organization)
             queryset = queryset.select_related(
-                "project", "build_configuration", "commit_comparison", "mobile_app_info"
-            ).prefetch_related("preprodartifactsizemetrics_set")
+                "project",
+                "build_configuration",
+                "commit_comparison",
+                "mobile_app_info",
+                "preprodsnapshotmetrics",
+            ).prefetch_related(
+                "preprodartifactsizemetrics_set",
+                "preprodsnapshotmetrics__snapshot_comparisons_head_metrics",
+                "preprodcomparisonapproval_set",
+            )
             queryset = queryset.filter(date_added__gte=cutoff)
             if start:
                 queryset = queryset.filter(date_added__gte=start)
@@ -89,6 +97,8 @@ class BuildsEndpoint(OrganizationEndpoint):
             display = request.GET.get("display")
             if display in ("size", "distribution"):
                 queryset = queryset.filter(preprodsnapshotmetrics__isnull=True)
+            elif display == "snapshot":
+                queryset = queryset.filter(preprodsnapshotmetrics__isnull=False)
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.

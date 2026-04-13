@@ -21,13 +21,18 @@ export default function ErrorDetectorsList() {
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions detectorType="error" />}
+        actions={<DetectorListActions />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}
       >
         <DetectorListHeader showTypeFilter={false} />
-        <DetectorListContent {...detectorListQuery} />
+        <DetectorListContent
+          isError={detectorListQuery.isError}
+          isLoading={detectorListQuery.isLoading}
+          isSuccess={detectorListQuery.isSuccess}
+          data={detectorListQuery.data}
+        />
       </WorkflowEngineListLayout>
     </SentryDocumentTitle>
   );

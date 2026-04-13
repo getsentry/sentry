@@ -26,8 +26,7 @@ describe('useChartInterval', () => {
     expect(intervalOptions).toEqual([
       {value: '1h', label: '1 hour'},
       {value: '3h', label: '3 hours'},
-      {value: '12h', label: '12 hours'},
-      {value: '1d', label: '1 day'},
+      {value: '6h', label: '6 hours'},
     ]);
     expect(chartInterval).toBe('1h'); // default
 
@@ -47,12 +46,11 @@ describe('useChartInterval', () => {
     expect(intervalOptions).toEqual([
       {value: '1m', label: '1 minute'},
       {value: '5m', label: '5 minutes'},
-      {value: '15m', label: '15 minutes'},
     ]);
     act(() => {
-      setChartInterval('15m');
+      setChartInterval('5m');
     });
-    expect(chartInterval).toBe('15m');
+    expect(chartInterval).toBe('5m');
   });
 });
 

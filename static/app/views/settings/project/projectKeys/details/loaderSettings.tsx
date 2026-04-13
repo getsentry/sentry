@@ -248,7 +248,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? data.dynamicSdkLoaderOptions.hasReplay
                   ? tct(
-                      `[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.`,
+                      '[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.',
                       {
                         es5Warning:
                           // latest is deprecated but resolves to v7
@@ -329,7 +329,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? data.dynamicSdkLoaderOptions.hasFeedback
                   ? tct(
-                      `[es6Warning]The default config is [codeAutoInject:autoInject: true]. [configDocs:Read the docs] to learn how to configure this.`,
+                      '[es6Warning]The default config is [codeAutoInject:autoInject: true]. [configDocs:Read the docs] to learn how to configure this.',
                       {
                         es6Warning:
                           // latest is deprecated but resolves to v7

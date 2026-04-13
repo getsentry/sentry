@@ -49,7 +49,7 @@ export function DocIntegrationModal(props: Props) {
     isError,
     isPending,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([getApiUrl(`/integration-features/`)], {
+  } = useApiQuery<IntegrationFeature[]>([getApiUrl('/integration-features/')], {
     staleTime: 0,
   });
 

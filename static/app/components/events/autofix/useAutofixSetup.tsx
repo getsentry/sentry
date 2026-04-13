@@ -13,7 +13,6 @@ interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
 }
 
 export interface AutofixSetupResponse {
-  autofixEnabled: boolean;
   billing: {
     hasAutofixQuota: boolean;
   } | null;
@@ -34,7 +33,7 @@ function makeAutofixSetupQueryKey(
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
     {
@@ -61,7 +60,6 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
-    autofixEnabled: Boolean(queryData.data?.autofixEnabled),
     canStartAutofix: Boolean(queryData.data?.integration.ok),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),

@@ -155,7 +155,7 @@ def remove_alert_rule(
         try:
             remove_detector(request, organization, target)
             try:
-                ard = AlertRuleDetector.objects.get(detector_id=target.id)
+                ard = AlertRuleDetector.objects_for_deletion.get(detector_id=target.id)
                 target = AlertRule.objects.get(id=ard.alert_rule_id, organization=organization)
                 delete_alert_rule(
                     target,
@@ -333,6 +333,9 @@ def _check_project_access[T](
 @extend_schema(tags=["Alerts"])
 @cell_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-orgalertruledetails-get",
+    }
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

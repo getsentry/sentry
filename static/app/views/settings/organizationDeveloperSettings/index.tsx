@@ -60,7 +60,7 @@ function OrganizationDeveloperSettings() {
     refetch,
   } = useApiQuery<SentryApp[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

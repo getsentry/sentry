@@ -33,7 +33,7 @@ export function useCreateGroupSearchView(
         data,
       }),
     ...options,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, onMutateResult, context) => {
       if (variables.starred) {
         setApiQueryData<StarredGroupSearchView[]>(
           queryClient,
@@ -44,7 +44,7 @@ export function useCreateGroupSearchView(
         );
       }
 
-      options?.onSuccess?.(data, variables, context);
+      options?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
 }

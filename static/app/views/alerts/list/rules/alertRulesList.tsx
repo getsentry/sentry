@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {
@@ -21,12 +23,11 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {Projects} from 'sentry/utils/projects';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useApi} from 'sentry/utils/useApi';
@@ -44,7 +45,7 @@ import {RuleListRow} from './row';
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
 const defaultSort: SortField = ['incident_status', 'date_triggered'];
 
-function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQueryKey {
+function getAlertListQueryParams(query: Location['query']) {
   const queryParams = {...query};
   queryParams.expand = ['latestIncident', 'lastTriggered'];
   queryParams.team = getTeamParams(queryParams.team!);
@@ -53,12 +54,18 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
     queryParams.sort = defaultSort;
   }
 
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/combined-rules/', {
+  return queryParams;
+}
+
+function getAlertListApiOptions(orgSlug: string, query: Location['query']) {
+  return apiOptions.as<Array<CombinedAlerts | null>>()(
+    '/organizations/$organizationIdOrSlug/combined-rules/',
+    {
       path: {organizationIdOrSlug: orgSlug},
-    }),
-    {query: queryParams},
-  ];
+      query: getAlertListQueryParams(query),
+      staleTime: 0,
+    }
+  );
 }
 
 const DataConsentBanner = HookOrDefault({
@@ -81,18 +88,12 @@ export default function AlertRulesList() {
   });
 
   // Fetch alert rules
-  const {
-    data: ruleListResponse = [],
-    refetch,
-    getResponseHeader,
-    isPending,
-    isError,
-  } = useApiQuery<Array<CombinedAlerts | null>>(
-    getAlertListQueryKey(organization.slug, location.query),
-    {
-      staleTime: 0,
-    }
-  );
+  const alertListOptions = getAlertListApiOptions(organization.slug, location.query);
+  const {data, refetch, isPending, isError} = useQuery({
+    ...alertListOptions,
+    select: selectJsonWithHeaders,
+  });
+  const ruleListResponse = data?.json ?? [];
 
   const handleChangeFilter = (activeFilters: string[]) => {
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
@@ -165,11 +166,15 @@ export default function AlertRulesList() {
 
     try {
       await api.requestPromise(deleteEndpoints[rule.type], {method: 'DELETE'});
-      setApiQueryData<Array<CombinedAlerts | null>>(
-        queryClient,
-        getAlertListQueryKey(organization.slug, location.query),
-        data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)
-      );
+      queryClient.setQueryData(alertListOptions.queryKey, previous => {
+        if (!previous) {
+          return previous;
+        }
+        return {
+          ...previous,
+          json: previous.json.filter(r => r?.id !== rule.id && r?.type !== rule.type),
+        };
+      });
       refetch();
       addSuccessMessage(t('Deleted rule'));
     } catch (_err) {
@@ -193,7 +198,7 @@ export default function AlertRulesList() {
           : rule.projects
     )
   );
-  const ruleListPageLinks = getResponseHeader?.('Link');
+  const ruleListPageLinks = data?.headers.Link;
 
   const sort: {asc: boolean; field: SortField} = {
     asc: location.query.asc === '1',
@@ -210,7 +215,7 @@ export default function AlertRulesList() {
     <Fragment>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
-      <Layout.Page>
+      <Stack flex={1}>
         <PageFiltersContainer>
           <AlertHeader activeTab="rules" />
           <Layout.Body>
@@ -337,7 +342,7 @@ export default function AlertRulesList() {
             </Layout.Main>
           </Layout.Body>
         </PageFiltersContainer>
-      </Layout.Page>
+      </Stack>
     </Fragment>
   );
 }

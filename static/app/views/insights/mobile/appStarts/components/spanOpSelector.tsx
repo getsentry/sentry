@@ -51,7 +51,7 @@ export function SpanOpSelector({transaction, primaryRelease}: Props) {
     'has:span.description',
     'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
-    `has:ttid`,
+    'has:ttid',
     `span.op:[${APP_START_SPANS.join(',')}]`,
     `app_start_type:${appStartType}`,
   ]);

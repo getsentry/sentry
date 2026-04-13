@@ -30,8 +30,11 @@ import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
@@ -99,7 +102,7 @@ interface LayoutState extends Record<string, Layout[]> {
   [MOBILE]: Layout[];
 }
 
-export function Dashboard({
+function DashboardInner({
   dashboard,
   handleAddCustomWidget,
   handleUpdateWidgetList,
@@ -121,7 +124,22 @@ export function Dashboard({
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
+
   const {selection} = usePageFilters();
+
+  // Push dashboard metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. Use telemetry_live_search or telemetry_index_list_nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
+    title: dashboard.title,
+    widgetCount: dashboard.widgets.length,
+    queryHints: getQueryHintLegend(dashboard.widgets),
+    filters: dashboard.filters,
+    isEditingDashboard,
+    dateRange: selection.datetime,
+    environments: selection.environments,
+    projects: selection.projects,
+  });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
@@ -496,3 +514,5 @@ const ResizeHandle = styled(Button)`
     display: none;
   }
 `;
+
+export const Dashboard = registerLLMContext('dashboard', DashboardInner);

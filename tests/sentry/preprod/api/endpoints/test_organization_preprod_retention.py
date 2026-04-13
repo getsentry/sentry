@@ -25,7 +25,6 @@ class OrganizationPreprodRetentionEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["size"] == 90
         assert response.data["buildDistribution"] == 90
-        assert response.data["snapshots"] == 30
 
     @patch("sentry.quotas.backend.get_event_retention")
     def test_get_custom_retention(self, mock_get_retention) -> None:
@@ -39,7 +38,6 @@ class OrganizationPreprodRetentionEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["size"] == 30
         assert response.data["buildDistribution"] == 60
-        assert response.data["snapshots"] == 30
 
     def test_get_requires_authentication(self) -> None:
         client = APIClient()

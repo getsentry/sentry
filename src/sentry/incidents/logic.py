@@ -482,6 +482,8 @@ class AlertRuleNameAlreadyUsedError(Exception):
 
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
+# Comparison alerts query twice (current + comparison window), so we scale
+# resolution down to compensate for the increased query load.
 DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER = 2
 DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
     30: 2,
@@ -505,13 +507,25 @@ query_datasets_to_type = {
 }
 
 
-def get_alert_resolution(time_window: int, organization: Organization) -> int:
+def get_alert_resolution(time_window: int, organization: Organization) -> timedelta:
+    """
+    Return the Snuba subscription evaluation interval for a given alert time window.
+
+    Larger time windows don't need fine-grained resolution, so we map them to
+    coarser buckets to reduce query load. See DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.
+
+    :param time_window: The alert's aggregation window, in minutes.
+    :param organization: The organization (reserved for future per-org overrides).
+    :return: The evaluation interval as a timedelta.
+    """
     index = bisect.bisect_right(SORTED_TIMEWINDOWS, time_window)
 
     if index == 0:
-        return DEFAULT_ALERT_RULE_RESOLUTION
+        minutes = DEFAULT_ALERT_RULE_RESOLUTION
+    else:
+        minutes = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[SORTED_TIMEWINDOWS[index - 1]]
 
-    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[SORTED_TIMEWINDOWS[index - 1]]
+    return timedelta(minutes=minutes)
 
 
 class _OwnerKwargs(TypedDict):
@@ -585,7 +599,7 @@ def create_alert_rule(
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
-        resolution = time_window
+        resolution = timedelta(minutes=time_window)
         # NOTE: we hardcode seasonality for EA
         seasonality = AlertRuleSeasonality.AUTO
         if not sensitivity:
@@ -617,8 +631,7 @@ def create_alert_rule(
                 raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
-        # Since comparison alerts make twice as many queries, run the queries less frequently.
-        resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+        resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
@@ -629,7 +642,7 @@ def create_alert_rule(
             query=query,
             aggregate=aggregate,
             time_window=timedelta(minutes=time_window),
-            resolution=timedelta(minutes=resolution),
+            resolution=resolution,
             environment=environment,
             event_types=event_types,
             extrapolation_mode=extrapolation_mode,
@@ -900,11 +913,9 @@ def update_alert_rule(
         )
 
         if resolution_comparison_delta is not None:
-            updated_query_fields["resolution"] = timedelta(
-                minutes=(resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER)
-            )
-        else:
-            updated_query_fields["resolution"] = timedelta(minutes=resolution)
+            resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+
+        updated_query_fields["resolution"] = resolution
 
     if detection_type:
         updated_fields["detection_type"] = detection_type
@@ -917,10 +928,12 @@ def update_alert_rule(
             updated_fields["sensitivity"] = None
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            if time_window is not None:
+                updated_query_fields["resolution"] = timedelta(minutes=time_window)
+            else:
+                # snuba_query.time_window is already in seconds
+                updated_query_fields["resolution"] = timedelta(seconds=snuba_query.time_window)
             # NOTE: we set seasonality for EA
-            updated_query_fields["resolution"] = timedelta(
-                minutes=time_window if time_window is not None else snuba_query.time_window
-            )
             updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
             if (
@@ -1141,11 +1154,6 @@ class AlertRuleTriggerLabelAlreadyUsedError(Exception):
     pass
 
 
-class ProjectsNotAssociatedWithAlertRuleError(Exception):
-    def __init__(self, project_slugs: Collection[str]) -> None:
-        self.project_slugs = project_slugs
-
-
 def create_alert_rule_trigger(
     alert_rule: AlertRule,
     label: str,
@@ -1324,28 +1332,6 @@ def deduplicate_trigger_actions(
         )
         deduped.setdefault(key, action)
     return list(deduped.values())
-
-
-def _get_subscriptions_from_alert_rule(
-    alert_rule: AlertRule, projects: Collection[Project]
-) -> Iterable[QuerySubscription]:
-    """
-    Fetches subscriptions associated with an alert rule filtered by a list of projects.
-    Raises `ProjectsNotAssociatedWithAlertRuleError` if Projects aren't associated with
-    the AlertRule
-    :param alert_rule: The AlertRule to fetch subscriptions for
-    :param projects: The Project we want subscriptions for
-    :return: A list of QuerySubscriptions
-    """
-    excluded_subscriptions = _unpack_snuba_query(alert_rule).subscriptions.filter(
-        project__in=projects
-    )
-    if len(excluded_subscriptions) != len(projects):
-        invalid_slugs = {p.slug for p in projects} - {
-            s.project.slug for s in excluded_subscriptions
-        }
-        raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
-    return excluded_subscriptions
 
 
 def create_alert_rule_trigger_action(

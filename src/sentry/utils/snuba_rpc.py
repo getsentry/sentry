@@ -42,6 +42,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
+from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
+    ExportTraceItemsRequest,
+    ExportTraceItemsResponse,
+)
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from urllib3.response import BaseHTTPResponse
@@ -339,6 +343,13 @@ def rpc(
     return resp
 
 
+def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
+    resp = _make_rpc_request("EndpointExportTraceItems", "v1", req.meta.referrer, req)
+    response = ExportTraceItemsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
 @sentry_sdk.trace
 def _make_rpc_request(
     endpoint_name: str,
@@ -379,7 +390,7 @@ def _make_rpc_request(
                     )
                 except urllib3.exceptions.HTTPError as err:
                     if isinstance(err, urllib3.exceptions.ReadTimeoutError):
-                        metrics.incr("snuba_rpc.read_timeout_error")
+                        metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
                     raise SnubaRPCError(err)
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:

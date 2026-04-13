@@ -6,6 +6,7 @@ import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -22,7 +23,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
@@ -33,7 +33,8 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
@@ -97,7 +98,7 @@ export function PageLayout(props: Props) {
   }
 
   const theme = useTheme();
-  const router = useRouter();
+  const navigate = useNavigate();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
   const metricsCardinality = useMetricsCardinalityContext();
@@ -176,15 +177,15 @@ export function PageLayout(props: Props) {
         });
       }
 
-      browserHistory.push(normalizeUrl(getNewRoute(newTab)));
+      navigate(normalizeUrl(getNewRoute(newTab)));
     },
-    [getNewRoute, tab, organization, location, projects]
+    [getNewRoute, tab, organization, location, projects, navigate]
   );
 
   const shouldUseEAP = useTransactionSummaryEAP();
 
   if (!defined(transactionName)) {
-    redirectToPerformanceHomepage(organization, location);
+    redirectToPerformanceHomepage(organization, location, navigate);
     return null;
   }
 
@@ -223,7 +224,7 @@ export function PageLayout(props: Props) {
         {({isLoading, tableData, error: discoverQueryError}) => {
           if (discoverQueryError) {
             addErrorMessage(t('Unable to get projects associated with transaction'));
-            redirectToPerformanceHomepage(organization, location);
+            redirectToPerformanceHomepage(organization, location, navigate);
             return null;
           }
 
@@ -240,7 +241,6 @@ export function PageLayout(props: Props) {
               <PickProjectToContinue
                 data-test-id="transaction-sumamry-project-picker-modal"
                 projects={selectableProjects}
-                router={router}
                 nextPath={{
                   pathname: generateTransactionSummaryRoute({organization}),
                   query: {
@@ -295,7 +295,7 @@ export function PageLayout(props: Props) {
               }
             >
               <Tabs value={tab} onChange={onTabChange}>
-                <Layout.Page>
+                <Stack flex={1}>
                   <TransactionHeader
                     eventView={eventView}
                     location={location}
@@ -329,7 +329,7 @@ export function PageLayout(props: Props) {
                       <Outlet />
                     </TransactionSummaryContext>
                   </StyledBody>
-                </Layout.Page>
+                </Stack>
               </Tabs>
             </PageFiltersContainer>
           </PerformanceEventViewProvider>
@@ -371,15 +371,17 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
 
 export function redirectToPerformanceHomepage(
   organization: Organization,
-  location: Location
+  location: Location,
+  navigate: ReactRouter3Navigate
 ) {
   // If there is no transaction name, redirect to the Performance landing page
-  browserHistory.replace(
+  navigate(
     normalizeUrl({
       pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
       query: {
         ...location.query,
       },
-    })
+    }),
+    {replace: true}
   );
 }

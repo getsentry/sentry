@@ -144,7 +144,9 @@ describe('DebugMeta', () => {
     const imageName = image?.debug_file as string;
     const codeFile = image?.code_file as string;
 
-    expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('region', {name: 'Images Loaded'})
+    ).toBeInTheDocument();
     const imageNode = screen.getByText(imageName);
     expect(imageNode).toBeInTheDocument();
 

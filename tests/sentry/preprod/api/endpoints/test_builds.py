@@ -113,6 +113,7 @@ class BuildsEndpointTest(APITestCase):
                 "posted_status_checks": None,
                 "project_slug": "bar",
                 "size_info": None,
+                "snapshot_comparison_info": None,
             }
         ]
 

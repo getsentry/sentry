@@ -68,6 +68,12 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
+      - run: mkdir -p config/chartcuterie
+
+      - uses: ./.github/actions/setup-devservices
+        with:
+          mode: acceptance-ci
+
       - name: Step configurations
         id: config
         run: |
@@ -98,6 +104,12 @@ jobs:
         id: setup
         with:
           mode: acceptance-ci
+          skip-devservices: 'true'
+
+      - name: Wait for devservices
+        run: |
+          sentry init
+          ./.github/actions/setup-devservices/wait.sh
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
@@ -105,6 +117,11 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
+          if [ -f /tmp/ds.log ]; then
+            echo "--- devservices startup log ---"
+            cat /tmp/ds.log
+          fi
+
           if command -v devservices; then
             devservices logs
           fi

@@ -96,6 +96,7 @@ import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
@@ -614,7 +615,9 @@ function TableComponent({
       tableResults[i]?.meta
     ).map((column, index) => {
       let sortable = false;
-      if (widget.widgetType === WidgetType.RELEASE) {
+      if (column.key === SpanFields.IS_STARRED_TRANSACTION) {
+        sortable = false;
+      } else if (widget.widgetType === WidgetType.RELEASE) {
         sortable = isAggregateField(column.key);
       } else if (widget.widgetType !== WidgetType.ISSUE) {
         sortable = true;
@@ -961,7 +964,7 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   position: relative;
   padding: ${p =>
     p.noPadding
-      ? `0`
+      ? '0'
       : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
@@ -982,7 +985,7 @@ const BigNumber = styled('div')`
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
-  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
+  padding: ${p => (p.noPadding ? '0' : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

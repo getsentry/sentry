@@ -3,14 +3,14 @@ from __future__ import annotations
 import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Optional
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from sentry import options
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.slack.provider import SlackIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -37,7 +37,7 @@ from sentry.notifications.platform.slack.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
@@ -115,7 +115,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         client = self.get_client()
         try:
             client.chat_postMessage(
-                channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
+                channel=target.resource_id,
+                blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
+                text=payload["text"],
+                attachments=payload.get("attachments"),
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
@@ -133,8 +138,11 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         )
         kwargs: dict[str, Any] = dict(
             channel=target.resource_id,
-            blocks=payload["blocks"],
+            blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
             text=payload["text"],
+            attachments=payload.get("attachments"),
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
         if threading_context.thread_ts is not None:
@@ -160,8 +168,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         try:
             client.chat_postMessage(
                 channel=channel_id,
-                blocks=renderable["blocks"],
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
                 text=renderable["text"],
+                attachments=renderable.get("attachments"),
                 thread_ts=thread_ts,
             )
         except SlackApiError as e:
@@ -179,7 +188,38 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         try:
             client.chat_postEphemeral(
                 channel=channel_id,
-                blocks=renderable["blocks"],
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+                attachments=renderable.get("attachments"),
+                text=renderable["text"],
+                thread_ts=thread_ts,
+                user=slack_user_id,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
+    @staticmethod
+    def send_threaded_ephemeral_message_static(
+        *,
+        integration_id: int,
+        channel_id: str,
+        renderable: SlackRenderable,
+        slack_user_id: str,
+        thread_ts: str | None,
+    ) -> None:
+        """
+        In most cases, you should use the instance method instead, so an organization is associated
+        with the message.
+
+        In rare cases where we cannot infer an organization, but need to invoke a Slack API, use this.
+        For example, when linking a Slack identity to a Sentry user, there could be multiple organizations
+        attached to the Slack Workspace. We cannot infer which the user may link to.
+        """
+        client = SlackSdkClient(integration_id=integration_id)
+        try:
+            client.chat_postEphemeral(
+                channel=channel_id,
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+                attachments=renderable.get("attachments"),
                 text=renderable["text"],
                 thread_ts=thread_ts,
                 user=slack_user_id,
@@ -200,7 +240,10 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 channel=channel_id,
                 ts=message_ts,
                 text=renderable["text"],
-                blocks=renderable["blocks"],
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+                attachments=renderable.get("attachments"),
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
@@ -251,10 +294,13 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         thread_ts: str,
         status: str,
+        loading_messages: Optional[list[str]] = None,
     ) -> None:
         """
         Set a status indicator in a Slack assistant thread (e.g. "Thinking...").
         The status auto-clears when the bot sends a reply, or after 2 minutes.
+
+        Sending an empty status message will clear the status indicator.
         """
         client = self.get_client()
         try:
@@ -262,10 +308,39 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 channel_id=channel_id,
                 thread_ts=thread_ts,
                 status=status,
+                loading_messages=loading_messages,
             )
         except SlackApiError:
             _logger.warning(
                 "slack.set_thread_status.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts},
+            )
+
+    def set_suggested_prompts(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+        prompts: Sequence[dict[str, str]],
+        title: str = "",
+    ) -> None:
+        """
+        Set suggested prompts in a Slack assistant thread.
+
+        Each prompt is a dict with ``title`` (display label) and ``message``
+        (the text sent when clicked).  Slack allows a maximum of 4 prompts.
+        """
+        client = self.get_client()
+        try:
+            client.assistant_threads_setSuggestedPrompts(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                title=title,
+                prompts=list(prompts),
+            )
+        except SlackApiError:
+            _logger.warning(
+                "slack.set_suggested_prompts.error",
                 extra={"channel_id": channel_id, "thread_ts": thread_ts},
             )
 
@@ -295,13 +370,14 @@ class SlackIntegrationProvider(IntegrationProvider):
         ]
     )
     # Extended scopes that require Slack marketplace approval
-    # Gated by slack.extended-scopes-enabled option
+    # Used by SlackStagingIntegrationProvider
     extended_oauth_scopes = frozenset(
         [
             SlackScope.REACTIONS_WRITE,
             SlackScope.CHANNELS_HISTORY,
             SlackScope.GROUPS_HISTORY,
             SlackScope.APP_MENTIONS_READ,
+            SlackScope.ASSISTANT_WRITE,
         ]
     )
     user_scopes = frozenset(
@@ -315,13 +391,11 @@ class SlackIntegrationProvider(IntegrationProvider):
     def _get_oauth_scopes(self) -> frozenset[str]:
         """
         Returns the OAuth scopes to request during installation.
-        Extended scopes are included when slack.extended-scopes-enabled is True.
         """
-        if options.get("slack.extended-scopes-enabled"):
-            return self.identity_oauth_scopes | self.extended_oauth_scopes
         return self.identity_oauth_scopes
 
     setup_dialog_config = {"width": 600, "height": 900}
+    setup_url_path = "/extensions/slack/setup/"
 
     def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         return NestedPipelineView(
@@ -331,12 +405,27 @@ class SlackIntegrationProvider(IntegrationProvider):
             config={
                 "oauth_scopes": self._get_oauth_scopes(),
                 "user_scopes": self.user_scopes,
-                "redirect_url": absolute_uri("/extensions/slack/setup/"),
+                "redirect_url": absolute_uri(self.setup_url_path),
             },
         )
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [self._identity_pipeline_view()]
+
+    def _make_identity_provider(self) -> SlackIdentityProvider:
+        return SlackIdentityProvider(
+            oauth_scopes=self._get_oauth_scopes(),
+            redirect_url=absolute_uri(self.setup_url_path),
+        )
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        provider = self._make_identity_provider()
+        return [
+            provider.make_oauth_api_step(
+                bind_key="oauth_data",
+                extra_authorize_params={"user_scope": " ".join(self.user_scopes)},
+            ),
+        ]
 
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
@@ -352,7 +441,13 @@ class SlackIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        data = state["identity"]["data"]
+        # TODO: legacy views write token data to state["identity"]["data"] via
+        # NestedPipelineView. API steps write directly to state["oauth_data"].
+        # Remove the legacy path once the old views are retired.
+        if "oauth_data" in state:
+            data = state["oauth_data"]
+        else:
+            data = state["identity"]["data"]
         assert data["ok"]
 
         access_token = data["access_token"]

@@ -1,5 +1,5 @@
 from typing import TypedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -275,7 +275,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
     def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger, mock_get_prefs):
         """Continues to next step when not at stopping point."""
         # No handoff configured - should continue with normal pipeline
-        mock_get_prefs.return_value = None
+        mock_get_prefs.return_value = Mock(preference=None)
 
         state = run_state(
             blocks=[root_cause_memory_block()],
@@ -586,6 +586,28 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 
         assert result == handoff_config
 
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
+    def test_get_handoff_config_reads_from_sentry_db(self, mock_get_prefs, mock_read_db):
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        handoff_config = self._make_handoff_config()
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automation_handoff=handoff_config,
+        )
+
+        result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+            current_step=AutofixStep.ROOT_CAUSE,
+            group=self.group,
+        )
+
+        mock_get_prefs.assert_not_called()
+        assert result == handoff_config
+
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
     def test_maybe_continue_pipeline_triggers_handoff_when_configured(
@@ -607,6 +629,54 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
 
         mock_trigger_handoff.assert_called_once()
+
+    @patch("sentry.seer.autofix.on_completion_hook.set_project_seer_preference")
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_trigger_coding_agent_handoff_clears_preference_on_not_found(
+        self, mock_trigger, mock_get_prefs, mock_set_pref
+    ):
+        """When IntegrationNotFound is raised, automation_handoff is cleared from preferences."""
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+
+        mock_trigger.side_effect = IntegrationNotFound()
+        handoff_config = self._make_handoff_config()
+        mock_get_prefs.return_value = self._make_preference_response(handoff_config=handoff_config)
+
+        AutofixOnCompletionHook._trigger_coding_agent_handoff(
+            organization=self.organization,
+            run_id=123,
+            group=self.group,
+            handoff_config=handoff_config,
+        )
+
+        mock_set_pref.assert_called_once()
+        updated = mock_set_pref.call_args.args[0]
+        assert updated.automation_handoff is None
+
+    @patch("sentry.seer.autofix.on_completion_hook.set_project_seer_preference")
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_trigger_coding_agent_handoff_not_found_seer_api_error_does_not_raise(
+        self, mock_trigger, mock_get_prefs, mock_set_pref
+    ):
+        """A SeerApiError during preference-clearing after IntegrationNotFound should not propagate."""
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+        from sentry.seer.models import SeerApiError
+
+        mock_trigger.side_effect = IntegrationNotFound()
+        mock_get_prefs.side_effect = SeerApiError("seer unavailable", 503)
+        handoff_config = self._make_handoff_config()
+
+        # Should not raise
+        AutofixOnCompletionHook._trigger_coding_agent_handoff(
+            organization=self.organization,
+            run_id=123,
+            group=self.group,
+            handoff_config=handoff_config,
+        )
+
+        mock_set_pref.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):

@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
+import {createParser, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {defined} from 'sentry/utils';
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export enum TabKey {
@@ -10,33 +10,37 @@ export enum TabKey {
   BREADCRUMBS = 'breadcrumbs',
   CONSOLE = 'console',
   ERRORS = 'errors',
+  LOGS = 'logs',
   MEMORY = 'memory',
   NETWORK = 'network',
+  PLAYLIST = 'playlist',
   TAGS = 'tags',
   TRACE = 'trace',
-  LOGS = 'logs',
-  PLAYLIST = 'playlist',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
-  const supportedVideoTabs = [
-    TabKey.TAGS,
-    TabKey.ERRORS,
-    TabKey.BREADCRUMBS,
-    TabKey.NETWORK,
-    TabKey.CONSOLE,
-    TabKey.TRACE,
-    TabKey.LOGS,
-    TabKey.AI,
-    TabKey.PLAYLIST,
-  ];
-
   if (isVideoReplay) {
+    const supportedVideoTabs = [
+      TabKey.AI,
+      TabKey.BREADCRUMBS,
+      TabKey.CONSOLE,
+      TabKey.ERRORS,
+      TabKey.LOGS,
+      TabKey.NETWORK,
+      TabKey.PLAYLIST,
+      TabKey.TAGS,
+      TabKey.TRACE,
+    ];
     return supportedVideoTabs.includes(tab as TabKey);
   }
 
   return Object.values<string>(TabKey).includes(tab);
 }
+
+const tabKeyParser = createParser<TabKey>({
+  parse: value => parseAsStringLiteral(Object.values(TabKey)).parse(value.toLowerCase()),
+  serialize: value => value,
+});
 
 export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const organization = useOrganization();
@@ -52,24 +56,23 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
       ? TabKey.AI
       : TabKey.BREADCRUMBS;
 
-  const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
-
-  const paramValue = getParamValue()?.toLowerCase() ?? '';
+  const [tabParam, setTabParam] = useQueryState(
+    't_main',
+    tabKeyParser.withDefault(defaultTab).withOptions({clearOnDefault: false})
+  );
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab({tab: paramValue, isVideoReplay}) ? paramValue : defaultTab),
-      [paramValue, defaultTab, isVideoReplay]
+      () =>
+        tabParam && isReplayTab({tab: tabParam, isVideoReplay}) ? tabParam : defaultTab,
+      [tabParam, defaultTab, isVideoReplay]
     ),
     setActiveTab: useCallback(
       (value: string) => {
-        setParamValue(
-          isReplayTab({tab: value.toLowerCase(), isVideoReplay})
-            ? value.toLowerCase()
-            : defaultTab
-        );
+        const lower = value.toLowerCase() as TabKey;
+        setTabParam(isReplayTab({tab: lower, isVideoReplay}) ? lower : defaultTab);
       },
-      [setParamValue, defaultTab, isVideoReplay]
+      [setTabParam, defaultTab, isVideoReplay]
     ),
   };
 }

@@ -1,5 +1,7 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -23,6 +25,10 @@ import {
 } from 'sentry/views/explore/queryParams/savedQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+const METRICS_TITLE = t('Application Metrics');
 
 export default function MetricsContent() {
   const organization = useOrganization();
@@ -32,7 +38,7 @@ export default function MetricsContent() {
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   return (
-    <SentryDocumentTitle title={t('Metrics')} orgSlug={organization?.slug}>
+    <SentryDocumentTitle title={METRICS_TITLE} orgSlug={organization?.slug}>
       <PageFiltersContainer
         maxPickableDays={datePageFilterProps.maxPickableDays}
         defaultSelection={
@@ -48,22 +54,32 @@ export default function MetricsContent() {
             : undefined
         }
       >
-        <Layout.Page>
-          <MetricsHeader />
-          {defined(onboardingProject) ? (
-            <MetricsTabOnboarding
-              organization={organization}
-              project={onboardingProject}
-              datePageFilterProps={datePageFilterProps}
-            />
-          ) : (
-            <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-          )}
-        </Layout.Page>
+        <AnalyticsArea name="explore.metrics">
+          <Stack flex={1}>
+            <MetricsHeader />
+            {defined(onboardingProject) ? (
+              <MetricsTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                datePageFilterProps={datePageFilterProps}
+              />
+            ) : (
+              <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+            )}
+          </Stack>
+        </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
+
+const metricsFeedbackOptions = {
+  messagePlaceholder: t('How can we make metrics work better for you?'),
+  tags: {
+    ['feedback.source']: 'metrics-listing',
+    ['feedback.owner']: 'performance',
+  },
+};
 
 function MetricsHeader() {
   const location = useLocation();
@@ -71,6 +87,7 @@ function MetricsHeader() {
   const title = getTitleFromLocation(location, TITLE_KEY);
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -80,7 +97,7 @@ function MetricsHeader() {
       <Layout.HeaderContent unified>
         {hasSavedQueryTitle ? (
           <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Metrics')}`}
+            title={`${savedQuery.name} — ${METRICS_TITLE}`}
             orgSlug={organization?.slug}
           />
         ) : null}
@@ -88,20 +105,20 @@ function MetricsHeader() {
           <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
         ) : null}
         <Layout.Title>
-          {title ? title : t('Metrics')}
+          {title ? title : METRICS_TITLE}
           <FeatureBadge type="beta" />
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <FeedbackButton
-          feedbackOptions={{
-            messagePlaceholder: t('How can we make metrics work better for you?'),
-            tags: {
-              ['feedback.source']: 'metrics-listing',
-              ['feedback.owner']: 'performance',
-            },
-          }}
-        />
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="feedback">
+            <FeedbackButton feedbackOptions={metricsFeedbackOptions}>
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        ) : (
+          <FeedbackButton feedbackOptions={metricsFeedbackOptions} />
+        )}
       </Layout.HeaderActions>
     </Layout.Header>
   );

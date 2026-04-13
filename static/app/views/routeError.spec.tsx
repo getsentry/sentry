@@ -2,19 +2,11 @@ import * as Sentry from '@sentry/react';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import RouteError from 'sentry/views/routeError';
 
-jest.mock('sentry/utils/useRoutes');
-
-jest
-  .mocked(useRoutes)
-  .mockReturnValue([
-    {path: '/'},
-    {path: '/:orgId/'},
-    {path: '/organizations/:orgId/'},
-    {path: 'api-keys/'},
-  ]);
+jest.mock('sentry/utils/getRouteStringFromRoutes');
+jest.mocked(getRouteStringFromRoutes).mockReturnValue('/organizations/:orgId/api-keys/');
 
 describe('RouteError', () => {
   it('captures errors with sentry', async () => {

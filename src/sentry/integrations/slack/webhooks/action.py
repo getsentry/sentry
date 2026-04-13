@@ -660,7 +660,7 @@ class SlackActionEndpoint(Endpoint):
                     name=action_name,
                     label=action_data["text"]["text"],
                     type=action_data["type"],
-                    value=action_data["value"],
+                    value=action_data.get("value", ""),
                     action_id=action_data["action_id"],
                     block_id=action_data["block_id"],
                 )
@@ -709,6 +709,7 @@ class SlackActionEndpoint(Endpoint):
         if action_id in {
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+            SlackAction.LINK_IDENTITY.value,
         }:
             return self.respond()
 

@@ -114,7 +114,8 @@ class BaseApiClient:
                 log_params["retry_after"] = retry_after
 
         log_params.update(getattr(self, "logging_context", None) or {})
-        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
+        log_level = self.logger.warning if error else self.logger.info
+        log_level("%s.http_response", self.integration_type, extra=log_params)
 
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"

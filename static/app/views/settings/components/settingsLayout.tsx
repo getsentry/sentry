@@ -1,9 +1,12 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {SettingsBreadcrumb} from './settingsBreadcrumb';
 import {SettingsHeader} from './settingsHeader';
@@ -17,17 +20,36 @@ export function SettingsLayout({children}: Props) {
   const params = useParams();
   const routes = useRoutes();
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <SettingsColumn>
-      <SettingsHeader>
-        <Flex align="center" justify="between">
-          <StyledSettingsBreadcrumb params={params} routes={routes} />
-          <SettingsSearch />
-        </Flex>
-      </SettingsHeader>
+      {hasPageFrame ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+          </TopBar.Slot>
+          <TopBar.Slot name="actions">
+            <SettingsSearch />
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <SettingsHeader>
+          <Flex align="center" justify="between">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <SettingsSearch />
+          </Flex>
+        </SettingsHeader>
+      )}
 
       <Flex flex="1" maxWidth="1440px">
-        <Content>{children}</Content>
+        <Container
+          flex="1"
+          padding={hasPageFrame ? {sm: 'xl', md: 'md xl'} : {xs: 'xl', md: '3xl'}}
+          minWidth="0"
+        >
+          {children}
+        </Container>
       </Flex>
     </SettingsColumn>
   );
@@ -45,18 +67,4 @@ const SettingsColumn = styled('div')`
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
-`;
-
-/**
- * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
- * Will also cut off tooltips.
- */
-const Content = styled('div')`
-  flex: 1;
-  padding: ${p => p.theme.space['3xl']};
-  min-width: 0; /* keep children from stretching container */
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.xl};
-  }
 `;

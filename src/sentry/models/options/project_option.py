@@ -78,6 +78,7 @@ OPTION_KEYS = frozenset(
         "sentry:preprod_snapshot_status_checks_fail_on_added",
         "sentry:preprod_snapshot_status_checks_fail_on_removed",
         "sentry:preprod_distribution_pr_comments_enabled_by_customer",
+        "sentry:preprod_snapshot_pr_comments_enabled",
         "sentry:scm_source_context_enabled",
         "quotas:spike-protection-disabled",
         "feedback:branding",
@@ -87,7 +88,6 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
-        "relay.cardinality-limiter.limits",
     ]
 )
 

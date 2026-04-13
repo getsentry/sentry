@@ -8,6 +8,7 @@ from types import TracebackType
 from typing import Any, Self
 
 import sentry_sdk
+from django.conf import settings
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
@@ -167,6 +168,7 @@ class EventLifecycle:
 
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
+        sentry_sdk.metrics.count(f"{settings.SENTRY_METRICS_PREFIX}{key}", 1, attributes=dict(tags))
 
         sentry_sdk.set_tags(tags)
 
@@ -448,6 +450,7 @@ class IntegrationWebhookEventType(StrEnum):
     # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     INSTALLATION = "installation"
+    INSTALLATION_REPOSITORIES = "installation_repositories"
     ISSUE_COMMENT = "issue_comment"
     MERGE_REQUEST = "pull_request"
     MERGE_REQUEST_REVIEW = "pull_request_review"

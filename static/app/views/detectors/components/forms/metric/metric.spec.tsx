@@ -7,6 +7,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {NewMetricDetectorForm} from 'sentry/views/detectors/components/forms/metric/metric';
 
@@ -20,6 +21,7 @@ describe('NewMetricDetectorForm', () => {
     MockApiClient.clearMockResponses();
     OrganizationStore.reset();
     OrganizationStore.onUpdate(organization);
+    ProjectsStore.loadInitialData([project]);
     MemberListStore.init();
     MemberListStore.loadInitialData([UserFixture()]);
 
@@ -80,7 +82,7 @@ describe('NewMetricDetectorForm', () => {
 
   it('shows default issue preview and updates subtitle when threshold changes', async () => {
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
+      <DetectorFormProvider detectorType="metric_issue">
         <NewMetricDetectorForm />
       </DetectorFormProvider>,
       {organization}
@@ -137,16 +139,13 @@ describe('NewMetricDetectorForm', () => {
     ).toBeInTheDocument();
 
     // Change the assignee and verify it shows in the preview
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Default assignee'}),
-      'Foo Bar'
-    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Assign'}), 'Foo Bar');
     expect(within(preview).getByText('FB')).toBeInTheDocument();
   });
 
   it('removes is filters when switching away from the errors dataset', async () => {
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
+      <DetectorFormProvider detectorType="metric_issue">
         <NewMetricDetectorForm />
       </DetectorFormProvider>,
       {

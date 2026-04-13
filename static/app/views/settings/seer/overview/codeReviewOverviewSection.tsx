@@ -11,24 +11,25 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
-import {IconRefresh, IconSettings} from 'sentry/icons';
+import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useCodeReviewOverviewSection() {
   const organization = useOrganization();
   const seerSupportedProviderIds = useSeerSupportedProviderIds();
 
-  const queryOptions = organizationRepositoriesInfiniteOptions({
+  const queryOptions = organizationRepositoriesWithSettingsInfiniteOptions({
     organization,
     query: {per_page: 100},
   });
@@ -65,7 +66,6 @@ export function CodeReviewOverviewSection({
   isPending,
   organization,
   data,
-  refetch,
 }: Props) {
   const queryClient = useQueryClient();
 
@@ -95,6 +95,10 @@ export function CodeReviewOverviewSection({
       if (queryKey) {
         queryClient.invalidateQueries({queryKey});
       }
+      // Invalidate the onboarding check query to get the updated settings
+      queryClient.invalidateQueries({
+        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+      });
       (mutations ?? []).forEach(mutation => {
         // Invalidate related queries
         queryClient.invalidateQueries({
@@ -174,16 +178,8 @@ export function CodeReviewOverviewSection({
     <FieldGroup
       title={
         <Flex justify="between" gap="md" flexGrow={1}>
-          <Flex align="center" gap="md">
-            <span>{t('Code Review')}</span>
-            <Button
-              size="zero"
-              priority="link"
-              icon={<IconRefresh size="xs" />}
-              aria-label={t('Reload repositories')}
-              onClick={() => refetch()}
-            />
-          </Flex>
+          <span>{t('Code Review')}</span>
+
           <Text uppercase={false}>
             <Link to={`/settings/${organization.slug}/seer/repos/`}>
               <Flex align="center" gap="xs">

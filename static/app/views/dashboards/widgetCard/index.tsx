@@ -52,16 +52,17 @@ import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widge
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
-  useIndexedEventsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
+import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -147,6 +148,27 @@ function WidgetCard(props: Props) {
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Resolve TOP_N → AREA before capturing context (the render body mutates
+  // this later, but useLLMContext needs the resolved value on first render).
+  const resolvedDisplayType =
+    props.widget.displayType === DisplayType.TOP_N
+      ? DisplayType.AREA
+      : props.widget.displayType;
+
+  // Push widget metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    title: props.widget.title,
+    displayType: resolvedDisplayType,
+    widgetType: props.widget.widgetType,
+    queries: props.widget.queries.map(q => ({
+      name: q.name,
+      conditions: readableConditions(q.conditions),
+      aggregates: q.aggregates,
+      columns: q.columns,
+      orderby: q.orderby,
+    })),
+  });
+
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched) {
       props.onDataFetched({
@@ -200,9 +222,7 @@ function WidgetCard(props: Props) {
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
 
-  const {isMetricsData} = useDashboardsMEPContext();
   const extractionStatus = useExtractionStatus({queryKey: widget});
-  const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
     widget,
@@ -284,9 +304,7 @@ function WidgetCard(props: Props) {
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
-
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
+  const badges = [onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,
@@ -308,7 +326,6 @@ function WidgetCard(props: Props) {
         organization,
         selection,
         widget,
-        Boolean(isMetricsData),
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
@@ -435,7 +452,10 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
+export default registerLLMContext(
+  'widget',
+  withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))))
+);
 
 function useOnDemandWarning(props: {widget: TWidget}): string | null {
   const organization = useOrganization();
@@ -503,7 +523,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
+      "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
       {
         numDays: retentionLimitDays,
       }

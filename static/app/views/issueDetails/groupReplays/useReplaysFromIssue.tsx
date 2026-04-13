@@ -63,7 +63,7 @@ export function useReplaysFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
+      query: replayIds.length ? `id:[${String(replayIds)}]` : 'id:1',
       range: '90d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT),

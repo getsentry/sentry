@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
+from django.core.cache import cache
 from requests import PreparedRequest
 
 from sentry.constants import ObjectStatus
@@ -54,6 +55,14 @@ logger = logging.getLogger("sentry.integrations.github")
 MINIMUM_REQUESTS = 200
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
+
+
+class CachedRepo(TypedDict):
+    id: int
+    name: str
+    full_name: str
+    default_branch: str | None
+    archived: bool | None
 
 
 class GithubRateLimitInfo:
@@ -548,6 +557,33 @@ class GitHubBaseClient(
                 response_key="repositories",
                 page_number_limit=page_number_limit,
             )
+
+    def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
+        """
+        Return all repos accessible to this installation, cached in
+        Django cache for ``ttl`` seconds.
+
+        Only the fields used by get_repositories() are stored to keep
+        the cache payload small.
+        """
+        cache_key = f"github:repos:{self.integration.id}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        all_repos = self.get_repos()
+        repos: list[CachedRepo] = [
+            {
+                "id": r["id"],
+                "name": r["name"],
+                "full_name": r["full_name"],
+                "default_branch": r.get("default_branch"),
+                "archived": r.get("archived"),
+            }
+            for r in all_repos
+        ]
+        cache.set(cache_key, repos, ttl)
+        return repos
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """

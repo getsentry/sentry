@@ -8,6 +8,7 @@ import time
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -21,6 +22,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
+    InstallationRepositoriesEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
@@ -103,6 +105,12 @@ class GitHubEnterpriseWebhook:
 
 
 class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    pass
+
+
+class GitHubEnterpriseInstallationRepositoriesEventWebhook(
+    GitHubEnterpriseWebhook, InstallationRepositoriesEventWebhook
+):
     pass
 
 
@@ -333,6 +341,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
             silo="region",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)
@@ -348,6 +357,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "push": GitHubEnterprisePushEventWebhook,
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
+        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 

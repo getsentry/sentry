@@ -334,8 +334,9 @@ class OrganizationMember(ReplicatedCellModel):
         if not self.is_pending or not self.invite_approved:
             return None
         path = reverse(
-            "sentry-accept-invite",
+            "sentry-organization-accept-invite",
             kwargs={
+                "organization_slug": self.organization.slug,
                 "member_id": self.id,
                 "token": self.token or self.legacy_token,
             },

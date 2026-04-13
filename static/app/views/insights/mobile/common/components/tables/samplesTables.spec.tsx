@@ -13,7 +13,7 @@ jest.mocked(useReleaseSelection).mockReturnValue({
 describe('SamplesTables', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
@@ -29,7 +29,7 @@ describe('SamplesTables', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       method: 'GET',
       match: [
         MockApiClient.matchQuery({

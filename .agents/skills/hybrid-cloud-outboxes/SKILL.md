@@ -18,11 +18,11 @@ description: >-
 
 Sentry uses a **transactional outbox pattern** for eventually consistent operations. When a model changes, an outbox row is written inside the same database transaction. After the transaction commits, the outbox is drained — firing a signal that triggers side effects such as RPC calls, tombstone propagation, or audit logging.
 
-The most common use case is **cross-silo data replication**: a model saved in the Region silo produces a `RegionOutbox` that, when processed, replicates data to the Control silo (or vice versa via `ControlOutbox`). But the pattern is general — outboxes work for any operation that should happen reliably after a transaction commits, even within a single silo.
+The most common use case is **cross-silo data replication**: a model saved in the Cell silo produces a `CellOutbox` that, when processed, replicates data to the Control silo (or vice versa via `ControlOutbox`). But the pattern is general — outboxes work for any operation that should happen reliably after a transaction commits, even within a single silo.
 
 There are two outbox types corresponding to the two directions of flow:
 
-- **`RegionOutbox`** — written in a Cell silo, processed in the Cell silo to push data toward Control (via RPC calls in signal receivers).
+- **`CellOutbox`** — written in a Cell silo, processed in the Cell silo to push data toward Control (via RPC calls in signal receivers).
 - **`ControlOutbox`** — written in the Control silo, processed in the Control silo to push data toward one or more Cell silos. Each `ControlOutbox` row targets a specific `cell_name`.
 
 ## Critical Constraints
@@ -66,7 +66,7 @@ There are two outbox types corresponding to the two directions of flow:
 
 | Data lives in... | Replicates toward... | Mixin                    | Outbox type     |
 | ---------------- | -------------------- | ------------------------ | --------------- |
-| Cell silo        | Control silo         | `ReplicatedCellModel`    | `RegionOutbox`  |
+| Cell silo        | Control silo         | `ReplicatedCellModel`    | `CellOutbox`    |
 | Control silo     | Cell silo(s)         | `ReplicatedControlModel` | `ControlOutbox` |
 
 ### 2.2 `ReplicatedCellModel` Template
@@ -148,7 +148,7 @@ class MyModel(ReplicatedCellModel):
 
 ### 2.3 `ReplicatedControlModel` Template
 
-Use this when a Control model needs to replicate data to Region silo(s). The key difference: Control outboxes fan out to one or more cells, so the model must declare which cells to target.
+Use this when a Control model needs to replicate data to Cell silo(s). The key difference: Control outboxes fan out to one or more cells, so the model must declare which cells to target.
 
 ```python
 from sentry.db.models import control_silo_model
@@ -360,7 +360,7 @@ def test_idempotent_replication(self):
 
 ### 7.3 Silo Test Decorators
 
-- Use **`@cell_silo_test`** for tests focused on `RegionOutbox` creation
+- Use **`@cell_silo_test`** for tests focused on `CellOutbox` creation
 - Use **`@control_silo_test`** for tests focused on `ControlOutbox` creation
 - Use **`@all_silo_test`** for end-to-end replication tests that exercise both silos
 - Only use **`TransactionTestCase`** for threading/concurrency tests (e.g., `threading.Barrier`), not for standard outbox drain tests

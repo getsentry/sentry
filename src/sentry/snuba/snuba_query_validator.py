@@ -9,7 +9,6 @@ from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
-from sentry.api.serializers.rest_framework import EnvironmentField
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
     InvalidSearchQuery,
@@ -23,7 +22,9 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -50,6 +51,13 @@ UNSUPPORTED_QUERIES = {"release:latest"}
 
 # Allowed time windows (in seconds) for crash rate alerts
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
+
+MIN_EAP_ALERT_TIME_WINDOW_SECONDS = 300
+
+# Valid time windows for EAP alerts: valid Snuba granularities at or above the alert minimum.
+EAP_ALERTS_ALLOWED_TIME_WINDOWS = sorted(
+    g for g in VALID_GRANULARITIES if g >= MIN_EAP_ALERT_TIME_WINDOW_SECONDS
+)
 
 
 QUERY_TYPE_VALID_DATASETS = {
@@ -82,7 +90,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     query = serializers.CharField(required=True, allow_blank=True)
     aggregate = serializers.CharField(required=True)
     time_window = serializers.IntegerField(required=True)
-    environment = EnvironmentField(required=True, allow_null=True)
+    environment = serializers.CharField(
+        required=True,
+        allow_null=True,
+        max_length=64,
+    )
     event_types = serializers.ListField(
         child=serializers.CharField(),
     )
@@ -115,6 +127,23 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # if false, time_window is interpreted as minutes.
         # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
         self.time_window_seconds = timeWindowSeconds
+
+    def validate_environment(self, value: str | None) -> Environment | None:
+        """
+        This is not using the `EnvironmentField` so we can inline create new envs
+        inline when creating alerts. The use case is when a new environment is needed
+        for an alert, but there haven't been any events ingested yet.
+        """
+        if value is None:
+            return None
+
+        try:
+            return Environment.get_or_create(
+                project=self.context["project"],
+                name=value,
+            )
+        except Exception:
+            raise serializers.ValidationError("Failed to retrieve or create environment.")
 
     def validate_aggregate(self, aggregate: str) -> str:
         """
@@ -330,6 +359,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # TODO(edward): Bypass snql query validation for EAP queries. Do we need validation for rpc requests?
         if dataset != Dataset.EventsAnalyticsPlatform:
             self._validate_snql_query(data, entity_subscription, projects)
+        else:
+            self._validate_time_window(data["time_window"], dataset)
 
     def _validate_snql_query(
         self,
@@ -391,9 +422,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
         if dataset == Dataset.EventsAnalyticsPlatform:
-            if time_window_seconds < 300:
+            if time_window_seconds not in EAP_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
-                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
+                    f"Invalid Time Window: Allowed time windows (in seconds) for this alert type are: "
+                    f"{EAP_ALERTS_ALLOWED_TIME_WINDOWS}"
                 )
         return time_window_seconds
 
@@ -451,7 +483,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             query=validated_data["query"],
             aggregate=validated_data["aggregate"],
             time_window=timedelta(seconds=validated_data["time_window"]),
-            resolution=timedelta(minutes=1),
+            resolution=validated_data.get("resolution", timedelta(minutes=1)),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
             group_by=validated_data.get("group_by"),

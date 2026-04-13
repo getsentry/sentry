@@ -1,5 +1,6 @@
 import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
@@ -19,9 +20,9 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 export const AiSetupConfiguration = HookOrDefault({
   hookName: 'component:ai-setup-configuration',
@@ -44,7 +45,7 @@ interface AutofixConfigureSeerProps {
 
 export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSeerProps) {
   const organization = useOrganization();
-  const {data: setupCheck} = useSeerOnboardingCheck();
+  const {data: setupCheck} = useQuery(getSeerOnboardingCheckQueryOptions({organization}));
   const {data, isPending, isError} = useGroupSummary(group, event, project);
 
   const orgNeedsToConfigureSeer =

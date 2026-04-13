@@ -1,4 +1,6 @@
-import {Grid} from '@sentry/scraps/layout';
+import {Fragment} from 'react';
+
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -16,6 +18,8 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function MultiQueryMode() {
@@ -25,6 +29,7 @@ export default function MultiQueryMode() {
 
   const id = getIdFromLocation(location);
   const {data: savedQuery} = useGetSavedQuery(id);
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Feature
@@ -54,17 +59,33 @@ export default function MultiQueryMode() {
             />
             <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <StarSavedQueryButton />
-              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-              <FeedbackButton />
-            </Grid>
-          </Layout.HeaderActions>
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="actions">
+                <StarSavedQueryButton />
+                {defined(id) && savedQuery?.isPrebuilt === false && (
+                  <SavedQueryEditMenu />
+                )}
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <StarSavedQueryButton />
+                {defined(id) && savedQuery?.isPrebuilt === false && (
+                  <SavedQueryEditMenu />
+                )}
+                <FeedbackButton />
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
-        <Layout.Page>
+        <Stack flex={1}>
           <MultiQueryModeContent />
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     </Feature>
   );

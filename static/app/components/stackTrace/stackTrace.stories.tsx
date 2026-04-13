@@ -343,7 +343,7 @@ function makeLongPathAndFunctionStackTraceData(): StackTraceStoryData {
         ...frame,
         function:
           `very_long_function_name_for_exception_debugging_pipeline_stage_${index}` +
-          `__with_additional_context_and_nested_handler_resolution_chain`,
+          '__with_additional_context_and_nested_handler_resolution_chain',
         inApp: true,
       })),
     } as StacktraceWithFrames,
@@ -628,7 +628,7 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
       context: [
         [lineNo - 2, `def ${func}():`],
         [lineNo - 1, '    try:'],
-        [lineNo, `        raise ExceptionGroup("group", errors)`],
+        [lineNo, '        raise ExceptionGroup("group", errors)'],
         [lineNo + 1, '    except Exception:'],
         [lineNo + 2, '        pass'],
       ],

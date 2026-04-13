@@ -62,7 +62,7 @@ async function extractDiffMutations({
     },
     onVisitFrame: (frame, collection, replayer) => {
       const mirror = replayer.getMirror();
-      if (lastFrame && lastFrame.type === EventType.FullSnapshot) {
+      if (lastFrame?.type === EventType.FullSnapshot) {
         const node = mirror.getNode(lastFrame.data.node.id) as Document | null;
         const item = collection.get(lastFrame);
         if (node && item) {
@@ -79,8 +79,7 @@ async function extractDiffMutations({
           };
         }
       } else if (
-        lastFrame &&
-        lastFrame.type === EventType.IncrementalSnapshot &&
+        lastFrame?.type === EventType.IncrementalSnapshot &&
         'source' in lastFrame.data &&
         lastFrame.data.source === IncrementalSource.Mutation
       ) {

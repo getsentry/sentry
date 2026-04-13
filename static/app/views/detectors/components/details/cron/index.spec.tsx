@@ -44,23 +44,23 @@ describe('CronDetectorDetails - check-ins', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/1/`,
+      url: '/organizations/org-slug/detectors/1/',
       body: detector,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/2/`,
+      url: '/organizations/org-slug/detectors/2/',
       body: detector,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d`,
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/`,
+      url: '/organizations/org-slug/users/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/1/`,
+      url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
@@ -68,7 +68,7 @@ describe('CronDetectorDetails - check-ins', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
     MockApiClient.addMockResponse({
@@ -76,11 +76,11 @@ describe('CronDetectorDetails - check-ins', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/`,
+      url: '/organizations/org-slug/workflows/',
       body: [],
     });
   });
@@ -115,7 +115,7 @@ describe('CronDetectorDetails - check-ins', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/2/`,
+      url: '/organizations/org-slug/detectors/2/',
       body: noCheckInDetector,
     });
 
@@ -134,7 +134,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
       expect(
-        screen.getByText('No check-ins have been recorded for this time period.')
+        await screen.findByText('No check-ins have been recorded for this time period.')
       ).toBeInTheDocument();
     });
 
@@ -208,10 +208,10 @@ describe('CronDetectorDetails - check-ins', () => {
         </UserTimezoneProvider>
       );
 
-      // Wait for check-ins to load and find the table after the heading
+      // Wait for check-ins to load and find the table within the section
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
-      const container = recentCheckInsHeading.parentElement!.parentElement!;
-      const checkInTable = within(container).getByRole('table');
+      const container = recentCheckInsHeading.closest('section')!;
+      const checkInTable = await within(container).findByRole('table');
 
       // Find the "Started" column index
       const headers = within(checkInTable).getAllByRole('columnheader');
@@ -294,7 +294,7 @@ describe('CronDetectorDetails - check-ins', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/detectors/2/`,
+        url: '/organizations/org-slug/detectors/2/',
         body: noCheckInDetector,
       });
 
@@ -384,7 +384,7 @@ describe('CronDetectorDetails - check-ins', () => {
       });
 
       const detectorRefetchRequest = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/detectors/1/`,
+        url: '/organizations/org-slug/detectors/1/',
         body: detectorWithMultipleEnvs,
       });
 

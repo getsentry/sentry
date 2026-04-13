@@ -21,11 +21,12 @@ import {
   isSeerSupportedProvider,
   useSeerSupportedProviderIds,
 } from 'sentry/components/events/autofix/utils';
+import {useCycleText} from 'sentry/components/loading/useCycleText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {getProviderConfigUrl} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
 import {useScmIntegrationTreeData} from 'sentry/components/repositories/scmIntegrationTree/useScmIntegrationTreeData';
-import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconAdd, IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -35,7 +36,6 @@ import type {
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-
 interface SCMOverviewSectionData {
   connectedRepos: IntegrationRepository[];
   isError: boolean;
@@ -120,6 +120,7 @@ export function SCMOverviewSection(props: Props) {
   const {
     isError,
     isPending,
+    isReposPending,
     organizationSlug,
     refetchIntegrations,
     seerRepos,
@@ -141,12 +142,10 @@ export function SCMOverviewSection(props: Props) {
       }
     >
       {isPending ? (
-        <Flex align="center" gap="md">
-          <LoadingIndicator size={16} style={{margin: '0'}} />
-          <Text size="sm" variant="muted">
-            {t('Loading source code providers and repositories...')}
-          </Text>
-        </Flex>
+        <Stack gap="md">
+          <Placeholder height="20px" width="200px" />
+          <Placeholder height="14px" width="375px" />
+        </Stack>
       ) : isError ? (
         <AlertRoundBottom
           system
@@ -160,6 +159,8 @@ export function SCMOverviewSection(props: Props) {
         >
           {t('Error loading repositories')}
         </AlertRoundBottom>
+      ) : isReposPending ? (
+        <AddedRepos {...props} />
       ) : supportedScmIntegrations.length === 0 ? (
         <NoIntegrations {...props} />
       ) : seerRepos.length === 0 ? (
@@ -178,7 +179,10 @@ function NoIntegrations({refetchIntegrations}: {refetchIntegrations: () => void}
         priority="primary"
         size="sm"
         icon={<IconAdd />}
-        onClick={() => {
+        onClick={async () => {
+          const {ScmRepoTreeModal} =
+            await import('sentry/components/repositories/scmRepoTreeModal');
+
           openModal(
             deps => <ScmRepoTreeModal {...deps} title={t('Install Integration')} />,
             {
@@ -243,6 +247,13 @@ function NoRepos({supportedScmIntegrations}: Props) {
   );
 }
 
+const messages = [
+  t('Loading source code providers and repositories...'),
+  t('Loading a lot of repositories...'),
+  t('This is getting interesting...'),
+  t('Almost done...'),
+  t('Just kidding, still loading...'),
+];
 function AddedRepos({
   canWrite,
   connectedRepos,
@@ -252,14 +263,23 @@ function AddedRepos({
   seerRepos,
   unconnectedRepos,
 }: Props) {
+  const message = useCycleText({messages, delayMs: 5000, disabled: !isReposPending});
   return (
     <Flex align="center" gap="lg">
       <Stack width="50%" gap="xs">
         <Flex align="center" gap="sm">
-          {isReposPending ? <LoadingIndicator size={16} style={{margin: '0'}} /> : null}
-          {seerRepos.length === 1
-            ? t('1 Repository Added')
-            : t('%s of %s Repositories Added', connectedRepos.length, seerRepos.length)}
+          {isReposPending ? (
+            <Flex align="center" gap="md">
+              <LoadingIndicator size={16} style={{margin: '0'}} />
+              <Text size="sm" variant="muted">
+                {message}
+              </Text>
+            </Flex>
+          ) : seerRepos.length === 1 ? (
+            t('1 Repository Added')
+          ) : (
+            t('%s of %s Repositories Added', connectedRepos.length, seerRepos.length)
+          )}
         </Flex>
 
         <Text size="sm" variant="muted">

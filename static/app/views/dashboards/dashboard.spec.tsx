@@ -11,10 +11,10 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Dashboard} from 'sentry/views/dashboards/dashboard';
 import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -26,6 +26,8 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
@@ -93,12 +95,12 @@ describe('Dashboards > Dashboard', () => {
   beforeEach(() => {
     initialData = initializeOrg({organization, projects: []});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/widgets/`,
+      url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/stats/`,
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -497,7 +499,7 @@ describe('Dashboards > Dashboard', () => {
       dashboard?: DashboardDetails;
     } = {}) {
       const location = useLocation();
-      const [widgetInterval] = useChartInterval();
+      const [widgetInterval] = useDashboardChartInterval();
       return (
         <MEPSettingProvider forceTransactions={false}>
           <FiltersBar
@@ -539,39 +541,39 @@ describe('Dashboards > Dashboard', () => {
     });
 
     describe('no interval set in URL', () => {
-      it('defaults to the smallest valid interval for the dashboard period', async () => {
-        const fiveMinuteMock = MockApiClient.addMockResponse({
+      it('defaults to the second-biggest valid interval for the dashboard period', async () => {
+        const tenMinuteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           method: 'GET',
           body: [],
-          match: [MockApiClient.matchQuery({interval: '5m'})],
+          match: [MockApiClient.matchQuery({interval: '10m'})],
         });
-        const hourlyIntervalMock = MockApiClient.addMockResponse({
+        const thirtyMinuteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           method: 'GET',
           body: [],
-          match: [MockApiClient.matchQuery({interval: '1h'})],
+          match: [MockApiClient.matchQuery({interval: '30m'})],
         });
 
-        // No interval in the URL — the 5m default is derived purely from the
-        // dashboard's saved 24h period via PageFiltersStore → useChartInterval.
+        // No interval in the URL — the 10m default (second-biggest of [5m, 10m, 30m])
+        // is derived from the dashboard's saved 24h period via useDashboardChartInterval.
         const {router} = render(<DashboardWithIntervalSelector />, {
           organization: orgWithFlag,
           initialRouterConfig: {location: {pathname: '/'}},
         });
 
         await screen.findByText('Test Spans Widget');
-        await waitFor(() => expect(fiveMinuteMock).toHaveBeenCalled());
-        expect(hourlyIntervalMock).not.toHaveBeenCalled();
+        await waitFor(() => expect(tenMinuteMock).toHaveBeenCalled());
+        expect(thirtyMinuteMock).not.toHaveBeenCalled();
 
-        // Click the interval selector and choose '1 hour'. FiltersBar writes
-        // interval=1h to the URL, DashboardWithIntervalSelector re-renders with
+        // Click the interval selector and choose '30 minutes'. FiltersBar writes
+        // interval=30m to the URL, DashboardWithIntervalSelector re-renders with
         // the new widgetInterval, and the widget re-fetches with the new interval.
-        await userEvent.click(screen.getByRole('button', {name: '5 minutes'}));
-        await userEvent.click(screen.getByRole('option', {name: '1 hour'}));
+        await userEvent.click(screen.getByRole('button', {name: '10 minutes'}));
+        await userEvent.click(screen.getByRole('option', {name: '30 minutes'}));
 
-        await waitFor(() => expect(hourlyIntervalMock).toHaveBeenCalled());
-        expect(router.location.query.interval).toBe('1h');
+        await waitFor(() => expect(thirtyMinuteMock).toHaveBeenCalled());
+        expect(router.location.query.interval).toBe('30m');
       });
     });
 
@@ -590,11 +592,11 @@ describe('Dashboards > Dashboard', () => {
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
-        const hourlyIntervalMock = MockApiClient.addMockResponse({
+        const tenMinuteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           method: 'GET',
           body: [],
-          match: [MockApiClient.matchQuery({interval: '1h'})],
+          match: [MockApiClient.matchQuery({interval: '10m'})],
         });
 
         const {router} = render(<DashboardWithIntervalSelector />, {
@@ -613,16 +615,16 @@ describe('Dashboards > Dashboard', () => {
 
         // Selecting a new interval updates the URL and triggers a re-fetch.
         await userEvent.click(screen.getByRole('button', {name: '30 minutes'}));
-        await userEvent.click(screen.getByRole('option', {name: '1 hour'}));
+        await userEvent.click(screen.getByRole('option', {name: '10 minutes'}));
 
-        await waitFor(() => expect(hourlyIntervalMock).toHaveBeenCalled());
-        expect(router.location.query.interval).toBe('1h');
+        await waitFor(() => expect(tenMinuteMock).toHaveBeenCalled());
+        expect(router.location.query.interval).toBe('10m');
       });
     });
 
     describe('URL interval not valid for the dashboard period', () => {
       beforeEach(() => {
-        // Override the outer 24h store setup — valid intervals for 30d are 3h, 12h, 1d.
+        // Override the outer 24h store setup — valid intervals for 30d are 3h, 6h, 12h.
         PageFiltersStore.init();
         PageFiltersStore.onInitializeUrlState(
           getSavedFiltersAsPageFilters(thirtyDayDashboard)
@@ -630,11 +632,11 @@ describe('Dashboards > Dashboard', () => {
       });
 
       it('ignores the URL interval and falls back to the period default', async () => {
-        const threeHourMock = MockApiClient.addMockResponse({
+        const sixHourMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           method: 'GET',
           body: [],
-          match: [MockApiClient.matchQuery({interval: '3h'})],
+          match: [MockApiClient.matchQuery({interval: '6h'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
@@ -651,11 +653,12 @@ describe('Dashboards > Dashboard', () => {
 
         await screen.findByText('Test Spans Widget');
 
-        // The selector should show the period-derived default, not the invalid URL value.
-        expect(screen.getByRole('button', {name: '3 hours'})).toBeInTheDocument();
+        // The selector should show the period-derived default (6h = second-biggest
+        // of [3h, 6h, 12h]), not the invalid URL value (5m).
+        expect(screen.getByRole('button', {name: '6 hours'})).toBeInTheDocument();
 
         // The widget should query with the valid default interval, not the URL value.
-        await waitFor(() => expect(threeHourMock).toHaveBeenCalled());
+        await waitFor(() => expect(sixHourMock).toHaveBeenCalled());
         expect(fiveMinuteMock).not.toHaveBeenCalled();
       });
     });
@@ -679,11 +682,11 @@ describe('Dashboards > Dashboard', () => {
       it('ignores the URL interval and falls back to the period default', async () => {
         // Uses the /sessions/ endpoint (session.status in columns → useSessionAPI=true),
         // which surfaces the "intervals too granular" error in production.
-        const threeHourMock = MockApiClient.addMockResponse({
+        const sixHourMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/sessions/',
           method: 'GET',
           body: emptySessionsBody,
-          match: [MockApiClient.matchQuery({interval: '3h'})],
+          match: [MockApiClient.matchQuery({interval: '6h'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/sessions/',
@@ -699,13 +702,13 @@ describe('Dashboards > Dashboard', () => {
 
         await screen.findByText('Test Releases Widget');
 
-        // The selector should show the period-derived default (3h), not the
-        // invalid URL value (5m).
-        expect(screen.getByRole('button', {name: '3 hours'})).toBeInTheDocument();
+        // The selector should show the period-derived default (6h = second-biggest
+        // of [3h, 6h, 12h]), not the invalid URL value (5m).
+        expect(screen.getByRole('button', {name: '6 hours'})).toBeInTheDocument();
 
         // The widget should query the sessions endpoint with the valid default
         // interval, not the 5m value from the URL.
-        await waitFor(() => expect(threeHourMock).toHaveBeenCalled());
+        await waitFor(() => expect(sixHourMock).toHaveBeenCalled());
         expect(fiveMinuteMock).not.toHaveBeenCalled();
       });
     });
@@ -876,5 +879,42 @@ describe('Dashboards > Dashboard', () => {
     await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
     const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
     expect(requestQuery).toContain('span.op:db');
+  });
+
+  it('registers dashboard node with metadata in LLM context snapshot', async () => {
+    const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+    function SnapshotCapture() {
+      const {getLLMContext} = useLLMContext();
+      snapshotRef.current = getLLMContext;
+      return null;
+    }
+
+    render(
+      <div>
+        <Dashboard
+          dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          isEditingDashboard={false}
+          widgetLegendState={widgetLegendState}
+        />
+        <SnapshotCapture />
+      </div>
+    );
+
+    await waitFor(() => {
+      const snapshot = snapshotRef.current!();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]!.nodeType).toBe('dashboard');
+      expect(snapshot.nodes[0]!.data).toEqual(
+        expect.objectContaining({
+          title: 'LLM Test Dashboard',
+          widgetCount: 0,
+        })
+      );
+    });
   });
 });

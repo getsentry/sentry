@@ -21,7 +21,9 @@ from .organization_preprod_quota import OrganizationPreprodQuotaEndpoint
 from .organization_preprod_retention import OrganizationPreprodRetentionEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
+from .preprod_artifact_approve import OrganizationPreprodArtifactApproveEndpoint
 from .preprod_artifact_rerun_analysis import (
+    PreprodArtifactAdminBatchRerunAnalysisEndpoint,
     PreprodArtifactAdminRerunAnalysisEndpoint,
     PreprodArtifactRerunAnalysisEndpoint,
 )
@@ -188,6 +190,12 @@ preprod_organization_urlpatterns = [
         OrganizationPreprodPublicSizeAnalysisEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-artifact-public-size-analysis",
     ),
+    # Approvals
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/approve/$",
+        OrganizationPreprodArtifactApproveEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-approve",
+    ),
     # Snapshots
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
@@ -211,6 +219,11 @@ preprod_internal_urlpatterns = [
         r"^preprod-artifact/rerun-analysis/$",
         PreprodArtifactAdminRerunAnalysisEndpoint.as_view(),
         name="sentry-admin-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^preprod-artifact/batch-rerun-analysis/$",
+        PreprodArtifactAdminBatchRerunAnalysisEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-batch-rerun-analysis",
     ),
     re_path(
         r"^preprod-artifact/(?P<head_artifact_id>[^/]+)/info/$",

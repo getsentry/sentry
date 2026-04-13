@@ -157,7 +157,7 @@ function TeamMisery({
                   <ScoreWrapper>
                     {trendValue === 0 ? (
                       <SubText>
-                        {`0\u0025 `}
+                        {'0\u0025 '}
                         {t('change')}
                       </SubText>
                     ) : (

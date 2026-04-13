@@ -26,8 +26,7 @@ from sentry.preprod.models import (
     PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.producer import PreprodFeature
-from sentry.preprod.quotas import should_run_distribution, should_run_size
+from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)

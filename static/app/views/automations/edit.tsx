@@ -3,8 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
@@ -168,7 +169,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       const formData = await resolveDetectorIdsForProjects({
         formData: data as AutomationFormData,
         onSubmitError,
-        orgSlug: organization.slug,
+        organization,
         projectIds: data.projectIds,
         queryClient,
       });
@@ -187,6 +188,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...newAutomationData,
         });
         onSubmitSuccess(formModel?.getData() ?? data);
+        addSuccessMessage(t('Alert updated'));
         trackAnalytics('automation.updated', {
           organization,
           ...analyticsPayload,
@@ -226,7 +228,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     >
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
-        <Layout.Page>
+        <Stack flex={1}>
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -263,7 +265,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        </Layout.Page>
+        </Stack>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <EditAutomationActions automation={automation} form={model} />

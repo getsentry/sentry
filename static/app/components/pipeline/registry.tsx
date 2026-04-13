@@ -1,9 +1,21 @@
 import {dummyIntegrationPipeline} from './pipelineDummyProvider';
+import {awsLambdaIntegrationPipeline} from './pipelineIntegrationAwsLambda';
+import {bitbucketIntegrationPipeline} from './pipelineIntegrationBitbucket';
+import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
+import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
+import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
 
 /**
  * All registered pipeline definitions.
  */
-export const PIPELINE_REGISTRY = [dummyIntegrationPipeline] as const;
+export const PIPELINE_REGISTRY = [
+  awsLambdaIntegrationPipeline,
+  bitbucketIntegrationPipeline,
+  dummyIntegrationPipeline,
+  githubIntegrationPipeline,
+  gitlabIntegrationPipeline,
+  slackIntegrationPipeline,
+] as const;
 
 type AllPipelines = (typeof PIPELINE_REGISTRY)[number];
 

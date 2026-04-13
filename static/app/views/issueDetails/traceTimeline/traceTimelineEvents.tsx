@@ -184,7 +184,7 @@ function NodeGroup({
         <Tooltip
           title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
           overlayStyle={{
-            padding: `0 !important`,
+            padding: '0 !important',
           }}
           position="bottom"
           isHoverable

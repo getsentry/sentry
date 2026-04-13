@@ -33,7 +33,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -143,8 +142,7 @@ function AddToDashboardModal({
   const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
   const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
   const shouldOpenWidgetLibrary =
-    !isWidgetEditable(widget.displayType) ||
-    (widgetTemplate && widgetTemplate.isCustomizable === false);
+    !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
@@ -540,7 +538,6 @@ function AddToDashboardModal({
                         disableTableActions
                       />
                     </WidgetCardWrapper>
-                    <IndexedEventsSelectionAlert widget={widget} />
                   </MEPSettingProvider>
                 </DashboardsMEPProvider>
               )}

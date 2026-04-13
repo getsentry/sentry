@@ -6,16 +6,16 @@ import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
-import {SupergroupRow} from 'sentry/components/stream/supergroupRow';
+import {SupergroupRow} from 'sentry/components/stream/supergroups/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import {aggregateSupergroupStats} from 'sentry/utils/supergroup/aggregateSupergroupStats';
-import type {SupergroupLookup} from 'sentry/utils/supergroup/useSuperGroups';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
+import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
@@ -237,8 +237,8 @@ function GroupList({
           <SupergroupRow
             key={`sg-${supergroup.id}`}
             supergroup={supergroup}
-            matchedCount={matchingIds.length}
             aggregatedStats={stats}
+            memberList={memberList}
           />
         );
       })}

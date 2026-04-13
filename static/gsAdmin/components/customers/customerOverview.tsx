@@ -315,10 +315,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
   ) {
     const {onDemandBudgets} = customer;
 
-    if (
-      onDemandBudgets &&
-      onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ) {
+    if (onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       return (
         <Fragment>
           {onDemandPeriod}
@@ -408,7 +405,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -627,7 +624,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               disabled={!hasActiveProductTrial || lessThanOneDayLeft}
               tooltipProps={{
                 title: lessThanOneDayLeft
-                  ? `Current product trial will end in less than one day`
+                  ? 'Current product trial will end in less than one day'
                   : hasActiveProductTrial
                     ? `Stop the current product trial for ${formattedTrialName}`
                     : `No product trial is active for ${formattedTrialName}`,
@@ -726,6 +723,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.owner ? <CustomerContact owner={customer.owner} /> : 'n/a'}{' '}
           </DetailLabel>
           <DetailLabel title="Type">{customer.type || 'n/a'}</DetailLabel>
+          <DetailLabel title="Managed" yesNo={customer.isManaged} />
           <DetailLabel title="Channel">{customer.channel || 'n/a'}</DetailLabel>
           <DetailLabel title="Sponsored Type">
             {customer.sponsoredType || 'n/a'}

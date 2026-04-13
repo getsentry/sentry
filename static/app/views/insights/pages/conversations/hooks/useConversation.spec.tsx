@@ -228,16 +228,23 @@ describe('useConversation', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Verify the API was called with correct timestamps (with 1-hour padding)
+    // Verify the API was called with correct timestamps (with 1-hour padding),
+    // ALL_ACCESS_PROJECTS (-1) so it searches across all projects,
+    // and no environment filter so it searches across all environments
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/ai-conversations/conv-timestamps/'),
       expect.objectContaining({
         query: expect.objectContaining({
           start: new Date(startTimestamp - 60 * 60 * 1000).toISOString(),
           end: new Date(endTimestamp + 60 * 60 * 1000).toISOString(),
+          project: [-1],
         }),
       })
     );
+
+    // Ensure environment is not included in the query when using conversation timestamps
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('environment');
   });
 
   it('falls back to span.name when span.description is empty', async () => {

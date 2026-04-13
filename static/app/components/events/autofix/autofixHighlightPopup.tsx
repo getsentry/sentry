@@ -29,7 +29,6 @@ import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -646,9 +645,9 @@ export function AutofixHighlightPopup(props: Props) {
       initial={{opacity: 0, x: 10}}
       animate={{opacity: 1, x: 0}}
       exit={{opacity: 0, x: 10}}
-      transition={testableTransition({
+      transition={{
         duration: 0.2,
-      })}
+      }}
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
