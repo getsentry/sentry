@@ -19,6 +19,11 @@ def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
 
 
+@pytest.mark.skip(
+    reason="test pollution: time.sleep is mocked globally so the sleep(0.1) "
+    "before assert messages is a no-op; the flusher background thread has no "
+    "guaranteed CPU time to produce messages before the assertion"
+)
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
 def test_backpressure() -> None:
     # Flush very aggressively to make join() faster
