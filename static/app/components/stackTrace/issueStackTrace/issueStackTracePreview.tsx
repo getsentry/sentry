@@ -15,7 +15,7 @@ export function IssueStackTracePreview({
 }) {
   return (
     <StackTraceViewStateProvider platform={event.platform}>
-      <StackTraceProvider event={event} stacktrace={stacktrace}>
+      <StackTraceProvider event={event} stacktrace={stacktrace} collapseAll>
         <StackTraceFrames
           borderless
           frameActionsComponent={IssueFrameActions}
