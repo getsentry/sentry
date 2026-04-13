@@ -19,10 +19,10 @@ import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
 /**
- * Font size and spacing scaled for the larger explore chart canvas (1600x1200).
+ * Font size and spacing scaled for the larger explore chart canvas (1200x400).
  */
-const EXPLORE_FONT_SIZE = 32;
-const EXPLORE_CHART_SIZE = {width: 1600, height: 1200};
+const EXPLORE_FONT_SIZE = 28;
+const EXPLORE_CHART_SIZE = {width: 1200, height: 400};
 
 /**
  * Builds a y-axis axisLabel formatter from the first timeseries metadata.
