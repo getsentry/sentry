@@ -13,6 +13,7 @@ from collections.abc import MutableMapping
 from contextlib import contextmanager
 from typing import Any, Generator
 
+import orjson
 from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
@@ -28,7 +29,7 @@ from sentry.utils import json
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.memory import track_memory_usage as sentry_track_memory_usage
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 
 class DjangoCacheAtMostOnceStore(AtMostOnceStore):
@@ -151,33 +152,24 @@ class SentryRouter(LibraryRouter):
 class ViewerContextHook:
     """
     ContextHook that propagates ViewerContext through task headers.
+
+    Uses a single JSON header, matching the RPC layer's serialization
+    via ViewerContext.serialize() / ViewerContext.deserialize().
     """
 
-    HEADER_ORG = "sentry-viewer-org"
-    HEADER_USER = "sentry-viewer-user"
-    HEADER_ACTOR = "sentry-viewer-actor"
+    HEADER = "sentry-viewer-context"
 
     def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
         ctx = get_viewer_context()
         if ctx is None:
             return
-        if ctx.organization_id is not None:
-            headers[self.HEADER_ORG] = str(ctx.organization_id)
-        if ctx.user_id is not None:
-            headers[self.HEADER_USER] = str(ctx.user_id)
-        headers[self.HEADER_ACTOR] = ctx.actor_type.value
+        headers[self.HEADER] = orjson.dumps(ctx.serialize()).decode()
 
     def on_execute(self, headers: dict[str, str]) -> contextlib.AbstractContextManager[None]:
-        actor = headers.get(self.HEADER_ACTOR)
-        org = headers.get(self.HEADER_ORG)
-        user = headers.get(self.HEADER_USER)
-        if not actor and not org and not user:
+        raw = headers.get(self.HEADER)
+        if not raw:
             return contextlib.nullcontext()
-        ctx = ViewerContext(
-            organization_id=int(org) if org else None,
-            user_id=int(user) if user else None,
-            actor_type=ActorType(actor) if actor else ActorType.UNKNOWN,
-        )
+        ctx = ViewerContext.deserialize(orjson.loads(raw))
         return viewer_context_scope(ctx)
 
 

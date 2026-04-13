@@ -1,5 +1,6 @@
 import contextlib
 
+import orjson
 import pytest
 from django.test.utils import override_settings
 from taskbroker_client.registry import TaskRegistry
@@ -69,18 +70,17 @@ class TestViewerContextHook:
         with viewer_context_scope(ctx):
             hook.on_dispatch(headers)
 
-        assert headers["sentry-viewer-org"] == "42"
-        assert headers["sentry-viewer-user"] == "7"
-        assert headers["sentry-viewer-actor"] == "user"
+        payload = orjson.loads(headers["sentry-viewer-context"])
+        assert payload["organization_id"] == 42
+        assert payload["user_id"] == 7
+        assert payload["actor_type"] == "user"
 
     def test_on_dispatch_without_context(self) -> None:
         hook = ViewerContextHook()
         headers: dict[str, str] = {}
         hook.on_dispatch(headers)
 
-        assert "sentry-viewer-org" not in headers
-        assert "sentry-viewer-user" not in headers
-        assert "sentry-viewer-actor" not in headers
+        assert "sentry-viewer-context" not in headers
 
     def test_on_dispatch_partial_context(self) -> None:
         hook = ViewerContextHook()
@@ -89,16 +89,17 @@ class TestViewerContextHook:
         with viewer_context_scope(ctx):
             hook.on_dispatch(headers)
 
-        assert headers["sentry-viewer-org"] == "42"
-        assert "sentry-viewer-user" not in headers
-        assert headers["sentry-viewer-actor"] == "system"
+        payload = orjson.loads(headers["sentry-viewer-context"])
+        assert payload["organization_id"] == 42
+        assert "user_id" not in payload
+        assert payload["actor_type"] == "system"
 
     def test_on_execute_restores_context(self) -> None:
         hook = ViewerContextHook()
         headers = {
-            "sentry-viewer-org": "42",
-            "sentry-viewer-user": "7",
-            "sentry-viewer-actor": "user",
+            "sentry-viewer-context": orjson.dumps(
+                {"organization_id": 42, "user_id": 7, "actor_type": "user"}
+            ).decode(),
         }
         with hook.on_execute(headers):
             ctx = get_viewer_context()
@@ -116,7 +117,11 @@ class TestViewerContextHook:
 
     def test_on_execute_partial_headers(self) -> None:
         hook = ViewerContextHook()
-        headers = {"sentry-viewer-org": "99", "sentry-viewer-actor": "integration"}
+        headers = {
+            "sentry-viewer-context": orjson.dumps(
+                {"organization_id": 99, "actor_type": "integration"}
+            ).decode(),
+        }
         with hook.on_execute(headers):
             ctx = get_viewer_context()
             assert ctx is not None
