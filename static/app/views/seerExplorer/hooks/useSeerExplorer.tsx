@@ -563,11 +563,13 @@ export const useSeerExplorer = () => {
     filteredSessionData.blocks.every((block: Block) => !block.loading);
 
   useEffect(() => {
-    if (waitingForResponse && isLoaded) {
-      // Stop waiting once we see the response is no longer loading
-      setWaitingForResponse(false);
-      // Clear deleted index once response is complete
-      setDeletedFromIndex(null);
+    if (isLoaded) {
+      if (waitingForResponse) {
+        // Stop waiting once we see the response is no longer loading
+        setWaitingForResponse(false);
+        // Clear deleted index once response is complete
+        setDeletedFromIndex(null);
+      }
 
       if (interruptRequested) {
         setInterruptRequested(false);
