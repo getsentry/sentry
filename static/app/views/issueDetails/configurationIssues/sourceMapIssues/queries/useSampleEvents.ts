@@ -14,14 +14,14 @@ interface SamplesResult {
   data: SampleRow[];
 }
 
-export interface SampleEvent {
+interface SampleEvent {
   eventId: string;
   groupId: string;
   timestamp: string;
   title: string;
 }
 
-export interface SampleEventsResult {
+interface SampleEventsResult {
   events: SampleEvent[];
   isError: boolean;
   isLoading: boolean;
@@ -54,8 +54,8 @@ export function useSampleEvents({project}: Options): SampleEventsResult {
     {staleTime: 60_000}
   );
 
-  const rows: SampleRow[] = data?.data ?? [];
-  const events: SampleEvent[] = rows.map((row: SampleRow) => ({
+  const rows = data?.data ?? [];
+  const events = rows.map((row: SampleRow) => ({
     title: row.title,
     eventId: row.event_id,
     groupId: row.group_id,

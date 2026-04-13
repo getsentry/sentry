@@ -9,12 +9,12 @@ interface ReleasesResult {
   data: ReleaseRow[];
 }
 
-export interface AffectedRelease {
+interface AffectedRelease {
   count: number;
   release: string;
 }
 
-export interface AffectedReleasesResult {
+interface AffectedReleasesResult {
   isError: boolean;
   isLoading: boolean;
   releases: AffectedRelease[];
@@ -47,8 +47,8 @@ export function useAffectedReleases({project}: Options): AffectedReleasesResult 
     {staleTime: 60_000}
   );
 
-  const rows: ReleaseRow[] = data?.data ?? [];
-  const releases: AffectedRelease[] = rows
+  const rows = data?.data ?? [];
+  const releases = rows
     .filter((row: ReleaseRow) => Boolean(row.release))
     .map((row: ReleaseRow) => ({
       release: row.release,

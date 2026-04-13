@@ -7,7 +7,7 @@ interface CountResult {
   data: Array<{'count_unique(event_id)': number}>;
 }
 
-export interface ImpactedEventsCount {
+interface ImpactedEventsCount {
   count: number | null;
   isError: boolean;
   isLoading: boolean;
