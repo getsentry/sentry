@@ -115,14 +115,6 @@ export const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
 
   &.has-page-frame {
     margin-top: 0;
-
-    ${Title} {
-      margin-top: 0;
-    }
-
-    ${Action} {
-      margin-top: 0;
-    }
   }
 `;
 
