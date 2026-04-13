@@ -22,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
 
 import {MobileBuildsChart} from './mobileBuildsChart';
 
@@ -95,10 +96,15 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
     (display: PreprodBuildsDisplay) => {
       navigate({
         ...location,
-        query: {...location.query, cursor: undefined, display},
+        query: {
+          ...location.query,
+          cursor: undefined,
+          display,
+          query: getUpdatedQueryForDisplay(searchQuery, display),
+        },
       });
     },
-    [location, navigate]
+    [location, navigate, searchQuery]
   );
 
   const builds = buildsResponse?.json ?? [];
