@@ -70,6 +70,17 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
   listItemType: 'action' | 'section';
 };
 
+interface CommandPaletteScore {
+  length: number;
+  matched: boolean;
+  score: number;
+}
+
+interface CommandPaletteScoredNode {
+  node: CollectionTreeNode<CMDKActionData>;
+  score: CommandPaletteScore;
+}
+
 interface CommandPaletteProps {
   closeModal?: () => void;
 }
@@ -99,10 +110,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       return flattenActions(currentNodes, null);
     }
 
-    const scores = new Map<
-      string,
-      {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
-    >();
+    const scores = new Map<string, CommandPaletteScoredNode>();
     scoreTree(currentNodes, scores, state.query.toLowerCase());
     return flattenActions(currentNodes, scores, state.action !== null);
   }, [currentNodes, state.action, state.query]);
@@ -479,7 +487,7 @@ function presortBySlotRef(
 function scoreNode(
   query: string,
   node: CollectionTreeNode<CMDKActionData>
-): {matched: boolean; score: number} {
+): CommandPaletteScore {
   const label = node.display.label;
   const details = node.display.details ?? '';
   const keywords = node.keywords ?? [];
@@ -488,24 +496,43 @@ function scoreNode(
   // fzf's built-in exact-match bonus fire naturally (e.g. query === label)
   // and avoids false cross-field subsequence matches from string concatenation.
   let best = -Infinity;
+  let bestLength = Infinity;
   let matched = false;
   for (const candidate of [label, details, ...keywords]) {
     if (!candidate) continue;
     const result = fzf(candidate, query, false);
     if (result.end !== -1 && result.score > best) {
       best = result.score;
+      bestLength = candidate.length;
+      matched = true;
+    } else if (result.end !== -1 && result.score === best) {
+      bestLength = Math.min(bestLength, candidate.length);
       matched = true;
     }
   }
-  return {matched, score: matched ? best : 0};
+  return {length: matched ? bestLength : Infinity, matched, score: matched ? best : 0};
+}
+
+function compareCommandPaletteScores(
+  a: CommandPaletteScore | undefined,
+  b: CommandPaletteScore | undefined
+): number {
+  const scoreDiff = (b?.score ?? 0) - (a?.score ?? 0);
+  if (scoreDiff !== 0) {
+    return scoreDiff;
+  }
+
+  const lengthDiff = (a?.length ?? Infinity) - (b?.length ?? Infinity);
+  if (lengthDiff !== 0) {
+    return lengthDiff;
+  }
+
+  return 0;
 }
 
 function scoreTree(
   nodes: Array<CollectionTreeNode<CMDKActionData>>,
-  scores: Map<
-    string,
-    {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
-  >,
+  scores: Map<string, CommandPaletteScoredNode>,
   query: string
 ): void {
   function dfs(node: CollectionTreeNode<CMDKActionData>) {
@@ -534,10 +561,7 @@ function markSubtreeSeen(
 
 function flattenActions(
   nodes: Array<CollectionTreeNode<CMDKActionData>>,
-  scores: Map<
-    string,
-    {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
-  > | null,
+  scores: Map<string, CommandPaletteScoredNode> | null,
   sortLeafResults = false
 ): CMDKFlatItem[] {
   // Browse mode: show each top-level node and its direct children.
@@ -598,13 +622,22 @@ function flattenActions(
   // inside an expanded group we also sort leaf actions by their own score so
   // the full result list matches the limited preview ordering.
   collected.sort((a, b) => {
-    const sortScore = (n: CMDKFlatItem) => {
+    const sortScore = (n: CMDKFlatItem): CommandPaletteScore | undefined => {
       if (n.children.length > 0) {
-        return Math.max(0, ...n.children.map(c => scores.get(c.key)?.score.score ?? 0));
+        return n.children
+          .map(c => scores.get(c.key)?.score)
+          .reduce<CommandPaletteScore | undefined>((best, current) => {
+            if (!current) {
+              return best;
+            }
+            return !best || compareCommandPaletteScores(current, best) < 0
+              ? current
+              : best;
+          }, undefined);
       }
-      return sortLeafResults ? (scores.get(n.key)?.score.score ?? 0) : 0;
+      return sortLeafResults ? scores.get(n.key)?.score : undefined;
     };
-    return sortScore(b) - sortScore(a);
+    return compareCommandPaletteScores(sortScore(a), sortScore(b));
   });
 
   // Track processed keys so children beyond a group's limit cannot resurface as
@@ -620,9 +653,8 @@ function flattenActions(
         c => scores.get(c.key)?.score.matched && !isEmptyResourceNode(c)
       );
       if (!matched.length) return [];
-      const sortedMatches = matched.sort(
-        (a, b) =>
-          (scores.get(b.key)?.score.score ?? 0) - (scores.get(a.key)?.score.score ?? 0)
+      const sortedMatches = matched.sort((a, b) =>
+        compareCommandPaletteScores(scores.get(a.key)?.score, scores.get(b.key)?.score)
       );
       const limitedMatches = getLimitedChildren(sortedMatches, item.limit);
       // Mark every child and their entire subtrees as seen — including those
