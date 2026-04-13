@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -9,92 +9,85 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
-import {
-  useAffectedReleasesQuery,
-  useProcessingErrorsQuery,
-  useSampleEventsQuery,
-} from './useProcessingErrorsQuery';
+import {useAffectedReleases} from './queries/useAffectedReleases';
+import {useImpactedEventsCount} from './queries/useImpactedEventsCount';
+import {useSampleEvents} from './queries/useSampleEvents';
 
-interface ImpactSectionProps {
-  projectId: string;
+function EventsCount({project}: {project: Project}) {
+  const {count, isLoading, isError} = useImpactedEventsCount({project});
+
+  if (isLoading) {
+    return <LoadingIndicator mini />;
+  }
+  if (isError) {
+    return <LoadingError message={t('Unable to load impact data.')} />;
+  }
+  if (count === null) {
+    return null;
+  }
+  return (
+    <Text>
+      {tn(
+        '%s event with unreadable stack traces in the last 30 days',
+        '%s events with unreadable stack traces in the last 30 days',
+        count
+      )}
+    </Text>
+  );
 }
 
-export function ImpactSection({projectId}: ImpactSectionProps) {
-  const organization = useOrganization();
-  const {count, isLoading, isError} = useProcessingErrorsQuery({projectId});
-  const {
-    releases,
-    isLoading: releasesLoading,
-    isError: releasesError,
-  } = useAffectedReleasesQuery({projectId});
-  const {
-    events,
-    isLoading: eventsLoading,
-    isError: eventsError,
-  } = useSampleEventsQuery({projectId});
+function AffectedReleases({project}: {project: Project}) {
+  const {releases, isLoading, isError} = useAffectedReleases({project});
 
-  function renderCount() {
-    if (isLoading) {
-      return <LoadingIndicator mini />;
-    }
-    if (isError) {
-      return <LoadingError message={t('Unable to load impact data.')} />;
-    }
-    if (count === null) {
-      return null;
-    }
-    return (
-      <Text>
-        {tn(
-          '%s event with unreadable stack traces in the last 30 days',
-          '%s events with unreadable stack traces in the last 30 days',
-          count
-        )}
-      </Text>
-    );
+  if (isLoading) {
+    return <LoadingIndicator mini />;
   }
-
-  function renderReleases() {
-    if (releasesLoading) {
-      return <LoadingIndicator mini />;
-    }
-    if (releasesError) {
-      return <LoadingError message={t('Unable to load affected releases.')} />;
-    }
-    if (releases.length === 0) {
-      return null;
-    }
-    return (
+  if (isError) {
+    return <LoadingError message={t('Unable to load affected releases.')} />;
+  }
+  if (releases.length === 0) {
+    return null;
+  }
+  return (
+    <Fragment>
+      <SectionDivider orientation="horizontal" margin="xs 0" />
       <Stack gap="md">
         <Text bold>{t('Affected releases')}</Text>
         <Stack gap="xs">
-          {releases.map(({release, count: eventCount}) => (
+          {releases.map(({release, count}) => (
             <Flex key={release} align="baseline" gap="sm">
               <Version version={release} />
               <Text variant="muted">&middot;</Text>
-              <Text variant="muted">{tn('%s event', '%s events', eventCount)}</Text>
+              <Text variant="muted">{tn('%s event', '%s events', count)}</Text>
             </Flex>
           ))}
         </Stack>
       </Stack>
-    );
-  }
+    </Fragment>
+  );
+}
 
-  function renderSampleEvents() {
-    if (eventsLoading) {
-      return <LoadingIndicator mini />;
-    }
-    if (eventsError) {
-      return <LoadingError message={t('Unable to load sample events.')} />;
-    }
-    if (events.length === 0) {
-      return null;
-    }
-    return (
+function SampleEvents({project}: {project: Project}) {
+  const organization = useOrganization();
+  const {events, isLoading, isError} = useSampleEvents({project});
+
+  if (isLoading) {
+    return <LoadingIndicator mini />;
+  }
+  if (isError) {
+    return <LoadingError message={t('Unable to load sample events.')} />;
+  }
+  if (events.length === 0) {
+    return null;
+  }
+  return (
+    <Fragment>
+      <SectionDivider orientation="horizontal" margin="xs 0" />
       <Stack gap="md">
         <Text bold>{t('Sample events')}</Text>
         <Stack gap="xs">
@@ -115,28 +108,21 @@ export function ImpactSection({projectId}: ImpactSectionProps) {
           ))}
         </Stack>
       </Stack>
-    );
-  }
+    </Fragment>
+  );
+}
 
-  const releasesContent = renderReleases();
-  const sampleEventsContent = renderSampleEvents();
+interface ImpactSectionProps {
+  project: Project;
+}
 
+export function ImpactSection({project}: ImpactSectionProps) {
   return (
     <Stack gap="lg" padding="lg">
       <Heading as="h3">{t('Impact')}</Heading>
-      {renderCount()}
-      {releasesContent && (
-        <React.Fragment>
-          <SectionDivider orientation="horizontal" margin="xs 0" />
-          {releasesContent}
-        </React.Fragment>
-      )}
-      {sampleEventsContent && (
-        <React.Fragment>
-          <SectionDivider orientation="horizontal" margin="xs 0" />
-          {sampleEventsContent}
-        </React.Fragment>
-      )}
+      <EventsCount project={project} />
+      <AffectedReleases project={project} />
+      <SampleEvents project={project} />
     </Stack>
   );
 }

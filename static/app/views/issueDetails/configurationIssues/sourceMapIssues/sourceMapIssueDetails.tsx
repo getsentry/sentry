@@ -30,7 +30,7 @@ export function SourceMapIssueDetails({event, project}: SourceMapIssueDetailsPro
       <SectionDivider orientation="horizontal" />
       <TroubleshootingSection project={project} />
       <SectionDivider orientation="horizontal" />
-      <ImpactSection projectId={project.id} />
+      <ImpactSection project={project} />
     </div>
   );
 }
