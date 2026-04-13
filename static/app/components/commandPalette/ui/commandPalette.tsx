@@ -479,14 +479,17 @@ function flattenActions(
         }
       }
 
-      results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
-        for (const child of node.children) {
-          if (isEmptyResourceNode(child)) {
-            continue;
-          }
-          results.push({...child, listItemType: 'action'});
+        const children = node.children
+          .filter(child => !isEmptyResourceNode(child))
+          .map(child => ({...child, listItemType: 'action' as const}));
+        if (!children.length) {
+          continue;
         }
+        results.push({...node, listItemType: 'section'});
+        results.push(...children);
+      } else {
+        results.push({...node, listItemType: 'action'});
       }
     }
     return results;

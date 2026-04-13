@@ -831,6 +831,33 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('group whose only children are empty resource nodes is omitted entirely in browse mode', async () => {
+      // Regression: browse mode pushed the section header unconditionally before
+      // iterating children. If every child was an empty resource node and got
+      // skipped, an orphaned, non-selectable section header was left in the list.
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'All Empty Group'}}>
+            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+              {data =>
+                data.map((_, i) => (
+                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                ))
+              }
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          <CommandPalette onAction={jest.fn()} />
+        </CommandPaletteProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Real Action'});
+      // Neither the section header nor any item for the all-empty group should appear.
+      expect(
+        screen.queryByRole('option', {name: 'All Empty Group'})
+      ).not.toBeInTheDocument();
+    });
+
     it('is omitted from search mode when nested inside a group whose label matches the query', async () => {
       render(
         <CommandPaletteProvider>
