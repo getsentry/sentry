@@ -81,12 +81,17 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
     case 'choice':
       return {
         ...base,
-        type: type as 'select' | 'choice',
+        type,
         default: defaultValue,
         choices: field.choices,
       };
     case 'secret':
-      return {...base, type: 'secret', default: defaultValue};
+      return {
+        ...base,
+        type: 'secret',
+        default: defaultValue,
+        placeholder: field.placeholder ?? t('Enter a secret'),
+      };
     case 'textarea':
       return {...base, type: 'textarea', default: defaultValue};
     case 'number':
@@ -304,6 +309,19 @@ export function PluginConfig({
             onSubmit={handleSubmit}
             submitLabel={t('Save Changes')}
             submitDisabled={!hasWriteAccess}
+            footer={({SubmitButton, disabled}) => (
+              <Flex
+                justify="end"
+                borderTop="primary"
+                paddingTop="lg"
+                paddingBottom="xl"
+                marginTop="xl"
+              >
+                <SubmitButton size="sm" disabled={disabled}>
+                  {t('Save Changes')}
+                </SubmitButton>
+              </Flex>
+            )}
           />
         ) : null}
       </StyledPanelBody>
