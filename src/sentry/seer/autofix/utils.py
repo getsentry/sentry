@@ -918,9 +918,12 @@ def get_autofix_repos_from_project_code_mappings(
         repo_name_sections = repo.name.split("/")
 
         if (
-            # We expect a repository name to be in the format of "owner/name" for now.
+            # Repository name must be in "owner/name" format.
             len(repo_name_sections) > 1
-            # Filter out code mappings with unsupported providers.
+            # Only include active repos with a supported provider, active integration, and external ID.
+            and repo.status == ObjectStatus.ACTIVE
+            and repo.integration_id is not None
+            and repo.external_id
             and repo.provider
             and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
         ):
