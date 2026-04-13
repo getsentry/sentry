@@ -13,7 +13,10 @@ from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_write_alert_rule,
+    migrate_alert_rule,
+)
 
 pytestmark = [requires_snuba]
 
@@ -73,6 +76,27 @@ class AlertRuleListDeltaTest(APITestCase):
 
         assert len(old_resp.data) == len(new_resp.data) == 1
         assert_serializer_parity(old=old_resp.data[0], new=new_resp.data[0])
+
+
+@with_feature(
+    ["organizations:incidents", "organizations:workflow-engine-projectalertruleindex-get"]
+)
+class AlertRuleListEndpointWorkflowEngineMethodFlagTest(APITestCase):
+    """Verify that the per-method flag alone (without the broad rule-serializers flag)
+    activates the workflow engine path for GET requests."""
+
+    endpoint = "sentry-api-0-project-alert-rules"
+
+    def test_returns_detector_serialization(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+
+        self.login_as(self.user)
+        resp = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert len(resp.data) == 1
+        assert resp.data[0]["name"] == detector.name
 
 
 @freeze_time()

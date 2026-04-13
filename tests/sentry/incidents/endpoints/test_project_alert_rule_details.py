@@ -157,6 +157,22 @@ class AlertRuleDetailsGetDeltaTest(AlertRuleDetailsBase):
         assert_serializer_parity(old=old_resp.data, new=new_resp.data)
 
 
+@with_feature(
+    ["organizations:incidents", "organizations:workflow-engine-projectalertruledetails-get"]
+)
+class AlertRuleDetailsGetEndpointWorkflowEngineMethodFlagTest(AlertRuleDetailsBase):
+    """Verify that the per-method flag alone (without the broad rule-serializers flag)
+    activates the workflow engine path for GET requests."""
+
+    def test_dual_written_resolves_detector(self) -> None:
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, self.alert_rule.id
+        )
+        assert resp.data["id"] == str(self.alert_rule.id)
+        assert resp.data["name"] == self.alert_rule.name
+
+
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
