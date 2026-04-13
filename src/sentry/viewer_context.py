@@ -144,7 +144,7 @@ def encode_viewer_context(
     secret = _get_jwt_secret(key)
 
     if ttl is None:
-        ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 60)
+        ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 300)
 
     now = time.time()
     payload: dict[str, Any] = {
