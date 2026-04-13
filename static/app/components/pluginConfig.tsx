@@ -23,8 +23,8 @@ import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -212,7 +212,7 @@ export function PluginConfig({
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!wasConfigured) {
-      trackIntegrationAnalytics('integrations.installation_start', {
+      trackAnalytics('integrations.installation_start', {
         integration: plugin.id,
         integration_type: 'plugin',
         view: 'plugin_details',
@@ -232,7 +232,7 @@ export function PluginConfig({
 
       addSuccessMessage(t('Success!'));
 
-      trackIntegrationAnalytics('integrations.config_saved', {
+      trackAnalytics('integrations.config_saved', {
         integration: plugin.id,
         integration_type: 'plugin',
         view: 'plugin_details',
@@ -241,7 +241,7 @@ export function PluginConfig({
       });
 
       if (!wasConfigured) {
-        trackIntegrationAnalytics('integrations.installation_complete', {
+        trackAnalytics('integrations.installation_complete', {
           integration: plugin.id,
           integration_type: 'plugin',
           view: 'plugin_details',
