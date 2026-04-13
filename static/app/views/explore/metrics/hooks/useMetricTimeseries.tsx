@@ -70,7 +70,11 @@ function useMetricTimeseriesImpl({
       interval,
       fields: [...groupBys, ...yAxis],
       enabled:
-        enabled && (Boolean(traceMetric.name) || visualizes.some(isVisualizeEquation)),
+        enabled &&
+        (Boolean(traceMetric.name) ||
+          visualizes.some(
+            visualize => isVisualizeEquation(visualize) && visualize.expression.text
+          )),
       topEvents,
       orderby: sortBys.map(formatSort),
       ...queryExtras,
