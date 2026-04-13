@@ -1,3 +1,4 @@
+import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useShowSuperuserWarning} from 'sentry/views/navigation/useShowSuperuserWarning';
 
@@ -10,7 +11,7 @@ export function useTopOffset() {
   }
 
   if (showSuperuserWarning) {
-    return '24px';
+    return `${SUPERUSER_MARQUEE_HEIGHT}px`;
   }
 
   return '0px';

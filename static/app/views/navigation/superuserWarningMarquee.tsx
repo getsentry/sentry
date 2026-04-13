@@ -6,6 +6,7 @@ import {Flex, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 import {useShowSuperuserWarning} from 'sentry/views/navigation/useShowSuperuserWarning';
 
 /**
@@ -23,7 +24,7 @@ export function SuperuserWarning() {
 
   return (
     <Fragment>
-      <Container height="24px" />
+      <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />
       <Frame
         position="fixed"
         top="0"
@@ -65,7 +66,7 @@ const Frame = styled(Container)`
 const MarqueeStrip = styled(Flex)`
   background: ${p => p.theme.tokens.background.danger.vibrant};
   color: ${p => p.theme.tokens.content.onVibrant.light};
-  height: 24px;
+  height: ${SUPERUSER_MARQUEE_HEIGHT}px;
   width: 100%;
   flex-shrink: 0;
 `;
