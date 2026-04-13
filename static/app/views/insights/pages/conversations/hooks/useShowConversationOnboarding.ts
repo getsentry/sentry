@@ -35,7 +35,7 @@ export function useShowConversationOnboarding(): {
 
   const [projectsWithConversations, setProjectsWithConversations] = useLocalStorageState<
     number[]
-  >(`conversations-onboarding-projects-with-data:${organization.slug}`, []);
+  >(`conversations:projects-with-data:${organization.slug}`, []);
 
   const request = useSpans(
     {
