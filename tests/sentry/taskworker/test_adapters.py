@@ -144,3 +144,9 @@ class TestViewerContextHook:
             assert restored.organization_id == original.organization_id
             assert restored.user_id == original.user_id
             assert restored.actor_type == original.actor_type
+
+    def test_on_execute_malformed_json(self) -> None:
+        hook = ViewerContextHook()
+        headers = {"sentry-viewer-context": "not-valid-json{"}
+        cm = hook.on_execute(headers)
+        assert isinstance(cm, contextlib.nullcontext)

@@ -8,6 +8,7 @@ interfaces defined by the taskbroker-client library.
 from __future__ import annotations
 
 import contextlib
+import logging
 import threading
 from collections.abc import MutableMapping
 from contextlib import contextmanager
@@ -30,6 +31,8 @@ from sentry.utils import metrics as sentry_metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.memory import track_memory_usage as sentry_track_memory_usage
 from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
+
+logger = logging.getLogger(__name__)
 
 
 class DjangoCacheAtMostOnceStore(AtMostOnceStore):
@@ -169,7 +172,11 @@ class ViewerContextHook:
         raw = headers.get(self.HEADER)
         if not raw:
             return contextlib.nullcontext()
-        ctx = ViewerContext.deserialize(orjson.loads(raw))
+        try:
+            ctx = ViewerContext.deserialize(orjson.loads(raw))
+        except (orjson.JSONDecodeError, TypeError, KeyError):
+            logger.exception("Failed to deserialize viewer context header")
+            return contextlib.nullcontext()
         return viewer_context_scope(ctx)
 
 
