@@ -89,7 +89,7 @@ class PostedStatusChecks(BaseModel):
     size: StatusCheckResult | None = None
 
 
-class SnapshotInfo(BaseModel):
+class SnapshotComparisonInfo(BaseModel):
     image_count: int
     comparison_state: Literal["pending", "processing", "success", "failed"] | None = None
     comparison_error_message: str | None = None
@@ -164,7 +164,7 @@ class BuildDetailsApiResponse(BaseModel):
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
     base_build_info: BuildDetailsAppInfo | None = None
-    snapshot_info: SnapshotInfo | None = None
+    snapshot_comparison_info: SnapshotComparisonInfo | None = None
 
 
 def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
@@ -280,9 +280,9 @@ def to_size_info(
             raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
 
 
-def to_snapshot_info(artifact: PreprodArtifact) -> SnapshotInfo | None:
+def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotComparisonInfo | None:
     try:
-        snapshot_metrics = artifact.preprodsnapshotmetrics
+        snapshot_metrics = head_artifact.preprodsnapshotmetrics
     except PreprodSnapshotMetrics.DoesNotExist:
         return None
 
@@ -313,7 +313,7 @@ def to_snapshot_info(artifact: PreprodArtifact) -> SnapshotInfo | None:
     # REJECTED is no longer used; all non-APPROVED statuses are treated as requires_approval
     approvals = [
         a
-        for a in artifact.preprodcomparisonapproval_set.all()
+        for a in head_artifact.preprodcomparisonapproval_set.all()
         if a.preprod_feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS
     ]
     approvals.sort(key=lambda a: a.id, reverse=True)
@@ -323,7 +323,7 @@ def to_snapshot_info(artifact: PreprodArtifact) -> SnapshotInfo | None:
         else:
             approval_status = "requires_approval"
 
-    return SnapshotInfo(
+    return SnapshotComparisonInfo(
         image_count=snapshot_metrics.image_count,
         comparison_state=comparison_state,
         comparison_error_message=comparison_error_message,
@@ -388,7 +388,7 @@ def transform_preprod_artifact_to_build_details(
 
     posted_status_checks = _parse_posted_status_checks(artifact)
 
-    snapshot_info = to_snapshot_info(artifact)
+    snapshot_comparison_info = to_snapshot_comparison_info(artifact)
 
     return BuildDetailsApiResponse(
         id=artifact.id,
@@ -402,7 +402,7 @@ def transform_preprod_artifact_to_build_details(
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
         base_build_info=base_build_info,
-        snapshot_info=snapshot_info,
+        snapshot_comparison_info=snapshot_comparison_info,
     )
 
 

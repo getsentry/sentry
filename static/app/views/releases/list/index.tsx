@@ -288,10 +288,10 @@ export default function ReleasesList() {
   const shouldShowMobileBuildsTab =
     hasPreprodFeature && (hasBuildsData || hasAnyStrictlyMobileProject);
   const shouldShowSnapshotsTab = !!hasSnapshotsFeature;
-  const shouldShowTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
+  const shouldShowPreprodTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
 
   const selectedTab = useMemo(() => {
-    if (!shouldShowTabs) {
+    if (!shouldShowPreprodTabs) {
       return 'releases';
     }
     const tab = decodeScalar(location.query.tab) as ReleaseTab | undefined;
@@ -303,7 +303,7 @@ export default function ReleasesList() {
     }
     return tab || 'releases';
   }, [
-    shouldShowTabs,
+    shouldShowPreprodTabs,
     shouldShowMobileBuildsTab,
     shouldShowSnapshotsTab,
     location.query.tab,
@@ -502,7 +502,7 @@ export default function ReleasesList() {
                 />
               </ReleasesPageFilterBar>
 
-              {shouldShowTabs && (
+              {shouldShowPreprodTabs && (
                 <Layout.HeaderTabs value={selectedTab} onChange={handleTabChange}>
                   <TabList aria-label={t('Releases tab selector')}>
                     <TabList.Item

@@ -126,7 +126,7 @@ export function PreprodBuildsSnapshotTable({
       organizationSlug,
       snapshotId: build.id,
     });
-    const info = build.snapshot_info;
+    const info = build.snapshot_comparison_info;
     const appId = build.app_info?.app_id;
     return (
       <SimpleTable.Row key={build.id}>
@@ -173,7 +173,7 @@ export function PreprodBuildsSnapshotTable({
                 <Flex align="center" gap="xs">
                   <IconCommit size="xs" />
                   <Text size="sm" variant="muted" monospace>
-                    {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
+                    {(build.vcs_info?.head_sha?.slice(0, 7) || '–').toUpperCase()}
                   </Text>
                 </Flex>
               </Flex>
