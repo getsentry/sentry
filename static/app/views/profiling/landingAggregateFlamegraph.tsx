@@ -44,8 +44,6 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   },
 };
 
-const noop = () => void 0;
-
 function decodeViewOrDefault(
   value: string | string[] | null | undefined,
   defaultValue: 'flamegraph' | 'profiles'
@@ -63,13 +61,10 @@ interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
   expanded: boolean;
   frameFilter: 'system' | 'application' | 'all';
-  hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
-  onHideRegressionsClick: () => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
   setExpanded: (expanded: boolean) => void;
-  setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
 
@@ -211,10 +206,6 @@ export function LandingAggregateFlamegraph({
     [setVisualization]
   );
 
-  const [hideRegressions, setHideRegressions] = useLocalStorageState<boolean>(
-    'flamegraph-hide-regressions',
-    false
-  );
   const [frameFilter, setFrameFilter] = useLocalStorageState<
     'system' | 'application' | 'all'
   >('flamegraph-frame-filter', 'application');
@@ -254,10 +245,6 @@ export function LandingAggregateFlamegraph({
     }
   }, [location.query.view, view]);
 
-  const onHideRegressionsClick = useCallback(() => {
-    return setHideRegressions(!hideRegressions);
-  }, [hideRegressions, setHideRegressions]);
-
   const [showSidePanel, setShowSidePanel] = useState(true);
 
   const initial = useRef(true);
@@ -293,9 +280,6 @@ export function LandingAggregateFlamegraph({
                   onVisualizationChange={onVisualizationChange}
                   frameFilter={frameFilter}
                   onFrameFilterChange={onFrameFilterChange}
-                  hideSystemFrames={false}
-                  setHideSystemFrames={noop}
-                  onHideRegressionsClick={onHideRegressionsClick}
                   expanded={showSidePanel}
                   setExpanded={setShowSidePanel}
                 />

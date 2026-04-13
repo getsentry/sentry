@@ -125,7 +125,7 @@ function Profiles({transaction}: ProfilesProps) {
           />
         )}
       </FilterActions>
-      <TransactionProfilesContent query={query} transaction={transaction} />
+      <TransactionProfilesContent query={query} />
     </StyledMain>
   );
 }
