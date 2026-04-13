@@ -27,9 +27,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorPriorityLevel,
-    DetectorSettings,
     DetectorType,
-    detector_settings_registry,
 )
 
 if TYPE_CHECKING:
@@ -398,38 +396,6 @@ class PreprodSizeAnalysisDetectorHandler(
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
     data_source_required = False
-
-
-detector_settings_registry.register(
-    DetectorType.PREPROD_SIZE_ANALYSIS,
-    DetectorSettings(
-        handler=PreprodSizeAnalysisDetectorHandler,
-        validator=PreprodSizeAnalysisDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "Configuration for preprod static analysis detector",
-            "type": "object",
-            "properties": {
-                "threshold_type": {
-                    "type": "string",
-                    "enum": ["absolute_diff", "absolute", "relative_diff"],
-                    "description": "The type of threshold to apply",
-                },
-                "measurement": {
-                    "type": "string",
-                    "enum": ["install_size", "download_size"],
-                    "description": "The measurement to track",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Search query to filter which artifacts are monitored",
-                },
-            },
-            "required": ["threshold_type", "measurement"],
-            "additionalProperties": False,
-        },
-    ),
-)
 
 
 @dataclass(frozen=True)

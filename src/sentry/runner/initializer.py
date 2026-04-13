@@ -366,6 +366,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     setup_services(validate=not skip_service_validation)
 
     import_grouptype()
+    import_detectorconfigs()
 
     initialize_arroyo_main()
 
@@ -685,3 +686,12 @@ def import_grouptype() -> None:
     from sentry.issues.grouptype import import_grouptype
 
     import_grouptype()
+
+
+def import_detectorconfigs() -> None:
+    import sentry.grouping.detectorconfig  # noqa: F401
+    import sentry.incidents.detectorconfig  # noqa: F401
+    import sentry.monitors.detectorconfig  # noqa: F401
+    import sentry.preprod.size_analysis.detectorconfig  # noqa: F401
+    import sentry.processing_errors.detectorconfig  # noqa: F401
+    import sentry.uptime.detectorconfig  # noqa: F401
