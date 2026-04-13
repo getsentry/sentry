@@ -19,7 +19,6 @@ from sentry.models.project import Project
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import (
     get_grouping_model_version,
-    get_new_model_version,
     should_send_to_seer_for_training,
 )
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -688,10 +687,10 @@ def maybe_send_seer_for_new_model_training(
         },
     )
 
-    # Mark the grouphash as sent to the new model so we don't send duplicate requests.
+    # Mark the grouphash as sent to this (non-stable) model so we don't send duplicate requests.
     # We update seer_latest_training_model (not seer_model) to preserve the original
     # grouping decision metadata.
     if gh_metadata:
-        new_version = get_new_model_version()
-        if new_version is not None:
-            gh_metadata.update(seer_latest_training_model=new_version.value)
+        gh_metadata.update(
+            seer_latest_training_model=get_grouping_model_version(event.project).value
+        )

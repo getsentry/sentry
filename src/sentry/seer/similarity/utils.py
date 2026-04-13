@@ -381,7 +381,7 @@ def stacktrace_exceeds_limits(
     # matching with existing data, we bypass the filter for them (their stacktraces will be truncated).
     # For V2 we apply length checks to all platforms since we're re-embedding everything anyway.
     if (
-        model_version != GroupingVersion.V2
+        model_version == GroupingVersion.V1
         and platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK
     ):
         metrics.incr(

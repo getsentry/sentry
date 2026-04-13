@@ -1001,11 +1001,7 @@ class StacktraceExceedsLimitsTest(TestCase):
                     stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
                 )
 
-    def test_bypassed_platforms_are_checked_for_v2(self) -> None:
-        """
-        Test that V2 model applies length checks to all platforms, including those
-        that are bypassed for V1.
-        """
+    def _assert_bypassed_platforms_are_checked(self, model_version: GroupingVersion) -> None:
         for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
             self.event.data["platform"] = platform
             # Create a stacktrace that will exceed the token limit (repetitive chars compress
@@ -1016,13 +1012,18 @@ class StacktraceExceedsLimitsTest(TestCase):
             with self.options({"seer.similarity.max_token_count": 100}):
                 variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-                # V2 should enforce length checks on bypassed platforms
                 assert (
                     stacktrace_exceeds_limits(
-                        self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2
+                        self.event, variants, ReferrerOptions.INGEST, model_version
                     )
                     is True
                 )
+
+    def test_bypassed_platforms_are_checked_for_v2(self) -> None:
+        self._assert_bypassed_platforms_are_checked(GroupingVersion.V2)
+
+    def test_bypassed_platforms_are_checked_for_v2_1(self) -> None:
+        self._assert_bypassed_platforms_are_checked(GroupingVersion.V2_1)
 
 
 class GetTokenCountTest(TestCase):
