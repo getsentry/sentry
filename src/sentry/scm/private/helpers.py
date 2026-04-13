@@ -1,5 +1,8 @@
 from collections.abc import Callable
 
+from scm.providers.github.provider import GitHubProvider
+from scm.providers.gitlab.provider import GitLabProvider
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
@@ -8,8 +11,6 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.ipc import record_count_metric
-from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.private.providers.gitlab import GitLabProvider
 from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
@@ -40,11 +41,13 @@ def map_integration_to_provider(
 
 def map_repository_model_to_repository(repository: RepositoryModel) -> Repository:
     return {
+        "external_id": repository.external_id,
+        "id": repository.id,
         "integration_id": repository.integration_id,
+        "is_active": repository.status == ObjectStatus.ACTIVE,
         "name": repository.name,
         "organization_id": repository.organization_id,
-        "is_active": repository.status == ObjectStatus.ACTIVE,
-        "external_id": repository.external_id,
+        "provider_name": repository.provider.removeprefix("integrations:"),
     }
 
 
