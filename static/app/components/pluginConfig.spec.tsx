@@ -1,7 +1,7 @@
 import {WebhookPluginConfigFixture} from 'sentry-fixture/integrationListDirectory';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PluginConfig} from './pluginConfig';
 
@@ -97,5 +97,65 @@ describe('PluginConfig', () => {
       await screen.findByText('You need to associate an identity')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Associate Identity'})).toBeInTheDocument();
+  });
+
+  it('submits typed defaults for unsaved boolean and select fields', async () => {
+    const webhookPlugin = WebhookPluginConfigFixture({enabled: true});
+    const url = `/projects/${organization.slug}/${project.slug}/plugins/${webhookPlugin.id}/`;
+
+    const configBody = {
+      ...webhookPlugin,
+      config: [
+        {
+          name: 'auto_create',
+          label: 'Automatically create tickets',
+          type: 'bool',
+          required: false,
+        },
+        {
+          name: 'repository',
+          label: 'Repository',
+          type: 'select',
+          choices: [
+            ['', 'select a repo'],
+            ['getsentry/sentry', 'getsentry/sentry'],
+          ],
+          required: false,
+        },
+      ],
+    };
+
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: configBody,
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: configBody,
+    });
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: configBody,
+    });
+
+    render(<PluginConfig plugin={webhookPlugin} project={project} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(saveRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            auto_create: false,
+            repository: null,
+          },
+        })
+      )
+    );
   });
 });

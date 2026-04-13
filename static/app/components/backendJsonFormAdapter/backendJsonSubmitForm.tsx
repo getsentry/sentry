@@ -316,11 +316,6 @@ export function BackendJsonSubmitForm({
                             },
                           });
                         if (field.multiple) {
-                          const handleMultipleSelectChange = (
-                            value: Array<string | number>
-                          ) => {
-                            handleChange(value);
-                          };
                           return (
                             <fieldApi.Layout.Stack
                               label={field.label}
@@ -332,25 +327,15 @@ export function BackendJsonSubmitForm({
                                 value={
                                   (fieldApi.state.value as Array<string | number>) ?? []
                                 }
-                                onChange={handleMultipleSelectChange}
+                                onChange={(value: Array<string | number>) =>
+                                  handleChange(value)
+                                }
                                 disabled={field.disabled}
                                 queryOptions={asyncQueryOptions}
                               />
                             </fieldApi.Layout.Stack>
                           );
                         }
-                        const singleSelectValue = (fieldApi.state.value ?? null) as
-                          | string
-                          | number
-                          | null;
-                        const handleSingleClearableSelectChange = (
-                          value: string | number | null
-                        ) => {
-                          handleChange(value);
-                        };
-                        const handleSingleSelectChange = (value: string | number) => {
-                          handleChange(value);
-                        };
                         return (
                           <fieldApi.Layout.Stack
                             label={field.label}
@@ -360,15 +345,21 @@ export function BackendJsonSubmitForm({
                             {isClearable ? (
                               <fieldApi.SelectAsync
                                 clearable
-                                value={singleSelectValue}
-                                onChange={handleSingleClearableSelectChange}
+                                value={
+                                  (fieldApi.state.value ?? null) as string | number | null
+                                }
+                                onChange={(value: string | number | null) =>
+                                  handleChange(value)
+                                }
                                 disabled={field.disabled}
                                 queryOptions={asyncQueryOptions}
                               />
                             ) : (
                               <fieldApi.SelectAsync
-                                value={singleSelectValue}
-                                onChange={handleSingleSelectChange}
+                                value={
+                                  (fieldApi.state.value ?? null) as string | number | null
+                                }
+                                onChange={(value: string | number) => handleChange(value)}
                                 disabled={field.disabled}
                                 queryOptions={asyncQueryOptions}
                               />
@@ -377,9 +368,6 @@ export function BackendJsonSubmitForm({
                         );
                       }
                       if (field.multiple) {
-                        const handleMultipleSelectChange = (value: string[]) => {
-                          handleChange(value);
-                        };
                         return (
                           <fieldApi.Layout.Stack
                             label={field.label}
@@ -389,24 +377,13 @@ export function BackendJsonSubmitForm({
                             <fieldApi.Select
                               multiple
                               value={(fieldApi.state.value as string[]) ?? []}
-                              onChange={handleMultipleSelectChange}
+                              onChange={(value: string[]) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />
                           </fieldApi.Layout.Stack>
                         );
                       }
-                      const singleSelectValue = (fieldApi.state.value ?? null) as
-                        | string
-                        | null;
-                      const handleSingleClearableSelectChange = (
-                        value: string | null
-                      ) => {
-                        handleChange(value);
-                      };
-                      const handleSingleSelectChange = (value: string) => {
-                        handleChange(value);
-                      };
                       return (
                         <fieldApi.Layout.Stack
                           label={field.label}
@@ -416,15 +393,15 @@ export function BackendJsonSubmitForm({
                           {isClearable ? (
                             <fieldApi.Select
                               clearable
-                              value={singleSelectValue}
-                              onChange={handleSingleClearableSelectChange}
+                              value={(fieldApi.state.value ?? null) as string | null}
+                              onChange={(value: string | null) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />
                           ) : (
                             <fieldApi.Select
-                              value={singleSelectValue}
-                              onChange={handleSingleSelectChange}
+                              value={(fieldApi.state.value ?? null) as string | null}
+                              onChange={(value: string) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />

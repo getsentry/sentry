@@ -183,7 +183,13 @@ export function PluginConfig({
     .join(',');
   const initialValues: Record<string, unknown> = {};
   for (const field of config) {
-    initialValues[field.name] = field.value ?? field.defaultValue ?? '';
+    if (field.value === undefined) {
+      continue;
+    }
+
+    const type = field.type === 'bool' ? 'boolean' : field.type;
+    initialValues[field.name] =
+      (type === 'select' || type === 'choice') && field.value === '' ? null : field.value;
   }
 
   const handleTestPlugin = async () => {
