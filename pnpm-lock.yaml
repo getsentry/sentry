@@ -11,6 +11,11 @@ overrides:
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
 
+patchedDependencies:
+  zod@4.3.5:
+    hash: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
+    path: patches/zod@4.3.5.patch
+
 importers:
 
   .:
@@ -542,7 +547,7 @@ importers:
         version: 5.2.0
       zod:
         specifier: ^4.3.5
-        version: 4.3.5
+        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
       zrender:
         specifier: 6.0.0
         version: 6.0.0
@@ -17741,7 +17746,7 @@ snapshots:
       strip-json-comments: 5.0.3
       unbash: 2.2.0
       yaml: 2.8.2
-      zod: 4.3.5
+      zod: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
 
   known-css-properties@0.34.0: {}
 
@@ -20938,7 +20943,7 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zod@4.3.5: {}
+  zod@4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76): {}
 
   zrender@6.0.0:
     dependencies:

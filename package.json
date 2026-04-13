@@ -330,7 +330,10 @@
       "esbuild",
       "odiff-bin",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "zod@4.3.5": "patches/zod@4.3.5.patch"
+    }
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000"
