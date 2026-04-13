@@ -46,7 +46,7 @@ export function SideBySideOrientation({
 
   if (hasMetricsUIRefresh) {
     return (
-      <Grid columns="1fr 1fr" gap="sm">
+      <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
         <Container minWidth="0">
           <MetricsGraph
             timeseriesResult={timeseriesResult}
