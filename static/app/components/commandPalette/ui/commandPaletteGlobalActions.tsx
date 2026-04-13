@@ -6,6 +6,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {
   CMDKQueryOptions,
   CommandPaletteAction,
@@ -35,7 +36,7 @@ import {
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT, queryOptions, useMutation} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -311,7 +312,7 @@ export function GlobalCommandPaletteActions() {
             }}
             prompt={t('Paste a DSN...')}
             resource={(query: string): CMDKQueryOptions => {
-              return queryOptions({
+              return cmdkQueryOptions({
                 ...apiOptions.as<DsnLookupResponse>()(
                   '/organizations/$organizationIdOrSlug/dsn-lookup/',
                   {
@@ -344,30 +345,24 @@ export function GlobalCommandPaletteActions() {
       <CMDKAction display={{label: t('Help')}}>
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
-          onAction={() => window.open('https://docs.sentry.io', '_blank', 'noreferrer')}
+          to="https://docs.sentry.io"
         />
         <CMDKAction
           display={{label: t('Join Discord'), icon: <IconDiscord />}}
-          onAction={() =>
-            window.open('https://discord.gg/sentry', '_blank', 'noreferrer')
-          }
+          to="https://discord.gg/sentry"
         />
         <CMDKAction
           display={{label: t('Open GitHub Repository'), icon: <IconGithub />}}
-          onAction={() =>
-            window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer')
-          }
+          to="https://github.com/getsentry/sentry"
         />
         <CMDKAction
           display={{label: t('View Changelog'), icon: <IconOpen />}}
-          onAction={() =>
-            window.open('https://sentry.io/changelog/', '_blank', 'noreferrer')
-          }
+          to="https://sentry.io/changelog/"
         />
         <CMDKAction
           display={{label: t('Search Results')}}
           resource={(query: string): CMDKQueryOptions => {
-            return queryOptions({
+            return cmdkQueryOptions({
               queryKey: ['command-palette-help-search', query, helpSearch],
               queryFn: () =>
                 helpSearch.query(
@@ -391,7 +386,7 @@ export function GlobalCommandPaletteActions() {
                       keywords: [hit.context?.context1, hit.context?.context2].filter(
                         (v): v is string => typeof v === 'string'
                       ),
-                      onAction: () => window.open(hit.url, '_blank', 'noreferrer'),
+                      to: hit.url,
                     });
                   }
                 }

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -26,12 +26,14 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {isExternalLocation} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
+import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -64,7 +66,10 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 };
 
 interface CommandPaletteProps {
-  onAction: (action: CollectionTreeNode<CMDKActionData>) => void;
+  onAction: (
+    action: CollectionTreeNode<CMDKActionData>,
+    options?: {modifierKeys?: {shiftKey: boolean}}
+  ) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -200,7 +205,12 @@ export function CommandPalette(props: CommandPaletteProps) {
   });
 
   const onActionSelection = useCallback(
-    (key: string | number | null) => {
+    (
+      key: string | number | null,
+      options?: {
+        modifierKeys?: {shiftKey: boolean};
+      }
+    ) => {
       const action = actions.find(a => a.key === key);
       if (!action) {
         return;
@@ -212,7 +222,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         analytics.recordGroupAction(action, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
-          // The modal only owns navigation and close behavior for leaf actions.
+          // Modifier keys are irrelevant here — this is not a link navigation.
           action.onAction();
         }
         dispatch({type: 'push action', key: action.key, label: action.display.label});
@@ -231,16 +241,39 @@ export function CommandPalette(props: CommandPaletteProps) {
 
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
-      props.onAction(action);
+      props.onAction(action, options);
     },
     [actions, analytics, dispatch, props]
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
+  const modifierKeysRef = useRef({shiftKey: false});
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      modifierKeysRef.current = {shiftKey: event.shiftKey};
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      modifierKeysRef.current = {shiftKey: event.shiftKey};
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const debouncedQuery = useDebouncedValue(state.query, 300);
+  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
 
-  const isLoading = state.query.length > 0 && debouncedQuery !== state.query;
+  const isLoading =
+    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
+  const isEmptyPromptQuery =
+    state.action?.value.prompt !== undefined && state.query.length === 0;
 
   return (
     <Fragment>
@@ -328,7 +361,11 @@ export function CommandPalette(props: CommandPaletteProps) {
                       }
 
                       if (e.key === 'Enter' || e.key === 'Tab') {
-                        onActionSelection(treeState.selectionManager.focusedKey);
+                        // Only forward shiftKey for Enter — Shift+Tab is reverse tab
+                        // navigation, not an "open in new tab" gesture.
+                        onActionSelection(treeState.selectionManager.focusedKey, {
+                          modifierKeys: {shiftKey: e.key === 'Enter' && e.shiftKey},
+                        });
                         return;
                       }
                     },
@@ -360,7 +397,9 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        <CommandPaletteNoResults />
+        isEmptyPromptQuery ? null : (
+          <CommandPaletteNoResults />
+        )
       ) : (
         <ResultsList
           direction="column"
@@ -379,7 +418,11 @@ export function CommandPalette(props: CommandPaletteProps) {
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
-            onAction={onActionSelection}
+            onAction={key => {
+              onActionSelection(key, {
+                modifierKeys: modifierKeysRef.current,
+              });
+            }}
           />
         </ResultsList>
       )}
@@ -567,6 +610,20 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
 }
 
 function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {
+  const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
+  const trailingItems =
+    'to' in action ? (
+      <Flex
+        align="center"
+        data-link-type={isExternal ? 'external' : 'internal'}
+        data-test-id="command-palette-link-indicator"
+      >
+        <IconDefaultsProvider size="xs" variant="muted">
+          {isExternal ? <IconOpen /> : <IconLink />}
+        </IconDefaultsProvider>
+      </Flex>
+    ) : undefined;
+
   return {
     key: action.key,
     label: action.display.label,
@@ -584,6 +641,7 @@ function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuI
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
     ),
+    trailingItems,
     children: [],
     hideCheck: true,
   };

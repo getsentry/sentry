@@ -25,6 +25,7 @@ jest.mock('@tanstack/react-virtual', () => ({
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -33,19 +34,33 @@ import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
+function GlobalActionsComponent({
+  children,
+  onAction,
+}: {
+  children?: React.ReactNode;
+  onAction?: (
+    action: CollectionTreeNode<CMDKActionData>,
+    options?: {modifierKeys?: {shiftKey: boolean}}
+  ) => void;
+}) {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CollectionTreeNode<CMDKActionData>) => {
-      if ('to' in action) {
+    (
+      action: CollectionTreeNode<CMDKActionData>,
+      options?: {modifierKeys?: {shiftKey: boolean}}
+    ) => {
+      if (onAction) {
+        onAction(action, options);
+      } else if ('to' in action) {
         navigate(action.to);
       } else if ('onAction' in action) {
         action.onAction();
       }
       closeModal();
     },
-    [navigate]
+    [navigate, onAction]
   );
 
   return (
@@ -103,6 +118,46 @@ describe('CommandPalette', () => {
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shift-enter on an internal link forwards modifier keys and closes modal', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const onAction = jest.fn();
+
+    render(
+      <GlobalActionsComponent onAction={onAction}>
+        <CMDKAction to="/target/" display={{label: 'Go to route'}} />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+
+    expect(onAction).toHaveBeenCalledWith(expect.objectContaining({to: '/target/'}), {
+      modifierKeys: {shiftKey: true},
+    });
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows internal and external trailing link indicators for link actions', async () => {
+    render(
+      <GlobalActionsComponent>
+        <Fragment>
+          <CMDKAction to="/target/" display={{label: 'Internal'}} />
+          <CMDKAction to="https://docs.sentry.io" display={{label: 'External'}} />
+        </Fragment>
+      </GlobalActionsComponent>
+    );
+
+    const internalAction = await screen.findByRole('option', {name: 'Internal'});
+    const externalAction = await screen.findByRole('option', {name: 'External'});
+
+    expect(
+      internalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toHaveAttribute('data-link-type', 'internal');
+    expect(
+      externalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toHaveAttribute('data-link-type', 'external');
   });
 
   it('clicking action with children shows sub-items, backspace returns', async () => {
@@ -404,11 +459,13 @@ describe('CommandPalette', () => {
           <CMDKAction
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
-            resource={() => ({
-              queryKey: ['prompt-action-test'],
-              queryFn: () => null,
-              enabled: false,
-            })}
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['prompt-action-test'],
+                queryFn: () => null,
+                enabled: false,
+              })
+            }
           />
         </CMDKAction>
       );

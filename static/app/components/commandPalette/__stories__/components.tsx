@@ -13,7 +13,10 @@ export function CommandPaletteDemo() {
   const navigate = useNavigate();
 
   const handleAction = useCallback(
-    (action: CollectionTreeNode<CMDKActionData>) => {
+    (
+      action: CollectionTreeNode<CMDKActionData>,
+      _options?: {modifierKeys?: {shiftKey: boolean}}
+    ) => {
       if ('to' in action) {
         navigate(normalizeUrl(action.to));
       } else if ('onAction' in action) {
