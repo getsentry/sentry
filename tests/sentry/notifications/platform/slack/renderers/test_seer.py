@@ -262,8 +262,10 @@ class SeerSlackRendererExplorerTest(TestCase):
 
         blocks = renderable["blocks"]
         assert len(blocks) == 2
-        assert blocks[-1].type == "context"
-        footer_text = blocks[-1].elements[0].text
+        last_block = blocks[-1]
+        assert last_block.type == "context"
+        assert isinstance(last_block, ContextBlock)
+        footer_text = last_block.elements[0].text
         assert "Reinstall" in footer_text
         assert "Thread context is unavailable" in footer_text
 
