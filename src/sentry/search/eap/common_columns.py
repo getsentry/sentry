@@ -12,6 +12,8 @@ _PROJECT_VIRTUAL_CONTEXTS: dict[str, VirtualColumnDefinition] = {
         constructor=project_context_constructor(key),
         term_resolver=project_term_resolver,
         filter_column="project.id",
+        search_type="string",
+        secondary_alias=key != "project",
     )
     for key in constants.PROJECT_FIELDS
 }

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -44,6 +44,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     get_project_seer_preferences,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
@@ -504,21 +505,28 @@ def trigger_coding_agent_handoff(
 
     auto_create_pr = False
     repo_definitions: list[SeerRepoDefinition] = []
-    try:
-        preference_response = get_project_seer_preferences(group.project_id)
-        if preference_response and preference_response.preference:
-            repo_definitions = list(preference_response.preference.repositories)
-            if preference_response.preference.automation_handoff:
-                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
-    except Exception:
-        logger.exception(
-            "autofix.coding_agent_handoff.get_preferences_error",
-            extra={
-                "organization_id": group.organization.id,
-                "run_id": run_id,
-                "project_id": group.project_id,
-            },
-        )
+    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
+        preference = read_preference_from_sentry_db(group.project)
+        if preference:
+            repo_definitions = preference.repositories
+            if preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
+    else:
+        try:
+            preference = get_project_seer_preferences(group.project_id).preference
+            if preference:
+                repo_definitions = preference.repositories
+                if preference.automation_handoff:
+                    auto_create_pr = preference.automation_handoff.auto_create_pr
+        except Exception:
+            logger.exception(
+                "autofix.coding_agent_handoff.get_preferences_error",
+                extra={
+                    "organization_id": group.organization.id,
+                    "run_id": run_id,
+                    "project_id": group.project_id,
+                },
+            )
 
     if not repo_definitions:
         return {

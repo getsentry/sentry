@@ -266,3 +266,73 @@ class SyncReposForOrgGHETestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:github_enterprise"
+
+
+# TODO: Add GitLab and Bitbucket tests once create_repositories is fixed to
+# not call build_repository_config (which creates webhooks) for every repo
+# upfront. See SyncReposForOrgGitLabTestCase and SyncReposForOrgBitbucketTestCase
+# in git history for the test implementations.
+
+
+@control_silo_test
+class SyncReposForOrgVstsTestCase(TestCase):
+    @patch("sentry.integrations.vsts.integration.VstsIntegration.get_client")
+    def test_creates_new_repos_for_vsts(self, mock_get_client: MagicMock) -> None:
+        from sentry.users.models.identity import Identity
+
+        integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-account-id",
+            name="MyVSTSAccount",
+            metadata={"domain_name": "https://myvstsaccount.visualstudio.com/"},
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts123",
+            data={
+                "access_token": "123456789",
+                "expires": 9999999999,
+                "refresh_token": "rxxx",
+                "token_type": "jwt-bearer",
+            },
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        mock_client = MagicMock()
+        mock_client.get_repos.return_value = {
+            "value": [
+                {
+                    "id": "repo-uuid-1",
+                    "name": "cool-service",
+                    "project": {"name": "ProjectA"},
+                    "_links": {
+                        "web": {"href": "https://myvstsaccount.visualstudio.com/_git/cool-service"}
+                    },
+                },
+                {
+                    "id": "repo-uuid-2",
+                    "name": "other-service",
+                    "project": {"name": "ProjectA"},
+                    "_links": {
+                        "web": {"href": "https://myvstsaccount.visualstudio.com/_git/other-service"}
+                    },
+                },
+            ]
+        }
+        mock_get_client.return_value = mock_client
+
+        with self.feature(
+            ["organizations:vsts-repo-auto-sync", "organizations:vsts-repo-auto-sync-apply"]
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].provider == "integrations:vsts"

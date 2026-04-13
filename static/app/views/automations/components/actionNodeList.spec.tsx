@@ -15,6 +15,7 @@ import {
 } from 'sentry/types/workflowEngine/actions';
 import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -186,11 +187,13 @@ describe('ActionNodeList', () => {
     });
     const jiraAction = ActionFixture({type: ActionType.JIRA});
     render(
-      <Form model={model}>
-        <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
-          <ActionNodeList {...defaultProps} actions={[jiraAction]} />
-        </AutomationBuilderErrorContext.Provider>
-      </Form>,
+      <AutomationFormProvider>
+        <Form model={model}>
+          <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+          </AutomationBuilderErrorContext.Provider>
+        </Form>
+      </AutomationFormProvider>,
       {
         organization,
       }

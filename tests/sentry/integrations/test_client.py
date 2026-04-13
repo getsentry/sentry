@@ -381,7 +381,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(client, "logger") as mock_logger:
             with pytest.raises(ApiError):
                 client.get("http://example.com")
-            extra = mock_logger.info.call_args.kwargs["extra"]
+            extra = mock_logger.warning.call_args.kwargs["extra"]
             assert extra["retry_after"] == "60"
 
     @responses.activate
@@ -431,7 +431,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(client, "logger") as mock_logger:
             with pytest.raises(ApiError):
                 client.get("http://example.com")
-            extra = mock_logger.info.call_args.kwargs["extra"]
+            extra = mock_logger.warning.call_args.kwargs["extra"]
             assert extra["github_request_id"] == "err-789"
 
     @responses.activate
