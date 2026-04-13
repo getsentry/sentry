@@ -309,11 +309,11 @@ def schedule_invalidate_project_config(
 
     from sentry.models.project import Project
 
-    if transaction_db is None:
-        transaction_db = router.db_for_write(Project)
-
     if trigger_details in NON_INVALIDATING_PROJECT_OPTIONS:
         return
+
+    if transaction_db is None:
+        transaction_db = router.db_for_write(Project)
 
     def _do_schedule():
         _schedule_invalidate_project_config(
