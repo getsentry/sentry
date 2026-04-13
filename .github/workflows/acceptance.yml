@@ -124,34 +124,17 @@ jobs:
       - name: Wait for Snuba bootstrap
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: |
-          SECONDS=0
-          while [ ! -f /tmp/snuba-bootstrap-exit ]; do
-            if [ $SECONDS -gt 600 ]; then
-              echo "::error::Timed out waiting for Snuba bootstrap after 600s"
-              exit 1
-            fi
-            sleep 2
-          done
-          SNUBA_RC=$(cat /tmp/snuba-bootstrap-exit)
-          if [ "$SNUBA_RC" -ne 0 ]; then
-            echo "::error::Snuba per-worker bootstrap failed"
-            exit 1
-          fi
+          timeout 600 bash -c 'until [ -f /tmp/snuba-bootstrap-exit ]; do sleep 2; done' ||
+            { echo "::error::Timed out waiting for Snuba bootstrap after 600s"; exit 1; }
+          rc=$(</tmp/snuba-bootstrap-exit)
+          [ "$rc" -eq 0 ] || { echo "::error::Snuba per-worker bootstrap failed"; exit "$rc"; }
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-            timeout 1200 make run-acceptance || {
-              rc=$?
-              if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-              fi
-              exit "$rc"
-            }
-          else
-            make run-acceptance
-          fi
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          timeout 1200 make run-acceptance; rc=$?
+          [ "$rc" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+          exit "$rc"
 
       - name: Inspect failure
         if: failure()
