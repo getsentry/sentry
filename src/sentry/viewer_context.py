@@ -179,8 +179,13 @@ def decode_viewer_context(
 
 
 def is_jwt_viewer_context(header_value: str) -> bool:
-    """Heuristic to distinguish a JWT from a raw JSON payload.
+    """Check whether the header value is a JWT by attempting to read its header.
 
-    JWTs contain dots separating base64url segments; raw JSON starts with ``{``.
+    Uses PyJWT's own parser — raises ``DecodeError`` on anything that
+    isn't a valid JWT structure (raw JSON, empty string, etc.).
     """
-    return "." in header_value and not header_value.startswith("{")
+    try:
+        pyjwt.get_unverified_header(header_value)
+        return True
+    except pyjwt.exceptions.DecodeError:
+        return False
