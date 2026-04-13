@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 
 import requests
 from django.http import HttpRequest
-from jwt import ExpiredSignatureError, InvalidSignatureError
+from jwt import DecodeError, ExpiredSignatureError, InvalidKeyError, InvalidSignatureError
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -16,7 +16,9 @@ from sentry.utils.http import absolute_uri, percent_encode
 
 
 class AtlassianConnectValidationError(Exception):
-    pass
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(message)
 
 
 def get_query_hash(
@@ -152,3 +154,35 @@ def parse_integration_from_request(request: HttpRequest, provider: str) -> Integ
         method=request.method if request.method else "POST",
     )
     return Integration.objects.filter(id=rpc_integration.id).first()
+
+
+class AtlassianConnectTokenValidator:
+    def __init__(self, request: HttpRequest) -> None:
+        self.request = request
+
+    def get_token(self) -> str:
+        try:
+            token = get_token(self.request)
+        except Exception:
+            raise AtlassianConnectValidationError("Failed to retrieve token from request headers")
+        self._validate_token(token)
+        return token
+
+    def _validate_token(self, token: str) -> None:
+        try:
+            key_id = jwt.peek_header(token).get("kid")
+        except DecodeError:
+            raise AtlassianConnectValidationError("Failed to fetch key_id (kid)")
+        if not key_id:
+            raise AtlassianConnectValidationError("Missing key_id (kid)")
+        try:
+            decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+            verify_claims(decoded_claims, self.request.path, self.request.GET, self.request.method)
+        except InvalidKeyError:
+            raise AtlassianConnectValidationError("JWT contained invalid key_id (kid)")
+        except ExpiredSignatureError:
+            raise AtlassianConnectValidationError("Expired signature")
+        except InvalidSignatureError:
+            raise AtlassianConnectValidationError("JWT contained invalid signature")
+        except DecodeError:
+            raise AtlassianConnectValidationError("Could not decode JWT token")
