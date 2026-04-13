@@ -63,6 +63,7 @@ class NotificationRendererRegistry:
 
         import sentry.notifications.platform.discord.renderers.issue  # noqa: F401
         import sentry.notifications.platform.discord.renderers.metric_alert  # noqa: F401
+        import sentry.notifications.platform.msteams.renderers.issue  # noqa: F401
         import sentry.notifications.platform.slack.renderers.issue  # noqa: F401
         import sentry.notifications.platform.slack.renderers.metric_alert  # noqa: F401
         import sentry.notifications.platform.slack.renderers.seer  # noqa: F401
