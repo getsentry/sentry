@@ -132,6 +132,14 @@ class TestGetFirstInputMessage:
         }
         assert _get_first_input_message(row) == "Old"
 
+    def test_returns_filtered_for_new_format(self) -> None:
+        row = {"gen_ai.input.messages": "[Filtered]"}
+        assert _get_first_input_message(row) == "[Filtered]"
+
+    def test_returns_filtered_for_old_format(self) -> None:
+        row = {"gen_ai.request.messages": "[Filtered]"}
+        assert _get_first_input_message(row) == "[Filtered]"
+
 
 class TestGetLastOutput:
     """Unit tests for _get_last_output helper function"""
@@ -170,6 +178,10 @@ class TestGetLastOutput:
             "gen_ai.response.text": "Fallback",
         }
         assert _get_last_output(row) == "Fallback"
+
+    def test_returns_filtered(self) -> None:
+        row = {"gen_ai.output.messages": "[Filtered]"}
+        assert _get_last_output(row) == "[Filtered]"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
