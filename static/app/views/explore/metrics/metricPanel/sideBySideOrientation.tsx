@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -47,18 +47,20 @@ export function SideBySideOrientation({
   if (hasMetricsUIRefresh) {
     return (
       <Grid columns="1fr 1fr" gap="sm">
-        <MetricsGraph
-          timeseriesResult={timeseriesResult}
-          orientation={orientation}
-          isMetricOptionsEmpty={isMetricOptionsEmpty}
-        />
-        <div>
+        <Container minWidth="0">
+          <MetricsGraph
+            timeseriesResult={timeseriesResult}
+            orientation={orientation}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
+          />
+        </Container>
+        <Container minWidth="0">
           <MetricInfoTabs
             traceMetric={traceMetric}
             orientation={orientation}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
           />
-        </div>
+        </Container>
       </Grid>
     );
   }
