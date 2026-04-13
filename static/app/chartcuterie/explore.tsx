@@ -1,6 +1,8 @@
 import type {Theme} from '@emotion/react';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
+import {Grid} from 'sentry/components/charts/components/grid';
+import {Legend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {YAxis} from 'sentry/components/charts/components/yAxis';
 import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
@@ -12,9 +14,15 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
-import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
+
+/**
+ * Font size and spacing scaled for the larger explore chart canvas (1600x1200).
+ */
+const EXPLORE_FONT_SIZE = 32;
+const EXPLORE_CHART_SIZE = {width: 1600, height: 1200};
 
 /**
  * Builds a y-axis axisLabel formatter from the first timeseries metadata.
@@ -60,10 +68,30 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
     theme,
     splitNumber: 3,
     isGroupedByDate: true,
-    axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+    axisLabel: {fontSize: EXPLORE_FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
   });
 
-  const slackChartDefaults = makeSlackChartDefaults(theme);
+  const exploreDefaults = {
+    grid: Grid({left: 5, right: 5, bottom: 5, top: 60}),
+    backgroundColor: theme.tokens.background.primary,
+    legend: Legend({
+      theme,
+      itemHeight: 16,
+      top: 2,
+      right: 10,
+      textStyle: {
+        fontSize: EXPLORE_FONT_SIZE,
+        lineHeight: EXPLORE_FONT_SIZE * 1.4,
+        fontFamily: DEFAULT_FONT_FAMILY,
+      },
+    }),
+    yAxis: YAxis({
+      theme,
+      splitNumber: 3,
+      axisLabel: {fontSize: EXPLORE_FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
+    }),
+  };
+
   const exploreCharts: Array<RenderDescriptor<ChartType>> = [];
 
   exploreCharts.push({
@@ -73,7 +101,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
 
       if (timeSeries.length === 0) {
         return {
-          ...slackChartDefaults,
+          ...exploreDefaults,
           xAxis: exploreXAxis,
           useUTC: true,
           series: [],
@@ -84,7 +112,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
         theme,
         splitNumber: 3,
         axisLabel: {
-          fontSize: 11,
+          fontSize: EXPLORE_FONT_SIZE,
           fontFamily: DEFAULT_FONT_FAMILY,
           formatter: makeYAxisFormatter(timeSeries),
         },
@@ -103,7 +131,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
         });
 
         return {
-          ...slackChartDefaults,
+          ...exploreDefaults,
           yAxis: exploreYAxis,
           xAxis: exploreXAxis,
           useUTC: true,
@@ -133,7 +161,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
       });
 
       return {
-        ...slackChartDefaults,
+        ...exploreDefaults,
         yAxis: exploreYAxis,
         xAxis: exploreXAxis,
         useUTC: true,
@@ -141,7 +169,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
         series,
       };
     },
-    ...slackChartSize,
+    ...EXPLORE_CHART_SIZE,
   });
 
   return exploreCharts;

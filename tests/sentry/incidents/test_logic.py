@@ -3691,28 +3691,28 @@ class TestGetAlertResolution(TestCase):
     def test_simple(self) -> None:
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window])
 
     def test_low_range(self) -> None:
         time_window = 2
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
 
     def test_high_range(self) -> None:
         last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
         result = get_alert_resolution(time_window, self.organization)
 
-        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window])
 
     def test_mid_range(self) -> None:
         time_window = 125
         result = get_alert_resolution(time_window, self.organization)
 
         # 125 is not part of the dict, will round down to the lower window of 120
-        assert result == 3
+        assert result == timedelta(minutes=3)
 
     def test_crazy_low_range(self) -> None:
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
