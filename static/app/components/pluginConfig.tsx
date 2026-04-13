@@ -55,14 +55,6 @@ interface PluginWithConfig extends Plugin {
   config_error?: string;
 }
 
-function toBooleanOrUndefined(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function toNumberOrUndefined(value: unknown): number | undefined {
-  return typeof value === 'number' ? value : undefined;
-}
-
 function getDetailMessage(response: unknown): string {
   if (
     typeof response === 'object' &&
@@ -96,7 +88,11 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
 
   switch (type) {
     case 'boolean':
-      return {...base, type: 'boolean', default: toBooleanOrUndefined(defaultValue)};
+      return {
+        ...base,
+        type: 'boolean',
+        default: typeof defaultValue === 'boolean' ? defaultValue : undefined,
+      };
     case 'select':
     case 'choice': {
       const emptyChoiceLabel = field.choices?.find(([value]) => value === '')?.[1];
@@ -125,7 +121,11 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
     case 'textarea':
       return {...base, type: 'textarea', default: defaultValue};
     case 'number':
-      return {...base, type: 'number', default: toNumberOrUndefined(defaultValue)};
+      return {
+        ...base,
+        type: 'number',
+        default: typeof defaultValue === 'number' ? defaultValue : undefined,
+      };
     case 'email':
       return {...base, type: 'email', default: defaultValue};
     case 'url':

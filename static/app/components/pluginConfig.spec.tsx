@@ -75,7 +75,9 @@ describe('PluginConfig', () => {
 
     render(<PluginConfig plugin={webhookPlugin} project={project} />);
 
-    expect(await screen.findByText('Callback URLs')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('textbox', {name: 'Callback URLs'})
+    ).toBeInTheDocument();
   });
 
   it('renders auth error state', async () => {
