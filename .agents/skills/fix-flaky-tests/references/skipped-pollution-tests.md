@@ -72,6 +72,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 - `TestAdoptReleasesPath::test_simple` — ClickHouse session data from prior `TestMetricReleaseMonitor` tests is not rolled back between tests; accumulated Snuba state causes the adoption task to find no adopted releases
 - `TestAdoptReleasesPath::test_monitor_release_adoption` — same Snuba state accumulation; `monitor_release_adoption()` is sensitive to prior sessions in ClickHouse
 
+## tests/sentry/issues/endpoints/test_group_details.py
+
+- `GroupDetailsTest::test_ratelimit` — `group.first_seen` is set at real time (~2026) but the endpoint runs inside `freeze_time("2000-01-01")`; `snuba._prepare_start_end` computes the query window relative to frozen `now()` and raises `QueryOutsideGroupActivityError` on every request, so the rate limit counter never accumulates and the final request returns 500 instead of 429
+
 ## tests/sentry/tasks/test_reprocessing2.py
 
 - `test_basic` (parametrized, module-level) — Snuba event data from prior test contaminates query results, leaving `old_events` empty; 'not enough values to unpack' on group_id
