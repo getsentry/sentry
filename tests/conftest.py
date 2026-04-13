@@ -20,6 +20,7 @@ pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False  # type: ignore[attr-def
 from django.core.cache import cache
 from django.db import connections
 
+from sentry.options import default_store
 from sentry.silo.base import SiloMode
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
 
@@ -39,6 +40,8 @@ pytest_plugins = ["sentry.testutils.pytest"]
 # https://github.com/pytest-dev/pytest/blob/master/src/_pytest/terminal.py
 
 
+_PYTHON_BASE_PREFIX = sys.base_prefix
+
 if sys.platform == "linux":
 
     def _open_files() -> frozenset[str]:
@@ -50,7 +53,12 @@ if sys.platform == "linux":
             except FileNotFoundError:
                 continue
             else:
-                if os.path.exists(path):
+                # Exclude Python stdlib .py source files. Background threads from
+                # live_server fixtures or the Python runtime itself (importlib,
+                # linecache, traceback) may open these; they are not test-code leaks.
+                if os.path.exists(path) and not (
+                    path.startswith(_PYTHON_BASE_PREFIX) and path.endswith(".py")
+                ):
                     ret.append(path)
         return frozenset(ret)
 
@@ -138,6 +146,19 @@ def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Gen
             conn.force_debug_cursor = debug_cursor_state[conn.alias]
 
             validate_protected_queries(conn.queries)
+
+
+@pytest.fixture(autouse=True)
+def reset_default_store_cache() -> Generator[None]:
+    """Reset default_store.cache after tests to prevent pollution.
+
+    bind_cache_to_option_store() globally mutates default_store.cache via
+    set_cache_impl(). override_settings restores CACHES but not the option
+    store's cache reference, leaving it pointing to a stale ConnectionProxy.
+    """
+    original_cache = default_store.cache
+    yield
+    default_store.set_cache_impl(original_cache)
 
 
 @pytest.fixture(autouse=True)
