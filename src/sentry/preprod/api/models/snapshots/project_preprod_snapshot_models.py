@@ -97,5 +97,7 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     approval_info: SnapshotApprovalInfo | None = None
 
+    diff_threshold: float | None = None
+
 
 # TODO: POST request in the future when we migrate away from current schemas

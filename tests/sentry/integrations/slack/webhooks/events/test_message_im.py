@@ -6,12 +6,9 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.identity import Identity, IdentityStatus
 
 from . import SEER_EXPLORER_FEATURES, BaseEventTest
 
@@ -57,6 +54,11 @@ MESSAGE_IM_BOT_EVENT = """{
 
 
 class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
+    """
+    Tests for legacy messages to bot that would be interpreted as commands.
+    This will be superceded by the explorer agentic workflow.
+    """
+
     def get_block_section_text(self, data):
         blocks = data["blocks"]
         return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
@@ -100,9 +102,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         """
         Test that when a user types in "link" to the DM we reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
 
@@ -116,15 +115,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         Test that when a user who has already linked their identity types in
         "link" to the DM we reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="UXXXXXXX1",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
+        self.create_identity(user=self.user, identity_provider=self.idp, external_id="UXXXXXXX1")
 
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
@@ -136,15 +127,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         """
         Test that when a user types in "unlink" to the DM we reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="UXXXXXXX1",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
+        self.create_identity(user=self.user, identity_provider=self.idp, external_id="UXXXXXXX1")
 
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
@@ -157,9 +140,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         Test that when a user without an Identity types in "unlink" to the DM we
         reply with the correct response.
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
 

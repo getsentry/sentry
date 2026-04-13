@@ -222,7 +222,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                     validated_data.pop("owner")
                 )
 
-            if "condition_group" in validated_data:
+            if "condition_group" in validated_data and validated_data.get("condition_group"):
                 condition_group = validated_data.pop("condition_group")
                 data_conditions: list[DataConditionType] = condition_group.get("conditions")
 

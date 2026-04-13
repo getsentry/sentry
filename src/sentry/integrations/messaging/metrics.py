@@ -37,7 +37,7 @@ class MessagingInteractionType(StrEnum):
     VIEW_SUBMISSION = "VIEW_SUBMISSION"
     SEER_AUTOFIX_START = "SEER_AUTOFIX_START"
     APP_MENTION = "APP_MENTION"
-    DM_MESSAGE = "DM_MESSAGE"
+    DIRECT_MESSAGE = "DIRECT_MESSAGE"
     ASSISTANT_THREAD_STARTED = "ASSISTANT_THREAD_STARTED"
 
     # Automatic behaviors
@@ -119,4 +119,5 @@ class SeerSlackHaltReason(StrEnum):
 
     NO_VALID_INTEGRATION = "no_valid_integration"
     NO_VALID_ORGANIZATION = "no_valid_organization"
+    IDENTITY_NOT_LINKED = "identity_not_linked"
     MISSING_EVENT_DATA = "missing_event_data"

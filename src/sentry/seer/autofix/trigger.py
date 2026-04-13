@@ -182,7 +182,7 @@ def get_seat_based_seer_automation_skip_reason(
         return "automation_already_dispatched"  # Another process already dispatched automation
 
     # Check if project has connected repositories - requirement for new pricing
-    if not has_project_connected_repos(group.organization.id, group.project.id):
+    if not has_project_connected_repos(group.organization, group.project):
         return "no_connected_repos"
 
     return None

@@ -49,14 +49,15 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider["VstsIntegrationType"
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
+        repo_name = data.get("repo_name", data["name"])
         return {
-            "name": data["name"],
+            "name": repo_name,
             "external_id": data["external_id"],
             "url": data["url"],
             "config": {
                 "instance": data["instance"],
                 "project": data["project"],
-                "name": data["name"],
+                "name": repo_name,
             },
             "integration_id": data["installation"],
         }
