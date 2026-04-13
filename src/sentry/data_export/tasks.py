@@ -11,6 +11,17 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
+from sentry.data_export.base import (
+    DEFAULT_EXPORT_RETRIES,
+    EXPORTED_ROWS_LIMIT,
+    MAX_BATCH_SIZE,
+    MAX_FRAGMENTS_PER_BATCH,
+    RECOVERABLE_RETRY_BASE_SECONDS,
+    RECOVERABLE_RETRY_MAX_SECONDS,
+    SNUBA_MAX_RESULTS,
+    ExportError,
+    ExportQueryType,
+)
 from sentry.data_export.models import ExportedData, ExportedDataBlob
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.explore import ExploreProcessor, TraceItemFullExportProcessor
@@ -31,15 +42,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-
-from .base import (
-    EXPORTED_ROWS_LIMIT,
-    MAX_BATCH_SIZE,
-    MAX_FRAGMENTS_PER_BATCH,
-    SNUBA_MAX_RESULTS,
-    ExportError,
-    ExportQueryType,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +202,15 @@ def export_chunk_to_stored_blobs(
     )
 
 
+def recoverable_retry_countdown(remaining_export_retries: int) -> int:
+    """Delay before re-running assemble_download after a recoverable Snuba error."""
+    attempt_count = max(0, DEFAULT_EXPORT_RETRIES - remaining_export_retries)
+    return min(
+        RECOVERABLE_RETRY_MAX_SECONDS,
+        RECOVERABLE_RETRY_BASE_SECONDS * (2**attempt_count),
+    )
+
+
 def _schedule_retry(
     *,
     data_export_id: int,
@@ -224,6 +235,7 @@ def _schedule_retry(
             "page_token": page_token,
             "last_emitted_item_id_hex": last_emitted_item_id_hex,
         },
+        countdown=recoverable_retry_countdown(export_retries),
     )
 
 
@@ -298,7 +310,7 @@ def assemble_download(
     offset: int = 0,
     bytes_written: int = 0,
     environment_id: int | None = None,
-    export_retries: int = 3,
+    export_retries: int = DEFAULT_EXPORT_RETRIES,
     *,
     page_token: str | None = None,
     last_emitted_item_id_hex: str | None = None,

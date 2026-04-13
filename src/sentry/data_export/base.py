@@ -7,6 +7,10 @@ EXPORTED_ROWS_LIMIT = 10000000
 SNUBA_MAX_RESULTS = 10000
 DEFAULT_EXPIRATION = timedelta(weeks=4)
 
+DEFAULT_EXPORT_RETRIES = 3
+RECOVERABLE_RETRY_BASE_SECONDS = 30
+RECOVERABLE_RETRY_MAX_SECONDS = 300
+
 
 class ExportError(Exception):
     def __init__(self, message: str, recoverable: bool = False) -> None:

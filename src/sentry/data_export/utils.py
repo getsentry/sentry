@@ -10,12 +10,12 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import ExportTraceItemsResp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
+from sentry.data_export.base import ExportError
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
-
-from .base import ExportError
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 # Adapted into decorator from 'src/sentry/api/endpoints/organization_events.py'
@@ -55,6 +55,7 @@ def handle_snuba_errors(
                         snuba.QueryMemoryLimitExceeded,
                         snuba.QueryExecutionTimeMaximum,
                         snuba.QueryTooManySimultaneous,
+                        SnubaRPCRateLimitExceeded,
                     ),
                 ):
                     message = TIMEOUT_ERROR_MESSAGE
