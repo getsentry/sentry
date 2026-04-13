@@ -1,18 +1,15 @@
 import type {Theme} from '@emotion/react';
-import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {Grid} from 'sentry/components/charts/components/grid';
 import {Legend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {YAxis} from 'sentry/components/charts/components/yAxis';
-import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
-import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import type {ContinuousTimeSeriesPlottingOptions} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/continuousTimeSeries';
+import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 
 import {DEFAULT_FONT_FAMILY} from './slack';
 import type {RenderDescriptor} from './types';
@@ -39,29 +36,6 @@ type ExploreChartData = {
   timeSeries: TimeSeries[];
   type?: DisplayType;
 };
-
-/**
- * Creates an ECharts series based on the display type.
- *
- * NOTE: We intentionally avoid importing the plottable classes (Line, Area,
- * Bars) here because they pull in `@sentry/react` which requires browser
- * globals that are unavailable in chartcuterie's Node.js VM sandbox. Using
- * the series constructors directly keeps this bundle compatible.
- */
-function createSeries(
-  displayType: DisplayType,
-  props: LineSeriesOption & BarSeriesOption
-) {
-  switch (displayType) {
-    case DisplayType.BAR:
-      return BarSeries(props);
-    case DisplayType.AREA:
-      return AreaSeries({...props, areaStyle: {opacity: 0.4}});
-    case DisplayType.LINE:
-    default:
-      return LineSeries(props);
-  }
-}
 
 export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartType>> => {
   const exploreXAxis = XAxis({
@@ -123,12 +97,13 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
       if (!hasGroups) {
         const ts = timeSeries[0]!;
         const color = theme.chart.getColorPalette(0);
-        const singleSeries = createSeries(displayType, {
-          name: ts.yAxis,
-          data: ts.values.map(timeSeriesItemToEChartsDataPoint),
-          lineStyle: {color: color?.[0], opacity: 1},
-          itemStyle: {color: color?.[0]},
-        });
+        const plottingOptions: ContinuousTimeSeriesPlottingOptions = {
+          color: color?.[0] ?? '',
+          unit: ts.meta?.valueUnit ?? null,
+          yAxisPosition: 'left',
+        };
+        const plottable = createPlottableFromTimeSeries(displayType, ts);
+        const series = plottable?.toSeries(plottingOptions) ?? [];
 
         return {
           ...exploreDefaults,
@@ -136,7 +111,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
           xAxis: exploreXAxis,
           useUTC: true,
           color,
-          series: [singleSeries],
+          series,
         };
       }
 
@@ -151,13 +126,17 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
         color.push(theme.tokens.content.secondary);
       }
 
-      const series = sorted.map((ts, i) => {
-        return createSeries(displayType, {
+      const series = sorted.flatMap((ts, i) => {
+        const plottingOptions: ContinuousTimeSeriesPlottingOptions = {
+          color: color?.[i] ?? '',
+          unit: ts.meta?.valueUnit ?? null,
+          yAxisPosition: 'left',
+        };
+        const plottable = createPlottableFromTimeSeries(displayType, ts, {
           name: formatTimeSeriesLabel(ts),
-          data: ts.values.map(timeSeriesItemToEChartsDataPoint),
-          lineStyle: {color: color?.[i], opacity: 1},
-          itemStyle: {color: color?.[i]},
+          color: color?.[i],
         });
+        return plottable?.toSeries(plottingOptions) ?? [];
       });
 
       return {
