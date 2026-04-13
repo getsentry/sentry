@@ -170,7 +170,10 @@ function SpansTabHeader() {
         {hasPageFrameFeature ? (
           title && defined(id) ? (
             <TopBar.Slot name="title">
-              <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
+              <ExploreBreadcrumb
+                traceItemDataset={TraceItemDataset.SPANS}
+                savedQueryName={savedQuery?.name}
+              />
             </TopBar.Slot>
           ) : (
             <TopBar.Slot name="title">
