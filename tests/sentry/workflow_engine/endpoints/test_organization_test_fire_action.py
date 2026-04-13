@@ -224,6 +224,55 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         }
 
     @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_test_fire_action.get_test_notification_event_data"
+    )
+    def test_uses_specified_project_slug(
+        self,
+        mock_get_test_event: mock.MagicMock,
+    ) -> None:
+        """Test that providing project_slug uses the specified project"""
+        team = self.create_team(organization=self.organization, members=[self.user])
+        target_project = self.create_project(
+            organization=self.organization, name="zzz-target-project", teams=[team]
+        )
+
+        mock_get_test_event.return_value = None
+
+        action_data = [
+            {
+                "type": Action.Type.PLUGIN.value,
+                "data": {},
+                "config": {},
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            actions=action_data,
+            project_slug=target_project.slug,
+        )
+
+        # Verify get_test_notification_event_data was called with the specified project
+        mock_get_test_event.assert_called_once_with(target_project)
+
+    def test_invalid_project_slug_falls_through(self) -> None:
+        """Test that an invalid project_slug returns an error"""
+        action_data = [
+            {
+                "type": Action.Type.PLUGIN.value,
+                "data": {},
+                "config": {},
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            actions=action_data,
+            project_slug="nonexistent-project",
+        )
+        assert response.status_code == 400
+
+    @mock.patch(
         "sentry.notifications.notification_action.types.BaseIssueAlertHandler.send_test_notification"
     )
     @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")

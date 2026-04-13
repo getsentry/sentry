@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class TestActionsValidator(CamelSnakeSerializer[Any]):
     actions = serializers.ListField(required=True)
+    project_slug = serializers.CharField(required=False)
 
     def validate_actions(self, value: Any) -> Any:
         validated_actions = []
@@ -85,17 +86,24 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=HTTP_401_UNAUTHORIZED)
 
-        # Get the alphabetically first project associated with the organization
-        # This is because we don't have a project when test firing actions
-        project = (
-            Project.objects.filter(
+        project_slug = data.get("project_slug")
+        if project_slug:
+            project = Project.objects.filter(
                 organization=organization,
+                slug=project_slug,
                 teams__organizationmember__user_id=request.user.id,
                 status=ObjectStatus.ACTIVE,
+            ).first()
+        else:
+            project = (
+                Project.objects.filter(
+                    organization=organization,
+                    teams__organizationmember__user_id=request.user.id,
+                    status=ObjectStatus.ACTIVE,
+                )
+                .order_by("name")
+                .first()
             )
-            .order_by("name")
-            .first()
-        )
 
         if not project:
             return Response(
