@@ -377,9 +377,7 @@ export function BackendJsonSubmitForm({
                         );
                       }
                       if (field.multiple) {
-                        const handleMultipleSelectChange = (
-                          value: Array<string | number>
-                        ) => {
+                        const handleMultipleSelectChange = (value: string[]) => {
                           handleChange(value);
                         };
                         return (
@@ -390,9 +388,7 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={
-                                (fieldApi.state.value as Array<string | number>) ?? []
-                              }
+                              value={(fieldApi.state.value as string[]) ?? []}
                               onChange={handleMultipleSelectChange}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
@@ -402,14 +398,13 @@ export function BackendJsonSubmitForm({
                       }
                       const singleSelectValue = (fieldApi.state.value ?? null) as
                         | string
-                        | number
                         | null;
                       const handleSingleClearableSelectChange = (
-                        value: string | number | null
+                        value: string | null
                       ) => {
                         handleChange(value);
                       };
-                      const handleSingleSelectChange = (value: string | number) => {
+                      const handleSingleSelectChange = (value: string) => {
                         handleChange(value);
                       };
                       return (
