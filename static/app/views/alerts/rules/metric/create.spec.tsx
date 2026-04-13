@@ -5,8 +5,8 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'sentry/utils/discover/eventView';
-import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {MetricRulesCreate} from 'sentry/views/alerts/rules/metric/create';
 
 describe('Incident Rules Create', () => {
   let eventStatsMock: any;

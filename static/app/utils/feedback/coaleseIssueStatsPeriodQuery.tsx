@@ -9,9 +9,12 @@ interface Props<QueryView extends {statsPeriod: string}> {
   prefetch?: boolean;
 }
 
-export default function coaleseIssueStatsPeriodQuery<
-  QueryView extends {statsPeriod: string},
->({queryView, listHeadTime, defaultStatsPeriod, prefetch = false}: Props<QueryView>) {
+export function coaleseIssueStatsPeriodQuery<QueryView extends {statsPeriod: string}>({
+  queryView,
+  listHeadTime,
+  defaultStatsPeriod,
+  prefetch = false,
+}: Props<QueryView>) {
   // We don't want to use `statsPeriod` directly, because that will mean the
   // start time of our infinite list will change, shifting the index/page
   // where items appear if we invalidate the cache and refetch specific pages.

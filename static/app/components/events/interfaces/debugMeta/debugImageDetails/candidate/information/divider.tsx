@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
-function Divider() {
+export function Divider() {
   return <Wrapper>{'|'}</Wrapper>;
 }
-
-export default Divider;
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.colors.gray200};

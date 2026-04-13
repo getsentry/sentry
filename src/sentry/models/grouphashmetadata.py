@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.base import sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -62,7 +62,7 @@ class HashBasis(models.TextChoices):
     UNKNOWN = "unknown"
 
 
-@region_silo_model
+@cell_silo_model
 class GroupHashMetadata(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -118,6 +118,10 @@ class GroupHashMetadata(Model):
     )
     # The similarity between this hash's stacktrace and the parent (matched) hash's stacktrace
     seer_match_distance = models.FloatField(null=True)
+    # The latest Seer model version for which event data was sent (via either ingest or
+    # training_mode=True). Separate from seer_model to preserve the original grouping decision
+    # metadata.
+    seer_latest_training_model = models.CharField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -131,7 +135,7 @@ class GroupHashMetadata(Model):
     def hash(self) -> str:
         return self.grouphash.hash
 
-    __repr__ = sane_repr("grouphash_id", "group_id", "hash", "seer_matched_grouphash")
+    __repr__ = sane_repr("grouphash_id", "group_id", "hash", "seer_matched_grouphash_id")
     __str__ = __repr__
 
     def get_best_guess_schema_version(self) -> str:

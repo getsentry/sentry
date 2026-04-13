@@ -12,9 +12,7 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/layout/surface';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/layout/surface');
 
 The `Surface` component is a simplified layout component built on top of the `Container` component. It provides a simplified API for surfaces with specific props: `variant`, `elevation`, and `radius`. It also accepts props that are passed through to `Container`.
 

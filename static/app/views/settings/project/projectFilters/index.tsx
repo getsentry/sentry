@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+import {GroupTombstones} from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -76,5 +75,5 @@ export default function ProjectFilters() {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

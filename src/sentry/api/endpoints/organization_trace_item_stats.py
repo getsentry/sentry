@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.event_search import translate_escape_sequences
@@ -28,6 +28,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
 logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
     spansLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -210,7 +211,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
             stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=MAX_THREADS,
             ) as query_thread_pool:

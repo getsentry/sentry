@@ -162,6 +162,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
             )
             if not deleted:
                 return Response(status=status.HTTP_404_NOT_FOUND)
+            self._invalidate_sessions(request, user)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         with transaction.atomic(using=router.db_for_write(Identity)):
@@ -177,4 +178,18 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
             model_type = identity.get_model_type_for_category()
             model_type.objects.get(id=int(identity_id)).delete()
 
+        self._invalidate_sessions(request, user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @staticmethod
+    def _invalidate_sessions(request: Request, user: User) -> None:
+        """Invalidate all sessions for the user whose identity was removed.
+
+        If the requesting user is the same as the target user, keep
+        the current session alive. Otherwise invalidate all sessions.
+        """
+        if request.user.id == user.id:
+            user.refresh_session_nonce(request._request)
+        else:
+            user.refresh_session_nonce()
+        user.save(update_fields=["session_nonce"])

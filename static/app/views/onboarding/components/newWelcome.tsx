@@ -18,13 +18,11 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
-import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {NewWelcomeSeerExtra} from 'sentry/views/onboarding/components/newWelcomeSeerExtra';
 import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
@@ -45,10 +43,10 @@ const STAGGER_CONTAINER: MotionProps = {
   variants: {
     initial: {},
     animate: {
-      transition: testableTransition({
+      transition: {
         staggerChildren: 0.1,
         delayChildren: 0.1,
-      }),
+      },
     },
     exit: {},
   },
@@ -57,9 +55,9 @@ const STAGGER_CONTAINER: MotionProps = {
 const STAGGER_CHILDREN = {
   initial: {},
   animate: {
-    transition: testableTransition({
+    transition: {
       staggerChildren: 0.08,
-    }),
+    },
   },
 };
 
@@ -124,7 +122,6 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     ),
     footer: <NewWelcomeSeerFlag />,
     badge: <FeatureBadge type="new" tooltipProps={{disabled: true}} />,
-    extra: <NewWelcomeSeerExtra />,
   },
 ];
 

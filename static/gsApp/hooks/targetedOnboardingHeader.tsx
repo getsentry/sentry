@@ -6,15 +6,14 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   source: string;
@@ -75,7 +74,7 @@ export default withSubscription(TargetedOnboardingHeader, {
 const HeaderActionBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const SecondaryCTAWrapper = styled('div')`

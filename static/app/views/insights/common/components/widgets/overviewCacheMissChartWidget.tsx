@@ -9,7 +9,7 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -129,7 +129,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
                 to={
                   organization.features.includes('insight-modules')
                     ? `/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`
-                    : `/insights/backend/caches`
+                    : '/insights/backend/caches'
                 }
               >
                 {item.transaction}

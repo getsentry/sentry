@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {
   StoryTreeNode,
@@ -14,7 +14,7 @@ import {
 } from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';

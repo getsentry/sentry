@@ -1,12 +1,11 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 export const ToolbarSection = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 export function ToolbarHeader(props: FlexProps<'div'>) {
@@ -21,20 +20,27 @@ export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
   text-decoration-style: dotted;
 `;
 
-export const ToolbarFooterButton = styled(Button)<{disabled?: boolean}>`
-  color: ${p =>
-    p.disabled
-      ? p.theme.tokens.content.disabled
-      : p.theme.tokens.interactive.link.accent.rest};
+export const ToolbarFooterButton = styled(Button)<{
+  disabled?: boolean;
+  priority?: ButtonProps['priority'];
+}>`
+  ${p =>
+    p.priority === 'link'
+      ? css`
+          color: ${p.disabled
+            ? p.theme.tokens.content.disabled
+            : p.theme.tokens.interactive.link.accent.rest};
+        `
+      : ''}
 `;
 
 export const ToolbarFooter = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :not(:last-child) {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;
 
@@ -43,9 +49,9 @@ export const ToolbarRow = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :not(:last-child) {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;

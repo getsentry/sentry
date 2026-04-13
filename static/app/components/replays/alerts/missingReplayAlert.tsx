@@ -4,21 +4,24 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 interface Props {
   orgSlug: string;
 }
 
-export default function MissingReplayAlert({orgSlug}: Props) {
+export function MissingReplayAlert({orgSlug}: Props) {
   const reasons = [
     t('The replay is still processing.'),
     tct(
       'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
       {
-        link: <Link to={`/organizations/${orgSlug}/stats/?dataCategory=replays`} />,
+        link: (
+          <Link to={normalizeUrl(`/settings/${orgSlug}/stats/?dataCategory=replays`)} />
+        ),
       }
     ),
     t('The replay has been deleted by a member in your organization.'),

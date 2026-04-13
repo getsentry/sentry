@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, internal_region_silo_endpoint
+from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.preprod.analytics import PreprodArtifactApiAdminBatchDeleteEvent
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
@@ -19,7 +19,7 @@ from sentry.preprod.models import PreprodArtifact
 logger = logging.getLogger(__name__)
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)
@@ -88,17 +88,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
 
         try:
             result = delete_artifacts_and_eap_data(artifacts_to_delete)
-            return Response(
-                {
-                    "success": True,
-                    "message": f"Successfully deleted {result.artifacts_deleted} artifacts.",
-                    "artifact_ids": [str(artifact.id) for artifact in artifacts_to_delete],
-                    "files_deleted": result.files_deleted,
-                    "size_metrics_deleted": result.size_metrics_deleted,
-                    "installable_artifacts_deleted": result.installable_artifacts_deleted,
-                }
-            )
-
         except Exception:
             logger.exception(
                 "preprod_artifact.admin_batch_delete.artifacts_delete_failed",
@@ -111,3 +100,14 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 {"success": False, "detail": "Internal error deleting artifacts."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Successfully deleted {result.artifacts_deleted} artifacts.",
+                "artifact_ids": [str(artifact.id) for artifact in artifacts_to_delete],
+                "files_deleted": result.files_deleted,
+                "size_metrics_deleted": result.size_metrics_deleted,
+                "installable_artifacts_deleted": result.installable_artifacts_deleted,
+            }
+        )

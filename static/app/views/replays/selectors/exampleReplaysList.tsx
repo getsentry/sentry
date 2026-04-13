@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -6,22 +7,21 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplayBadge from 'sentry/components/replays/replayBadge';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-export default function ExampleReplaysList({
+export function ExampleReplaysList({
   location,
   clickType,
   selectorQuery,
@@ -32,7 +32,7 @@ export default function ExampleReplaysList({
   projectId: number;
   selectorQuery: string;
 }) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization();
 
   const {project, environment, start, statsPeriod, utc, end} = location.query;
@@ -82,7 +82,7 @@ export default function ExampleReplaysList({
     perPage: 3,
   });
 
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = getRouteStringFromRoutes({matches});
   const linkEventView = EventView.fromLocation(location);
 
   return (

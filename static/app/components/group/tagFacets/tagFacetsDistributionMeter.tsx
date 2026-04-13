@@ -14,14 +14,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {TagSegment} from 'sentry/actionCreators/events';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_SEGMENTS = 4;
 const TOOLTIP_DELAY = 800;
@@ -38,7 +37,7 @@ type Props = {
   project?: Project;
 };
 
-function TagFacetsDistributionMeter({
+export function TagFacetsDistributionMeter({
   segments,
   title,
   totalValues,
@@ -263,10 +262,8 @@ function TagFacetsDistributionMeter({
   );
 }
 
-export default TagFacetsDistributionMeter;
-
 const TagSummary = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const TagHeader = styled('span')`
@@ -277,7 +274,7 @@ const Title = styled('div')`
   display: flex;
   font-size: ${p => p.theme.font.size.md};
   justify-content: space-between;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   line-height: 1.1;
 `;
 
@@ -286,7 +283,7 @@ const TitleType = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.md};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   align-self: center;
 `;
 
@@ -305,7 +302,7 @@ const TitleDescription = styled('div')`
 const OtherSegment = styled('span')<{color: string}>`
   display: block;
   width: 100%;
-  height: ${space(2)};
+  height: ${p => p.theme.space.xl};
   color: inherit;
   outline: none;
   background-color: ${p => p.color};
@@ -317,27 +314,27 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   }
   display: block;
   width: 100%;
-  height: ${space(2)};
+  height: ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.white};
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
   font-size: ${p => p.theme.font.size.xs};
-  padding: 1px ${space(0.5)} 0 0;
+  padding: 1px ${p => p.theme.space.xs} 0 0;
   user-select: none;
 `;
 
 const LegendContainer = styled('ol')`
   list-style: none;
   padding: 0;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const LegendRow = styled('div')`
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const LegendDot = styled('span')<{color: string; focus: boolean}>`
@@ -358,7 +355,7 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
     left: 0;
     width: 100%;
     height: 100%;
-    outline: ${p => p.theme.colors.gray100} ${space(0.5)} solid;
+    outline: ${p => p.theme.colors.gray100} ${p => p.theme.space.xs} solid;
     opacity: ${p => (p.focus ? '1' : '0')};
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -366,7 +363,7 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
 
 const LegendText = styled('span')<{unfocus: boolean}>`
   font-size: ${p => p.theme.font.size.sm};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -377,7 +374,7 @@ const LegendText = styled('span')<{unfocus: boolean}>`
 
 const LegendPercent = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   flex-grow: 1;
@@ -385,7 +382,7 @@ const LegendPercent = styled('span')`
 
 const ExpandToggleButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const StyledSummary = styled('summary')`

@@ -50,10 +50,7 @@ describe('AccountDetails', () => {
       mockUserDetails({isManaged: true, username: 'different@example.com'});
       render(<AccountDetails />);
 
-      expect(await screen.findByRole('textbox', {name: 'Username'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(await screen.findByRole('textbox', {name: 'Username'})).toBeDisabled();
     });
   });
 

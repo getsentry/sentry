@@ -12,10 +12,9 @@ import {InstallDetailsContent} from 'sentry/views/preprod/components/installDeta
 interface InstallModalProps {
   artifactId: string;
   closeModal: () => void;
-  projectId: string;
 }
 
-function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
+function InstallModal({artifactId, closeModal}: InstallModalProps) {
   return (
     <Flex direction="column">
       <Grid display="grid" columns="1fr auto 1fr" align="center">
@@ -34,21 +33,15 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
         </Container>
       </Grid>
       <Container padding="xl">
-        <InstallDetailsContent projectId={projectId} artifactId={artifactId} size="sm" />
+        <InstallDetailsContent artifactId={artifactId} size="sm" />
       </Container>
     </Flex>
   );
 }
 
-export function openInstallModal(projectId: string, artifactId: string) {
+export function openInstallModal(artifactId: string) {
   openModal(
-    ({closeModal}) => (
-      <InstallModal
-        projectId={projectId}
-        artifactId={artifactId}
-        closeModal={closeModal}
-      />
-    ),
+    ({closeModal}) => <InstallModal artifactId={artifactId} closeModal={closeModal} />,
     {
       modalCss: css`
         max-width: 500px;

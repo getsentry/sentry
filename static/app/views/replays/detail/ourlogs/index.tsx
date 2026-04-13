@@ -1,38 +1,34 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {GridBody} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LogsPageDataProvider,
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   LoadingRenderer,
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
-import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
+import {useOurLogFilters} from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
 
-export default function OurLogs() {
+export function OurLogs() {
   const replay = useReplayReader();
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
@@ -62,9 +58,7 @@ export default function OurLogs() {
       }}
     >
       <LogsPageDataProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
-        </TraceItemAttributeProvider>
+        <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
       </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
@@ -76,10 +70,9 @@ interface OurLogsContentProps {
 }
 
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: booleanAttributes} = useTraceItemAttributes('boolean');
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
+  const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
 
   const {currentTime, setCurrentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
@@ -127,7 +120,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   return (
     <OurLogsContentWrapper>
       <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
-      <TableScrollContainer ref={scrollContainerRef}>
+      <TableScrollContainer>
         {isPending ? (
           <Placeholder height="100%" />
         ) : (
@@ -135,10 +128,10 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             stringAttributes={stringAttributes}
             numberAttributes={numberAttributes}
             booleanAttributes={booleanAttributes}
-            scrollContainer={scrollContainerRef}
             allowPagination
             embedded
             embeddedOptions={embeddedOptions}
+            expanded
             localOnlyItemFilters={{
               filteredItems: filteredLogItems,
               filterText: filterProps.searchTerm,
@@ -170,10 +163,10 @@ const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
 `;
 
 const TableScrollContainer = styled('div')`
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 100%;
-  min-height: 0;
+  overflow-y: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;

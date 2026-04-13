@@ -28,7 +28,6 @@ import {
   IconWifi,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   BreadcrumbLevelType,
   BreadcrumbType,
@@ -394,7 +393,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 }
 
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
   font-weight: normal;
   font-size: ${p => p.theme.font.size.sm};
   border: 0;

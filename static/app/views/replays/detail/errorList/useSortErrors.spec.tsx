@@ -3,8 +3,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
-import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
+import {useSortErrors} from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
@@ -27,7 +27,7 @@ const {
       id: 'ac43b19f1886bb41ddab96415ecb5c85',
       'issue.id': 22,
       issue: 'NEXTJS-TYPE',
-      title: `undefined is not an object (evaluating 'e.apply').`,
+      title: "undefined is not an object (evaluating 'e.apply').",
       level: 'error',
       'project.name': 'next-js',
     }),
@@ -37,7 +37,7 @@ const {
       id: '9f1886bb41ddab96415ecb5c85ac43b1',
       'issue.id': 22,
       issue: 'JAVASCRIPT-UNDEF',
-      title: `Maximum update depth exceeded`,
+      title: 'Maximum update depth exceeded',
       level: 'error',
       'project.name': 'javascript',
     }),

@@ -7,22 +7,22 @@ import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
+import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
-import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useReplayCountForTransactions} from 'sentry/utils/replayCount/useReplayCountForTransactions';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -32,7 +32,10 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {Breadcrumb, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -41,7 +44,7 @@ import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/tr
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
-import Tab from './tabs';
+import {Tab} from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
@@ -58,7 +61,7 @@ type Props = {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
-function TransactionHeader({
+export function TransactionHeader({
   eventView,
   organization,
   projects,
@@ -71,6 +74,7 @@ function TransactionHeader({
 }: Props) {
   const {isInDomainView, view} = useDomainViewFilters();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -125,6 +129,8 @@ function TransactionHeader({
     [getNewRoute, organization, location, projects, currentTab, navigate]
   );
 
+  const isEAP = useTransactionSummaryEAP();
+
   function handleCreateAlertSuccess() {
     trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
@@ -157,7 +163,9 @@ function TransactionHeader({
     >
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-      <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+      <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+        {t('Tags')}
+      </TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -273,45 +281,94 @@ function TransactionHeader({
           </Tooltip>
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature &&
-              !metricsCardinality?.isLoading &&
-              !deprecateTransactionAlerts(organization) ? (
-                <CreateAlertFromViewButton
-                  size="sm"
-                  eventView={eventView}
-                  organization={organization}
-                  projects={projects}
-                  onClick={handleCreateAlertSuccess}
-                  referrer="performance"
-                  alertType="trans_duration"
-                  aria-label={t('Create Alert')}
-                  disableMetricDataset={
-                    metricsCardinality?.outcome?.forceTransactionsOnly
-                  }
-                />
-              ) : null
-            }
-          </Feature>
-          <TeamKeyTransactionButton
-            transactionName={transactionName}
-            eventView={eventView}
-            organization={organization}
-          />
-          <GuideAnchor target="project_transaction_threshold_override" position="bottom">
-            <TransactionThresholdButton
-              organization={organization}
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <Feature organization={organization} features="incidents">
+              {({hasFeature}) =>
+                hasFeature &&
+                !metricsCardinality?.isLoading &&
+                !deprecateTransactionAlerts(organization) ? (
+                  <CreateAlertFromViewButton
+                    eventView={eventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={handleCreateAlertSuccess}
+                    referrer="performance"
+                    alertType="trans_duration"
+                    aria-label={t('Create Alert')}
+                    disableMetricDataset={
+                      metricsCardinality?.outcome?.forceTransactionsOnly
+                    }
+                  />
+                ) : null
+              }
+            </Feature>
+            <TeamKeyTransactionButton
               transactionName={transactionName}
               eventView={eventView}
-              onChangeThreshold={onChangeThreshold}
+              organization={organization}
             />
-          </GuideAnchor>
-          <FeedbackButton />
-        </Grid>
-      </Layout.HeaderActions>
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <Feature organization={organization} features="incidents">
+              {({hasFeature}) =>
+                hasFeature &&
+                !metricsCardinality?.isLoading &&
+                !deprecateTransactionAlerts(organization) ? (
+                  <CreateAlertFromViewButton
+                    size="sm"
+                    eventView={eventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={handleCreateAlertSuccess}
+                    referrer="performance"
+                    alertType="trans_duration"
+                    aria-label={t('Create Alert')}
+                    disableMetricDataset={
+                      metricsCardinality?.outcome?.forceTransactionsOnly
+                    }
+                  />
+                ) : null
+              }
+            </Feature>
+            <TeamKeyTransactionButton
+              transactionName={transactionName}
+              eventView={eventView}
+              organization={organization}
+            />
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
+            <FeedbackButton />
+          </Grid>
+        </Layout.HeaderActions>
+      )}
       <TabList
         outerWrapStyles={{
           gridColumn: '1 / -1',
@@ -319,7 +376,9 @@ function TransactionHeader({
       >
         <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
         <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+        <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+          {t('Tags')}
+        </TabList.Item>
         <TabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}
@@ -347,5 +406,3 @@ const TransactionName = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default TransactionHeader;

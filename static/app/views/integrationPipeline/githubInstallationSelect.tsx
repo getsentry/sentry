@@ -10,13 +10,10 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
-import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
@@ -31,38 +28,6 @@ type GithubInstallationProps = {
   installation_info: Installation[];
   organization: Organization;
 };
-
-function InstallationButton({
-  handleSubmit,
-  isSaving,
-  installationID,
-  hasSCMMultiOrg,
-}: GithubInstallationInstallButtonProps) {
-  if (installationID !== '-1' && !hasSCMMultiOrg) {
-    return (
-      <FeatureDisabled
-        features={['integrations-scm-multi-org']}
-        featureName={t('Cross-Org Source Code Management')}
-        hideHelpToggle
-      />
-    );
-  }
-
-  return (
-    <Button
-      priority="primary"
-      onClick={handleSubmit}
-      disabled={isSaving || !installationID}
-    >
-      {t('Install')}
-    </Button>
-  );
-}
-
-const InstallButtonHook = HookOrDefault({
-  hookName: 'component:scm-multi-org-install-button',
-  defaultComponent: InstallationButton,
-});
 
 export function GithubInstallationSelect({
   installation_info,
@@ -127,7 +92,7 @@ export function GithubInstallationSelect({
               name={installation.github_account}
             />
           )}
-          <span>{`${installation.github_account}`}</span>
+          <span>{installation.github_account}</span>
           {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}
@@ -194,20 +159,7 @@ export function GithubInstallationSelect({
           )}
         />
         <Stack alignSelf="flex-end" paddingTop="xl">
-          {organization.features.includes('github-multi-org-upsell-modal') ? (
-            <InstallButtonHook
-              hasSCMMultiOrg={
-                hasSCMMultiOrg ||
-                installation_info.find(i => i.installation_id === installationID)
-                  ?.count === 0
-              }
-              installationID={installationID}
-              isSaving={isSaving}
-              handleSubmit={handleSubmit}
-            />
-          ) : (
-            renderInstallationButtonOld()
-          )}
+          {renderInstallationButtonOld()}
         </Stack>
       </StyledContainer>
     </Fragment>
@@ -218,14 +170,14 @@ const StyledContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   max-width: 600px;
   margin: 0 auto;
   margin-top: 10%;
 `;
 
 const StyledHeader = styled('h3')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;
 

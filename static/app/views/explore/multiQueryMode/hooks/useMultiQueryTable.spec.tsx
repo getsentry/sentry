@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -50,7 +50,7 @@ describe('useMultiQueryTable', () => {
     ['aggregate', useMultiQueryTableAggregateMode],
     ['sample', useMultiQueryTableSampleMode],
   ])(
-    `triggers the high accuracy request when there is no data and a partial scan for %s mode`,
+    'triggers the high accuracy request when there is no data and a partial scan for %s mode',
     async (_mode, hook) => {
       jest.mocked(useReadQueriesFromLocation).mockReturnValue([
         {

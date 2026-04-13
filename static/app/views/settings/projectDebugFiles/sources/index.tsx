@@ -6,8 +6,8 @@ import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import BuiltInRepositories from './builtInRepositories';
-import CustomRepositories from './customRepositories';
+import {BuiltInRepositories} from './builtInRepositories';
+import {CustomRepositories} from './customRepositories';
 
 type Props = {
   api: Client;
@@ -19,7 +19,7 @@ type Props = {
   project: Project;
 };
 
-export default function Sources({
+export function Sources({
   api,
   organization,
   customRepositories,

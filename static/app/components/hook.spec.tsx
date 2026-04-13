@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 
 function HookWrapper(props: any) {
   return (

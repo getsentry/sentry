@@ -17,6 +17,7 @@ from .organization_incident_groupopenperiod_index import (
     OrganizationIncidentGroupOpenPeriodIndexEndpoint,
 )
 from .organization_open_periods import OrganizationOpenPeriodsEndpoint
+from .organization_project_detector_index import OrganizationProjectDetectorIndexEndpoint
 from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
@@ -43,6 +44,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/$",
         OrganizationDetectorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/detectors/$",
+        OrganizationProjectDetectorIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-project-detector-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/count/$",

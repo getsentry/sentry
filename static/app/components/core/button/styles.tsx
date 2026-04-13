@@ -46,6 +46,7 @@ const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled'> & {
+    shapeVariant: 'rectangular' | 'square';
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
   }
@@ -74,14 +75,15 @@ export function DO_NOT_USE_getButtonStyles(
 
     fontWeight: p.theme.font.weight.sans.medium,
 
-    opacity: p.busy || p.disabled ? 0.6 : undefined,
+    opacity: p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
     '&[disabled]': {
       cursor: 'not-allowed',
     },
 
-    padding: getButtonSizeTheme(p.size, p.theme).padding,
+    padding:
+      p.shapeVariant === 'square' ? '0' : getButtonSizeTheme(p.size, p.theme).padding,
     borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
     border: 'none',
     color: buttonTheme.color,
@@ -89,6 +91,11 @@ export function DO_NOT_USE_getButtonStyles(
     background: 'none',
 
     height: buttonSizes[p.size].height,
+    // Use min width as a progressive enhancement for square buttons.
+    // We can't yet swap to width because I'm not entirely condifent that
+    // that would not break existing buttons.
+    minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
+
     minHeight: buttonSizes[p.size].minHeight,
     fontSize: buttonSizes[p.size].fontSize,
     lineHeight: buttonSizes[p.size].lineHeight,
@@ -99,7 +106,7 @@ export function DO_NOT_USE_getButtonStyles(
       position: 'absolute',
       inset: '0',
       height: `calc(100% - ${buttonElevation})`,
-      top: `${buttonElevation}`,
+      top: buttonElevation,
       transform: `translateY(-${buttonElevation})`,
       boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
       background: buttonTheme.background,
@@ -126,6 +133,10 @@ export function DO_NOT_USE_getButtonStyles(
         border: `1px solid ${p.theme.tokens.focus.default}`,
         boxShadow: `0 0 0 1px ${p.theme.tokens.focus.default}`,
       },
+    },
+
+    '&[aria-busy="true"] > span:last-child': {
+      overflow: 'visible',
     },
 
     '> span:last-child': {
@@ -173,13 +184,17 @@ export function DO_NOT_USE_getButtonStyles(
       },
     },
 
-    '&:disabled, &[aria-disabled="true"]': {
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
       '&::after': {
         transform: 'translateY(0px)',
       },
       '> span:last-child': {
         transform: 'translateY(0px)',
       },
+    },
+
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
     },
 
     ...(p.priority === 'link' && {
@@ -236,6 +251,7 @@ export function DO_NOT_USE_getButtonStyles(
       padding: '0',
       height: 'auto',
       minHeight: 'auto',
+      minWidth: 'auto',
       border: 'none',
       transform: 'translateY(0px)',
 

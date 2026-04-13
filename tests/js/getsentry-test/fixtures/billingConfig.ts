@@ -1,9 +1,9 @@
-import AM1_PLANS from 'getsentry-test/fixtures/am1Plans';
-import AM2_PLANS from 'getsentry-test/fixtures/am2Plans';
-import AM3_PLANS from 'getsentry-test/fixtures/am3Plans';
+import {AM1_PLANS} from 'getsentry-test/fixtures/am1Plans';
+import {AM2_PLANS} from 'getsentry-test/fixtures/am2Plans';
+import {AM3_PLANS} from 'getsentry-test/fixtures/am3Plans';
 import {FeatureListFixture} from 'getsentry-test/fixtures/featureList';
-import MM1_PLANS from 'getsentry-test/fixtures/mm1Plans';
-import MM2_PLANS from 'getsentry-test/fixtures/mm2Plans';
+import {MM1_PLANS} from 'getsentry-test/fixtures/mm1Plans';
+import {MM2_PLANS} from 'getsentry-test/fixtures/mm2Plans';
 
 import type {BillingConfig} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
@@ -96,12 +96,13 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
         uptime: 1,
       },
       annualDiscount: 0.1,
-      planList: Object.values(MM1_PLANS).concat(
-        Object.values(MM2_PLANS),
-        Object.values(AM1_PLANS),
-        Object.values(AM2_PLANS),
-        Object.values(AM3_PLANS)
-      ),
+      planList: [
+        ...Object.values(MM1_PLANS),
+        ...Object.values(MM2_PLANS),
+        ...Object.values(AM1_PLANS),
+        ...Object.values(AM2_PLANS),
+        ...Object.values(AM3_PLANS),
+      ],
       featureList: FeatureListFixture(),
     };
   }

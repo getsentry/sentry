@@ -6,12 +6,17 @@ from typing import Any
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
+from sentry.integrations.slack.utils.constants import SlackScope
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 
 def has_discover_links(links: list[str]) -> bool:
     return any(match_link(link)[0] == LinkType.DISCOVER for link in links)
+
+
+def has_explore_links(links: list[str]) -> bool:
+    return any(match_link(link)[0] == LinkType.EXPLORE for link in links)
 
 
 def is_event_challenge(data: Mapping[str, Any]) -> bool:
@@ -56,11 +61,29 @@ class SlackEventRequest(SlackDMRequest):
 
     @property
     def channel_id(self) -> str:
+        if self.is_assistant_thread_event:
+            return self.dm_data.get("assistant_thread", {}).get("channel_id", "")
         return self.dm_data.get("channel", "")
 
     @property
     def user_id(self) -> str:
+        if self.is_assistant_thread_event:
+            return self.dm_data.get("assistant_thread", {}).get("user_id", "")
         return self.dm_data.get("user", "")
+
+    @property
+    def thread_ts(self) -> str:
+        if self.is_assistant_thread_event:
+            return self.dm_data.get("assistant_thread", {}).get("thread_ts", "")
+        return self.dm_data.get("thread_ts", "")
+
+    @property
+    def has_assistant_scope(self) -> bool:
+        return SlackScope.ASSISTANT_WRITE in self.integration.metadata.get("scopes", [])
+
+    @property
+    def is_assistant_thread_event(self) -> bool:
+        return self.dm_data.get("type") == "assistant_thread_started"
 
     @property
     def links(self) -> list[str]:
@@ -79,7 +102,8 @@ class SlackEventRequest(SlackDMRequest):
         super().validate_integration()
 
         if (self.text in COMMANDS) or (
-            self.type == "link_shared" and has_discover_links(self.links)
+            self.type == "link_shared"
+            and (has_discover_links(self.links) or has_explore_links(self.links))
         ):
             self._validate_identity()
 

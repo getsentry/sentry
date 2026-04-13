@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.conduit.auth import get_conduit_credentials
@@ -36,7 +36,7 @@ class OrganizationConduitDemoPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationConduitDemoPermission,)
     publish_status = {

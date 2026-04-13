@@ -38,6 +38,7 @@ type Props = {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 };
 
 function WidgetQueriesWithOnDemandControl({
@@ -54,6 +55,7 @@ function WidgetQueriesWithOnDemandControl({
   afterFetchTableData,
   mepSettingContext,
   OnDemandControlContext,
+  widgetInterval,
 }: Omit<Props, 'onWidgetSplitDecision'> & {
   OnDemandControlContext: any;
   afterFetchSeriesData: (rawResults: SeriesResult) => void;
@@ -76,13 +78,14 @@ function WidgetQueriesWithOnDemandControl({
     afterFetchTableData,
     mepSetting: mepSettingContext.metricSettingState,
     onDemandControlContext: OnDemandControlContext,
+    widgetInterval,
     ...OnDemandControlContext,
   });
 
   return children(props);
 }
 
-function WidgetQueries({
+export function WidgetQueries({
   children,
   widget,
   dashboardFilters,
@@ -92,6 +95,7 @@ function WidgetQueries({
   onWidgetSplitDecision,
   onDataFetchStart,
   selection,
+  widgetInterval,
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
@@ -211,6 +215,7 @@ function WidgetQueries({
           afterFetchTableData={afterFetchTableData}
           mepSettingContext={mepSettingContext}
           OnDemandControlContext={OnDemandControlContext}
+          widgetInterval={widgetInterval}
         >
           {children}
         </WidgetQueriesWithOnDemandControl>
@@ -218,5 +223,3 @@ function WidgetQueries({
     </OnDemandControlConsumer>
   );
 }
-
-export default WidgetQueries;

@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconOpen} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
-import effectiveDirectives from './effectiveDirectives';
+import {effectiveDirectives} from './effectiveDirectives';
 
 type EffectiveDirective = keyof typeof effectiveDirectives;
 
@@ -17,7 +16,7 @@ export type HelpProps = {
   };
 };
 
-function CSPHelp({data: {effective_directive: key}}: HelpProps) {
+export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
   const getHelp = () => ({
     __html: effectiveDirectives[key],
   });
@@ -60,13 +59,11 @@ function CSPHelp({data: {effective_directive: key}}: HelpProps) {
   );
 }
 
-export default CSPHelp;
-
 const StyledP = styled('p')`
   text-align: right;
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

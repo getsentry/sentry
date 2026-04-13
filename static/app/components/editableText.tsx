@@ -5,10 +5,9 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
-import {space} from 'sentry/styles/space';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 type Props = {
   onChange: (value: string) => void;
@@ -32,7 +31,7 @@ type Props = {
   successMessage?: React.ReactNode;
 };
 
-function EditableText({
+export function EditableText({
   value,
   onChange,
   name,
@@ -224,13 +223,11 @@ function EditableText({
   );
 }
 
-export default EditableText;
-
 const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
@@ -244,9 +241,9 @@ const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.tokens.background.tertiary};
   border-radius: ${p => p.theme.radius.md};
-  margin: -${space(0.5)} -${space(1)};
-  padding: ${space(0.5)} ${space(1)};
-  max-width: calc(100% + ${space(2)});
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  max-width: calc(100% + ${p => p.theme.space.xl});
 `;
 
 const StyledInput = styled(Input)`
@@ -268,7 +265,7 @@ const InputLabel = styled('div')`
   height: 0;
   opacity: 0;
   white-space: pre;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`

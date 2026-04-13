@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from pydantic import BaseModel
+
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -212,7 +214,7 @@ class MetricIssueContext:
     snuba_query: SnubaQuery
     new_status: IncidentStatus
     subscription: QuerySubscription | None
-    metric_value: float | dict | None
+    metric_value: float | None
     group: Group | None
 
     @classmethod
@@ -246,11 +248,10 @@ class MetricIssueContext:
 
         subscription = cls._get_subscription(evidence_data)
         snuba_query = subscription.snuba_query
-        metric_value = (
-            evidence_data.value["value"]
-            if type(evidence_data.value) is dict
-            else evidence_data.value
-        )
+        if isinstance(evidence_data.value, (int, float)):
+            metric_value = float(evidence_data.value)
+        else:
+            metric_value = evidence_data.value["value"]
 
         return cls(
             id=group.id,
@@ -282,15 +283,17 @@ class MetricIssueContext:
         )
 
 
-@dataclass
-class OpenPeriodContext:
+class OpenPeriodContext(BaseModel):
     """
     We want to eventually delete this class. it serves as a way to pass data around
     that we used to use `incident` for.
     """
 
+    class Config:
+        frozen = True
+
     date_started: datetime
-    date_closed: datetime | None
+    date_closed: datetime | None = None
     id: int
 
     @classmethod

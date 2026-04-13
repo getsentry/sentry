@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -179,7 +178,7 @@ const ExploreParamTitle = styled('span')`
 const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: 24px;

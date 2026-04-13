@@ -6,18 +6,18 @@ import * as qs from 'query-string';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-import FooterWithButtons from './components/footerWithButtons';
-import HeaderWithHelp from './components/headerWithHelp';
+import {FooterWithButtons} from './components/footerWithButtons';
+import {HeaderWithHelp} from './components/headerWithHelp';
 
 // let the browser generate and store the external ID
 // this way the same user always has the same external ID if they restart the pipeline
@@ -56,7 +56,7 @@ type State = {
   submitting?: boolean;
 };
 
-export default class AwsLambdaCloudformation extends Component<Props, State> {
+export class AwsLambdaCloudformation extends Component<Props, State> {
   state: State = {
     accountNumber: this.props.accountNumber,
     region: this.props.region,

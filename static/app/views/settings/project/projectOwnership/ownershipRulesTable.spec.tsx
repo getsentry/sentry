@@ -3,8 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import MemberListStore from 'sentry/stores/memberListStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 
@@ -166,6 +166,32 @@ describe('OwnershipRulesTable', () => {
     rerender(<OwnershipRulesTable projectRules={newRules} codeowners={[]} />);
     expect(screen.getAllByText('path')).toHaveLength(3);
     expect(screen.getByRole('button', {name: 'Everyone'})).toBeInTheDocument();
+  });
+
+  it('should render owners without an id', async () => {
+    const rules: ParsedOwnershipRule[] = [
+      {
+        matcher: {pattern: 'src/app/*', type: 'path'},
+        owners: [{type: 'user', name: 'unresolved-user@example.com'}],
+      },
+      {
+        matcher: {pattern: 'src/utils/*', type: 'path'},
+        owners: [
+          {type: 'user', id: user1.id, name: user1.name},
+          {type: 'team', name: 'backend'},
+        ],
+      },
+    ];
+
+    render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
+
+    // Clear the "My Teams" filter to see all rules
+    await userEvent.click(screen.getByRole('button', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+
+    expect(screen.getByText('src/app/*')).toBeInTheDocument();
+    expect(screen.getByText('unresolved-user@example.com')).toBeInTheDocument();
+    expect(screen.getByText('src/utils/*')).toBeInTheDocument();
   });
 
   it('should paginate results', async () => {

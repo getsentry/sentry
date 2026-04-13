@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 
 const defaultProps = {
   height: '200px',
@@ -18,7 +18,7 @@ type State = {
   prevReloading: boolean;
 };
 
-class TransitionChart extends Component<Props, State> {
+export class TransitionChart extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -99,5 +99,3 @@ class TransitionChart extends Component<Props, State> {
     return <Fragment key={String(this.state.key)}>{this.props.children}</Fragment>;
   }
 }
-
-export default TransitionChart;

@@ -41,6 +41,8 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
+    SYNC_REPOS = "sync_repos"
+    SYNC_REPOS_ON_INSTALL_CHANGE = "sync_repos_on_install_change"
 
     # GitHub only
     DERIVE_CODEMAPPINGS = "derive_codemappings"
@@ -54,6 +56,10 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Rate Limiting
     GET_RATE_LIMIT = "get_rate_limit"
+
+    # Repo Trees
+    GET_REPOSITORIES = "get_repositories"
+    GET_REPO_TREE = "get_repo_tree"
 
 
 @dataclass

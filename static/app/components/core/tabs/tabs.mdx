@@ -18,9 +18,7 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/tabs';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/tabs');
 
 `<Tabs>` is a compound component for creating tabbed interfaces. Built on React Aria, it provides full keyboard navigation, accessibility features, and automatic overflow handling out of the box.
 

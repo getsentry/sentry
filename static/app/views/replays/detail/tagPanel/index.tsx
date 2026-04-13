@@ -4,20 +4,19 @@ import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
-import Placeholder from 'sentry/components/placeholder';
-import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
+import {Placeholder} from 'sentry/components/placeholder';
+import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
-import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
-import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
-import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TabItemContainer} from 'sentry/views/replays/detail/tabItemContainer';
+import {TagFilters} from 'sentry/views/replays/detail/tagPanel/tagFilters';
+import {useTagFilters} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-export default function TagPanel() {
+export function TagPanel() {
   const organization = useOrganization();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
@@ -98,5 +97,5 @@ export default function TagPanel() {
 }
 
 const PaddedPlaceholder = styled(Placeholder)`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
 `;

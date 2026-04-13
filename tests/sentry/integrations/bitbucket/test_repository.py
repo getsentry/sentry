@@ -139,7 +139,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             "external_id": REPO["uuid"],
             "url": "https://bitbucket.org/laurynsentry/helloworld",
             "integration_id": integration.id,
-            "config": {"name": full_repo_name, "webhook_id": webhook_id},
+            "config": {"name": full_repo_name},
         }
 
     def test_repository_external_slug(self) -> None:

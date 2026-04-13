@@ -38,7 +38,7 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(BaseQuerySet["Release"]):
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> Self:
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
         by prerelease. We treat an empty (but not null) prerelease as higher than any
@@ -47,6 +47,23 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.annotate(
             prerelease_case=Case(
                 When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def annotate_build_code_column(self) -> Self:
+        """
+        Adds a `build_code_case` column to the queryset which is used to properly sort
+        by build code to match compare_version behavior:
+        - Alphanumeric builds (NULL build_number, non-NULL build_code): case=2 (highest)
+        - Numeric builds (non-NULL build_number): case=1 (middle)
+        - No build metadata (NULL build_number, NULL build_code): case=0 (lowest)
+        """
+        return self.annotate(
+            build_code_case=Case(
+                When(build_number__isnull=True, build_code__isnull=False, then=2),
+                When(build_number__isnull=False, then=1),
+                default=0,
+                output_field=models.IntegerField(),
             )
         )
 

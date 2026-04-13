@@ -1,17 +1,17 @@
 import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -23,14 +23,14 @@ import HttpDurationChartWidget from 'sentry/views/insights/common/components/wid
 import HttpResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget';
 import HttpThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DomainsTable,
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import useHasDashboardsPlatformizedHttp from 'sentry/views/insights/http/utils/useHasDashboardsPlatformizedHttp';
 import {PlatformizedHttpOverview} from 'sentry/views/insights/http/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -155,8 +155,8 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const hasDashboardsPlatformizedHttp = useHasDashboardsPlatformizedHttp();
-  if (hasDashboardsPlatformizedHttp) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedHttpOverview />;
   }
 

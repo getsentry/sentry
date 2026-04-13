@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import internal_region_silo_endpoint
+from sentry.api.base import internal_cell_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.launchpad import PutSize
@@ -39,11 +39,12 @@ def parse_request_with_pydantic(request: Request, model: type[T]) -> T:
         # can be used instead of parse_obj_as
         return parse_obj_as(model, j)
     except pydantic.ValidationError:
-        logger.exception("Could not parse PutSize")
-        raise serializers.ValidationError("Could not parse PutSize")
+        name = getattr(model, "__name__", str(model))
+        logger.exception("Could not parse %s", name)
+        raise serializers.ValidationError(f"Could not parse {name}")
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class ProjectPreprodSizeWithIdentifierEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -63,7 +64,7 @@ class ProjectPreprodSizeWithIdentifierEndpoint(PreprodArtifactEndpoint):
         return do_put(request, project, identifier, head_artifact)
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class ProjectPreprodSizeEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
@@ -37,9 +37,11 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.endpoints.seer_rpc import (
     get_attributes_and_values,
     get_attributes_for_span,
+    get_github_enterprise_integration_config,
     get_organization_project_ids,
     get_organization_slug,
     has_repo_code_mappings,
+    validate_repo,
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.explorer.index_data import (
@@ -52,8 +54,11 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -78,6 +83,8 @@ public_org_seer_method_registry: dict[str, Callable] = {
     # Common to Seer features
     "get_organization_project_ids": map_org_id_param(get_organization_project_ids),
     "get_organization_slug": map_org_id_param(get_organization_slug),
+    "validate_repo": validate_repo,
+    "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     #
     # Bug prediction
     "has_repo_code_mappings": has_repo_code_mappings,
@@ -103,11 +110,14 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "execute_trace_table_query": execute_trace_table_query,
     "execute_issues_query": map_org_id_param(execute_issues_query),
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
+    "get_issue_details": get_issue_details,
+    "get_event_details": get_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "get_replay_metadata": get_replay_metadata,
     "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": map_org_id_param(get_metric_attributes_for_trace),
     "get_issues_stats": map_org_id_param(get_issues_stats),
+    "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
 }
 
@@ -142,7 +152,7 @@ class SeerRpcPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
     Public RPC endpoint for organization members to call read-only seer methods.

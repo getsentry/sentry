@@ -1,6 +1,6 @@
 from sentry.api.serializers import Serializer, register
 from sentry.sentry_apps.models.servicehook import ServiceHookProject
-from sentry.sentry_apps.services.region.model import RpcServiceHookProject
+from sentry.sentry_apps.services.cell.model import RpcServiceHookProject
 
 
 @register(ServiceHookProject)

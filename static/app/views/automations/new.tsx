@@ -5,13 +5,14 @@ import * as Sentry from '@sentry/react';
 import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
@@ -20,14 +21,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import AutomationForm from 'sentry/views/automations/components/automationForm';
+import {AutomationForm} from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
   getNewAutomationData,
@@ -70,7 +71,7 @@ function AutomationBreadcrumbs() {
 const initialData = {
   name: '',
   environment: null,
-  frequency: 1440,
+  frequency: 0,
   enabled: true,
   projectIds: [],
 };
@@ -137,7 +138,7 @@ export default function AutomationNewSettings() {
       const formData = await resolveDetectorIdsForProjects({
         formData: data as AutomationFormData,
         onSubmitError,
-        orgSlug: organization.slug,
+        organization,
         projectIds: data.projectIds,
         queryClient,
       });
@@ -153,6 +154,7 @@ export default function AutomationNewSettings() {
       try {
         const automation = await createAutomation(newAutomationData);
         onSubmitSuccess(formModel.getData());
+        addSuccessMessage(t('Alert created'));
         trackAnalytics('automation.created', {
           organization,
           ...analyticsPayload,
@@ -193,7 +195,7 @@ export default function AutomationNewSettings() {
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
-        <Layout.Page>
+        <Stack flex={1}>
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
@@ -229,12 +231,12 @@ export default function AutomationNewSettings() {
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
           </StyledBody>
-        </Layout.Page>
+        </Stack>
         <StickyFooter>
           <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
             <Observer>
               {() => (
-                <Button priority="primary" type="submit" disabled={model.isSaving}>
+                <Button priority="primary" type="submit" busy={model.isSaving}>
                   {t('Create Alert')}
                 </Button>
               )}

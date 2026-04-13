@@ -1,10 +1,11 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -34,13 +35,18 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
   'gen_ai.request.messages'?: string;
+  'gen_ai.request.model'?: string;
+  'gen_ai.response.model'?: string;
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
+  'gen_ai.tool.call.arguments'?: string;
+  'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.total_tokens'?: number;
   'span.name'?: string;
@@ -106,7 +112,12 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
+      [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
+      [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
+      'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
+      'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
@@ -164,6 +175,8 @@ function createNodeFromApiSpan(
   return node as unknown as AITraceSpanNode;
 }
 
+const MAX_PAGES = 10;
+
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
@@ -185,35 +198,53 @@ export function useConversation(
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
+  // When conversation timestamps are provided (e.g. from a shared link),
+  // search across all projects and environments so the conversation is found
+  // regardless of which project/environment the page filter is currently set to.
   const queryParams = hasConversationTimestamps
     ? {
-        project: selection.projects,
-        environment: selection.environments,
+        project: [ALL_ACCESS_PROJECTS],
         start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
         end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+        per_page: 1000,
       }
     : {
         project: selection.projects,
         environment: selection.environments,
         ...normalizeDateTimeParams(selection.datetime),
+        per_page: 1000,
       };
 
-  const conversationQuery = useApiQuery<ConversationApiSpan[]>(
-    [queryUrl, {query: queryParams}],
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: !!conversation.conversationId,
+  const conversationQuery = useInfiniteApiQuery<ConversationApiSpan[]>({
+    queryKey: [{infinite: true, version: 'v1'}, queryUrl, {query: queryParams}],
+    staleTime: Infinity,
+    enabled: !!conversation.conversationId,
+  });
+
+  const currentNumberPages = conversationQuery.data?.pages.length ?? 0;
+
+  useEffect(() => {
+    if (
+      !conversationQuery.isFetching &&
+      conversationQuery.hasNextPage &&
+      currentNumberPages < MAX_PAGES
+    ) {
+      conversationQuery.fetchNextPage();
     }
+  }, [conversationQuery, currentNumberPages]);
+
+  const allSpans = useMemo(
+    () => conversationQuery.data?.pages.flatMap(([pageData]) => pageData) ?? [],
+    [conversationQuery.data]
   );
 
   const {nodes, nodeTraceMap} = useMemo(() => {
-    if (!conversationQuery.data) {
+    if (allSpans.length === 0) {
       return {nodes: [], nodeTraceMap: new Map<string, string>()};
     }
 
     const traceMap = new Map<string, string>();
-    const genAiSpans = conversationQuery.data.filter(isGenAiSpan);
+    const genAiSpans = allSpans.filter(isGenAiSpan);
     const nodeMap = new Map<string, AITraceSpanNode>();
 
     const transformedNodes = genAiSpans.map(apiSpan => {
@@ -226,7 +257,7 @@ export function useConversation(
     transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
-  }, [conversationQuery.data]);
+  }, [allSpans]);
 
   if (!conversation.conversationId) {
     return {nodes: [], nodeTraceMap: new Map(), isLoading: false, error: false};
@@ -235,7 +266,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: conversationQuery.isLoading,
+    isLoading: conversationQuery.isLoading || conversationQuery.isFetchingNextPage,
     error: conversationQuery.isError,
   };
 }

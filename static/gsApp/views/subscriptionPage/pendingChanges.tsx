@@ -25,7 +25,7 @@ import {
   getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,
@@ -39,7 +39,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function PendingChanges({organization, subscription}: Props) {
+export function PendingChanges({organization, subscription}: Props) {
   const {pendingChanges} = subscription;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -55,8 +55,11 @@ function PendingChanges({organization, subscription}: Props) {
     return pendingChange !== null && pendingChange !== currentValue;
   };
 
-  const getNestedValue = <T,>(object: Record<string, any>, keys: string): T | null => {
-    return keys.split('.').reduce((acc, key) => acc?.[key] ?? null, object) as T | null;
+  const getNestedValue = (
+    object: Record<string, any>,
+    keys: string
+  ): Record<string, any> | null => {
+    return keys.split('.').reduce((acc, key) => acc?.[key] ?? null, object);
   };
 
   const getOnDemandChanges = () => {
@@ -66,10 +69,10 @@ function PendingChanges({organization, subscription}: Props) {
       hasOnDemandBudgetsFeature(organization, subscription) ||
       (pendingChanges.onDemandBudgets && subscription.partner?.isActive)
     ) {
-      const nextOnDemandBudgets = getNestedValue<PendingOnDemandBudgets>(
+      const nextOnDemandBudgets = getNestedValue(
         pendingChanges,
         'onDemandBudgets'
-      );
+      ) as PendingOnDemandBudgets;
       if (nextOnDemandBudgets) {
         const pendingOnDemandBudgets = parseOnDemandBudgets(nextOnDemandBudgets);
         const currentOnDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
@@ -99,9 +102,12 @@ function PendingChanges({organization, subscription}: Props) {
       }
     } else if (hasChange('onDemandMaxSpend')) {
       const nextOnDemandMaxSpend =
-        getNestedValue<number>(pendingChanges, 'onDemandMaxSpend') ?? 0;
+        (getNestedValue(pendingChanges, 'onDemandMaxSpend') as unknown as
+          | number
+          | null) ?? 0;
       const currentOnDemandMaxSpend =
-        getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
+        (getNestedValue(subscription, 'onDemandMaxSpend') as unknown as number | null) ??
+        0;
       results.push(
         tct('[budgetType] spend change from [currentAmount] to [newAmount]', {
           budgetType: displayBudgetName(subscription.planDetails, {title: true}),
@@ -173,14 +179,19 @@ function PendingChanges({organization, subscription}: Props) {
           pendingReserved !== RESERVED_BUDGET_QUOTA &&
           pendingReserved !== 0
         ) {
+          const formattedQuantity = formatReservedWithUnits(
+            pendingReserved ?? null,
+            category
+          );
+          const displayName = getPlanCategoryName({
+            plan: pendingChanges.planDetails,
+            category,
+            capitalize: false,
+          });
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
-              displayName: getPlanCategoryName({
-                plan: pendingChanges.planDetails,
-                category,
-                capitalize: false,
-              }),
-              quantity: formatReservedWithUnits(pendingReserved ?? null, category),
+              displayName,
+              quantity: formattedQuantity,
             })
           );
         }
@@ -461,5 +472,3 @@ const StyledAlert = styled(Alert)`
     padding: 0;
   }
 `;
-
-export default PendingChanges;

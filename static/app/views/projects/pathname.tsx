@@ -1,7 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-
-const PROJECTS_BASE_PATHNAME = 'insights/projects';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 export function makeProjectsPathname({
   path,
@@ -10,7 +8,8 @@ export function makeProjectsPathname({
   organization: Organization;
   path: '/' | `/${string}/`;
 }) {
-  return normalizeUrl(
-    `/organizations/${organization.slug}/${PROJECTS_BASE_PATHNAME}${path}`
-  );
+  const base = organization.features.includes('workflow-engine-ui')
+    ? 'projects'
+    : 'insights/projects';
+  return normalizeUrl(`/organizations/${organization.slug}/${base}${path}`);
 }

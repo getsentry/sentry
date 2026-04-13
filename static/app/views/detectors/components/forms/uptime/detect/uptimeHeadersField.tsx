@@ -6,17 +6,16 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import {FormField} from 'sentry/components/forms/formField';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 /**
  * Matches characters that are not valid in a header name.
  */
-const INVALID_NAME_HEADER_REGEX = new RegExp(/[^a-zA-Z0-9_-]+/g);
+const INVALID_NAME_HEADER_REGEX = new RegExp(/[^\w-]+/g);
 
 type HeaderEntry = [id: string, name: string, value: string];
 
@@ -150,7 +149,7 @@ export function UptimeHeadersField(props: Omit<FormFieldProps, 'children'>) {
 const HeaderItems = styled('fieldset')`
   display: grid;
   grid-template-columns: minmax(200px, 1fr) 2fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
 `;
 

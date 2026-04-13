@@ -9,16 +9,16 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {Group} from 'sentry/types/group';
-import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
-import ExternalIssuesList from '.';
+import {ExternalIssueList} from '.';
 
 jest.mock('sentry/utils/useSentryAppComponentsStore');
 const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
 
-describe('ExternalIssuesList', () => {
+describe('ExternalIssueList', () => {
   const event = EventFixture();
   const group = GroupFixture();
   const project = ProjectFixture();
@@ -45,7 +45,7 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
-    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+    render(<ExternalIssueList group={group} project={project} event={event} />, {
       organization,
     });
     expect(screen.getByTestId('issue-tracking-loading')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('ExternalIssuesList', () => {
       }),
     ]);
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+    render(<ExternalIssueList group={group} project={project} event={event} />, {
       organization,
     });
     expect(await screen.findByRole('button', {name: 'Foo'})).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('ExternalIssuesList', () => {
     });
     const component = SentryAppComponentFixture();
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+    render(<ExternalIssueList group={group} project={project} event={event} />, {
       organization,
     });
     expect(
@@ -154,11 +154,7 @@ describe('ExternalIssuesList', () => {
     };
 
     render(
-      <ExternalIssuesList
-        group={groupWithPluginIssues}
-        project={project}
-        event={event}
-      />,
+      <ExternalIssueList group={groupWithPluginIssues} project={project} event={event} />,
       {organization}
     );
 

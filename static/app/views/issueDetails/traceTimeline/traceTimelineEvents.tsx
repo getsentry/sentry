@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {TraceTimelineTooltip} from 'sentry/views/issueDetails/traceTimeline/traceTimelineTooltip';
 
@@ -118,7 +117,7 @@ const TimestampColumns = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
@@ -185,7 +184,7 @@ function NodeGroup({
         <Tooltip
           title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
           overlayStyle={{
-            padding: `0 !important`,
+            padding: '0 !important',
           }}
           position="bottom"
           isHoverable

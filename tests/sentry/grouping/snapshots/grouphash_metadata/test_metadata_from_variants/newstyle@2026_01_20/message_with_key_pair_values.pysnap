@@ -20,10 +20,10 @@ metrics with tags: {
 ---
 contributing variants:
   default*
-    hash: "d2ab1028e9cb44352a824e878951f412"
+    hash: "96165d7350648408b585a16cdec87b5c"
     contributing component: message
     hint: None
     root_component:
       default*
         message* (stripped event-specific values)
-          "Error key1=<quoted_str> key2=<int> key3=<bool> key4=<date> key5=<quoted_str> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."
+          "Error key1=<quoted_str> key2=<hex> key3=<bool> key4=<date> key5=<quoted_str> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."

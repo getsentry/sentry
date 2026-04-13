@@ -9,19 +9,17 @@ import {Link} from '@sentry/scraps/link';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import GenericFooter from './genericFooter';
+import {GenericFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
   isLast: boolean;
@@ -30,7 +28,7 @@ interface FirstEventFooterProps {
   project: Project;
 }
 
-export default function FirstEventFooter({
+export function FirstEventFooter({
   organization,
   project,
   onClickSetupLater,
@@ -40,7 +38,7 @@ export default function FirstEventFooter({
 
   const {data: issues} = useApiQuery<Group[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
@@ -123,10 +121,10 @@ export default function FirstEventFooter({
           animate: {
             opacity: 1,
             y: 0,
-            transition: testableTransition({
+            transition: {
               when: 'beforeChildren',
               staggerChildren: 0.35,
-            }),
+            },
           },
           exit: {opacity: 0, y: 10},
         }}
@@ -134,16 +132,9 @@ export default function FirstEventFooter({
         {project?.firstEvent ? (
           <IconCheckmark variant="success" />
         ) : (
-          <WaitingIndicator
-            variants={indicatorAnimation}
-            transition={testableTransition()}
-          />
+          <WaitingIndicator variants={indicatorAnimation} />
         )}
-        <AnimatedText
-          errorReceived={!!project?.firstEvent}
-          variants={indicatorAnimation}
-          transition={testableTransition()}
-        >
+        <AnimatedText errorReceived={!!project?.firstEvent} variants={indicatorAnimation}>
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
@@ -158,7 +149,7 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="xl" {...props} />
 ))`
-  margin: ${space(2)} ${space(4)};
+  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   justify-self: end;
   margin-left: auto;
 `;
@@ -166,7 +157,7 @@ const OnboardingButtonBar = styled((props: GridProps) => (
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   color: ${p =>
     p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
@@ -194,7 +185,7 @@ const StatusWrapper = styled(motion.div)`
 `;
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space['3xl']};
   white-space: nowrap;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;

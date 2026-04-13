@@ -8,8 +8,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ApiSource from 'sentry/components/search/sources/apiSource';
-import ConfigStore from 'sentry/stores/configStore';
+import {ApiSource} from 'sentry/components/search/sources/apiSource';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {Result} from './types';
 

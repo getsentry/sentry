@@ -32,7 +32,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -132,7 +135,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
+class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -148,7 +151,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     def get_client(self) -> VstsApiClient:
         base_url = self.instance
-        if SiloMode.get_current_mode() != SiloMode.REGION:
+        if SiloMode.get_current_mode() != SiloMode.CELL:
             self._check_domain_name(self.default_identity)
 
         if self.org_integration is None:
@@ -308,18 +311,27 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     # RepositoryIntegration methods
 
     def get_repositories(
-        self, query: str | None = None, page_number_limit: int | None = None
-    ) -> list[dict[str, Any]]:
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
+        use_cache: bool = False,
+    ) -> list[RepositoryInfo]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
-        data = []
+        data: list[RepositoryInfo] = []
         for repo in repos["value"]:
             data.append(
                 {
                     "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
-                    "identifier": repo["id"],
+                    "repo_name": repo["name"],
+                    "identifier": str(repo["id"]),
+                    "external_id": self.get_repo_external_id(repo),
+                    "url": repo["_links"]["web"]["href"],
+                    "instance": self.instance,
+                    "project": repo["project"]["name"],
                 }
             )
         return data
@@ -451,23 +463,12 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
 
     def get_scopes(self) -> Sequence[str]:
-        # TODO(ecosystem): Delete this after Azure DevOps migration is complete
         assert self.pipeline.organization is not None
-        if features.has(
-            "organizations:migrate-azure-devops-integration", self.pipeline.organization
-        ):
-            logger.info(
-                "vsts.get_scopes.new_scopes",
-                extra={"organization_id": self.pipeline.organization.id},
-            )
-            # This is the new way we need to pass scopes to the OAuth flow
-            # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
-            return VstsIntegrationProvider.NEW_SCOPES
         logger.info(
-            "vsts.get_scopes.old_scopes",
+            "vsts.get_scopes.new_scopes",
             extra={"organization_id": self.pipeline.organization.id},
         )
-        return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
+        return VstsIntegrationProvider.NEW_SCOPES
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         identity_pipeline_config = {
@@ -524,13 +525,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "integration_migration_version", 0
             )
 
-            if (
-                features.has(
-                    "organizations:migrate-azure-devops-integration", self.pipeline.organization
-                )
-                and integration_migration_version
-                < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
-            ):
+            if integration_migration_version < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION:
                 subscription_id, subscription_secret = self.create_subscription(
                     base_url=base_url, oauth_data=oauth_data
                 )
@@ -596,16 +591,12 @@ class VstsIntegrationProvider(IntegrationProvider):
                 "secret": subscription_secret,
             }
 
-        # Ensure integration_migration_version is set if the feature flag is active.
-        # This guarantees that if the new scopes are in use (due to the flag),
-        # the metadata correctly reflects the current migration version, even if
-        # the integration was already considered "up-to-date" based on DB records.
-        if features.has(
-            "organizations:migrate-azure-devops-integration", self.pipeline.organization
-        ):
-            integration["metadata"]["integration_migration_version"] = (
-                VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
-            )
+        # Ensure integration_migration_version is always set.
+        # This guarantees that the metadata correctly reflects the current migration version,
+        # even if the integration was already considered "up-to-date" based on DB records.
+        integration["metadata"]["integration_migration_version"] = (
+            VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+        )
 
         return integration
 

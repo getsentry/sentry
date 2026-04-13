@@ -77,7 +77,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             yield
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_adds_contexts_without_device(self) -> None:
         data = {
             "timestamp": self.min_ago,
@@ -106,7 +105,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert contexts.get("device") is None
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_adds_contexts_with_device(self) -> None:
         data = {
             "timestamp": self.min_ago,
@@ -159,7 +157,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         }
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_adds_contexts_with_ps4_device(self) -> None:
         data = {
             "timestamp": self.min_ago,
@@ -189,7 +186,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         }
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_error_message_translations(self) -> None:
         data = {
             "timestamp": self.min_ago,
@@ -227,7 +223,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         )
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_nonhandled_frames_inapp_normalization(self) -> None:
         data = {
             "timestamp": self.min_ago,
@@ -297,7 +292,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             )
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_sourcemap_source_expansion(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -399,7 +393,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame_list[2] == frame_list[2]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_sourcemap_webpack(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -503,7 +496,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @pytest.mark.skip(reason="flaky: #94543")
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_sourcemap_embedded_source_expansion(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -590,7 +582,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.post_context == ["}"]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_sourcemap_nofiles_source_expansion(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -664,7 +655,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.post_context == ["}"]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_indexed_sourcemap_source_expansion(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -779,7 +769,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame.lineno == 2
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_via_debug(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -928,7 +917,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_via_distribution_release_artifacts(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -1193,17 +1181,14 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_via_release_archive(self) -> None:
         self._test_expansion_via_release_archive(link_sourcemaps=True)
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_via_release_archive_no_sourcemap_link(self) -> None:
         self._test_expansion_via_release_archive(link_sourcemaps=False)
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_node_processing(self) -> None:
         project = self.project
         release = Release.objects.create(
@@ -1462,7 +1447,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert "errors" not in event.data
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_debug_id(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -1642,7 +1626,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.post_context == ["}"]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self) -> None:
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
@@ -1796,7 +1779,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_debug_id_and_malformed_sourcemap(self) -> None:
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
@@ -1934,7 +1916,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         }
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_debug_id_not_found(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -2054,7 +2035,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.post_context == ["}"]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_release_dist_pair_x(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -2213,7 +2193,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.post_context == ["}"]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -2354,7 +2333,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_expansion_with_release_and_malformed_sourcemap(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -2494,7 +2472,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         }
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_symbolicated_in_app_after_symbolication(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -2538,7 +2515,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert event.data["symbolicated_in_app"] is True
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_symbolicated_in_app_false_with_unsymbolicated_frame(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -2598,7 +2574,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert event.data["symbolicated_in_app"] is False
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_symbolicated_in_app_none_with_no_in_app_frames(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(

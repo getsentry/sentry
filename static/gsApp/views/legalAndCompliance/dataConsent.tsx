@@ -11,7 +11,7 @@ const StyledExternalLink = styled(ExternalLink)`
   white-space: nowrap;
 `;
 
-const formGroups: JsonFormObject[] = [
+export const formGroups: JsonFormObject[] = [
   {
     title: t('Service Data Usage'),
     fields: [
@@ -44,5 +44,3 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
-
-export default formGroups;

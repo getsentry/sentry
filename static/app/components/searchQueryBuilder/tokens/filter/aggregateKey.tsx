@@ -18,7 +18,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type AggregateKeyProps = {
   filterRef: React.RefObject<HTMLDivElement | null>;
@@ -134,7 +133,7 @@ export function AggregateKey({
 }
 
 const KeyButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -160,7 +159,7 @@ const Parameters = styled('span')`
 `;
 
 const KeyEditing = styled('div')`
-  padding: 0 ${space(0.25)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   max-width: 100%;
   display: flex;
   align-items: center;

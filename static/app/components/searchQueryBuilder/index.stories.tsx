@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
@@ -393,7 +393,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       },
     };
 
-    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+    const getAggregateFieldDefinition: FieldDefinitionGetter = key => {
       switch (key) {
         case 'apdex':
           return {
@@ -771,7 +771,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The suggestions will be the values for the provided keys. The following example,
           will show suggestions for the <code>id</code> key when the user types a value
-          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+          that matches the regex pattern <code>{'/^[0-9]{3}$/'}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -779,7 +779,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
-          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+          matchKeySuggestions={[{key: 'id', valuePattern: /^\d{3}$/}]}
         />
         <p>
           You can also pass multiple values in the prop to show suggestions for multiple
@@ -792,8 +792,8 @@ export default Storybook.story('SearchQueryBuilder', story => {
           getTagValues={getTagValues}
           searchSource="storybook"
           matchKeySuggestions={[
-            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
-            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-1.id', valuePattern: /^\d{3}$/},
+            {key: 'test-2.id', valuePattern: /^\d{3}$/},
           ]}
         />
       </Fragment>
@@ -811,7 +811,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The raw search will be replaced with option(s) in the dropdown. The options will
           be the values for the provided keys. The following example shows the prop set as{' '}
-          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""
@@ -823,7 +823,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         />
         <p>
           You can also pass multiple values in the prop to replace multiple keys.{' '}
-          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+          <code>{"replaceRawSearchKeys={['span.op', 'span.description']}"}</code>.
         </p>
         <SearchQueryBuilder
           initialQuery=""

@@ -10,7 +10,7 @@ type Props = {
   status: ImageStatus;
 };
 
-function Status({status}: Props) {
+export function Status({status}: Props) {
   switch (status) {
     case ImageStatus.OTHER:
     case ImageStatus.FETCHING_FAILED:
@@ -39,8 +39,6 @@ function Status({status}: Props) {
     }
   }
 }
-
-export default Status;
 
 const StyledTag = styled(Tag)`
   max-width: 100%;

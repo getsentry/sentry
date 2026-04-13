@@ -35,7 +35,12 @@ def invalidate_grouphash_cache_on_save(instance: GroupHash, **kwargs: Any) -> No
         return
 
     cache_key = get_grouphash_object_cache_key(instance.hash, instance.project.id)
-    cache.delete(cache_key)
+    try:
+        cache.delete(cache_key)
+    except Exception:
+        # If we can't delete from the cache, likely we couldn't have put the grouphash there in the
+        # first place. Regardless, we don't want this to block the `save` call.
+        pass
 
 
 def invalidate_grouphash_caches_on_delete(instance: GroupHash, **kwargs: Any) -> None:
@@ -50,4 +55,9 @@ def invalidate_grouphash_caches_on_delete(instance: GroupHash, **kwargs: Any) ->
     object_cache_key = get_grouphash_object_cache_key(instance.hash, instance.project.id)
     existence_cache_key = get_grouphash_existence_cache_key(instance.hash, instance.project.id)
 
-    cache.delete_many([object_cache_key, existence_cache_key])
+    try:
+        cache.delete_many([object_cache_key, existence_cache_key])
+    except Exception:
+        # If we can't delete from the cache, likely we couldn't have put data there in the first
+        # place. Regardless, we don't want this to block the `delete` call.
+        pass

@@ -2,11 +2,12 @@ import {useCallback, useMemo} from 'react';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -42,6 +43,7 @@ type ReadableQuery = {
   // - `aggregateField` which contains a list of group bys and visualizes merged together
   // - `groupby` and `visualize` which contains the group bys and visualizes separately
   aggregateField?: Array<RawGroupBy | RawVisualize>;
+  aggregateOrderby?: string;
   caseInsensitive?: CaseInsensitive;
 
   groupby?: string[];
@@ -58,6 +60,7 @@ class SavedQueryQuery {
   query: string;
   caseInsensitive?: CaseInsensitive;
   aggregateField: Array<RawGroupBy | RawVisualize>;
+  aggregateOrderby?: string;
   groupby: string[];
   visualize: RawVisualize[];
 
@@ -70,6 +73,7 @@ class SavedQueryQuery {
     this.orderby = query.orderby;
     this.query = query.query;
     this.caseInsensitive = query.caseInsensitive;
+    this.aggregateOrderby = query.aggregateOrderby;
     // for compatibility, we ensure that aggregate fields, group bys and visualizes are all populated
     // we ensure that group bys + visualizes = aggregate fields
     this.groupby =
@@ -169,6 +173,22 @@ export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['datas
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
 
+export const MAX_STARRED_SAVED_QUERIES_IN_NAV = 20;
+
+export function getStarredSavedQueriesQueryKey(organization: Organization): ApiQueryKey {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    {
+      query: {
+        per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+        starred: 1,
+      },
+    },
+  ];
+}
+
 type Props = {
   cursor?: string;
   exclude?: 'owned' | 'shared';
@@ -211,7 +231,13 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  const savedQueries = useMemo(() => data?.map(q => new SavedQuery(q)), [data]);
+  const savedQueries = useMemo(
+    () =>
+      data
+        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+        .map(q => new SavedQuery(q)),
+    [data]
+  );
   return {data: savedQueries, isLoading, pageLinks, ...rest};
 }
 
@@ -243,7 +269,14 @@ export function useGetSavedQuery(id?: string) {
       enabled: defined(id),
     }
   );
-  const savedQuery = useMemo(() => (defined(data) ? new SavedQuery(data) : data), [data]);
+  const savedQuery = useMemo(() => {
+    if (!defined(data)) {
+      return undefined;
+    }
+    return Array.isArray(data.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : undefined;
+  }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
 

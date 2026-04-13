@@ -10,7 +10,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
+import {StreamlinedGroupHeader} from 'sentry/views/issueDetails/streamline/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 jest.mock('sentry/utils/useFeedbackForm', () => ({
@@ -53,7 +53,7 @@ describe('StreamlinedGroupHeader', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/repos/`,
+        url: '/organizations/org-slug/repos/',
         body: {},
       });
       MockApiClient.addMockResponse({

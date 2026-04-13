@@ -1,21 +1,23 @@
 import {lazy, useEffect, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import getStacktraceBody from 'sentry/utils/getStacktraceBody';
+import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SplitDiffLazy = lazy(() => import('../splitDiff'));
+const STACKTRACE_SECTION_SEPARATOR = '\n\n';
+const SKELETON_ROW_COUNT = 8;
 
 interface IssueDiffProps {
   baseIssueId: string;
@@ -24,6 +26,32 @@ interface IssueDiffProps {
   hasSimilarityEmbeddingsProjectFeature?: boolean;
   shouldBeGrouped?: string;
   targetEventId?: string;
+}
+
+function getCombinedStacktrace({
+  event,
+  hasSimilarityEmbeddingsFeature,
+  newestFirst,
+}: {
+  event: Event | undefined;
+  hasSimilarityEmbeddingsFeature: boolean;
+  newestFirst: boolean;
+}): string {
+  if (!event) {
+    return '';
+  }
+
+  const stacktrace = getStacktraceBody({
+    event,
+    hasSimilarityEmbeddingsFeature,
+    includeLocation: false,
+    rawTrace: false,
+    newestFirst,
+    includeJSContext: true,
+  });
+
+  const orderedStacktrace = newestFirst ? stacktrace.toReversed() : stacktrace;
+  return orderedStacktrace.join(STACKTRACE_SECTION_SEPARATOR);
 }
 
 export function IssueDiff({
@@ -108,34 +136,26 @@ export function IssueDiff({
     enabled: Boolean(resolvedTargetEventId),
   });
 
-  const baseStacktrace = useMemo(() => {
-    if (!baseEventQuery.data) {
-      return [];
-    }
-    return getStacktraceBody({
-      event: baseEventQuery.data,
+  const {combinedBase, combinedTarget} = useMemo(
+    () => ({
+      combinedBase: getCombinedStacktrace({
+        event: baseEventQuery.data,
+        hasSimilarityEmbeddingsFeature,
+        newestFirst,
+      }),
+      combinedTarget: getCombinedStacktrace({
+        event: targetEventQuery.data,
+        hasSimilarityEmbeddingsFeature,
+        newestFirst,
+      }),
+    }),
+    [
+      baseEventQuery.data,
+      targetEventQuery.data,
       hasSimilarityEmbeddingsFeature,
-      includeLocation: false,
-      rawTrace: false,
       newestFirst,
-      includeJSContext: true,
-    });
-  }, [baseEventQuery.data, hasSimilarityEmbeddingsFeature, newestFirst]);
-
-  const targetStacktrace = useMemo(() => {
-    if (!targetEventQuery.data) {
-      return [];
-    }
-
-    return getStacktraceBody({
-      event: targetEventQuery.data,
-      hasSimilarityEmbeddingsFeature,
-      includeLocation: false,
-      rawTrace: false,
-      newestFirst,
-      includeJSContext: true,
-    });
-  }, [targetEventQuery.data, hasSimilarityEmbeddingsFeature, newestFirst]);
+    ]
+  );
 
   useEffect(() => {
     if (
@@ -164,61 +184,63 @@ export function IssueDiff({
     targetEventQuery.data,
   ]);
 
-  const baseArray = useMemo(() => {
-    return newestFirst ? baseStacktrace.toReversed() : baseStacktrace;
-  }, [baseStacktrace, newestFirst]);
-
-  const targetArray = useMemo(() => {
-    return newestFirst ? targetStacktrace.toReversed() : targetStacktrace;
-  }, [newestFirst, targetStacktrace]);
-
   const hasError =
     baseLatestQuery.isError ||
     targetLatestQuery.isError ||
     baseEventQuery.isError ||
     targetEventQuery.isError;
 
-  const loading = baseEventQuery.isPending || targetEventQuery.isPending;
+  const isLoading = baseEventQuery.isPending || targetEventQuery.isPending;
 
   if (hasError) {
     return (
-      <StyledIssueDiff isLoading={false}>
+      <Flex background="secondary" overflow="auto" padding="md" direction="column">
         <LoadingError message={t('Error loading events')} />
-      </StyledIssueDiff>
+      </Flex>
     );
   }
 
+  if (isLoading) {
+    return <IssueDiffLoadingState />;
+  }
+
   return (
-    <StyledIssueDiff isLoading={loading}>
-      {loading ? (
-        <LoadingIndicator />
-      ) : (
-        baseArray.map((value: string, index: number) => (
-          <LazyLoad
-            key={index}
-            LazyComponent={SplitDiffLazy}
-            base={value}
-            target={targetArray[index] ?? ''}
-            type="lines"
-          />
-        ))
-      )}
-    </StyledIssueDiff>
+    <Flex background="secondary" overflow="auto" padding="md" direction="column">
+      <LazyLoad
+        LazyComponent={SplitDiffLazy}
+        base={combinedBase}
+        target={combinedTarget}
+        type="lines"
+        loadingFallback={<IssueDiffLoadingSkeletonRows />}
+      />
+    </Flex>
   );
 }
 
-const StyledIssueDiff = styled('div')<{isLoading: boolean}>`
-  background-color: ${p => p.theme.tokens.background.secondary};
-  overflow: auto;
-  padding: ${p => p.theme.space.md};
-  display: flex;
-  flex-direction: column;
+function IssueDiffLoadingState() {
+  return (
+    <Flex
+      background="primary"
+      overflow="auto"
+      padding="md"
+      direction="column"
+      data-test-id="issue-diff-loading-skeleton"
+    >
+      <IssueDiffLoadingSkeletonRows />
+    </Flex>
+  );
+}
 
-  ${p =>
-    p.isLoading &&
-    css`
-      background-color: ${p.theme.tokens.background.primary};
-      justify-content: center;
-      align-items: center;
-    `};
-`;
+function IssueDiffLoadingSkeletonRows() {
+  return (
+    <Flex direction="column" gap="sm">
+      {Array.from({length: SKELETON_ROW_COUNT}).map((_, index) => (
+        <Flex key={index} align="center">
+          <Placeholder height="18px" style={{flex: 1}} />
+          <Flex width="20px" flexShrink={0} />
+          <Placeholder height="18px" style={{flex: 1}} />
+        </Flex>
+      ))}
+    </Flex>
+  );
+}

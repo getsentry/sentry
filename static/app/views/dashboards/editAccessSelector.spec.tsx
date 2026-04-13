@@ -5,9 +5,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
-import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 
 function renderTestComponent(
   mockDashboard = DashboardFixture([], {
@@ -229,7 +229,7 @@ describe('When EditAccessSelector is rendered with Teams', () => {
     const org = OrganizationFixture();
     OrganizationStore.onUpdate(org, {replace: true});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       method: 'GET',
       body: teams,
     });

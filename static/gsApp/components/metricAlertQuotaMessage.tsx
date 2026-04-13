@@ -4,7 +4,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -67,10 +67,7 @@ export function MetricAlertQuotaMessage() {
     );
   }
 
-  if (
-    metricAlertQuota &&
-    metricAlertQuota.detectorLimit === metricAlertQuota.detectorCount + 1
-  ) {
+  if (metricAlertQuota?.detectorLimit === metricAlertQuota.detectorCount + 1) {
     return tct(
       'You have used [count] of [limit] metric monitors for your plan. To increase the limit, [upgradeLink:upgrade your plan].',
       {

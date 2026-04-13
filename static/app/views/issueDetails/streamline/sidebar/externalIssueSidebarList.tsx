@@ -1,7 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -18,7 +18,7 @@ interface Props {
 export function ExternalIssueSidebarList({event, group, project}: Props) {
   return (
     <SidebarFoldSection
-      data-test-id="linked-issues"
+      dataTestId="linked-issues"
       title={
         <Heading as="h3" size="md">
           {t('Issue Tracking')}
@@ -27,7 +27,7 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
       <Flex direction="column" gap="md">
-        <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        <ExternalIssueList group={group} event={event} project={project} />
       </Flex>
     </SidebarFoldSection>
   );

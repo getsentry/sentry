@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
@@ -38,11 +38,19 @@ from sentry.seer.autofix.autofix_agent import (
     get_autofix_explorer_state,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
+    trigger_push_changes,
 )
-from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
+from sentry.seer.autofix.coding_agent import (
+    poll_claude_code_agents,
+    poll_github_copilot_agents,
+)
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    CodingAgentProviderType,
+    get_autofix_state,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -80,6 +88,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "root_cause",
             "solution",
             "code_changes",
+            "open_pr",
             "impact_assessment",
             "triage",
             "coding_agent_handoff",
@@ -110,6 +119,20 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         default="low",
         help_text="The intelligence level to use.",
     )
+    user_context = serializers.CharField(
+        required=False,
+        max_length=1000,
+        help_text="Optional user context to append to the step prompt.",
+        allow_blank=True,
+    )
+    repo_name = serializers.CharField(
+        required=False,
+        help_text="Optional repository name for which to create the pull request. Do not pass a repository name to create pull requests in all relevant repositories.",
+    )
+    insert_index = serializers.IntegerField(
+        required=False,
+        help_text="Block index to insert at. When provided, truncates blocks after this point for retry-from-step.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -119,7 +142,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class GroupAutofixEndpoint(GroupAiEndpoint):
     publish_status = {
@@ -148,10 +171,28 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if request.GET.get("mode") != "explorer":
             return False
 
-        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+        feature_names = [
+            # Access to seer explorer
+            "organizations:seer-explorer",
+            # Access to seer explorer powered autofix
+            "organizations:autofix-on-explorer",
+        ]
+
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+
+        if batch_features is None:
             return False
 
-        return True
+        org_features = batch_features.get(f"organization:{organization.id}", {})
+        for feature_name in feature_names:
+            if bool(org_features.get(feature_name)):
+                return True
+
+        return False
 
     @extend_schema(
         operation_id="Start Seer Issue Fix",
@@ -191,15 +232,15 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """Handle POST for Explorer-based autofix."""
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
+        run_id = data.get("run_id")
 
         # Handle third-party coding agent handoff separately
         if step == "coding_agent_handoff":
-            run_id = data.get("run_id")
             integration_id = data.get("integration_id")
             provider = data.get("provider")
             if not run_id or (not integration_id and not provider):
@@ -207,33 +248,54 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {
                         "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             if integration_id and provider:
                 return Response(
                     {"detail": "Cannot specify both integration_id and provider"},
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             result = trigger_coding_agent_handoff(
                 group=group,
                 run_id=run_id,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 integration_id=integration_id,
                 provider=provider,
                 user_id=request.user.id if request.user else None,
             )
-            return Response(result, status=202)
+            return Response(result, status=status.HTTP_202_ACCEPTED)
+
+        if step == "open_pr":
+            if not run_id:
+                return Response(
+                    {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            repo_name = data.get("repo_name")
+            try:
+                trigger_push_changes(
+                    group,
+                    run_id,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    repo_name=repo_name,
+                )
+            except SeerPermissionError:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
 
         # Handle all built-in Seer steps
         try:
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep(step),
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
-                run_id=data.get("run_id"),
+                run_id=run_id,
                 intelligence_level=data["intelligence_level"],
+                user_context=data.get("user_context"),
+                insert_index=data.get("insert_index"),
             )
-            return Response({"run_id": run_id}, status=202)
+            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 
@@ -241,7 +303,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """Handle POST for legacy autofix."""
         serializer = AutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
 
@@ -303,7 +365,16 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response({"autofix": None})
 
         if state.coding_agents and request.user.id:
-            poll_github_copilot_agents(coding_agents=state.coding_agents, user_id=request.user.id)
+            agent_providers = {a.provider for a in state.coding_agents.values()}
+            if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
+                poll_github_copilot_agents(
+                    coding_agents=state.coding_agents, user_id=request.user.id
+                )
+            if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
+                poll_claude_code_agents(
+                    coding_agents=state.coding_agents,
+                    organization_id=group.organization.id,
+                )
 
         # Return the Explorer state directly - frontend will handle the format
         return Response(
@@ -353,7 +424,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             raise PermissionDenied("You are not authorized to access this autofix state")
 
         if autofix_state and autofix_state.coding_agents and request.user.id:
-            poll_github_copilot_agents(autofix_state, user_id=request.user.id)
+            agent_providers = {a.provider for a in autofix_state.coding_agents.values()}
+            if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
+                poll_github_copilot_agents(autofix_state, user_id=request.user.id)
+            if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
+                poll_claude_code_agents(autofix_state=autofix_state)
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout

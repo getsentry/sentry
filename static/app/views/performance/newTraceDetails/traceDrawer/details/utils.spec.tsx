@@ -1,4 +1,12 @@
-import {parseJsonWithFix} from './utils';
+import {
+  getTraceIssueSeverityClassName,
+  parseJsonWithFix,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  makeEAPError,
+  makeEAPOccurrence,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 describe('parseJsonWithFix', () => {
   it('parses valid JSON without fixing', () => {
@@ -45,8 +53,65 @@ describe('parseJsonWithFix', () => {
     ]);
   });
 
-  it('handles JSON with [Filtered] from data scrubbing', () => {
+  it('handles JSON with [Filtered] from PII data scrubbing without throwing', () => {
     const data = '[Filtered]';
-    expect(() => parseJsonWithFix(data)).toThrow();
+    const result = parseJsonWithFix(data);
+    expect(result.fixedInvalidJson).toBe(true);
+    expect(result.parsed).toBeNull();
+  });
+
+  it('handles JSON array containing [Filtered] values without throwing', () => {
+    const data = '[{"role":"user","content":[Filtered]}]';
+    const result = parseJsonWithFix(data);
+    expect(result.fixedInvalidJson).toBe(true);
+    expect(result.parsed).toBeNull();
+  });
+
+  it('parses valid JSON that contains "[Filtered]" as a quoted string value', () => {
+    const data = '[{"role":"user","content":"The [Filtered] tag was applied"}]';
+    const result = parseJsonWithFix(data);
+    expect(result.fixedInvalidJson).toBe(false);
+    expect(result.parsed).toEqual([
+      {role: 'user', content: 'The [Filtered] tag was applied'},
+    ]);
+  });
+
+  it('handles JSON with bad escape sequences without throwing', () => {
+    const data = '{"message":"bad escape \\p sequence"}';
+    const result = parseJsonWithFix(data);
+    expect(result.fixedInvalidJson).toBe(true);
+    expect(result.parsed).toBeNull();
+  });
+});
+
+describe('getTraceIssueSeverityClassName', () => {
+  it('returns the level for error event_type', () => {
+    const issue = makeEAPError({level: 'warning'});
+    expect(getTraceIssueSeverityClassName(issue)).toBe('warning');
+  });
+
+  it('returns occurrence for non-error issues with non-error/fatal levels', () => {
+    const issue = makeEAPOccurrence({level: 'warning'});
+    expect(getTraceIssueSeverityClassName(issue)).toBe('occurrence');
+  });
+
+  it('treats undefined event_type as non-error (warning -> occurrence)', () => {
+    const issue = {level: 'warning', event_type: undefined} as TraceTree.TraceIssue;
+    expect(getTraceIssueSeverityClassName(issue)).toBe('occurrence');
+  });
+
+  it('treats undefined event_type as non-error (error -> error)', () => {
+    const issue = {level: 'error', event_type: undefined} as TraceTree.TraceIssue;
+    expect(getTraceIssueSeverityClassName(issue)).toBe('error');
+  });
+
+  it('returns fatal for occurrence issues with fatal level', () => {
+    const issue = makeEAPOccurrence({level: 'fatal'});
+    expect(getTraceIssueSeverityClassName(issue)).toBe('fatal');
+  });
+
+  it('returns occurrence for occurrence issues with info level', () => {
+    const issue = makeEAPOccurrence({level: 'info'});
+    expect(getTraceIssueSeverityClassName(issue)).toBe('occurrence');
   });
 });

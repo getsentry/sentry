@@ -6,8 +6,6 @@ import noop from 'lodash/noop';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 type Props<T> = {
   children: ReactNode;
   name: string;
@@ -39,7 +37,7 @@ const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue<any>>
   disabled: false,
 });
 
-function MultipleCheckbox<T extends string | number>({
+export function MultipleCheckbox<T extends string | number>({
   children,
   value,
   disabled,
@@ -113,8 +111,6 @@ function Item<T extends string | number>({
 
 MultipleCheckbox.Item = Item;
 
-export default MultipleCheckbox;
-
 const Label = styled('label')`
   display: inline-flex;
   align-items: center;
@@ -126,7 +122,7 @@ const Label = styled('label')`
 `;
 
 const CheckboxLabel = styled('span')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const LabelContainer = styled('div')`

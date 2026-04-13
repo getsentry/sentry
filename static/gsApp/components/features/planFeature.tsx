@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import type {Organization} from 'sentry/types/organization';
 import {descopeFeatureName} from 'sentry/utils';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Plan, Subscription} from 'getsentry/types';

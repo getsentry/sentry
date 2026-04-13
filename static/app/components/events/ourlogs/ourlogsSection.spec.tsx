@@ -13,8 +13,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
@@ -43,6 +43,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      measure: jest.fn(),
       scrollToIndex: jest.fn(),
       options: {
         scrollMargin: 0,
@@ -131,7 +132,7 @@ describe('OurlogsSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/`,
+      url: '/projects/',
       body: [project],
     });
 

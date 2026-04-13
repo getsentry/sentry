@@ -9,12 +9,11 @@ import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DateTime} from 'sentry/components/dateTime';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import {useReleases} from './hooks/useReleases';
@@ -80,15 +79,16 @@ export function ReleasesSelectControl({
     <StyledCompactSelect
       multiple
       clearable
-      searchable
+      search={{
+        onChange: debounce(val => {
+          setSearchTerm(val);
+        }, DEFAULT_DEBOUNCE_DURATION),
+      }}
       id={id}
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
-      onSearch={debounce(val => {
-        setSearchTerm(val);
-      }, DEFAULT_DEBOUNCE_DURATION)}
       options={[
         {
           value: '_releases',
@@ -185,6 +185,7 @@ const StyledCompactSelect = styled(CompactSelect)`
 `;
 
 const ButtonLabelWrapper = styled('span')`
+  gap: ${p => p.theme.space.xs};
   width: 100%;
   text-align: left;
   align-items: center;
@@ -194,6 +195,6 @@ const ButtonLabelWrapper = styled('span')`
 
 const MenuTitleWrapper = styled('span')`
   display: inline-block;
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;

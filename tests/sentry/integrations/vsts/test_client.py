@@ -21,7 +21,6 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.asserts import assert_halt_metric
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -36,46 +35,6 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
     def test_refreshes_expired_token(self) -> None:
         self.assert_installation()
-        integration, installation = self._get_integration_and_install()
-
-        # Make the Identity have an expired token
-        idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
-        identity = Identity.objects.get(idp_id=idp.id)
-        identity.data["expires"] = int(time()) - 123456789
-        identity.save()
-
-        # New values VSTS will return on refresh
-        self.access_token = "new-access-token"
-        self.refresh_token = "new-refresh-token"
-        self._stub_vsts()
-
-        # Make a request with expired token
-        installation.get_client().get_projects()
-
-        # Second to last request, before the Projects request, was to refresh
-        # the Access Token.
-        assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
-
-        # Then we request the Projects with the new token
-        assert (
-            responses.calls[-1].request.url.split("?")[0]
-            == f"{self.vsts_base_url.lower()}_apis/projects"
-        )
-
-        identity = Identity.objects.get(id=identity.id)
-        assert identity.scopes == [
-            "vso.code",
-            "vso.graph",
-            "vso.serviceendpoint_manage",
-            "vso.work_write",
-        ]
-        assert identity.data["access_token"] == "new-access-token"
-        assert identity.data["refresh_token"] == "new-refresh-token"
-        assert identity.data["expires"] > int(time())
-
-    @with_feature("organizations:migrate-azure-devops-integration")
-    def test_refreshes_expired_token_new_integration(self) -> None:
-        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         # Make the Identity have an expired token
@@ -180,9 +139,8 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         projects = installation.get_client().get_projects()
         assert len(projects) == 220
 
-    @with_feature("organizations:migrate-azure-devops-integration")
     def test_metadata_is_correct(self) -> None:
-        self.assert_installation(new=True)
+        self.assert_installation()
         integration, installation = self._get_integration_and_install()
         assert integration.metadata["domain_name"] == "https://MyVSTSAccount.visualstudio.com/"
         assert set(integration.metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
@@ -202,7 +160,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -239,7 +197,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_check_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -280,7 +238,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -305,7 +263,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_check_no_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -334,7 +292,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_get_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -363,7 +321,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_get_stacktrace_link(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -406,7 +364,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -569,7 +527,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = VstsProxyApiTestClient(**client_kwargs)
             client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 

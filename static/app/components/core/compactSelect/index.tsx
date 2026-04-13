@@ -13,6 +13,8 @@ export {CompositeSelect, type CompositeSelectProps} from './composite';
 
 export {ControlContext} from './control';
 
+export {MenuComponents} from './menuComponents';
+
 export {
   LeadWrap,
   SectionSeparator,
@@ -30,6 +32,7 @@ export type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSectionWithKey,
+  SearchMatchResult,
 } from './types';
 
 export {
@@ -40,6 +43,8 @@ export {
   SectionToggle,
   getEscapedKey,
 } from './utils';
+
+export {useVirtualizedItems} from './useVirtualizedItems';
 
 export {SelectFilterContext} from './list';
 export {TriggerLabel} from './control';

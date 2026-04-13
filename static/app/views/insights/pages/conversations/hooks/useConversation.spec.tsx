@@ -228,16 +228,23 @@ describe('useConversation', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Verify the API was called with correct timestamps (with 1-hour padding)
+    // Verify the API was called with correct timestamps (with 1-hour padding),
+    // ALL_ACCESS_PROJECTS (-1) so it searches across all projects,
+    // and no environment filter so it searches across all environments
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/ai-conversations/conv-timestamps/'),
       expect.objectContaining({
         query: expect.objectContaining({
           start: new Date(startTimestamp - 60 * 60 * 1000).toISOString(),
           end: new Date(endTimestamp + 60 * 60 * 1000).toISOString(),
+          project: [-1],
         }),
       })
     );
+
+    // Ensure environment is not included in the query when using conversation timestamps
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('environment');
   });
 
   it('falls back to span.name when span.description is empty', async () => {
@@ -314,6 +321,56 @@ describe('useConversation', () => {
     const value = node?.value as {description?: string; name?: string};
     expect(value?.description).toBe('AI generation');
     expect(value?.name).toBe('AI generation');
+  });
+
+  it('sorts nodes by start timestamp for AI spans list', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-sort/`,
+      body: [
+        {
+          'gen_ai.conversation.id': 'conv-sort',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1002.0,
+          'precise.start_ts': 1001.0,
+          project: 'test-project',
+          'project.id': 1,
+          'span.description': 'Second by start, first by end',
+          'span.op': 'gen_ai.generate',
+          'span.status': 'ok',
+          span_id: 'span-b',
+          trace: 'trace-sort',
+          'gen_ai.operation.type': 'ai_client',
+        },
+        {
+          'gen_ai.conversation.id': 'conv-sort',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1003.0,
+          'precise.start_ts': 1000.0,
+          project: 'test-project',
+          'project.id': 1,
+          'span.description': 'First by start, second by end',
+          'span.op': 'gen_ai.generate',
+          'span.status': 'ok',
+          span_id: 'span-a',
+          trace: 'trace-sort',
+          'gen_ai.operation.type': 'ai_client',
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-sort'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(2);
+    // Sorted by start timestamp: span-a (1000) before span-b (1001)
+    expect(result.current.nodes[0]?.id).toBe('span-a');
+    expect(result.current.nodes[1]?.id).toBe('span-b');
   });
 
   it('filters to only gen_ai spans', async () => {

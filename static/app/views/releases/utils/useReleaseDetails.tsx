@@ -1,22 +1,18 @@
-import type {ReleaseWithHealth} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useQuery} from '@tanstack/react-query';
 
-export function useReleaseDetails(
-  {release}: {release: string},
-  queryOpts?: {enabled?: boolean; staleTime?: number}
-) {
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function useReleaseDetails({release}: {release: string}) {
   const organization = useOrganization();
-  return useApiQuery<ReleaseWithHealth>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/$version/`, {
-        path: {organizationIdOrSlug: organization.slug, version: release},
-      }),
+  return useQuery(
+    apiOptions.as<ReleaseWithHealth>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
       {
-        query: {},
-      },
-    ],
-    {staleTime: Infinity, ...queryOpts}
+        path: {organizationIdOrSlug: organization.slug, version: release},
+        staleTime: Infinity,
+      }
+    )
   );
 }

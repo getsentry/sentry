@@ -1,6 +1,6 @@
 import {lazy} from 'react';
 
-import LazyLoad from 'sentry/components/lazyLoad';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import type {Organization} from 'sentry/types/organization';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -20,7 +20,7 @@ const LazyReplayClipPreviewComponent = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')
 );
 
-export default function ReplaySection({eventTimestampMs, organization, replayId}: Props) {
+export function ReplaySection({eventTimestampMs, organization, replayId}: Props) {
   const props = {
     analyticsContext: 'feedback',
     eventTimestampMs,

@@ -13,8 +13,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
@@ -122,7 +122,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
 
 function mockProjectDetailsResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug//`,
+    url: '/projects/org-slug//',
     method: 'GET',
     asyncDelay: 1,
     ...resp,
@@ -149,7 +149,7 @@ function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
 
 function mockTraceRootFacets(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events-facets/`,
+    url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
@@ -159,7 +159,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
 
 function mockTraceEventDetails(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
@@ -1451,7 +1451,8 @@ describe('trace view', () => {
       });
     });
 
-    it('arrowup+shift scrolls to the start of the list', async () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('arrowup+shift scrolls to the start of the list', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);

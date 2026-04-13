@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 
 describe('IdBadge', () => {
   it('renders the correct component when `user` property is passed', () => {
@@ -17,7 +17,8 @@ describe('IdBadge', () => {
 
   it('renders the correct component when `team` property is passed', () => {
     render(<IdBadge team={TeamFixture()} />);
-    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('TN');
+    // Avatar initials now derived from slug ("team-slug" -> "team slug" -> "TS")
+    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('TS');
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('#team-slug');
   });
 

@@ -46,7 +46,7 @@ function getStatusText(blocks: Block[]): string {
   return t('Analyzing...');
 }
 
-function PanelContainers({
+export function PanelContainers({
   isOpen,
   isMinimized,
   isMobile,
@@ -136,8 +136,6 @@ function PanelContainers({
   );
 }
 
-export default PanelContainers;
-
 const PanelBackdrop = styled(motion.div)`
   position: fixed;
   top: 0;
@@ -213,6 +211,7 @@ const PanelContent = styled('div')`
 export const BlocksContainer = styled(Stack)`
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 `;
 

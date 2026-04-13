@@ -1,9 +1,9 @@
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteDataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/types';
 

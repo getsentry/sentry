@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 
 import type {Relocation} from 'admin/types';
 
@@ -11,7 +11,13 @@ type Props = ModalRenderProps & {
   onSuccess?: (relocation: Relocation) => void;
 };
 
-function RelocationAbortModal({Body, Header, relocation, onSuccess, closeModal}: Props) {
+export function RelocationAbortModal({
+  Body,
+  Header,
+  relocation,
+  onSuccess,
+  closeModal,
+}: Props) {
   return (
     <Fragment>
       <Header closeButton>Abort Relocation</Header>
@@ -44,5 +50,3 @@ function RelocationAbortModal({Body, Header, relocation, onSuccess, closeModal}:
     </Fragment>
   );
 }
-
-export default RelocationAbortModal;

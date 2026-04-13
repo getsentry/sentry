@@ -55,6 +55,9 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
     case 'integer':
       return formatAbbreviatedNumber(value);
     case 'number':
+      if (Number.isInteger(value)) {
+        return formatAbbreviatedNumber(value);
+      }
       return value.toLocaleString(undefined, {
         maximumFractionDigits: 20,
       });

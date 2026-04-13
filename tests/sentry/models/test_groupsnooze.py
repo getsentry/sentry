@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 import sentry.models.groupsnooze
-from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -74,7 +73,7 @@ class GroupSnoozeTest(
     @freeze_time()
     def test_user_delta_reached(self) -> None:
         for i in range(5):
-            self.store_event(
+            event = self.store_event(
                 data={
                     "user": {"id": i},
                     "timestamp": before_now(seconds=1).isoformat(),
@@ -83,7 +82,7 @@ class GroupSnoozeTest(
                 project_id=self.project.id,
             )
 
-        group = list(Group.objects.all())[-1]
+        group = event.group
         snooze = GroupSnooze.objects.create(group=group, user_count=5, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 

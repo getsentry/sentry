@@ -260,7 +260,9 @@ describe('utils/tokenizeSearch', () => {
     ];
 
     for (const {name, string, object} of cases) {
-      it(`${name}`, () => expect(new MutableSearch(string)).toEqual(object));
+      // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+      // eslint-disable-next-line jest/valid-title
+      it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
@@ -695,7 +697,41 @@ describe('utils/tokenizeSearch', () => {
     ];
 
     for (const {name, string, object} of cases) {
-      it(`${name}`, () => expect(object.formatString()).toEqual(string));
+      // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+      // eslint-disable-next-line jest/valid-title
+      it(name, () => expect(object.formatString()).toEqual(string));
     }
+  });
+
+  describe('renameFilter', () => {
+    it('renames a simple filter key', () => {
+      const search = new MutableSearch('request.method:GET');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('http.method:GET');
+    });
+
+    it('renames negated filter keys', () => {
+      const search = new MutableSearch('!request.method:GET');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('!http.method:GET');
+    });
+
+    it('preserves OR grouping', () => {
+      const search = new MutableSearch('(request.method:GET OR request.method:POST)');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('( http.method:GET OR http.method:POST )');
+    });
+
+    it('does not rename unrelated keys', () => {
+      const search = new MutableSearch('request.method:GET browser:Chrome');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('http.method:GET browser:Chrome');
+    });
+
+    it('is a no-op when key is not present', () => {
+      const search = new MutableSearch('browser:Chrome');
+      search.renameFilter('request.method', 'http.method');
+      expect(search.formatString()).toBe('browser:Chrome');
+    });
   });
 });

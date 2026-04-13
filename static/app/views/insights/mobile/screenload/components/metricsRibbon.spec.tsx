@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 

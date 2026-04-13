@@ -1,28 +1,27 @@
 import {useCallback, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 function ShareModal({currentTimeSec, Header, Body}: any) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const [customSeconds, setSeconds] = useState(currentTimeSec);
   const [shareMode, setShareMode] = useState<'current' | 'user'>('current');
 
   const url = new URL(window.location.href);
   const {searchParams} = url;
-  searchParams.set('referrer', getRouteStringFromRoutes(routes));
+  searchParams.set('referrer', getRouteStringFromRoutes({matches}));
   searchParams.set(
     't',
     shareMode === 'user' ? String(customSeconds) : String(currentTimeSec)
@@ -74,7 +73,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
   );
 }
 
-export default function useShareReplayAtTimestamp() {
+export function useShareReplayAtTimestamp() {
   const {currentTime} = useReplayContext();
 
   const handleShare = useCallback(() => {
@@ -96,7 +95,7 @@ const StyledTextCopyInput = styled(TextCopyInput)`
 const InputRow = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   & > div {
     min-width: fit-content;

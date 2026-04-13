@@ -12,7 +12,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -30,9 +30,9 @@ import {
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {
@@ -42,8 +42,10 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
@@ -126,18 +128,20 @@ const SpansTabCrossEventSearchBar = memo(
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
+    const organization = useOrganization();
+    const hasRawSearchReplacement = organization.features.includes(
+      'search-query-builder-raw-search-replacement'
+    );
 
-    const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-      useTraceItemTags('number');
-    const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-      useTraceItemTags('string');
-    const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-      useTraceItemTags('boolean');
+    const traceItemType =
+      type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 
-    let traceItemType = TraceItemDataset.SPANS;
-    if (type === 'logs') {
-      traceItemType = TraceItemDataset.LOGS;
-    }
+    const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'number');
+    const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'string');
+    const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
@@ -178,11 +182,17 @@ const SpansTabCrossEventSearchBar = memo(
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
+        replaceRawSearchKeys: hasRawSearchReplacement
+          ? type === 'logs'
+            ? ['message']
+            : ['span.description']
+          : undefined,
       }),
       [
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
+        hasRawSearchReplacement,
         index,
         mode,
         numberSecondaryAliases,
@@ -308,13 +318,11 @@ function SpansTabCrossEventSearchBars() {
             />
           </SearchQueryBuilderProvider>
         ) : (
-          <TraceItemAttributeProvider traceItemType={traceItemType} enabled>
-            <SpansTabCrossEventSearchBar
-              index={index}
-              query={crossEvent.query}
-              type={crossEvent.type}
-            />
-          </TraceItemAttributeProvider>
+          <SpansTabCrossEventSearchBar
+            index={index}
+            query={crossEvent.query}
+            type={crossEvent.type}
+          />
         )}
         <Button
           icon={<IconDelete />}
@@ -368,8 +376,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const organization = useOrganization();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
@@ -380,12 +386,12 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasCrossEvents =
     hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
 
-  const {tags: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemTags('number');
-  const {tags: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemTags('string');
-  const {tags: booleanAttributes, isLoading: booleanAttributesLoading} =
-    useTraceItemTags('boolean');
+  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
+    useSpanItemAttributes({}, 'boolean');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -452,7 +458,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
-        enableAISearch={areAiFeaturesAllowed}
+        enableAISearch
+        aiSearchBadgeType="beta"
         {...spanSearchQueryBuilderProviderProps}
       >
         <TourElement<ExploreSpansTour>
@@ -509,6 +516,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
+export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;

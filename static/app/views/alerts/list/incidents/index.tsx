@@ -4,34 +4,34 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import CreateAlertButton from 'sentry/components/createAlertButton';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
+import {DeprecatedAsyncComponent} from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import Pagination from 'sentry/components/pagination';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import Projects from 'sentry/utils/projects';
+import {Projects} from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import FilterBar from 'sentry/views/alerts/filterBar';
-import AlertHeader from 'sentry/views/alerts/list/header';
-import Onboarding from 'sentry/views/alerts/list/onboarding';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {FilterBar} from 'sentry/views/alerts/filterBar';
+import {AlertHeader} from 'sentry/views/alerts/list/header';
+import {Onboarding} from 'sentry/views/alerts/list/onboarding';
 import type {Incident} from 'sentry/views/alerts/types';
 import {getQueryStatus, getTeamParams} from 'sentry/views/alerts/utils';
 
-import AlertListRow from './row';
+import {AlertListRow} from './row';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
@@ -88,7 +88,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
   async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
 
-    if (!incidentList || incidentList.length !== 0) {
+    if (incidentList?.length !== 0) {
       this.setState({hasAlertRule: true, firstVisitShown: false});
       return;
     }
@@ -264,28 +264,30 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
-        <PageFiltersContainer>
-          <AlertHeader activeTab="stream" />
-          <Layout.Body>
-            <Layout.Main width="full">
-              {!this.tryRenderOnboarding() && (
-                <Fragment>
-                  <StyledAlert variant="info">
-                    {t('This page only shows metric alerts.')}
-                  </StyledAlert>
-                  <FilterBar
-                    location={location}
-                    onChangeFilter={this.handleChangeFilter}
-                    onChangeSearch={this.handleChangeSearch}
-                    onChangeStatus={this.handleChangeStatus}
-                    hasStatusFilters
-                  />
-                </Fragment>
-              )}
-              {this.renderList()}
-            </Layout.Main>
-          </Layout.Body>
-        </PageFiltersContainer>
+        <Stack flex={1}>
+          <PageFiltersContainer>
+            <AlertHeader activeTab="stream" />
+            <Layout.Body>
+              <Layout.Main width="full">
+                {!this.tryRenderOnboarding() && (
+                  <Fragment>
+                    <StyledAlert variant="info">
+                      {t('This page only shows metric alerts.')}
+                    </StyledAlert>
+                    <FilterBar
+                      location={location}
+                      onChangeFilter={this.handleChangeFilter}
+                      onChangeSearch={this.handleChangeSearch}
+                      onChangeStatus={this.handleChangeStatus}
+                      hasStatusFilters
+                    />
+                  </Fragment>
+                )}
+                {this.renderList()}
+              </Layout.Main>
+            </Layout.Body>
+          </PageFiltersContainer>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -304,15 +306,17 @@ export default function IncidentsListContainer() {
   }, []);
 
   const renderDisabled = () => (
-    <Layout.Body>
-      <Layout.Main width="full">
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Layout.Main>
-    </Layout.Body>
+    <Stack flex={1}>
+      <Layout.Body>
+        <Layout.Main width="full">
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {t("You don't have access to this feature")}
+            </Alert>
+          </Alert.Container>
+        </Layout.Main>
+      </Layout.Body>
+    </Stack>
   );
 
   return (
@@ -334,12 +338,12 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.font.size.md};
 
   & > div {
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   }
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const EmptyStateAction = styled('p')`

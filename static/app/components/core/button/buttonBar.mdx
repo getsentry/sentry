@@ -1,7 +1,7 @@
 ---
 title: ButtonBar
 description: ButtonBar is a specialized component for creating pill-like button layouts where buttons are visually joined together.
-category: buttons
+category: controls
 source: '@sentry/scraps/button'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/buttonBar.tsx
@@ -11,25 +11,28 @@ import {Fragment, useState} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 
-import ButtonDocumentation from '!!type-loader!@sentry/scraps/button';
-
 import * as Storybook from 'sentry/stories';
 
-export const documentation = {
-  props: {
-    ButtonBar: ButtonDocumentation.props?.ButtonBar,
-  },
-  exports: {
-    module: ButtonDocumentation.exports?.module,
-    exports: {
-      ...Object.fromEntries(
-        Object.entries(ButtonDocumentation?.exports?.exports ?? {}).filter(
-          ([key]) => key === 'ButtonBar'
-        )
-      ),
-    },
-  },
-};
+export const documentation = import('!!type-loader!@sentry/scraps/button').then(
+  module => {
+    const buttonDocumentation = module.default;
+    return {
+      props: {
+        ButtonBar: buttonDocumentation.props?.ButtonBar,
+      },
+      exports: {
+        module: buttonDocumentation.exports?.module,
+        exports: {
+          ...Object.fromEntries(
+            Object.entries(buttonDocumentation?.exports?.exports ?? {}).filter(
+              ([key]) => key === 'ButtonBar'
+            )
+          ),
+        },
+      },
+    };
+  }
+);
 
 ButtonBar is used to create merged button groups where buttons are visually joined together with shared borders and no gaps between them, creating a cohesive pill-like control unit.
 
@@ -44,6 +47,25 @@ ButtonBar is used to create merged button groups where buttons are visually join
 </Storybook.Demo>
 ```jsx
 <ButtonBar>
+  <Button>One</Button>
+  <Button>Two</Button>
+  <Button>Three</Button>
+</ButtonBar>
+```
+
+## Orientation
+
+Use `orientation="vertical"` to stack buttons vertically with joined borders.
+
+<Storybook.Demo>
+  <ButtonBar orientation="vertical">
+    <Button>One</Button>
+    <Button>Two</Button>
+    <Button>Three</Button>
+  </ButtonBar>
+</Storybook.Demo>
+```jsx
+<ButtonBar orientation="vertical">
   <Button>One</Button>
   <Button>Two</Button>
   <Button>Three</Button>

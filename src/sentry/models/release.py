@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -98,8 +98,11 @@ class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> ReleaseQuerySet:
         return self.get_queryset().annotate_prerelease_column()
+
+    def annotate_build_code_column(self) -> ReleaseQuerySet:
+        return self.get_queryset().annotate_build_code_column()
 
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
@@ -189,7 +192,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         return release_version or None
 
 
-@region_silo_model
+@cell_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -300,6 +303,18 @@ class Release(Model):
     __repr__ = sane_repr("organization_id", "version")
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+
+    SEMVER_COLS_WITH_BUILD_CODE = [
+        "major",
+        "minor",
+        "patch",
+        "revision",
+        "prerelease_case",
+        "prerelease",
+        "build_code_case",
+        "build_number",
+        "build_code",
+    ]
 
     def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
@@ -622,11 +637,11 @@ class Release(Model):
                     organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
                 )[0]
                 # update head commit for repo/release if exists
-                ReleaseHeadCommit.objects.create_or_update(
+                ReleaseHeadCommit.objects.update_or_create(
                     organization_id=self.organization_id,
                     repository_id=repo.id,
                     release=self,
-                    values={"commit": commit},
+                    defaults={"commit": commit},
                 )
             if fetch:
                 prev_release = get_previous_release(self)

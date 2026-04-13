@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import divide from 'sentry/utils/number/divide';
+import {divide} from 'sentry/utils/number/divide';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -46,7 +46,7 @@ interface Props {
 // the (smaller) browser window.
 const MAX_ZOOM = 1.5;
 
-export default function ReplayPlayerMeasurer({children, measure = 'both'}: Props) {
+export function ReplayPlayerMeasurer({children, measure = 'both'}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const measuredDimensions = useDimensions({elementRef});
   const playerState = useReplayPlayerState();

@@ -161,7 +161,14 @@ export interface OnboardingConfig<
     onProductSelectionLoad?: (products: ProductSolution[]) => void;
   },
   DocsParams<PlatformOptions>
-> {}
+> {
+  /**
+   * When true, the "Copy instructions" button is hidden for this guide.
+   * Use when the guide includes its own copy mechanism
+   * (e.g. AI-assisted setup prompt).
+   */
+  hideInstructionsCopy?: boolean;
+}
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;

@@ -19,7 +19,6 @@ from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -353,34 +352,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             args=[self.organization.slug, self.project.slug],
         )
 
-        self.feature_context = Feature("organizations:preprod-frontend-routes")
-        self.feature_context.__enter__()
-
-    def tearDown(self) -> None:
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
-    def test_feature_flag_disabled_returns_403(self) -> None:
-        """Test that endpoint returns 404 when feature flag is disabled."""
-        self.feature_context.__exit__(None, None, None)
-
-        try:
-            content = b"test content"
-            total_checksum = sha1(content).hexdigest()
-
-            response = self.client.post(
-                self.url,
-                data={
-                    "checksum": total_checksum,
-                    "chunks": [],
-                },
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-            )
-            assert response.status_code == 403
-        finally:
-            self.feature_context = Feature("organizations:preprod-frontend-routes")
-            self.feature_context.__enter__()
-
     def test_assemble_json_schema_integration(self) -> None:
         """Integration test for schema validation through the endpoint."""
         response = self.client.post(
@@ -549,7 +520,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.id}"
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -624,7 +595,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.id}"
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -696,7 +667,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.id}"
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(

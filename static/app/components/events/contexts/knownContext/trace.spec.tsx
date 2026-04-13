@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ContextCard from 'sentry/components/events/contexts/contextCard';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {
   getTraceContextData,
   type TraceContext,

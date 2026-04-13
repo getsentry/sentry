@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {RecurringCredit} from 'getsentry/types';
 
@@ -17,7 +17,7 @@ export function useRecurringCredits(): RecurringCreditsContext {
   const enabled = hasBilling(organization);
   const {data: recurringCredits = [], isPending} = useApiQuery<RecurringCredit[]>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/recurring-credits/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/recurring-credits/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

@@ -1,45 +1,44 @@
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from typing import Any, TypedDict
+
+
+class QuerySubscriptionUpdateValues(TypedDict):
+    data: list[dict[str, Any]]
 
 
 class QuerySubscriptionUpdate(TypedDict):
     entity: str
     subscription_id: str
-    values: Any
+    values: QuerySubscriptionUpdateValues
     timestamp: datetime
+
+
+class SubscriptionUpdateValues(TypedDict):
+    value: float
 
 
 @dataclass
 class ProcessedSubscriptionUpdate:
     entity: str
     subscription_id: str
-    values: Any
+    values: SubscriptionUpdateValues
+    timestamp: datetime
+
+
+class AnomalyDetectionValues(TypedDict):
+    value: float
+    source_id: str
+    subscription_id: str
     timestamp: datetime
 
 
 @dataclass
 class AnomalyDetectionUpdate:
-    """
-    values has format:
-    {
-        "value": float,
-        "source_id": str,
-        "subscription_id": str,
-        "timestamp": datetime,
-    }
-    """
-
     entity: str
     subscription_id: str
-    values: Any
+    values: AnomalyDetectionValues
     timestamp: datetime
-
-
-class AlertRuleActivationConditionType(Enum):
-    RELEASE_CREATION = 0
-    DEPLOY_CREATION = 1
 
 
 DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"

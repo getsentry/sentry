@@ -3,22 +3,23 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import Count from 'sentry/components/count';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Count} from 'sentry/components/count';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CellLink,
@@ -33,11 +34,11 @@ import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface TableData {
   avg: number;
@@ -100,7 +101,7 @@ export function ModelsTable() {
   const modelsRequest = useSpans(
     {
       fields: [
-        'gen_ai.request.model',
+        SpanFields.GEN_AI_RESPONSE_MODEL,
         'sum(gen_ai.usage.input_tokens)',
         'sum(gen_ai.usage.output_tokens)',
         'sum(gen_ai.usage.output_tokens.reasoning)',
@@ -126,7 +127,7 @@ export function ModelsTable() {
     }
 
     return modelsRequest.data.map(span => ({
-      model: `${span['gen_ai.request.model']}`,
+      model: span[SpanFields.GEN_AI_RESPONSE_MODEL],
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
@@ -223,9 +224,9 @@ const BodyCell = memo(function BodyCell({
         yAxes: ['avg(span.duration)'],
       },
     ],
-    query: `gen_ai.request.model:${dataRow.model}`,
+    query: `${SpanFields.GEN_AI_RESPONSE_MODEL}:${dataRow.model}`,
     field: [
-      'gen_ai.request.model',
+      SpanFields.GEN_AI_RESPONSE_MODEL,
       'gen_ai.operation.name',
       'gen_ai.usage.input_tokens',
       'gen_ai.usage.output_tokens',
@@ -262,13 +263,13 @@ const BodyCell = memo(function BodyCell({
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
     case 'sum(gen_ai.cost.total_tokens)':
-      return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
+      return <CurrencyCell value={dataRow.cost} />;
     case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:internal_error gen_ai.request.model:"${dataRow.model}"`,
+            query: `${query} span.status:internal_error ${SpanFields.GEN_AI_RESPONSE_MODEL}:"${dataRow.model}"`,
             organization,
             selection,
             referrer: Referrer.MODELS_TABLE,

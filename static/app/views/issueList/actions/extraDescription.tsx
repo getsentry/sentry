@@ -8,7 +8,7 @@ type Props = {
   queryCount: number;
 };
 
-function ExtraDescription({all, query, queryCount}: Props) {
+export function ExtraDescription({all, query, queryCount}: Props) {
   if (!all) {
     return null;
   }
@@ -39,5 +39,3 @@ function ExtraDescription({all, query, queryCount}: Props) {
     </p>
   );
 }
-
-export default ExtraDescription;

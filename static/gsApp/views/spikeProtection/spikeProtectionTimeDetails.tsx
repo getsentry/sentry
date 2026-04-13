@@ -4,13 +4,12 @@ import {AlertBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import {IconCalendar} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
-function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
+export function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   const {start, end} = spike;
   const format = getFormat({timeOnly: true});
   const formattedTime = end
@@ -40,12 +39,10 @@ function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   );
 }
 
-export default SpikeProtectionTimeDetails;
-
 const SpikeTimeDetailsWrapper = styled('div')`
   display: grid;
   grid-template-columns: 40px auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   strong {
     display: block;
     white-space: nowrap;
@@ -57,5 +54,5 @@ const SpikeTimeDetailsWrapper = styled('div')`
 `;
 
 const StyledIconCalendar = styled(IconCalendar)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;

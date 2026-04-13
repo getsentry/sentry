@@ -14,7 +14,7 @@ type AutoSelectHandle = {
   selectText: () => void;
 };
 
-function AutoSelectText({children, className, ref, ...props}: Props) {
+export function AutoSelectText({children, className, ref, ...props}: Props) {
   const element = useRef<HTMLSpanElement>(null);
 
   // We need to expose a selectText method to parent components
@@ -44,5 +44,3 @@ function AutoSelectText({children, className, ref, ...props}: Props) {
     </div>
   );
 }
-
-export default AutoSelectText;

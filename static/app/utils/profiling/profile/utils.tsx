@@ -5,7 +5,7 @@ import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-type FrameIndex = Record<string | number, Frame>;
+export type FrameIndex = Record<string | number, Frame>;
 
 export function createContinuousProfileFrameIndex(
   frames: Profiling.SentryContinousProfileChunk['profile']['frames'],

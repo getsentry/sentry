@@ -14,8 +14,8 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ConfigStore from 'sentry/stores/configStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {StatusPageComponent} from 'sentry/types/system';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
@@ -43,6 +43,10 @@ describe('CronDetectorsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
     });
 
     // Mock processing errors endpoint (no errors by default)

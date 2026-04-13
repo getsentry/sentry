@@ -7,11 +7,12 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
@@ -45,7 +46,12 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.response.object",
     "gen_ai.response.text",
     "gen_ai.tool.name",
+    "gen_ai.tool.call.arguments",
+    "gen_ai.tool.input",
     "gen_ai.usage.total_tokens",
+    "gen_ai.request.model",
+    "gen_ai.response.model",
+    "gen_ai.agent.name",
     "user.id",
     "user.email",
     "user.username",
@@ -53,7 +59,7 @@ AI_CONVERSATION_ATTRIBUTES = [
 ]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -122,7 +128,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     ):
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string=f"gen_ai.conversation.id:{conversation_id}",
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
             selected_columns=selected_columns,
             orderby=["precise.start_ts"],
             offset=offset,

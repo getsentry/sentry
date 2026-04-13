@@ -1,9 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationCreate, {

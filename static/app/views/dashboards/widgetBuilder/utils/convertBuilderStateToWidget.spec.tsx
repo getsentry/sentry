@@ -37,7 +37,9 @@ describe('convertBuilderStateToWidget', () => {
           selectedAggregate: undefined,
         },
       ],
+      legendType: null,
       thresholds: undefined,
+      axisRange: undefined,
     });
   });
 
@@ -227,5 +229,101 @@ describe('convertBuilderStateToWidget', () => {
     const widget = convertBuilderStateToWidget(mockState);
 
     expect(widget.limit).toBeUndefined();
+  });
+
+  it('uses explicit axisRange from state', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.ERRORS,
+      displayType: DisplayType.LINE,
+      axisRange: 'dataMin',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
+
+  it('falls back to dataset config axisRange when state.axisRange is undefined', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
+
+  it('preserves explicit auto axisRange on dataset with dataMin default', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+      axisRange: 'auto',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('auto');
+  });
+
+  it('falls back to dataset config axisRange when state.axisRange is invalid', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.PREPROD_APP_SIZE,
+      displayType: DisplayType.LINE,
+      axisRange: 'invalid' as any,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.axisRange).toBe('dataMin');
+  });
+
+  it('returns stripped down widget state for text widgets', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TEXT,
+      title: 'Test Widget',
+      description: 'some other description',
+      textContent: 'Test text content',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget).toEqual({
+      title: 'Test Widget',
+      description: 'Test text content',
+      displayType: DisplayType.TEXT,
+      interval: '1h',
+      queries: [],
+      widgetType: undefined,
+      limit: undefined,
+      thresholds: undefined,
+      axisRange: undefined,
+    });
+  });
+
+  it('sends null legendType when legend breakdown is not set', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.ERRORS,
+      displayType: DisplayType.LINE,
+      legendType: undefined,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    // legendType must be null (not undefined) so it survives JSON serialization
+    // and the backend clears the previously saved value
+    expect(widget.legendType).toBeNull();
+  });
+
+  it('preserves breakdown legendType when set', () => {
+    const mockState: WidgetBuilderState = {
+      dataset: WidgetType.ERRORS,
+      displayType: DisplayType.LINE,
+      legendType: 'breakdown',
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.legendType).toBe('breakdown');
   });
 });

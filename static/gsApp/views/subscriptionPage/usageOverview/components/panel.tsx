@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -20,12 +21,12 @@ import {
   normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
+import {BilledSeats} from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 import {
   DataCategoryUsageBreakdownInfo,
   ReservedBudgetUsageBreakdownInfo,
 } from 'getsentry/views/subscriptionPage/usageOverview/components/breakdownInfo';
-import UsageCharts from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
+import {UsageCharts} from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 import {
   ProductTrialCta,
   SetupCta,
@@ -128,7 +129,7 @@ function PanelHeader({
   );
 }
 
-function ProductBreakdownPanel({
+export function ProductBreakdownPanel({
   organization,
   selectedProduct,
   subscription,
@@ -146,9 +147,9 @@ function ProductBreakdownPanel({
   // TODO(billing): if we ever show the setup state for other products, this will need refactoring
   // maybe a billing hook for setup checks
   const shouldCheckSetup = selectedProduct === AddOnCategory.SEER && isEnabled;
-  const {data: setupCheck, isLoading: setupCheckLoading} = useSeerOnboardingCheck({
+  const {data: setupCheck, isLoading: setupCheckLoading} = useQuery({
+    ...getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}),
     enabled: shouldCheckSetup,
-    staleTime: 60_000,
   });
   const setupRequired =
     shouldCheckSetup &&
@@ -269,5 +270,3 @@ function ProductBreakdownPanel({
     </Container>
   );
 }
-
-export default ProductBreakdownPanel;

@@ -1571,7 +1571,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `ProjectKey` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = ProjectKey.objects.all()[0]
+        colliding = ProjectKey.objects.order_by("id")[0]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1613,7 +1613,7 @@ class CollisionTests(ImportTestCase):
 
             # Take note of the `QuerySubscription` that was created by the exhaustive organization -
             # this is the one we'll be importing.
-            colliding_snuba_query = SnubaQuery.objects.all()[0]
+            colliding_snuba_query = SnubaQuery.objects.order_by("id")[0]
             colliding_query_subscription = QuerySubscription.objects.get(
                 snuba_query=colliding_snuba_query
             )

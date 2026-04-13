@@ -240,10 +240,7 @@ class TestRedisBuffer:
 
 @pytest.mark.parametrize(
     "value",
-    [
-        timezone.now(),
-        datetime.date.today(),
-    ],
+    [timezone.now(), datetime.date.today(), "a", 1, 3.14, {"a": {"i": 0}, "b": {"s": ""}}],
 )
 def test_dump_value(value: datetime.datetime) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

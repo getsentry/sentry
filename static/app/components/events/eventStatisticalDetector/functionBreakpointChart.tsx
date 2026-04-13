@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ChartType} from 'sentry/chartcuterie/types';
-import Chart from 'sentry/components/events/eventStatisticalDetector/lineChart';
+import {type BreakpointEvidenceData} from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
+import {LineChart as Chart} from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -10,7 +11,6 @@ import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEven
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 
@@ -69,7 +69,7 @@ function EventFunctionBreakpointChartInner({
     relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
-  const functionStats = useProfileEventsStats({
+  const {data: functionPercentileData} = useProfileEventsStats({
     dataset: 'profileFunctions',
     datetime,
     query: `fingerprint:${fingerprint}`,
@@ -77,11 +77,11 @@ function EventFunctionBreakpointChartInner({
     yAxes: SERIES,
   });
 
-  const normalizedOccurrenceEvent = {
+  const normalizedOccurrenceEvent: BreakpointEvidenceData = {
     aggregate_range_1: evidenceData.aggregateRange1 / 1e6,
     aggregate_range_2: evidenceData.aggregateRange2 / 1e6,
     breakpoint: evidenceData.breakpoint,
-  } as NormalizedTrendsTransaction;
+  };
 
   return (
     <InterimSection
@@ -89,7 +89,7 @@ function EventFunctionBreakpointChartInner({
       title={t('Regression Breakpoint Chart')}
     >
       <Chart
-        percentileData={functionStats}
+        percentileData={functionPercentileData}
         evidenceData={normalizedOccurrenceEvent}
         datetime={datetime}
         chartType={ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION}

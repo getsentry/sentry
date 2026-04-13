@@ -6,14 +6,14 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 
 type Props = {
   alert: ReturnType<(typeof AlertStore)['getState']>[number];
   system: boolean;
 };
 
-function AlertMessage({alert, system}: Props) {
+export function AlertMessage({alert, system}: Props) {
   const handleClose = () => AlertStore.closeAlert(alert);
 
   return (
@@ -38,8 +38,6 @@ function AlertMessage({alert, system}: Props) {
     </Alert>
   );
 }
-
-export default AlertMessage;
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;

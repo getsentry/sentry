@@ -2,12 +2,11 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig, ResourceLink} from 'sentry/utils/issueTypeConfig/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   configResources: NonNullable<IssueTypeConfig['resources']>;
@@ -15,7 +14,7 @@ type Props = {
   group: Group;
 };
 
-export default function Resources({configResources, eventPlatform, group}: Props) {
+export function Resources({configResources, eventPlatform, group}: Props) {
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,
@@ -56,6 +55,6 @@ const LinkSection = styled('div')`
   align-items: flex-start;
   text-decoration: underline;
   text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.md};
 `;

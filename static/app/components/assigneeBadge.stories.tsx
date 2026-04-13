@@ -4,7 +4,6 @@ import {uuid4} from '@sentry/core';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import * as Storybook from 'sentry/stories';
 import type {Actor} from 'sentry/types/core';
-import type {Team} from 'sentry/types/organization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
@@ -41,7 +40,7 @@ export default Storybook.story('AssigneeBadge', story => {
     const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');
     const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
 
-    const team: Team = teams.length
+    const team = teams.length
       ? teams[0]!
       : {
           id: '1',

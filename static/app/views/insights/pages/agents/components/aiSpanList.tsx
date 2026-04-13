@@ -6,13 +6,14 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
+  getFirstToolInputValue,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -75,10 +76,10 @@ export function AISpanList({
   compressGaps?: boolean;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
+    const result = new Map<
       TransactionNode | EapSpanNode | AITraceSpanNode,
       AITraceSpanNode[]
-    > = new Map();
+    >();
     // Use a placeholder key for nodes without a transaction (e.g., conversation view)
     let orphanGroup: AITraceSpanNode | null = null;
 
@@ -141,7 +142,7 @@ function TransactionWrapper({
     for (const node of nodes) {
       const parent = getIsAiAgentNode(node)
         ? node
-        : (node as AITraceSpanNode).findParent<AITraceSpanNode>(p => getIsAiAgentNode(p));
+        : (node as AITraceSpanNode).findParent(p => getIsAiAgentNode(p));
       if (parent) {
         parents[node.id] = parent;
       }
@@ -239,14 +240,14 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <Flex align="center" position="relative" style={{color, background: 'inherit'}}>
+      <Flex align="center" position="relative" style={{color}}>
         {icon}
         {hasErrors && (
           <Tooltip delay={300} title={t('This span encountered an error')} skipWrapper>
             <Container
               position="absolute"
               radius="full"
-              style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
+              style={{bottom: -6, right: -6, padding: 1, background: 'var(--row-bg)'}}
             >
               <IconFire display="block" size="xs" variant="danger" />
             </Container>
@@ -475,6 +476,7 @@ function getSpanPresentation(
     case GenAiOperationType.AI_CLIENT: {
       const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
       const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
+      const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const tokenLabel = tokens ? (
         <Fragment>
           <Count value={tokens} />
@@ -484,7 +486,7 @@ function getSpanPresentation(
       return {
         icon: <IconChat size="md" />,
         color,
-        title: description || op,
+        title: responseModel || description || op,
         subtitle:
           tokenLabel && cost ? (
             <Fragment>
@@ -497,11 +499,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      const firstInputValue = getFirstToolInputValue(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: toolName ? op : '',
+        subtitle: firstInputValue || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:
@@ -533,10 +536,11 @@ const ListItemContainer = styled('div')<{
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  background-color: ${p =>
+  --row-bg: ${p =>
     p.isSelected
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  background-color: var(--row-bg);
   outline: ${p =>
     p.isSelected
       ? p.hasErrors

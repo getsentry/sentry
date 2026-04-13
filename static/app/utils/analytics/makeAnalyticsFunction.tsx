@@ -20,6 +20,8 @@ const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, option
  */
 export function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,
+  // This is used to provide a nice curried type for consumers.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   OrgRequirement extends OptionalOrg = OptionalOrg,
 >(
   eventKeyToNameMap: Record<keyof EventParameters, string | null>,

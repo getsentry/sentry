@@ -5,12 +5,12 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
-import BillingCycleSelectCard from 'getsentry/views/amCheckout/components/billingCycleSelectCard';
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
+import {BillingCycleSelectCard} from 'getsentry/views/amCheckout/components/billingCycleSelectCard';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-function ChooseYourBillingCycle({
+export function ChooseYourBillingCycle({
   formData,
   onUpdate,
   subscription,
@@ -68,5 +68,3 @@ function ChooseYourBillingCycle({
     </Flex>
   );
 }
-
-export default ChooseYourBillingCycle;

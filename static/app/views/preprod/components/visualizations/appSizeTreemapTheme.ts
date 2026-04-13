@@ -15,6 +15,20 @@ function createTranslucentColor(baseColor: string): string {
   return color(baseColor).alpha(0.6).string();
 }
 
+export function getOpaqueColorFromComposite(
+  foregroundColor: string,
+  backgroundColor: string
+): string {
+  const foreground = color(foregroundColor);
+  const alpha = foreground.alpha();
+
+  if (alpha >= 1) {
+    return foreground.rgb().string();
+  }
+
+  return color(backgroundColor).mix(foreground.alpha(1), alpha).rgb().string();
+}
+
 export function getAppSizeCategoryInfo(
   theme: Theme
 ): Record<string, AppSizeCategoryInfo> {

@@ -79,7 +79,7 @@ class TestCreator(TestCase):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(organization_id=self.org.id)
 
         assert hook.application_id == self.sentry_app.application.id
@@ -88,7 +88,7 @@ class TestCreator(TestCase):
         assert hook.events == self.sentry_app.events
         assert hook.url == self.sentry_app.webhook_url
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ServiceHookProject.objects.all()
 
     @responses.activate

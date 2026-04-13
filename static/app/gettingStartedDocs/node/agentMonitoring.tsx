@@ -10,7 +10,7 @@ import {
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
@@ -127,7 +127,7 @@ const agent = new Agent({
   id: 'my-agent',
   name: 'My Agent',
   instructions: 'You are a helpful assistant',
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.4',
 });
 
 const result = await agent.generate([{ role: "user", content: "Hello!" }]);`,
@@ -145,12 +145,18 @@ export function getManualConfigureStep(
     packageName = '@sentry/node',
     importMode,
     configFileName,
+    sentryImport,
+    docUrl = 'https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation',
   }: {
     configFileName?: string;
+    docUrl?: string;
     importMode?: 'esm' | 'cjs' | 'esm-only';
     packageName?: `@sentry/${string}`;
+    sentryImport?: string;
   } = {}
 ): OnboardingStep[] {
+  const importStatement = sentryImport ?? getImport(packageName, importMode).join('\n');
+
   return [
     {
       title: t('Configure'),
@@ -165,7 +171,7 @@ export function getManualConfigureStep(
             {
               label: configFileName ?? 'JavaScript',
               language: 'javascript',
-              code: `${getImport(packageName, importMode).join('\n')}
+              code: `${importStatement}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -179,19 +185,10 @@ Sentry.init({
           ],
         },
         {
-          type: 'text',
-          text: tct(
-            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation" />
-              ),
-            }
-          ),
-        },
-        {
           type: 'custom',
-          content: <CopyLLMPromptButton />,
+          content: (
+            <ManualInstrumentationNote docsLink={<ExternalLink href={docUrl} />} />
+          ),
         },
       ],
     },
@@ -252,11 +249,14 @@ function getConfigureStep({
           {
             type: 'text',
             text: tct(
-              'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+              'When using [code:generateText], [code:generateObject], or [code:streamText], pass the [code:experimental_telemetry] object to correctly capture spans. For the [code:ToolLoopAgent] class, telemetry is configured via the constructor. For more details, see the [telemetryLink:AI SDK Telemetry Metadata docs] and the [agentLink:ToolLoopAgent docs].',
               {
                 code: <code />,
-                link: (
+                telemetryLink: (
                   <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+                ),
+                agentLink: (
+                  <ExternalLink href="https://ai-sdk.dev/docs/agents/overview#toolloopagent-class" />
                 ),
               }
             ),
@@ -265,19 +265,52 @@ function getConfigureStep({
             type: 'code',
             tabs: [
               {
-                label: 'JavaScript',
+                label: 'generateText',
                 language: 'javascript',
                 code: `const { generateText } = require('ai');
 const { openai } = require('@ai-sdk/openai');
 
 const result = await generateText({
-  model: openai("gpt-4o"),
+  model: openai("gpt-5.4"),
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
+    functionId: "joke_agent",
     recordInputs: true,
     recordOutputs: true,
   },
+});`,
+              },
+              {
+                label: 'ToolLoopAgent',
+                language: 'javascript',
+                code: `const { ToolLoopAgent, tool } = require("ai");
+const { z } = require("zod");
+
+const agent = new ToolLoopAgent({
+  model: "openai/gpt-5.4",
+  tools: {
+    weather: tool({
+      description: "Get the weather in a location",
+      inputSchema: z.object({
+        location: z.string().describe("The location to get the weather for"),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  telemetry: {
+    isEnabled: true,
+    functionId: "weather_agent",
+    recordInputs: true,
+    recordOutputs: true,
+  },
+});
+
+const result = await agent.generate({
+  prompt: "What is the weather in San Francisco?",
 });`,
               },
             ],
@@ -352,7 +385,7 @@ const client = new Anthropic();
 
 const msg = await client.messages.create({
   messages: [{ role: "user", content: "Tell me a joke" }],
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
 });`,
         },
       ],
@@ -370,7 +403,7 @@ const msg = await client.messages.create({
 const client = new OpenAI();
 
 const response = await client.responses.create({
-  model: "gpt-4o-mini",
+  model: "gpt-5.4",
   input: "Tell me a joke",
 });`,
         },
@@ -390,7 +423,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const response = await ai.models.generateContent({
-  model: 'gemini-2.5-flash-lite',
+  model: 'gemini-3-flash-preview',
   contents: 'Why is the sky blue?',
 });`,
         },
@@ -409,7 +442,7 @@ const response = await ai.models.generateContent({
 const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
 
 const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
+  modelName: "gpt-5.4",
   apiKey: process.env.OPENAI_API_KEY,
 });
 
@@ -432,22 +465,20 @@ const text = response.content;`,
         {
           label: 'JavaScript',
           language: 'javascript',
-          code: `const { ChatOpenAI } = require("@langchain/openai");
-const { createReactAgent } = require("@langchain/langgraph/prebuilt");
-const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+          code: `const { createReactAgent } = require("@langchain/langgraph/prebuilt");
+const { ChatOpenAI } = require("@langchain/openai");
 
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY,
+const model = new ChatOpenAI({ modelName: "gpt-5.4" });
+
+// Setting the agent name helps Sentry identify and group agent activity
+const agent = createReactAgent({
+  llm: model,
+  tools: [],
+  name: "joke_agent",
 });
 
-const agent = createReactAgent({ llm, tools: [] });
-
 const result = await agent.invoke({
-  messages: [
-    new SystemMessage("You are a helpful assistant."),
-    new HumanMessage("Tell me a joke")
-  ],
+  messages: [{ role: "user", content: "Tell me a joke" }],
 });
 
 const messages = result.messages;
@@ -476,7 +507,11 @@ export const agentMonitoring = ({
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   introduction: params => (
-    <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+    <SdkUpdateAlert
+      projectId={params.project.id}
+      minVersion={minVersion}
+      packageName={packageName}
+    />
   ),
   install: params =>
     getInstallStep(params, {

@@ -1,39 +1,43 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import ReplayController from 'sentry/components/replays/replayController';
-import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
-import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {ReplayController} from 'sentry/components/replays/replayController';
+import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
+import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFatal} from 'sentry/icons/iconFatal';
-import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
+import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
-import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import ReplayViewScale from 'sentry/views/replays/detail/replayViewScale';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
+import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {ReplayViewScale} from 'sentry/views/replays/detail/replayViewScale';
 
 type Props = {
   isLoading: boolean;
+  layout: LayoutKey;
   toggleFullscreen: () => void;
+  toggleLayout: () => void;
 };
 
 function FatalIconTooltip({error}: {error: Error | null}) {
@@ -44,7 +48,7 @@ function FatalIconTooltip({error}: {error: Error | null}) {
   );
 }
 
-export default function ReplayView({toggleFullscreen, isLoading}: Props) {
+export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const replay = useReplayReader();
@@ -98,7 +102,29 @@ export default function ReplayView({toggleFullscreen, isLoading}: Props) {
                 isOpen={isSidebarOpen}
                 setIsOpen={setIsSidebarOpen}
               />
-            ) : null}
+            ) : (
+              <Button
+                size="xs"
+                icon={
+                  <IconChevron
+                    direction={layout === LayoutKey.VIDEO_ONLY ? 'left' : 'right'}
+                    isDouble
+                  />
+                }
+                aria-label={
+                  layout === LayoutKey.VIDEO_ONLY
+                    ? t('Open Sidebar')
+                    : t('Collapse Sidebar')
+                }
+                onClick={toggleLayout}
+                tooltipProps={{
+                  title:
+                    layout === LayoutKey.VIDEO_ONLY
+                      ? t('Open Sidebar')
+                      : t('Collapse Sidebar'),
+                }}
+              />
+            )}
           </ContextContainer>
           {isLoading ? (
             <FluidHeight>
@@ -149,14 +175,14 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
 `;
 

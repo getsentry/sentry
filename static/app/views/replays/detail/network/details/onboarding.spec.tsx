@@ -4,8 +4,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
@@ -44,18 +44,18 @@ describe('Setup', () => {
       ).toBeInTheDocument();
 
       const expectedSnippet = [
-        `Sentry.init({`,
-        `  integrations: [`,
-        `    Sentry.replayIntegration({`,
-        `      networkDetailAllowUrls: ['/api/0/organizations/1/issues/1234'],`,
-        `      networkRequestHeaders: ['X-Custom-Header'],`,
-        `      networkResponseHeaders: ['X-Custom-Header'],`,
-        `    }),`,
-        `  ],`,
-        `})`,
+        'Sentry.init({',
+        '  integrations: [',
+        '    Sentry.replayIntegration({',
+        "      networkDetailAllowUrls: ['/api/0/organizations/1/issues/1234'],",
+        "      networkRequestHeaders: ['X-Custom-Header'],",
+        "      networkResponseHeaders: ['X-Custom-Header'],",
+        '    }),',
+        '  ],',
+        '})',
       ].join('\n');
       const snippetElem = screen.getByText(
-        `networkRequestHeaders: ['X-Custom-Header'],`,
+        "networkRequestHeaders: ['X-Custom-Header'],",
         {exact: false}
       );
       // Using toHaveTextContent would be nice here, but it loses the newlines.

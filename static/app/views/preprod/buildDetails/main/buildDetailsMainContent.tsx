@@ -9,13 +9,13 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
-import parseApiError from 'sentry/utils/parseApiError';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
@@ -25,8 +25,8 @@ import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymM
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
   isSizeInfoPending,
@@ -100,7 +100,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       fieldName: 'categories',
     });
 
-  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+  const selectedCategories = selectedCategoriesParam
     ? new Set(
         selectedCategoriesParam
           .split(',')
@@ -109,7 +109,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           )
           .map(c => c as TreemapType)
       )
-    : new Set();
+    : new Set<TreemapType>();
 
   const handleToggleCategory = (category: TreemapType) => {
     const next = new Set(selectedCategories);

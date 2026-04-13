@@ -11,7 +11,7 @@ from sentry.types.condition_activity import ConditionActivity, ConditionActivity
 
 class ReappearedEventCondition(EventCondition):
     id = "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
-    label = "The issue changes state from archived to escalating"
+    label = "An issue escalates"
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         return state.has_escalated

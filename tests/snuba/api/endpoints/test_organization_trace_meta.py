@@ -3,14 +3,17 @@ from uuid import uuid4
 import pytest
 from django.urls import NoReverseMatch, reverse
 
-from sentry.testutils.cases import UptimeResultEAPTestCase
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.testutils.cases import OccurrenceTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
 
 
-class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
+class OrganizationEventsTraceMetaEndpointTest(
+    OrganizationEventsTraceEndpointBase, OccurrenceTestCase
+):
     url_name = "sentry-api-0-organization-trace-meta"
 
     def client_get(self, data, url=None):
@@ -89,6 +92,47 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
 
+    def test_simple_with_eap_as_source_of_truth(self) -> None:
+        self.load_trace()
+        first_group = self.create_group(project=self.project)
+        second_group = self.create_group(project=self.project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=first_group.id,
+                    trace_id=self.trace_id,
+                    issue_occurrence_id=uuid4().hex,
+                ),
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=second_group.id,
+                    trace_id=self.trace_id,
+                    issue_occurrence_id=uuid4().hex,
+                ),
+            ]
+        )
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "api.trace.count_performance_issues"
+                ],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1},
+                    format="json",
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
+
     def test_no_team(self) -> None:
         self.load_trace()
         self.team.delete()
@@ -116,6 +160,72 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errors"] == 3
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
+
+    def test_with_errors_eap_eval_not_allowlisted_uses_snuba(self) -> None:
+        self.load_trace()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
+        group = self.create_group(project=self.gen1_project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    project=self.gen1_project,
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                ),
+            ]
+        )
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1},
+                    format="json",
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["errors"] == 3
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
+
+    def test_with_errors_eap_allowlisted_uses_eap(self) -> None:
+        self.load_trace()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
+        group = self.create_group(project=self.gen1_project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    project=self.gen1_project,
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                ),
+            ]
+        )
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "api.trace.count_errors"
+                ],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1},
+                    format="json",
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["errors"] == 1
         assert data["performance_issues"] == 2
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
@@ -152,7 +262,6 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
 
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):
     url_name = "sentry-api-0-organization-trace-meta"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def create_uptime_check(self, trace_id=None, **kwargs):
         defaults = {
@@ -166,7 +275,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         """Test that uptime_checks field is NOT present when include_uptime is not set"""
         self.load_trace()
         uptime_result = self.create_uptime_check()
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -190,7 +299,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
             self.create_uptime_check(check_status="failure"),
             self.create_uptime_check(check_status="success"),
         ]
-        self.store_uptime_results(uptime_results)
+        self.store_eap_items(uptime_results)
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -231,7 +340,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         self.load_trace()
         other_trace_id = uuid4().hex
         uptime_result = self.create_uptime_check(trace_id=other_trace_id)
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         with self.feature(self.FEATURES):
             response = self.client.get(

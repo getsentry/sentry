@@ -1,7 +1,7 @@
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
-import replayerStepper from 'sentry/utils/replays/replayerStepper';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {replayerStepper} from 'sentry/utils/replays/replayerStepper';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {
   EventType,
   IncrementalSource,
@@ -62,7 +62,7 @@ async function extractDiffMutations({
     },
     onVisitFrame: (frame, collection, replayer) => {
       const mirror = replayer.getMirror();
-      if (lastFrame && lastFrame.type === EventType.FullSnapshot) {
+      if (lastFrame?.type === EventType.FullSnapshot) {
         const node = mirror.getNode(lastFrame.data.node.id) as Document | null;
         const item = collection.get(lastFrame);
         if (node && item) {
@@ -79,8 +79,7 @@ async function extractDiffMutations({
           };
         }
       } else if (
-        lastFrame &&
-        lastFrame.type === EventType.IncrementalSnapshot &&
+        lastFrame?.type === EventType.IncrementalSnapshot &&
         'source' in lastFrame.data &&
         lastFrame.data.source === IncrementalSource.Mutation
       ) {
@@ -227,8 +226,7 @@ function getNameForElem(element: HTMLElement) {
 // Copy Full XPath => `/html/body/div[1]/div[2]/div/div`
 function getSelectorForElem(element: HTMLElement): string {
   const parts: string[] = [];
-  let elem: HTMLElement | null =
-    element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
+  let elem = element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
 
   while (elem) {
     parts.unshift(getNameForElem(elem));
@@ -246,7 +244,7 @@ interface Props {
   rightOffsetMs: number;
 }
 
-export default function useExtractDiffMutations({
+export function useExtractDiffMutations({
   leftOffsetMs,
   replay,
   rightOffsetMs,

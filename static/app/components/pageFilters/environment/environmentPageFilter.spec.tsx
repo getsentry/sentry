@@ -1,14 +1,14 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 const organization = OrganizationFixture({features: ['open-membership']});
 const projects = [
@@ -106,9 +106,7 @@ describe('EnvironmentPageFilter', () => {
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
-    const mockRouter = RouterFixture({
-      location: {pathname: '/organizations/org-slug/issues/', query: {}},
-    });
+    const navigate = jest.fn();
 
     render(<EnvironmentPageFilter />, {
       organization,
@@ -121,7 +119,13 @@ describe('EnvironmentPageFilter', () => {
     expect(await screen.findByRole('button', {name: 'All Envs'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => updateEnvironments(['prod'], mockRouter));
+    act(() =>
+      updateEnvironments(
+        ['prod'],
+        LocationFixture({pathname: '/organizations/org-slug/issues/', query: {}}),
+        navigate
+      )
+    );
 
     // <EnvironmentPageFilter /> is updated
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();

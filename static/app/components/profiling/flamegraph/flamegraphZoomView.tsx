@@ -43,7 +43,7 @@ import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -142,7 +142,7 @@ function FlamegraphZoomView({
 
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
-  const textRenderer: FlamegraphTextRenderer | null = useMemo(() => {
+  const textRenderer = useMemo(() => {
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
@@ -153,7 +153,7 @@ function FlamegraphZoomView({
     );
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
-  const gridRenderer: GridRenderer | null = useMemo(() => {
+  const gridRenderer = useMemo(() => {
     if (!flamegraphOverlayCanvasRef || disableGrid) {
       return null;
     }
@@ -164,7 +164,7 @@ function FlamegraphZoomView({
     );
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme, disableGrid]);
 
-  const sampleTickRenderer: SampleTickRenderer | null = useMemo(() => {
+  const sampleTickRenderer = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
       return null;
     }

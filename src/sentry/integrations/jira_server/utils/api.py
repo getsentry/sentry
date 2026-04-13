@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 
 if TYPE_CHECKING:
     from sentry.integrations.models.integration import Integration
@@ -76,9 +77,10 @@ def handle_status_change(
         providers=[integration.provider],
     )
     for oi in org_integrations:
-        installation = integration.get_installation(oi.organization_id)
+        with webhook_viewer_context(oi.organization_id):
+            installation = integration.get_installation(oi.organization_id)
 
-        if hasattr(installation, "sync_status_inbound"):
-            installation.sync_status_inbound(
-                issue_key, {"changelog": changelog, "issue": data["issue"]}
-            )
+            if hasattr(installation, "sync_status_inbound"):
+                installation.sync_status_inbound(
+                    issue_key, {"changelog": changelog, "issue": data["issue"]}
+                )

@@ -1,37 +1,42 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {
+  extractSelectionParameters,
+  normalizeDateTimeParams,
+} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Pagination} from 'sentry/components/pagination';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {t, tct} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
 import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import {NewMonitorButton} from 'sentry/views/insights/crons/components/newMonitorButton';
 import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewTimeline';
@@ -39,8 +44,9 @@ import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
-import type {Monitor} from 'sentry/views/insights/crons/types';
-import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const CronsListPageHeader = HookOrDefault({
   hookName: 'component:crons-list-page-header',
@@ -51,23 +57,27 @@ function CronsOverview() {
   const navigate = useNavigate();
   const location = useLocation();
   const {guideVisible} = useCronsUpsertGuideState();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
 
-  const queryKey = makeMonitorListQueryKey(organization, location.query);
-
-  const {
-    data: monitorList,
-    getResponseHeader: monitorListHeaders,
-    isPending,
-    refetch,
-  } = useApiQuery<Monitor[]>(queryKey, {
-    staleTime: 0,
+  const {data, isPending, refetch} = useQuery({
+    ...monitorListApiOptions(organization, {
+      cursor: location.query.cursor,
+      query: location.query.query,
+      project: location.query.project,
+      environment: location.query.environment,
+      owner: location.query.owner,
+      sort: location.query.sort,
+      asc: location.query.asc,
+    }),
+    select: selectJsonWithHeaders,
   });
+  const monitorList = data?.json;
 
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
 
-  const monitorListPageLinks = monitorListHeaders?.('Link');
+  const monitorListPageLinks = data?.headers.Link;
 
   const handleSearch = (query: string) => {
     const currentQuery = {...location.query, cursor: undefined};
@@ -90,29 +100,56 @@ function CronsOverview() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton />
-            <Button
-              icon={<IconList />}
-              size="sm"
-              onClick={() =>
-                openBulkEditMonitorsModal({
-                  onClose: () => refetch(),
-                })
-              }
-              analyticsEventKey="crons.bulk_edit_modal_button_clicked"
-              analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
-            >
-              {t('Manage Monitors')}
-            </Button>
-            {!guideVisible && (
-              <NewMonitorButton size="sm" icon={<IconAdd />}>
-                {t('Add Cron Monitor')}
-              </NewMonitorButton>
-            )}
-          </Grid>
-        </Layout.HeaderActions>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <Button
+                icon={<IconList />}
+                onClick={() =>
+                  openBulkEditMonitorsModal({
+                    onClose: () => refetch(),
+                  })
+                }
+                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+              >
+                {t('Manage Monitors')}
+              </Button>
+              {!guideVisible && (
+                <NewMonitorButton icon={<IconAdd />}>
+                  {t('Add Cron Monitor')}
+                </NewMonitorButton>
+              )}
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton />
+              <Button
+                icon={<IconList />}
+                size="sm"
+                onClick={() =>
+                  openBulkEditMonitorsModal({
+                    onClose: () => refetch(),
+                  })
+                }
+                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+              >
+                {t('Manage Monitors')}
+              </Button>
+              {!guideVisible && (
+                <NewMonitorButton size="sm" icon={<IconAdd />}>
+                  {t('Add Cron Monitor')}
+                </NewMonitorButton>
+              )}
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
@@ -142,6 +179,26 @@ function CronsOverview() {
           </Filters>
           <Alert.Container>
             <GlobalMonitorProcessingErrors project={project} />
+            {organization.features.includes('workflow-engine-ui') && (
+              <Alert variant="info" showIcon>
+                {tct(
+                  'Cron Monitors are moving to [link:Monitors]. Head over there for the same functionality in a new home.',
+                  {
+                    link: (
+                      <Link
+                        to={{
+                          pathname: makeMonitorTypePathname(
+                            organization.slug,
+                            'monitor_check_in_failure'
+                          ),
+                          query: extractSelectionParameters(location.query),
+                        }}
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            )}
           </Alert.Container>
           {isPending ? (
             <LoadingIndicator />
@@ -171,8 +228,8 @@ export default CronsOverview;
 
 const Filters = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
 
   > :last-child {
     flex-grow: 1;

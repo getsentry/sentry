@@ -44,6 +44,39 @@ describe('initializeSdk', () => {
       })
     );
   });
+
+  it('filters malformed [null,null] unhandled rejections', () => {
+    initializeSdk({
+      ...window.__initialData,
+      apmSampling: 1,
+      sentryConfig: {
+        allowUrls: [],
+        dsn: '',
+        release: '',
+        tracePropagationTargets: [],
+      },
+    });
+
+    const initConfig = jest.mocked(Sentry.init).mock.calls.slice(-1)[0]?.[0];
+    expect(initConfig?.beforeSend).toBeDefined();
+
+    const event = {
+      message: '[null,null]',
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: ',',
+            mechanism: {
+              type: 'auto.browser.global_handlers.onunhandledrejection',
+            },
+          },
+        ],
+      },
+    } as Sentry.ErrorEvent;
+
+    expect(initConfig?.beforeSend?.(event, {} as Sentry.EventHint)).toBeNull();
+  });
 });
 
 describe('isFilteredRequestErrorEvent', () => {
@@ -129,7 +162,7 @@ describe('isFilteredRequestErrorEvent', () => {
   });
 
   describe('non-matching error type, non-matching message', () => {
-    it(`rejects other errors`, () => {
+    it('rejects other errors', () => {
       const event = {
         exception: {
           values: [{type: 'UncaughtSquirrelError', value: 'Squirrel was not caught'}],
@@ -139,7 +172,7 @@ describe('isFilteredRequestErrorEvent', () => {
       expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
     });
 
-    it(`rejects other errors as causes`, () => {
+    it('rejects other errors as causes', () => {
       const event = {
         exception: {
           values: [

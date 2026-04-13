@@ -281,7 +281,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
 
     const finalMatrix = mat3.multiply(
       mat3.create(),
-      mat3.invert(mat3.create(), this.configSpaceTransform),
+      mat3.invert(mat3.create(), this.configSpaceTransform)!,
       this.toConfigSpace(canvas.physicalSpace)
     );
 
@@ -320,7 +320,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
 
     const finalMatrix = mat3.multiply(
       mat3.create(),
-      mat3.invert(mat3.create(), this.configSpaceTransform),
+      mat3.invert(mat3.create(), this.configSpaceTransform)!,
       this.toConfigView(canvas.physicalSpace)
     );
 

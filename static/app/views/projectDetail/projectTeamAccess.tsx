@@ -4,13 +4,12 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Collapsible from 'sentry/components/collapsible';
-import IdBadge from 'sentry/components/idBadge';
+import {Collapsible} from 'sentry/components/collapsible';
+import {IdBadge} from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,7 +21,7 @@ type Props = {
   project?: Project;
 };
 
-function ProjectTeamAccess({organization, project}: Props) {
+export function ProjectTeamAccess({organization, project}: Props) {
   const location = useLocation();
   const hasEditPermissions = organization.access.includes('project:write');
   const settingsLink = {
@@ -99,7 +98,5 @@ const StyledSidebarSection = styled(SidebarSection)`
 
 const StyledLink = styled(Link)`
   display: block;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
-
-export default ProjectTeamAccess;

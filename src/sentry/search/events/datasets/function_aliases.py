@@ -274,39 +274,6 @@ def resolve_avg_compare(
     )
 
 
-def resolve_metrics_layer_percentile(
-    args: Mapping[str, str | Column | SelectType | int | float],
-    alias: str,
-    resolve_mri: Callable[[str], Column],
-    fixed_percentile: float | None = None,
-) -> SelectType:
-    # TODO: rename to just resolve_metrics_percentile once the non layer code can be retired
-    if fixed_percentile is None and isinstance(args["percentile"], float):
-        fixed_percentile = args["percentile"]
-    if fixed_percentile not in constants.METRIC_PERCENTILES:
-        raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
-    if not isinstance(args["column"], str):
-        raise InvalidSearchQuery(f"Invalid column type: expected <str> got {args['column']}")
-    column = resolve_mri(args["column"])
-    return (
-        Function(
-            "max",
-            [
-                column,
-            ],
-            alias,
-        )
-        if fixed_percentile == 1
-        else Function(
-            f"p{int(fixed_percentile * 100)}",
-            [
-                column,
-            ],
-            alias,
-        )
-    )
-
-
 def resolve_division(
     dividend: SelectType, divisor: SelectType, alias: str | None, fallback: Any | None = None
 ) -> SelectType:

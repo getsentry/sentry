@@ -1,15 +1,12 @@
 import {useMemo} from 'react';
 
-import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Query results for whether a given replayId exists in the database (not deleted, etc)
  */
-export default function useReplayExists({
-  start,
-  end,
-}: {end?: string; start?: string} = {}) {
+export function useReplayExists({start, end}: {end?: string; start?: string} = {}) {
   const organization = useOrganization();
   const {hasOne, hasMany} = useReplayCount({
     bufferLimit: 100,

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.project import Project
@@ -19,7 +19,7 @@ from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -36,7 +36,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         available_ticket_actions = set()
 
-        project_has_filters = features.has("projects:alert-filters", project)
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
@@ -48,8 +47,8 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project=project)
-            # skip over conditions if they are not in the migrated set for a project with alert-filters
-            if project_has_filters and node.id in MIGRATED_CONDITIONS:
+            # skip over conditions if they are not in the migrated set
+            if node.id in MIGRATED_CONDITIONS:
                 continue
 
             if not can_create_tickets and node.id in TICKET_ACTIONS:

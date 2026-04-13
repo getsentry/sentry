@@ -5,9 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {After, Before} from 'sentry/components/replays/diff/utils';
-import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
-import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
-import {space} from 'sentry/styles/space';
+import {ReplayPlayer} from 'sentry/components/replays/player/replayPlayer';
+import {ReplayPlayerMeasurer} from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -53,7 +52,7 @@ const ReplayGrid = styled('div')`
 
 const Border = styled('span')`
   border: 3px solid;
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   border-color: ${p => p.theme.colors.red400};
   & + & {
     border-color: ${p => p.theme.colors.green400};

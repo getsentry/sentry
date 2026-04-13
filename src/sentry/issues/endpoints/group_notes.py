@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
@@ -22,7 +22,7 @@ from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

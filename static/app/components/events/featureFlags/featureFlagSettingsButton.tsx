@@ -4,7 +4,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export default function FeatureFlagSettingsButton({orgSlug}: {orgSlug: string}) {
+export function FeatureFlagSettingsButton({orgSlug}: {orgSlug: string}) {
   return (
     <DropdownMenu
       position="bottom-end"

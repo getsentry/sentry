@@ -29,13 +29,6 @@ export type EventGroupComponent = {
   name: string | null;
   values: EventGroupComponent[] | string[];
 };
-export type EventGroupingConfig = {
-  base: string | null;
-  delegates: string[];
-  id: string;
-  strategies: string[];
-};
-
 type VariantEvidence = {
   desc: string;
   fingerprint: string;
@@ -78,7 +71,6 @@ interface ChecksumVariant extends BaseVariant {
 interface HasComponentGrouping {
   client_values?: string[];
   component?: EventGroupComponent;
-  config?: EventGroupingConfig;
   matched_rule?: string;
   values?: string[];
 }
@@ -191,6 +183,8 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  parentIndex?: number | null;
+  sampleCount?: number | null;
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
@@ -202,7 +196,7 @@ export type ExceptionValue = {
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
-  value: string;
+  value: string | null;
   frames?: Frame[] | null;
   rawModule?: string | null;
   rawType?: string | null;
@@ -387,6 +381,11 @@ export type Entry =
   | EntryCsp
   | EntryGeneric
   | EntryResources;
+
+/** Maps each EntryType to its corresponding Entry subtype. */
+export type EntryMap = {
+  [E in Entry as E['type']]: E;
+};
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 

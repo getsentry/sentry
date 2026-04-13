@@ -20,6 +20,15 @@ def format_no_quota_messages() -> tuple[str, str, str]:
     return str(title), str(subtitle), str(summary)
 
 
+def format_all_skipped_messages(project: Project) -> tuple[str, str, str]:
+    """Format status check messages when all artifacts are filtered/skipped."""
+    title = _SIZE_ANALYZER_TITLE_BASE
+    subtitle = _("Size analysis skipped")
+    settings_url = _get_settings_url(project)
+    summary = str(_format_configure_link(project, settings_url))
+    return str(title), str(subtitle), str(summary)
+
+
 def format_status_check_messages(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
@@ -85,17 +94,29 @@ def format_status_check_messages(
     parts = []
     if analyzed_count > 0 and not triggered_rules:
         parts.append(
-            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            ngettext(
+                "%(count)d component analyzed",
+                "%(count)d components analyzed",
+                analyzed_count,
+            )
             % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            ngettext(
+                "%(count)d component processing",
+                "%(count)d components processing",
+                processing_count,
+            )
             % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            ngettext(
+                "%(count)d component errored",
+                "%(count)d components errored",
+                errored_count,
+            )
             % {"count": errored_count}
         )
 
@@ -201,7 +222,7 @@ def _format_artifact_summary(
         if metric_type_display:
             qualifiers.append(metric_type_display)
 
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
+        mobile_app_info = artifact.get_mobile_app_info()
         artifact_app_name = mobile_app_info.app_name if mobile_app_info else None
         app_name = (
             f"{artifact_app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
@@ -310,11 +331,12 @@ def _get_settings_url(
 ) -> str:
     """Build the settings URL for the project's preprod settings page."""
     base_url = f"/settings/projects/{project.slug}/mobile-builds/"
+    query = "tab=size"
     if triggered_rules:
         unique_rule_ids = list(dict.fromkeys(tr.rule.id for tr in triggered_rules))
         expanded_params = "&".join(f"expanded={rule_id}" for rule_id in unique_rule_ids)
-        return project.organization.absolute_url(base_url, query=expanded_params)
-    return project.organization.absolute_url(base_url)
+        query += "&" + expanded_params
+    return project.organization.absolute_url(base_url, query=query)
 
 
 def _format_failed_checks_details(
@@ -325,10 +347,10 @@ def _format_failed_checks_details(
     if not triggered_rules:
         return ""
 
-    # Group rules by app_id
-    rules_by_app: dict[str, list[TriggeredRule]] = {}
+    # Group rules by (app_id, build_configuration_name, platform)
+    rules_by_app: dict[tuple[str, str | None, str | None], list[TriggeredRule]] = {}
     for tr in triggered_rules:
-        app_key = tr.app_id or "Unknown"
+        app_key = (tr.app_id or "Unknown", tr.build_configuration_name, tr.platform)
         if app_key not in rules_by_app:
             rules_by_app[app_key] = []
         rules_by_app[app_key].append(tr)
@@ -341,10 +363,10 @@ def _format_failed_checks_details(
     ) % {"count": total_failed}
 
     details_content = []
-    for app_id, app_rules in rules_by_app.items():
-        platform = app_rules[0].platform if app_rules else None
+    for (app_id, config_name, platform), app_rules in rules_by_app.items():
         platform_text = f" ({platform})" if platform else ""
-        details_content.append(f"`{app_id}`{platform_text}")
+        config_text = f" | {config_name}" if config_name else ""
+        details_content.append(f"`{app_id}`{config_text}{platform_text}")
 
         for tr in app_rules:
             metric_display = _get_metric_display_name(tr.rule.metric)
@@ -456,15 +478,10 @@ def _get_size_metric_display_data(
 
 def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str:
     """Format version string from build_version and build_number."""
-    version_parts = []
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
-    build_version = mobile_app_info.build_version if mobile_app_info else None
-    build_number = mobile_app_info.build_number if mobile_app_info else None
-    if build_version:
-        version_parts.append(build_version)
-    if build_number:
-        version_parts.append(f"({build_number})")
-    return " ".join(version_parts) if version_parts else default
+    mobile_app_info = artifact.get_mobile_app_info()
+    if mobile_app_info is None:
+        return default
+    return mobile_app_info.format_version_string(default=default)
 
 
 def _get_size_metric_type_display_name(
@@ -478,6 +495,8 @@ def _get_size_metric_type_display_name(
             return "Watch"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return None
 
@@ -495,6 +514,8 @@ def _get_triggered_metric_type_display_name(
             if identifier:
                 return f"Dynamic Feature ({identifier})"
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return ""
 
@@ -557,24 +578,8 @@ def _calculate_size_change(head_size: int | None, base_size: int | None) -> str:
 
 def _format_file_size(size_bytes: int | None) -> str:
     """Format file size with null handling for display in templates."""
+    from sentry.preprod.utils import format_bytes_base10
+
     if size_bytes is None:
         return "Unknown"
-    return _format_bytes_base10(size_bytes)
-
-
-def _format_bytes_base10(size_bytes: int) -> str:
-    """Format file size using decimal (base-10) units. Matches the frontend implementation of formatBytesBase10."""
-    units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
-    threshold = 1000
-
-    if size_bytes < threshold:
-        return f"{size_bytes} {units[0]}"
-
-    u = 0
-    number = float(size_bytes)
-    max_unit = len(units) - 1
-    while number >= threshold and u < max_unit:
-        number /= threshold
-        u += 1
-
-    return f"{number:.1f} {units[u]}"
+    return format_bytes_base10(size_bytes)

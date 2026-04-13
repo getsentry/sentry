@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 
-import ReleasesDropdown from './releasesDropdown';
+import {ReleasesDropdown} from './releasesDropdown';
 
 export enum ReleasesDisplayOption {
   USERS = 'users',
@@ -19,7 +19,7 @@ type Props = {
   selected: ReleasesDisplayOption;
 };
 
-function ReleasesDisplayOptions({selected, onSelect}: Props) {
+export function ReleasesDisplayOptions({selected, onSelect}: Props) {
   return (
     <StyledReleasesDropdown
       label={t('Display')}
@@ -29,8 +29,6 @@ function ReleasesDisplayOptions({selected, onSelect}: Props) {
     />
   );
 }
-
-export default ReleasesDisplayOptions;
 
 const StyledReleasesDropdown = styled(ReleasesDropdown)`
   z-index: 1;

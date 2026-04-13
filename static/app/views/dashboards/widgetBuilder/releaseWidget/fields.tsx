@@ -334,7 +334,7 @@ export function generateReleaseWidgetFieldOptions(
     .sort((a, b) => a.localeCompare(b))
     .forEach(operation => {
       fieldOptions[`function:${operation}`] = {
-        label: `${operation}(${'\u2026'})`,
+        label: `${operation}(\u2026)`,
         value: {
           kind: FieldValueKind.FUNCTION,
           meta: {

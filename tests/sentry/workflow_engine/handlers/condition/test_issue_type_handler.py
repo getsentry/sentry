@@ -3,13 +3,11 @@ from jsonschema import ValidationError
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import GroupCategory
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
-@pytest.mark.skip()
 class TestIssueTypeCondition(ConditionTestCase):
     condition = Condition.ISSUE_TYPE
 
@@ -19,64 +17,70 @@ class TestIssueTypeCondition(ConditionTestCase):
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "value": 1,
+                "value": ErrorGroupType.slug,
+                "include": True,
             },
             condition_result=True,
         )
 
     def test_json_schema(self) -> None:
-        self.dc.comparison.update({"value": 8001})
-        self.dc.save()
-
-        self.dc.comparison.update({"value": "asdf"})
+        self.dc.comparison = {"value": 8001, "include": True}
         with pytest.raises(ValidationError):
             self.dc.save()
 
-        self.dc.comparison = {}
+        self.dc.comparison = {"value": "asdf", "include": True}
         with pytest.raises(ValidationError):
             self.dc.save()
 
-        self.dc.comparison.update({"hello": "there"})
+        self.dc.comparison = {"include": True}
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_valid_input_values__success(self) -> None:
-        self.dc.update(comparison={"value": 1})
-        self.assert_passes(self.dc, self.event_data)
-        self.dc.update(comparison={"value": str(ErrorGroupType.type_id)})
-        self.assert_passes(self.dc, self.event_data)
-        self.dc.update(comparison={"value": ErrorGroupType.type_id})
-        self.assert_passes(self.dc, self.event_data)
+        self.dc.comparison = {"hello": "there", "include": True}
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
-    def test_valid_input_values__failure(self) -> None:
-        self.dc.update(comparison={"value": MetricIssue.type_id})
-        self.assert_does_not_pass(self.dc, self.event_data)
+        with pytest.raises(ValidationError):
+            self.dc.comparison = {"value": ErrorGroupType.slug, "include": "true"}
+            self.dc.save()
 
     def test_fail_on_invalid_data(self) -> None:
         data_cases = [
             {"value": None},
             {},
-            {"value": GroupCategory.ERROR.name},
+            {"value": 1},
             {"value": "ERROR"},
-            {"value": "error"},
+            {"value": "invalid_slug"},
         ]
 
         for data_case in data_cases:
             self.dc.update(comparison=data_case)
             self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_group_event(self) -> None:
+    def test_include(self) -> None:
         assert self.event.group is not None
         group_event = self.event.for_group(self.group)
 
-        self.dc.update(comparison={"value": ErrorGroupType.type_id})
+        # Error event will pass when we include ErrorGroupType
+        self.dc.update(comparison={"value": ErrorGroupType.slug, "include": True})
         self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
+
+        # Error event will not pass when we include MetricIssue
+        self.dc.update(comparison={"value": MetricIssue.slug, "include": True})
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
     def test_exclude(self) -> None:
         assert self.event.group is not None
         group_event = self.event.for_group(self.group)
 
-        self.dc.update(comparison={"value": ErrorGroupType.type_id, "include": False})
+        self.dc.update(comparison={"value": ErrorGroupType.slug, "include": False})
+        # Error event will not pass when we exclude ErrorGroupType
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
+
+        self.dc.update(comparison={"value": MetricIssue.slug, "include": False})
+        # Error event will pass when we exclude MetricIssue
+        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

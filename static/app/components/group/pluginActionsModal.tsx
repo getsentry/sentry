@@ -6,8 +6,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import plugins from 'sentry/plugins';
-import {space} from 'sentry/styles/space';
+import {plugins} from 'sentry/plugins';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -118,5 +117,5 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

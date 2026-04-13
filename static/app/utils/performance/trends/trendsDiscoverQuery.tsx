@@ -4,7 +4,7 @@ import type {
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {
   TrendChangeType,
   TrendFunctionField,
@@ -18,7 +18,7 @@ import {
   getCurrentTrendParameter,
   getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
 type TrendsRequest = {
   eventView: Partial<TrendView>;
@@ -77,7 +77,7 @@ function getTrendsRequestPayload(props: RequestProps) {
   return apiPayload;
 }
 
-export default function TrendsDiscoverQuery(props: Omit<Props, 'projects'>) {
+export function TrendsDiscoverQuery(props: Omit<Props, 'projects'>) {
   const {projects} = useProjects();
   const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (

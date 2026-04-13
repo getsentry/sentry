@@ -9,7 +9,7 @@ import {IconStar} from 'sentry/icons/iconStar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {
   getSavedQueryTraceItemDataset,

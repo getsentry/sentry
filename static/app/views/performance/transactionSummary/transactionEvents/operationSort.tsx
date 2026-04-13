@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
@@ -8,11 +8,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
-import MenuItem from 'sentry/components/menuItem';
+import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
@@ -23,49 +23,34 @@ type Props = {
   title: React.ComponentType<TitleProps>;
 };
 
-type State = {
-  isOpen: boolean;
-};
+export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuEl = useRef<Element | null>(null);
 
-class OperationSort extends Component<Props, State> {
-  state: State = {
-    isOpen: false,
-  };
-
-  componentDidUpdate(_props: Props, prevState: State) {
-    if (this.state.isOpen && prevState.isOpen === false) {
-      document.addEventListener('click', this.handleClickOutside, true);
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (event.target instanceof Element && !menuEl.current?.contains(event.target)) {
+      setIsOpen(false);
     }
-    if (this.state.isOpen === false && prevState.isOpen) {
-      document.removeEventListener('click', this.handleClickOutside, true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside, true);
+    } else {
+      document.removeEventListener('click', handleClickOutside, true);
     }
-  }
 
-  componentWillUnmount() {
-    document.removeEventListener('click', this.handleClickOutside, true);
-  }
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+    };
+  }, [handleClickOutside, isOpen]);
 
-  private menuEl: Element | null = null;
+  const toggleOpen = useCallback(() => {
+    setIsOpen(previousIsOpen => !previousIsOpen);
+  }, []);
 
-  handleClickOutside = (event: MouseEvent) => {
-    if (!this.menuEl) {
-      return;
-    }
-    if (!(event.target instanceof Element)) {
-      return;
-    }
-    if (this.menuEl.contains(event.target)) {
-      return;
-    }
-    this.setState({isOpen: false});
-  };
-
-  toggleOpen = () => {
-    this.setState(({isOpen}) => ({isOpen: !isOpen}));
-  };
-
-  generateSortLink(field: any): LocationDescriptorObject | undefined {
-    const {eventView, tableMeta, location} = this.props;
+  function generateSortLink(field: any): LocationDescriptorObject | undefined {
     if (!tableMeta) {
       return undefined;
     }
@@ -79,8 +64,7 @@ class OperationSort extends Component<Props, State> {
     };
   }
 
-  renderMenuItem(operation: any, title: any) {
-    const {eventView} = this.props;
+  function renderMenuItem(operation: any, title: any) {
     return (
       <DropdownMenuItem>
         <Flex justify="start" align="center" width="100%">
@@ -90,9 +74,9 @@ class OperationSort extends Component<Props, State> {
               size="sm"
               checked={eventView.sorts.some(({field}) => field === operation)}
               onClick={() => {
-                const sortLink = this.generateSortLink({field: operation});
+                const sortLink = generateSortLink({field: operation});
                 if (sortLink) {
-                  browserHistory.push(sortLink);
+                  navigate(sortLink);
                 }
               }}
             />
@@ -103,18 +87,18 @@ class OperationSort extends Component<Props, State> {
     );
   }
 
-  renderMenuContent() {
+  function renderMenuContent() {
     return (
       <DropdownContent>
-        {this.renderMenuItem('spans.http', t('Sort By HTTP'))}
-        {this.renderMenuItem('spans.db', t('Sort By DB'))}
-        {this.renderMenuItem('spans.resource', t('Sort By Resource'))}
-        {this.renderMenuItem('spans.browser', t('Sort By Browser'))}
+        {renderMenuItem('spans.http', t('Sort By HTTP'))}
+        {renderMenuItem('spans.db', t('Sort By DB'))}
+        {renderMenuItem('spans.resource', t('Sort By Resource'))}
+        {renderMenuItem('spans.browser', t('Sort By Browser'))}
       </DropdownContent>
     );
   }
 
-  renderMenu() {
+  function renderMenu() {
     const modifiers = [
       {
         name: 'hide',
@@ -133,12 +117,12 @@ class OperationSort extends Component<Props, State> {
           <DropdownWrapper
             ref={ref => {
               (popperRef as CallableFunction)(ref);
-              this.menuEl = ref;
+              menuEl.current = ref;
             }}
             style={style}
             data-placement={placement}
           >
-            {this.renderMenuContent()}
+            {renderMenuContent()}
           </DropdownWrapper>
         )}
       </Popper>,
@@ -146,24 +130,20 @@ class OperationSort extends Component<Props, State> {
     );
   }
 
-  render() {
-    const {title: Title} = this.props;
-    const {isOpen} = this.state;
-    const menu: React.ReactPortal | null = isOpen ? this.renderMenu() : null;
+  const menu = isOpen ? renderMenu() : null;
 
-    return (
-      <Manager>
-        <Reference>
-          {({ref}) => (
-            <TitleWrapper ref={ref}>
-              <Title onClick={this.toggleOpen} />
-            </TitleWrapper>
-          )}
-        </Reference>
-        {menu}
-      </Manager>
-    );
-  }
+  return (
+    <Manager>
+      <Reference>
+        {({ref}) => (
+          <TitleWrapper ref={ref}>
+            <Title onClick={toggleOpen} />
+          </TitleWrapper>
+        )}
+      </Reference>
+      {menu}
+    </Manager>
+  );
 }
 
 const DropdownWrapper = styled('div')`
@@ -267,5 +247,3 @@ const DropdownContent = styled('div')`
 const TitleWrapper = styled('div')`
   cursor: pointer;
 `;
-
-export default OperationSort;

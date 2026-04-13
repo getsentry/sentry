@@ -12,18 +12,17 @@ import {useTheme} from '@emotion/react';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import Grid from 'sentry/components/charts/components/grid';
+import {Grid} from 'sentry/components/charts/components/grid';
 import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
-import XAxis from 'sentry/components/charts/components/xAxis';
-import YAxis from 'sentry/components/charts/components/yAxis';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {YAxis} from 'sentry/components/charts/components/yAxis';
 import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
 interface Props
@@ -34,7 +33,7 @@ interface Props
   setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;
 }
 
-export default function MemoryChart({
+export function MemoryChart({
   currentHoverTime,
   currentTime,
   setCurrentHoverTime,
@@ -142,8 +141,8 @@ const MemoryChartSeries = memo(
         autoHeightResize: true,
         height: 'auto',
         grid: Grid({
-          left: space(1),
-          right: space(1),
+          left: theme.space.md,
+          right: theme.space.md,
         }),
         tooltip: computeChartTooltip(
           {

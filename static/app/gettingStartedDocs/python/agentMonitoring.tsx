@@ -7,7 +7,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 import {getPythonInstallCodeBlock} from './utils';
 
@@ -15,7 +16,11 @@ const MIN_REQUIRED_VERSION = '2.43.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
-    <SdkUpdateAlert projectId={params.project.id} minVersion={MIN_REQUIRED_VERSION} />
+    <SdkUpdateAlert
+      projectId={params.project.id}
+      minVersion={MIN_REQUIRED_VERSION}
+      packageName="sentry-sdk"
+    />
   ),
   install: () => {
     return [
@@ -158,7 +163,6 @@ import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
-    environment="local",
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
@@ -186,7 +190,6 @@ import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
-    environment="local",
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
@@ -247,22 +250,18 @@ sentry_sdk.init(
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
+    send_default_pii=True,
 )`,
         },
         {
-          type: 'text',
-          text: tct(
-            'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
-            }
-          ),
-        },
-        {
           type: 'custom',
-          content: <CopyLLMPromptButton />,
+          content: (
+            <ManualInstrumentationNote
+              docsLink={
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              }
+            />
+          ),
         },
       ],
     };
@@ -295,29 +294,30 @@ sentry_sdk.init(
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
-    if (selected === 'openai') {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.OPENAI;
+    if (selected === AgentIntegration.OPENAI) {
       return [openaiSdkStep];
     }
-    if (selected === 'anthropic') {
+    if (selected === AgentIntegration.ANTHROPIC) {
       return [anthropicSdkStep];
     }
-    if (selected === 'langchain') {
+    if (selected === AgentIntegration.LANGCHAIN) {
       return [langchainStep];
     }
-    if (selected === 'langgraph') {
+    if (selected === AgentIntegration.LANGGRAPH) {
       return [langgraphStep];
     }
-    if (selected === 'litellm') {
+    if (selected === AgentIntegration.LITTELLM) {
       return [liteLLMStep];
     }
-    if (selected === 'google_genai') {
+    if (selected === AgentIntegration.GOOGLE_GENAI) {
       return [googleGenAIStep];
     }
-    if (selected === 'pydantic_ai') {
+    if (selected === AgentIntegration.PYDANTIC_AI) {
       return [pydanticAiStep];
     }
-    if (selected === 'manual') {
+    if (selected === AgentIntegration.MANUAL) {
       return [manualStep];
     }
     return [openaiAgentsStep];
@@ -336,25 +336,17 @@ sentry_sdk.init(
           type: 'code',
           language: 'python',
           code: `
-# Example Agents SDK usage (replace with your actual calls)
-class MyAgent:
-    def __init__(self, name: str, model_provider: str, model: str):
-        self.name = name
-        self.model_provider = model_provider
-        self.model = model
+from agents import Agent, Runner
 
-    def run(self):
-        # Your agent logic here
-        return {"output": "Hello from agent"}
-
-my_agent = MyAgent(
+# Setting the agent name is important for Sentry to identify and group agent activity
+agent = Agent(
     name="Weather Agent",
-    model_provider="openai",
-    model="o3-mini",
+    instructions="You are a helpful weather assistant.",
+    model="gpt-5.4",
 )
 
-result = my_agent.run()
-print(result)
+result = Runner.run_sync(agent, "What's the weather like in San Francisco?")
+print(result.final_output)
 `,
         },
       ],
@@ -377,7 +369,7 @@ from openai import OpenAI
 
 client = OpenAI()
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="gpt-5.4",
     messages=[{"role": "user", "content": "Tell me a joke"}],
 )
 print(response.choices[0].message.content)
@@ -403,7 +395,7 @@ import anthropic
 
 client = anthropic.Anthropic()
 message = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
+    model="claude-sonnet-4-6",
     max_tokens=1000,
     messages=[
         {"role": "user", "content": "Tell me a joke"}
@@ -429,10 +421,8 @@ print(message.content)
           language: 'python',
           code: `
 import random
-from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
 
 @tool
@@ -440,27 +430,13 @@ def roll_die(sides: int = 6) -> str:
     """Roll a die with a given number of sides"""
     return f"Rolled a {random.randint(1, sides)} on a {sides}-sided die."
 
-with sentry_sdk.start_transaction(name="langchain-openai"):
-    model = init_chat_model(
-        "gpt-4o-mini",
-        model_provider="openai",
-        model_kwargs={"stream_options": {"include_usage": True}},
-    )
-    tools = [roll_die]
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content="Greet the user and use the die roll tool."),
-        HumanMessage(content="{input}"),
-        MessagesPlaceholder("agent_scratchpad"),
-    ])
+model = init_chat_model("gpt-5.4", model_provider="openai")
 
-    agent = create_openai_functions_agent(model, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+# Setting the agent name helps Sentry identify and group agent activity
+agent = create_agent(model, [roll_die], name="dice_agent")
 
-    result = agent_executor.invoke({
-        "input": "Hello, my name is Alice! Please roll a six-sided die.",
-        "chat_history": [],
-    })
-    print(result)
+result = agent.invoke({"messages": [("user", "Please roll a six-sided die.")]})
+print(result)
 `,
         },
       ],
@@ -472,7 +448,7 @@ with sentry_sdk.start_transaction(name="langchain-openai"):
         {
           type: 'text',
           text: t(
-            'Verify that agent monitoring is working correctly by creating a LangGraph workflow:'
+            'Verify that agent monitoring is working correctly by creating a LangGraph agent:'
           ),
         },
         {
@@ -480,46 +456,22 @@ with sentry_sdk.start_transaction(name="langchain-openai"):
           language: 'python',
           code: `
 import random
-from typing import Annotated, Literal, TypedDict
-
+from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import AnyMessage, HumanMessage
 from langchain_core.tools import tool
-from langgraph.graph import END, StateGraph
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
-
-
-class State(TypedDict):
-    messages: Annotated[list[AnyMessage], add_messages]
 
 @tool
 def roll_die(sides: int = 6) -> str:
     """Roll a die with a given number of sides"""
     return f"Rolled a {random.randint(1, sides)} on a {sides}-sided die."
 
-def chatbot(state: State):
-    model = init_chat_model("gpt-4o-mini", model_provider="openai")
-    return {"messages": [model.bind_tools([roll_die]).invoke(state["messages"])]}
+model = init_chat_model("gpt-5.4", model_provider="openai")
 
-def should_continue(state: State) -> Literal["tools", END]:
-    last_message = state["messages"][-1]
-    return "tools" if getattr(last_message, "tool_calls", None) else END
+# Setting the agent name helps Sentry identify and group agent activity
+agent = create_react_agent(model, [roll_die], name="dice_agent")
 
-with sentry_sdk.start_transaction(name="langgraph-openai"):
-    graph_builder = StateGraph(State)
-    graph_builder.add_node("chatbot", chatbot)
-    graph_builder.add_node("tools", ToolNode([roll_die]))
-    graph_builder.set_entry_point("chatbot")
-    graph_builder.add_conditional_edges("chatbot", should_continue)
-    graph_builder.add_edge("tools", "chatbot")
-    graph = graph_builder.compile()
-    result = graph.invoke({
-        "messages": [
-            HumanMessage(content="Hello, my name is Alice! Please roll a six-sided die.")
-        ]
-    })
-    print(result)
+result = agent.invoke({"messages": [("user", "Please roll a six-sided die.")]})
+print(result)
 `,
         },
       ],
@@ -541,7 +493,7 @@ with sentry_sdk.start_transaction(name="langgraph-openai"):
 from litellm import completion
 
 response = completion(
-    model="openai/gpt-4o-mini",
+    model="openai/gpt-5.4",
     messages=[{"role": "user", "content": "Tell me a joke"}],
 )
 print(response.choices[0].message.content)
@@ -567,7 +519,7 @@ from google.genai import Client
 
 client = Client()
 response = client.models.generate_content(
-    model="gemini-2.5-flash-lite",
+    model="gemini-3-flash-preview",
     contents="What's the weather like in San Francisco?"
 )
 
@@ -592,12 +544,12 @@ print(response)
           code: `
 from pydantic_ai import Agent
 
-# Create an agent with OpenAI model
-agent = Agent('openai:gpt-4o-mini')
+# Setting the agent name helps Sentry identify and group agent activity
+agent = Agent('openai:gpt-5.4', name='joke_agent')
 
 # Run the agent
 result = agent.run_sync('Tell me a joke')
-print(result.data)
+print(result.output)
 `,
         },
       ],
@@ -615,29 +567,30 @@ print(result.data)
       ],
     };
 
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
-    if (selected === 'openai') {
+    const selected =
+      (params.platformOptions as any)?.integration ?? AgentIntegration.OPENAI;
+    if (selected === AgentIntegration.OPENAI) {
       return [openaiSdkVerifyStep];
     }
-    if (selected === 'anthropic') {
+    if (selected === AgentIntegration.ANTHROPIC) {
       return [anthropicSdkVerifyStep];
     }
-    if (selected === 'langchain') {
+    if (selected === AgentIntegration.LANGCHAIN) {
       return [langchainVerifyStep];
     }
-    if (selected === 'langgraph') {
+    if (selected === AgentIntegration.LANGGRAPH) {
       return [langgraphVerifyStep];
     }
-    if (selected === 'litellm') {
+    if (selected === AgentIntegration.LITTELLM) {
       return [liteLLMVerifyStep];
     }
-    if (selected === 'google_genai') {
+    if (selected === AgentIntegration.GOOGLE_GENAI) {
       return [googleGenAIVerifyStep];
     }
-    if (selected === 'pydantic_ai') {
+    if (selected === AgentIntegration.PYDANTIC_AI) {
       return [pydanticAiVerifyStep];
     }
-    if (selected === 'manual') {
+    if (selected === AgentIntegration.MANUAL) {
       return [manualVerifyStep];
     }
     return [openaiAgentsVerifyStep];

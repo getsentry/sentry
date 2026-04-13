@@ -24,7 +24,7 @@ interface AskUserQuestionBlockProps {
   onMouseLeave?: () => void;
 }
 
-function AskUserQuestionBlock({
+export function AskUserQuestionBlock({
   currentQuestion,
   customText,
   isFocused,
@@ -138,8 +138,6 @@ function AskUserQuestionBlock({
     </Block>
   );
 }
-
-export default AskUserQuestionBlock;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;

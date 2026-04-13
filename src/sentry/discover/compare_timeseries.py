@@ -43,10 +43,10 @@ def format_api_call(organization_slug, **kwargs):
         kwargs={"organization_id_or_slug": organization_slug},
     )
 
-    from sentry.api.utils import generate_region_url
+    from sentry.api.utils import generate_locality_url
 
     query = urlencode({**kwargs})
-    region_url = generate_region_url()
+    region_url = generate_locality_url()
     api_call = f"{region_url}{path}?{query}"
 
     return api_call

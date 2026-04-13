@@ -3,19 +3,18 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import Confirm from 'sentry/components/confirm';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {Confirm} from 'sentry/components/confirm';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
 type Props = {
@@ -28,7 +27,7 @@ type Props = {
   projectId: string;
 } & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
-function KeyRow({
+export function KeyRow({
   data,
   onRemove,
   onToggle,
@@ -120,13 +119,11 @@ function KeyRow({
   );
 }
 
-export default KeyRow;
-
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   margin: 0;
   > *:last-child {
-    padding-bottom: ${space(3)};
+    padding-bottom: ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -137,13 +134,13 @@ const PanelHeaderLink = styled(Link)`
 const Title = styled('div')<{disabled: boolean}>`
   flex: 1;
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
 `;
 

@@ -5,7 +5,6 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
@@ -16,20 +15,18 @@ type Props = {
   withHeading: boolean;
 };
 
-function ReleaseCardCommits({release, withHeading = true}: Props) {
+export function ReleaseCardCommits({release, withHeading = true}: Props) {
   const commitCount = release.commitCount || 0;
   const authorCount = release.authors?.length || 0;
 
   const authors = useMemo(
     () =>
-      release.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      release.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [release.authors]
   );
 
@@ -57,7 +54,5 @@ const ReleaseSummaryHeading = styled('div')`
   line-height: 1.2;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
-
-export default ReleaseCardCommits;

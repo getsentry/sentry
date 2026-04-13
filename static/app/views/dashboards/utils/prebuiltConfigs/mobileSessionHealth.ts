@@ -69,6 +69,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      axisRange: 'dataMin',
       queries: [
         {
           aggregates: ['crash_free_rate(session)'],
@@ -86,6 +87,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       displayType: DisplayType.LINE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      axisRange: 'dataMin',
       queries: [
         {
           fields: ['crash_free_rate(user)'],
@@ -143,7 +145,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 
 const CRASH_RATE_TABLE: Widget = {
   id: 'crash-rate-table',
-  title: t('Crash Free Rate By Project'),
+  title: t('Crash Free Rate by Project'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.RELEASE,
   interval: '5m',
@@ -198,4 +200,9 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
     CRASH_RATE_TABLE,
     RELEASE_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasSessions'],
+    description: 'Get started with mobile session health',
+  },
 };

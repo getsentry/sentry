@@ -247,8 +247,7 @@ describe('CompositeSelect', () => {
   it('can search', async () => {
     render(
       <CompositeSelect
-        searchable
-        searchPlaceholder="Search placeholder…"
+        search={{placeholder: 'Search placeholder…'}}
         trigger={props => (
           <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}

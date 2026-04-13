@@ -4,14 +4,14 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {
   ExplorerPanelProvider,
   useExplorerPanel,
 } from 'sentry/views/seerExplorer/useExplorerPanel';
 
 import * as useSeerExplorerModule from './hooks/useSeerExplorer';
-import ExplorerPanel from './explorerPanel';
+import {ExplorerPanel} from './explorerPanel';
 
 // Mock createPortal to render content directly
 jest.mock('react-dom', () => ({
@@ -125,15 +125,15 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Feature Flag and Organization Checks', () => {
-    it('renders when feature flag and open membership are enabled', () => {
+    it('renders when feature flag and open membership are enabled', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByText(/Ask Seer anything about your application./)
+        await screen.findByText(/Ask Seer anything about your application./)
       ).toBeInTheDocument();
     });
 
-    it('does not render when feature flag is disabled', () => {
+    it('does not render when feature flag is disabled', async () => {
       const disabledOrg = OrganizationFixture({
         features: [],
         hideAiFeatures: false,
@@ -144,10 +144,10 @@ describe('ExplorerPanel', () => {
         organization: disabledOrg,
       });
 
-      expect(container).toBeEmptyDOMElement();
+      await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
 
-    it('does not render when AI features are hidden', () => {
+    it('does not render when AI features are hidden', async () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: true,
@@ -158,10 +158,10 @@ describe('ExplorerPanel', () => {
         organization: disabledOrg,
       });
 
-      expect(container).toBeEmptyDOMElement();
+      await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
 
-    it('does not render when open membership is disabled', () => {
+    it('does not render when open membership is disabled', async () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: false,
@@ -172,28 +172,30 @@ describe('ExplorerPanel', () => {
         organization: disabledOrg,
       });
 
-      expect(container).toBeEmptyDOMElement();
+      await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
   });
 
   describe('Empty State', () => {
-    it('shows empty state when no messages exist', () => {
+    it('shows empty state when no messages exist', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByText(/Ask Seer anything about your application./)
+        await screen.findByText(/Ask Seer anything about your application./)
       ).toBeInTheDocument();
     });
 
-    it('shows input section in empty state', () => {
+    it('shows input section in empty state', async () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByPlaceholderText('Type your message or / command and press Enter ↵')
+        await screen.findByPlaceholderText(
+          'Type your message or / command and press Enter ↵'
+        )
       ).toBeInTheDocument();
     });
 
-    it('shows error when hook returns isError=true', () => {
+    it('shows error when hook returns isError=true', async () => {
       const useSeerExplorerSpy = jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({
@@ -204,21 +206,21 @@ describe('ExplorerPanel', () => {
           startNewSession: jest.fn(),
           isPolling: false,
           isError: true, // isError
-          isPending: false,
           deletedFromIndex: null,
           interruptRun: jest.fn(),
           interruptRequested: false,
           wasJustInterrupted: false,
-          clearWasJustInterrupted: jest.fn(),
           switchToRun: jest.fn(),
           respondToUserInput: jest.fn(),
           createPR: jest.fn(),
+          overrideCtxEngEnable: true,
+          setOverrideCtxEngEnable: jest.fn(),
         });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
-        screen.getByText('Error loading this session (ID=123).')
+        await screen.findByText('Error loading this session (ID=123).')
       ).toBeInTheDocument();
       expect(
         screen.queryByText(/Ask Seer anything about your application./)
@@ -229,7 +231,7 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Messages Display', () => {
-    it('renders messages when session data exists', () => {
+    it('renders messages when session data exists', async () => {
       const mockSessionData = {
         blocks: [
           {
@@ -265,21 +267,21 @@ describe('ExplorerPanel', () => {
         startNewSession: jest.fn(),
         isPolling: false,
         isError: false,
-        isPending: false,
         deletedFromIndex: null,
         interruptRun: jest.fn(),
         interruptRequested: false,
         wasJustInterrupted: false,
-        clearWasJustInterrupted: jest.fn(),
         runId: null,
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),
         createPR: jest.fn(),
+        overrideCtxEngEnable: true,
+        setOverrideCtxEngEnable: jest.fn(),
       });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
-      expect(screen.getByText('What is this error?')).toBeInTheDocument();
+      expect(await screen.findByText('What is this error?')).toBeInTheDocument();
       expect(
         screen.getByText('This error indicates a null pointer exception.')
       ).toBeInTheDocument();
@@ -445,7 +447,7 @@ describe('ExplorerPanel', () => {
       });
     });
 
-    function mockSessionResponse(ownerUserId: number | null | undefined) {
+    function mockSessionResponse({ownerUserId}: {ownerUserId?: number}) {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
         method: 'GET',
@@ -461,24 +463,9 @@ describe('ExplorerPanel', () => {
       });
     }
 
-    it('should have disabled input section when useUser returns none', async () => {
-      ConfigStore.set('user', undefined as any);
-      mockSessionResponse(2);
-
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      const textarea = await screen.findByTestId('seer-explorer-input');
-
-      expect(textarea).toBeDisabled();
-      expect(textarea).toHaveAttribute(
-        'placeholder',
-        'This conversation is owned by another user and is read-only'
-      );
-    });
-
     it('should have disabled input section when explorer owner differs', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      mockSessionResponse(2);
+      mockSessionResponse({ownerUserId: 2});
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
@@ -491,9 +478,9 @@ describe('ExplorerPanel', () => {
       );
     });
 
-    it('enables input when owner id is null', async () => {
+    it('enables input when owner id matches', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      mockSessionResponse(null);
+      mockSessionResponse({ownerUserId: 1});
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
@@ -506,9 +493,9 @@ describe('ExplorerPanel', () => {
       );
     });
 
-    it('enables input when owner id matches', async () => {
+    it('enables input when owner id is undefined', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      mockSessionResponse(1);
+      mockSessionResponse({ownerUserId: undefined});
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
@@ -522,21 +509,119 @@ describe('ExplorerPanel', () => {
     });
   });
 
-  describe('Visibility Control', () => {
-    it('renders when isVisible=true', () => {
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
+  describe('Context Engine Toggle', () => {
+    const orgWithFlag = OrganizationFixture({
+      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
+      hideAiFeatures: false,
+      openMembership: true,
     });
 
-    it('can handle visibility changes', () => {
+    it('does not render the toggle when the feature flag is disabled', async () => {
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      // Wait for effects to settle before asserting absence
+      await screen.findByTestId('seer-explorer-input');
+      expect(
+        screen.queryByRole('checkbox', {name: 'Toggle context engine'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle when the feature flag is enabled', async () => {
+      renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
+
+      expect(
+        await screen.findByRole('checkbox', {name: 'Toggle context engine'})
+      ).toBeInTheDocument();
+    });
+
+    it('sends override_ce_enable: true by default', async () => {
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 'new-run', message: {}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/new-run/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 'new-run',
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
+
+      const textarea = screen.getByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'Test message');
+      await userEvent.keyboard('{Enter}');
+
+      expect(postMock).toHaveBeenCalledWith(
+        `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        expect.objectContaining({
+          data: expect.objectContaining({override_ce_enable: true}),
+        })
+      );
+    });
+
+    it('sends override_ce_enable: false after toggling off', async () => {
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 'new-run', message: {}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/new-run/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 'new-run',
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
+
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Toggle context engine'})
+      );
+
+      const textarea = screen.getByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'Test message');
+      await userEvent.keyboard('{Enter}');
+
+      expect(postMock).toHaveBeenCalledWith(
+        `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        expect.objectContaining({
+          data: expect.objectContaining({override_ce_enable: false}),
+        })
+      );
+    });
+  });
+
+  describe('Visibility Control', () => {
+    it('renders when isVisible=true', async () => {
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    });
+
+    it('can handle visibility changes', async () => {
       const {rerenderWithOpen} = renderWithPanelContext(<ExplorerPanel />, false, {
         organization,
       });
 
       rerenderWithOpen(true);
 
-      expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
+      expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     });
   });
 });

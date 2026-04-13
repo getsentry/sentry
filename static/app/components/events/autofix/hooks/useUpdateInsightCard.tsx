@@ -2,8 +2,8 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UpdateInsightParams {
   message: string;

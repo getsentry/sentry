@@ -4,7 +4,7 @@ import {Switch} from '@sentry/scraps/switch';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling/samplingModeSwitchModal';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 

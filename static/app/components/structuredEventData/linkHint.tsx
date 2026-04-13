@@ -13,7 +13,7 @@ interface Props {
   meta?: Record<any, any>;
 }
 
-export default function LinkHint({meta, value}: Props) {
+export function LinkHint({meta, value}: Props) {
   if (!isUrl(value) || defined(meta)) {
     return null;
   }

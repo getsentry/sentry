@@ -13,7 +13,7 @@ type Props = {
   orgId: string;
 };
 
-function CustomerProjects({orgId}: Props) {
+export function CustomerProjects({orgId}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -65,5 +65,3 @@ function CustomerProjects({orgId}: Props) {
     />
   );
 }
-
-export default CustomerProjects;

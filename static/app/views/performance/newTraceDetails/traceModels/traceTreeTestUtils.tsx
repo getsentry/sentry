@@ -122,13 +122,13 @@ export function makeEAPOccurrence(
     start_timestamp: 0,
     project_id: 1,
     project_slug: 'project_slug',
-    transaction: 'occurence.transaction',
+    transaction: 'occurrence.transaction',
     event_type: 'occurrence',
     issue_id: 1,
+    issue_type: 0,
     level: 'info',
     culprit: 'code',
     short_id: 'short_id',
-    type: 0,
     ...overrides,
   };
 }

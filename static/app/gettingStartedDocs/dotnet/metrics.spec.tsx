@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('metrics', () => {
   it('dotnet metrics onboarding docs', () => {
@@ -13,9 +13,7 @@ describe('metrics', () => {
     });
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/SentrySdk\.Experimental\.Metrics\.EmitCounter/)
-      )
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/))
     ).toBeInTheDocument();
   });
 
@@ -25,9 +23,7 @@ describe('metrics', () => {
     });
 
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/SentrySdk\.Experimental\.Metrics\.EmitCounter/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/))
     ).not.toBeInTheDocument();
   });
 });

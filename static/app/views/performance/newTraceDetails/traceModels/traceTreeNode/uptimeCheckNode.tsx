@@ -2,7 +2,6 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {uniqueId} from 'sentry/utils/guid';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {UptimeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/uptime';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -89,7 +88,7 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
 
       const fakeSpan: TraceTree.UptimeCheckTiming = {
         event_type: 'uptime_check_timing',
-        event_id: uniqueId(),
+        event_id: `${uptimeCheck.event_id}-${phase.op}`,
         start_timestamp: startTimestamp,
         end_timestamp: startTimestamp + duration,
         duration,

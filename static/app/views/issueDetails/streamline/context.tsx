@@ -96,11 +96,13 @@ export const enum SectionKey {
 
   SPAN_LINKS = 'span-links',
 
+  INSIGHT_DIFF = 'insight-diff',
   XRAY_DIFF = 'xray-diff',
 
   INSTRUMENTATION_FIX = 'instrumentation-fix',
 
   PROFILE_PREVIEW = 'profile-preview',
+  STACKTRACE_FLAMEGRAPH = 'stacktrace-flamegraph',
 }
 
 /**

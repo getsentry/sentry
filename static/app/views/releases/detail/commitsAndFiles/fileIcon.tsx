@@ -8,7 +8,7 @@ interface FileIconProps {
   fileName: string;
 }
 
-function FileIcon({fileName}: FileIconProps) {
+export function FileIcon({fileName}: FileIconProps) {
   const fileExtension = getFileExtension(fileName);
   const iconName = fileExtension ? fileExtensionToPlatform(fileExtension) : null;
 
@@ -18,5 +18,3 @@ function FileIcon({fileName}: FileIconProps) {
 
   return <PlatformIcon platform={iconName} size={SvgIcon.ICON_SIZES.sm} />;
 }
-
-export default FileIcon;

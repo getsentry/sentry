@@ -47,8 +47,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_attributes["instance"] = instance
 
-        if sample_rate != 1.0:
-            metric_attributes["sentry.client_sample_rate"] = sample_rate
+        effective_sample_rate = sample_rate * self._experimental_sample_rate
+        if effective_sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = effective_sample_rate
 
         metrics.count(
             full_key,
@@ -77,8 +78,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_attributes["instance"] = instance
 
-        if sample_rate != 1.0:
-            metric_attributes["sentry.client_sample_rate"] = sample_rate
+        effective_sample_rate = sample_rate * self._experimental_sample_rate
+        if effective_sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = effective_sample_rate
 
         metric_attributes["is_timing"] = True
 
@@ -110,8 +112,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_attributes["instance"] = instance
 
-        if sample_rate != 1.0:
-            metric_attributes["sentry.client_sample_rate"] = sample_rate
+        effective_sample_rate = sample_rate * self._experimental_sample_rate
+        if effective_sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = effective_sample_rate
 
         metrics.gauge(
             full_key,
@@ -141,8 +144,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_attributes["instance"] = instance
 
-        if sample_rate != 1.0:
-            metric_attributes["sentry.client_sample_rate"] = sample_rate
+        effective_sample_rate = sample_rate * self._experimental_sample_rate
+        if effective_sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = effective_sample_rate
 
         metrics.distribution(
             full_key,

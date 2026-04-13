@@ -1,7 +1,7 @@
-import CustomerGrid from 'admin/components/customerGrid';
-import PageHeader from 'admin/components/pageHeader';
+import {CustomerGrid} from 'admin/components/customerGrid';
+import {PageHeader} from 'admin/components/pageHeader';
 
-export default function Customers() {
+export function Customers() {
   return (
     <div>
       <PageHeader title="Customers" />

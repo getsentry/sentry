@@ -1,18 +1,18 @@
 import {Button} from '@sentry/scraps/button';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   organization: Organization;
 };
 
-function OpenInDiscoverBtn(props: Props) {
+export function OpenInDiscoverBtn(props: Props) {
   const {organization} = props;
   return (
     <Button
@@ -33,4 +33,3 @@ function OpenInDiscoverBtn(props: Props) {
     </Button>
   );
 }
-export default OpenInDiscoverBtn;

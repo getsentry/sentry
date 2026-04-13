@@ -9,13 +9,10 @@ import {Text} from '@sentry/scraps/text';
 
 import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
-import {
-  makeAutomationBasePathname,
-  makeAutomationCreatePathname,
-} from 'sentry/views/automations/pathnames';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
@@ -23,36 +20,34 @@ export function DetectorTypeForm() {
 
   return (
     <Stack gap="xl">
-      <Stack gap="sm">
-        <Text size="lg" bold>
-          {t('Select monitor type')}
-        </Text>
-        <Text as="p">
-          {tct(
-            'Do you want to alert existing issues? Create a [newAlertLink:new alert], or [connectAlertLink:connect an existing one].',
-            {
-              newAlertLink: <Link to={makeAutomationCreatePathname(organization.slug)} />,
-              connectAlertLink: (
-                <Link to={makeAutomationBasePathname(organization.slug)} />
-              ),
-            }
-          )}
-        </Text>
-      </Stack>
       <MonitorTypeField />
+      <Text as="p" size="md">
+        {tct('Want to just alert on an existing issue? [link:Create an issue alert].', {
+          link: <Link to={makeAutomationCreatePathname(organization.slug)} />,
+        })}
+      </Text>
+      <Text as="p" size="md">
+        {t(
+          'If you’re looking for an Error Monitors, those are created by Sentry. To customize an error monitor, click into an existing one.'
+        )}
+      </Text>
     </Stack>
   );
 }
 
 type SelectableDetectorType = Extract<
   DetectorType,
-  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+  | 'metric_issue'
+  | 'monitor_check_in_failure'
+  | 'uptime_domain_failure'
+  | 'preprod_size_analysis'
 >;
 
 const ALLOWED_DETECTOR_TYPES = [
   'metric_issue',
   'monitor_check_in_failure',
   'uptime_domain_failure',
+  'preprod_size_analysis',
 ] as const satisfies SelectableDetectorType[];
 
 const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
@@ -70,9 +65,11 @@ interface DetectorTypeOption {
   visualization: React.ReactNode;
   disabled?: boolean;
   infoBanner?: React.ReactNode;
+  show?: boolean;
 }
 
 function MonitorTypeField() {
+  const organization = useOrganization();
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
@@ -88,7 +85,9 @@ function MonitorTypeField() {
     {
       id: 'metric_issue',
       name: getDetectorTypeLabel('metric_issue'),
-      description: t('Monitor error counts, transaction duration, and more!'),
+      description: t(
+        'Monitor error counts, logs, custom metrics, span duration, crash rates, and more. '
+      ),
       visualization: <MetricVisualization />,
       infoBanner: canCreateMetricDetector ? undefined : (
         <Hook name="component:metric-alert-quota-message" />
@@ -117,38 +116,49 @@ function MonitorTypeField() {
         }
       ),
     },
+    {
+      id: 'preprod_size_analysis',
+      name: getDetectorTypeLabel('preprod_size_analysis'),
+      description: t('Monitor mobile app build sizes and detect regressions.'),
+      visualization: null,
+      show: !!organization?.features?.includes('preprod-size-monitors-frontend'),
+    },
   ];
 
   return (
     <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
-        const checked = selectedDetectorType === id;
-        return (
-          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
-            <OptionBody>
-              <Flex direction="column" gap="sm">
-                <Radio
-                  name="detectorType"
-                  checked={checked}
-                  onChange={() => handleChange(id)}
-                  aria-label={name}
-                  disabled={disabled}
-                />
-                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
-                  {name}
-                </Text>
-                {description && (
-                  <Text size="md" variant="muted">
-                    {description}
+      {options
+        .filter(({show}) => show === undefined || show)
+        .map(({id, name, description, visualization, infoBanner, disabled}) => {
+          const checked = selectedDetectorType === id;
+          return (
+            <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+              <OptionBody>
+                <Flex direction="column" gap="sm">
+                  <Radio
+                    name="detectorType"
+                    checked={checked}
+                    onChange={() => handleChange(id)}
+                    aria-label={name}
+                    disabled={disabled}
+                  />
+                  <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                    {name}
                   </Text>
-                )}
-              </Flex>
-              {visualization && <Visualization>{visualization}</Visualization>}
-            </OptionBody>
-            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
-          </OptionLabel>
-        );
-      })}
+                  {description && (
+                    <Text size="md" variant="muted">
+                      {description}
+                    </Text>
+                  )}
+                </Flex>
+                {visualization && <Visualization>{visualization}</Visualization>}
+              </OptionBody>
+              {infoBanner && (checked || disabled) && (
+                <OptionInfo>{infoBanner}</OptionInfo>
+              )}
+            </OptionLabel>
+          );
+        })}
     </Stack>
   );
 }

@@ -40,6 +40,7 @@ search_config = SearchConfig.create_from(
         "download_size",
         "git_pr_number",
         "install_size",
+        "state",
     },
     # Keys that support date filtering
     # date_keys={"date_built", "date_added"},
@@ -55,6 +56,7 @@ search_config = SearchConfig.create_from(
         "build_configuration_name",
         "build_number",
         "build_version",
+        "distribution_error_code",
         "download_count",
         "download_size",
         "git_base_ref",
@@ -68,6 +70,7 @@ search_config = SearchConfig.create_from(
         "is",
         "platform_name",
         "size_state",
+        "state",
     },
     # Enable boolean operators
     # allow_boolean=True,
@@ -101,12 +104,27 @@ FIELD_MAPPINGS: dict[str, str] = {
     "git_head_ref": "commit_comparison__head_ref",
     "git_head_sha": "commit_comparison__head_sha",
     "git_pr_number": "commit_comparison__pr_number",
+    "distribution_error_code": "installable_app_error_code",
     "size_state": "preprodartifactsizemetrics__state",
 }
 
 SIZE_STATE_VALUES: dict[str, int] = {
     member.name.lower(): member.value for member in PreprodArtifactSizeMetrics.SizeAnalysisState
 }
+
+DISTRIBUTION_ERROR_CODE_VALUES: dict[str, int] = {
+    member.name.lower(): member.value for member in PreprodArtifact.InstallableAppErrorCode
+}
+
+
+def _translate_distribution_error_code(value: object) -> int:
+    raw = str(value).lower()
+    if raw not in DISTRIBUTION_ERROR_CODE_VALUES:
+        raise InvalidSearchQuery(
+            f"Invalid distribution_error_code value: {value}. "
+            f"Valid values: {', '.join(sorted(DISTRIBUTION_ERROR_CODE_VALUES))}"
+        )
+    return DISTRIBUTION_ERROR_CODE_VALUES[raw]
 
 
 def _translate_size_state(value: object) -> int:
@@ -254,6 +272,15 @@ def apply_filters(
             queryset = queryset.distinct()
             continue
 
+        if name == "distribution_error_code":
+            values = token.value.value if token.is_in_filter else [token.value.value]
+            q = Q(**{f"{db_field}__in": [_translate_distribution_error_code(v) for v in values]})
+            if token.is_negation:
+                queryset = queryset.exclude(q)
+            else:
+                queryset = queryset.filter(q)
+            continue
+
         # We don't have to handle boolean operators or parens here
         # since allow_boolean is not set in SearchConfig.
         if token.is_in_filter:
@@ -288,3 +315,49 @@ def apply_filters(
             q = ~q
         queryset = queryset.filter(q)
     return queryset
+
+
+def get_sequential_base_artifact(
+    artifact: PreprodArtifact,
+    query: str,
+    organization: Organization,
+) -> PreprodArtifact | None:
+    """
+    Find the most recent prior artifact matching the given query and structural
+    identity fields, with completed size metrics.
+
+    Used by sequential (n-1) monitors to resolve the base artifact for diff
+    comparisons. Unlike the git-based lookup (get_base_artifact_for_commit),
+    this orders by date_added rather than commit ancestry.
+
+    Args:
+        artifact: The current (head) artifact to find a base for.
+        query: The detector's query string (e.g. "app_name:MyApp"). May be empty.
+        organization: The organization for scoping query filters.
+
+    Returns:
+        The most recent prior PreprodArtifact matching the criteria, or None.
+    """
+    queryset = PreprodArtifact.objects.get_queryset()
+
+    if query and query.strip():
+        search_filters = parse_search_query(
+            query, config=search_config, get_field_type=get_field_type
+        )
+        queryset = apply_filters(queryset, search_filters, organization)
+
+    queryset = queryset.filter(
+        project_id=artifact.project_id,
+        app_id=artifact.app_id,
+        artifact_type=artifact.artifact_type,
+        build_configuration=artifact.build_configuration,
+    )
+
+    queryset = queryset.filter(
+        preprodartifactsizemetrics__state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        preprodartifactsizemetrics__metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+    )
+
+    queryset = queryset.exclude(pk=artifact.pk)
+
+    return queryset.order_by("-date_added").first()

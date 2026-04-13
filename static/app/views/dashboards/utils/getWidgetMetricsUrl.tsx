@@ -1,16 +1,13 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {defined} from 'sentry/utils';
+import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  BaseMetricQuery,
-  TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -27,17 +24,15 @@ export function getWidgetMetricsUrl(
   selection: PageFilters,
   organization: Organization
 ): string {
-  const traceMetric = extractTraceMetricFromWidget(widget);
-
-  if (!traceMetric?.name || !widget.queries[0]?.aggregates) {
+  if (!widget.queries[0]?.aggregates) {
     // If we can't extract a valid trace metric, return a basic metrics URL
     return makeMetricsPathname({organizationSlug: organization.slug, path: '/'});
   }
 
   const chartType = getChartTypeFromDisplayType(widget.displayType);
 
-  const metricQueries: BaseMetricQuery[] = widget.queries[0].aggregates.flatMap(
-    aggregate => {
+  const metricQueries = widget.queries[0].aggregates
+    .flatMap(aggregate => {
       // For each aggregate, create a metric query for each widget query
       return widget.queries.map(query => {
         const queryString =
@@ -48,12 +43,17 @@ export function getWidgetMetricsUrl(
           (col): GroupBy => ({groupBy: col})
         );
 
-        const aggregateSortBys: Sort[] = query.orderby ? decodeSorts(query.orderby) : [];
+        const aggregateSortBys = query.orderby ? decodeSorts(query.orderby) : [];
 
         const aggregateFields: AggregateField[] = [
           new VisualizeFunction(aggregate, {chartType}),
           ...groupByFields,
         ];
+
+        const traceMetric = extractTraceMetricFromColumn(explodeFieldString(aggregate));
+        if (!traceMetric) {
+          return undefined;
+        }
 
         return {
           metric: traceMetric,
@@ -72,8 +72,8 @@ export function getWidgetMetricsUrl(
           }),
         };
       });
-    }
-  );
+    })
+    .filter(defined);
 
   return getMetricsUrl({
     organization,
@@ -82,30 +82,6 @@ export function getWidgetMetricsUrl(
     title: widget.title,
     referrer: 'dashboards',
   });
-}
-
-/**
- * Extracts TraceMetric information from a TRACEMETRICS widget's aggregates
- */
-function extractTraceMetricFromWidget(widget: Widget): TraceMetric | null {
-  const firstQuery = widget.queries[0];
-  if (!firstQuery?.aggregates || firstQuery.aggregates.length === 0) {
-    return null;
-  }
-
-  // Parse the first aggregate to extract metric name and type
-  // TRACEMETRICS aggregates are in format: avg(value,metric_name,metric_type,-)
-  const firstAggregate = firstQuery.aggregates[0] ?? '';
-  const parsedFunction = parseFunction(firstAggregate);
-
-  if (!parsedFunction?.arguments || parsedFunction.arguments.length < 3) {
-    return null;
-  }
-
-  const name = parsedFunction.arguments[1] ?? '';
-  const type = parsedFunction.arguments[2] ?? '';
-
-  return {name, type};
 }
 
 function getChartTypeFromDisplayType(displayType: DisplayType): ChartType {

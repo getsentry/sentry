@@ -10,7 +10,7 @@ import {Heading, Prose} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiGenerationNode,

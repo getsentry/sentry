@@ -8,9 +8,7 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {getInstallBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-const organization = OrganizationFixture({
-  features: ['preprod-build-distribution'],
-});
+const organization = OrganizationFixture();
 
 const baseBuild = {
   id: 'build-1',
@@ -86,7 +84,6 @@ describe('PreprodBuildsTable', () => {
       'href',
       getInstallBuildPath({
         organizationSlug: organization.slug,
-        projectId: '1',
         baseArtifactId: 'build-1',
       })
     );

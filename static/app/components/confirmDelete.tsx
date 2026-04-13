@@ -4,8 +4,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {InlineCode} from '@sentry/scraps/code';
 import {Input} from '@sentry/scraps/input';
 
-import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {Confirm} from 'sentry/components/confirm';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 
 interface Props extends Omit<
@@ -18,7 +18,7 @@ interface Props extends Omit<
   confirmInput: string;
 }
 
-function ConfirmDelete({message, confirmInput, ...props}: Props) {
+export function ConfirmDelete({message, confirmInput, ...props}: Props) {
   const id = useId();
 
   return (
@@ -64,5 +64,3 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
     />
   );
 }
-
-export default ConfirmDelete;

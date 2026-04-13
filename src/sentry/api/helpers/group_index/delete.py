@@ -149,6 +149,7 @@ def schedule_tasks_to_delete_groups(
     project, org, environment, and search params already bound
     """
     group_ids = request.GET.getlist("id")
+    group_list: list[Group] = []
     if group_ids:
         group_list = list(
             Group.objects.filter(

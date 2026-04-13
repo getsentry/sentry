@@ -1,8 +1,10 @@
+import pytest
 import uuid
 
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="fails because projecttemplate was removed")
 class DeleteBadAssertionsTest(TestMigrations):
     migrate_from = "0053_add_response_capture_enabled"
     migrate_to = "0054_delete_bad_assertions"

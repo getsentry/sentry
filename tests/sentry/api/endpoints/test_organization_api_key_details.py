@@ -73,7 +73,7 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
                 ("{event:read,member:read,org:read,project:read,team:read}", self.api_key.id),
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ApiKeyReplica.objects.get(apikey_id=self.api_key.id).get_scopes() == [
                 "event:read",
                 "member:read",

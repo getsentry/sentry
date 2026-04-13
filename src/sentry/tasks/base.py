@@ -8,13 +8,15 @@ from typing import Any, TypeVar
 
 import sentry_sdk
 from django.db.models import Model
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.registry import TaskNamespace
+from taskbroker_client.retry import Retry, RetryTaskError, retry_task
+from taskbroker_client.state import current_task
+from taskbroker_client.task import P, R, Task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry.taskworker.constants import CompressionType
-from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import Retry, RetryTaskError, retry_task
-from sentry.taskworker.state import current_task
-from sentry.taskworker.task import P, R, Task
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
+from sentry.silo.base import SiloMode
+from sentry.taskworker.silolimiter import TaskSiloLimit
 from sentry.utils import metrics
 
 ModelT = TypeVar("ModelT", bound=Model)
@@ -44,7 +46,7 @@ def instrumented_task(
     at_most_once: bool = False,
     wait_for_delivery: bool = False,
     compression_type: CompressionType = CompressionType.PLAINTEXT,
-    silo_mode=None,
+    silo_mode: SiloMode | None = None,
     **kwargs,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
@@ -74,6 +76,42 @@ def instrumented_task(
         )
         def func():
             ...
+
+    Parameters
+    ----------
+
+    name : str
+        The name of the task. This is serialized and must be stable across deploys.
+    namespace : TaskNamespace
+        The namespace of the task. Tasks in a given namespace are all processed by the same taskbroker pool.
+    alias : str | None
+        The alias of the task. Used for maintaining backwards compatibility after renaming a task.
+    alias_namespace : TaskNamespace | None
+        The namespace of the alias task. Used to move a task to a different namespace.
+    retry : Retry | None
+        The retry policy for the task. If none and at_most_once is not enabled
+        the Task namespace default retry policy will be used.
+        The task will only retry for specified exceptions in the Retry object.
+        i.e. Retry(on=(Exception,), ignore=(IgnorableException,))
+    expires : int | datetime.timedelta | None
+        The duration in seconds that a task has to start execution.
+        After received_at + expires has passed an activation is expired and will not be executed.
+    processing_deadline_duration : int | datetime.timedelta | None
+        The duration in seconds that a worker has to complete task execution.
+        When a taskbroker gives an activation to the taskworker to execute, a result is expected
+        in this many seconds. If not provided, the default task duration of
+        DEFAULT_PROCESSING_DEADLINE will be used.
+    at_most_once : bool
+        Enable at-most-once execution. Tasks with `at_most_once` cannot
+        define retry policies, and use a worker side idempotency key to
+        to guarantee that they are only attempted once (regardless of success or failure).
+    wait_for_delivery : bool
+        If true, the task will wait for the delivery report to be received
+        before returning.
+    compression_type : CompressionType
+        The compression type to use to compress the task parameters.
+    silo_mode : SiloMode | None
+        The silo that the task will run in. This should be the silo that the task was called from.
     """
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
@@ -85,15 +123,20 @@ def instrumented_task(
             at_most_once=at_most_once,
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
-            silo_mode=silo_mode,
         )(func)
+
+        if silo_mode:
+            silo_limiter = TaskSiloLimit(silo_mode)
+            task = silo_limiter(task)
+            namespace._registered_tasks[name] = task
+
         # If an alias is provided, register the task for both "name" and "alias" under namespace
         # If an alias namespace is provided, register the task in both namespace and alias_namespace
         # When both are provided, register tasks namespace."name" and alias_namespace."alias"
         if alias or alias_namespace:
             target_alias = alias if alias else name
             target_alias_namespace = alias_namespace if alias_namespace else namespace
-            target_alias_namespace.register(
+            alias_task = target_alias_namespace.register(
                 name=target_alias,
                 retry=retry,
                 expires=expires,
@@ -101,8 +144,13 @@ def instrumented_task(
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
                 compression_type=compression_type,
-                silo_mode=silo_mode,
             )(func)
+
+            if silo_mode:
+                silo_limiter = TaskSiloLimit(silo_mode)
+                alias_task = silo_limiter(alias_task)
+                target_alias_namespace._registered_tasks[target_alias] = alias_task
+
         return task
 
     return wrapped

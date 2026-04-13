@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   /**
@@ -41,6 +42,7 @@ function UnstyledSettingsPageHeader({
   noTitleStyles = false,
   ...props
 }: Props) {
+  const hasPageFrame = useHasPageFrameFeature();
   // If Header is narrow, use align-items to center <Action>.
   // Otherwise, use a fixed margin to prevent an odd alignment.
   // This is needed as Actions could be a button or a dropdown.
@@ -58,7 +60,13 @@ function UnstyledSettingsPageHeader({
             </Title>
           )}
         </TitleWrapper>
-        {action && <Action isNarrow={isNarrow}>{action}</Action>}
+        {action ? (
+          hasPageFrame ? (
+            <TopBar.Slot name="actions">{action}</TopBar.Slot>
+          ) : (
+            <Action isNarrow={isNarrow}>{action}</Action>
+          )
+        ) : null}
       </TitleAndActions>
 
       {body && <BodyWrapper>{body}</BodyWrapper>}
@@ -83,38 +91,37 @@ const TitleWrapper = styled('div')`
 const Title = styled('div')<TitleProps>`
   ${p =>
     !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
-  margin: ${space(4)} ${space(2)} ${space(3)} 0;
+  margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p =>
     p.colorSubtitle ? p.theme.tokens.content.accent : p.theme.colors.gray500};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1.5)} 0 0;
+  padding: ${p => p.theme.space.lg} 0 0;
 `;
 
 const Icon = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`
-  margin-top: ${p => (p.isNarrow ? '0' : space(4))};
+  margin-top: ${p => (p.isNarrow ? '0' : p.theme.space['3xl'])};
 `;
 
-const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
+export const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
-  margin-top: -${space(4)};
+  margin-top: -${p => p.theme.space['3xl']};
 `;
 
 const BodyWrapper = styled('div')`
   flex: 1;
-  margin: 0 0 ${space(3)};
+  margin: 0 0 ${p => p.theme.space['2xl']};
 `;
 const TabsWrapper = styled('div')`
   flex: 1;
   margin: 0;
 `;
-
-export default SettingsPageHeader;

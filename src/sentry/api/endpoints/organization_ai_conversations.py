@@ -11,12 +11,13 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.constants import NON_FAILURE_STATUS
@@ -217,7 +218,7 @@ def _build_conversation_response(
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -266,7 +267,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        query_string = _build_conversation_query("has:gen_ai.conversation.id", user_query)
+        base_filter = (
+            "has:gen_ai.conversation.id"
+            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
+            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
+        )
+        query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
             snuba_params, query_string, offset, limit, sampling_mode
@@ -336,7 +342,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="aggregations",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
                 "failure_count()",
@@ -360,7 +366,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="enrichment",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} has:gen_ai.operation.type",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.operation.type",
@@ -387,7 +393,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="first_last_io",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
+            query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} gen_ai.operation.type:ai_client",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.input.messages",

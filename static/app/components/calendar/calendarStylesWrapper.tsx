@@ -3,10 +3,8 @@ import 'react-date-range/dist/theme/default.css';
 
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-const CalendarStylesWrapper = styled('div')`
-  padding: ${space(2)};
+export const CalendarStylesWrapper = styled('div')`
+  padding: ${p => p.theme.space.xl};
 
   .rdrCalendarWrapper:not(.rdrDateRangeWrapper) .rdrDayHovered .rdrDayNumber:after {
     border: 0;
@@ -168,7 +166,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrMonthAndYearWrapper {
     height: 32px;
     align-items: stretch;
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
     padding-top: 0;
   }
 
@@ -182,7 +180,7 @@ const CalendarStylesWrapper = styled('div')`
     color: ${p => p.theme.tokens.content.primary};
     font-weight: ${p => p.theme.font.weight.sans.regular};
     font-size: ${p => p.theme.font.size.lg};
-    padding: ${space(0.25)} ${space(1)};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   }
 
   .rdrMonthsVertical {
@@ -248,5 +246,3 @@ const CalendarStylesWrapper = styled('div')`
     visibility: hidden;
   }
 `;
-
-export default CalendarStylesWrapper;

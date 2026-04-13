@@ -71,7 +71,11 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
+            "app": {
+                "uuid": self.unpublished_app.uuid,
+                "slug": self.unpublished_app.slug,
+                "sentryAppId": self.unpublished_app.id,
+            },
             "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
             "status": "pending",
@@ -86,7 +90,11 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
+            "app": {
+                "uuid": self.unpublished_app.uuid,
+                "slug": self.unpublished_app.slug,
+                "sentryAppId": self.unpublished_app.id,
+            },
             "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
             "code": self.installation2.api_grant.code,

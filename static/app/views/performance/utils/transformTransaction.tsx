@@ -1,8 +1,13 @@
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
-export default function transformTransaction(
-  transaction: NormalizedTrendsTransaction
-): NormalizedTrendsTransaction {
+export type BreakpointTransaction = Pick<
+  NormalizedTrendsTransaction,
+  'aggregate_range_1' | 'aggregate_range_2' | 'breakpoint'
+>;
+
+export function transformTransaction(
+  transaction: BreakpointTransaction
+): BreakpointTransaction {
   if (transaction?.breakpoint) {
     return {
       ...transaction,

@@ -171,7 +171,7 @@ export class Frame {
 
   getSourceLocation(): string {
     const trimmedPackage = this.package ? trimPackage(this.package) : this.package;
-    const packageFileOrPath: string =
+    const packageFileOrPath =
       this.file ?? this.module ?? trimmedPackage ?? this.path ?? '<unknown>';
 
     const line = typeof this.line === 'number' ? this.line : '<unknown line>';

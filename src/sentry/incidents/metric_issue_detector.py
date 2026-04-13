@@ -1,11 +1,18 @@
 from datetime import timedelta
 from typing import Any
 
+from django.core.exceptions import ValidationError
+from parsimonious.exceptions import ParseError
 from rest_framework import serializers
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features, quotas
 from sentry.constants import ObjectStatus
-from sentry.incidents.logic import enable_disable_subscriptions
+from sentry.incidents.logic import (
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    enable_disable_subscriptions,
+    get_alert_resolution,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
@@ -115,7 +122,9 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
 
         return type
 
-    def validate_comparison(self, value: dict | float | int | str) -> float | dict:
+    def validate_comparison(
+        self, value: dict[str, Any] | float | int | str
+    ) -> float | dict[str, Any]:
         if isinstance(value, (float, int)):
             try:
                 value = float(value)
@@ -144,7 +153,7 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
 class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
-    def validate_conditions(self, value):
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
@@ -157,10 +166,12 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         return value
 
 
-def is_invalid_extrapolation_mode(new_extrapolation_mode) -> bool:
-    if type(new_extrapolation_mode) is int:
+def is_invalid_extrapolation_mode(
+    new_extrapolation_mode: int | str | ExtrapolationMode | None,
+) -> bool:
+    if isinstance(new_extrapolation_mode, int):
         new_extrapolation_mode = ExtrapolationMode(new_extrapolation_mode).name.lower()
-    if type(new_extrapolation_mode) is ExtrapolationMode:
+    if isinstance(new_extrapolation_mode, ExtrapolationMode):
         new_extrapolation_mode = new_extrapolation_mode.name.lower()
     if (
         new_extrapolation_mode is not None
@@ -176,12 +187,14 @@ def is_invalid_extrapolation_mode(new_extrapolation_mode) -> bool:
     return False
 
 
-def format_extrapolation_mode(extrapolation_mode) -> ExtrapolationMode | None:
+def format_extrapolation_mode(
+    extrapolation_mode: int | str | ExtrapolationMode | None,
+) -> ExtrapolationMode | None:
     if extrapolation_mode is None:
         return None
-    if type(extrapolation_mode) is int:
+    if isinstance(extrapolation_mode, int):
         return ExtrapolationMode(extrapolation_mode)
-    if type(extrapolation_mode) is ExtrapolationMode:
+    if isinstance(extrapolation_mode, ExtrapolationMode):
         return extrapolation_mode
     return ExtrapolationMode.from_str(extrapolation_mode)
 
@@ -192,7 +205,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     )
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
-    def validate_eap_rule(self, attrs):
+    def validate_eap_rule(self, attrs: dict[str, Any]) -> None:
         """
         Validate EAP rule data.
         """
@@ -206,7 +219,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 aggregate = data_source.get("aggregate")
                 validate_trace_metrics_aggregate(aggregate)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
 
         if "condition_group" in attrs:
@@ -235,6 +248,27 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError(
                 f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
             )
+
+    def _get_resolution_for_window(
+        self,
+        time_window_seconds: int | float,
+        detection_type: str | None,
+        comparison_delta: int | float | None,
+    ) -> timedelta:
+        """
+        Compute the appropriate SnubaQuery resolution for a given time window
+        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
+        """
+        organization = self.context["organization"]
+
+        if detection_type == AlertRuleDetectionType.DYNAMIC:
+            resolution = timedelta(seconds=time_window_seconds)
+        else:
+            resolution = get_alert_resolution(int(time_window_seconds) // 60, organization)
+            if comparison_delta is not None:
+                resolution *= DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+
+        return resolution
 
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
@@ -286,8 +320,11 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return False
 
     def update_data_source(
-        self, instance: Detector, data_source: SnubaQueryDataSourceType, seer_updated: bool = False
-    ):
+        self,
+        instance: Detector,
+        data_source: SnubaQueryDataSourceType,
+        seer_updated: bool = False,
+    ) -> None:
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -303,7 +340,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             except SnubaQuery.DoesNotExist:
                 raise serializers.ValidationError("SnubaQuery not found, can't update")
 
-        event_types = SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id)
+        event_types = snuba_query.event_types
 
         if self.is_editing_transaction_dataset(snuba_query, data_source):
             raise serializers.ValidationError(
@@ -325,26 +362,31 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 validated_data_source: dict[str, Any] = {"data_sources": [data_source]}
                 if not seer_updated:
                     update_detector_data(instance, validated_data_source)
-            except Exception:
+            except (TimeoutError, MaxRetryError, ParseError, ValidationError) as e:
                 # don't update the snuba query if we failed to send data to Seer
-                raise serializers.ValidationError(
-                    "Failed to send data to Seer, cannot update detector"
-                )
+                raise serializers.ValidationError(str(e))
 
         extrapolation_mode = format_extrapolation_mode(
             data_source.get("extrapolation_mode", snuba_query.extrapolation_mode)
         )
 
+        new_time_window = data_source.get("time_window", snuba_query.time_window)
+        resolution = self._get_resolution_for_window(
+            new_time_window,
+            instance.config.get("detection_type"),
+            instance.config.get("comparison_delta"),
+        )
+
         update_snuba_query(
             snuba_query=snuba_query,
-            query_type=data_source.get("query_type", snuba_query.type),
-            dataset=data_source.get("dataset", snuba_query.dataset),
+            query_type=data_source.get("query_type", SnubaQuery.Type(snuba_query.type)),
+            dataset=data_source.get("dataset", Dataset(snuba_query.dataset)),
             query=data_source.get("query", snuba_query.query),
             aggregate=data_source.get("aggregate", snuba_query.aggregate),
-            time_window=timedelta(seconds=data_source.get("time_window", snuba_query.time_window)),
-            resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
+            time_window=timedelta(seconds=new_time_window),
+            resolution=resolution,
             environment=data_source.get("environment", snuba_query.environment),
-            event_types=data_source.get("event_types", [event_type for event_type in event_types]),
+            event_types=data_source.get("event_types", event_types),
             extrapolation_mode=extrapolation_mode,
         )
 
@@ -367,11 +409,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             try:
                 update_detector_data(instance, validated_data)
                 seer_updated = True
-            except Exception:
+            except (TimeoutError, MaxRetryError, ParseError, ValidationError) as e:
                 # Don't update if we failed to send data to Seer
-                raise serializers.ValidationError(
-                    "Failed to send data to Seer, cannot update detector"
-                )
+                raise serializers.ValidationError(str(e))
 
         elif (
             validated_data.get("config")
@@ -383,7 +423,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return seer_updated
 
-    def update(self, instance: Detector, validated_data: dict[str, Any]):
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         # Handle anomaly detection changes first in case we need to exit before saving so that the instance values do not get updated
         seer_updated = self.update_anomaly_detection(instance, validated_data)
 
@@ -408,17 +448,31 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if data_source is not None:
             self.update_data_source(instance, data_source, seer_updated)
+        elif "config" in validated_data:
+            # Config changed (e.g. detection_type or comparison_delta) without a
+            # data_source update — recalculate resolution to match the new config.
+            self.update_data_source(instance, {}, seer_updated)
 
         instance.save()
 
         schedule_update_project_config(instance)
         return instance
 
-    def create(self, validated_data: dict[str, Any]):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         if "data_sources" in validated_data:
+            config = validated_data.get("config", {})
+            detection_type = config.get("detection_type")
+            comparison_delta = config.get("comparison_delta")
+
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
                 self._validate_extrapolation_mode(validated_data_source.get("extrapolation_mode"))
+
+                time_window = validated_data_source.get("time_window")
+                if time_window is not None:
+                    validated_data_source["resolution"] = self._get_resolution_for_window(
+                        time_window, detection_type, comparison_delta
+                    )
 
         detector = super().create(validated_data)
 
@@ -435,7 +489,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         schedule_update_project_config(detector)
         return detector
 
-    def delete(self):
+    def delete(self) -> None:
         # Let Seer know we're deleting a dynamic detector so the data can be deleted there too
         assert self.instance is not None
         detector: Detector = self.instance
@@ -443,7 +497,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         super().delete()
 
-    def _mark_query_as_user_updated(self, snuba_query: SnubaQuery):
+    def _mark_query_as_user_updated(self, snuba_query: SnubaQuery) -> None:
         """
         Mark the snuba query as user-updated in the query_snapshot field.
         This is used to skip automatic migrations for queries that users have already modified.

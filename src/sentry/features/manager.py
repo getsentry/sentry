@@ -413,6 +413,27 @@ class FeatureManager(RegisteredFeatureManager):
                 return None
         return None
 
+    def get_experiment_assignments(
+        self,
+        organization: Organization,
+        actor: User | RpcUser | AnonymousUser | None = None,
+    ) -> dict[str, str]:
+        """
+        Get experiment assignments for an organization.
+
+        Returns a dict mapping experiment name (without scope prefix) to
+        assignment ("active" or "control") for all flags with experiment_mode set.
+
+        Delegates to the entity handler (FlagpoleFeatureHandler in getsentry).
+        """
+        try:
+            if self._entity_handler:
+                return self._entity_handler.get_experiment_assignments(organization, actor)
+        except Exception:
+            if in_random_rollout("features.error.capture_rate"):
+                logger.exception("Failed to get experiment assignments")
+        return {}
+
     @staticmethod
     def _shim_feature_strategy(
         entity_feature_strategy: bool | FeatureHandlerStrategy,

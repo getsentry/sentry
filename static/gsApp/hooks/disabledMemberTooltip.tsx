@@ -2,7 +2,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 

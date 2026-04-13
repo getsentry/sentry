@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import type {PageFilters} from 'sentry/types/core';
@@ -88,7 +87,22 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   ),
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: undefined,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
+  [TraceItemDataset.ERRORS]: undefined,
 };
+
+/**
+ * Returns whether the given widget type supports multiple queries in the Explore view.
+ */
+export function widgetTypeSupportsExploreMultiQuery(
+  widgetType: WidgetType | undefined
+): boolean {
+  const traceItemDataset = getTraceItemDatasetFromWidgetType(widgetType);
+  return (
+    traceItemDataset === TraceItemDataset.SPANS ||
+    traceItemDataset === TraceItemDataset.TRACEMETRICS
+  );
+}
 
 export function getWidgetExploreUrl(
   widget: Widget,
@@ -97,17 +111,10 @@ export function getWidgetExploreUrl(
   organization: Organization,
   preferMode?: Mode,
   referrer?: string
-) {
+): string | null {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
 
   if (widget.queries.length > 1) {
-    if (traceItemDataset === TraceItemDataset.LOGS) {
-      Sentry.captureException(
-        new Error(
-          `getWidgetExploreUrl: multiple queries for logs is unsupported, widget_id: ${widget.id}, organization_id: ${organization.id}, dashboard_id: ${widget.dashboardId}`
-        )
-      );
-    }
     return _getWidgetExploreUrlForMultipleQueries(
       widget,
       dashboardFilters,
@@ -144,7 +151,7 @@ export function getWidgetExploreUrl(
 }
 
 export function getChartType(displayType: DisplayType) {
-  let chartType: ChartType = ChartType.LINE;
+  let chartType = ChartType.LINE;
   switch (displayType) {
     case DisplayType.BAR:
       chartType = ChartType.BAR;
@@ -219,7 +226,7 @@ function _getWidgetExploreUrl(
   ];
 
   const chartType = getChartType(widget.displayType);
-  let exploreMode: Mode | undefined = preferMode;
+  let exploreMode = preferMode;
   if (!defined(exploreMode)) {
     switch (widget.displayType) {
       case DisplayType.BAR:
@@ -262,7 +269,7 @@ function _getWidgetExploreUrl(
             field !== SpanFields.IS_STARRED_TRANSACTION // starred transactions are not supported in explore
         )
       : query.columns.filter(column => column !== SpanFields.IS_STARRED_TRANSACTION);
-  if (groupBy && groupBy.length === 0) {
+  if (groupBy?.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
     // is not present, the Explore UI will assign a default groupBy
@@ -270,7 +277,7 @@ function _getWidgetExploreUrl(
     groupBy = [''];
   }
 
-  const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
+  const yAxisFields = locationQueryParams.yAxes.flatMap(getAggregateArguments);
   const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
@@ -374,7 +381,10 @@ function _getWidgetExploreUrlForMultipleQueries(
   organization: Organization,
   _traceItemDataset: TraceItemDataset,
   referrer?: string
-): string {
+): string | null {
+  if (!widgetTypeSupportsExploreMultiQuery(widget.widgetType)) {
+    return null;
+  }
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
   const datetime = {

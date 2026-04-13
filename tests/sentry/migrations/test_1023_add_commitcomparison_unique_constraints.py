@@ -1,6 +1,8 @@
+import pytest
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="fails because projecttemplate was removed")
 class DeleteDuplicateCommitComparisonsTest(TestMigrations):
     migrate_from = "1022_add_event_id_to_groupopenperiodactivity"
     migrate_to = "1023_add_commitcomparison_unique_constraints"

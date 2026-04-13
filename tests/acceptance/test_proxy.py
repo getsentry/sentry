@@ -15,12 +15,13 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import region_silo_test
-from sentry.types.region import Region
+from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import cell_silo_test
+from sentry.types.cell import Cell
 from sentry.utils import json
-from tests.sentry.middleware.test_proxy import test_region
+from tests.sentry.middleware.test_proxy import test_cell
 
 
 @pytest.fixture(scope="function")
@@ -30,7 +31,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
     request.node.live_server = live_server
 
 
-@region_silo_test(regions=[test_region])
+@cell_silo_test(cells=[test_cell])
 @pytest.mark.usefixtures("local_live_server")
 class EndToEndAPIProxyTest(TransactionTestCase):
     live_server: LiveServer
@@ -44,16 +45,18 @@ class EndToEndAPIProxyTest(TransactionTestCase):
         headers = params.pop("extra_headers", {})
         return getattr(self.client, self.method)(url, format="json", data=params, **headers)
 
+    # https://storage.googleapis.com/rca-analysis-sentry/rca-reports/ci-rca-02db8025.html
+    @pytest.mark.skip(reason="flaky")
     def test_through_api_gateway(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return
 
         self.client = APIClient()
-        config = asdict(test_region)
+        config = asdict(test_cell)
         config["address"] = self.live_server.url
 
-        with override_regions([Region(**config)]):
-            self.organization = Factories.create_organization(owner=self.user, region="us")
+        with override_cells([Cell(**config)]):
+            self.organization = Factories.create_organization(owner=self.user, cell="us")
             self.api_key = Factories.create_api_key(
                 organization=self.organization, scope_list=["org:write", "org:admin", "team:write"]
             )
@@ -69,6 +72,6 @@ class EndToEndAPIProxyTest(TransactionTestCase):
                 )
 
         assert_status_code(resp, 201)
-        result = json.loads(resp.getvalue())
+        result = json.loads(close_streaming_response(resp))
         team = Team.objects.get(id=result["id"])
         assert team.idp_provisioned

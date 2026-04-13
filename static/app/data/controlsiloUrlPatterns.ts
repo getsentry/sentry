@@ -1,6 +1,6 @@
 // This is generated code.
 // To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
-const patterns: RegExp[] = [
+export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^remote/heroku/resources(?:/[^/]+)?$'),
   new RegExp('^remote/heroku/sso-login/?$'),
   new RegExp('^remote/beacon/$'),
@@ -67,13 +67,16 @@ const patterns: RegExp[] = [
   new RegExp('^get-cli/$'),
   new RegExp('^get-cli/[^/]+/[^/]+/?$'),
   new RegExp('^api/0/organizations/[^/]+/data-secrecy/$'),
+  new RegExp('^api/0/organizations/[^/]+/intercom-jwt/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/audit-logs/$'),
   new RegExp('^api/0/organizations/[^/]+/integrations/$'),
+  new RegExp('^api/0/organizations/[^/]+/integrations/direct-enable/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/integrations/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/integrations/[^/]+/channels/$'),
   new RegExp('^api/0/organizations/[^/]+/integrations/[^/]+/channel-validate/$'),
+  new RegExp('^api/0/organizations/[^/]+/pipeline/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/sentry-app-installations/$'),
   new RegExp('^api/0/organizations/[^/]+/sentry-apps/$'),
   new RegExp('^api/0/organizations/[^/]+/sentry-app-components/$'),
@@ -151,7 +154,6 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/authenticators/$'),
   new RegExp('^api/0/accept-invite/[^/]+/[^/]+/[^/]+/$'),
   new RegExp('^api/0/data-export/notifications/google-cloud/$'),
-  new RegExp('^api/0/accept-invite/[^/]+/[^/]+/$'),
   new RegExp('^api/0/notification-defaults/$'),
   new RegExp('^api/0/sentry-apps-stats/$'),
   new RegExp('^api/0/doc-integrations/$'),
@@ -161,9 +163,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/wizard/$'),
   new RegExp('^api/0/wizard/[^/]+/$'),
   new RegExp('^api/0/internal/beacon/$'),
-  new RegExp('^api/0/internal/integration-proxy/$'),
   new RegExp('^api/0/internal/demo/email-capture/$'),
-  new RegExp('^api/0/internal/org-cell-mappings/$'),
   new RegExp('^api/0/internal/notifications/registered-templates/$'),
   new RegExp('^api/0/tempest-ips/$'),
   new RegExp('^api/0/secret-scanning/github/$'),
@@ -237,5 +237,3 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
 ];
-
-export default patterns;

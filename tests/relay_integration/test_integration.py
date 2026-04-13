@@ -1,9 +1,11 @@
+from datetime import timedelta
 from io import BytesIO
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 import requests
+from django.utils import timezone
 from sentry_relay.auth import SecretKey, generate_key_pair
 
 from sentry.models.eventattachment import EventAttachment
@@ -157,10 +159,17 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
     def test_standalone_attachment(self) -> None:
         event_id = uuid4().hex
+        retention_days = 66
 
-        # First, ingest the attachment and ensure it is saved
-        files = {"some_file": ("hello.txt", BytesIO(b"Hello World!"))}
-        self.post_and_retrieve_attachment(event_id, files)
+        with mock.patch(
+            "sentry.relay.config.quotas.backend.get_event_retention",
+            return_value=retention_days,
+        ):
+            now = timezone.now()
+
+            # First, ingest the attachment and ensure it is saved
+            files = {"some_file": ("hello.txt", BytesIO(b"Hello World!"))}
+            self.post_and_retrieve_attachment(event_id, files)
 
         # Next, ingest an error event
         event = self.post_and_retrieve_event({"event_id": event_id, "message": "my error"})
@@ -170,6 +179,8 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         # Finally, fetch the updated attachment and compare the group id
         attachment = EventAttachment.objects.get(project_id=self.project.id, event_id=event_id)
         assert attachment.group_id == event.group_id
+        delta = attachment.date_expires - (now + timedelta(days=retention_days))
+        assert abs(delta.total_seconds()) < 3600
 
     def test_blob_only_attachment(self) -> None:
         event_id = uuid4().hex
@@ -268,7 +279,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # run in monolith mode by default, but began failing during CI for unclear reasons
     # when the global default was switched to region mode. (See
     # get_default_silo_mode_for_test_cases in sentry/testutils/pytest/sentry.py.) Note
-    # that this case was marked as @region_silo_test when it was passing, so there was
+    # that this case was marked as @cell_silo_test when it was passing, so there was
     # no change in the silo mode in which *this* case is run. The probable explanation
     # is that the test is sensitive to side effects (possibly in Redis?) of other test
     # cases, which *did* have their silo mode changed.

@@ -21,3 +21,7 @@ class PluginIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         return {}
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        return "Send a notification (for all legacy integrations)"

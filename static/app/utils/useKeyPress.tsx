@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 /**
  * Hook to detect when a specific key is being pressed
  */
-const useKeyPress = (
+export const useKeyPress = (
   targetKey: string,
   target?: HTMLElement | null,
   captureAndStop = false
@@ -43,5 +43,3 @@ const useKeyPress = (
 
   return keyPressed;
 };
-
-export default useKeyPress;

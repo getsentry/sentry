@@ -73,7 +73,7 @@ export function getLinkedDashboardUrl({
   });
 
   // Preserve project, environment, and time range query params
-  const filterParams: Record<string, any> = locationQuery
+  const filterParams = locationQuery
     ? pick(locationQuery, [
         'release',
         'environment',
@@ -82,7 +82,7 @@ export function getLinkedDashboardUrl({
         'start',
         'end',
       ])
-    : {};
+    : ({} as Record<string, unknown>);
 
   // Override project if provided (e.g., from table row data)
   if (projectIdOverride) {

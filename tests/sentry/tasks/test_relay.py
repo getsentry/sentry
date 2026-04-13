@@ -142,7 +142,7 @@ def test_debounce(
         assert not args
         tasks.append(kwargs)
 
-    with mock.patch("sentry.taskworker.task.Task._signal_send", signal_send):
+    with mock.patch("taskbroker_client.task.Task._signal_send", signal_send):
         schedule_build_project_config(public_key=default_projectkey.public_key)
         schedule_build_project_config(public_key=default_projectkey.public_key)
 
@@ -268,8 +268,10 @@ def test_invalidation_project_deleted(
 
     project_id = default_project.id
 
-    # Delete the project normally, this will delete it from the cache
-    with emulate_transactions(assert_num_callbacks=4):
+    # Delete the project normally, this will delete it from the cache.
+    # Callbacks: OutboxBase.save, _delete_project_key_mapping, 2x detector cache invalidation
+    # (cascade delete), 2x schedule_invalidate_project_config, process_resource_change
+    with emulate_transactions(assert_num_callbacks=7):
         default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
@@ -289,7 +291,9 @@ def test_projectkeys(
     # should be cached as disabled.
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=2):
+    # Callbacks: schedule_invalidate_project_config (delete), ProjectKey.save outbox,
+    # schedule_invalidate_project_config (save)
+    with emulate_transactions(assert_num_callbacks=3):
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:
             key.delete()
@@ -303,7 +307,7 @@ def test_projectkeys(
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
 
-    with emulate_transactions():
+    with emulate_transactions(assert_num_callbacks=2):
         pk.status = ProjectKeyStatus.INACTIVE
         pk.save()
 
@@ -500,7 +504,6 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
-@override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
 @thread_leak_allowlist(reason="relay integration tests", issue=97040)
 def test_invalidate_hierarchy(

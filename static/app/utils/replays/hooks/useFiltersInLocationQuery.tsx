@@ -4,7 +4,7 @@ import type {Query} from 'history';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-function useFiltersInLocationQuery<Q extends Query>() {
+export function useFiltersInLocationQuery<Q extends Query>() {
   const {pathname, query} = useLocation<Q>();
   const navigate = useNavigate();
 
@@ -20,5 +20,3 @@ function useFiltersInLocationQuery<Q extends Query>() {
     query,
   };
 }
-
-export default useFiltersInLocationQuery;

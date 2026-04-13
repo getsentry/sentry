@@ -14,7 +14,7 @@ from django.db.models.functions import Cast
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
@@ -101,7 +101,7 @@ class GroupOwnerManager(BaseManager["GroupOwner"]):
             return GroupOwner.objects.create(**lookup_kwargs), True
 
 
-@region_silo_model
+@cell_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.

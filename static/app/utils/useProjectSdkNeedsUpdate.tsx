@@ -1,7 +1,7 @@
 import type {ProjectSdkUpdates} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 type Opts = {
@@ -9,7 +9,7 @@ type Opts = {
   projectId: string[];
 };
 
-export default function useProjectSdkNeedsUpdate({
+export function useProjectSdkNeedsUpdate({
   minVersion,
   projectId,
 }: Opts):

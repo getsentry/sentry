@@ -2,14 +2,13 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {makeAutomationsQueryKey} from 'sentry/views/automations/hooks';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 
 function ConnectedAutomations({
@@ -22,7 +21,7 @@ function ConnectedAutomations({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   return (
-    <Section title={t('Connected Alerts')}>
+    <DetailSection title={t('Connected Alerts')}>
       <ConnectedAutomationsList
         data-test-id="drawer-connected-automations-list"
         automationIds={automationIds}
@@ -33,7 +32,7 @@ function ConnectedAutomations({
         limit={null}
         openInNewTab
       />
-    </Section>
+    </DetailSection>
   );
 }
 
@@ -52,7 +51,7 @@ function AllAutomations({
   }, []);
 
   return (
-    <Section title={t('All Alerts')}>
+    <DetailSection title={t('All Alerts')}>
       <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
       <ConnectedAutomationsList
         data-test-id="drawer-all-automations-list"
@@ -65,7 +64,7 @@ function AllAutomations({
         query={searchQuery}
         openInNewTab
       />
-    </Section>
+    </DetailSection>
   );
 }
 
@@ -82,13 +81,11 @@ export function ConnectAutomationsDrawer({
 
   const toggleConnected = ({automation}: {automation: Automation}) => {
     const oldAutomationsData =
-      getApiQueryData<Automation[]>(
-        queryClient,
-        makeAutomationsQueryKey({
-          orgSlug: organization.slug,
+      queryClient.getQueryData(
+        automationsApiOptions(organization, {
           ids: localWorkflowIds,
-        })
-      ) ?? [];
+        }).queryKey
+      )?.json ?? [];
 
     const newAutomations = (
       oldAutomationsData.some(a => a.id === automation.id)
@@ -97,13 +94,9 @@ export function ConnectAutomationsDrawer({
     ).sort((a, b) => a.id.localeCompare(b.id));
     const newWorkflowIds = newAutomations.map(a => a.id);
 
-    setApiQueryData<Automation[]>(
-      queryClient,
-      makeAutomationsQueryKey({
-        orgSlug: organization.slug,
-        ids: newWorkflowIds,
-      }),
-      newAutomations
+    queryClient.setQueryData(
+      automationsApiOptions(organization, {ids: newWorkflowIds}).queryKey,
+      old => ({headers: old?.headers ?? {}, json: newAutomations})
     );
 
     setLocalWorkflowIds(newWorkflowIds);
@@ -130,6 +123,6 @@ export function ConnectAutomationsDrawer({
 const DrawerContent = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(3)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
 `;

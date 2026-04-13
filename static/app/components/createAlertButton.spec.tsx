@@ -3,11 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CreateAlertButton, {
+import {
+  CreateAlertButton,
   CreateAlertFromViewButton,
 } from 'sentry/components/createAlertButton';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 const onClickMock = jest.fn();
@@ -150,14 +151,14 @@ describe('CreateAlertFromViewButton', () => {
           location: {
             pathname: '/organizations/org-slug/issues/alerts/wizard/',
           },
-          route: `/organizations/:orgId/issues/alerts/wizard/`,
+          route: '/organizations/:orgId/issues/alerts/wizard/',
         },
       }
     );
     await userEvent.click(screen.getByRole('button'));
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/alerts/wizard/`,
+        pathname: '/organizations/org-slug/issues/alerts/wizard/',
         query: {},
       })
     );
@@ -201,7 +202,7 @@ describe('CreateAlertFromViewButton', () => {
     await userEvent.click(screen.getByRole('button'));
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/alerts/new/metric/`,
+        pathname: '/organizations/org-slug/issues/alerts/new/metric/',
         query: expect.objectContaining({
           query: 'event.type:error ',
           project: 'project-slug',

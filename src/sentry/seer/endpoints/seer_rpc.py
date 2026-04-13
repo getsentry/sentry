@@ -40,7 +40,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, internal_region_silo_endpoint
+from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
@@ -48,7 +48,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -74,10 +73,26 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
-from sentry.seer.autofix.utils import AutofixTriggerSource
+from sentry.seer.autofix.coding_agent import (
+    AutofixStateNotFound,
+    IntegrationNotFound,
+    OrganizationNotFound,
+    StateReposNotFound,
+    launch_coding_agents_for_run,
+)
+from sentry.seer.autofix.utils import (
+    AutofixTriggerSource,
+    bulk_read_preferences_from_sentry_db,
+    get_project_seer_preferences,
+    read_preference_from_sentry_db,
+    resolve_repository_ids,
+    write_preference_to_sentry_db,
+)
+from sentry.seer.autofix.utils import (
+    bulk_get_project_preferences as bulk_get_project_seer_preferences,
+)
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
@@ -92,7 +107,9 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -102,7 +119,9 @@ from sentry.seer.explorer.tools import (
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -171,7 +190,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     return False
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class SeerRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for seer RPC requests.
@@ -194,7 +213,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.
@@ -251,19 +270,19 @@ class SeerRpcServiceEndpoint(Endpoint):
             sentry_sdk.capture_exception()
             raise ParseError from e
         except ObjectDoesNotExist as e:
-            # Let this fall through, this is normal.
-            sentry_sdk.capture_exception()
             raise NotFound from e
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()
             raise Throttled(detail="Rate limit exceeded") from e
+        except APIException:
+            raise
         except Exception as e:
             if in_test_environment():
                 raise
             if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
             sentry_sdk.capture_exception()
-            raise ValidationError from e
+            raise APIException from e
         return Response(data=result)
 
 
@@ -544,7 +563,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         )
         return {"success": False, "error": "Organization not found or not active"}
 
-    if SeerOperator.has_access(organization=organization):
+    if SeerAutofixOperator.has_access(organization=organization):
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
@@ -552,9 +571,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
                 "organization_id": organization_id,
             }
         )
-
-    if not features.has("organizations:seer-webhooks", organization):
-        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
 
     broadcast_webhooks_for_organization.delay(
         resource_name="seer",
@@ -569,6 +585,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
 def trigger_coding_agent_launch(
     *,
     organization_id: int,
+    project_id: int | None = None,
     integration_id: int,
     run_id: int,
     trigger_source: str = "solution",
@@ -583,7 +600,7 @@ def trigger_coding_agent_launch(
         trigger_source: Either "root_cause" or "solution" (default: "solution")
 
     Returns:
-        dict: {"success": bool}
+        dict: {"success": bool, "error_code": str | None}
     """
     try:
         launch_coding_agents_for_run(
@@ -591,9 +608,56 @@ def trigger_coding_agent_launch(
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=AutofixTriggerSource(trigger_source),
+            initiator="automation.legacy",
+            referrer="seer_rpc.trigger_coding_agent_launch",
         )
         return {"success": True}
-    except (NotFound, PermissionDenied, ValidationError, APIException):
+    except IntegrationNotFound:
+        logger.exception(
+            "coding_agent.rpc_launch_error",
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "run_id": run_id,
+            },
+        )
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:seer-project-settings-dual-write", organization):
+                project = Project.objects.get_from_cache(id=project_id)
+
+                if features.has(
+                    "organizations:seer-project-settings-read-from-sentry", organization
+                ):
+                    preference = read_preference_from_sentry_db(project)
+                else:
+                    preference = get_project_seer_preferences(project.id).preference
+
+                if preference and preference.automation_handoff is not None:
+                    updated_preference = preference.copy(update={"automation_handoff": None})
+                    resolved_preference = resolve_repository_ids(
+                        organization.id, [SeerProjectPreference.validate(updated_preference)]
+                    )[0]
+                    write_preference_to_sentry_db(project, resolved_preference)
+                    # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
+        except Exception:
+            logger.exception(
+                "coding_agent.clear_handoff_preference_failed",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": organization_id,
+                    "run_id": run_id,
+                },
+            )
+        return {"success": False, "error_code": "integration_not_found"}
+    except (
+        OrganizationNotFound,
+        AutofixStateNotFound,
+        StateReposNotFound,
+        PermissionDenied,
+        ValidationError,
+        APIException,
+    ):
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
@@ -607,7 +671,7 @@ def trigger_coding_agent_launch(
 
 def has_repo_code_mappings(
     *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
-) -> dict[str, bool]:
+) -> dict[str, bool | dict[str, int]]:
     """
     Validate that a repository exists and belongs to the given organization.
 
@@ -619,19 +683,17 @@ def has_repo_code_mappings(
         name: The repository name (e.g., "sentry")
 
     Returns:
-        dict: {"has_code_mappings": bool}
+        dict: {"has_code_mappings": bool, "project_slug_to_id": dict[str, int]}
     """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    try:
+        repo_projects = get_repo_and_projects(organization_id, provider, external_id, owner, name)
+    except (Repository.DoesNotExist, NoProjectsForRepoError):
+        return {"has_code_mappings": False, "project_slug_to_id": {}}
 
-    if not repo:
-        return {"has_code_mappings": False}
-
-    has_mappings = RepositoryProjectPathConfig.objects.filter(
-        organization_id=organization_id,
-        repository_id=repo.id,
-    ).exists()
-
-    return {"has_code_mappings": has_mappings}
+    project_slug_to_id = dict(
+        sorted((project.slug, project.id) for project in repo_projects.projects)
+    )
+    return {"has_code_mappings": True, "project_slug_to_id": project_slug_to_id}
 
 
 def validate_repo(
@@ -665,6 +727,61 @@ def validate_repo(
         return {"valid": False, "reason": "unsupported_provider"}
 
     return {"valid": True, "integration_id": repo.integration_id}
+
+
+def get_repo_installation_id(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    owner: str,
+    name: str,
+) -> dict[str, Any]:
+    """
+    Look up a repository and return the external_id of its associated integration (the installation ID).
+
+    Args:
+        organization_id: The Sentry organization ID
+        provider: The SCM provider (e.g., "github", "github_enterprise")
+        external_id: The repository's external ID in the provider's system
+        owner: The repository owner (e.g., "getsentry")
+        name: The repository name (e.g., "sentry")
+
+    Returns:
+        {"installation_id": <str>} if found
+        {"error": <str>} if not found or unsupported
+    """
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+
+    if not repo:
+        return {"error": "repository_not_found"}
+
+    if repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+        return {"error": "unsupported_provider"}
+
+    if repo.integration_id is None:
+        return {"error": "no_integration"}
+
+    integration = integration_service.get_integration(integration_id=repo.integration_id)
+    if integration is None:
+        return {"error": "integration_not_found"}
+
+    # GitHub stores the installation ID as the integration's external_id,
+    # while GitHub Enterprise stores it in metadata["installation_id"].
+    if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
+        installation_id = integration.metadata.get("installation_id")
+    elif integration.provider == IntegrationProviderSlug.GITHUB.value:
+        installation_id = integration.external_id
+    else:
+        return {"error": "unsupported_provider"}
+
+    if not installation_id:
+        return {"error": "installation_id_not_found"}
+
+    return {
+        "installation_id": installation_id,
+        "permissions": integration.metadata.get("permissions"),
+    }
 
 
 def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
@@ -758,12 +875,51 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     return {"integration_ids": integration_ids}
 
 
+def get_project_preferences(*, organization_id: int, project_id: int) -> dict | None:
+    """Get Seer project preferences for a single project.
+
+    Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
+    Returns None if the project has no configured preferences.
+    """
+    project = Project.objects.get_from_cache(id=project_id)
+    if project.organization_id != organization_id:
+        raise Project.DoesNotExist
+
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preference = read_preference_from_sentry_db(project)
+    else:
+        preference = get_project_seer_preferences(project_id).preference
+
+    if preference is None:
+        return None
+    return preference.dict()
+
+
+def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
+    """Bulk get Seer project preferences.
+
+    Returns a dict keyed by stringified project ID. Values are preference dicts or None
+    for projects with no configured preferences.
+    """
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+        return {
+            str(project_id): preference.dict() if preference else None
+            for project_id, preference in preferences.items()
+        }
+    else:
+        return bulk_get_project_seer_preferences(organization_id, project_ids)
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
     "check_repository_integrations_status": check_repository_integrations_status,
     "validate_repo": validate_repo,
+    "get_repo_installation_id": get_repo_installation_id,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
@@ -773,6 +929,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
     "trigger_coding_agent_launch": trigger_coding_agent_launch,
+    "get_project_preferences": get_project_preferences,
+    "bulk_get_project_preferences": bulk_get_project_preferences,
     #
     # Bug prediction
     "has_repo_code_mappings": has_repo_code_mappings,
@@ -798,6 +956,8 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
+    "get_issue_details": get_issue_details,
+    "get_event_details": get_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_table_query": execute_table_query,
     "execute_timeseries_query": execute_timeseries_query,

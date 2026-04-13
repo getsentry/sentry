@@ -13,7 +13,7 @@ from sentry.types.activity import ActivityType
     name="sentry.tasks.clear_expired_resolutions",
     namespace=issues_tasks,
     processing_deadline_duration=15,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def clear_expired_resolutions(release_id):
     """

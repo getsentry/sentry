@@ -3,28 +3,27 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Pagination} from 'sentry/components/pagination';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
@@ -45,6 +44,8 @@ import {
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -322,7 +323,17 @@ function SortDropdown() {
   );
 }
 
+const issueViewsFeedbackOptions = {
+  formTitle: t('Give Feedback'),
+  messagePlaceholder: t('How can we make issue views better for you?'),
+  tags: {
+    ['feedback.source']: 'custom_views',
+    ['feedback.owner']: 'issues',
+  },
+};
+
 export default function IssueViewsList() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -359,63 +370,101 @@ export default function IssueViewsList() {
 
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <FeedbackButton
-                size="sm"
-                feedbackOptions={{
-                  formTitle: t('Give Feedback'),
-                  messagePlaceholder: t('How can we make issue views better for you?'),
-                  tags: {
-                    ['feedback.source']: 'custom_views',
-                    ['feedback.owner']: 'issues',
-                  },
-                }}
-              />
-              <Feature
-                features="organizations:issue-views"
-                hookName="feature-disabled:issue-views"
-                renderDisabled={props => (
-                  <Hovercard
-                    body={
-                      <FeatureDisabled
-                        features={props.features}
-                        hideHelpToggle
-                        featureName={t('Issue Views')}
-                      />
-                    }
-                  >
-                    {typeof props.children === 'function'
-                      ? props.children(props)
-                      : props.children}
-                  </Hovercard>
-                )}
-              >
-                {({hasFeature}) => (
-                  <Button
-                    priority="primary"
-                    icon={<IconAdd />}
-                    size="sm"
-                    disabled={!hasFeature || isCreatingView}
-                    busy={isCreatingView}
-                    onClick={() => {
-                      trackAnalytics('issue_views.table.create_view_clicked', {
-                        organization,
-                      });
-                      handleCreateView();
-                    }}
-                  >
-                    {t('Create View')}
-                  </Button>
-                )}
-              </Feature>
-            </Grid>
-          </Layout.HeaderActions>
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="actions">
+                <Feature
+                  features="organizations:issue-views"
+                  hookName="feature-disabled:issue-views"
+                  renderDisabled={props => (
+                    <Hovercard
+                      body={
+                        <FeatureDisabled
+                          features={props.features}
+                          hideHelpToggle
+                          featureName={t('Issue Views')}
+                        />
+                      }
+                    >
+                      {typeof props.children === 'function'
+                        ? props.children(props)
+                        : props.children}
+                    </Hovercard>
+                  )}
+                >
+                  {({hasFeature}) => (
+                    <Button
+                      priority="primary"
+                      icon={<IconAdd />}
+                      disabled={!hasFeature || isCreatingView}
+                      busy={isCreatingView}
+                      onClick={() => {
+                        trackAnalytics('issue_views.table.create_view_clicked', {
+                          organization,
+                        });
+                        handleCreateView();
+                      }}
+                    >
+                      {t('Create View')}
+                    </Button>
+                  )}
+                </Feature>
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions}>
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions} />
+                <Feature
+                  features="organizations:issue-views"
+                  hookName="feature-disabled:issue-views"
+                  renderDisabled={props => (
+                    <Hovercard
+                      body={
+                        <FeatureDisabled
+                          features={props.features}
+                          hideHelpToggle
+                          featureName={t('Issue Views')}
+                        />
+                      }
+                    >
+                      {typeof props.children === 'function'
+                        ? props.children(props)
+                        : props.children}
+                    </Hovercard>
+                  )}
+                >
+                  {({hasFeature}) => (
+                    <Button
+                      priority="primary"
+                      icon={<IconAdd />}
+                      size="sm"
+                      disabled={!hasFeature || isCreatingView}
+                      busy={isCreatingView}
+                      onClick={() => {
+                        trackAnalytics('issue_views.table.create_view_clicked', {
+                          organization,
+                        });
+                        handleCreateView();
+                      }}
+                    >
+                      {t('Create View')}
+                    </Button>
+                  )}
+                </Feature>
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
         <Layout.Body>
           <MainTableLayout width="full">
@@ -461,7 +510,7 @@ export default function IssueViewsList() {
             />
           </MainTableLayout>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
@@ -470,10 +519,10 @@ const Banner = styled('div')`
   position: relative;
   display: flex;
   flex-direction: column;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   margin-bottom: 0;
   padding: 12px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
@@ -515,7 +564,7 @@ const FilterSortBar = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: 1fr auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableHeading = styled('h2')`
@@ -523,8 +572,8 @@ const TableHeading = styled('h2')`
   justify-content: space-between;
   align-items: center;
   font-size: ${p => p.theme.font.size.xl};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const MainTableLayout = styled(Layout.Main)`

@@ -6,10 +6,7 @@ import {
   SPANS_FILTER,
   useSpanSamplesWebVitalsQuery,
 } from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
-import type {
-  SpanSampleRowWithScore,
-  WebVitals,
-} from 'sentry/views/insights/browser/webVitals/types';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
@@ -78,7 +75,7 @@ export function useSpanSamplesCategorizedQuery({
 
   const isLoading = isGoodDataLoading || isMehDataLoading || isBadDataLoading;
 
-  const spanSamplesTableData: SpanSampleRowWithScore[] = defined(webVital)
+  const spanSamplesTableData = defined(webVital)
     ? data.sort((a, b) => a[`${webVital}Score`] - b[`${webVital}Score`])
     : data.sort((a, b) => a.totalScore - b.totalScore);
 

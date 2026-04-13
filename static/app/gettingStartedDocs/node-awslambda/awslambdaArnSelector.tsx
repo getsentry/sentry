@@ -5,7 +5,6 @@ import {CodeBlock} from '@sentry/scraps/code';
 
 import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useQuery} from 'sentry/utils/queryClient';
 
 type RegionData = {region: string; version: string};
@@ -96,11 +95,11 @@ export function AwsLambdaArnSelector({
 }
 
 const ArnWrapper = styled('div')`
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
 `;
 
 const ArnLabel = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export function AwsLambdaArn({canonical}: {canonical: string}) {

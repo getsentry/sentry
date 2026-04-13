@@ -301,10 +301,7 @@ def _cleanup(
     partition_total: int | None = None,
     partition_key: str = "id",
 ) -> None:
-    start_time = time.time()
-    _validate_and_setup_environment(concurrency, silent)
-
-    # Validate partition flags
+    # Validate partition flags before modifying environment
     parsed_partition: tuple[int, int, str] | None = None
     if partition_bucket is not None or partition_total is not None:
         if partition_bucket is None or partition_total is None:
@@ -324,6 +321,9 @@ def _cleanup(
                 f"Invalid --partition-bucket: {partition_bucket} must be less than --partition-total {partition_total}."
             )
         parsed_partition = (partition_bucket, partition_total, partition_key)
+
+    start_time = time.time()
+    _validate_and_setup_environment(concurrency, silent)
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     pool, task_queue = _start_pool(concurrency)
@@ -368,12 +368,13 @@ def _cleanup(
                 return model.__name__.lower() not in model_list
 
             deletes = models_which_use_deletions_code_path()
+            bulk_query_deletes = generate_bulk_query_deletes()
 
             _run_specialized_cleanups(is_filtered, days, models_attempted)
 
             # Handle project/organization specific logic
             project_id, organization_id = _handle_project_organization_cleanup(
-                project, organization, days, deletes
+                project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
                 transaction.set_tag("organization_id", organization_id)
@@ -381,6 +382,7 @@ def _cleanup(
                 transaction.set_tag("project_id", project_id)
 
             run_bulk_query_deletes(
+                bulk_query_deletes,
                 is_filtered,
                 days,
                 project,
@@ -511,6 +513,7 @@ def _handle_project_organization_cleanup(
     organization: str | None,
     days: int,
     deletes: list[tuple[type[BaseModel], str, str]],
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
 ) -> tuple[int | None, int | None]:
     """Handle project/organization specific cleanup logic."""
     project_id = None
@@ -519,6 +522,7 @@ def _handle_project_organization_cleanup(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         if project:
             remove_cross_project_models(deletes)
+            remove_cross_project_bulk_query_models(bulk_query_deletes)
             project_id = get_project_id_or_fail(project)
         elif organization:
             organization_id = get_organization_id_or_fail(organization)
@@ -732,11 +736,24 @@ def remove_old_nodestore_values(days: int) -> None:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
 
 
+def remove_cross_project_bulk_query_models(
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
+) -> list[tuple[type[BaseModel], str, str | None]]:
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+    from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+
+    bulk_query_deletes.remove((GroupOpenPeriodActivity, "date_added", None))
+    bulk_query_deletes.remove((WorkflowFireHistory, "date_added", None))
+    return bulk_query_deletes
+
+
 def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
+    from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.models.userreport import UserReport
+    from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
@@ -749,12 +766,15 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     BULK_QUERY_DELETES = [
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
+        (GroupOpenPeriodActivity, "date_added", None),
+        (WorkflowFireHistory, "date_added", None),
     ] + additional_bulk_query_deletes
 
     return BULK_QUERY_DELETES
 
 
 def run_bulk_query_deletes(
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
@@ -770,7 +790,6 @@ def run_bulk_query_deletes(
         raise CleanupExecutionAborted()
 
     debug_output("Running bulk query deletes in bulk_query_deletes")
-    bulk_query_deletes = generate_bulk_query_deletes()
     for model_tp, dtfield, order_by in bulk_query_deletes:
         chunk_size = 10000
 

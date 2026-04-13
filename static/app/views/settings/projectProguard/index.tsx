@@ -1,25 +1,25 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import ProjectProguardRow from './projectProguardRow';
+import {ProjectProguardRow} from './projectProguardRow';
 
 export type ProguardMappingAssociation = {
   releases: string[];
@@ -34,29 +34,27 @@ export default function ProjectProguard() {
   const [loading, setLoading] = useState(false);
 
   const {
-    data: mappings,
+    data: mappingsResp,
     isPending: dataLoading,
-    getResponseHeader,
     refetch: fetchData,
-  } = useApiQuery<DebugFile[]>(
-    [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<DebugFile[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         query: {
           query: location.query.query,
           file_formats: 'proguard',
           cursor: location.query.cursor,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const mappings = mappingsResp?.json;
 
-  const mappingsPageLinks = getResponseHeader?.('Link');
+  const mappingsPageLinks = mappingsResp?.headers.Link;
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -112,7 +110,7 @@ export default function ProjectProguard() {
 
       <TextBlock>
         {tct(
-          `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].`,
+          'ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/" />

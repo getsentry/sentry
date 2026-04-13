@@ -1,8 +1,7 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dashedBorder?: boolean;
@@ -11,7 +10,7 @@ interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-const Panel = styled(
+export const Panel = styled(
   ({children, ...props}: PanelProps) => (
     <div {...props}>
       <PanelProvider>{children}</PanelProvider>
@@ -31,8 +30,6 @@ const Panel = styled(
         : p.dashedBorder
           ? 'dashed' + p.theme.colors.gray400
           : 'solid ' + p.theme.tokens.border.primary};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   position: relative;
 `;
-
-export default Panel;

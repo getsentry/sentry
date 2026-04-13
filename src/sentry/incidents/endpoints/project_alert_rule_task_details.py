@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
@@ -16,7 +16,7 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.workflow_engine.models import Detector
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

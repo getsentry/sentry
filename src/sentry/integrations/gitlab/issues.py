@@ -47,7 +47,8 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         # expects the param to be called 'repo', so we need to rename it here.
         # Django QueryDicts are immutable, so we need to copy it first.
         params_mut = dict(params)
-        params_mut["repo"] = params.get("project") or defaults.get("project")
+        repo = params.get("project") or defaults.get("project")
+        params_mut["repo"] = str(repo) if repo is not None else None
 
         default_project, project_choices = self.get_repository_choices(group, params_mut)
         return default_project, project_choices
@@ -59,7 +60,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             project = client.get_project(default_repo)
         except (ApiError, ApiUnauthorized):
             return ("", "")
-        return (project["id"], project["name_with_namespace"])
+        return (str(project["id"]), project["name_with_namespace"])
 
     @all_silo_function
     def get_create_issue_config(

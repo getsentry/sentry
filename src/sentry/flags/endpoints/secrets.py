@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationFlagWebHookSigningSecretPermission,
@@ -60,7 +60,7 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
         return serializers.CharField(min_length=32, max_length=32).run_validation(value)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     permission_classes = (OrganizationFlagWebHookSigningSecretPermission,)
@@ -101,10 +101,10 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
             is_creator = True
 
         if is_creator or has_permission:
-            FlagWebHookSigningSecretModel.objects.create_or_update(
+            FlagWebHookSigningSecretModel.objects.update_or_create(
                 organization=organization,
                 provider=validator.validated_data["provider"],
-                values={
+                defaults={
                     "created_by": request.user.id,
                     "date_added": datetime.now(tz=timezone.utc),
                     "provider": validator.validated_data["provider"],
@@ -119,7 +119,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
             )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     permission_classes = (OrganizationFlagWebHookSigningSecretPermission,)

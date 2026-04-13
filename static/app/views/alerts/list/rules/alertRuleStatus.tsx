@@ -5,7 +5,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {IconArrow, IconMute, IconNot} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -20,7 +19,7 @@ interface Props {
   rule: CombinedMetricIssueAlerts;
 }
 
-export default function AlertRuleStatus({rule}: Props) {
+export function AlertRuleStatus({rule}: Props) {
   const activeIncident = hasActiveIncident(rule);
 
   function renderSnoozeStatus(): React.ReactNode {
@@ -118,12 +117,12 @@ export default function AlertRuleStatus({rule}: Props) {
 const IssueAlertStatusWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   line-height: 2;
 `;
 
 const TriggerText = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 `;

@@ -9,28 +9,178 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, NotRequired, TypedDict
 
 import orjson
-import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.request import Request
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.models.user import User as SentryUser
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 
 logger = logging.getLogger(__name__)
+
+explorer_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
+
+
+class ExplorerStateRequest(TypedDict):
+    run_id: int
+    organization_id: int
+
+
+class ExplorerChatRequest(TypedDict):
+    organization_id: int
+    query: str
+    run_id: int | None
+    insert_index: int | None
+    on_page_context: str | None
+    page_name: NotRequired[str | None]
+    user_org_context: NotRequired[dict[str, Any] | None]
+    intelligence_level: NotRequired[str]
+    is_interactive: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    enable_code_mode_tools: NotRequired[bool]
+    project_id: NotRequired[int]
+    query_metadata: NotRequired[dict[str, str]]
+    artifact_key: NotRequired[str]
+    artifact_schema: NotRequired[dict[str, Any]]
+    custom_tools: NotRequired[list[dict[str, Any]]]
+    on_completion_hook: NotRequired[dict[str, Any]]
+    category_key: NotRequired[str]
+    category_value: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    is_context_engine_enabled: NotRequired[bool]
+    max_iterations: NotRequired[int]
+    user_auth_token: NotRequired[str | None]
+
+
+class ExplorerRunsRequest(TypedDict):
+    organization_id: int
+    user_id: NotRequired[int]
+    category_key: NotRequired[str]
+    category_value: NotRequired[str]
+    offset: NotRequired[int]
+    project_ids: NotRequired[list[int]]
+    limit: NotRequired[int]
+    expand: NotRequired[str]
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
+
+
+class ExplorerUpdateRequest(TypedDict):
+    run_id: int
+    organization_id: int
+    payload: NotRequired[dict[str, Any]]
+
+
+class ExplorerPrStateRequest(TypedDict):
+    organization_id: int
+    provider: str
+    pr_id: int
+
+
+def make_explorer_state_request(
+    body: ExplorerStateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/state",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_explorer_chat_request(
+    body: ExplorerChatRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/chat",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_explorer_runs_request(
+    body: ExplorerRunsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/runs",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_explorer_update_request(
+    body: ExplorerUpdateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/update",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_explorer_state_pr_request(
+    body: ExplorerPrStateRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or explorer_connection_pool,
+        "/v1/automation/explorer/state/pr",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def get_explorer_state_from_pr_id(
+    organization_id: int, provider: str, pr_id: int
+) -> SeerRunState | None:
+    body = ExplorerPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    response = make_explorer_state_pr_request(body)
+
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+
+    result = response.json()
+    if not result:
+        return None
+
+    session = result.get("session")
+    if session is None:
+        return None
+
+    return SeerRunState(**session)
 
 
 def has_seer_explorer_access_with_detail(
@@ -50,8 +200,24 @@ def has_seer_explorer_access_with_detail(
     if not has_access:
         return False, error
 
-    # Check seer-explorer specific feature flag
-    if not features.has("organizations:seer-explorer", organization, actor=actor):
+    feature_names = [
+        # Access to seer explorer
+        "organizations:seer-explorer",
+        # Access to seer explorer powered autofix
+        "organizations:autofix-on-explorer",
+    ]
+
+    batch_features = features.batch_has(
+        feature_names,
+        organization=organization,
+        actor=actor,
+    )
+
+    if batch_features is None:
+        return False, "Feature flag not enabled"
+
+    org_features = batch_features.get(f"organization:{organization.id}", {})
+    if not any(bool(org_features.get(feature_name)) for feature_name in feature_names):
         return False, "Feature flag not enabled"
 
     # Check open team membership (Explorer requires this for context)
@@ -65,7 +231,7 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | AnonymousUser | None,
+    user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
 ) -> dict[str, Any]:
@@ -81,7 +247,22 @@ def collect_user_org_context(
             "all_org_projects": all_org_projects,
         }
 
-    member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    try:
+        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    except OrganizationMember.DoesNotExist:
+        # User is not a member of this organization (e.g., superuser accessing foreign org)
+        logger.warning(
+            "User attempted to access Seer Explorer for organization they are not a member of",
+            extra={
+                "user_id": user.id,
+                "organization_id": organization.id,
+                "organization_slug": organization.slug,
+            },
+        )
+        return {
+            "org_slug": organization.slug,
+            "all_org_projects": all_org_projects,
+        }
     user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
     my_projects = (
         Project.objects.filter(
@@ -96,7 +277,7 @@ def collect_user_org_context(
 
     # Handle name attribute - SentryUser has name
     user_name: str | None = None
-    if isinstance(user, SentryUser):
+    if isinstance(user, (SentryUser, RpcUser)):
         user_name = user.name
 
     # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
@@ -119,28 +300,41 @@ def collect_user_org_context(
     }
 
 
+def create_explorer_api_token(user: SentryUser | RpcUser, organization: Organization) -> str | None:
+    """Create a short-lived read-only API token for Seer to call back into Sentry."""
+    try:
+        from sentry.models.apitoken import ApiToken
+        from sentry.types.token import AuthTokenType
+        from sentry.users.models.user import User as UserModel
+
+        real_user = UserModel.objects.get(id=user.id)
+        token = ApiToken.objects.create(
+            user=real_user,
+            token_type=AuthTokenType.USER,
+            scoping_organization_id=organization.id,
+            scope_list=[
+                "org:read",
+                "project:read",
+                "event:read",
+                "alerts:read",
+                "member:read",
+                "team:read",
+            ],
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        return token.plaintext_token
+    except Exception:
+        logger.exception("Failed to create short-lived API token for Seer Explorer")
+        return None
+
+
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
     """Fetch current run status from Seer."""
-    path = "/v1/automation/explorer/state"
+    body = ExplorerStateRequest(run_id=run_id, organization_id=organization.id)
+    response = make_explorer_state_request(body)
 
-    body = orjson.dumps(
-        {
-            "run_id": run_id,
-            "organization_id": organization.id,
-        },
-        option=orjson.OPT_NON_STR_KEYS,
-    )
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-
-    response.raise_for_status()
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     data = response.json()
 
     session = data.get("session")
@@ -177,3 +371,36 @@ def poll_until_done(
 
         # Wait before next poll
         time.sleep(poll_interval)
+
+
+def _render_node(node: dict[str, Any], depth: int) -> str:
+    """Recursively render an LLMContextSnapshot node and its children as markdown."""
+    heading = "#" * min(depth + 1, 6)
+    lines = [f"{heading} {(node.get('nodeType') or 'unknown').capitalize()}"]
+
+    data = node.get("data")
+    if isinstance(data, dict):
+        for key, value in data.items():
+            lines.append(f"- **{key}**: {orjson.dumps(value).decode()}")
+    elif data is not None:
+        lines.append(f"- {orjson.dumps(data).decode()}")
+
+    for child in node.get("children", []):
+        lines.append(_render_node(child, depth + 1))
+
+    return "\n".join(lines)
+
+
+def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
+    """Convert an LLMContextSnapshot dict to a markdown string.
+
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    The top-level nodes list contains a single root node (the page).
+    """
+    nodes = snapshot.get("nodes", [])
+    if not nodes:
+        return ""
+    preamble = (
+        "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
+    )
+    return preamble + _render_node(nodes[0], 0)

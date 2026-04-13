@@ -1,19 +1,19 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -29,22 +29,21 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
 import {mcpMonitoringPlatforms} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
@@ -122,19 +121,23 @@ function StepRenderer({
   step,
   stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
@@ -214,6 +217,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -338,11 +342,6 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton steps={steps} source="mcp_onboarding" />
-        </Container>
-      </CopySetupInstructionsGate>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
@@ -351,6 +350,15 @@ export function Onboarding() {
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 && copyEnabled ? (
+                <OnboardingCopyMarkdownButton
+                  borderless
+                  steps={steps}
+                  source="mcp_onboarding"
+                />
+              ) : undefined
+            }
           />
         ))}
       </GuidedSteps>
@@ -474,15 +482,13 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-const CONTENT_SPACING = space(1);
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -496,7 +502,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

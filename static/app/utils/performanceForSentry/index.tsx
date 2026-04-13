@@ -5,7 +5,7 @@ import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
@@ -544,7 +544,7 @@ const addSlowAppInit = (transaction: TransactionEvent) => {
       s.start_timestamp < appInitSpan.start_timestamp
   );
   longTaskSpans.forEach(s => {
-    s.op = `ui.long-task.app-init`;
+    s.op = 'ui.long-task.app-init';
   });
   if (longTaskSpans.length) {
     const sum = longTaskSpans.reduce(

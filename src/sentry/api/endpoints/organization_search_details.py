@@ -6,7 +6,7 @@ from sentry import analytics
 from sentry.api.analytics import OrganizationSavedSearchDeletedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -36,7 +36,7 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
             )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {

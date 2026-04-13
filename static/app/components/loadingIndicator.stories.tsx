@@ -1,7 +1,7 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as Storybook from 'sentry/stories';
 
-import NegativeSpaceContainer from './container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from './container/negativeSpaceContainer';
 
 export default Storybook.story('LoadingIndicator', story => {
   story('Default', () => (

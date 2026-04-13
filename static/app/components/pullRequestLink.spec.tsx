@@ -3,7 +3,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PullRequestLink from 'sentry/components/pullRequestLink';
+import {PullRequestLink} from 'sentry/components/pullRequestLink';
 
 describe('PullRequestLink', () => {
   it('renders no url on missing externalUrl', () => {

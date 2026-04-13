@@ -24,7 +24,7 @@ describe('incremental trace fetch', () => {
       {traceSlug: 'slug2', timestamp: 2},
     ];
 
-    const tree: TraceTree = TraceTree.FromTrace(
+    const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
           makeTransaction({
@@ -93,7 +93,7 @@ describe('incremental trace fetch', () => {
       {traceSlug: 'slug3', timestamp: 3},
     ];
 
-    const tree: TraceTree = TraceTree.FromTrace(
+    const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
           makeTransaction({
@@ -170,7 +170,7 @@ describe('incremental trace fetch', () => {
       {traceSlug: 'slug2', timestamp: 2},
     ];
 
-    const tree: TraceTree = TraceTree.FromTrace(
+    const tree = TraceTree.FromTrace(
       makeEAPTrace([
         makeEAPSpan({
           event_id: '1',
@@ -255,7 +255,7 @@ describe('incremental trace fetch', () => {
       {traceSlug: 'slug3', timestamp: 3},
     ];
 
-    const tree: TraceTree = TraceTree.FromTrace(
+    const tree = TraceTree.FromTrace(
       makeEAPTrace([
         makeEAPSpan({
           event_id: '1',

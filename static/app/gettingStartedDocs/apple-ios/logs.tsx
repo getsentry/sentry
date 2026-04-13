@@ -35,9 +35,11 @@ export const logs: OnboardingConfig = {
               )}"),`,
             },
             {
-              label: 'CocoaPods',
+              label: 'CocoaPods (Deprecated)',
               language: 'ruby',
-              code: `pod update`,
+              code: `# CocoaPods is deprecated and will not receive updates after June 2026.
+# Migrate to SPM or use xcframeworks instead.
+pod update`,
             },
             {
               label: 'Carthage',
@@ -77,7 +79,7 @@ export const logs: OnboardingConfig = {
 SentrySDK.start { options in
     options.dsn = "${params.dsn.public}"
     // Enable logs to be sent to Sentry
-    options.experimental.enableLogs = true
+    options.enableLogs = true
 }`,
             },
             {
@@ -88,7 +90,7 @@ SentrySDK.start { options in
 [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
     options.dsn = @"${params.dsn.public}";
     // Enable logs to be sent to Sentry
-    options.experimental.enableLogs = YES;
+    options.enableLogs = YES;
 }];`,
             },
           ],

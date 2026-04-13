@@ -1,16 +1,13 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {keepPreviousData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
@@ -21,18 +18,8 @@ interface UseGroupEventAttachmentsOptions {
      * current filters (for environment, date, query, etc).
      */
     fetchAllAvailable?: boolean;
-    placeholderData?: UseApiQueryOptions<IssueAttachment[]>['placeholderData'];
+    placeholderData?: typeof keepPreviousData;
   };
-}
-
-interface MakeFetchGroupEventAttachmentsQueryKeyOptions extends UseGroupEventAttachmentsOptions {
-  cursor: string | undefined;
-  environment: string[] | string | undefined;
-  orgSlug: string;
-  end?: DateString;
-  eventQuery?: string;
-  start?: DateString;
-  statsPeriod?: string;
 }
 
 type GroupEventAttachmentsTypeFilter =
@@ -49,12 +36,22 @@ interface GroupEventAttachmentsQuery {
   screenshot?: '1';
   start?: DateString;
   statsPeriod?: string;
-  types?:
-    | `${GroupEventAttachmentsTypeFilter}`
-    | Array<`${GroupEventAttachmentsTypeFilter}`>;
+  types?: GroupEventAttachmentsTypeFilter | GroupEventAttachmentsTypeFilter[];
 }
 
-export const makeFetchGroupEventAttachmentsQueryKey = ({
+export interface FetchGroupEventAttachmentsApiOptionsParams {
+  activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
+  group: Group;
+  orgSlug: string;
+  cursor?: string;
+  end?: DateString;
+  environment?: string[] | string;
+  eventQuery?: string;
+  start?: DateString;
+  statsPeriod?: string;
+}
+
+export function fetchGroupEventAttachmentsApiOptions({
   activeAttachmentsTab,
   group,
   orgSlug,
@@ -64,7 +61,7 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
   start,
   end,
   statsPeriod,
-}: MakeFetchGroupEventAttachmentsQueryKeyOptions): ApiQueryKey => {
+}: FetchGroupEventAttachmentsApiOptionsParams) {
   const query: GroupEventAttachmentsQuery = {};
 
   if (environment) {
@@ -97,20 +94,21 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
     query.types = ['event.minidump', 'event.applecrashreport'];
   }
 
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/attachments/', {
+  return apiOptions.as<IssueAttachment[]>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/attachments/',
+    {
       path: {organizationIdOrSlug: orgSlug, issueId: group.id},
-    }),
-    {query},
-  ];
-};
+      query,
+      staleTime: 60_000,
+    }
+  );
+}
 
 export function useGroupEventAttachments({
   group,
   activeAttachmentsTab,
   options,
 }: UseGroupEventAttachmentsOptions) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
   const eventQuery = useEventQuery();
@@ -118,15 +116,10 @@ export function useGroupEventAttachments({
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
-  const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;
-  const {
-    data: attachments = [],
-    isPending,
-    isError,
-    getResponseHeader,
-    refetch,
-  } = useApiQuery<IssueAttachment[]>(
-    makeFetchGroupEventAttachmentsQueryKey({
+  const fetchAllAvailable = options?.fetchAllAvailable;
+
+  const {data, isPending, isError, refetch} = useQuery({
+    ...fetchGroupEventAttachmentsApiOptions({
       activeAttachmentsTab,
       group,
       orgSlug: organization.slug,
@@ -139,13 +132,15 @@ export function useGroupEventAttachments({
         fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.statsPeriod,
       eventQuery: fetchAllAvailable ? undefined : eventQuery,
     }),
-    {placeholderData: options?.placeholderData, staleTime: 60_000}
-  );
+    placeholderData: options?.placeholderData,
+    select: selectJsonWithHeaders,
+  });
+
   return {
-    attachments,
+    attachments: data?.json ?? [],
     isPending,
     isError,
-    getResponseHeader,
+    pageLinks: data?.headers.Link ?? null,
     refetch,
   };
 }

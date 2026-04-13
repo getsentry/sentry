@@ -5,12 +5,12 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import * as useNavigateModule from 'sentry/utils/useNavigate';
 
-import RelocationDetails from 'admin/views/relocationDetails';
+import {RelocationDetails} from 'admin/views/relocationDetails';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -98,7 +98,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 
@@ -130,7 +130,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 
@@ -239,7 +239,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 
@@ -315,7 +315,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 
@@ -344,7 +344,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 
@@ -447,7 +447,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 
@@ -502,7 +502,7 @@ describe('Relocation Details', () => {
         location: {
           pathname: `/admin/relocations/test/${old_uuid}/`,
         },
-        route: `/admin/relocations/:regionName/:relocationUuid/`,
+        route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
 

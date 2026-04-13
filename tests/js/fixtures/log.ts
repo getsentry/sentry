@@ -2,8 +2,8 @@ import pick from 'lodash/pick';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -19,8 +19,12 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {AttributeResults} from 'sentry/views/settings/components/dataScrubbing/types';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
+
+type AttributeResults = Record<
+  AllowedDataScrubbingDatasets,
+  ReturnType<typeof useTraceItemAttributeKeys> | null
+>;
 
 export function LogFixture({
   [OurLogKnownFieldKey.PROJECT_ID]: projectId,

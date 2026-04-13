@@ -9,8 +9,8 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
@@ -24,7 +24,7 @@ export interface SaveButtonProps {
   setError: (error: Record<string, any>) => void;
 }
 
-function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
+export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
@@ -71,5 +71,3 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     </Button>
   );
 }
-
-export default SaveButton;

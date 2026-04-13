@@ -72,7 +72,7 @@ function isProperlyQuoted(value: string): boolean {
 }
 
 function requiresQuotes(value: string): boolean {
-  return /[\s()\\"]/g.test(value);
+  return /[\s()\\"]/.test(value);
 }
 
 function generateFilterValue(token: Token, operator: string): string {
@@ -419,6 +419,21 @@ export class MutableSearch {
     return this.getFilterValues(key).length > 0;
   }
 
+  /**
+   * Renames all filter tokens matching `oldKey` to `newKey` in-place,
+   * preserving operators, negation, position, and filter type.
+   */
+  renameFilter(oldKey: string, newKey: string) {
+    for (const token of this.tokens) {
+      if (token.key === oldKey) {
+        token.key = newKey;
+      } else if (token.key === `!${oldKey}`) {
+        token.key = `!${newKey}`;
+      }
+    }
+    return this;
+  }
+
   removeFilter(key: string) {
     const removeErroneousAndOrOps = () => {
       let toRemove = -1;
@@ -695,5 +710,5 @@ export function escapeFilterValue(value: string) {
   // Need to dig deeper to see where exactly it's wrong.
   //
   // astericks (*) is used for wildcard searches
-  return typeof value === 'string' ? value.replace(/([*])/g, '\\$1') : value;
+  return typeof value === 'string' ? value.replace(/(\*)/g, '\\$1') : value;
 }

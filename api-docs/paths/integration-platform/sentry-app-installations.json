@@ -12,6 +12,9 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
       }
     ],
     "responses": {
@@ -27,13 +30,16 @@
                 "properties": {
                   "app": {
                     "type": "object",
-                    "required": ["uuid", "slug"],
+                    "required": ["uuid", "slug", "sentryAppId"],
                     "properties": {
                       "uuid": {
                         "type": "string"
                       },
                       "slug": {
                         "type": "string"
+                      },
+                      "sentryAppId": {
+                        "type": "integer"
                       }
                     }
                   },
@@ -59,7 +65,8 @@
               {
                 "app": {
                   "uuid": "a9988ad6-meow-4905-bb93-f7cbf4c96bbb",
-                  "slug": "cat-75c19a"
+                  "slug": "cat-75c19a",
+                  "sentryAppId": 1
                 },
                 "organization": {
                   "slug": "sentry"

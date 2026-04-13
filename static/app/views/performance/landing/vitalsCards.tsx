@@ -5,22 +5,21 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {WebVital} from 'sentry/utils/fields';
 import type {
   VitalData,
   VitalsData,
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
+import {ColorBar} from 'sentry/views/performance/vitalDetail/colorBar';
 import {
   makeVitalStateColors,
   VitalState,
 } from 'sentry/views/performance/vitalDetail/utils';
-import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
+import {VitalPercents} from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 type VitalBarProps = {
   data: VitalsData | null;
@@ -132,7 +131,7 @@ export function VitalBar(props: VitalBarProps) {
 
 const EmptyVitalBar = styled(EmptyStateWarning)`
   height: 48px;
-  padding: ${space(1.5)} 15%;
+  padding: ${p => p.theme.space.lg} 15%;
 `;
 
 const StyledTooltip = styled(Tooltip)`

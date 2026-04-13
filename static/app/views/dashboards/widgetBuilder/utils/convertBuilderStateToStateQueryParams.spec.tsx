@@ -56,6 +56,17 @@ describe('convertBuilderStateToStateQueryParams', () => {
     expect(queryParams.selectedAggregate).toBe(0);
   });
 
+  it('omits textContent from the query params', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TEXT,
+      textContent: 'some markdown content',
+    };
+
+    const queryParams = convertBuilderStateToStateQueryParams(mockState);
+
+    expect(queryParams).not.toHaveProperty('textContent');
+  });
+
   it('applies the thresholds to the query params', () => {
     const mockState: WidgetBuilderState = {
       query: ['transaction.duration:>100'],

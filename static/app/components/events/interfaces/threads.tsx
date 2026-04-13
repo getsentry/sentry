@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {CommitRow} from 'sentry/components/commitRow';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
   useStacktraceContext,
@@ -18,10 +17,10 @@ import {
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
-import Pill from 'sentry/components/pill';
-import Pills from 'sentry/components/pills';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Pill} from 'sentry/components/pill';
+import {Pills} from 'sentry/components/pills';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   IconChevron,
   IconClock,
@@ -31,7 +30,6 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -41,15 +39,14 @@ import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
-import ThreadSelector from './threads/threadSelector';
-import findBestThread from './threads/threadSelector/findBestThread';
-import getThreadException from './threads/threadSelector/getThreadException';
-import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
-import NoStackTraceMessage from './noStackTraceMessage';
+import {ThreadSelector} from './threads/threadSelector';
+import {findBestThread} from './threads/threadSelector/findBestThread';
+import {getThreadException} from './threads/threadSelector/getThreadException';
+import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
+import {NoStackTraceMessage} from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type Props = {
@@ -176,7 +173,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
     [data.values]
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
   // Sync active thread to module store for copy functionality
@@ -389,7 +385,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
             exception={exception}
             platform={platform}
           />
-          {hasStreamlinedUI && group && (
+          {group && (
             <ErrorBoundary
               mini
               message={t('There was an error loading the suspect commits')}
@@ -397,7 +393,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <SuspectCommits
                 projectSlug={projectSlug}
                 eventId={event.id}
-                commitRow={CommitRow}
                 group={group}
               />
             </ErrorBoundary>
@@ -407,25 +402,17 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     </Fragment>
   );
 
-  if (hasStreamlinedUI) {
-    // If there is only one thread, we expect the stacktrace to wrap itself in a section
-    return hasMoreThanOneThread ? (
-      <InterimSection
-        title={tn('Stack Trace', 'Stack Traces', threads.length)}
-        type={SectionKey.STACKTRACE}
-        disableCollapsePersistence
-      >
-        <Flex direction="column" gap="xl">
-          {threadComponent}
-        </Flex>
-      </InterimSection>
-    ) : (
-      threadComponent
-    );
-  }
-
+  // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
-    <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>
+    <InterimSection
+      title={tn('Stack Trace', 'Stack Traces', threads.length)}
+      type={SectionKey.STACKTRACE}
+      disableCollapsePersistence
+    >
+      <Flex direction="column" gap="xl">
+        {threadComponent}
+      </Flex>
+    </InterimSection>
   ) : (
     threadComponent
   );
@@ -434,7 +421,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 const Grid = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const TheadStateContainer = styled('div')`
@@ -450,19 +437,9 @@ const LockReason = styled(TextOverflow)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const ThreadTraceWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)} ${space(4)};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(2)};
-  }
-`;
-
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

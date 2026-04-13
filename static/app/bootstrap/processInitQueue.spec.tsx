@@ -10,8 +10,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
-import AlertStore from 'sentry/stores/alertStore';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
 describe('processInitQueue', () => {

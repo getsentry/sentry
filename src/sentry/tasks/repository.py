@@ -10,7 +10,7 @@ from sentry.taskworker.namespaces import integrations_tasks
 @instrumented_task(
     name="sentry.models.repository_cascade_delete_on_hide",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def repository_cascade_delete_on_hide(repo_id: int) -> None:
     # Manually cause a deletion cascade.

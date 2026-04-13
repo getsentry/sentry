@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
-import {space} from 'sentry/styles/space';
+import {Placeholder} from 'sentry/components/placeholder';
 import {useRotatingMessage} from 'sentry/views/replays/detail/ai/useRotatingMessage';
 import {REPLAY_SUMMARY_PROCESSING_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 
@@ -43,7 +42,7 @@ const ShimmerText = styled(Text)`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: ${textSweep} 3s ease-in-out infinite;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
   text-align: center;
 
   @media (prefers-reduced-motion: reduce) {

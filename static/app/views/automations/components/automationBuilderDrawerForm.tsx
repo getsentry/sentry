@@ -7,16 +7,16 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
@@ -27,7 +27,7 @@ import {
   getNewAutomationData,
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
-import {ActionIntervalSelectField} from 'sentry/views/automations/components/forms/actionIntervalSelectField';
+import {ActionThrottleSelectField} from 'sentry/views/automations/components/forms/actionThrottleSelectField';
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {
   AutomationFormProvider,
@@ -41,7 +41,7 @@ import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/reso
 const DEFAULT_INITIAL_DATA = {
   name: '',
   environment: null,
-  frequency: 1440,
+  frequency: 0,
   projectIds: [],
   detectorIds: [],
 };
@@ -68,10 +68,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           <Stack gap="md">
             <AutomationBuilder />
           </Stack>
-          <ActionIntervalSelectField
-            label={t('Action Interval')}
-            help={t('Perform the actions above this often for an issue.')}
-          />
+          <ActionThrottleSelectField />
         </Flex>
         <EmbeddedTextField
           required
@@ -87,7 +84,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           </Button>
           <Observer>
             {() => (
-              <Button priority="primary" type="submit" disabled={model.isSaving}>
+              <Button priority="primary" type="submit" busy={model.isSaving}>
                 {t('Create Alert')}
               </Button>
             )}
@@ -142,7 +139,7 @@ export function AutomationBuilderDrawerForm({
       const formData = await resolveDetectorIdsForProjects({
         formData: data as AutomationFormData,
         onSubmitError,
-        orgSlug: organization.slug,
+        organization,
         projectIds: data.projectIds,
         queryClient,
       });

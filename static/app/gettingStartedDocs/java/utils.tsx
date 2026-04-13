@@ -89,7 +89,7 @@ sentry {
   projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
-${params.isProfilingSelected ? `${wrappedGradleSnippet(params)}` : ''}`;
+${params.isProfilingSelected ? wrappedGradleSnippet(params) : ''}`;
 
 const wrappedGradleSnippet = (params: Params) => `
 dependencies {

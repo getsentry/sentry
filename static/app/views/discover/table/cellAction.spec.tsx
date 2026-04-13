@@ -1,12 +1,11 @@
-import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 const defaultData: TableDataRow = {
@@ -54,7 +53,7 @@ function renderComponent({
 }
 
 describe('Discover -> CellAction', () => {
-  const location: Location = LocationFixture({
+  const location = LocationFixture({
     query: {
       id: '42',
       name: 'best query',

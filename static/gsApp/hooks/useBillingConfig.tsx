@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {UPSELL_TIER} from 'getsentry/constants';
@@ -17,7 +17,7 @@ export function useBillingConfig({organization, subscription}: UseBillingConfigP
       : UPSELL_TIER;
   return useApiQuery<BillingConfig>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {tier: upsellTier}},

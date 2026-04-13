@@ -9,7 +9,7 @@ import type {DataCategory} from 'sentry/types/core';
 
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
-import AllocationRow from './components/allocationRow';
+import {AllocationRow} from './components/allocationRow';
 import {Cell, Centered, Divider, HalvedWithDivider} from './components/styles';
 import type {SpendAllocation} from './components/types';
 import type {BigNumUnits} from './utils';
@@ -28,14 +28,14 @@ type Props = {
   spendAllocations?: SpendAllocation[];
 };
 
-function ProjectAllocationsTable({
+export function ProjectAllocationsTable({
   deleteSpendAllocation,
   metricUnit,
   openForm,
   selectedMetric,
   spendAllocations = [],
 }: Props) {
-  const filteredMetrics: SpendAllocation[] = useMemo(() => {
+  const filteredMetrics = useMemo(() => {
     const filtered = spendAllocations.filter(
       allocation =>
         allocation.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name &&
@@ -117,8 +117,6 @@ function ProjectAllocationsTable({
     </Container>
   );
 }
-
-export default ProjectAllocationsTable;
 
 const Table = styled('table')`
   background: ${p => p.theme.tokens.background.primary};

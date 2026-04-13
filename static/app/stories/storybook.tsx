@@ -1,13 +1,22 @@
 import type {ReactNode} from 'react';
-import {Children, Fragment, useEffect} from 'react';
+import {Children, Fragment, Suspense, lazy, useEffect} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
-import {StoryHeading} from 'sentry/stories/view/storyHeading';
+import {Section, SideBySide} from './layout';
 
-import * as Storybook from './';
+// Lazy-loaded to bypass circular dependencies on Button
+const StoryHeading = lazy(() =>
+  import('sentry/stories/view/storyHeading').then(m => ({default: m.StoryHeading}))
+);
+const APIReference = lazy(() =>
+  import('./apiReference').then(m => ({default: m.APIReference}))
+);
+
+function makeStorybookDocumentTitle(title: string | undefined): string {
+  return title ? `${title} — Scraps` : 'Scraps';
+}
 
 type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryContext = (storyName: string, story: StoryRenderFunction) => void;
@@ -23,13 +32,13 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   }> = [];
   const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
 
-  const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
+  const storyFn: StoryContext = (name, render) => {
     stories.push({name, render});
   };
 
-  const apiReferenceFn: (
+  const apiReferenceFn = (
     documentation: TypeLoader.ComponentDocWithFilename | undefined
-  ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
+  ) => {
     APIDocumentation.push(documentation);
   };
 
@@ -47,7 +56,9 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={name + idx} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <Storybook.APIReference key={i} componentProps={documentation} />
+          <Suspense key={i} fallback={null}>
+            <APIReference componentProps={documentation} />
+          </Suspense>
         ))}
       </Fragment>
     );
@@ -59,13 +70,15 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   const isOneChild = Children.count(children) === 1;
 
   return (
-    <Storybook.Section>
+    <Section>
       <Container borderBottom="primary">
-        <StoryHeading as="h2" size="2xl">
-          {props.name}
-        </StoryHeading>
+        <Suspense fallback={<Heading as="h2">{props.name}</Heading>}>
+          <StoryHeading as="h2" size="2xl">
+            {props.name}
+          </StoryHeading>
+        </Suspense>
       </Container>
-      {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
-    </Storybook.Section>
+      {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+    </Section>
   );
 }

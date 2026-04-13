@@ -1,7 +1,7 @@
 import logging
 import time
 import uuid
-from collections.abc import Generator
+from collections.abc import Generator, MutableSequence
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -89,7 +89,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def __produce_payload(
         self, *insert_args: Any, **insert_kwargs: Any
-    ) -> tuple[list[tuple[str, str | None]] | dict[str, str | None], Any]:
+    ) -> tuple[MutableSequence[tuple[str, bytes]], Any]:
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 

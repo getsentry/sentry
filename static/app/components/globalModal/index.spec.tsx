@@ -1,11 +1,13 @@
 import {
   act,
+  render,
   renderGlobalModal,
   screen,
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
@@ -189,6 +191,89 @@ describe('GlobalModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
+  });
+
+  it('does not close modal when pressing escape to close a select dropdown', async () => {
+    renderGlobalModal();
+
+    act(() =>
+      openModal(({Body}) => (
+        <Body>
+          <CompactSelect
+            options={[
+              {value: 'opt1', label: 'Option One'},
+              {value: 'opt2', label: 'Option Two'},
+            ]}
+            value="opt1"
+            onChange={() => {}}
+          />
+        </Body>
+      ))
+    );
+
+    // Open the select dropdown
+    await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+
+    // Press ESC — should close the dropdown, NOT the modal
+    await userEvent.keyboard('{Escape}');
+
+    // Dropdown should be closed
+    expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+
+    // Modal should still be open
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('restores focus to the button that opened the modal', async () => {
+    const {waitForModalToHide} = renderGlobalModal();
+    render(
+      <button
+        onClick={() =>
+          openModal(() => (
+            <div>
+              <input autoFocus />
+            </div>
+          ))
+        }
+      >
+        Open Modal
+      </button>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open Modal'}));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
+
+    await userEvent.keyboard('{Escape}');
+    await waitForModalToHide();
+
+    expect(screen.getByRole('button', {name: 'Open Modal'})).toHaveFocus();
+  });
+
+  it('restores focus to the button focused when a keyboard shortcut opens the modal', async () => {
+    const {waitForModalToHide} = renderGlobalModal();
+    render(<button>My Button</button>);
+
+    // Simulate keyboard navigation landing on the button
+    screen.getByRole('button', {name: 'My Button'}).focus();
+    expect(screen.getByRole('button', {name: 'My Button'})).toHaveFocus();
+
+    // Simulate a keyboard shortcut handler (e.g. Cmd+K) opening the modal
+    act(() =>
+      openModal(() => (
+        <div>
+          <input autoFocus />
+        </div>
+      ))
+    );
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
+
+    await userEvent.keyboard('{Escape}');
+    await waitForModalToHide();
+
+    expect(screen.getByRole('button', {name: 'My Button'})).toHaveFocus();
   });
 
   it('renders interactive tooltip inside the modal', async () => {

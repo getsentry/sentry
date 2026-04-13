@@ -1,10 +1,11 @@
-import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {Stack} from '@sentry/scraps/layout';
+
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -54,11 +55,11 @@ export function ModulePageProviders({
       storageNamespace={view}
     >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <Layout.Page>
+        <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
           </NoProjectMessage>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

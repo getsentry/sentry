@@ -5,15 +5,14 @@ import {PlatformIcon} from 'platformicons';
 import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -22,7 +21,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
   const organization = useOrganization();
 
-  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
+  const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
       (acc, project) => {
         acc[project.slug] = project.platform;
@@ -136,13 +135,13 @@ const ProfilesTable = styled('div')`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   }
 
   img {
     width: 16px;
     height: 16px;
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
@@ -151,11 +150,11 @@ const ProfilesTableRow = styled('div')`
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   width: 100%;
-  padding: ${space(0.5)};
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
 
   & > div {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -176,5 +175,5 @@ const ProfilesTableTitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
 `;

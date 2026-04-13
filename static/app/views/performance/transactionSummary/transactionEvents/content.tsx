@@ -11,42 +11,37 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import Filter, {
+import {
+  Filter,
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-import EventsTable from './eventsTable';
-import type {EventsDisplayFilterName} from './utils';
-import {getEventsFilterOptions} from './utils';
+import {EventsTable} from './eventsTable';
+import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -75,7 +70,7 @@ const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('timestamp'),
 ];
 
-function EventsContent(props: Props) {
+export function EventsContent(props: Props) {
   const {
     location,
     organization,
@@ -87,7 +82,6 @@ function EventsContent(props: Props) {
     projectId,
     projects,
   } = props;
-  const routes = useRoutes();
   const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
 
@@ -173,20 +167,11 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const shouldUseEAP = useTransactionSummaryEAP();
-
-  const table = shouldUseEAP ? (
-    <OverviewSpansTable
-      eventView={eventView}
-      totalValues={null}
-      transactionName={transactionName}
-    />
-  ) : (
+  const table = (
     <EventsTable
       theme={theme}
       eventView={eventView}
       organization={organization}
-      routes={routes}
       location={location}
       setError={setError}
       columnTitles={titles}
@@ -213,7 +198,6 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
-    transactionName,
   } = props;
 
   const navigate = useNavigate();
@@ -247,7 +231,6 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.TRANSACTIONS],
@@ -256,15 +239,11 @@ function Search(props: Props) {
 
   return (
     <FilterActions>
-      {shouldUseEAP ? (
-        <SpanCategoryFilter segmentSpanName={transactionName} />
-      ) : (
-        <Filter
-          organization={organization}
-          currentFilter={spanOperationBreakdownFilter}
-          onChangeFilter={onChangeSpanOperationBreakdownFilter}
-        />
-      )}
+      <Filter
+        organization={organization}
+        currentFilter={spanOperationBreakdownFilter}
+        onChangeFilter={onChangeSpanOperationBreakdownFilter}
+      />
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
@@ -304,8 +283,8 @@ function Search(props: Props) {
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(4, min-content);
@@ -327,5 +306,3 @@ const StyledSearchBarWrapper = styled('div')`
     grid-column: auto;
   }
 `;
-
-export default EventsContent;

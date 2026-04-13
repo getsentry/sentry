@@ -5,41 +5,50 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
-import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
-import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
-import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
-import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
-import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
-import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {FeedbackFilters} from 'sentry/components/feedback/feedbackFilters';
+import {FeedbackItemLoader} from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
+import {FeedbackSearch} from 'sentry/components/feedback/feedbackSearch';
+import {FeedbackSetupPanel} from 'sentry/components/feedback/feedbackSetupPanel';
+import {FeedbackList} from 'sentry/components/feedback/list/feedbackList';
+import {FeedbackSummaryCategories} from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
+import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
-import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import FullViewport from 'sentry/components/layouts/fullViewport';
+import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
+import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {FullViewport} from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+const userFeedbackFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the User Feedback experience?'),
+  tags: {
+    ['feedback.source']: 'feedback-list',
+  },
+};
 
 export default function FeedbackListPage() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
 
-  const feedbackId = useCurrentFeedbackId();
-  const feedbackProjectSlug = useCurrentFeedbackProject();
+  const [feedbackSlug] = useFeedbackSlug();
+  const feedbackId = feedbackSlug?.feedbackId ?? '';
+  const feedbackProjectSlug = feedbackSlug?.projectSlug ?? '';
   const hasSlug = Boolean(feedbackId);
 
   const {query: locationQuery} = useLocation();
@@ -152,38 +161,61 @@ export default function FeedbackListPage() {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Flex gap="lg">
-                <FeedbackButton
-                  size="sm"
-                  feedbackOptions={{
-                    messagePlaceholder: t(
-                      'How can we improve the User Feedback experience?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'feedback-list',
-                    },
-                  }}
-                />
-                <LinkButton
-                  size="sm"
-                  icon={<IconSiren />}
-                  to={{
-                    pathname: makeAlertsPathname({
-                      path: '/new/issue/',
-                      organization,
-                    }),
-                    query: {
-                      alert_option: 'issues',
-                      referrer: 'feedback-list-page',
-                      ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
-                    },
-                  }}
-                >
-                  {t('Create Alert')}
-                </LinkButton>
-              </Flex>
-            </Layout.HeaderActions>
+            {hasPageFrameFeature ? (
+              <Fragment>
+                <TopBar.Slot name="actions">
+                  <LinkButton
+                    icon={<IconSiren />}
+                    to={{
+                      pathname: makeAlertsPathname({
+                        path: '/new/issue/',
+                        organization,
+                      }),
+                      query: {
+                        alert_option: 'issues',
+                        referrer: 'feedback-list-page',
+                        detectorType: 'metric_issue',
+                        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+                      },
+                    }}
+                  >
+                    {t('Create Alert')}
+                  </LinkButton>
+                </TopBar.Slot>
+                <TopBar.Slot name="feedback">
+                  <FeedbackButton size="sm" feedbackOptions={userFeedbackFeedbackOptions}>
+                    {null}
+                  </FeedbackButton>
+                </TopBar.Slot>
+              </Fragment>
+            ) : (
+              <Layout.HeaderActions>
+                <Flex gap="lg">
+                  <FeedbackButton
+                    size="sm"
+                    feedbackOptions={userFeedbackFeedbackOptions}
+                  />
+                  <LinkButton
+                    size="sm"
+                    icon={<IconSiren />}
+                    to={{
+                      pathname: makeAlertsPathname({
+                        path: '/new/issue/',
+                        organization,
+                      }),
+                      query: {
+                        alert_option: 'issues',
+                        referrer: 'feedback-list-page',
+                        detectorType: 'metric_issue',
+                        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+                      },
+                    }}
+                  >
+                    {t('Create Alert')}
+                  </LinkButton>
+                </Flex>
+              </Layout.HeaderActions>
+            )}
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
@@ -229,13 +261,13 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   flex-grow: 1;
 
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   place-items: stretch;
 
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding: ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   }
 
   grid-template-rows: max-content 1fr;

@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ScreenSummaryContentPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -22,7 +22,7 @@ describe('Screen Summary', () => {
         [SpanFields.APP_START_TYPE]: 'cold',
       },
     },
-    route: `/organizations/:orgId/insights/screens/spans/`,
+    route: '/organizations/:orgId/insights/screens/spans/',
   };
 
   describe('Native Project', () => {

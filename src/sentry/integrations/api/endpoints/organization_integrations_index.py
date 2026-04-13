@@ -14,7 +14,7 @@ from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
-from sentry.apidocs.parameters import GlobalParams, IntegrationParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IntegrationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
@@ -71,6 +71,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
             IntegrationParams.PROVIDER_KEY,
             IntegrationParams.FEATURES,
             IntegrationParams.INCLUDE_CONFIG,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -124,7 +125,11 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         def on_results(results: Sequence[OrganizationIntegration]) -> Sequence[Mapping[str, Any]]:
             if feature_filters:
                 results = filter_by_features(results, feature_filters)
-            return serialize(results, request.user, include_config=include_config)
+            return [
+                item
+                for item in serialize(results, request.user, include_config=include_config)
+                if item is not None
+            ]
 
         return self.paginate(
             queryset=queryset,

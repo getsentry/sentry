@@ -261,7 +261,7 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
 
-    def test_segment_name_propagation(self):
+    def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         segment_span["name"] = "my segment name"
 
@@ -280,7 +280,7 @@ class TestSpansTask(TestCase):
             "value": "my segment name",
         }
 
-    def test_segment_name_propagation_when_name_missing(self):
+    def test_segment_name_propagation_when_name_missing(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         del segment_span["name"]
 
@@ -321,7 +321,7 @@ class TestSpansTask(TestCase):
         )
         mock_record_segment_name.assert_not_called()
 
-    def test_segment_name_normalization_checks_source(self):
+    def test_segment_name_normalization_checks_source(self) -> None:
         _, segment_span = self.generate_basic_spans()
         segment_span["name"] = "/foo/2fd4e1c67a2d28fced849ee1bb76e7391b93eb12/user/123/0"
         segment_span["attributes"][ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE] = {
@@ -337,7 +337,7 @@ class TestSpansTask(TestCase):
         )
 
 
-def test_verify_compatibility():
+def test_verify_compatibility() -> None:
     spans: list[dict[str, Any]] = [
         # regular span:
         {"data": {"foo": 1}},
@@ -353,6 +353,96 @@ def test_verify_compatibility():
     result = _verify_compatibility(spans)
     assert len(result) == len(spans)
     assert [v is None for v in result] == [True, True, False, False, False, False, False]
+
+
+@exclude_experimental_detectors
+class TestSkipEnrichmentKillswitch(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+        wraps=None,
+    )
+    def test_skip_enrichment_by_project_id(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is skipped and spans are still returned when project_id matches killswitch."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        with override_options(
+            {"spans.process-segments.skip-enrichment-projects": [self.project.id]}
+        ):
+            processed_spans = process_segment([child_span, segment_span])
+
+        mock_enrich.assert_not_called()
+        assert len(processed_spans) == 2
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+    )
+    def test_no_skip_enrichment_for_other_project(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is not skipped when project_id does not match the option."""
+        mock_enrich.return_value = (None, [])
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        with override_options(
+            {"spans.process-segments.skip-enrichment-projects": [self.project.id + 1]}
+        ):
+            process_segment([child_span, segment_span])
+
+        mock_enrich.assert_called_once()
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+        wraps=None,
+    )
+    def test_skip_enrichment_flag(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is skipped when skip_enrichment=True is passed."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        processed_spans = process_segment([child_span, segment_span], skip_enrichment=True)
+
+        mock_enrich.assert_not_called()
+        assert len(processed_spans) == 2
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+    )
+    def test_no_skip_enrichment_when_flag_is_false(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment runs normally when skip_enrichment=False."""
+        mock_enrich.return_value = (None, [])
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        process_segment([child_span, segment_span], skip_enrichment=False)
+
+        mock_enrich.assert_called_once()
 
 
 @exclude_experimental_detectors

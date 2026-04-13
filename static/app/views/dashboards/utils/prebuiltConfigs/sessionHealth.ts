@@ -155,4 +155,9 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
       layout: {x: 4, y: 5, w: 2, h: 3, minH: 2},
     },
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasSessions'],
+    description: 'Get started with session health',
+  },
 };

@@ -180,6 +180,7 @@ class RPCBase:
         config: SearchResolverConfig,
         query_params: SnubaParams,
     ) -> list[TraceItemFilterWithType]:
+        from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
         from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
         from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
         from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -203,6 +204,11 @@ class RPCBase:
                 additional_queries.metric,
                 TRACE_METRICS_DEFINITIONS,
                 TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            ),
+            (
+                additional_queries.occurrences,
+                OCCURRENCE_DEFINITIONS,
+                TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
             ),
         ]:
             if queries is not None:
@@ -229,6 +235,13 @@ class RPCBase:
         return True
 
     """ Table Methods """
+
+    @classmethod
+    def build_rpc_table_row_context(cls, query: TableQuery) -> dict[str, Any]:
+        return {
+            "project_ids": list(query.resolver.params.project_ids),
+            "organization_id": query.resolver.params.organization_id,
+        }
 
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
@@ -389,7 +402,9 @@ class RPCBase:
             "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
         )
 
-        return cls.process_table_response(rpc_response, table_request, debug=debug)
+        return cls.process_table_response(
+            rpc_response, table_request, debug=debug, context=cls.build_rpc_table_row_context(query)
+        )
 
     @classmethod
     def run_table_query(
@@ -419,18 +434,50 @@ class RPCBase:
         for query in queries:
             if query.name is None:
                 raise ValueError("Query name is required for bulk queries")
-            elif query.name in names:
+            if query.name in names:
                 raise ValueError("Query names need to be unique")
-            else:
-                names.add(query.name)
-        prepared_queries = {query.name: cls.get_table_rpc_request(query) for query in queries}
-        """Run the query"""
-        responses = snuba_rpc.table_rpc([query.rpc_request for query in prepared_queries.values()])
+            names.add(query.name)
+
+        request_context_pairs: list[tuple[str, TableRequest, dict[str, Any]]] = []
+        for query in queries:
+            assert query.name is not None
+            table_request = cls.get_table_rpc_request(query)
+            request_context_pairs.append(
+                (query.name, table_request, cls.build_rpc_table_row_context(query))
+            )
+        responses = snuba_rpc.table_rpc(
+            [request.rpc_request for _, request, _ in request_context_pairs]
+        )
         results = {
-            name: cls.process_table_response(response, request)
-            for (name, request), response in zip(prepared_queries.items(), responses)
+            name: cls.process_table_response(response, request, context=process_context)
+            for (name, request, process_context), response in zip(request_context_pairs, responses)
         }
         return results
+
+    @classmethod
+    def process_column_values(
+        cls,
+        column_value: Any,
+        final_data: SnubaData,
+        attribute: Any,
+        resolved_column: ResolvedColumn,
+        **_context_kwargs: Any,
+    ) -> None:
+        for index, result in enumerate(column_value.results):
+            result_value: str | int | float | None
+            if result.is_null:
+                result_value = None
+            else:
+                result_value = getattr(result, str(result.WhichOneof("value")))
+            result_value = process_value(result_value)
+            final_data[index][attribute] = resolved_column.process_column(result_value)
+
+    @classmethod
+    def process_column_confidence(cls, column_value, final_confidence, attribute) -> None:
+        for index, result in enumerate(column_value.results):
+            final_confidence[index][attribute] = CONFIDENCES.get(
+                column_value.reliabilities[index], None
+            )
 
     @classmethod
     def process_table_response(
@@ -438,8 +485,10 @@ class RPCBase:
         rpc_response: TraceItemTableResponse,
         table_request: TableRequest,
         debug: str | bool = False,
+        context: dict[str, Any] | None = None,
     ) -> EAPResponse:
         """Process the results"""
+        context_kwargs = dict(context) if context else {}
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
@@ -474,18 +523,15 @@ class RPCBase:
                 final_data.append({})
                 final_confidence.append({})
 
-            for index, result in enumerate(column_value.results):
-                result_value: str | int | float | None
-                if result.is_null:
-                    result_value = None
-                else:
-                    result_value = getattr(result, str(result.WhichOneof("value")))
-                result_value = process_value(result_value)
-                final_data[index][attribute] = resolved_column.process_column(result_value)
-                if has_reliability:
-                    final_confidence[index][attribute] = CONFIDENCES.get(
-                        column_value.reliabilities[index], None
-                    )
+            cls.process_column_values(
+                column_value,
+                final_data,
+                attribute,
+                resolved_column,
+                **context_kwargs,
+            )
+            if has_reliability:
+                cls.process_column_confidence(column_value, final_confidence, attribute)
 
         if debug:
             set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)
@@ -825,9 +871,12 @@ class RPCBase:
             other_row_conditions = []
             for key in groupby_columns:
                 if key == "project.id":
-                    value = resolver.params.project_slug_map[
-                        event.get("project") or event["project.slug"]
-                    ]
+                    if "project.id" in event:
+                        value = event["project.id"]
+                    else:
+                        value = resolver.params.project_slug_map[
+                            event.get("project") or event["project.slug"]
+                        ]
                 else:
                     value = event[key]
                 resolved_term, context = resolver.resolve_term(
@@ -997,7 +1046,9 @@ class RPCBase:
 
                     groupby_value = groupby_attributes[resolved_groupby.internal_name]
                     if context is not None:
-                        groupby_value = context.constructor(params).value_map[groupby_value]
+                        groupby_value = context.constructor(params, search_resolver).value_map[
+                            groupby_value
+                        ]
                         groupby_attributes[resolved_groupby.internal_name] = groupby_value
 
                     remapped_groupby[col] = groupby_value

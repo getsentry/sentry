@@ -249,6 +249,8 @@ def test_field_values(a, op, b) -> None:
         ("p50_if(span.duration,is_transaction,equals,true)", "/", 2),
         ("tpm()", "+", "failure_rate_if(is_transaction,equals,true)"),
         ("avg_if(span.duration,is_transaction,equals,true)", "*", 100),
+        ("ttid_contribution_rate()", "+", "ttfd_contribution_rate()"),
+        (100, "*", "ttid_contribution_rate()"),
         (
             "performance_score(measurements.score.lcp)",
             "+",

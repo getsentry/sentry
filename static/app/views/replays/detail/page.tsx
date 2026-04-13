@@ -1,51 +1,50 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
-import NotFound from 'sentry/components/errors/notFound';
-import * as Layout from 'sentry/components/layouts/thirds';
-import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import ReplayLayout from 'sentry/views/replays/detail/layout/replayLayout';
-import ReplayDetailsError from 'sentry/views/replays/detail/replayDetailsError';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayLayout} from 'sentry/views/replays/detail/layout/replayLayout';
+import {ReplayDetailsError} from 'sentry/views/replays/detail/replayDetailsError';
 
 type Props = {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 };
 
-export default function ReplayDetailsPage({readerResult}: Props) {
+export function ReplayDetailsPage({readerResult}: Props) {
   return (
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => (
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <ArchivedReplayAlert />
-        </Layout.Page>
+        </Stack>
       )}
       renderError={({fetchError, onRetry}) => (
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
-        </Layout.Page>
+        </Stack>
       )}
       renderThrottled={({fetchError, onRetry}) => (
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <ReplayDetailsError fetchError={fetchError} onRetry={onRetry} />
-        </Layout.Page>
+        </Stack>
       )}
       renderLoading={({replayRecord}) => (
         <ReplayLayout isVideoReplay={false} replayRecord={replayRecord} isLoading />
       )}
       renderMissing={() => (
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <NotFound />
-        </Layout.Page>
+        </Stack>
       )}
       renderProcessingError={() => (
-        <Layout.Page withPadding>
+        <Stack flex={1} padding="2xl 3xl">
           <Flex direction="column">
             <ReplayProcessingError />
           </Flex>
-        </Layout.Page>
+        </Stack>
       )}
     >
       {({replay}) => (

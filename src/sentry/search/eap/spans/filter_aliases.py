@@ -1,5 +1,5 @@
 import string
-from typing import Literal
+from typing import Any, Literal
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -17,7 +17,7 @@ from sentry.search.utils import parse_release, validate_snuba_array_parameter
 
 
 def release_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     if search_filter.value.is_wildcard():
         operator = search_filter.operator
@@ -47,7 +47,7 @@ def release_filter_converter(
 
 
 def release_stage_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -80,7 +80,9 @@ def release_stage_filter_converter(
     return [SearchFilter(SearchKey(constants.RELEASE_ALIAS), "IN", SearchValue(versions))]
 
 
-def semver_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> list[SearchFilter]:
+def semver_filter_converter(
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
+) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
         raise ValueError("organization is a required param")
@@ -143,7 +145,7 @@ def semver_filter_converter(params: SnubaParams, search_filter: SearchFilter) ->
 
 
 def semver_package_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -176,7 +178,7 @@ def semver_package_filter_converter(
 
 
 def semver_build_filter_converter(
-    params: SnubaParams, search_filter: SearchFilter
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
 ) -> list[SearchFilter]:
     organization_id = params.organization_id
     if organization_id is None:
@@ -217,7 +219,9 @@ def semver_build_filter_converter(
     return [SearchFilter(SearchKey(constants.RELEASE_ALIAS), "IN", SearchValue(versions))]
 
 
-def trace_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> list[SearchFilter]:
+def trace_filter_converter(
+    params: SnubaParams, search_filter: SearchFilter, _resolver: Any
+) -> list[SearchFilter]:
     operator = search_filter.operator
     value = search_filter.value.value
 

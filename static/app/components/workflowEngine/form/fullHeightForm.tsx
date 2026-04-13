@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 
 /**
  * Extends the Form component to be full height and have a sticky footer.

@@ -1,26 +1,26 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 type GroupHistory = {
@@ -36,27 +36,25 @@ type Props = DateTimeObject & {
   cursor?: string;
 };
 
-function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: Props) {
+export function AlertRuleIssuesList({
+  project,
+  rule,
+  period,
+  start,
+  end,
+  utc,
+  cursor,
+}: Props) {
   const organization = useOrganization();
-  const {
-    data: groupHistory,
-    getResponseHeader,
-    isPending,
-    isError,
-    error,
-  } = useApiQuery<GroupHistory[]>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-            ruleId: rule.id,
-          },
-        }
-      ),
+  const {data, isPending, error} = useQuery({
+    ...apiOptions.as<GroupHistory[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          ruleId: rule.id,
+        },
         query: {
           per_page: 10,
           ...(period && {statsPeriod: period}),
@@ -65,15 +63,17 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
           utc,
           cursor,
         },
-      },
-    ],
-    {staleTime: 0}
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const groupHistory = data?.json;
 
-  if (isError) {
+  if (error instanceof RequestError) {
     return (
       <LoadingError
-        message={(error?.responseJSON?.detail as string) ?? t('default message')}
+        message={(error.responseJSON?.detail as string) ?? t('default message')}
       />
     );
   }
@@ -133,24 +133,22 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
         })}
       </StyledPanelTable>
       <Flex justify="end" align="center" marginBottom="xl">
-        <StyledPagination pageLinks={getResponseHeader?.('Link')} size="xs" />
+        <StyledPagination pageLinks={data?.headers.Link} size="xs" />
       </Flex>
     </Fragment>
   );
 }
 
-export default AlertRuleIssuesList;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 
   ${p =>
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1)} ${space(2)};
+        padding: ${p.theme.space.md} ${p.theme.space.xl};
       }
     `}
 `;
@@ -171,7 +169,7 @@ const TitleWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   min-width: 200px;
 `;
 

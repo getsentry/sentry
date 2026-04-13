@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
-from django.conf import settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
@@ -23,13 +22,13 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
     )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.requests.post")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
     def test_explorer_update_successful(
-        self, mock_post: MagicMock, mock_has_access: MagicMock
+        self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
         mock_has_access.return_value = (True, None)
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = {"run_id": 123}
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"run_id": 123}
 
         response = self.client.post(
             self.url,
@@ -45,12 +44,12 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         assert response.data == {"run_id": 123}
 
         # Verify the request was made to Seer
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
-        assert f"{settings.SEER_AUTOFIX_URL}/v1/automation/explorer/update" in call_args[0]
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args
+        assert call_args[0][1] == "/v1/automation/explorer/update"
 
         # Verify the payload
-        sent_data = orjson.loads(call_args[1]["data"])
+        sent_data = orjson.loads(call_args[0][2])
         assert sent_data["run_id"] == "123"
         assert sent_data["organization_id"] == self.organization.id
         assert sent_data["payload"]["type"] == "interrupt"
@@ -58,9 +57,9 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
     @patch(
         "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
     )
-    @patch("sentry.seer.endpoints.organization_seer_explorer_update.requests.post")
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
     def test_explorer_update_missing_payload(
-        self, mock_post: MagicMock, mock_has_access: MagicMock
+        self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
         mock_has_access.return_value = (True, None)
 
@@ -72,7 +71,7 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Need a body with a payload" in str(response.data)
-        mock_post.assert_not_called()
+        mock_request.assert_not_called()
 
     @patch(
         "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
@@ -141,3 +140,52 @@ class TestOrganizationSeerExplorerUpdateFeatureFlags(APITestCase):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Feature flag not enabled" in str(response.data)
+
+
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
+class TestOrganizationSeerExplorerUpdateCodingDisabled(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.organization = self.create_organization(owner=self.user)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
+    )
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    def test_coding_payload_blocked_when_coding_disabled(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        for payload_type in ("select_solution", "create_branch", "create_pr"):
+            response = self.client.post(
+                self.url, data={"payload": {"type": payload_type}}, format="json"
+            )
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["detail"] == "Code generation is disabled for this organization"
+
+        mock_request.assert_not_called()
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_explorer_update.has_seer_explorer_access_with_detail"
+    )
+    @patch("sentry.seer.endpoints.organization_seer_explorer_update.make_signed_seer_api_request")
+    def test_non_coding_payload_allowed_when_coding_disabled(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {}
+
+        response = self.client.post(
+            self.url, data={"payload": {"type": "interrupt"}}, format="json"
+        )
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        mock_request.assert_called_once()

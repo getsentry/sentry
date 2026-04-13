@@ -9,7 +9,7 @@ import {
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 interface ExampleIntegrationButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   analyticsView: IntegrationView['view'];

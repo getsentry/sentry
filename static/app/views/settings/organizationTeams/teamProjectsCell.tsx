@@ -5,7 +5,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 
 const MAX_TOOLTIP_PROJECTS = 2;
@@ -45,7 +44,7 @@ export function TeamProjectsCell({
 const ProjectsLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   position: relative;
   z-index: 1;
   white-space: nowrap;

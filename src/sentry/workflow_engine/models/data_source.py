@@ -8,7 +8,7 @@ from django.db import models
 from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
@@ -24,7 +24,7 @@ class DataPacket(Generic[T]):
     packet: T
 
 
-@region_silo_model
+@cell_silo_model
 class DataSource(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
     # DataSource.source_id dynamically references different models based on the 'type' field.

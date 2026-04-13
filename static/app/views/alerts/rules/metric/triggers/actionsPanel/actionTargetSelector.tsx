@@ -37,7 +37,7 @@ type Props = {
   project?: Project;
 };
 
-export default function ActionTargetSelector(props: Props) {
+export function ActionTargetSelector(props: Props) {
   const {action, availableAction, disabled, loading, onChange, organization, project} =
     props;
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial
 from typing import Protocol, TypeVar
@@ -43,11 +42,16 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
+from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
+    ExportTraceItemsRequest,
+    ExportTraceItemsResponse,
+)
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from urllib3.response import BaseHTTPResponse
 
 from sentry.utils import json, metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import SnubaError, _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -84,7 +88,7 @@ class SnubaRPCRateLimitExceeded(SnubaRPCError):
 
 
 class SnubaRPCRequest(Protocol):
-    def SerializeToString(self, deterministic: bool = ...) -> bytes: ...
+    def SerializeToString(self, *, deterministic: bool = ...) -> bytes: ...
 
     @property
     def meta(
@@ -159,7 +163,9 @@ def _make_rpc_requests(
         thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
     )
-    with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=10) as query_thread_pool:
+    with ContextPropagatingThreadPoolExecutor(
+        thread_name_prefix=__name__, max_workers=10
+    ) as query_thread_pool:
         response = [
             result
             for result in query_thread_pool.map(
@@ -337,6 +343,13 @@ def rpc(
     return resp
 
 
+def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
+    resp = _make_rpc_request("EndpointExportTraceItems", "v1", req.meta.referrer, req)
+    response = ExportTraceItemsResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
 @sentry_sdk.trace
 def _make_rpc_request(
     endpoint_name: str,
@@ -376,6 +389,8 @@ def _make_rpc_request(
                         ),
                     )
                 except urllib3.exceptions.HTTPError as err:
+                    if isinstance(err, urllib3.exceptions.ReadTimeoutError):
+                        metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
                     raise SnubaRPCError(err)
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:

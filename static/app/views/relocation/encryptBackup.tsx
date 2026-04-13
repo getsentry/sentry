@@ -4,10 +4,9 @@ import {CodeBlock} from '@sentry/scraps/code';
 
 import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
-import ContinueButton from 'sentry/views/relocation/components/continueButton';
-import StepHeading from 'sentry/views/relocation/components/stepHeading';
-import Wrapper from 'sentry/views/relocation/components/wrapper';
+import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
+import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
+import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 
 import type {StepProps} from './types';
 
@@ -20,7 +19,6 @@ export function EncryptBackup(props: StepProps) {
         {t('Create an encrypted backup of your current self-hosted instance')}
       </StepHeading>
       <motion.div
-        transition={testableTransition()}
         variants={{
           initial: {y: 30, opacity: 0},
           animate: {y: 0, opacity: 1},

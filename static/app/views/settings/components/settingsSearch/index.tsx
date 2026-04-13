@@ -1,17 +1,17 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 
 import {Search} from 'sentry/components/search';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
 
-function SettingsSearch() {
+export function SettingsSearch() {
   const searchInput = useRef<HTMLInputElement>(null);
 
   useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}]);
@@ -37,8 +37,6 @@ function SettingsSearch() {
     />
   );
 }
-
-export default SettingsSearch;
 
 const StyledSearchInput = styled(InputGroup.Input)`
   width: 100px;

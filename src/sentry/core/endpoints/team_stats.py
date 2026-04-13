@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
@@ -13,7 +13,7 @@ from sentry.models.project import Project
 from sentry.tsdb.base import TSDBModel
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -10,11 +10,11 @@ import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
-import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import {prettyDate} from 'admin/utils';
 
 type Props = {
@@ -52,7 +52,7 @@ function identityLabel(identity: UserIdentityConfig) {
   return <span style={{fontVariant: 'small-caps'}}>{text}</span>;
 }
 
-function UserOverview({
+export function UserOverview({
   user,
   identities,
   tokens = [],
@@ -195,5 +195,3 @@ function UserOverview({
     </DetailsContainer>
   );
 }
-
-export default UserOverview;

@@ -7,8 +7,8 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';

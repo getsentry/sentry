@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -7,28 +7,28 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {getDataForwarderFormGroups} from 'sentry/views/settings/organizationDataForwarding/util/forms';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   useDataForwarders,
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+import {SegmentSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/segmentForm';
+import {SplunkSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
+import {SQSSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
 import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
-  type DataForwarder,
+  type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwardingSetup() {
@@ -46,7 +46,6 @@ export default function OrganizationDataForwardingSetup() {
   );
 
   const {projects} = useProjects({orgId: organization.slug});
-  const formModel = useMemo(() => new FormModel(), []);
   const [provider, setProvider] = useState<DataForwarderProviderSlug | undefined>(
     undefined
   );
@@ -62,41 +61,6 @@ export default function OrganizationDataForwardingSetup() {
       });
     },
   });
-
-  const [combinedFormState, setCombinedFormState] = useState<
-    Record<DataForwarderProviderSlug, Record<string, any>>
-  >({
-    [DataForwarderProviderSlug.SEGMENT]: {},
-    [DataForwarderProviderSlug.SQS]: {},
-    [DataForwarderProviderSlug.SPLUNK]: {},
-  });
-
-  const updateCombinedFormState = useCallback(
-    (id: string, finalValue: any) => {
-      if (!provider) {
-        return;
-      }
-      setCombinedFormState(prev => ({
-        ...prev,
-        [provider]: {
-          ...prev[provider],
-          [id]: finalValue,
-        },
-      }));
-    },
-    [provider]
-  );
-
-  useEffect(
-    () => {
-      formModel.setInitialData(provider ? {...combinedFormState[provider]} : undefined);
-      formModel.setFormOptions({onFieldChange: updateCombinedFormState});
-      formModel.validateFormCompletion();
-    },
-    // We don't want to re-run every time the combined state changes, only the provider
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provider, formModel, updateCombinedFormState]
-  );
 
   return (
     <Fragment>
@@ -168,34 +132,41 @@ export default function OrganizationDataForwardingSetup() {
                   ))}
                 </TabList>
               </Tabs>
-              <Form
-                submitDisabled={!canCreateForwarder || !hasFeature}
-                model={formModel}
-                onSubmit={data => {
-                  const {enroll_new_projects, project_ids, is_enabled, ...config} = data;
-                  const dataForwardingPayload: Record<string, any> = {
-                    provider,
-                    config,
-                    is_enabled,
-                    enroll_new_projects,
-                    project_ids,
-                  };
-                  createDataForwarder(dataForwardingPayload as DataForwarder);
-                }}
-                submitLabel={t('Complete Setup')}
-              >
-                <JsonForm
+              {provider && (
+                <ProviderSetupForm
+                  key={provider}
+                  provider={provider}
+                  projects={projects}
                   disabled={!canCreateForwarder || !hasFeature}
-                  forms={getDataForwarderFormGroups({
-                    provider,
-                    projects,
-                  })}
+                  onCreate={createDataForwarder}
                 />
-              </Form>
+              )}
             </Fragment>
           )}
         </Feature>
       </Flex>
     </Fragment>
   );
+}
+
+function ProviderSetupForm({
+  provider,
+  projects,
+  disabled,
+  onCreate,
+}: {
+  disabled: boolean;
+  onCreate: (data: DataForwarderPayload) => void;
+  projects: Project[];
+  provider: DataForwarderProviderSlug;
+}) {
+  if (provider === DataForwarderProviderSlug.SQS) {
+    return <SQSSetupForm projects={projects} disabled={disabled} onSubmit={onCreate} />;
+  }
+  if (provider === DataForwarderProviderSlug.SEGMENT) {
+    return (
+      <SegmentSetupForm projects={projects} disabled={disabled} onSubmit={onCreate} />
+    );
+  }
+  return <SplunkSetupForm projects={projects} disabled={disabled} onSubmit={onCreate} />;
 }

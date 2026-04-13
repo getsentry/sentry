@@ -14,11 +14,9 @@ import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import testableTransition from 'sentry/utils/testableTransition';
 
 interface AutofixInsightCardProps {
   groupId: string;
@@ -35,7 +33,7 @@ export const cardAnimationProps = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -49,7 +47,7 @@ export const cardAnimationProps = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 export function FlippedReturnIcon(props: React.HTMLAttributes<HTMLSpanElement>) {
@@ -345,10 +343,10 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
 `;
 
 const MiniHeader = styled('p')<{expanded?: boolean}>`
-  padding-top: ${space(0.25)};
-  padding-bottom: ${space(0.25)};
-  padding-left: ${space(1)};
-  padding-right: ${space(2)};
+  padding-top: ${p => p.theme.space['2xs']};
+  padding-bottom: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
   margin: 0;
   flex: 1;
   word-break: break-word;
@@ -362,7 +360,7 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 `;
 
 const ContextBody = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   background: ${p => p.theme.colors.blue100};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
@@ -381,7 +379,7 @@ const StyledIconChevron = styled(IconChevron)`
 `;
 
 const EditContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
 `;
 
@@ -395,12 +393,12 @@ const EditButton = styled(Button)`
 `;
 
 const DiffContainer = styled('div')`
-  margin-left: -${space(2)};
-  margin-right: -${space(2)};
-  margin-top: -${space(2)};
+  margin-left: -${p => p.theme.space.xl};
+  margin-right: -${p => p.theme.space.xl};
+  margin-top: -${p => p.theme.space.xl};
 `;
 
 const CheckpointIcon = styled('span')`
   transform: scaleY(-1);
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;

@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 
 describe('Charts > OptionSelector (Multiple)', () => {
   const yAxisValue = ['count()', 'failure_count()'];

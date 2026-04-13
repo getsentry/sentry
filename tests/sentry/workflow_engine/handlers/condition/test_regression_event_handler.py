@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import pytest
 from jsonschema import ValidationError
 
@@ -10,7 +12,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestRegressionEventCondition(ConditionTestCase):
     condition = Condition.REGRESSION_EVENT
-    payload = {"id": RegressionEventCondition.id}
+    payload: Mapping[str, Any] = {"id": RegressionEventCondition.id}
 
     def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()

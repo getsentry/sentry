@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
@@ -18,7 +18,7 @@ from sentry.models.organization import Organization
 
 
 @extend_schema(tags=["Environments"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {

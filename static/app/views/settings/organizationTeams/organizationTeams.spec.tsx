@@ -8,10 +8,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {OrganizationTeams} from 'sentry/views/settings/organizationTeams/organizationTeams';
 
 jest.mocked(recreateRoute).mockReturnValue('');
 

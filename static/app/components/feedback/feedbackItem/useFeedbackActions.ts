@@ -5,21 +5,21 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import useRefetchFeedbackList from 'sentry/components/feedback/list/useRefetchFeedbackList';
+import {useRefetchFeedbackList} from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 interface Props {
   feedbackItem: FeedbackIssue;
 }
 
-export default function useFeedbackActions({feedbackItem}: Props) {
+export function useFeedbackActions({feedbackItem}: Props) {
   const organization = useOrganization();
   const projectId = feedbackItem.project?.id;
 

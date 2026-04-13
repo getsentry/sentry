@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/profiling/renderers/testUtils';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';

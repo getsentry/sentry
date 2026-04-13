@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {JobTickData, TickStyle, TimeWindowConfig} from './types';
 
@@ -103,7 +102,7 @@ const StatusCountContainer = styled('table')`
   margin: 0;
   display: grid;
   grid-template-columns: max-content max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   /* Visually hide the tooltip headers but keep them for accessability */
   thead {

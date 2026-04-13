@@ -2,9 +2,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
-function NotFound() {
+export function NotFound() {
   return (
     <SplashWrapper>
       <Flex align="center" margin="3xl 0">
@@ -18,7 +16,7 @@ function NotFound() {
 }
 
 const SplashWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const HeaderTitle = styled('h3')`
@@ -27,5 +25,3 @@ const HeaderTitle = styled('h3')`
   font-weight: normal;
   color: ${p => p.theme.tokens.content.primary};
 `;
-
-export default NotFound;

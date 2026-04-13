@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -87,7 +87,7 @@ class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
         return value_str
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FLAG
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
@@ -136,7 +136,7 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationFlagLogDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FLAG
     publish_status = {"GET": ApiPublishStatus.PRIVATE}

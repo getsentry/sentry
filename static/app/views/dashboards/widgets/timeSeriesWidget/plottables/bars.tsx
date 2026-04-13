@@ -1,9 +1,8 @@
-import * as Sentry from '@sentry/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-import BarSeries from 'sentry/components/charts/series/barSeries';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
 import {
@@ -12,8 +11,6 @@ import {
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
-
-const {error} = Sentry.logger;
 
 interface BarsConfig extends ContinuousTimeSeriesConfig {
   /**
@@ -28,9 +25,6 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     const datum = this.timeSeries.values.at(dataIndex);
 
     if (!datum) {
-      error('`Bars` plottable `onHighlight` out-of-range error', {
-        seriesDataIndex: dataIndex,
-      });
       return;
     }
 

@@ -1,9 +1,9 @@
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import {useMutation, type UseMutationOptions} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Variables = Pick<Partial<Organization>, 'targetSampleRate' | 'samplingMode'>;
 
@@ -25,8 +25,8 @@ export function useUpdateOrganization(
         data: variables,
       });
     },
-    onSuccess: (newOrg, variables, context) => {
-      options?.onSuccess?.(newOrg, variables, context);
+    onSuccess: (newOrg, variables, onMutateResult, context) => {
+      options?.onSuccess?.(newOrg, variables, onMutateResult, context);
       OrganizationStore.onUpdate(newOrg);
     },
   });

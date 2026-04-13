@@ -7,10 +7,10 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.preprod.vcs.status_checks.size.types import RuleArtifactType, StatusCheckRule
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class StatusCheckMetricSelectionHelpersTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -50,6 +50,10 @@ class StatusCheckMetricSelectionHelpersTest(TestCase):
             PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="feature.alpha",
         )
+        self._create_metric(
+            PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="com.example.app.clip",
+        )
 
         rule = StatusCheckRule(
             id="rule-main",
@@ -74,6 +78,10 @@ class StatusCheckMetricSelectionHelpersTest(TestCase):
             PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
             identifier="dynamic.a",
         )
+        app_clip_a = self._create_metric(
+            PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="clip.a",
+        )
         main = self._create_metric(PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT)
         watch_a = self._create_metric(
             PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -88,9 +96,11 @@ class StatusCheckMetricSelectionHelpersTest(TestCase):
             artifact_type=RuleArtifactType.ALL_ARTIFACTS,
         )
 
-        candidates = _get_candidate_metrics_for_rule(rule, [watch_b, dynamic_a, main, watch_a])
+        candidates = _get_candidate_metrics_for_rule(
+            rule, [watch_b, dynamic_a, app_clip_a, main, watch_a]
+        )
 
-        assert candidates == [main, watch_a, watch_b, dynamic_a]
+        assert candidates == [main, watch_a, watch_b, dynamic_a, app_clip_a]
 
     def test_get_matching_base_metric_matches_type_and_identifier(self) -> None:
         base_main = self._create_metric(
@@ -114,6 +124,27 @@ class StatusCheckMetricSelectionHelpersTest(TestCase):
         matched = _get_matching_base_metric([base_main, base_watch], candidate)
 
         assert matched == base_watch
+
+    def test_get_candidate_metrics_for_rule_app_clip_artifact(self) -> None:
+        app_clip = self._create_metric(
+            PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            identifier="com.example.app.clip",
+        )
+        self._create_metric(PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT)
+
+        rule = StatusCheckRule(
+            id="rule-app-clip",
+            metric="install_size",
+            measurement="absolute",
+            value=1000,
+            artifact_type=RuleArtifactType.APP_CLIP_ARTIFACT,
+        )
+
+        candidates = _get_candidate_metrics_for_rule(
+            rule, list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=self.artifact))
+        )
+
+        assert candidates == [app_clip]
 
     def test_get_matching_base_metric_returns_none_when_identifier_differs(self) -> None:
         base_watch = self._create_metric(

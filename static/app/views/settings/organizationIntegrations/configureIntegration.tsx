@@ -1,65 +1,65 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {FieldGroup} from '@sentry/scraps/form';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Access} from 'sentry/components/acl/access';
+import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
+import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
+import {Confirm} from 'sentry/components/confirm';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
   PluginWithProjectList,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {unreachable} from 'sentry/utils/unreachable';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import AddIntegration from './addIntegration';
-import IntegrationAlertRules from './integrationAlertRules';
-import IntegrationCodeMappings from './integrationCodeMappings';
-import IntegrationExternalTeamMappings from './integrationExternalTeamMappings';
-import IntegrationExternalUserMappings from './integrationExternalUserMappings';
-import IntegrationItem from './integrationItem';
-import IntegrationMainSettings from './integrationMainSettings';
-import IntegrationRepos from './integrationRepos';
+import {useAddIntegration} from './addIntegration';
+import {IntegrationAlertRules} from './integrationAlertRules';
+import {IntegrationCodeMappings} from './integrationCodeMappings';
+import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
+import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
+import {IntegrationItem} from './integrationItem';
+import {IntegrationRepos} from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-const TABS = [
-  'repos',
-  'codeMappings',
-  'userMappings',
-  'teamMappings',
-  'settings',
-] as const;
+const TABS = ['repos', 'codeMappings', 'userMappings', 'teamMappings'] as const;
 type Tab = (typeof TABS)[number];
 
 const makeIntegrationQuery = (
@@ -67,7 +67,7 @@ const makeIntegrationQuery = (
   integrationId: string
 ): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/integrations/$integrationId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
       path: {organizationIdOrSlug: organization.slug, integrationId},
     }),
   ];
@@ -75,7 +75,7 @@ const makeIntegrationQuery = (
 
 const makePluginQuery = (organization: Organization): ApiQueryKey => {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
   ];
@@ -89,7 +89,7 @@ function ConfigureIntegration() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -103,7 +103,7 @@ function ConfigureIntegration() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -179,7 +179,6 @@ function ConfigureIntegration() {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
     navigate({
-      pathname: location.pathname,
       query: {...query, tab: value},
     });
   };
@@ -257,23 +256,12 @@ function ConfigureIntegration() {
   const getAction = () => {
     if (provider.key === 'pagerduty') {
       return (
-        <AddIntegration
+        <PagerdutyAddServicesButton
           provider={provider}
           onInstall={onUpdateIntegration}
           account={integration.domainName}
           organization={organization}
-        >
-          {onClick => (
-            <Button
-              priority="primary"
-              size="sm"
-              icon={<IconAdd />}
-              onClick={() => onClick()}
-            >
-              {t('Add Services')}
-            </Button>
-          )}
-        </AddIntegration>
+        />
       );
     }
 
@@ -384,25 +372,45 @@ function ConfigureIntegration() {
     const instructions =
       integration.dynamicDisplayInformation?.configure_integration?.instructions;
 
+    const integrationEndpoint = getApiUrl(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+      {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+    );
+    const integrationMutationOptions = mutationOptions({
+      mutationFn: (data: Record<string, unknown>) =>
+        fetchMutation({method: 'POST', url: integrationEndpoint, data}),
+      onSuccess: () => {
+        // it's important that we keep the mutation pending while the refetch is happening by returning it.
+        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
+        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
+        return queryClient.invalidateQueries({
+          queryKey: makeIntegrationQuery(organization, integrationId),
+        });
+      },
+    });
+
     return (
       <Fragment>
         {integration.configOrganization.length > 0 && (
-          <Form
-            hideFooter
-            saveOnBlur
-            allowUndo
-            apiMethod="POST"
-            initialData={integration.configData || {}}
-            apiEndpoint={`/organizations/${organization.slug}/integrations/${integration.id}/`}
+          <FieldGroup
+            title={
+              integration.provider.aspects.configure_integration?.title ||
+              t('Organization Integration Settings')
+            }
           >
-            <JsonForm
-              fields={integration.configOrganization}
-              title={
-                integration.provider.aspects.configure_integration?.title ||
-                t('Organization Integration Settings')
-              }
-            />
-          </Form>
+            {integration.configOrganization.map(fieldConfig => (
+              <BackendJsonAutoSaveForm
+                key={fieldConfig.name}
+                field={fieldConfig}
+                initialValue={
+                  integration.configData?.[fieldConfig.name] as FieldValue<
+                    typeof fieldConfig
+                  >
+                }
+                mutationOptions={integrationMutationOptions}
+              />
+            ))}
+          </FieldGroup>
         )}
 
         {instructions && instructions.length > 0 && (
@@ -455,15 +463,8 @@ function ConfigureIntegration() {
         return <IntegrationExternalUserMappings integration={integration} />;
       case 'teamMappings':
         return <IntegrationExternalTeamMappings integration={integration} />;
-      case 'settings':
-        return (
-          <IntegrationMainSettings
-            onUpdate={onUpdateIntegration}
-            organization={organization}
-            integration={integration}
-          />
-        );
       default:
+        unreachable(tab);
         return renderMainTab();
     }
   }
@@ -552,13 +553,33 @@ function ConfigureIntegration() {
   );
 }
 
+function PagerdutyAddServicesButton({
+  provider,
+  onInstall,
+  account,
+  organization,
+}: {
+  account: string | null;
+  onInstall: () => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+}) {
+  const {startFlow} = useAddIntegration({provider, onInstall, account, organization});
+
+  return (
+    <Button priority="primary" size="sm" icon={<IconAdd />} onClick={() => startFlow()}>
+      {t('Add Services')}
+    </Button>
+  );
+}
+
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;

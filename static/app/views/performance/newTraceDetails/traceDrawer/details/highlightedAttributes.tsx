@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {CaptureContext} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -6,7 +7,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -14,13 +15,15 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import {SpanFields} from 'sentry/views/insights/types';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
@@ -41,7 +44,7 @@ function getAIToolDefinitions(
 ): any[] | null {
   const toolDefinitions = attributes['gen_ai.tool.definitions'];
   if (toolDefinitions) {
-    const parsed = tryParseJson(toolDefinitions.toString());
+    const parsed = tryParseJsonRecursive(toolDefinitions.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -49,7 +52,7 @@ function getAIToolDefinitions(
 
   const availableTools = attributes['gen_ai.request.available_tools'];
   if (availableTools) {
-    const parsed = tryParseJson(availableTools.toString());
+    const parsed = tryParseJsonRecursive(availableTools.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -110,7 +113,7 @@ function getAISpanAttributes({
 
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
-  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  const agentName = resolveAgentName(attributes);
   if (agentName) {
     highlightedAttributes.push({
       name: t('Agent Name'),
@@ -162,10 +165,7 @@ function getAISpanAttributes({
         (inputTokens || outputTokens) &&
         (!totalCosts || Number(totalCosts) === 0)
       ),
-      messages: [
-        'Gen AI span missing cost calculation',
-        `Gen AI cost data missing for model: ${model?.toString()}`,
-      ],
+      messages: [`Gen AI cost data missing for model: ${model?.toString()}`],
     },
     {
       shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
@@ -321,7 +321,7 @@ function HighlightedTools({
     Referrer.TRACE_DRAWER_TOOL_USAGE
   );
 
-  const usedTools: Map<string, number> = new Map();
+  const usedTools = new Map<string, number>();
   toolSpansQuery.data?.forEach(span => {
     const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
     usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);
@@ -371,36 +371,54 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
+  const breakdown = getTokenBreakdown({
+    inputTokens,
+    cachedTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+  });
+
+  const hasCached = breakdown.cached > 0;
+
   return (
     <Tooltip
       title={
         <TokensTooltipTitle>
           <span>{t('Input')}</span>
-          <span>{inputTokens.toString()}</span>
-          <SubTextCell>{t('Cached')}</SubTextCell>
-          <SubTextCell>{isNaN(cachedTokens) ? '0' : cachedTokens.toString()}</SubTextCell>
+          <span>{breakdown.netNewInput.toLocaleString()}</span>
+          {hasCached && (
+            <Fragment>
+              <span>{t('Cached')}</span>
+              <span>{breakdown.cached.toLocaleString()}</span>
+            </Fragment>
+          )}
           <span>{t('Output')}</span>
-          <span>{outputTokens.toString()}</span>
-          <SubTextCell>{t('Reasoning')}</SubTextCell>
-          <SubTextCell>
-            {isNaN(reasoningTokens) ? '0' : reasoningTokens.toString()}
-          </SubTextCell>
+          <span>{breakdown.output.toLocaleString()}</span>
           <span>{t('Total')}</span>
-          <span>{totalTokens.toString()}</span>
+          <span>{breakdown.total.toLocaleString()}</span>
         </TokensTooltipTitle>
       }
     >
       <TokensSpan>
         <span>
-          <Count value={inputTokens.toString()} /> {t('in')}
+          <Count value={breakdown.netNewInput} /> {t('in')}
         </span>
+        {hasCached && (
+          <Fragment>
+            <span>+</span>
+            <span>
+              <Count value={breakdown.cached} /> {t('cached')}
+            </span>
+          </Fragment>
+        )}
         <span>+</span>
         <span>
-          <Count value={outputTokens.toString()} /> {t('out')}
+          <Count value={breakdown.output} /> {t('out')}
         </span>
         <span>=</span>
         <span>
-          <Count value={totalTokens.toString()} /> {t('total')}
+          <Count value={breakdown.total} /> {t('total')}
         </span>
       </TokensSpan>
     </Tooltip>
@@ -417,11 +435,6 @@ const TokensTooltipTitle = styled('div')`
     text-align: right;
   }
   gap: ${p => p.theme.space.xs};
-`;
-
-const SubTextCell = styled('span')`
-  margin-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokensSpan = styled('span')`

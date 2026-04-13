@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 
 describe('CircleIndicator', () => {
   it('renders', async () => {

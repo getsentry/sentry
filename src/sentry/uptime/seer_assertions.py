@@ -10,11 +10,12 @@ import logging
 from typing import Any
 
 import orjson
-import requests
-from django.conf import settings
 from pydantic import BaseModel, Field
+from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -337,31 +338,22 @@ def generate_assertion_suggestions(
     # Call Seer's LLM proxy endpoint
     # Note: Using Gemini for structured output support (response_schema).
     # Anthropic models don't support structured output in Seer's LLM proxy.
-    body = orjson.dumps(
-        {
-            "provider": "gemini",
-            "model": "flash",
-            "referrer": "sentry.uptime.assertion-suggestions",
-            "prompt": prompt,
-            "system_prompt": SYSTEM_PROMPT,
-            "temperature": 0.3,
-            "max_tokens": 1500,
-            "response_schema": ASSERTION_SUGGESTIONS_SCHEMA,
-        }
+    seer_request = LlmGenerateRequest(
+        provider="gemini",
+        model="flash",
+        referrer="sentry.uptime.assertion-suggestions",
+        prompt=prompt,
+        system_prompt=SYSTEM_PROMPT,
+        temperature=0.3,
+        max_tokens=1500,
+        response_schema=ASSERTION_SUGGESTIONS_SCHEMA,
     )
 
     try:
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/llm/generate",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-            timeout=30,
-        )
-        response.raise_for_status()
-    except requests.RequestException as e:
+        response = make_llm_generate_request(seer_request, timeout=30)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except (SeerApiError, MaxRetryError, Urllib3TimeoutError) as e:
         logger.exception("Failed to call Seer LLM proxy")
         return None, f"Seer LLM proxy request failed: {e}"
 

@@ -5,7 +5,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 type KeyTransaction = {
   project_id: string;

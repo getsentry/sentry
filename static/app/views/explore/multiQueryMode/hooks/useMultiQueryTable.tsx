@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -61,7 +61,7 @@ function useMultiQueryTableAggregateModeImpl({
   const {selection} = usePageFilters();
 
   const fields = useMemo(() => {
-    const allFields: Set<string> = new Set();
+    const allFields = new Set<string>();
 
     for (const groupBy of groupBys) {
       allFields.add(groupBy);

@@ -7,10 +7,10 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import StaffRequired
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -43,6 +43,7 @@ from sentry.preprod.size_analysis.utils import (
     ComparisonValidationResult,
     build_size_metrics_map,
     can_compare_size_metrics,
+    match_and_fetch_comparisons,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ def _delete_existing_comparisons(
     return comparisons_deleted, files_deleted
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -112,11 +113,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
         )
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         cutoff = get_size_retention_cutoff(project.organization)
         if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
             return Response({"detail": "This build's size data has expired."}, status=404)
@@ -156,19 +152,13 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 status=404,
             )
 
-        head_metrics_map = build_size_metrics_map(head_size_metrics)
-        base_metrics_map = build_size_metrics_map(base_size_metrics)
+        matched = match_and_fetch_comparisons(head_size_metrics, base_size_metrics)
 
         comparisons: list[SizeAnalysisComparison] = []
-        for key, head_metric in head_metrics_map.items():
-            base_metric = base_metrics_map.get(key)
+        for match in matched:
+            head_metric = match.head_metric
 
-            if not base_metric:
-                logger.info(
-                    "preprod.size_analysis.compare.api.get.no_matching_base_metric",
-                    extra={"head_metric_id": head_metric.id},
-                )
-                # No matching base metric, so we can't compare
+            if not match.base_metric:
                 comparisons.append(
                     SizeAnalysisComparison(
                         head_size_metric_id=head_metric.id,
@@ -183,29 +173,12 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 )
                 continue
 
-            logger.info(
-                "preprod.size_analysis.compare.api.get.metrics",
-                extra={"head_metric": head_metric, "base_metric": base_metric},
-            )
+            base_metric = match.base_metric
 
-            # Try to find a comparison object
-            try:
-                comparison_obj = PreprodArtifactSizeComparison.objects.get(
-                    head_size_analysis_id=head_metric.id,
-                    base_size_analysis_id=base_metric.id,
-                )
-            except PreprodArtifactSizeComparison.DoesNotExist:
-                logger.info(
-                    "preprod.size_analysis.compare.api.get.no_comparison_obj",
-                    extra={"head_metric_id": head_metric.id, "base_metric_id": base_metric.id},
-                )
+            if not match.comparison:
                 continue
 
-            logger.info(
-                "preprod.size_analysis.compare.api.get.comparison_obj",
-                extra={"comparison_obj": comparison_obj},
-            )
-
+            comparison_obj = match.comparison
             if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
                 comparisons.append(
                     SizeAnalysisComparison(
@@ -237,7 +210,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                     )
                 )
             else:
-                # Still processing or pending
                 comparisons.append(
                     SizeAnalysisComparison(
                         head_size_metric_id=head_metric.id,
@@ -302,11 +274,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
         )
 
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         cutoff = get_size_retention_cutoff(project.organization)
         if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
             return Response({"detail": "This build's size data has expired."}, status=404)
@@ -366,13 +333,39 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             head_size_analysis__in=head_size_metrics,
             base_size_analysis__in=base_size_metrics,
         )
+        is_rerun = request.query_params.get("rerun") == "true"
+
         if existing_comparisons.exists():
-            if is_active_superuser(request) or is_active_staff(request):
+            if is_rerun:
+                if is_active_superuser(request) or is_active_staff(request):
+                    comparisons_deleted, files_deleted = _delete_existing_comparisons(
+                        existing_comparisons
+                    )
+                    logger.info(
+                        "preprod.size_analysis.compare.api.post.rerun_deleted_existing",
+                        extra={
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": base_artifact.id,
+                            "comparisons_deleted": comparisons_deleted,
+                            "files_deleted": files_deleted,
+                            "user_id": request.user.id,
+                        },
+                    )
+                elif request.user.is_staff:
+                    raise StaffRequired
+                else:
+                    return Response({"detail": "Only staff can rerun comparisons."}, status=403)
+            elif (
+                existing_comparisons.filter(
+                    state=PreprodArtifactSizeComparison.State.FAILED
+                ).count()
+                == existing_comparisons.count()
+            ):
                 comparisons_deleted, files_deleted = _delete_existing_comparisons(
                     existing_comparisons
                 )
                 logger.info(
-                    "preprod.size_analysis.compare.api.post.rerun_deleted_existing",
+                    "preprod.size_analysis.compare.api.post.retry_deleted_failed",
                     extra={
                         "head_artifact_id": head_artifact.id,
                         "base_artifact_id": base_artifact.id,
@@ -381,8 +374,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                         "user_id": request.user.id,
                     },
                 )
-            elif request.user.is_staff:
-                raise StaffRequired
             else:
                 comparison_models = []
                 for comparison in existing_comparisons:

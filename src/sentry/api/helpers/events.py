@@ -188,6 +188,19 @@ def run_group_events_query(
             callsite,
             is_experimental_data_a_null_result=len(eap_data) == 0,
             reasonable_match_comparator=_reasonable_group_events_match,
+            debug_context={
+                "group_id": group.id,
+                "query": query,
+                "limit": limit,
+                "offset": offset,
+                "orderby": orderby,
+                "start": snuba_params.start.isoformat() if snuba_params.start else None,
+                "end": snuba_params.end.isoformat() if snuba_params.end else None,
+                "project_ids": [project.id for project in snuba_params.projects],
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization is not None else None
+                ),
+            },
         )
 
     return results

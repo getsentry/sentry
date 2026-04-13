@@ -5,7 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -63,7 +63,7 @@ function filterItems<T>(options: {
   });
 }
 
-function useOurLogFilters({logItems}: Options): Return {
+export function useOurLogFilters({logItems}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const severityValues = useMemo(
@@ -132,5 +132,3 @@ function useOurLogFilters({logItems}: Options): Return {
     setSearchTerm,
   };
 }
-
-export default useOurLogFilters;

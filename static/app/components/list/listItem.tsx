@@ -2,15 +2,13 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 export interface ListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   padding?: string;
   ref?: React.Ref<HTMLLIElement>;
   symbol?: React.ReactElement;
 }
 
-const ListItem = styled(
+export const ListItem = styled(
   ({ref, symbol, children, padding: _padding, ...props}: ListItemProps) => (
     <li ref={ref} role={props.onClick ? 'button' : undefined} {...props}>
       {symbol && (
@@ -23,7 +21,5 @@ const ListItem = styled(
   )
 )`
   position: relative;
-  ${p => p.symbol && `padding-left: ${p.padding ?? space(4)};`}
+  padding-left: ${p => (p.symbol ? (p.padding ?? p.theme.space['3xl']) : undefined)};
 `;
-
-export default ListItem;

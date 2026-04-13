@@ -15,7 +15,7 @@ import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
@@ -71,7 +71,7 @@ export function useUptimeIssueDetectorId({
 export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const detectorId = useUptimeIssueDetectorId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 

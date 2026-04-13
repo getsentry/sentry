@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
 import OverviewPageloadsChartWidget from 'sentry/views/insights/common/components/widgets/overviewPageloadsChartWidget';
 import OverviewSlowNextjsSSRWidget from 'sentry/views/insights/common/components/widgets/overviewSlowNextjsSSRWidget';
@@ -43,7 +43,7 @@ export function NextJsOverviewPage({datePageFilterProps}: NextJsOverviewPageProp
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeTable: TableType = isTableType(location.query.view)
+  const activeTable = isTableType(location.query.view)
     ? location.query.view
     : TableType.CLIENT;
 

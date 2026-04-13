@@ -7,6 +7,7 @@ import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
@@ -17,7 +18,7 @@ import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
@@ -35,6 +36,12 @@ enableFetchMocks();
 // framer-motion SVG components fail
 // See https://github.com/jsdom/jsdom/issues/1330
 SVGElement.prototype.getTotalLength ??= () => 1;
+
+/**
+ * Skip all framer-motion animations in tests so components render immediately
+ * without waiting for animation frames or transitions.
+ */
+MotionGlobalConfig.skipAnimations = true;
 
 /**
  * React Testing Library configuration to override the default test id attribute
@@ -198,18 +205,6 @@ DANGEROUS_SET_TEST_HISTORY({
 // Close any open modals before each test
 beforeEach(closeModal);
 
-jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
-  const ActualReactVirtualized = jest.requireActual('react-virtualized');
-  return {
-    ...ActualReactVirtualized,
-    AutoSizer: ({
-      children,
-    }: {
-      children: (props: {height: number; width: number}) => React.ReactNode;
-    }) => children({width: 100, height: 100}),
-  };
-});
-
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
   // guaranteed to be in scope
@@ -247,6 +242,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     withProfiler: SentryReact.withProfiler,
     metrics: {
+      count: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
@@ -362,6 +358,7 @@ Object.defineProperty(window, 'matchMedia', {
 window.IntersectionObserver = class IntersectionObserver {
   root = null;
   rootMargin = '';
+  scrollMargin = '';
   thresholds = [];
   takeRecords = jest.fn();
 
@@ -390,3 +387,38 @@ if (typeof globalThis.structuredClone !== 'function') {
   globalThis.structuredClone =
     nodeUtil.structuredClone ?? ((value: unknown) => JSON.parse(JSON.stringify(value)));
 }
+
+if (typeof globalThis.setImmediate === 'undefined') {
+  // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
+  globalThis.setImmediate = setTimeout;
+  // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
+  globalThis.clearImmediate = clearTimeout;
+}
+
+/**
+ * it.isKnownFlake — wraps a known-flaky test for stress-testing in CI.
+ *
+ * When RERUN_KNOWN_FLAKY_TESTS is "true" (set by the "Frontend: Rerun Flaky
+ * Tests" PR label), the test runs 50x inside a describe block. Otherwise it
+ * runs once, behaving identically to a normal `it()`.
+ */
+const FLAKY_RERUN_COUNT = 50;
+
+/* eslint-disable jest/valid-title */
+it.isKnownFlake = function isKnownFlake(
+  name: string,
+  fn: jest.ProvidesCallback,
+  timeout?: number
+) {
+  if (process.env.RERUN_KNOWN_FLAKY_TESTS !== 'true') {
+    it(name, fn, timeout);
+    return;
+  }
+
+  describe(`[flaky rerun x${FLAKY_RERUN_COUNT}] ${name}`, () => {
+    for (let i = 1; i <= FLAKY_RERUN_COUNT; i++) {
+      it(`run ${i}/${FLAKY_RERUN_COUNT}`, fn, timeout);
+    }
+  });
+};
+/* eslint-enable jest/valid-title */

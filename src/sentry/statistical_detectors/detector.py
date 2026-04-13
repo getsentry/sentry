@@ -30,6 +30,7 @@ from sentry.seer.breakpoints import (
     BreakpointTransaction,
     detect_breakpoints,
 )
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
@@ -221,6 +222,7 @@ class RegressionDetector(ABC):
         start: datetime,
         function: str,
         timeseries_per_batch=10,
+        viewer_context: SeerViewerContext | None = None,
     ) -> Generator[BreakpointData]:
         serializer = SnubaTSResultSerializer(None, None, None)
 
@@ -253,7 +255,7 @@ class RegressionDetector(ABC):
             }
 
             try:
-                yield from detect_breakpoints(request)["data"]
+                yield from detect_breakpoints(request, viewer_context=viewer_context)["data"]
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 metrics.incr(

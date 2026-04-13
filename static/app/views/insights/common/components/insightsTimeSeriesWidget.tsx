@@ -2,9 +2,10 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -186,7 +187,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       <ChartContainer height={props.height}>
         <Widget
           Title={Title}
-          Visualization={<Widget.WidgetError error={props.error} />}
+          Visualization={
+            <Container position="absolute" inset={0}>
+              <Widget.WidgetError error={props.error} />
+            </Container>
+          }
         />
       </ChartContainer>
     );
@@ -199,7 +204,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       <ChartContainer height={props.height}>
         <Widget
           Title={Title}
-          Visualization={<Widget.WidgetError error={MISSING_DATA_MESSAGE} />}
+          Visualization={
+            <Container position="absolute" inset={0}>
+              <Widget.WidgetError error={MISSING_DATA_MESSAGE} />
+            </Container>
+          }
         />
       </ChartContainer>
     );

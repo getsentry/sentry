@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, region_silo_model
+from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 from . import AvatarBase
 
 
-@region_silo_model
+@cell_silo_model
 class OrganizationAvatar(AvatarBase):
     """
     An OrganizationAvatar associates an Organization with their avatar photo File

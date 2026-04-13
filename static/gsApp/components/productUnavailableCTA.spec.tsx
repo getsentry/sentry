@@ -17,8 +17,8 @@ import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 jest.mock('getsentry/components/upgradeNowModal/usePreviewData');
@@ -103,7 +103,7 @@ describe('ProductUnavailableCTA', () => {
 
       await waitFor(() => {
         expect(mockRequests?.requestUpdatePlan).toHaveBeenCalledWith(
-          `/organizations/org-slug/plan-upgrade-request/`,
+          '/organizations/org-slug/plan-upgrade-request/',
           expect.objectContaining({
             method: 'POST',
           })
@@ -219,6 +219,7 @@ describe('ProductUnavailableCTA', () => {
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
         reservedSizeAnalyses: undefined,
+        reservedTraceMetricBytes: undefined,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

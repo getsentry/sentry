@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -18,6 +18,7 @@ import {
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {
   index: number;
@@ -30,7 +31,14 @@ export function SortBySection({query, index}: Props) {
   const groupBys = query.groupBys;
   const yAxes = query.yAxes;
 
-  const fieldOptions = useSortByFields({fields, yAxes, groupBys, mode});
+  const spansConfig = {traceItemType: TraceItemDataset.SPANS, enabled: true};
+  const fieldOptions = useSortByFields({
+    config: spansConfig,
+    fields,
+    yAxes,
+    groupBys,
+    mode,
+  });
   const updateSort = useUpdateQueryAtIndex(index);
 
   const kindOptions: Array<SelectOption<Sort['kind']>> = useMemo(() => {

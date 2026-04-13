@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {DifferentialFlamegraphNegationSwitch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphNegationSwitch';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 
@@ -53,7 +52,7 @@ const DifferentialFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

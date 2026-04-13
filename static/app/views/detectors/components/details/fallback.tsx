@@ -1,5 +1,5 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';

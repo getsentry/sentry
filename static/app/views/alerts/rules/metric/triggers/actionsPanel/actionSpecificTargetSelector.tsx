@@ -10,7 +10,7 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
+export function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
   const handleChangeSpecificTargetIdentifier = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -34,5 +34,3 @@ function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
     />
   );
 }
-
-export default ActionSpecificTargetSelector;

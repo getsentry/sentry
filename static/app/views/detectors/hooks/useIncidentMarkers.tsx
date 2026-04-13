@@ -4,16 +4,13 @@ import {useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
-  CustomSeriesRenderItemAPI,
-  CustomSeriesRenderItemParams,
-  CustomSeriesRenderItemReturn,
   GridComponentOption,
   MarkLineComponentOption,
   TooltipComponentFormatterCallbackParams,
   YAXisComponentOption,
 } from 'echarts';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {
   EChartChartReadyHandler,
@@ -128,10 +125,7 @@ function IncidentMarkerSeries({
   /**
    * Renders incident highlight rectangles underneath the main chart
    */
-  const renderIncidentHighlight: CustomSeriesRenderItem = (
-    params: CustomSeriesRenderItemParams,
-    api: CustomSeriesRenderItemAPI
-  ): CustomSeriesRenderItemReturn => {
+  const renderIncidentHighlight: CustomSeriesRenderItem = (params, api) => {
     const dataItem = incidentPeriods[params.dataIndex];
 
     if (!dataItem) {

@@ -10,8 +10,8 @@ import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import type {TooltipActions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 
 import {
   CHART_BASELINE_SERIES_NAME,
@@ -25,7 +25,6 @@ import {
   calculateAttributePopulationPercentage,
   cohortsToSeriesData,
   percentageFormatter,
-  tooltipActionsHtmlRenderer,
 } from './utils';
 
 export function Chart({
@@ -33,13 +32,16 @@ export function Chart({
   theme,
   cohort1Total,
   cohort2Total,
+  query,
+  actions,
 }: {
   attribute: AttributeBreakdownsComparison['rankedAttributes'][number];
   cohort1Total: number;
   cohort2Total: number;
+  query: string;
   theme: Theme;
+  actions?: TooltipActions | null;
 }) {
-  const query = useQueryParamsQuery();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
 
@@ -91,16 +93,11 @@ export function Chart({
     [formatComparisonModeTooltip]
   );
 
-  const actionsHtmlRenderer = useCallback(
-    (value: string) => tooltipActionsHtmlRenderer(value, attribute.attributeName, theme),
-    [attribute.attributeName, theme]
-  );
-
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: toolTipFormatter,
     chartWidth,
-    actionsHtmlRenderer,
+    actions,
   });
 
   useLayoutEffect(() => {

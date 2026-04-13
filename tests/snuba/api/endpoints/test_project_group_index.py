@@ -1633,6 +1633,50 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert Group.objects.filter(id=group1.id).exists()
 
+    def test_update_by_qualified_short_id_rejects_cross_project(self) -> None:
+        """Cannot modify issues in another project via qualified short ID."""
+        other_project = self.create_project(
+            organization=self.project.organization, slug="other-proj"
+        )
+        other_group = self.create_group(project=other_project, status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={other_group.qualified_short_id}"
+        response = self.client.put(url, data={"status": "resolved"}, format="json")
+
+        assert response.status_code == 204
+
+        other_group.refresh_from_db()
+        assert other_group.status == GroupStatus.UNRESOLVED
+
+    def test_update_by_qualified_short_id_rejects_cross_org(self) -> None:
+        """Cannot modify issues in a different organization via qualified short ID."""
+        other_org = self.create_organization(owner=self.create_user())
+        other_project = self.create_project(organization=other_org, slug="cross-org-proj")
+        other_group = self.create_group(project=other_project, status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={other_group.qualified_short_id}"
+        response = self.client.put(url, data={"status": "resolved"}, format="json")
+
+        assert response.status_code == 204
+
+        other_group.refresh_from_db()
+        assert other_group.status == GroupStatus.UNRESOLVED
+
+    def test_update_by_qualified_short_id_allows_same_project(self) -> None:
+        """Can modify issues in the same project via qualified short ID."""
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group.qualified_short_id}"
+        response = self.client.put(url, data={"status": "resolved"}, format="json")
+
+        assert response.status_code == 200
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @cached_property

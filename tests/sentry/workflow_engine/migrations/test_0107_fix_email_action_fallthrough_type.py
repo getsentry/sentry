@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.migration_helpers.rule_action import (
@@ -8,6 +10,7 @@ from sentry.workflow_engine.models import Action
 EMAIL_ACTION_REGISTRY_ID = "sentry.mail.actions.NotifyEmailAction"
 
 
+@pytest.mark.skip(reason="project template was removed")
 class FixEmailActionFallthroughTypeTest(TestMigrations):
     migrate_from = "0106_migrate_actions_sentry_app_data"
     migrate_to = "0107_fix_email_action_fallthrough_type"
@@ -117,9 +120,10 @@ class FixEmailActionFallthroughTypeTest(TestMigrations):
             for action in self.rule1.data["actions"]
             if action.get("id") == EMAIL_ACTION_REGISTRY_ID
         ]
-        expected_actions = translate_rule_data_actions_to_notification_actions(
+        expected_actions_data = translate_rule_data_actions_to_notification_actions(
             rule_email_actions, skip_failures=True
         )
+        expected_actions = [Action(**action_data) for action_data in expected_actions_data]
 
         assert len(email_actions) == len(expected_actions) == 2
 

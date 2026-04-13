@@ -686,14 +686,7 @@ default_manager.add(
         template="{console_platforms}",
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=1159,
-        name="REPO_SETTINGS_EDIT",
-        api_name="repo-settings.edit",
-        template="updated repository settings for {repository_count} repositories",
-    )
-)
+default_manager.add(events.RepoSettingsEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=1160,
@@ -702,3 +695,6 @@ default_manager.add(
         template="updated autofix automation settings for {project_count} projects",
     )
 )
+default_manager.add(events.RepoAddedAuditLogEvent())
+default_manager.add(events.RepoDisabledAuditLogEvent())
+default_manager.add(events.RepoEnabledAuditLogEvent())

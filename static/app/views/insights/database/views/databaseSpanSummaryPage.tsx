@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -12,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useParams} from 'sentry/utils/useParams';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
-import InsightIssuesList from 'sentry/views/insights/common/components/issues';
+import {InsightIssuesList} from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -23,6 +22,7 @@ import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/s
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
 import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -34,7 +34,6 @@ import {
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
-import useHasDashboardsPlatformizedQueries from 'sentry/views/insights/database/utils/useHasDashboardsPlatformaizedQueries';
 import {PlatformizedQuerySummaryPage} from 'sentry/views/insights/database/views/platformizedSummaryPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
@@ -200,7 +199,7 @@ export function DatabaseSpanSummaryPage() {
                   <DatabaseSpanDescription
                     groupId={groupId}
                     preliminaryDescription={
-                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION]
+                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION] ?? undefined
                     }
                   />
                 </DescriptionContainer>
@@ -261,7 +260,7 @@ const ChartContainer = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
-    gap: ${space(2)};
+    gap: ${p => p.theme.space.xl};
   }
 `;
 
@@ -274,8 +273,8 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const hasDashboardsPlatformizedQueries = useHasDashboardsPlatformizedQueries();
-  if (hasDashboardsPlatformizedQueries) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedQuerySummaryPage />;
   }
 

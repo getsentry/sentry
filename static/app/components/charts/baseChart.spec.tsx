@@ -3,7 +3,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 
 const theme = ThemeFixture();
 

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features, options, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.utils import clamp_date_range, default_start_end_dates
@@ -14,7 +14,7 @@ from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectTagsEndpoint(ProjectEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {

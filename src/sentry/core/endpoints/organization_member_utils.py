@@ -80,11 +80,25 @@ class RelaxedMemberPermission(OrganizationPermission):
         return False
 
 
+class TeamAssignmentChange:
+    def __init__(self, team: Team, omt_id: int) -> None:
+        self.team = team
+        self.omt_id = omt_id
+
+
+class TeamAssignmentDiff:
+    def __init__(
+        self, added: list[TeamAssignmentChange], removed: list[TeamAssignmentChange]
+    ) -> None:
+        self.added = added
+        self.removed = removed
+
+
 def save_team_assignments(
     organization_member: OrganizationMember,
     teams: list[Team] | None,
     teams_with_roles: list[tuple[Team, str]] | None = None,
-) -> None:
+) -> TeamAssignmentDiff:
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
         f"org:member:{organization_member.id}", duration=5, name="save_team_assignment"
@@ -105,6 +119,17 @@ def save_team_assignments(
 
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             existing = OrganizationMemberTeam.objects.filter(organizationmember=organization_member)
+            old_omt_by_team = {omt.team_id: omt for omt in existing}
+            old_team_ids = set(old_omt_by_team.keys())
+            new_team_ids = {team.id for team in target_teams}
+
+            removed_ids = old_team_ids - new_team_ids
+            teams_by_id = {team.id: team for team in target_teams}
+            removed_teams = list(Team.objects.filter(id__in=removed_ids)) if removed_ids else []
+            removed_changes = [
+                TeamAssignmentChange(team=t, omt_id=old_omt_by_team[t.id].id) for t in removed_teams
+            ]
+
             OrganizationMemberTeam.objects.bulk_delete(existing)
             OrganizationMemberTeam.objects.bulk_create(
                 [
@@ -114,6 +139,18 @@ def save_team_assignments(
                     for team, role in new_assignments
                 ]
             )
+
+        added_ids = new_team_ids - old_team_ids
+        new_omts = OrganizationMemberTeam.objects.filter(
+            organizationmember=organization_member, team_id__in=added_ids
+        )
+        new_omt_by_team = {omt.team_id: omt for omt in new_omts}
+        added_changes = [
+            TeamAssignmentChange(team=teams_by_id[tid], omt_id=new_omt_by_team[tid].id)
+            for tid in added_ids
+            if tid in teams_by_id and tid in new_omt_by_team
+        ]
+        return TeamAssignmentDiff(added=added_changes, removed=removed_changes)
 
 
 def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:

@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 
 import {Select} from '@sentry/scraps/select';
 
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -28,7 +27,7 @@ type Props = {
   teamValue: string | number;
 };
 
-class MemberTeamFields extends Component<Props> {
+export class MemberTeamFields extends Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {
     const {onChange, ruleData} = this.props;
     if (newValue === ruleData[attribute]) {
@@ -126,11 +125,9 @@ const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
   padding: 0;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const SelectWrapper = styled('div')`
   width: 200px;
 `;
-
-export default MemberTeamFields;

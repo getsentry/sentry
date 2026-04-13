@@ -25,7 +25,7 @@ type TeamKeyTransactionProps = Omit<
   transactionName: string;
 };
 
-function TeamKeyTransaction({
+export function TeamKeyTransaction({
   keyedTeams,
   teams,
   project,
@@ -117,7 +117,7 @@ function TeamKeyTransaction({
         value={value}
         onChange={handleChange}
         options={options}
-        searchable={options.length > 8}
+        search={options.length > 8}
         {...props}
       />
     </Wrapper>
@@ -131,5 +131,3 @@ const Wrapper = styled('div')`
     margin: 0;
   }
 `;
-
-export default TeamKeyTransaction;

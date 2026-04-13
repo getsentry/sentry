@@ -1,34 +1,44 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
+
+import {Button} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
+import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {User} from 'sentry/types/user';
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
-import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
-import EmptyState from 'sentry/views/seerExplorer/emptyState';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/askUserQuestionBlock';
+import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import {EmptyState} from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
-import FileChangeApprovalBlock from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
+import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import InputSection from 'sentry/views/seerExplorer/inputSection';
+import {InputSection} from 'sentry/views/seerExplorer/inputSection';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
-import PanelContainers, {
+import {
   BlocksContainer,
+  PanelContainers,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
-import SeerFab from 'sentry/views/seerExplorer/seerFab';
-import TopBar from 'sentry/views/seerExplorer/topBar';
+import {TopBar} from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
@@ -39,7 +49,7 @@ import {
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
-function ExplorerPanel() {
+export function ExplorerPanel() {
   const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
@@ -65,6 +75,8 @@ function ExplorerPanel() {
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
+  const hasPageFrame = useHasPageFrameFeature();
+
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
 
   // Default to max size when Seer drawer is open
@@ -88,26 +100,25 @@ function ExplorerPanel() {
   const {
     runId,
     sessionData,
+    isPolling,
+    isError,
     sendMessage,
     deleteFromIndex,
     startNewSession,
-    isPolling,
-    isError,
-    interruptRun,
-    interruptRequested,
-    wasJustInterrupted,
-    clearWasJustInterrupted,
     switchToRun,
     respondToUserInput,
     createPR,
+    interruptRun,
+    interruptRequested,
+    wasJustInterrupted,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   } = useSeerExplorer();
 
-  const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!runId && !!organization?.slug
-  );
-
+  const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks || [],
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
     organization,
     projects,
     enabled: copySessionEnabled,
@@ -124,13 +135,6 @@ function ExplorerPanel() {
     onUnminimize: useCallback(() => setIsMinimized(false), []),
   });
 
-  // Clear wasJustInterrupted when user starts typing
-  useEffect(() => {
-    if (inputValue.length > 0 && wasJustInterrupted) {
-      clearWasJustInterrupted();
-    }
-  }, [inputValue, wasJustInterrupted, clearWasJustInterrupted]);
-
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
     () => sessionData?.repo_pr_states ?? {},
@@ -140,25 +144,12 @@ function ExplorerPanel() {
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
-  // Check owner id to determine edit permission. Defensive against any useUser return shape.
-  // Despite the type annotation, useUser can return null or undefined when not logged in.
-  // This component is in the top-level index so we have to guard against this.
-  const rawUser = useUser() as unknown;
-  const ownerUserId = sessionData?.owner_user_id ?? undefined;
-  const readOnly = useMemo(() => {
-    const isUser = (value: unknown): value is User =>
-      Boolean(
-        value &&
-        typeof value === 'object' &&
-        'id' in value &&
-        typeof value.id === 'string'
-      );
-    const userId = isUser(rawUser) ? rawUser.id : undefined;
-    return (
-      userId === undefined ||
-      (ownerUserId !== undefined && ownerUserId?.toString() !== userId)
-    );
-  }, [rawUser, ownerUserId]);
+  // Check owner id to determine edit permission.
+  const user = useUser();
+  const readOnly =
+    sessionData?.owner_user_id !== undefined &&
+    sessionData.owner_user_id !== null &&
+    sessionData.owner_user_id.toString() !== user.id;
 
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
@@ -330,10 +321,7 @@ function ExplorerPanel() {
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl =
-    runId && organization?.slug
-      ? getConversationsUrl(organization.slug, runId)
-      : undefined;
+  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -341,6 +329,13 @@ function ExplorerPanel() {
       window.open(langfuseUrl, '_blank');
     }
   }, [langfuseUrl]);
+
+  const handleOpenConversations = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (conversationsUrl) {
+      window.open(conversationsUrl, '_blank');
+    }
+  }, [conversationsUrl]);
 
   const openFeedbackForm = useFeedbackForm();
 
@@ -376,6 +371,7 @@ function ExplorerPanel() {
         onNew: startNewSession,
         onFeedback: openFeedbackForm ? handleFeedback : undefined,
         onLangfuse: handleOpenLangfuse,
+        onConversations: handleOpenConversations,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
@@ -617,6 +613,13 @@ function ExplorerPanel() {
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
+        overrideCtxEngEnable={overrideCtxEngEnable}
+        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+        showContextEngineToggle={
+          !!organization?.features.includes(
+            'seer-explorer-context-engine-fe-override-ui-flag'
+          )
+        }
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
@@ -710,10 +713,10 @@ function ExplorerPanel() {
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
+        wasJustInterrupted={wasJustInterrupted}
         isMinimized={isMinimized}
         isPolling={isPolling}
         isVisible={isVisible}
-        wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
@@ -762,10 +765,60 @@ function ExplorerPanel() {
   return createPortal(
     <Fragment>
       {panelContent}
-      <SeerFab hide={isVisible || isSeerDrawerOpen} onOpen={openExplorerPanel} />
+      {!hasPageFrame && (
+        <SeerFloatingActionButton
+          visible={!isVisible && !isSeerDrawerOpen}
+          onClick={openExplorerPanel}
+        />
+      )}
     </Fragment>,
     document.body
   );
 }
 
-export default ExplorerPanel;
+const MotionButton = motion.create(Button);
+
+interface SeerFloatingActionButtonProps extends React.ComponentProps<
+  typeof MotionButton
+> {
+  visible: boolean;
+}
+
+function SeerFloatingActionButton(props: SeerFloatingActionButtonProps) {
+  const {visible, ...rest} = props;
+  const theme = useTheme();
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <Container
+          position="fixed"
+          bottom={theme.space.lg}
+          right={theme.space.lg}
+          style={{zIndex: theme.zIndex.sidebarPanel}}
+        >
+          <SeerButton
+            initial={{opacity: 0, scale: 0.9, y: 20}}
+            animate={{opacity: 1, scale: 1, y: 0}}
+            exit={{opacity: 0, scale: 0.9, y: 20}}
+            transition={{duration: 0.2, ease: [0.4, 0, 0.2, 1]}}
+            size="sm"
+            {...rest}
+            icon={<IconSeer />}
+          >
+            <Flex align="center" gap="sm">
+              <Text size="sm">{t('Ask Seer')}</Text>
+              <Hotkey variant="debossed" value="command+/" />
+            </Flex>
+          </SeerButton>
+        </Container>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const SeerButton = styled(MotionButton)`
+  & > span:last-child {
+    overflow: visible;
+  }
+`;

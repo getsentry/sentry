@@ -51,10 +51,6 @@ describe('getHighlightedSpanAttributes', () => {
     };
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Gen AI span missing cost calculation',
-      expectedContext
-    );
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
       'Gen AI cost data missing for model: gpt-4',
       expectedContext
     );

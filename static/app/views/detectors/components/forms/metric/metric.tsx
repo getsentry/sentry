@@ -4,22 +4,21 @@ import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import FormContext from 'sentry/components/forms/formContext';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
@@ -35,8 +34,8 @@ import {
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
-import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
+import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -45,6 +44,7 @@ import {
   metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
@@ -73,12 +73,13 @@ function MetricDetectorForm() {
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <TransactionsDatasetWarningListener />
       <MigratedAlertWarningListener />
-      <TemplateSection />
-      <CustomizeMetricSection />
-      <DetectSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <ProjectEnvironmentSection step={1} />
+      <TemplateSection step={2} />
+      <CustomizeMetricSection step={3} />
+      <DetectSection step={4} />
+      <IssueOwnershipSection step={5} />
+      <MetricIssuePreview step={6} />
+      <AutomateSection step={7} />
     </Stack>
   );
 }
@@ -243,16 +244,15 @@ function PriorityRow({
   const isHigh = priority === 'high';
   const isStatic = detectionType === 'static';
 
-  const conditionChoices: Array<[MetricDetectorFormData['conditionType'], string]> =
-    isStatic
-      ? [
-          [DataConditionType.GREATER, t('Above')],
-          [DataConditionType.LESS, t('Below')],
-        ]
-      : [
-          [DataConditionType.GREATER, t('higher')],
-          [DataConditionType.LESS, t('lower')],
-        ];
+  const conditionChoices = isStatic
+    ? ([
+        [DataConditionType.GREATER, t('Above')],
+        [DataConditionType.LESS, t('Below')],
+      ] as const)
+    : ([
+        [DataConditionType.GREATER, t('higher')],
+        [DataConditionType.LESS, t('lower')],
+      ] as const);
 
   const thresholdFieldName = isHigh
     ? METRIC_DETECTOR_FORM_FIELDS.highThreshold
@@ -394,7 +394,7 @@ function IntervalPicker() {
   );
 }
 
-function CustomizeMetricSection() {
+function CustomizeMetricSection({step}: {step?: number}) {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -406,97 +406,90 @@ function CustomizeMetricSection() {
 
   return (
     <Container>
-      <Disclosure as="section" size="md" role="region" defaultExpanded>
-        <Disclosure.Title aria-label={t('Customize Metric Section')}>
-          <Text size="lg">{t('Customize Metric')}</Text>
-        </Disclosure.Title>
-        <Disclosure.Content>
-          <Flex direction="column" gap="md">
-            <Flex direction="column" gap="xs">
-              <DatasetRow>
-                <DatasetField
-                  placeholder={t('Dataset')}
-                  flexibleControlStateSize
-                  inline={false}
-                  preserveOnUnmount
-                  label={
-                    <Tooltip
-                      title={t('This reflects the type of information you want to use.')}
-                      showUnderline
-                    >
-                      <SectionLabel>{t('Dataset')}</SectionLabel>
-                    </Tooltip>
-                  }
-                  name={METRIC_DETECTOR_FORM_FIELDS.dataset}
-                  options={datasetChoices}
-                  onChange={newDataset => {
-                    // Reset aggregate function to dataset default when dataset changes
-                    const datasetConfig = getDatasetConfig(newDataset);
-                    const defaultAggregate = generateFieldAsString(
-                      datasetConfig.defaultField
-                    );
-                    formContext.form?.setValue(
-                      METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
-                      defaultAggregate
-                    );
-
-                    const supportedDetectionTypes = datasetConfig.supportedDetectionTypes;
-                    if (!supportedDetectionTypes.includes(detectionType)) {
-                      formContext.form?.setValue(
-                        METRIC_DETECTOR_FORM_FIELDS.detectionType,
-                        supportedDetectionTypes[0]
-                      );
-                    }
-
-                    const sanitizedQuery = sanitizeDetectorQuery({
-                      dataset: newDataset,
-                      query,
-                    });
-                    if (sanitizedQuery !== query) {
-                      formContext.form?.setValue(
-                        METRIC_DETECTOR_FORM_FIELDS.query,
-                        sanitizedQuery
-                      );
-                    }
-                  }}
-                />
+      <FormSection step={step} title={t('Customize Metric')}>
+        <Flex direction="column" gap="xs">
+          <DatasetRow>
+            <DatasetField
+              placeholder={t('Dataset')}
+              flexibleControlStateSize
+              inline={false}
+              preserveOnUnmount
+              label={
                 <Tooltip
-                  title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-                  isHoverable
-                  disabled={!isTransactionsDataset}
+                  title={t('This reflects the type of information you want to use.')}
+                  showUnderline
                 >
-                  <DisabledSection disabled={isTransactionsDataset}>
-                    <IntervalPicker />
-                  </DisabledSection>
+                  <SectionLabel>{t('Dataset')}</SectionLabel>
                 </Tooltip>
-              </DatasetRow>
-            </Flex>
+              }
+              name={METRIC_DETECTOR_FORM_FIELDS.dataset}
+              options={datasetChoices}
+              onChange={newDataset => {
+                // Reset aggregate function to dataset default when dataset changes
+                const datasetConfig = getDatasetConfig(newDataset);
+                const defaultAggregate = generateFieldAsString(
+                  datasetConfig.defaultField
+                );
+                formContext.form?.setValue(
+                  METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+                  defaultAggregate
+                );
+
+                const supportedDetectionTypes = datasetConfig.supportedDetectionTypes;
+                if (!supportedDetectionTypes.includes(detectionType)) {
+                  formContext.form?.setValue(
+                    METRIC_DETECTOR_FORM_FIELDS.detectionType,
+                    supportedDetectionTypes[0]
+                  );
+                }
+
+                const sanitizedQuery = sanitizeDetectorQuery({
+                  dataset: newDataset,
+                  query,
+                });
+                if (sanitizedQuery !== query) {
+                  formContext.form?.setValue(
+                    METRIC_DETECTOR_FORM_FIELDS.query,
+                    sanitizedQuery
+                  );
+                }
+              }}
+            />
             <Tooltip
               title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
               isHoverable
               disabled={!isTransactionsDataset}
             >
               <DisabledSection disabled={isTransactionsDataset}>
-                <Visualize />
+                <IntervalPicker />
               </DisabledSection>
             </Tooltip>
-            <Tooltip
-              title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-              isHoverable
-              disabled={!isTransactionsDataset}
-            >
-              <FilterRow disabled={isTransactionsDataset}>
-                <DetectorQueryFilterBuilder />
-              </FilterRow>
-            </Tooltip>
-          </Flex>
-        </Disclosure.Content>
-      </Disclosure>
+          </DatasetRow>
+        </Flex>
+        <Tooltip
+          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+          isHoverable
+          disabled={!isTransactionsDataset}
+        >
+          <DisabledSection disabled={isTransactionsDataset}>
+            <Visualize />
+          </DisabledSection>
+        </Tooltip>
+        <Tooltip
+          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+          isHoverable
+          disabled={!isTransactionsDataset}
+        >
+          <FilterRow disabled={isTransactionsDataset}>
+            <DetectorQueryFilterBuilder />
+          </FilterRow>
+        </Tooltip>
+      </FormSection>
     </Container>
   );
 }
 
-function DetectSection() {
+function DetectSection({step}: {step?: number}) {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -515,115 +508,118 @@ function DetectSection() {
 
   return (
     <Container>
-      <Flex direction="column" gap="lg">
-        <div>
-          <Flex align="center" gap="sm">
-            <Heading as="h3">{t('Issue Detection')}</Heading>
-            {showThresholdWarning && (
-              <WarningIcon
-                id="thresholds-warning-icon"
-                tooltipProps={{
-                  isHoverable: true,
-                  title: tct(
-                    'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
-                    {
-                      samplingLink: (
-                        <ExternalLink
-                          href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                          openInNewTab
-                        />
-                      ),
-                    }
-                  ),
-                }}
+      <FormSection
+        step={step}
+        title={t('Issue Detection')}
+        description={t(
+          'This determines the conditions that lead to the creation of an issue or event.'
+        )}
+        trailingItems={
+          showThresholdWarning ? (
+            <WarningIcon
+              id="thresholds-warning-icon"
+              tooltipProps={{
+                isHoverable: true,
+                title: tct(
+                  'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                  {
+                    samplingLink: (
+                      <ExternalLink
+                        href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                        openInNewTab
+                      />
+                    ),
+                  }
+                ),
+              }}
+            />
+          ) : undefined
+        }
+      >
+        <DetectionType />
+        <Flex direction="column">
+          {(!detectionType || detectionType === 'static') && (
+            <Flex direction="column">
+              <DefineThresholdParagraph>
+                <Text bold>{t('Define threshold & set priority')}</Text>
+                <Text variant="muted">
+                  {t('An issue will be created when query value is:')}
+                </Text>
+              </DefineThresholdParagraph>
+              <Stack marginTop="md" gap="xl">
+                <PriorityRow
+                  priority={PriorityLevel.HIGH}
+                  detectionType="static"
+                  aggregate={aggregate}
+                />
+                <PriorityRow
+                  priority={PriorityLevel.MEDIUM}
+                  detectionType="static"
+                  aggregate={aggregate}
+                />
+              </Stack>
+            </Flex>
+          )}
+          {detectionType === 'percent' && (
+            <Flex direction="column">
+              <DefineThresholdParagraph>
+                <Text bold>{t('Define threshold & set priority')}</Text>
+                <Text variant="muted">
+                  {t('An issue will be created when query value is:')}
+                </Text>
+              </DefineThresholdParagraph>
+              <Stack marginTop="md" gap="xl">
+                <PriorityRow
+                  priority={PriorityLevel.HIGH}
+                  detectionType="percent"
+                  aggregate={aggregate}
+                  showComparisonAgo
+                />
+                <PriorityRow
+                  priority={PriorityLevel.MEDIUM}
+                  detectionType="percent"
+                  aggregate={aggregate}
+                />
+              </Stack>
+            </Flex>
+          )}
+          {detectionType === 'dynamic' && (
+            <Flex direction="column">
+              <SelectField
+                required
+                name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
+                label={t('Level of responsiveness')}
+                help={t(
+                  'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
+                )}
+                choices={
+                  [
+                    [AlertRuleSensitivity.HIGH, t('High')],
+                    [AlertRuleSensitivity.MEDIUM, t('Medium')],
+                    [AlertRuleSensitivity.LOW, t('Low')],
+                  ] satisfies Array<[MetricDetectorFormData['sensitivity'], string]>
+                }
+                preserveOnUnmount
               />
-            )}
-          </Flex>
-          <DetectionType />
-          <Flex direction="column">
-            {(!detectionType || detectionType === 'static') && (
-              <Flex direction="column">
-                <DefineThresholdParagraph>
-                  <Text bold>{t('Define threshold & set priority')}</Text>
-                  <Text variant="muted">
-                    {t('An issue will be created when query value is:')}
-                  </Text>
-                </DefineThresholdParagraph>
-                <Stack marginTop="md" gap="xl">
-                  <PriorityRow
-                    priority={PriorityLevel.HIGH}
-                    detectionType="static"
-                    aggregate={aggregate}
-                  />
-                  <PriorityRow
-                    priority={PriorityLevel.MEDIUM}
-                    detectionType="static"
-                    aggregate={aggregate}
-                  />
-                </Stack>
-              </Flex>
-            )}
-            {detectionType === 'percent' && (
-              <Flex direction="column">
-                <DefineThresholdParagraph>
-                  <Text bold>{t('Define threshold & set priority')}</Text>
-                  <Text variant="muted">
-                    {t('An issue will be created when query value is:')}
-                  </Text>
-                </DefineThresholdParagraph>
-                <Stack marginTop="md" gap="xl">
-                  <PriorityRow
-                    priority={PriorityLevel.HIGH}
-                    detectionType="percent"
-                    aggregate={aggregate}
-                    showComparisonAgo
-                  />
-                  <PriorityRow
-                    priority={PriorityLevel.MEDIUM}
-                    detectionType="percent"
-                    aggregate={aggregate}
-                  />
-                </Stack>
-              </Flex>
-            )}
-            {detectionType === 'dynamic' && (
-              <Flex direction="column">
-                <SelectField
-                  required
-                  name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
-                  label={t('Level of responsiveness')}
-                  help={t(
-                    'Choose your level of anomaly responsiveness. Higher thresholds means alerts for most anomalies. Lower thresholds means alerts only for larger ones.'
-                  )}
-                  choices={
-                    [
-                      [AlertRuleSensitivity.HIGH, t('High')],
-                      [AlertRuleSensitivity.MEDIUM, t('Medium')],
-                      [AlertRuleSensitivity.LOW, t('Low')],
-                    ] satisfies Array<[MetricDetectorFormData['sensitivity'], string]>
-                  }
-                  preserveOnUnmount
-                />
-                <SelectField
-                  required
-                  name={METRIC_DETECTOR_FORM_FIELDS.thresholdType}
-                  label={t('Direction of anomaly movement')}
-                  help={t(
-                    'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
-                  )}
-                  choices={
-                    [
-                      [AlertRuleThresholdType.ABOVE, t('Above')],
-                      [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
-                      [AlertRuleThresholdType.BELOW, t('Below')],
-                    ] satisfies Array<[MetricDetectorFormData['thresholdType'], string]>
-                  }
-                  preserveOnUnmount
-                />
-              </Flex>
-            )}
-          </Flex>
-        </div>
+              <SelectField
+                required
+                name={METRIC_DETECTOR_FORM_FIELDS.thresholdType}
+                label={t('Direction of anomaly movement')}
+                help={t(
+                  'Decide if you want to be alerted to anomalies that are moving above, below, or in both directions in relation to your threshold.'
+                )}
+                choices={
+                  [
+                    [AlertRuleThresholdType.ABOVE, t('Above')],
+                    [AlertRuleThresholdType.ABOVE_AND_BELOW, t('Above and Below')],
+                    [AlertRuleThresholdType.BELOW, t('Below')],
+                  ] satisfies Array<[MetricDetectorFormData['thresholdType'], string]>
+                }
+                preserveOnUnmount
+              />
+            </Flex>
+          )}
+        </Flex>
         {detectionType !== 'dynamic' && (
           <Fragment>
             <DefineThresholdParagraph>
@@ -632,7 +628,7 @@ function DetectSection() {
             <ResolveSection />
           </Fragment>
         )}
-      </Flex>
+      </FormSection>
     </Container>
   );
 }
@@ -709,12 +705,12 @@ const StyledIconWarning = styled(IconWarning)`
 const DatasetRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   max-width: 425px;
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`
-  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+  ${p => (p.disabled ? 'opacity: 0.6;' : '')}
 `;
 
 const StyledSelectField = styled(SelectField)`
@@ -740,7 +736,7 @@ const DirectionField = styled(SelectField)`
 
 const DetectionTypeField = styled(SegmentedRadioField)`
   padding-left: 0;
-  padding-block: ${space(1)};
+  padding-block: ${p => p.theme.space.md};
   border-bottom: none;
   max-width: 840px;
 
@@ -798,7 +794,7 @@ const IntervalField = styled(SelectField)`
 `;
 
 const DisabledSection = styled('div')<{disabled: boolean}>`
-  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+  ${p => (p.disabled ? 'opacity: 0.6;' : '')}
 `;
 
 const PriorityLabel = styled('span')`
@@ -808,5 +804,5 @@ const PriorityLabel = styled('span')`
 
 const RequiredAsterisk = styled('span')`
   color: ${p => p.theme.tokens.content.danger};
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
 `;

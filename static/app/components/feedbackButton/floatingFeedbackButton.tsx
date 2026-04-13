@@ -11,7 +11,7 @@ import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFee
  * allows users to scroll anywhere and still be able to trigger the Feedback form
  * which allows taking screenshots of what's visible on the page.
  */
-export default function FloatingFeedbackButton() {
+export function FloatingFeedbackButton() {
   const theme = useTheme();
   const {feedback, defaultOptions} = useFeedbackSDKIntegration();
 

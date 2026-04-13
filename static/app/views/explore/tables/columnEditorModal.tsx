@@ -10,12 +10,11 @@ import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
@@ -170,7 +169,7 @@ export function ColumnEditorModal({
             {editableColumns.map((column, i) => {
               return (
                 <ColumnEditorRow
-                  key={`${column.column}-${column.id}`}
+                  key={column.uniqueId}
                   canDelete={editableColumns.length > 1}
                   required={requiredTags?.includes(column.column)}
                   column={column}
@@ -283,20 +282,14 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledButton
-        aria-label={t('Drag to reorder')}
-        priority="transparent"
-        size="sm"
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        searchable
+        search
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -325,11 +318,16 @@ const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
+`;
+
+const StyledDragReorderButton = styled(DragReorderButton)`
+  padding-left: 0;
+  padding-right: 0;
 `;
 
 const StyledButton = styled(Button)`

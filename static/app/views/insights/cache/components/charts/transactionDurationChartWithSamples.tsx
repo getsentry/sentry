@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 // TODO(release-drawer): Only used in cache/components/samplePanel

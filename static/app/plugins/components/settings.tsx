@@ -5,11 +5,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
+import {PluginComponentBase} from 'sentry/plugins/pluginComponentBase';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -36,7 +36,7 @@ type State = {
   wasConfiguredOnPageLoad: boolean;
 } & PluginComponentBase['state'];
 
-class PluginSettings<
+export class PluginSettings<
   P extends Props = Props,
   S extends State = State,
 > extends PluginComponentBase<P, S> {
@@ -77,6 +77,7 @@ class PluginSettings<
   }
 
   changeField(name: string, value: any) {
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const formData: State['formData'] = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
@@ -211,7 +212,7 @@ class PluginSettings<
       );
     }
 
-    const fieldList: State['fieldList'] = this.state.fieldList;
+    const fieldList = this.state.fieldList;
 
     if (!fieldList?.length) {
       return null;
@@ -245,5 +246,3 @@ class PluginSettings<
     );
   }
 }
-
-export default PluginSettings;

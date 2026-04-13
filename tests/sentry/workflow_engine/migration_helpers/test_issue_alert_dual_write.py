@@ -2,7 +2,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
@@ -368,7 +368,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
     def test_delete_issue_alert__rule_deletion_task(self) -> None:
         self.issue_alert.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(self.issue_alert, days=0)
+        CellScheduledDeletion.schedule(self.issue_alert, days=0)
 
         with self.tasks():
             run_scheduled_deletions()
@@ -377,7 +377,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
     def test_delete_issue_alert__project_deletion_task(self) -> None:
         self.project.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(self.project, days=0)
+        CellScheduledDeletion.schedule(self.project, days=0)
 
         with self.tasks():
             run_scheduled_deletions()
@@ -386,7 +386,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
     def test_delete_issue_alert__org_deletion_task(self) -> None:
         self.organization.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(self.organization, days=0)
+        CellScheduledDeletion.schedule(self.organization, days=0)
 
         with self.tasks():
             run_scheduled_deletions()

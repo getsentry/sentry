@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -33,7 +33,7 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const uptimeDetectorId = detector.id;
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -114,7 +114,12 @@ export default function UptimeDetectorsList() {
             {t('Uptime monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
-          <DetectorListContent {...detectorListQuery} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>

@@ -2,20 +2,20 @@ import sortBy from 'lodash/sortBy';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import {BreadcrumbDropdown} from './breadcrumbDropdown';
+import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
@@ -83,7 +83,7 @@ export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbP
       hasMenu={hasMenu}
       route={route}
       value={organization.slug}
-      searchPlaceholder={t('Search Organizations')}
+      search={{placeholder: t('Search Organizations')}}
       options={sortBy(organizations, ['name'])
         .filter(org => org.status.id === 'active')
         .map(org => ({

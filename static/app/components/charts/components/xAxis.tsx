@@ -19,7 +19,7 @@ type HelperProps =
 export type XAxisProps = BaseChartProps['xAxis'] &
   Pick<BaseChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
 
-function XAxis({
+export function XAxis({
   isGroupedByDate,
   useShortDate,
   useMultilineDate,
@@ -37,7 +37,7 @@ function XAxis({
     const showDate = firstItem ? true : !computeShortInterval({start, end, period});
 
     if (isGroupedByDate) {
-      const dateFormat = useShortDate ? 'MMM Do' : `MMM D`;
+      const dateFormat = useShortDate ? 'MMM Do' : 'MMM D';
       const dateString = getFormattedDate(value, dateFormat, {local: !utc});
 
       const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
@@ -99,5 +99,3 @@ function XAxis({
 
   return merge(defaults, props);
 }
-
-export default XAxis;

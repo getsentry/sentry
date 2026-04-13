@@ -7,28 +7,28 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {ServiceHookSettingsForm} from 'sentry/views/settings/project/serviceHookSettingsForm';
 
 function HookStats() {
   const organization = useOrganization();
@@ -44,7 +44,7 @@ function HookStats() {
     refetch,
   } = useApiQuery<Array<{total: number; ts: number}>>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
@@ -123,7 +123,7 @@ export default function ProjectServiceHookDetails() {
     refetch,
   } = useApiQuery<ServiceHook>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,

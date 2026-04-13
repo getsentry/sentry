@@ -5,13 +5,11 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.commit import Commit
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationRepositoryGetTest(APITestCase):
@@ -92,7 +90,6 @@ class OrganizationRepositoryGetTest(APITestCase):
         assert response.data["settings"]["enabledCodeReview"] is False
         assert response.data["settings"]["codeReviewTriggers"] == [
             "on_ready_for_review",
-            "on_new_commit",
         ]
 
 
@@ -130,7 +127,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo)
@@ -153,7 +150,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__gt=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
@@ -178,7 +175,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository"
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
@@ -202,7 +199,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository"
         ).exists()
         self.assert_rename_pending_delete(response, repo)
@@ -211,35 +208,29 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        integration = self.create_integration(
-            organization=org, provider="example", name="Example", external_id="example:1"
-        )
 
         repo = Repository.objects.create(
             name="example", organization_id=org.id, status=ObjectStatus.DISABLED
         )
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "visible", "integrationId": integration.id})
+        response = self.client.put(url, data={"status": "visible"})
 
         assert response.status_code == 200
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.ACTIVE
-        assert repo.integration_id == integration.id
 
     def test_put_cancel_deletion(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        integration = self.create_integration(
-            organization=org, provider="example", name="Example", external_id="example:1"
-        )
 
         repo = Repository.objects.create(
             name="uuid-name",
             external_id="uuid-external-id",
             organization_id=org.id,
+            provider="integrations:example",
             status=ObjectStatus.PENDING_DELETION,
             config={"pending_deletion_name": "example-name"},
         )
@@ -256,13 +247,12 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         )
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "visible", "integrationId": integration.id})
+        response = self.client.put(url, data={"status": "visible"})
 
         assert response.status_code == 200
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.ACTIVE
-        assert repo.integration_id == integration.id
         assert repo.provider == "integrations:example"
         assert repo.name == "example-name"
         assert repo.external_id == "example-external-id"
@@ -272,7 +262,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             organization_id=org.id, key=build_pending_deletion_key(repo)
         ).exists()
 
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
+    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
     def test_put_hide_repo(self, mock_cleanup_task: MagicMock) -> None:
         self.login_as(user=self.user)
 
@@ -303,7 +293,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             }
         )
 
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
+    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
     def test_put_hide_repo_with_commits(self, mock_cleanup_task: MagicMock) -> None:
         self.login_as(user=self.user)
 
@@ -332,39 +322,32 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             }
         )
 
-    def test_put_bad_integration_org(self) -> None:
+    def test_put_rejects_integration_id(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", name="example")
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
-        repo = Repository.objects.create(name="example", organization_id=org.id)
+        repo = Repository.objects.create(
+            name="example",
+            organization_id=org.id,
+            provider="integrations:github",
+            integration_id=None,
+        )
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        # integration isn't linked to org
         response = self.client.put(url, data={"status": "visible", "integrationId": integration.id})
 
         assert response.status_code == 400
-        assert response.data["detail"] == "Invalid integration id"
-        assert Repository.objects.get(id=repo.id).name == "example"
+        assert response.data["detail"] == "Changing the repository provider is not allowed"
 
-    def test_put_bad_integration_id(self) -> None:
-        self.login_as(user=self.user)
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.provider == "integrations:github"
+        assert repo.integration_id is None
 
-        org = self.create_organization(owner=self.user, name="baz")
-
-        repo = Repository.objects.create(name="example", organization_id=org.id)
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        # integration isn't linked to org
-        response = self.client.put(url, data={"status": "visible", "integrationId": "notanumber"})
-
-        assert response.status_code == 400
-        assert response.data == {"integrationId": ["A valid integer is required."]}
-        assert Repository.objects.get(id=repo.id).name == "example"
-
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
+    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
     def test_put_hide_repo_triggers_cleanup(self, mock_cleanup_task: MagicMock) -> None:
         """Test that hiding a repository triggers Seer cleanup task."""
         self.login_as(user=self.user)
@@ -395,7 +378,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             }
         )
 
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
+    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
     def test_put_hide_repo_no_cleanup_when_null_fields(self, mock_cleanup_task: MagicMock) -> None:
         """Test that hiding a repository with null external_id/provider does not trigger Seer cleanup."""
         self.login_as(user=self.user)
@@ -420,7 +403,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         # Verify the cleanup task was NOT called
         mock_cleanup_task.assert_not_called()
 
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
+    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
     def test_put_hide_repo_no_cleanup_when_external_id_null(
         self, mock_cleanup_task: MagicMock
     ) -> None:
@@ -447,7 +430,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         # Verify the cleanup task was NOT called
         mock_cleanup_task.assert_not_called()
 
-    @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
+    @patch("sentry.tasks.seer.cleanup.cleanup_seer_repository_preferences.apply_async")
     def test_put_hide_repo_no_cleanup_when_provider_null(
         self, mock_cleanup_task: MagicMock
     ) -> None:

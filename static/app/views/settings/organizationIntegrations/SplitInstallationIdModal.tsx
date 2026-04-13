@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 
 type Props = {
   closeModal: () => void;

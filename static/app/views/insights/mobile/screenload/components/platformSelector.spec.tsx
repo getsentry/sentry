@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 
@@ -12,7 +12,7 @@ describe('PlatformSelector', () => {
       pathname: '/organizations/org-slug/insights/mobile/screen-loads/',
       query: {},
     },
-    route: `/organizations/:orgId/insights/mobile/screen-loads/`,
+    route: '/organizations/:orgId/insights/mobile/screen-loads/',
   };
 
   it('renders with iOS and Android options', () => {
@@ -34,7 +34,7 @@ describe('PlatformSelector', () => {
       expect(router.location.query.platform).toBe('iOS');
     });
     expect(router.location.query[MobileCursors.SCREENS_TABLE]).toBeUndefined();
-    expect(localStorage.setItem).toHaveBeenCalledWith(
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(
       'mobile-performance-platform',
       'iOS'
     );

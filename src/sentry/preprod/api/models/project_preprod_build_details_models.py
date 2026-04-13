@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
@@ -10,15 +9,16 @@ from sentry.preprod.build_distribution_utils import (
     get_download_count_for_artifact,
     is_installable_artifact,
 )
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    Platform,
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import StatusCheckErrorType
 
 logger = logging.getLogger(__name__)
-
-
-class Platform(StrEnum):
-    APPLE = "apple"
-    ANDROID = "android"
 
 
 class AppleAppInfo(BaseModel):
@@ -59,6 +59,8 @@ class DistributionInfo(BaseModel):
     is_installable: bool
     download_count: int
     release_notes: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
 
 
 class StatusCheckResultSuccess(BaseModel):
@@ -85,6 +87,17 @@ class PostedStatusChecks(BaseModel):
     """Status checks that have been posted to the VCS provider."""
 
     size: StatusCheckResult | None = None
+
+
+class SnapshotComparisonInfo(BaseModel):
+    image_count: int
+    comparison_state: Literal["pending", "processing", "success", "failed"] | None = None
+    comparison_error_message: str | None = None
+    images_added: int = 0
+    images_removed: int = 0
+    images_changed: int = 0
+    images_unchanged: int = 0
+    approval_status: Literal["approved", "requires_approval"] | None = None
 
 
 class SizeInfoSizeMetric(BaseModel):
@@ -151,26 +164,12 @@ class BuildDetailsApiResponse(BaseModel):
     posted_status_checks: PostedStatusChecks | None = None
     base_artifact_id: str | None = None
     base_build_info: BuildDetailsAppInfo | None = None
-
-
-def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
-    match artifact_type:
-        case PreprodArtifact.ArtifactType.XCARCHIVE:
-            return Platform.APPLE
-        case PreprodArtifact.ArtifactType.AAB:
-            return Platform.ANDROID
-        case PreprodArtifact.ArtifactType.APK:
-            return Platform.ANDROID
-        case _:
-            raise ValueError(f"Unknown artifact type: {artifact_type}")
+    snapshot_comparison_info: SnapshotComparisonInfo | None = None
 
 
 def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
     """Factory function to create BuildDetailsAppInfo from a PreprodArtifact."""
-    platform = None
-    # artifact_type can be null before preprocessing has completed
-    if artifact.artifact_type is not None:
-        platform = platform_from_artifact_type(artifact.artifact_type)
+    platform = artifact.platform
 
     apple_app_info = None
     if platform == Platform.APPLE:
@@ -193,7 +192,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
             )
         )
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
 
     return BuildDetailsAppInfo(
         app_id=artifact.app_id,
@@ -281,6 +280,61 @@ def to_size_info(
             raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
 
 
+def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotComparisonInfo | None:
+    try:
+        snapshot_metrics = head_artifact.preprodsnapshotmetrics
+    except PreprodSnapshotMetrics.DoesNotExist:
+        return None
+
+    comparison_state = None
+    comparison_error_message = None
+    images_added = 0
+    images_removed = 0
+    images_changed = 0
+    images_unchanged = 0
+
+    comparisons = sorted(
+        snapshot_metrics.snapshot_comparisons_head_metrics.all(),
+        key=lambda c: c.id,
+        reverse=True,
+    )
+    comparison = comparisons[0] if comparisons else None
+    if comparison:
+        comparison_state = PreprodSnapshotComparison.State(comparison.state).name.lower()
+        if comparison.state == PreprodSnapshotComparison.State.SUCCESS:
+            images_added = comparison.images_added
+            images_removed = comparison.images_removed
+            images_changed = comparison.images_changed
+            images_unchanged = comparison.images_unchanged
+        elif comparison.state == PreprodSnapshotComparison.State.FAILED:
+            comparison_error_message = comparison.error_message
+
+    approval_status = None
+    # REJECTED is no longer used; all non-APPROVED statuses are treated as requires_approval
+    approvals = [
+        a
+        for a in head_artifact.preprodcomparisonapproval_set.all()
+        if a.preprod_feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS
+    ]
+    approvals.sort(key=lambda a: a.id, reverse=True)
+    if approvals:
+        if approvals[0].approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED:
+            approval_status = "approved"
+        else:
+            approval_status = "requires_approval"
+
+    return SnapshotComparisonInfo(
+        image_count=snapshot_metrics.image_count,
+        comparison_state=comparison_state,
+        comparison_error_message=comparison_error_message,
+        images_added=images_added,
+        images_removed=images_removed,
+        images_changed=images_changed,
+        images_unchanged=images_unchanged,
+        approval_status=approval_status,
+    )
+
+
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
@@ -303,10 +357,18 @@ def transform_preprod_artifact_to_build_details(
 
     app_info = create_build_details_app_info(artifact)
     is_installable = is_installable_artifact(artifact)
+
+    error_code_str = None
+    if artifact.installable_app_error_code is not None:
+        error_code_map = dict(PreprodArtifact.InstallableAppErrorCode.as_choices())
+        error_code_str = error_code_map.get(artifact.installable_app_error_code)
+
     distribution_info = DistributionInfo(
         is_installable=is_installable,
         download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+        error_code=error_code_str,
+        error_message=artifact.installable_app_error_message,
     )
 
     vcs_info = BuildDetailsVcsInfo(
@@ -326,6 +388,8 @@ def transform_preprod_artifact_to_build_details(
 
     posted_status_checks = _parse_posted_status_checks(artifact)
 
+    snapshot_comparison_info = to_snapshot_comparison_info(artifact)
+
     return BuildDetailsApiResponse(
         id=artifact.id,
         state=artifact.state,
@@ -338,6 +402,7 @@ def transform_preprod_artifact_to_build_details(
         posted_status_checks=posted_status_checks,
         base_artifact_id=base_artifact.id if base_artifact else None,
         base_build_info=base_build_info,
+        snapshot_comparison_info=snapshot_comparison_info,
     )
 
 

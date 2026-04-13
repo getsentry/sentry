@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -31,7 +31,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function LLMCallsWidget() {
+export function LLMCallsWidget() {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -42,7 +42,7 @@ export default function LLMCallsWidget() {
 
   const generationsRequest = useSpans(
     {
-      fields: ['gen_ai.request.model', 'count()'],
+      fields: [SpanFields.GEN_AI_RESPONSE_MODEL, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -54,7 +54,7 @@ export default function LLMCallsWidget() {
     {
       ...pageFilterChartParams,
       query: fullQuery,
-      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
+      groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
       topEvents: 3,
@@ -109,7 +109,7 @@ export default function LLMCallsWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {models?.map((item, index) => {
-        const modelId = `${item['gen_ai.request.model']}`;
+        const modelId = item[SpanFields.GEN_AI_RESPONSE_MODEL];
         return (
           <Fragment key={modelId}>
             <div>
@@ -133,7 +133,7 @@ export default function LLMCallsWidget() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('LLM Calls')} />}
+      Title={<Widget.WidgetTitle title={t('LLM Calls by Model')} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&
@@ -149,9 +149,9 @@ export default function LLMCallsWidget() {
                   yAxes: ['count(span.duration)'],
                 },
               ],
-              groupBy: ['gen_ai.request.model'],
+              groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

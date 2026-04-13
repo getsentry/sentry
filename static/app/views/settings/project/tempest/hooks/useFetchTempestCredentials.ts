@@ -1,6 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
 
@@ -12,7 +12,7 @@ const makeFetchTempestCredentialsQueryKey = ({
   projectSlug: string;
 }) =>
   [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/', {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     }),
   ] as const;

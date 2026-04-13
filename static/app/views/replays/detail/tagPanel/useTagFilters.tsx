@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -26,7 +26,7 @@ const FILTERS = {
     ),
 };
 
-function useTagFilters({tags}: Options): Return {
+export function useTagFilters({tags}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const searchTerm = decodeScalar(query.f_t_search, '').toLowerCase();
@@ -60,5 +60,3 @@ function useTagFilters({tags}: Options): Return {
     setSearchTerm,
   };
 }
-
-export default useTagFilters;

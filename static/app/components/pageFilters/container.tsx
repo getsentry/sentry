@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
-import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Stack} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
   initializeUrlState,
@@ -11,24 +12,24 @@ import {
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {useProjects} from 'sentry/utils/useProjects';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
-  'memberProjects' | 'nonMemberProjects' | 'queryParams' | 'router' | 'organization'
+  'memberProjects' | 'nonMemberProjects' | 'location' | 'navigate' | 'organization'
 >;
 
 interface Props extends InitializeUrlStateProps {
@@ -53,7 +54,7 @@ interface Props extends InitializeUrlStateProps {
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function PageFiltersContainer({
+export function PageFiltersContainer({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   maxPickableDays,
@@ -70,8 +71,8 @@ function PageFiltersContainer({
     disablePersistence,
     storageNamespace,
   } = props;
-  const router = useRouter();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -97,8 +98,8 @@ function PageFiltersContainer({
   const doInitialization = () => {
     initializeUrlState({
       organization,
-      queryParams: location.query,
-      router,
+      location,
+      navigate,
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       maxPickableDays,
@@ -181,8 +182,8 @@ function PageFiltersContainer({
       environment: [],
       project: [],
     });
-    updateDateTime(newDateState, router);
-  }, [maxPickableDays, router, selection.datetime.utc, shouldResetDateTime]);
+    updateDateTime(newDateState, location, navigate);
+  }, [maxPickableDays, location, navigate, selection.datetime.utc, shouldResetDateTime]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
@@ -225,7 +226,7 @@ function PageFiltersContainer({
     // Do not pass router to these actionCreators, as we do not want to update
     // routes since these state changes are happening due to a change of routes
     if (!noProjectChange) {
-      updateProjects(newState.project || [], null, {
+      updateProjects(newState.project || [], undefined, undefined, {
         environments: newEnvironments,
         storageNamespace,
       });
@@ -252,13 +253,11 @@ function PageFiltersContainer({
   // would speed up orgs with tons of projects
   if (!isReady || !hasInitialized) {
     return (
-      <Layout.Page withPadding>
+      <Stack flex={1} padding="2xl 3xl">
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   return <Fragment>{children}</Fragment>;
 }
-
-export default PageFiltersContainer;

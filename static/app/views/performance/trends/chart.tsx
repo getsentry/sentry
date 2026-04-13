@@ -4,12 +4,10 @@ import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
@@ -17,11 +15,12 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
-import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
 import type {ViewProps} from 'sentry/views/performance/types';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
@@ -41,7 +40,6 @@ import {
 
 type Props = ViewProps & {
   isLoading: boolean;
-  organization: OrganizationSummary;
   projects: Project[];
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
@@ -93,11 +91,11 @@ export function Chart({
   height,
   projects,
   project,
-  organization,
   additionalSeries,
   applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
+  const navigate = useNavigate();
   const theme = useTheme();
 
   const handleLegendSelectChanged = (legendChange: any) => {
@@ -115,12 +113,10 @@ export function Chart({
       ...location,
       query,
     };
-    browserHistory.push(to);
+    navigate(to);
   };
 
-  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
-    ? transaction?.change
-    : trendChangeType;
+  const derivedTrendChangeType = transaction?.change ?? trendChangeType;
 
   const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =

@@ -45,7 +45,7 @@ export function copyToClipboard(
   return promise;
 }
 
-export default function useCopyToClipboard(): {copy: CopyCallback} {
+export function useCopyToClipboard(): {copy: CopyCallback} {
   return {
     copy: copyToClipboard,
   };

@@ -18,7 +18,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function CustomerPolicies({orgId}: any) {
+export function CustomerPolicies({orgId}: any) {
   return (
     <ResultGrid
       inPanel
@@ -43,5 +43,3 @@ function CustomerPolicies({orgId}: any) {
     />
   );
 }
-
-export default CustomerPolicies;

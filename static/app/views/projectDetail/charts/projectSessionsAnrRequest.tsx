@@ -2,14 +2,14 @@ import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
@@ -19,7 +19,7 @@ import type {ProjectSessionsChartRequestProps} from './projectSessionsChartReque
 
 const BAD_BEHAVIOUR_THRESHOLD = 0.47;
 
-function ProjectSessionsAnrRequest({
+export function ProjectSessionsAnrRequest({
   children,
   organization,
   disablePrevious,
@@ -54,7 +54,6 @@ function ProjectSessionsAnrRequest({
     const baseParams = {
       field: [yAxis, 'count_unique(user)'],
       interval: getSessionsInterval(datetime, {
-        highFidelity: organization.features.includes('minute-resolution-sessions'),
         dailyInterval: true,
       }),
       project: projects[0],
@@ -85,7 +84,7 @@ function ProjectSessionsAnrRequest({
 
   const {data, isRefetching, isError} = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},
@@ -226,5 +225,3 @@ function ProjectSessionsAnrRequest({
     </Fragment>
   );
 }
-
-export default ProjectSessionsAnrRequest;

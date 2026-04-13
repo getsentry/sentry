@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Confirm from 'sentry/components/confirm';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {Confirm} from 'sentry/components/confirm';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

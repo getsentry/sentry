@@ -5,15 +5,23 @@ import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
+import {
+  AGENT_NAME_FIELDS,
+  resolveAgentName,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getAgentNameSearchFilter,
+  getHasAgentNameFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {SpanFields} from 'sentry/views/insights/types';
 
 const LIMIT = 100;
 const AGENT_URL_PARAM = 'agent';
@@ -82,9 +90,9 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
   );
 
   const query = useMemo(() => {
-    const parts = [`has:${SpanFields.GEN_AI_AGENT_NAME}`];
+    const parts = [getHasAgentNameFilter()];
     if (searchQuery) {
-      parts.push(`${SpanFields.GEN_AI_AGENT_NAME}:*${searchQuery}*`);
+      parts.push(getAgentNameSearchFilter(searchQuery));
     }
     return parts.join(' ');
   }, [searchQuery]);
@@ -98,7 +106,7 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       limit: LIMIT,
       search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
-      fields: [SpanFields.GEN_AI_AGENT_NAME, 'count()'],
+      fields: [...AGENT_NAME_FIELDS, 'count()'],
     },
     referrer
   );
@@ -114,8 +122,8 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
     const list: Array<{label: string; value: string}> = [];
 
     agentData?.forEach(row => {
-      const agentName = row[SpanFields.GEN_AI_AGENT_NAME];
-      if (!agentName || typeof agentName !== 'string' || uniqueAgents.has(agentName)) {
+      const agentName = resolveAgentName(row);
+      if (!agentName || uniqueAgents.has(agentName)) {
         return;
       }
       uniqueAgents.add(agentName);
@@ -143,14 +151,15 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       options={options}
       emptyMessage={t('No agents found')}
       loading={isPending}
-      searchable
+      search={{
+        onChange: newValue => {
+          if (!wasSearchSpaceExhausted) {
+            debouncedSetSearch(newValue);
+          }
+        },
+      }}
       menuTitle={t('Agent')}
       data-test-id="agent-selector"
-      onSearch={newValue => {
-        if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(newValue);
-        }
-      }}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')} />
       )}
@@ -160,6 +169,10 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
         setQueryStates({
           [AGENT_URL_PARAM]: values.length > 0 ? values : null,
           [TableUrlParams.CURSOR]: null,
+        });
+        trackAnalytics('agent-monitoring.page-filter-change', {
+          organization,
+          filter: 'agent',
         });
       }}
     />

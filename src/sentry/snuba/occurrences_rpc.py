@@ -4,30 +4,38 @@ from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ExistsFilter,
+    NotFilter,
+    TraceItemFilter,
+)
 
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
+from sentry.models.group import Group
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger(__name__)
 
+UNKNOWN_ISSUE = "UNKNOWN"
+
 
 class OccurrenceCategory(Enum):
     """
-    Category of occurrence events in EAP.
+    Category of occurrence trace items in EAP.
 
-    In EAP, both error events and issue platform (generic) events are stored as
+    In EAP, both error events and issue platform events are stored as
     TRACE_ITEM_TYPE_OCCURRENCE.
     """
 
     ERROR = "error"
-    GENERIC = "generic"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 class Occurrences(rpc_dataset_common.RPCBase):
@@ -52,6 +60,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
         occurrence_category: OccurrenceCategory | None = None,
+        extra_conditions: TraceItemFilter | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -66,7 +75,10 @@ class Occurrences(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params, config),
                 page_token=page_token,
                 additional_queries=additional_queries,
-                extra_conditions=cls._build_category_filter(occurrence_category),
+                extra_conditions=and_trace_item_filters(
+                    cls._build_category_filter(occurrence_category),
+                    extra_conditions,
+                ),
             ),
             params.debug,
         )
@@ -93,7 +105,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     ) -> EAPResponse:
         """
         Runs a query with additional selected_columns of all tags in tags.
-        tags should be formatted appropriately - e.g. {tags[foo], tags[bar]}
+        tags should be formatted appropriately - e.g. {attr[foo], attr[bar]}
         """
 
         columns = cls.DEFINITIONS.columns.copy()
@@ -242,22 +254,67 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
+    def _fetch_issue_labels(
+        cls,
+        group_ids: list[int | None],
+        project_ids: list[int],
+    ) -> dict[int, str]:
+        resultant_map: dict[int, str] = {}
+        grp_ids: set[int] = set({grp_id for grp_id in (group_ids or []) if grp_id})
+        qs = Group.objects.filter(pk__in=grp_ids, project_id__in=project_ids).select_related(
+            "project"
+        )
+        for grp in qs:
+            resultant_map[grp.id] = grp.qualified_short_id or UNKNOWN_ISSUE
+        return resultant_map
+
+    @classmethod
+    def process_column_values(
+        cls,
+        column_value: Any,
+        final_data: SnubaData,
+        attribute: Any,
+        resolved_column: ResolvedColumn,
+        **context_kwargs: Any,
+    ) -> None:
+        if attribute == "issue":
+            group_ids: list[int | None] = [
+                getattr(result, str(result.WhichOneof("value"))) if not result.is_null else None
+                for result in column_value.results
+            ]
+            group_id_to_issue_map = cls._fetch_issue_labels(
+                group_ids, context_kwargs.get("project_ids", [])
+            )
+            for index, group_id in enumerate(group_ids):
+                issue_label = UNKNOWN_ISSUE
+                if group_id and group_id in group_id_to_issue_map:
+                    issue_label = group_id_to_issue_map[group_id]
+                final_data[index][attribute] = issue_label
+        else:
+            super().process_column_values(
+                column_value, final_data, attribute, resolved_column, **context_kwargs
+            )
+
+    @classmethod
     def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:
+        issue_occurrence_id_key = AttributeKey(
+            name="issue_occurrence_id", type=AttributeKey.TYPE_STRING
+        )
         if category == OccurrenceCategory.ERROR:
+            # Error events: no occurrence attached, so issue_occurrence_id does NOT exist
             return TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
-                    op=ComparisonFilter.OP_NOT_EQUALS,
-                    value=AttributeValue(val_str="generic"),
+                not_filter=NotFilter(
+                    filters=[
+                        TraceItemFilter(
+                            exists_filter=ExistsFilter(key=issue_occurrence_id_key),
+                        )
+                    ]
                 )
             )
-        elif category == OccurrenceCategory.GENERIC:
+        elif category == OccurrenceCategory.ISSUE_PLATFORM:
+            # Issue platform events: occurrence attached, so issue_occurrence_id EXISTS
             return TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str="generic"),
-                )
+                exists_filter=ExistsFilter(key=issue_occurrence_id_key),
             )
 
         return None

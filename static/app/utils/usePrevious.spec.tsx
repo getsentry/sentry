@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 describe('usePrevious', () => {
   it('stores initial value', () => {

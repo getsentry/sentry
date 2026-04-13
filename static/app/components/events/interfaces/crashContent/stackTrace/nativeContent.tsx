@@ -8,9 +8,8 @@ import {
   getLastFrameIndex,
   isRepeatedFrame,
   parseAddress,
-  stackTracePlatformIcon,
 } from 'sentry/components/events/interfaces/utils';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
@@ -18,7 +17,6 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import {OmittedFrames} from './omittedFrames';
-import StacktracePlatformIcon from './platformIcon';
 
 function isFrameUsedForGrouping(
   frame: Frame,
@@ -40,7 +38,6 @@ type Props = {
   platform: PlatformKey;
   className?: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  hideIcon?: boolean;
   includeSystemFrames?: boolean;
   inlined?: boolean;
   isHoverPreviewed?: boolean;
@@ -56,7 +53,6 @@ export function NativeContent({
   newestFirst,
   isHoverPreviewed,
   inlined,
-  hideIcon,
   groupingCurrentLevel,
   includeSystemFrames = true,
   maxDepth,
@@ -135,7 +131,7 @@ export function NativeContent({
 
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices: number[] = getHiddenFrameIndices({
+  const hiddenFrameIndices = getHiddenFrameIndices({
     data,
     toggleFrameMap,
     frameCountMap,
@@ -241,15 +237,9 @@ export function NativeContent({
 
   return (
     <Wrapper>
-      {hideIcon ? null : (
-        <StacktracePlatformIcon
-          platform={stackTracePlatformIcon(platform, data.frames ?? [])}
-        />
-      )}
       <ContentPanel
         className={wrapperClassName}
         data-test-id="native-stack-trace-content"
-        hideIcon={hideIcon}
       >
         <Frames data-test-id="stack-trace">{convertedFrames}</Frames>
       </ContentPanel>
@@ -261,9 +251,8 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
+const ContentPanel = styled(Panel)`
   position: relative;
-  border-top-left-radius: ${p => (p.hideIcon ? p.theme.radius.md : 0)};
   overflow: hidden;
 `;
 

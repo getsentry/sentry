@@ -10,7 +10,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
+import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 
 jest.mock('sentry/utils/regions');
 

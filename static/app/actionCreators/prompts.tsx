@@ -3,11 +3,11 @@ import {useCallback, useMemo} from 'react';
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type PromptsUpdateParams = {
   /**
@@ -163,7 +163,7 @@ export function usePrompts({
   const api = useApi({persistInFlight: true});
   const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
   const queryClient = useQueryClient();
-  const isPromptDismissed: Record<string, boolean> = useMemo(() => {
+  const isPromptDismissed = useMemo(() => {
     if (prompts.isSuccess) {
       return features.reduce(
         (acc, feature) => {

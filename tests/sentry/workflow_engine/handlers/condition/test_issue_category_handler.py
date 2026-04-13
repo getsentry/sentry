@@ -1,3 +1,4 @@
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,7 +13,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueCategoryCondition(ConditionTestCase):
     condition = Condition.ISSUE_CATEGORY
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": IssueCategoryFilter.id,
         "value": "1",
     }

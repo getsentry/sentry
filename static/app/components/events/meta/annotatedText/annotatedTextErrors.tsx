@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {MetaError} from 'sentry/types/group';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
@@ -67,7 +66,7 @@ export function AnnotatedTextErrors({errors = []}: {errors: MetaError[]}) {
 }
 
 const StyledTooltip = styled(Tooltip)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
-import DetailedError from 'sentry/components/errors/detailedError';
-import NotFound from 'sentry/components/errors/notFound';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {DetailedError} from 'sentry/components/errors/detailedError';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 type ReaderResult = ReturnType<typeof useLoadReplayReader>;
 
@@ -14,7 +14,7 @@ interface Props {
   onRetry: ReaderResult['onRetry'];
 }
 
-export default function ReplayDetailsError({fetchError, onRetry}: Props) {
+export function ReplayDetailsError({fetchError, onRetry}: Props) {
   const reasons = [
     t('The replay is still processing'),
     t('The replay has been deleted by a member in your organization'),

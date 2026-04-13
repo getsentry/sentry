@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.apidocs.constants import (
@@ -30,7 +30,7 @@ class ShortIdLookupResponse(TypedDict):
 
 
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ShortIdLookupEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -106,6 +106,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                         "priorityLockedAt": None,
                         "seerFixabilityScore": 0.5,
                         "seerAutofixLastTriggered": None,
+                        "seerExplorerAutofixLastTriggered": None,
                         "substatus": "ongoing",
                     },
                     "groupId": "1",

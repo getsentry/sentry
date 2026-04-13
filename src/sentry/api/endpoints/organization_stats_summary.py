@@ -13,7 +13,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
@@ -26,8 +26,13 @@ from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import InvalidQuery
-from sentry.snuba.outcomes import COLUMN_MAP, QueryDefinition, run_outcomes_query_totals
-from sentry.snuba.sessions_v2 import InvalidField, massage_sessions_result_summary
+from sentry.snuba.outcomes import (
+    COLUMN_MAP,
+    QueryDefinition,
+    massage_sessions_result_summary,
+    run_outcomes_query_totals,
+)
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.outcomes import Outcome
 
 
@@ -119,7 +124,7 @@ class StatsSummaryApiResponse(TypedDict):
 
 
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
     owner = ApiOwner.ENTERPRISE

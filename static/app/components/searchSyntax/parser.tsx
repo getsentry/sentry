@@ -76,6 +76,8 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  // NOTE: These wildcard operators are internal implementation details and
+  // should not be included in product docs. Users should use `*` instead.
   CONTAINS = '\uf00dContains\uf00d',
   DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
   STARTS_WITH = '\uf00dStartsWith\uf00d',
@@ -884,7 +886,7 @@ export class TokenConverter {
   /**
    * Checks a filter against some non-grammar validation rules
    */
-  checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
+  checkFilterWarning = (key: FilterMap[FilterType]['key']) => {
     if (
       ![
         Token.KEY_SIMPLE,
@@ -1511,12 +1513,9 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-function tryParseSearch<T extends {config: SearchConfig}>(
-  query: string,
-  config: T
-): ParseResult | null {
+function tryParseSearch(...args: Parameters<typeof parse>): ParseResult | null {
   try {
-    return parse(query, config);
+    return parse(...args);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

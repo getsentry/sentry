@@ -11,18 +11,18 @@ import type {Client} from 'sentry/api';
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   getBestActionToIncreaseEventLimits,
   type UsageAction,
 } from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 /**
  * Event types for quota CTAs and notifications.

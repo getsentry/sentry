@@ -29,7 +29,7 @@ type Props = {
   rootAllocation?: SpendAllocation;
 };
 
-function RootAllocationCard({
+export function RootAllocationCard({
   createRootAllocation,
   rootAllocation,
   selectedMetric,
@@ -97,7 +97,7 @@ function RootAllocationCard({
               </Container>
               <Container padding="md">
                 {tct(
-                  `The un-allocated pool represents the remaining Reserved Volume available for your projects. Excess project consumption will first consume events from your un-allocated pool, and then from your [pricingLink] volume, if available`,
+                  'The un-allocated pool represents the remaining Reserved Volume available for your projects. Excess project consumption will first consume events from your un-allocated pool, and then from your [pricingLink] volume, if available',
                   {
                     pricingLink: (
                       <ExternalLink href="https://docs.sentry.io/pricing/">
@@ -212,8 +212,6 @@ function Cell({children}: {children?: React.ReactNode}) {
   const theme = useTheme();
   return <td style={{padding: theme.space.md}}>{children}</td>;
 }
-
-export default RootAllocationCard;
 
 const Table = styled('table')`
   tr:nth-child(even) {

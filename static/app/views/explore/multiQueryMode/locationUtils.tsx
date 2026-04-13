@@ -100,7 +100,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
-    const fields: string[] = getFieldsForConstructedQuery(yAxes);
+    const fields = getFieldsForConstructedQuery(yAxes);
 
     const parsedSortBys = decodeSorts(parsed.sortBys);
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);

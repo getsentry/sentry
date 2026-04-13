@@ -9,7 +9,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', () => {
   const {organization} = initializeOrg();
@@ -52,6 +52,30 @@ describe('IntegrationExternalMappings', () => {
     },
   ];
 
+  const MOCK_MEMBERS = [
+    {name: 'user1', email: 'user1@test.com', user: {id: '1'}},
+    {name: 'user2', email: 'user2@test.com', user: {id: '2'}},
+  ];
+  const MOCK_TEAMS = [
+    {id: '1', slug: 'zoo'},
+    {id: '2', slug: 'boo'},
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: MOCK_MEMBERS,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      method: 'GET',
+      body: MOCK_TEAMS,
+    });
+  });
+
   const createMockSuggestions = () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codeowners-associations/`,
@@ -81,9 +105,7 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
-        sentryNamesMapper={data => data}
       />
     );
 
@@ -101,9 +123,7 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
-        sentryNamesMapper={data => data}
       />
     );
 
@@ -124,9 +144,7 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
-        sentryNamesMapper={data => data}
       />
     );
 
@@ -138,7 +156,10 @@ describe('IntegrationExternalMappings', () => {
 
     for (const team of MOCK_TEAM_MAPPINGS) {
       expect(screen.getByText(team.externalName)).toBeInTheDocument();
-      expect(screen.getByText(team.sentryName)).toBeInTheDocument();
+    }
+    // The inline form selects show the team slugs from the API response
+    for (const team of MOCK_TEAMS) {
+      expect(await screen.findByText(team.slug)).toBeInTheDocument();
     }
     expect(screen.getAllByTestId('more-information')).toHaveLength(3);
   });
@@ -153,9 +174,7 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
-        sentryNamesMapper={data => data}
       />
     );
     renderGlobalModal();

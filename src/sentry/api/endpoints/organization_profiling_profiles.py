@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -9,7 +10,7 @@ from snuba_sdk import Request as SnqlRequest
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -61,7 +62,7 @@ class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
         return attrs
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
@@ -76,6 +77,8 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
+
+        sentry_sdk.set_tag("query.dataSource", serialized["dataSource"])
 
         with handle_query_errors():
             executor = FlamegraphExecutor(
@@ -99,7 +102,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:continuous-profiling", organization, actor=request.user):
@@ -130,7 +133,7 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProfilingHasChunksEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):

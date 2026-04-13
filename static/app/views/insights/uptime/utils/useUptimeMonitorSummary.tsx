@@ -1,7 +1,7 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 
 interface Options {

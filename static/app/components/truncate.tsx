@@ -2,8 +2,6 @@ import {useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface TruncateProps {
   value: string;
   className?: string;
@@ -15,7 +13,7 @@ interface TruncateProps {
   trimRegex?: RegExp;
 }
 
-function Truncate({
+export function Truncate({
   value,
   trimRegex,
   className,
@@ -100,10 +98,10 @@ const FullValue = styled('span')<{
   display: none;
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   white-space: nowrap;
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   top: -5px;
   ${p => p.expandDirection === 'left' && 'right: -5px;'}
   ${p => p.expandDirection === 'right' && 'left: -5px;'}
@@ -115,5 +113,3 @@ const FullValue = styled('span')<{
       display: block;
     `}
 `;
-
-export default Truncate;

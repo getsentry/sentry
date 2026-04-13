@@ -75,6 +75,51 @@ describe('MetricIssueChart', () => {
     expect(mockStats).toHaveBeenCalled();
   });
 
+  it('limits metric issue chart range to 10k points and shows a warning', async () => {
+    const detectorDetails = getDetectorDetails({event, organization, project});
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
+      body: detector,
+    });
+    const mockStats = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: EventsStatsFixture(),
+    });
+
+    render(
+      <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
+        <MetricIssueChart group={group} event={event} />
+      </IssueDetailsContext>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/group-id/',
+            query: {statsPeriod: '30d'},
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The selected time range contains too many data points. Narrow the range to view all data.'
+      )
+    ).toBeInTheDocument();
+
+    // Expect it to be called with 7d instead of 30d
+    expect(mockStats).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '168h',
+        }),
+      })
+    );
+  });
+
   it('shows detector load error message when detector request fails', async () => {
     const detectorDetails = getDetectorDetails({event, organization, project});
 

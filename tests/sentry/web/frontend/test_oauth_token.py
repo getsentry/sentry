@@ -675,6 +675,61 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token_after.refresh_token == self.token.refresh_token
         assert token_after.expires_at == self.token.expires_at
 
+    def test_refresh_token_lock_contention(self) -> None:
+        """Test that concurrent refresh token requests are rejected."""
+        self.login_as(self.user)
+
+        lock = locks.get(
+            ApiToken.get_lock_key(self.token.id),
+            duration=10,
+            name="api_token_refresh",
+        )
+        lock.acquire()
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": self.token.refresh_token,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_refresh_token_stale_after_rotation(self) -> None:
+        """Test that using an old refresh token after rotation fails."""
+        self.login_as(self.user)
+
+        old_refresh_token = self.token.refresh_token
+
+        # First refresh succeeds
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": old_refresh_token,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        # Second refresh with same (now old) refresh token fails
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "refresh_token",
+                "client_id": self.application.client_id,
+                "refresh_token": old_refresh_token,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
 
 @control_silo_test
 class OAuthTokenOrganizationScopedTest(TestCase):

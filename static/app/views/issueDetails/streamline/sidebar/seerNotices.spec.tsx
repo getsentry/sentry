@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
 describe('SeerNotices', () => {
@@ -225,7 +226,7 @@ describe('SeerNotices', () => {
           automated_run_stopping_point: 'root_cause',
           automation_handoff: {
             handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integration_id: 123,
           },
         },

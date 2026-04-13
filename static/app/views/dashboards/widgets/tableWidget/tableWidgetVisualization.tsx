@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {IconStar} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -21,8 +22,8 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
@@ -30,10 +31,12 @@ import type {
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
-import CellAction, {
+import {
   Actions,
+  CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export type FieldRendererGetter = (
   field: string,
@@ -134,7 +137,7 @@ interface TableWidgetVisualizationProps {
   sort?: Sort;
 }
 
-const FRAMELESS_STYLES = {
+export const FRAMELESS_STYLES = {
   borderTopLeftRadius: 0,
   borderTopRightRadius: 0,
   marginBottom: 0,
@@ -232,9 +235,16 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       grid={{
         renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
+          const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
+          const hasAlias = !!aliases?.[column.key];
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
-          let name = aliases?.[column.key] || column.key;
-          if (isEquation(column.key)) name = stripEquationPrefix(name);
+          let name: React.ReactNode = aliases?.[column.key] || column.key;
+          if (isStarredColumn && !hasAlias) {
+            name = <IconStar isSolid size="md" variant="warning" />;
+          } else if (isEquation(column.key)) {
+            name = stripEquationPrefix(name as string);
+          }
+          const tooltipTitle = isStarredColumn && !hasAlias ? column.key : name;
           const sortColumn = getSortField(column.key) ?? column.key;
 
           let direction = undefined;
@@ -248,7 +258,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <SortLink
               align={align}
               canSort={column.sortable ?? false}
-              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              title={<StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>}
               onClick={e => {
                 if (!onChangeSort) return;
                 e.preventDefault();
@@ -375,14 +385,22 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
         renderHeadCell: (_tableColumn, columnIndex) => {
           if (!columns) return null;
           const column = columns[columnIndex]!;
+          const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
+          const hasAlias = !!aliases?.[column.key];
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
-          const name = aliases?.[column.key] || column.key;
+          const displayAsIcon = isStarredColumn && !hasAlias;
+          const name: React.ReactNode = displayAsIcon ? (
+            <IconStar isSolid size="md" variant="warning" />
+          ) : (
+            aliases?.[column.key] || column.key
+          );
+          const tooltipTitle = displayAsIcon ? column.key : name;
 
           return (
             <SortLink
               canSort={false}
               align={align}
-              title={<StyledTooltip title={name}>{name}</StyledTooltip>}
+              title={<StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>}
               direction={undefined}
               generateSortLink={() => undefined}
             />

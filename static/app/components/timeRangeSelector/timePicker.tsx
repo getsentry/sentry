@@ -2,8 +2,6 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -22,7 +20,7 @@ type State = {
   focused: boolean;
 };
 
-const TimePicker = styled(
+export const TimePicker = styled(
   class TimePicker extends Component<Props, State> {
     state: State = {
       focused: false,
@@ -118,7 +116,7 @@ const Input = styled('input')`
     background: ${p => p.theme.tokens.background.secondary};
     border: 1px solid ${p => p.theme.tokens.border.primary};
     color: ${p => p.theme.tokens.content.secondary};
-    padding: ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
     box-shadow: none;
     font-variant-numeric: tabular-nums;
 
@@ -135,5 +133,3 @@ const Input = styled('input')`
     }
   }
 `;
-
-export default TimePicker;

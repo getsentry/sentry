@@ -9,7 +9,7 @@ type Props = {
   status: CandidateDownloadStatus;
 };
 
-function Status({status, ...props}: Props) {
+export function Status({status, ...props}: Props) {
   switch (status) {
     case CandidateDownloadStatus.OK: {
       return (
@@ -73,5 +73,3 @@ function Status({status, ...props}: Props) {
     }
   }
 }
-
-export default Status;

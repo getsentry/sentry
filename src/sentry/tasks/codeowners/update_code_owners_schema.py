@@ -4,12 +4,13 @@ import logging
 from collections.abc import Iterable
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry import features
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, load_model_from_db, retry
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.update_code_owners_schema",
     namespace=issues_tasks,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def update_code_owners_schema(

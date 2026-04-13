@@ -6,12 +6,12 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
@@ -40,7 +40,6 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
   const buildUrl =
     getSizeBuildPath({
       organizationSlug: organization.slug,
-      projectId: String(projectId),
       baseArtifactId: buildId,
     }) ?? '';
   const platform = buildDetails.app_info?.platform ?? null;

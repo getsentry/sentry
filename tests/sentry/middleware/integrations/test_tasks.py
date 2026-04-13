@@ -13,18 +13,18 @@ from sentry.middleware.integrations.tasks import (
     convert_to_async_slack_response,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import override_regions
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
 
 
 @control_silo_test
 class AsyncSlackResponseTest(TestCase):
     factory = RequestFactory()
-    us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-    eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (us, eu)
+    us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    eu = Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
+    cell_config = (us, eu)
 
     def setUp(self) -> None:
         super().setUp()
@@ -35,7 +35,7 @@ class AsyncSlackResponseTest(TestCase):
         self.payload = create_async_request_payload(action_request)
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     def test_convert_to_async_slack_response_all_success(self) -> None:
         responses.add(
             responses.POST,
@@ -55,14 +55,14 @@ class AsyncSlackResponseTest(TestCase):
             status=200,
         )
         convert_to_async_slack_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )
         assert slack_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     def test_convert_to_async_slack_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
@@ -84,14 +84,14 @@ class AsyncSlackResponseTest(TestCase):
             match=[matchers.json_params_matcher({"ok": True, "region": "eu"})],
         )
         convert_to_async_slack_response(
-            region_names=["us", "eu"],
+            cell_names=["us", "eu"],
             payload=self.payload,
             response_url=self.response_url,
         )
         assert slack_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     def test_convert_to_async_slack_response_no_success(self) -> None:
         responses.add(
             responses.POST,
@@ -111,14 +111,14 @@ class AsyncSlackResponseTest(TestCase):
             status=200,
         )
         convert_to_async_slack_response(
-            region_names=["us", "eu"],
+            cell_names=["us", "eu"],
             payload=self.payload,
             response_url=self.response_url,
         )
         assert slack_response.call_count == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     @patch("sentry.middleware.integrations.tasks.logger.info")
     def test_empty_request_bdoy(self, mock_logger_info: MagicMock) -> None:
         responses.add(
@@ -137,7 +137,7 @@ class AsyncSlackResponseTest(TestCase):
             status=200,
         )
         convert_to_async_slack_response(
-            region_names=["us", "eu"],
+            cell_names=["us", "eu"],
             payload=self.payload,
             response_url=self.response_url,
         )
@@ -148,9 +148,9 @@ class AsyncSlackResponseTest(TestCase):
 @control_silo_test
 class AsyncDiscordResponseTest(TestCase):
     factory = RequestFactory()
-    us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-    eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (us, eu)
+    us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    eu = Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
+    cell_config = (us, eu)
 
     def setUp(self) -> None:
         super().setUp()
@@ -174,7 +174,7 @@ class AsyncDiscordResponseTest(TestCase):
         self.payload = create_async_request_payload(action_request)
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     def test_convert_to_async_discord_response_all_success(self) -> None:
         responses.add(
             responses.POST,
@@ -194,14 +194,14 @@ class AsyncDiscordResponseTest(TestCase):
             status=200,
         )
         convert_to_async_discord_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )
         assert discord_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     def test_convert_to_async_discord_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
@@ -223,14 +223,14 @@ class AsyncDiscordResponseTest(TestCase):
             match=[matchers.json_params_matcher({"ok": True, "region": "eu"})],
         )
         convert_to_async_discord_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )
         assert discord_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(cell_config)
     def test_convert_to_async_discord_response_no_success(self) -> None:
         responses.add(
             responses.POST,
@@ -250,7 +250,7 @@ class AsyncDiscordResponseTest(TestCase):
             status=200,
         )
         convert_to_async_discord_response(
-            region_names=["eu", "us"],
+            cell_names=["eu", "us"],
             payload=self.payload,
             response_url=self.response_url,
         )

@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
@@ -105,12 +106,7 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [
-        AggregationKeyWithAlias,
-        string,
-        AggregationRefinement,
-        AggregationRefinement,
-      ];
+      function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
       alias?: string;
     };
@@ -118,7 +114,7 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-export type Alignments = 'left' | 'right';
+type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 
@@ -899,8 +895,8 @@ export const TRANSACTIONS_AGGREGATION_FUNCTIONS = [
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([\w-.]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([\w-.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
@@ -923,9 +919,9 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
@@ -940,7 +936,7 @@ export function getAggregateArg(field: string): string | null {
 
 export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
-  if (results && results.length === 3) {
+  if (results?.length === 3) {
     return {
       name: results[1]!,
       arguments: parseArguments(results[2]!),
@@ -1041,7 +1037,7 @@ export function stripEquationPrefix(field: string): string {
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
-  if (results && results.length === 2) {
+  if (results?.length === 2) {
     return parseInt(results[1]!, 10);
   }
   return -1;
@@ -1125,8 +1121,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
       function: [
         results.name as AggregationKey,
         results.arguments[0] ?? '',
-        results.arguments[1] as AggregationRefinement,
-        results.arguments[2] as AggregationRefinement,
+        ...results.arguments.slice(1),
       ],
       alias,
     };
@@ -1173,7 +1168,7 @@ export function getAggregateAlias(field: string): string {
     alias += '_' + result.arguments.join('_');
   }
 
-  return alias.replace(/[^\w]/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
+  return alias.replace(/\W/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
 }
 
 /**
@@ -1402,13 +1397,18 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(
   columnName: string,
-  columnType?: undefined | ColumnValueType,
+  columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
+  if (columnName === SpanFields.IS_STARRED_TRANSACTION) {
+    return 'right';
+  }
+
   let align: Alignments = 'left';
 
   if (columnType) {

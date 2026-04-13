@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -30,7 +30,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ModelCostWidget() {
+export function ModelCostWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -41,7 +41,7 @@ export default function ModelCostWidget() {
 
   const tokensRequest = useSpans(
     {
-      fields: ['gen_ai.request.model', 'sum(gen_ai.cost.total_tokens)'],
+      fields: [SpanFields.GEN_AI_RESPONSE_MODEL, 'sum(gen_ai.cost.total_tokens)'],
       sorts: [{field: 'sum(gen_ai.cost.total_tokens)', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -53,7 +53,7 @@ export default function ModelCostWidget() {
     {
       ...pageFilterChartParams,
       query: fullQuery,
-      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
+      groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
       yAxis: ['sum(gen_ai.cost.total_tokens)'],
       sort: {field: 'sum(gen_ai.cost.total_tokens)', kind: 'desc'},
       topEvents: 3,
@@ -111,7 +111,7 @@ export default function ModelCostWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {tokens?.map((item, index) => {
-        const modelId = `${item['gen_ai.request.model']}`;
+        const modelId = `${item[SpanFields.GEN_AI_RESPONSE_MODEL]}`;
         return (
           <Fragment key={modelId}>
             <div>
@@ -149,9 +149,9 @@ export default function ModelCostWidget() {
                   yAxes: ['sum(gen_ai.cost.total_tokens)'],
                 },
               ],
-              groupBy: ['gen_ai.request.model'],
+              groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
               query: fullQuery,
-              sort: `-sum(gen_ai.cost.total_tokens)`,
+              sort: '-sum(gen_ai.cost.total_tokens)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

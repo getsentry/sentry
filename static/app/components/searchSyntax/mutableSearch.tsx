@@ -6,7 +6,6 @@ import {
   parseSearch,
   TermOperator,
   WildcardOperators,
-  type ParseResult,
   type TokenResult,
 } from './parser';
 import {getKeyName} from './utils';
@@ -15,7 +14,7 @@ const EMPTY_OPTION_VALUE = '(empty)';
 
 // Hoisted regular expressions to avoid recompilation in hot paths
 const TRIMMABLE_ENDS_RE = /^["(]+|[")]+$/g;
-const WILDCARD_ESCAPE_RE = /([*])/g;
+const WILDCARD_ESCAPE_RE = /(\*)/g;
 const NEEDS_QUOTING_RE = /[\s(),\\"]/;
 const VALUE_IS_LIST_RE = /^\[.*\]$/;
 const VALUE_IS_QUOTED_RE = /^".*"$/;
@@ -107,7 +106,7 @@ function escapeFilterValue(value: string) {
 }
 
 function parseToFlatTokens(query: string): Token[] {
-  const parsed: ParseResult | null = parseSearch(query, {flattenParenGroups: true});
+  const parsed = parseSearch(query, {flattenParenGroups: true});
   const tokens: Token[] = [];
 
   if (!parsed) {
@@ -189,10 +188,10 @@ function parseToFlatTokens(query: string): Token[] {
         let rawVal: string;
         let valueWasQuoted = false;
         let listValues: string[] | undefined;
-        if (t.value && t.value.type === ParserToken.VALUE_TEXT) {
+        if (t.value?.type === ParserToken.VALUE_TEXT) {
           rawVal = t.value.value;
           valueWasQuoted = t.value.quoted;
-        } else if (t.value && t.value.type === ParserToken.VALUE_TEXT_LIST) {
+        } else if (t.value?.type === ParserToken.VALUE_TEXT_LIST) {
           // Extract individual list items from the AST
           listValues = t.value.items
             .map(item => item.value?.value ?? '')

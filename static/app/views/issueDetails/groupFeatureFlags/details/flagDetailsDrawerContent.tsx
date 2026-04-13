@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -7,22 +8,22 @@ import {Stack} from '@sentry/scraps/layout';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -45,40 +46,42 @@ export function FlagDetailsDrawerContent({group}: Props) {
     data: flagLog,
     isPending,
     isError,
-    getResponseHeader,
-  } = useOrganizationFlagLog({
-    organization,
-    query: {
-      flag: tagKey,
-      per_page: 50,
-      queryReferrer: 'featureFlagDetailsDrawer',
-      sort: '-created_at',
-      cursor: location.query.flagDrawerCursor,
-    },
+  } = useQuery({
+    ...organizationFlagLogOptions({
+      organization,
+      query: {
+        flag: tagKey,
+        per_page: 50,
+        queryReferrer: 'featureFlagDetailsDrawer',
+        sort: '-created_at',
+        cursor: location.query.flagDrawerCursor,
+      },
+    }),
+    select: selectJsonWithHeaders,
   });
-  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const pageLinks = flagLog?.headers.Link ?? null;
 
   const analyticsArea = useAnalyticsArea();
   useEffect(() => {
     if (!isPending && !isError) {
       trackAnalytics('flags.drawer_details_rendered', {
         organization,
-        numLogs: flagLog.data.length,
+        numLogs: flagLog.json.data.length,
       });
     }
-  }, [organization, flagLog?.data.length, isPending, isError]);
+  }, [organization, flagLog?.json.data.length, isPending, isError]);
 
   if (isPending) {
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || !flagLog) {
     return (
       <LoadingError message={t('There was an error loading feature flag details.')} />
     );
   }
 
-  if (!flagLog.data.length) {
+  if (!flagLog.json.data.length) {
     return (
       <Stack align="center">
         <StyledEmptyStateWarning withIcon={false} small>
@@ -110,14 +113,14 @@ export function FlagDetailsDrawerContent({group}: Props) {
           </ColumnTitle>
         </Header>
         <Body>
-          {flagLog.data.map((flag, i) => {
-            const prev = flagLog.data[i - 1];
+          {flagLog.json.data.map((flag, i) => {
+            const prev = flagLog.json.data[i - 1];
 
             return (
               <Fragment key={`${flag.id}-${i}`}>
                 {group.firstSeen > flag.createdAt &&
                 (i === 0 ||
-                  (flagLog.data && prev && prev.createdAt > group.firstSeen)) ? (
+                  (flagLog.json.data && prev && prev.createdAt > group.firstSeen)) ? (
                   <GroupFirstSeenRow group={group} />
                 ) : null}
                 <FlagDetailsRow flagValue={flag} />
@@ -222,12 +225,12 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
 const Table = styled('div')`
   display: grid;
   grid-template-columns: 0.4fr 0.7fr 0.3fr 0.5fr min-content;
-  column-gap: ${space(1)};
-  row-gap: ${space(0.5)};
-  margin: 0 -${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${space(2)};
+    column-gap: ${p => p.theme.space.xl};
   }
 `;
 
@@ -245,7 +248,7 @@ const Body = styled('div')`
 
 const Header = styled(Body)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const Row = styled(Body)`
@@ -254,7 +257,7 @@ const Row = styled(Body)`
   }
   align-items: center;
   border-radius: 4px;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
     visibility: hidden;
@@ -272,5 +275,5 @@ const LeftAlignedValue = styled('div')`
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;

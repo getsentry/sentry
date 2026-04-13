@@ -19,13 +19,12 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Panel from 'sentry/components/panels/panel';
-import platforms from 'sentry/data/platforms';
+import {Panel} from 'sentry/components/panels/panel';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -39,7 +38,7 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-type ModulesWithOnboarding = Exclude<
+export type ModulesWithOnboarding = Exclude<
   ModuleName,
   | ModuleName.AGENT_MODELS
   | ModuleName.AGENT_TOOLS
@@ -188,11 +187,11 @@ const Container = styled('div')`
   position: relative;
   overflow: hidden;
   min-height: 160px;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SplitContainer = styled(Panel)`
@@ -210,21 +209,21 @@ const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   object-fit: contain;
 `;
 
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -244,9 +243,9 @@ const SupportedSdkIconContainer = styled('div')`
 
 const ValueProp = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   ul {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -261,7 +260,7 @@ type EmptyStateContent = {
 
 const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
   [ModuleName.APP_START]: {
-    heading: t(`Don't lose your user's attention before your app loads`),
+    heading: t("Don't lose your user's attention before your app loads"),
     description: tct(
       'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
       {
@@ -269,7 +268,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
           MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
       }
     ),
-    valuePropDescription: tct(`Mobile [dataType] insights give you visibility into:`, {
+    valuePropDescription: tct('Mobile [dataType] insights give you visibility into:', {
       dataType: MODULE_DATA_TYPES[ModuleName.APP_START],
     }),
     valuePropPoints: [
@@ -424,7 +423,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
   [ModuleName.SCREEN_LOAD]: {
-    heading: t(`Don’t lose your user's attention once your app loads`),
+    heading: t("Don’t lose your user's attention once your app loads"),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
       {
@@ -464,7 +463,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   [ModuleName.SESSIONS]: {
-    heading: t(`Get insights about your application's session health`),
+    heading: t("Get insights about your application's session health"),
     description: tct(
       'Understand the frequency of handled errors and crashes compared to healthy sessions.',
       {

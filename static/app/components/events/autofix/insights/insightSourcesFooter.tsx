@@ -17,11 +17,10 @@ import {
   getExpandedInsightSources,
 } from 'sentry/components/events/autofix/utils/insightUtils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {cardAnimationProps, FlippedReturnIcon} from './autofixInsightCard';
 
@@ -192,12 +191,12 @@ const FooterInputWrapper = styled('form')`
 `;
 
 const FooterInput = styled(Input)`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const FooterSubmitButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;

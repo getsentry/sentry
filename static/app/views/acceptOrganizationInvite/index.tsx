@@ -7,18 +7,17 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {logout} from 'sentry/actionCreators/account';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NarrowLayout from 'sentry/components/narrowLayout';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
   existingMember: boolean;
@@ -205,30 +204,22 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
 
 function AcceptOrganizationInvite() {
   const api = useApi({persistInFlight: true});
-  const params = useParams<{memberId: string; token: string; orgId?: string}>();
-
-  const orgSlug = params.orgId || ConfigStore.get('customerDomain')?.subdomain || null;
+  const params = useParams<{memberId: string; orgId: string; token: string}>();
 
   const {
     data: inviteDetails,
     isPending,
     isError,
   } = useApiQuery<InviteDetails>(
-    orgSlug
-      ? [
-          getApiUrl('/accept-invite/$organizationIdOrSlug/$memberId/$token/', {
-            path: {
-              organizationIdOrSlug: orgSlug,
-              memberId: params.memberId,
-              token: params.token,
-            },
-          }),
-        ]
-      : [
-          getApiUrl('/accept-invite/$memberId/$token/', {
-            path: {memberId: params.memberId, token: params.token},
-          }),
-        ],
+    [
+      getApiUrl('/accept-invite/$organizationIdOrSlug/$memberId/$token/', {
+        path: {
+          organizationIdOrSlug: params.orgId,
+          memberId: params.memberId,
+          token: params.token,
+        },
+      }),
+    ],
     {
       staleTime: Infinity,
       retry: false,
@@ -242,9 +233,7 @@ function AcceptOrganizationInvite() {
   } = useMutation({
     mutationFn: () =>
       api.requestPromise(
-        orgSlug
-          ? `/accept-invite/${orgSlug}/${params.memberId}/${params.token}/`
-          : `/accept-invite/${params.memberId}/${params.token}/`,
+        `/accept-invite/${params.orgId}/${params.memberId}/${params.token}/`,
         {
           method: 'POST',
         }
@@ -274,7 +263,10 @@ function AcceptOrganizationInvite() {
                     data-test-id="existing-member-link"
                     onClick={e => {
                       e.preventDefault();
-                      logout(api, `/accept/${params.memberId}/${params.token}/`);
+                      logout(
+                        api,
+                        `/accept/${params.orgId}/${params.memberId}/${params.token}/`
+                      );
                     }}
                   />
                 ),
@@ -323,7 +315,7 @@ function AcceptOrganizationInvite() {
 
 const ActionsLeft = styled('span')`
   > a {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 `;
 

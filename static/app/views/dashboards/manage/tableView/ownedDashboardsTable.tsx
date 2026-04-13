@@ -5,7 +5,7 @@ import {DashboardTable} from './table';
 
 export const OWNED_CURSOR_KEY = 'ownedCursor';
 
-function OwnedDashboardsTable({
+export function OwnedDashboardsTable({
   dashboards,
   isLoading,
   pageLinks,
@@ -20,5 +20,3 @@ function OwnedDashboardsTable({
     />
   );
 }
-
-export default OwnedDashboardsTable;

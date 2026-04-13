@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-import FieldControlState from './fieldControlState';
+import {FieldControlState} from './fieldControlState';
 import type {FieldGroupProps} from './types';
 
 interface ControlWrapperProps extends Pick<
@@ -40,7 +38,7 @@ export function ControlWrapper({
 const FieldControlWrapper = styled('div')<{inline?: boolean}>`
   display: flex;
   flex: 1;
-  ${p => p.inline && `padding-left: ${space(2)}`};
+  ${p => p.inline && `padding-left: ${p.theme.space.xl}`};
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`

@@ -54,7 +54,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/alerts/rules/bar/{rule.id}/details/)"
+            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/issues/alerts/rules/bar/{rule.id}/details/)"
             == body[0]["text"]
         )
         assert (
@@ -104,7 +104,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/alerts/rules/bar/{rule.id}/details/)"
+            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/issues/alerts/rules/bar/{rule.id}/details/)"
             == body[0]["text"]
         )
         assert (

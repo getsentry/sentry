@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {useRendererContext} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/rendererContext';
 import type {
   BlockRenderers,

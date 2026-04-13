@@ -20,8 +20,8 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
       search: queryString,
       enabled: !isReleasesLoading,
       fields: [
-        `avg(measurements.time_to_initial_display)`,
-        `avg(measurements.time_to_full_display)`,
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
         'count()',
       ],
     },
@@ -30,7 +30,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
 
   const data = result.data;
 
-  const hasTTFD: boolean | undefined = data.length
+  const hasTTFD = data.length
     ? !(
         data[0]!['avg(measurements.time_to_initial_display)'] !== 0 &&
         data[0]!['avg(measurements.time_to_full_display)'] === 0

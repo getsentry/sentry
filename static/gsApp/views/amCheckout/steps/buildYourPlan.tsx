@@ -6,7 +6,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
 import {
@@ -15,10 +15,10 @@ import {
   isNewPayingCustomer,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
-import PlanSelectCard from 'getsentry/views/amCheckout/components/planSelectCard';
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
-import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
+import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
+import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
+import {ProductSelect} from 'getsentry/views/amCheckout/steps/productSelect';
 import type {CheckoutFormData, StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -79,7 +79,7 @@ function PlanSubstep({
       !isBizPlanFamily(subscription.planDetails)
     ) {
       const lastTrialEnd = moment(subscription.lastTrialEnd).utc().fromNow();
-      const trialExpired: boolean = getDaysSinceDate(subscription.lastTrialEnd) > 0;
+      const trialExpired = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
         <Tag variant="warning">
           {subscription.isTrial && !trialExpired
@@ -145,7 +145,7 @@ function AdditionalProductsSubstep({
   );
 }
 
-function BuildYourPlan({
+export function BuildYourPlan({
   activePlan,
   billingConfig,
   organization,
@@ -176,5 +176,3 @@ function BuildYourPlan({
     </Stack>
   );
 }
-
-export default BuildYourPlan;

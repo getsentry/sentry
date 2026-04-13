@@ -17,6 +17,7 @@ export interface LinkProps
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
       'href' | 'target' | 'as' | 'css'
     > {
+  [key: `data-${string}`]: string | undefined;
   /**
    * The string path or LocationDescriptor object.
    *

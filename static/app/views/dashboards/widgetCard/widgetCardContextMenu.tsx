@@ -14,45 +14,36 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {
-  MEPState,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  applyDashboardFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  widgetTypeSupportsExploreMultiQuery,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
-
-export const useIndexedEventsWarning = (): string | null => {
-  const {isMetricsData} = useDashboardsMEPContext();
-  const organization = useOrganization();
-  const metricSettingContext = useMEPSettingContext();
-
-  return !organization.features.includes('performance-mep-bannerless-ui') &&
-    isMetricsData === false &&
-    metricSettingContext &&
-    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
-    ? t('Indexed')
-    : null;
-};
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export const useTransactionsDeprecationWarning = ({
   widget,
@@ -179,13 +170,13 @@ export function getMenuOptions(
   organization: Organization,
   selection: PageFilters,
   widget: Widget,
-  isMetricsData: boolean,
   widgetLimitReached: boolean,
   hasEditAccess = true,
   location: Location,
   onDelete?: () => void,
   onDuplicate?: () => void,
-  onEdit?: () => void
+  onEdit?: () => void,
+  timeseriesResults?: Series[]
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -209,9 +200,7 @@ export function getMenuOptions(
         widget,
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       menuOptions.push({
         key: 'open-in-discover',
@@ -241,7 +230,6 @@ export function getMenuOptions(
           openDashboardWidgetQuerySelectorModal({
             organization,
             widget,
-            isMetricsData,
             dashboardFilters,
           });
         },
@@ -249,19 +237,97 @@ export function getMenuOptions(
     }
   }
 
-  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
+  if (
+    organization.features.includes('visibility-explore-view') &&
+    (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
+  ) {
+    const multiQueryUnsupported =
+      widget.queries.length > 1 &&
+      !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(
-        widget,
-        dashboardFilters,
-        selection,
-        organization,
-        Mode.SAMPLES,
-        getReferrer(widget.displayType)
-      ),
+      disabled: multiQueryUnsupported,
+      tooltip: multiQueryUnsupported
+        ? t('Explore does not support multiple queries for this dataset')
+        : undefined,
+      to: multiQueryUnsupported
+        ? undefined
+        : (getWidgetExploreUrl(
+            widget,
+            dashboardFilters,
+            selection,
+            organization,
+            widget.queries.some(q => q.aggregates.length > 0)
+              ? Mode.AGGREGATE
+              : Mode.SAMPLES,
+            getReferrer(widget.displayType)
+          ) ?? undefined),
     });
+  }
+
+  if (
+    widget.widgetType === WidgetType.SPANS &&
+    usesTimeSeriesData(widget.displayType) &&
+    timeseriesResults?.length
+  ) {
+    const newAlertLabel = organization.features.includes('workflow-engine-ui')
+      ? t('Create a Monitor for')
+      : t('Create an Alert for');
+
+    const alertMenuOptions = timeseriesResults
+      .map((series, index) => {
+        const transformed = transformWidgetSeriesToTimeSeries(series, widget);
+
+        if (
+          !transformed ||
+          transformed.timeSeries.meta.isOther ||
+          isEquation(transformed.timeSeries.yAxis)
+        ) {
+          return null;
+        }
+
+        const {timeSeries, label, seriesName, widgetQuery} = transformed;
+
+        const baseQuery =
+          applyDashboardFilters(
+            widgetQuery?.conditions,
+            dashboardFilters,
+            widget.widgetType
+          ) ?? '';
+
+        // Add group-by values as filters to the alert query
+        const search = new MutableSearch(baseQuery);
+        for (const group of timeSeries.groupBy ?? []) {
+          if (group.value !== null && !Array.isArray(group.value)) {
+            search.addFilterValue(group.key, String(group.value));
+          }
+        }
+
+        return {
+          key: `create-alert-${seriesName}-${index}`,
+          label,
+          to: getAlertsUrl({
+            query: search.formatString(),
+            aggregate: timeSeries.yAxis,
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            pageFilters: selection,
+            organization,
+            referrer: getReferrer(widget.displayType),
+          }),
+        } satisfies MenuItemProps;
+      })
+      .filter(Boolean) as MenuItemProps[];
+
+    if (alertMenuOptions.length > 0) {
+      menuOptions.push({
+        key: 'create-alert',
+        label: newAlertLabel,
+        isSubmenu: true,
+        children: alertMenuOptions,
+      });
+    }
   }
 
   if (widget.widgetType === WidgetType.TRACEMETRICS) {

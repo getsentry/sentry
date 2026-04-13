@@ -9,8 +9,6 @@ import {useSliderState} from '@react-stately/slider';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
-
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
@@ -341,7 +339,7 @@ const SliderTrack = styled('div', {
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};
   margin-top: ${p => (p.hasThumbLabels ? '2em' : '0.5rem')};
 
-  ${p => p.disabled && `pointer-events: none;`}
+  ${p => p.disabled && 'pointer-events: none;'}
 
   /* Users can click on the track to quickly jump to a value. We should extend the click
   area to make the action easier. */
@@ -399,7 +397,7 @@ const SliderTick = styled('div')<{
 const SliderTickLabel = styled('small')`
   display: inline-block;
   position: absolute;
-  top: calc(100% + ${space(1)});
+  top: calc(100% + ${p => p.theme.space.md});
   margin: 0 -1px;
 
   color: ${p => p.theme.tokens.content.secondary};

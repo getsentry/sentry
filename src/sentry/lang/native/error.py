@@ -3,31 +3,31 @@ from __future__ import annotations
 import logging
 
 from sentry.lang.native.utils import image_name
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 
 FATAL_ERRORS = (
-    EventError.NATIVE_MISSING_DSYM,
-    EventError.NATIVE_BAD_DSYM,
-    EventError.NATIVE_SYMBOLICATOR_FAILED,
+    EventErrorType.NATIVE_MISSING_DSYM,
+    EventErrorType.NATIVE_BAD_DSYM,
+    EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
 )
 
 USER_FIXABLE_ERRORS = (
-    EventError.NATIVE_MISSING_DSYM,
-    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
-    EventError.NATIVE_BAD_DSYM,
+    EventErrorType.NATIVE_MISSING_DSYM,
+    EventErrorType.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+    EventErrorType.NATIVE_BAD_DSYM,
     # We tried to use a debug file for a purpose it doesn't support.
     # Currently this only happens when trying to symbolicate a
     # CLR (.NET) event with a Windows PDB file. The tracking issue
     # for supporting this is
     # https://github.com/getsentry/team-ingest/issues/550.
-    EventError.NATIVE_UNSUPPORTED_DSYM,
-    EventError.NATIVE_MISSING_SYMBOL,
-    EventError.FETCH_GENERIC_ERROR,
+    EventErrorType.NATIVE_UNSUPPORTED_DSYM,
+    EventErrorType.NATIVE_MISSING_SYMBOL,
+    EventErrorType.FETCH_GENERIC_ERROR,
     # Emitted for e.g. broken minidumps
-    EventError.NATIVE_SYMBOLICATOR_FAILED,
+    EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
     # We want to let the user know when calling symbolicator failed, even
     # though it's not user fixable.
-    EventError.NATIVE_INTERNAL_FAILURE,
+    EventErrorType.NATIVE_INTERNAL_FAILURE,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class SymbolicationFailed(Exception):
     @property
     def is_sdk_failure(self):
         """An error that most likely happened because of a bad SDK."""
-        return self.type == EventError.NATIVE_UNKNOWN_IMAGE
+        return self.type == EventErrorType.NATIVE_UNKNOWN_IMAGE
 
     def get_data(self):
         """Returns the event data."""

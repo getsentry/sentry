@@ -4,14 +4,14 @@ import emptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
 type Props = {
   actions: React.ReactNode;
 };
 
-function Onboarding({actions}: Props) {
+export function Onboarding({actions}: Props) {
   return (
     <OnboardingPanel image={<AlertsImage src={emptyStateImg} />}>
       <h3>{t('More signal, less noise')}</h3>
@@ -54,5 +54,3 @@ const ButtonList = styled((props: GridProps) => (
 ))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
-
-export default Onboarding;

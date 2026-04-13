@@ -4,13 +4,13 @@ import type {LocationDescriptor} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -120,10 +120,13 @@ export function BaseChartActionDropdown({
 }: BaseProps) {
   const organization = useOrganization();
   const hasDashboardEdit = organization.features.includes('dashboards-edit');
+  const hasExploreView = organization.features.includes('visibility-explore-view');
   const {addToSpanDashboard} = useAddToSpanDashboard();
 
-  const menuOptions: MenuItemProps[] = [
-    {
+  const menuOptions: MenuItemProps[] = [];
+
+  if (hasExploreView) {
+    menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
       to: exploreUrl,
@@ -133,8 +136,8 @@ export function BaseChartActionDropdown({
           referrer,
         });
       },
-    },
-  ];
+    });
+  }
 
   if (addToDashboardOptions) {
     const menuOption: MenuItemProps = {

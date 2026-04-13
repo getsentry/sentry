@@ -5,7 +5,11 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import {
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
@@ -20,8 +24,30 @@ describe('MetricDetectorTriggeredSection', () => {
   const dataSource = SnubaQueryDataSourceFixture();
   const openPeriodStartDate = '2024-01-01T00:00:00Z';
   const openPeriodEndDate = '2024-01-01T00:05:00.000Z';
-  const defaultGroup = GroupFixture();
-  const defaultEvent = EventFixture();
+  const defaultGroup = GroupFixture({
+    issueType: IssueType.METRIC_ISSUE,
+    issueCategory: IssueCategory.METRIC,
+  });
+  const defaultEvent = EventFixture({
+    id: 'event-1',
+    eventID: 'event-1',
+    occurrence: {
+      id: '1',
+      eventId: 'event-1',
+      fingerprint: ['fingerprint'],
+      issueTitle: 'Test Issue',
+      subtitle: 'Subtitle',
+      resourceId: 'resource-1',
+      evidenceData: {
+        conditions: [condition],
+        dataSources: [dataSource],
+        value: 150,
+      },
+      evidenceDisplay: [],
+      type: 8001,
+      detectionTime: '2024-01-01T00:00:00Z',
+    },
+  });
   const defaultProps: ComponentProps<typeof MetricDetectorTriggeredSection> = {
     group: defaultGroup,
     event: defaultEvent,
@@ -233,18 +259,60 @@ describe('MetricDetectorTriggeredSection', () => {
       ).toBeInTheDocument();
     });
 
-    expect(contributingIssuesMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'issue.type:error event.type:error is:unresolved',
-          start: startDate,
-          end: openPeriodEndDate,
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(contributingIssuesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue.type:error event.type:error is:unresolved',
+            start: startDate,
+            end: openPeriodEndDate,
+          }),
+        })
+      );
+    });
 
     await screen.findByRole('link', {name: 'RequestError'});
+  });
+
+  it('selects the condition with the highest conditionResult', async () => {
+    const lowCondition: MetricCondition = {
+      id: 'cond-low',
+      type: DataConditionType.GREATER,
+      comparison: 50,
+      conditionResult: DetectorPriorityLevel.LOW,
+    };
+    const highCondition: MetricCondition = {
+      id: 'cond-high',
+      type: DataConditionType.GREATER,
+      comparison: 200,
+      conditionResult: DetectorPriorityLevel.HIGH,
+    };
+
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [lowCondition, highCondition],
+          dataSources: [dataSource],
+          value: 250,
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    // Should show the HIGH condition (Above 200), not LOW (Above 50)
+    expect(await screen.findByRole('cell', {name: 'Above 200'})).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: 'Above 50'})).not.toBeInTheDocument();
   });
 
   it('renders boolean logic error when query contains OR', async () => {
@@ -300,5 +368,55 @@ describe('MetricDetectorTriggeredSection', () => {
       'href',
       '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
     );
+  });
+
+  describe('zoom to open period', () => {
+    it('applies detector zoom range when URL has no time period', async () => {
+      const {router} = render(<MetricDetectorTriggeredSection {...defaultProps} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
+            query: {},
+          },
+          routes: [
+            '/organizations/:orgId/issues/:groupId/',
+            '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          ],
+        },
+      });
+
+      await screen.findByRole('region', {name: 'Triggered Condition'});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toMatch(
+          `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
+        );
+      });
+      expect(router.location.query.statsPeriod).toBeDefined();
+    });
+
+    it('does not apply detector zoom range when URL already has a time period', async () => {
+      const {router} = render(<MetricDetectorTriggeredSection {...defaultProps} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
+            query: {statsPeriod: '24h'},
+          },
+          routes: [
+            '/organizations/:orgId/issues/:groupId/',
+            '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          ],
+        },
+      });
+
+      await screen.findByRole('region', {name: 'Triggered Condition'});
+
+      expect(router.location.pathname).toMatch(
+        `/organizations/org-slug/issues/${defaultGroup.id}/`
+      );
+      expect(router.location.query.statsPeriod).toBe('24h');
+      expect(router.location.query.start).toBeUndefined();
+      expect(router.location.query.end).toBeUndefined();
+    });
   });
 });

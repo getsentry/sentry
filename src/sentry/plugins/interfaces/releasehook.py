@@ -3,9 +3,9 @@ __all__ = ["ReleaseHook"]
 import logging
 
 from django.db import IntegrityError, router, transaction
+from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils import timezone
-from rest_framework.request import Request
 
 from sentry.exceptions import HookValidationError
 from sentry.models.activity import Activity
@@ -79,5 +79,5 @@ class ReleaseHook:
         )
         self.set_refs(release=release, **values)
 
-    def handle(self, request: Request) -> HttpResponseBase | None:
+    def handle(self, request: HttpRequest) -> HttpResponseBase | None:
         raise NotImplementedError

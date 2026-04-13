@@ -5,9 +5,9 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options, search
+from sentry import options, search
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.environments import get_environment_func
@@ -26,41 +26,11 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-
-    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
-        feature_names = [
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
-            "organizations:performance-use-metrics",
-            "organizations:profiling",
-            "organizations:dynamic-sampling",
-            "organizations:use-metrics-layer",
-            "organizations:starfish-view",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=request.user,
-        )
-
-        all_features = (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {}
-        )
-
-        for feature_name in feature_names:
-            if feature_name not in all_features:
-                all_features[feature_name] = features.has(
-                    feature_name, organization=organization, actor=request.user
-                )
-
-        return all_features
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
@@ -69,17 +39,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             return Response({"count": 0})
 
         dataset = self.get_dataset(request)
-
-        batch_features = self.get_features(organization, request)
-
-        use_metrics = (
-            (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and batch_features.get("organizations:dynamic-sampling", False)
-            )
-            or batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-        )
 
         with handle_query_errors():
             if dataset in RPC_DATASETS:
@@ -101,8 +60,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                     snuba_params=snuba_params,
                     query=request.query_params.get("query"),
                     referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
-                    has_metrics=use_metrics,
-                    use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                    has_metrics=True,
                     # TODO: @athena - add query_source when all datasets support it
                     # query_source=(
                     #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
@@ -116,7 +74,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -180,7 +138,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         return Response(context)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

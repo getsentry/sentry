@@ -2,10 +2,10 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
-import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {BufferingOverlay} from 'sentry/components/replays/player/bufferingOverlay';
+import {FastForwardBadge} from 'sentry/components/replays/player/fastForwardBadge';
 import {
   baseReplayerCss,
   sentryReplayerCss,
@@ -14,7 +14,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-import UnmaskAlert from './unmaskAlert';
+import {UnmaskAlert} from './unmaskAlert';
 
 type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
@@ -179,7 +179,7 @@ const PositionedLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
 `;
 
-const SentryPlayerRoot = styled(BasePlayerRoot)`
+export const SentryPlayerRoot = styled(BasePlayerRoot)`
   /* Base styles, to make the Replayer instance work */
   ${baseReplayerCss}
   /* Sentry-specific styles for the player */
@@ -222,5 +222,3 @@ const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   width: 100%;
   height: 100%;
 `;
-
-export default SentryPlayerRoot;

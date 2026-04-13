@@ -11,7 +11,7 @@ export type StoryExports = StoryDescriptor['exports'];
 export function useStory() {
   const context = useContext(StoryContext);
   if (!context.story) {
-    throw new Error(`Wrap useStory in a StoryContext.Provider`);
+    throw new Error('Wrap useStory in a StoryContext.Provider');
   }
   return context as Required<StoryContextValue>;
 }

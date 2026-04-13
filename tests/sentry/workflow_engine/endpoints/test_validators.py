@@ -7,7 +7,7 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -314,7 +314,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         delete_validator = MockDetectorValidator(instance=detector, data={}, context=self.context)
         delete_validator.delete()
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=detector.id
         ).exists()
 

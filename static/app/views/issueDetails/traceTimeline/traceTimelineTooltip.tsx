@@ -7,12 +7,11 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -154,11 +153,12 @@ const UnstyledUnorderedList = styled('div')`
 const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
   display: flex;
   flex-direction: column;
-  padding: ${p => space(p.hasTitle ? 1 : 0.5)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
+  padding: ${p => (p.hasTitle ? p.theme.space.md : p.theme.space.xs)}
+    ${p => p.theme.space.xs} ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 `;
 
 const EventItemsTitle = styled('div')`
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   text-transform: uppercase;
   font-size: ${p => p.theme.font.size.xs};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -166,13 +166,13 @@ const EventItemsTitle = styled('div')`
 `;
 
 const YouAreHere = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   text-align: center;
   font-size: ${p => p.theme.font.size.md};
 `;
 
 const YouAreHereItem = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   text-align: center;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   font-size: ${p => p.theme.font.size.md};
@@ -182,9 +182,10 @@ const EventItemRoot = styled(Link)`
   display: grid;
   grid-template-columns: max-content auto;
   color: ${p => p.theme.tokens.content.primary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
-  padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.xs}
+    ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
   font-size: ${p => p.theme.font.size.sm};
 
@@ -219,7 +220,7 @@ const EventDescription = styled('div')`
 `;
 
 const TraceItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.radius.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;

@@ -10,7 +10,7 @@ from snuba_sdk import Condition
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import IssueEventSerializerResponse
@@ -90,7 +90,7 @@ def wrap_event_response(
     return event_data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -159,7 +159,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

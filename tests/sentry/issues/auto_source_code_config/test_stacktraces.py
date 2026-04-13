@@ -95,7 +95,7 @@ BASIC_FRAME = {"in_app": True, "filename": "foo"}
     ],
 )
 def test_get_frames_to_process(
-    frames: list[dict[str, Any]], platform: str, expected: set[str]
+    frames: list[dict[str, Any]], platform: str, expected: list[dict[str, Any]]
 ) -> None:
     frames = get_frames_to_process(_exception_with_stacktrace(frames), platform)
     assert frames == expected
@@ -111,7 +111,7 @@ def test_get_frames_to_process(
         ([BASIC_FRAME, None], [BASIC_FRAME]),  # Handle intermixing of None and dicts
     ],
 )
-def test_with_invalid_frames(frames: list[dict[str, Any]], expected: list[str]) -> None:
+def test_with_invalid_frames(frames: list[dict[str, Any]], expected: list[dict[str, Any]]) -> None:
     frames = get_frames_to_process(_exception_with_stacktrace(frames), "python")
     assert frames == expected
 

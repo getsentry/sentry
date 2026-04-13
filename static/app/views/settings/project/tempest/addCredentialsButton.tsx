@@ -6,7 +6,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 interface AddCredentialsButtonProps {

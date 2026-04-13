@@ -2,7 +2,6 @@ import type {DOMAttributes, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   'data-is-held': boolean;
@@ -11,7 +10,7 @@ type Props = {
   onMouseDown: MouseEventHandler<HTMLElement>;
 };
 
-const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
+export const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   <div {...props}>
     <IconGrabbable size="sm" />
   </div>
@@ -35,7 +34,7 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   &[data-slide-direction='leftright'] {
     cursor: ew-resize;
     height: 100%;
-    width: ${space(2)};
+    width: ${p => p.theme.space.xl};
   }
   &[data-slide-direction='updown'] {
     cursor: ns-resize;
@@ -46,5 +45,3 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
     }
   }
 `;
-
-export default SplitDivider;

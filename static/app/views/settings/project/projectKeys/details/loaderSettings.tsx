@@ -7,16 +7,16 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {Access} from 'sentry/components/acl/access';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   data: ProjectKey;
@@ -248,7 +248,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? data.dynamicSdkLoaderOptions.hasReplay
                   ? tct(
-                      `[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.`,
+                      '[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.',
                       {
                         es5Warning:
                           // latest is deprecated but resolves to v7
@@ -329,7 +329,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? data.dynamicSdkLoaderOptions.hasFeedback
                   ? tct(
-                      `[es6Warning]The default config is [codeAutoInject:autoInject: true]. [configDocs:Read the docs] to learn how to configure this.`,
+                      '[es6Warning]The default config is [codeAutoInject:autoInject: true]. [configDocs:Read the docs] to learn how to configure this.',
                       {
                         es6Warning:
                           // latest is deprecated but resolves to v7

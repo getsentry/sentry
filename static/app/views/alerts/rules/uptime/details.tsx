@@ -3,35 +3,36 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   makeDetectorDetailsQueryKey,
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
@@ -41,6 +42,7 @@ import {UptimeChecksTable} from './uptimeChecksTable';
 import {UptimeIssues} from './uptimeIssues';
 
 export default function UptimeAlertDetails() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {detectorId, projectId} = useParams<{detectorId: string; projectId: string}>();
 
   const api = useApi();
@@ -122,7 +124,7 @@ export default function UptimeAlertDetails() {
   );
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
@@ -131,7 +133,7 @@ export default function UptimeAlertDetails() {
               {
                 label: t('Alerts'),
                 to: makeAlertsPathname({
-                  path: `/rules/`,
+                  path: '/rules/',
                   organization,
                 }),
               },
@@ -150,17 +152,15 @@ export default function UptimeAlertDetails() {
             {detector.name}
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="actions">
             <StatusToggleButton
               uptimeDetector={detector}
               onToggleStatus={data => toggleStatus(data)}
-              size="sm"
               disabled={!canEdit}
               {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
             />
             <LinkButton
-              size="sm"
               icon={<IconEdit />}
               disabled={!canEdit}
               tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
@@ -171,8 +171,32 @@ export default function UptimeAlertDetails() {
             >
               {t('Edit Rule')}
             </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+          </TopBar.Slot>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <StatusToggleButton
+                uptimeDetector={detector}
+                onToggleStatus={data => toggleStatus(data)}
+                size="sm"
+                disabled={!canEdit}
+                {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
+              />
+              <LinkButton
+                size="sm"
+                icon={<IconEdit />}
+                disabled={!canEdit}
+                tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+                to={makeAlertsPathname({
+                  path: `/uptime-rules/${project.slug}/${detectorId}/`,
+                  organization,
+                })}
+              >
+                {t('Edit Rule')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main>
@@ -214,10 +238,10 @@ export default function UptimeAlertDetails() {
           />
         </Layout.Side>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

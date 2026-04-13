@@ -3,12 +3,14 @@ from __future__ import annotations
 import enum
 import re
 import secrets
-from typing import ClassVar
+from collections.abc import Mapping
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
+from django.db.models.signals import pre_delete
 from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
@@ -22,12 +24,12 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
-from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -41,7 +43,7 @@ class ProjectKeyStatus:
     INACTIVE = 1
 
 
-class ProjectKeyManager(BaseManager["ProjectKey"]):
+class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
     def post_save(self, *, instance: ProjectKey, created: bool, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
@@ -70,17 +72,17 @@ class UseCase(enum.Enum):
     USER = "user"
     """An internal project key for submitting aggregate function metrics."""
     PROFILING = "profiling"
-    """ An internal project key for submitting escalating issues metrics."""
-    ESCALATING_ISSUES = "escalating_issues"
     """ An internal project key for submitting events from tempest."""
     TEMPEST = "tempest"
     """ An internal project key for demo mode."""
     DEMO = "demo"
 
 
-@region_silo_model
-class ProjectKey(Model):
+@cell_silo_model
+class ProjectKey(ReplicatedCellModel):
     __relocation_scope__ = RelocationScope.Organization
+
+    category = OutboxCategory.PROJECT_KEY_UPDATE
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)
@@ -190,6 +192,34 @@ class ProjectKey(Model):
             return (self.rate_limit_count, self.rate_limit_window)
         return (0, 0)
 
+    def payload_for_update(self) -> dict[str, Any] | None:
+        return {"public_key": self.public_key}
+
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        from sentry.hybridcloud.services.replica import control_replica_service
+        from sentry.types.cell import get_local_cell
+
+        control_replica_service.delete_project_key_mapping(
+            project_key_id=identifier,
+            cell_name=get_local_cell().name,
+        )
+
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
+        from sentry.hybridcloud.services.replica import control_replica_service
+        from sentry.types.cell import get_local_cell
+
+        control_replica_service.upsert_project_key_mapping(
+            project_key=RpcProjectKeyMapping(
+                id=self.id,
+                public_key=self.public_key,
+                cell_name=get_local_cell().name,
+            ),
+        )
+
     def save(self, *args, **kwargs):
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
@@ -296,12 +326,12 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self) -> str:
-        from sentry.api.utils import generate_region_url
+        from sentry.api.utils import generate_locality_url
 
         endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
-            if SiloMode.get_current_mode() == SiloMode.REGION:
-                endpoint = generate_region_url()
+            if SiloMode.get_current_mode() == SiloMode.CELL:
+                endpoint = generate_locality_url()
             else:
                 endpoint = options.get("system.url-prefix")
             assert endpoint is not None
@@ -369,3 +399,11 @@ class ProjectKey(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+# Also handle cascade deletes — Django's collector bypasses model delete().
+pre_delete.connect(
+    lambda instance, **k: instance.outbox_for_update().save(),
+    sender=ProjectKey,
+    weak=False,
+)

@@ -1,4 +1,4 @@
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Placeholder', story => {
@@ -18,7 +18,7 @@ export default Storybook.story('Placeholder', story => {
 
   story('With Bottom Gutter', () => (
     <div>
-      <Placeholder bottomGutter={2} />
+      <Placeholder bottomGutter="xl" />
       <div>Content below placeholder</div>
     </div>
   ));

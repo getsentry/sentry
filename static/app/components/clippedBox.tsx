@@ -8,7 +8,6 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Content may have margins which can't be measured by our refs, but will affect
 // the total content height. We add this to the max-height to ensure the animation
@@ -144,7 +143,7 @@ interface ClippedBoxProps {
   title?: string;
 }
 
-function ClippedBox(props: ClippedBoxProps) {
+export function ClippedBox(props: ClippedBoxProps) {
   const revealRef = useRef(false);
   const mountedRef = useRef(false);
 
@@ -285,7 +284,7 @@ function ClippedBox(props: ClippedBoxProps) {
 
       // If resize observer is not supported, query for rect and call onResize
       // with an entry that mimics the ResizeObserverEntry.
-      const rect: DOMRectReadOnly = contentRef.current.getBoundingClientRect();
+      const rect = contentRef.current.getBoundingClientRect();
       const entry: ResizeObserverEntry = {
         target: contentRef.current,
         contentRect: rect,
@@ -338,18 +337,16 @@ function ClippedBox(props: ClippedBoxProps) {
   );
 }
 
-export default ClippedBox;
-
 const Wrapper = styled('div')`
   position: relative;
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space.lg} 0;
   overflow: hidden;
   will-change: max-height;
   transition: max-height 500ms ease-in-out;
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ClipFade = styled('div')`
@@ -364,7 +361,7 @@ const ClipFade = styled('div')`
     ${p => p.theme.tokens.background.primary}
   );
   text-align: center;
-  border-bottom: ${space(1.5)} solid ${p => p.theme.tokens.background.primary};
+  border-bottom: ${p => p.theme.space.lg} solid ${p => p.theme.tokens.background.primary};
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
   /* Ensure pointer-events trigger event listeners on "Expand" button */

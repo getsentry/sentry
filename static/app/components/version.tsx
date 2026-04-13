@@ -9,7 +9,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -53,7 +53,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-function Version({
+export function Version({
   version,
   anchor = true,
   preservePageFilters,
@@ -169,5 +169,3 @@ const TooltipVersionWrapper = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default Version;

@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 
 type Props = {
   bytes?: number;
 };
 
-function ResourceSize(props: Props) {
+export function ResourceSize(props: Props) {
   const {bytes} = props;
   if (!bytes) {
     return <Fragment>--</Fragment>;
@@ -14,5 +14,3 @@ function ResourceSize(props: Props) {
 
   return <FileSize bytes={bytes} />;
 }
-
-export default ResourceSize;

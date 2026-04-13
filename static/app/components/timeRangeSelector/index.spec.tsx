@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 const organization = OrganizationFixture({features: ['open-membership']});
 

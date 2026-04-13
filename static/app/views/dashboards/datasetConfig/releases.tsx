@@ -77,7 +77,8 @@ export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiRespons
   filterYAxisAggregateParams: (_fieldValue: QueryFieldValue, _displayType: DisplayType) =>
     filterAggregateParams,
   filterYAxisOptions,
-  getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) =>
+    getFieldRenderer(field, meta, false, widget, dashboardFilters),
   SearchBar: ReleaseSearchBar,
   useSearchBarDataProvider: useReleasesSearchBarDataProvider,
   getTableFieldOptions: getReleasesTableFieldOptions,

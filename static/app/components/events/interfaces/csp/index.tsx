@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -10,7 +10,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import type {HelpProps} from './help';
-import Help from './help';
+import {CSPHelp as Help} from './help';
 
 type View = 'report' | 'raw' | 'help';
 

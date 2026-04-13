@@ -132,7 +132,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="new" />,
           recordAnalytics: true,
         },
         {
@@ -140,21 +139,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
           id: 'relay',
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/repos/`,
-          title: t('Repositories'),
-          description: t('Manage repositories connected to the organization'),
-          id: 'repos',
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/integrations/`,
-          title: t('Integrations'),
-          description: t(
-            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
-          ),
-          id: 'integrations',
-          recordAnalytics: true,
         },
         {
           path: `${organizationSettingsPathPrefix}/early-features/`,
@@ -184,7 +168,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
         {
@@ -192,10 +175,42 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Console SDK Invites'),
           description: t('Manage access to our private console SDK repositories'),
           show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('github-console-sdk-self-invite') &&
-            (organization.enabledConsolePlatforms?.length ?? 0) > 0,
+            !!organization && (organization.enabledConsolePlatforms?.length ?? 0) > 0,
           id: 'console-sdk-invites',
+        },
+      ],
+    },
+    {
+      id: 'settings-integrations',
+      name: t('Integrations'),
+      items: [
+        {
+          path: `${organizationSettingsPathPrefix}/mcp-cli/`,
+          title: t('MCP & CLI'),
+          description: t('Connect to Sentry via MCP server or the Sentry CLI'),
+          id: 'mcp-cli',
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/integrations/`,
+          title: t('Integrations'),
+          description: t(
+            'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
+          ),
+          id: 'integrations',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/repos/`,
+          title: t('Repositories'),
+          description: t('Manage repositories connected to the organization'),
+          id: 'repos',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/developer-settings/`,
+          title: t('Custom Integrations'),
+          description: t('Manage custom integrations'),
+          id: 'developer-settings',
         },
       ],
     },
@@ -217,14 +232,8 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           ),
         },
         {
-          path: `${organizationSettingsPathPrefix}/developer-settings/`,
-          title: t('Custom Integrations'),
-          description: t('Manage custom integrations'),
-          id: 'developer-settings',
-        },
-        {
           path: `${userSettingsPathPrefix}/api/applications/`,
-          title: t('Applications'),
+          title: t('OAuth Applications'),
           description: t('Add and configure OAuth2 applications'),
         },
       ],

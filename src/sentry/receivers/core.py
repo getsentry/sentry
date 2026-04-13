@@ -15,7 +15,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
-from sentry.silo.base import SiloMode, region_silo_function
+from sentry.silo.base import SiloMode, cell_silo_function
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import handle_db_failure
 from sentry.utils.env import in_test_environment
@@ -58,7 +58,7 @@ def create_default_projects(**kwds):
         )
 
 
-@region_silo_function
+@cell_silo_function
 def create_default_project(id, name, slug, verbosity=2, **kwargs):
     if Project.objects.filter(id=id).exists():
         return

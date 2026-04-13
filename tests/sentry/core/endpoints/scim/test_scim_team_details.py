@@ -11,8 +11,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.services.user.service import user_service
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 
 class SCIMDetailGetTest(SCIMTestCase):
@@ -227,6 +226,182 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
+    def test_replace_members_keeps_overlapping_members(self) -> None:
+        # member_on_team is already on the team; replacing with member_on_team + member_one
+        # should keep member_on_team untouched and only add member_one
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "existing@example.com",
+                    },
+                    {
+                        "value": self.member_one.id,
+                        "display": "new@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_add_multiple_members(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {"value": self.member_one.id, "display": "one@example.com"},
+                    {"value": self.member_two.id, "display": "two@example.com"},
+                ],
+            },
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_preserves_overlapping_membership_row(self) -> None:
+        original_omt = OrganizationMemberTeam.objects.get(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        )
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {"value": self.member_on_team.id, "display": "existing@example.com"},
+                    {"value": self.member_one.id, "display": "new@example.com"},
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        # The overlapping member's row is the same DB object, not deleted and re-created
+        assert OrganizationMemberTeam.objects.filter(id=original_omt.id).exists()
+        # New member was added
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        # member_two was not in the replace list and should not be on the team
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_with_identical_list_is_noop(self) -> None:
+        # Replacing with the same member already on the team should change nothing
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "already@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(team_id=self.team.id).count() == 1
+
+    def test_replace_members_query_count(self) -> None:
+        """The replace-members path should use a bounded number of core data
+        queries regardless of member count: 1 SELECT existing OMTs,
+        1 SELECT new OrgMembers, 1 bulk DELETE, 1 bulk INSERT.
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_one.id,
+                        "display": "test.user@okta.local",
+                    },
+                    {
+                        "value": self.member_two.id,
+                        "display": "test.user2@okta.local",
+                    },
+                ],
+            }
+        ]
+
+        # Removes 1 existing member (member_on_team), adds 2 new members.
+        with CaptureQueriesContext(connection) as ctx:
+            self.get_success_response(
+                self.organization.slug, self.team.id, **self.base_data, status_code=204
+            )
+
+        # Count the core replace-path queries:
+        # - SELECT on OMT with JOIN to OM (fetch existing with select_related)
+        # - DELETE on OMT (bulk delete removed members)
+        # - SELECT on OM with IN clause (batch fetch new members)
+        # - INSERT on OMT (bulk create new memberships)
+        # Exclude: auth lookups, outbox replication callbacks, savepoints,
+        # audit logs, bulk_delete pre-fetches, and sequence nextval calls.
+        core_queries = []
+        for q in ctx.captured_queries:
+            sql = q["sql"]
+            is_fetch_existing = "INNER JOIN" in sql and "sentry_organizationmember_teams" in sql
+            is_bulk_delete = sql.startswith("DELETE") and "sentry_organizationmember_teams" in sql
+            is_fetch_new = (
+                sql.startswith("SELECT")
+                and '"sentry_organizationmember"' in sql
+                and "IN" in sql
+                and "sentry_organizationmember_teams" not in sql
+            )
+            is_bulk_insert = sql.startswith("INSERT") and "sentry_organizationmember_teams" in sql
+            if is_fetch_existing or is_bulk_delete or is_fetch_new or is_bulk_insert:
+                core_queries.append(sql)
+
+        # Exactly 4 core queries, none of which scale with member count
+        assert len(core_queries) <= 4, (
+            f"Expected at most 4 core member queries, got {len(core_queries)}:\n"
+            + "\n".join(f"  {i + 1}. {q[:120]}" for i, q in enumerate(core_queries))
+        )
+
+    def test_replace_members_with_empty_list(self) -> None:
+        # Replacing with an empty list should remove all members
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert not OrganizationMemberTeam.objects.filter(team_id=self.team.id).exists()
+
     def test_team_member_doesnt_exist_add_to_team(self) -> None:
         self.base_data["Operations"] = [
             {
@@ -274,6 +449,70 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "scimType": "invalidFilter",
+        }
+
+    def test_add_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_add_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
         }
 
     def test_rename_team_azure_request(self) -> None:
@@ -328,6 +567,7 @@ class SCIMDetailDeleteTest(SCIMTestCase):
         mock_metrics.incr.assert_called_with("sentry.scim.team.delete")
 
 
+@cell_silo_test
 class SCIMPrivilegeManagementTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
@@ -345,7 +585,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
         self.user_two = self.create_user(email="superuser_user@example.com")
         self.member_two = self.create_member(user=self.user_two, organization=self.organization)
 
-    def test_adding_to_staff_group_grants_is_staff(self) -> None:
+    def test_adding_to_staff_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -356,10 +596,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
-
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
+            assert not self.user_one.is_staff
 
             self.base_data["Operations"] = [
                 {
@@ -374,16 +611,15 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            # Verify is_staff was granted
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff
+            self.user_one.refresh_from_db()
+            assert self.user_one.is_staff
 
-    def test_adding_to_superuser_group_grants_is_superuser(self) -> None:
+    def test_adding_to_superuser_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -395,9 +631,7 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
-            user = user_service.get_user(user_id=self.user_two.id)
-            assert user is not None
-            assert not user.is_superuser
+            assert not self.user_two.is_superuser
 
             self.base_data["Operations"] = [
                 {
@@ -412,16 +646,15 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, superuser_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+                )
 
-            # Verify is_superuser was granted
-            user = user_service.get_user(user_id=self.user_two.id)
-            assert user is not None
-            assert user.is_superuser
+            self.user_two.refresh_from_db()
+            assert self.user_two.is_superuser
 
-    def test_removing_from_staff_group_revokes_only_is_staff(self) -> None:
+    def test_removing_from_staff_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -432,36 +665,35 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             staff_team = self.create_team(
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
-
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            staff_user = self.create_user(
+                email="test_removing_from_staff_group_dispatches_task@example.com", is_staff=True
             )
-            OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_one
-            )
+            staff_member = self.create_member(user=staff_user, organization=self.organization)
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff
-            assert user.is_superuser
+            OrganizationMemberTeam.objects.create(team=staff_team, organizationmember=staff_member)
 
             self.base_data["Operations"] = [
                 {
                     "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
+                    "path": f'members[value eq "{staff_member.id}"]',
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
+
+            staff_user.refresh_from_db()
+            assert (
+                OrganizationMemberTeam.objects.filter(
+                    team=staff_team, organizationmember=staff_member
+                ).exists()
+                is False
             )
+            assert not staff_user.is_staff
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
-            assert user.is_superuser
-
-    def test_removing_from_superuser_group_revokes_only_is_superuser(self) -> None:
+    def test_removing_from_superuser_group_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -473,35 +705,40 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
+            superuser_user = self.create_user(
+                email="test_removing_from_superuser_group_dispatches_task@example.com",
+                is_superuser=True,
             )
-            OrganizationMemberTeam.objects.create(
-                team=superuser_team, organizationmember=self.member_one
+            superuser_member = self.create_member(
+                user=superuser_user, organization=self.organization
             )
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff
-            assert user.is_superuser
+            OrganizationMemberTeam.objects.create(
+                team=superuser_team, organizationmember=superuser_member
+            )
 
             self.base_data["Operations"] = [
                 {
                     "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
+                    "path": f'members[value eq "{superuser_member.id}"]',
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, **self.base_data, status_code=204
+                )
+
+            superuser_user.refresh_from_db()
+            assert (
+                OrganizationMemberTeam.objects.filter(
+                    team=superuser_team, organizationmember=superuser_member
+                ).exists()
+                is False
             )
+            assert not superuser_user.is_superuser
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff
-            assert not user.is_superuser
-
-    def test_replace_members_revokes_privileges_for_removed_members(self) -> None:
+    def test_replace_members_dispatches_task_with_grant_and_revoke(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -513,14 +750,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
 
-            user_service.update_user(user_id=self.user_one.id, attrs={"is_staff": True})
+            self.user_one.is_staff = True
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                self.user_one.save()
+
             OrganizationMemberTeam.objects.create(
                 team=staff_team, organizationmember=self.member_one
             )
-
-            user_one = user_service.get_user(user_id=self.user_one.id)
-            assert user_one is not None
-            assert user_one.is_staff
 
             self.base_data["Operations"] = [
                 {
@@ -535,19 +771,22 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            user_one = user_service.get_user(user_id=self.user_one.id)
-            assert user_one is not None
-            assert not user_one.is_staff
-            assert not user_one.is_superuser
-            user_two = user_service.get_user(user_id=self.user_two.id)
-            assert user_two is not None
-            assert user_two.is_staff
+            # The new member gets granted staff
+            self.user_two.refresh_from_db()
+            assert self.user_two.is_staff
 
-    def test_regular_team_does_not_affect_privileges(self) -> None:
+            # The removed member gets staff revoked
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+
+    def test_adding_to_superuser_write_group_dispatches_task(self) -> None:
+        from sentry.users.models.userpermission import UserPermission
+
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -555,14 +794,9 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
             SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
         ):
-            regular_team = self.create_team(
-                organization=self.organization, slug="engineering", idp_provisioned=True
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
             )
-
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
-            assert not user.is_superuser
 
             self.base_data["Operations"] = [
                 {
@@ -577,16 +811,106 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, regular_team.id, **self.base_data, status_code=204
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=204,
+                )
+
+            self.user_one.refresh_from_db()
+            assert self.user_one.is_superuser
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert UserPermission.objects.filter(
+                    user_id=self.user_one.id, permission="superuser.write"
+                ).exists()
+
+    def test_removing_from_superuser_write_group_dispatches_task(self) -> None:
+        from sentry.users.models.userpermission import UserPermission
+
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            superuser_write_team = self.create_team(
+                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
             )
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
-            assert not user.is_superuser
+            su_write_user = self.create_user(email="remove_su_write@example.com", is_superuser=True)
+            su_write_member = self.create_member(user=su_write_user, organization=self.organization)
 
-    def test_non_default_org_does_not_grant_privileges(self) -> None:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                UserPermission.objects.create(
+                    user_id=su_write_user.id, permission="superuser.write"
+                )
+
+            OrganizationMemberTeam.objects.create(
+                team=superuser_write_team, organizationmember=su_write_member
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "remove",
+                    "path": f'members[value eq "{su_write_member.id}"]',
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug,
+                    superuser_write_team.id,
+                    **self.base_data,
+                    status_code=204,
+                )
+
+            su_write_user.refresh_from_db()
+            assert not su_write_user.is_superuser
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert not UserPermission.objects.filter(
+                    user_id=su_write_user.id, permission="superuser.write"
+                ).exists()
+
+    def test_regular_team_does_not_dispatch_task(self) -> None:
+        with override_settings(
+            SENTRY_MODE=SentryMode.SAAS,
+            SUPERUSER_ORG_ID=self.organization.id,
+            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
+            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
+            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
+        ):
+            regular_team = self.create_team(
+                organization=self.organization, slug="engineering", idp_provisioned=True
+            )
+
+            self.base_data["Operations"] = [
+                {
+                    "op": "add",
+                    "path": "members",
+                    "value": [
+                        {
+                            "value": self.member_one.id,
+                            "display": self.member_one.email,
+                        }
+                    ],
+                }
+            ]
+
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, regular_team.id, **self.base_data, status_code=204
+                )
+
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+            assert not self.user_one.is_superuser
+
+    def test_non_default_org_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -613,10 +937,6 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=other_org, slug="snty-staff", idp_provisioned=True
             )
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
-
             self.base_data["Operations"] = [
                 {
                     "op": "add",
@@ -630,15 +950,15 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                other_org.slug, staff_team.id, **self.base_data, status_code=204
-            )
+            with self.tasks():
+                self.get_success_response(
+                    other_org.slug, staff_team.id, **self.base_data, status_code=204
+                )
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
 
-    def test_non_saas_mode_does_not_grant_privileges(self) -> None:
+    def test_non_saas_mode_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SELF_HOSTED,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -650,10 +970,6 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
 
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
-
             self.base_data["Operations"] = [
                 {
                     "op": "add",
@@ -667,311 +983,13 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 }
             ]
 
-            self.get_success_response(
-                self.organization.slug, staff_team.id, **self.base_data, status_code=204
-            )
-
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_staff
-
-    def test_privilege_grant_failure_returns_500(self) -> None:
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            staff_team = self.create_team(
-                organization=self.organization, slug="snty-staff", idp_provisioned=True
-            )
-
-            self.base_data["Operations"] = [
-                {
-                    "op": "add",
-                    "path": "members",
-                    "value": [
-                        {
-                            "value": self.member_one.id,
-                            "display": self.member_one.email,
-                        }
-                    ],
-                }
-            ]
-
-            # Mock user_service.update_user to raise an exception
-            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
-                mock_update.side_effect = Exception("RPC failure")
-
-                response = self.get_error_response(
-                    self.organization.slug,
-                    staff_team.id,
-                    **self.base_data,
-                    status_code=500,
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, staff_team.id, **self.base_data, status_code=204
                 )
 
-                assert response.data["detail"] == "Failed to grant user privileges"
-
-    def test_privilege_revocation_failure_returns_500(self) -> None:
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            staff_team = self.create_team(
-                organization=self.organization, slug="snty-staff", idp_provisioned=True
-            )
-
-            # Set up user with privileges
-            user_service.update_user(user_id=self.user_one.id, attrs={"is_staff": True})
-            OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_one
-            )
-
-            self.base_data["Operations"] = [
-                {
-                    "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
-                }
-            ]
-
-            # Mock user_service.update_user to raise an exception
-            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
-                mock_update.side_effect = Exception("RPC failure")
-
-                response = self.get_error_response(
-                    self.organization.slug,
-                    staff_team.id,
-                    **self.base_data,
-                    status_code=500,
-                )
-
-                assert response.data["detail"] == "Failed to revoke user privileges"
-
-    def test_superuser_write_grant_failure_rolls_back_permission(self) -> None:
-        """Test that if update_user fails, add_permission is rolled back for snty-superuser-write."""
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            from sentry.users.models.userpermission import UserPermission
-
-            superuser_write_team = self.create_team(
-                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
-            )
-
-            # Verify user doesn't have permission initially
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert not UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-            self.base_data["Operations"] = [
-                {
-                    "op": "add",
-                    "path": "members",
-                    "value": [
-                        {
-                            "value": self.member_one.id,
-                            "display": self.member_one.email,
-                        }
-                    ],
-                }
-            ]
-
-            # Mock update_user to fail AFTER add_permission succeeds
-            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
-                mock_update.side_effect = Exception("RPC failure")
-
-                response = self.get_error_response(
-                    self.organization.slug,
-                    superuser_write_team.id,
-                    **self.base_data,
-                    status_code=500,
-                )
-
-                assert response.data["detail"] == "Failed to grant user privileges"
-
-            # Verify permission was rolled back - should not exist
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert not UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-    def test_adding_to_superuser_write_group_grants_is_superuser_and_permission(self) -> None:
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            from sentry.users.models.userpermission import UserPermission
-
-            superuser_write_team = self.create_team(
-                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
-            )
-
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert not user.is_superuser
-
-            # Verify user doesn't have superuser.write permission
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert not UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-            self.base_data["Operations"] = [
-                {
-                    "op": "add",
-                    "path": "members",
-                    "value": [
-                        {
-                            "value": self.member_one.id,
-                            "display": self.member_one.email,
-                        }
-                    ],
-                }
-            ]
-
-            self.get_success_response(
-                self.organization.slug, superuser_write_team.id, **self.base_data, status_code=204
-            )
-
-            # Verify is_superuser was granted
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_superuser
-
-            # Verify superuser.write permission was granted
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-    def test_removing_from_superuser_write_group_revokes_is_superuser_and_permission(self) -> None:
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            from sentry.users.models.userpermission import UserPermission
-
-            superuser_write_team = self.create_team(
-                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
-            )
-
-            # Grant user is_superuser and is_staff and add permission
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
-            )
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                UserPermission.objects.create(
-                    user_id=self.user_one.id, permission="superuser.write"
-                )
-            OrganizationMemberTeam.objects.create(
-                team=superuser_write_team, organizationmember=self.member_one
-            )
-
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff
-            assert user.is_superuser
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-            self.base_data["Operations"] = [
-                {
-                    "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
-                }
-            ]
-
-            self.get_success_response(
-                self.organization.slug, superuser_write_team.id, **self.base_data, status_code=204
-            )
-
-            # Verify is_superuser was revoked but is_staff retained
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff  # Should still have staff
-            assert not user.is_superuser
-
-            # Verify superuser.write permission was revoked
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert not UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-    def test_superuser_write_revoke_failure_keeps_permission_removed(self) -> None:
-        """Test that if update_user fails, permission stays removed (fail-secure) for snty-superuser-write."""
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            from sentry.users.models.userpermission import UserPermission
-
-            superuser_write_team = self.create_team(
-                organization=self.organization, slug="snty-superuser-write", idp_provisioned=True
-            )
-
-            # Set up user with privileges and permission
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
-            )
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                UserPermission.objects.create(
-                    user_id=self.user_one.id, permission="superuser.write"
-                )
-            OrganizationMemberTeam.objects.create(
-                team=superuser_write_team, organizationmember=self.member_one
-            )
-
-            # Verify permission exists initially
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
-
-            self.base_data["Operations"] = [
-                {
-                    "op": "remove",
-                    "path": f'members[value eq "{self.member_one.id}"]',
-                }
-            ]
-
-            # Mock update_user to fail AFTER remove_permission succeeds
-            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
-                mock_update.side_effect = Exception("RPC failure")
-
-                response = self.get_error_response(
-                    self.organization.slug,
-                    superuser_write_team.id,
-                    **self.base_data,
-                    status_code=500,
-                )
-
-                assert response.data["detail"] == "Failed to revoke user privileges"
-
-            # Verify permission was NOT rolled back - safer to keep it removed
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                assert not UserPermission.objects.filter(
-                    user_id=self.user_one.id, permission="superuser.write"
-                ).exists()
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
 
 
 class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
@@ -987,7 +1005,7 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
         self.user_two = self.create_user(email="superuser_user@example.com")
         self.member_two = self.create_member(user=self.user_two, organization=self.organization)
 
-    def test_deleting_staff_team_revokes_privileges(self) -> None:
+    def test_deleting_staff_team_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -999,39 +1017,28 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
 
-            # Add two members to the team and grant them is_staff
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
-            )
-            user_service.update_user(user_id=self.user_two.id, attrs={"is_staff": True})
+            staff_user_a = self.create_user(email="delete_staff_a@example.com", is_staff=True)
+            staff_member_a = self.create_member(user=staff_user_a, organization=self.organization)
+            staff_user_b = self.create_user(email="delete_staff_b@example.com", is_staff=True)
+            staff_member_b = self.create_member(user=staff_user_b, organization=self.organization)
+
             OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_one
+                team=staff_team, organizationmember=staff_member_a
             )
             OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_two
+                team=staff_team, organizationmember=staff_member_b
             )
 
-            # Verify users have is_staff
-            user_one = user_service.get_user(user_id=self.user_one.id)
-            assert user_one is not None
-            assert user_one.is_staff
-            user_two = user_service.get_user(user_id=self.user_two.id)
-            assert user_two is not None
-            assert user_two.is_staff
+            with self.tasks():
+                self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
 
-            # Delete the team
-            self.get_success_response(self.organization.slug, staff_team.id, status_code=204)
+            staff_user_a.refresh_from_db()
+            assert not staff_user_a.is_staff
 
-            # Verify is_staff was revoked from both users, but is_superuser retained
-            user_one = user_service.get_user(user_id=self.user_one.id)
-            assert user_one is not None
-            assert not user_one.is_staff
-            assert user_one.is_superuser  # Should still have superuser
-            user_two = user_service.get_user(user_id=self.user_two.id)
-            assert user_two is not None
-            assert not user_two.is_staff
+            staff_user_b.refresh_from_db()
+            assert not staff_user_b.is_staff
 
-    def test_deleting_superuser_team_revokes_privileges(self) -> None:
+    def test_deleting_superuser_team_dispatches_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -1043,29 +1050,20 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-superuser-read", idp_provisioned=True
             )
 
-            # Add member to the team and grant is_superuser
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
-            )
-            OrganizationMemberTeam.objects.create(
-                team=superuser_team, organizationmember=self.member_one
-            )
+            su_user = self.create_user(email="delete_superuser@example.com", is_superuser=True)
+            su_member = self.create_member(user=su_user, organization=self.organization)
 
-            # Verify user has is_superuser
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_superuser
+            OrganizationMemberTeam.objects.create(team=superuser_team, organizationmember=su_member)
 
-            # Delete the team
-            self.get_success_response(self.organization.slug, superuser_team.id, status_code=204)
+            with self.tasks():
+                self.get_success_response(
+                    self.organization.slug, superuser_team.id, status_code=204
+                )
 
-            # Verify is_superuser was revoked but is_staff retained
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff  # Should still have staff
-            assert not user.is_superuser
+            su_user.refresh_from_db()
+            assert not su_user.is_superuser
 
-    def test_deleting_regular_team_does_not_affect_privileges(self) -> None:
+    def test_deleting_regular_team_does_not_dispatch_task(self) -> None:
         with override_settings(
             SENTRY_MODE=SentryMode.SAAS,
             SUPERUSER_ORG_ID=self.organization.id,
@@ -1077,49 +1075,13 @@ class SCIMTeamDeletePrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="engineering", idp_provisioned=True
             )
 
-            # Add member with privileges
-            user_service.update_user(
-                user_id=self.user_one.id, attrs={"is_staff": True, "is_superuser": True}
-            )
             OrganizationMemberTeam.objects.create(
                 team=regular_team, organizationmember=self.member_one
             )
 
-            # Delete the team
-            self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
+            with self.tasks():
+                self.get_success_response(self.organization.slug, regular_team.id, status_code=204)
 
-            # Verify privileges were not affected
-            user = user_service.get_user(user_id=self.user_one.id)
-            assert user is not None
-            assert user.is_staff
-            assert user.is_superuser
-
-    def test_deleting_team_with_privilege_revocation_failure_returns_500(self) -> None:
-        with override_settings(
-            SENTRY_MODE=SentryMode.SAAS,
-            SUPERUSER_ORG_ID=self.organization.id,
-            SENTRY_SCIM_STAFF_TEAM_SLUG="snty-staff",
-            SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG="snty-superuser-read",
-            SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG="snty-superuser-write",
-        ):
-            staff_team = self.create_team(
-                organization=self.organization, slug="snty-staff", idp_provisioned=True
-            )
-
-            # Add member to the team
-            user_service.update_user(user_id=self.user_one.id, attrs={"is_staff": True})
-            OrganizationMemberTeam.objects.create(
-                team=staff_team, organizationmember=self.member_one
-            )
-
-            # Mock user_service.update_user to raise an exception
-            with patch("sentry.core.endpoints.scim.teams.user_service.update_user") as mock_update:
-                mock_update.side_effect = Exception("RPC failure")
-
-                response = self.get_error_response(
-                    self.organization.slug,
-                    staff_team.id,
-                    status_code=500,
-                )
-
-                assert response.data["detail"] == "Failed to revoke user privileges"
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
+            assert not self.user_one.is_superuser

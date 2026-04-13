@@ -5,11 +5,11 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
@@ -20,9 +20,9 @@ import {
   getFees,
 } from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
-function NextBillCard({
+export function NextBillCard({
   subscription,
   organization,
 }: {
@@ -35,7 +35,7 @@ function NextBillCard({
     isError,
   } = useApiQuery<PreviewData>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/subscription/next-bill/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/subscription/next-bill/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -172,5 +172,3 @@ function NextBillCard({
     />
   );
 }
-
-export default NextBillCard;

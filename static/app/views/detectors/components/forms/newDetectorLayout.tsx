@@ -1,20 +1,21 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import orderBy from 'lodash/orderBy';
 
 import type {FormProps} from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import type {
   BaseDetectorUpdatePayload,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useProjects} from 'sentry/utils/useProjects';
 import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/detectorNameField';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
-import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
@@ -24,7 +25,6 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
-  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -39,7 +39,6 @@ export function NewDetectorLayout<
   initialFormData,
   disabledCreate,
   mapFormErrors,
-  environment,
   extraFooterButton,
   previewChart,
   detectorType,
@@ -47,7 +46,19 @@ export function NewDetectorLayout<
   const location = useLocation();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const formContext = useDetectorFormContext();
+  const {projects} = useProjects();
+
+  const initialProjectId = useMemo(() => {
+    const queryProjectId = location.query.project as string | undefined;
+    if (queryProjectId) {
+      const match = projects.find(p => p.id === queryProjectId);
+      if (match) {
+        return match.id;
+      }
+    }
+    const sorted = orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc']);
+    return sorted[0]?.id ?? '';
+  }, [location.query.project, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
@@ -59,7 +70,7 @@ export function NewDetectorLayout<
 
   const initialData = useMemo(() => {
     return {
-      projectId: formContext.project.id,
+      projectId: initialProjectId,
       environment: (location.query.environment as string | undefined) || '',
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
@@ -67,7 +78,7 @@ export function NewDetectorLayout<
       ...initialFormData,
     };
   }, [
-    formContext.project.id,
+    initialProjectId,
     initialFormData,
     location.query.environment,
     location.query.name,
@@ -94,7 +105,7 @@ export function NewDetectorLayout<
         </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
+          <DetectorNameField />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>

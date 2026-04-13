@@ -16,7 +16,7 @@ import {findRangeBinarySearch, Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
-    // prettier-ignore
+    // oxfmt-ignore
     expect(makeProjectionMatrix(1024, 768)).toEqual(
       mat3.fromValues(2 / 1024, 0, 0, -0, -2 / 768, -0, -1, 1, 1)
     );
@@ -51,7 +51,7 @@ describe('upperBound', () => {
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
-  ])(`inserts %p`, (args, target, insert) => {
+  ])('inserts %p', (args, target, insert) => {
     expect(
       upperBound(
         target,
@@ -77,7 +77,7 @@ describe('lowerBound', () => {
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
-  ])(`inserts %p`, (args, target, insert) => {
+  ])('inserts %p', (args, target, insert) => {
     expect(
       lowerBound(
         target,
@@ -171,7 +171,7 @@ describe('createShader', () => {
   it('successfully compiles', () => {
     const shader: WebGLShader = {};
     const type = 0;
-    const shaderSource = `vec4(1.0, 0.0, 0.0, 1.0)`;
+    const shaderSource = 'vec4(1.0, 0.0, 0.0, 1.0)';
 
     const ctx: Partial<WebGLRenderingContext> = {
       createShader: jest.fn().mockImplementation(() => shader),
@@ -192,7 +192,7 @@ describe('createShader', () => {
   it('deletes shader if compilation fails', () => {
     const shader: WebGLShader = {};
     const type = 0;
-    const shaderSource = `vec4(1.0, 0.0, 0.0, 1.0)`;
+    const shaderSource = 'vec4(1.0, 0.0, 0.0, 1.0)';
 
     const ctx: Partial<WebGLRenderingContext> = {
       createShader: jest.fn().mockImplementation(() => shader),
@@ -315,7 +315,7 @@ describe('Rect', () => {
 
   describe('transforms', () => {
     it('transformRect', () => {
-      // prettier-ignore
+      // oxfmt-ignore
       // Scale (10,20),translate by (3, 4)
       const matrix = mat3.fromValues(10, 0, 0, 0, 20, 0, 3, 4, 0);
       expect(new Rect(1, 1, 1, 1).transformRect(matrix)).toEqual(
@@ -493,7 +493,7 @@ describe('computeHighlightedBounds', () => {
     },
   ];
 
-  it.each(testTable)(`$name`, ({args, expected}) => {
+  it.each(testTable)('$name', ({args, expected}) => {
     const value = computeHighlightedBounds(args.bounds as Fuse.RangeTuple, args.trim);
     expect(value).toEqual(expected);
   });
@@ -588,7 +588,7 @@ describe('computeConfigViewWithStrategy', () => {
 
       // Scales by 2 along the x and y axis
       expect(actual).toEqual(
-        // prettier-ignore
+        // oxfmt-ignore
         mat3.fromValues(2, 0, 0, 0, 2, 0, 0, 0, 1)
       );
     });
@@ -600,7 +600,7 @@ describe('computeConfigViewWithStrategy', () => {
       );
 
       expect(actual).toEqual(
-        // prettier-ignore
+        // oxfmt-ignore
         mat3.fromValues(2, 0, 0, 0, 2, 0, -5, -5, 1)
       );
     });

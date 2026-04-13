@@ -3,7 +3,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 
 describe('TeamDetails', () => {

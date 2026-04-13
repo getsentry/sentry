@@ -7,6 +7,8 @@ export enum TraceItemDataset {
   TRACEMETRICS = 'tracemetrics',
   PREPROD = 'preprod',
   REPLAYS = 'replays',
+  PROCESSING_ERRORS = 'processing_errors',
+  ERRORS = 'errors',
 }
 
 export interface UseTraceItemAttributeBaseProps {

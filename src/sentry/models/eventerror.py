@@ -1,4 +1,9 @@
-class EventError:
+from __future__ import annotations
+
+import enum
+
+
+class EventErrorType(enum.StrEnum):
     # Generic
     UNKNOWN_ERROR = "unknown_error"
 
@@ -54,49 +59,51 @@ class EventError:
     PROGUARD_MISSING_MAPPING = "proguard_missing_mapping"
     PROGUARD_MISSING_LINENO = "proguard_missing_lineno"
 
-    _messages = {
-        UNKNOWN_ERROR: "Unknown error",
-        INVALID_DATA: "Discarded invalid value",
-        INVALID_ATTRIBUTE: "Discarded unknown attribute",
-        MISSING_ATTRIBUTE: "Missing value for required attribute",
-        VALUE_TOO_LONG: "Discarded value due to exceeding maximum length",
-        FUTURE_TIMESTAMP: "Invalid timestamp (in future)",
-        PAST_TIMESTAMP: "Invalid timestamp (too old)",
-        CLOCK_DRIFT: "Clock drift detected in SDK",
-        INVALID_ENVIRONMENT: 'Environment cannot contain "/" or newlines',
-        SECURITY_VIOLATION: "Cannot fetch resource due to security violation",
-        RESTRICTED_IP: "Cannot fetch resource due to restricted IP address",
-        FETCH_GENERIC_ERROR: "Unable to fetch HTTP resource",
-        FETCH_INVALID_HTTP_CODE: "HTTP returned error response",
-        FETCH_INVALID_ENCODING: "Source file was not encoded properly",
-        FETCH_TOO_LARGE: "Remote file too large for downloading",
-        FETCH_TIMEOUT: "Remote file took too long to load",
-        TOO_LARGE_FOR_CACHE: "Remote file too large for caching",
-        JS_GENERIC_FETCH_ERROR: "Unable to fetch resource",
-        JS_INVALID_HTTP_CODE: "HTTP returned error response",
-        JS_INVALID_CONTENT: "Source file was not JavaScript",
-        JS_NO_COLUMN: "Cannot expand sourcemap due to missing column information",
-        JS_MISSING_SOURCE: "Source code was not found",
-        JS_INVALID_SOURCEMAP: "Sourcemap was invalid or not parseable",
-        JS_TOO_MANY_REMOTE_SOURCES: "The maximum number of remote source requests was made",
-        JS_INVALID_SOURCE_ENCODING: "Source file was not encoded properly",
-        JS_INVALID_SOURCEMAP_LOCATION: "Invalid location in sourcemap",
-        JS_TOO_LARGE: "Remote file too large",
-        JS_FETCH_TIMEOUT: "Remote file took too long to load",
-        JS_SCRAPING_DISABLED: "Javascript scraping was disabled",
-        NATIVE_NO_CRASHED_THREAD: "No crashed thread found in crash report",
-        NATIVE_INTERNAL_FAILURE: "Internal failure when attempting to symbolicate",
-        NATIVE_BAD_DSYM: "The debug information file used was broken.",
-        NATIVE_UNSUPPORTED_DSYM: "The debug information file is not supported",
-        NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: "An optional debug information file was missing.",
-        NATIVE_MISSING_DSYM: "A required debug information file was missing.",
-        NATIVE_MISSING_SYSTEM_DSYM: "A system debug information file was missing.",
-        NATIVE_MISSING_SYMBOL: "Could not resolve one or more frames in debug information file.",
-        NATIVE_SIMULATOR_FRAME: "Encountered an unprocessable simulator frame.",
-        NATIVE_UNKNOWN_IMAGE: "A binary image is referenced that is unknown.",
-        NATIVE_SYMBOLICATOR_FAILED: "Failed to process native stacktraces.",
-        PROGUARD_MISSING_MAPPING: "A proguard mapping file was missing.",
-        PROGUARD_MISSING_LINENO: "A proguard mapping file does not contain line info.",
+
+class EventError:
+    _messages: dict[str, str] = {
+        EventErrorType.UNKNOWN_ERROR: "Unknown error",
+        EventErrorType.INVALID_DATA: "Discarded invalid value",
+        EventErrorType.INVALID_ATTRIBUTE: "Discarded unknown attribute",
+        EventErrorType.MISSING_ATTRIBUTE: "Missing value for required attribute",
+        EventErrorType.VALUE_TOO_LONG: "Discarded value due to exceeding maximum length",
+        EventErrorType.FUTURE_TIMESTAMP: "Invalid timestamp (in future)",
+        EventErrorType.PAST_TIMESTAMP: "Invalid timestamp (too old)",
+        EventErrorType.CLOCK_DRIFT: "Clock drift detected in SDK",
+        EventErrorType.INVALID_ENVIRONMENT: 'Environment cannot contain "/" or newlines',
+        EventErrorType.SECURITY_VIOLATION: "Cannot fetch resource due to security violation",
+        EventErrorType.RESTRICTED_IP: "Cannot fetch resource due to restricted IP address",
+        EventErrorType.FETCH_GENERIC_ERROR: "Unable to fetch HTTP resource",
+        EventErrorType.FETCH_INVALID_HTTP_CODE: "HTTP returned error response",
+        EventErrorType.FETCH_INVALID_ENCODING: "Source file was not encoded properly",
+        EventErrorType.FETCH_TOO_LARGE: "Remote file too large for downloading",
+        EventErrorType.FETCH_TIMEOUT: "Remote file took too long to load",
+        EventErrorType.TOO_LARGE_FOR_CACHE: "Remote file too large for caching",
+        EventErrorType.JS_GENERIC_FETCH_ERROR: "Unable to fetch resource",
+        EventErrorType.JS_INVALID_HTTP_CODE: "HTTP returned error response",
+        EventErrorType.JS_INVALID_CONTENT: "Source file was not JavaScript",
+        EventErrorType.JS_NO_COLUMN: "Cannot expand sourcemap due to missing column information",
+        EventErrorType.JS_MISSING_SOURCE: "Source code was not found",
+        EventErrorType.JS_INVALID_SOURCEMAP: "Sourcemap was invalid or not parseable",
+        EventErrorType.JS_TOO_MANY_REMOTE_SOURCES: "The maximum number of remote source requests was made",
+        EventErrorType.JS_INVALID_SOURCE_ENCODING: "Source file was not encoded properly",
+        EventErrorType.JS_INVALID_SOURCEMAP_LOCATION: "Invalid location in sourcemap",
+        EventErrorType.JS_TOO_LARGE: "Remote file too large",
+        EventErrorType.JS_FETCH_TIMEOUT: "Remote file took too long to load",
+        EventErrorType.JS_SCRAPING_DISABLED: "Javascript scraping was disabled",
+        EventErrorType.NATIVE_NO_CRASHED_THREAD: "No crashed thread found in crash report",
+        EventErrorType.NATIVE_INTERNAL_FAILURE: "Internal failure when attempting to symbolicate",
+        EventErrorType.NATIVE_BAD_DSYM: "The debug information file used was broken.",
+        EventErrorType.NATIVE_UNSUPPORTED_DSYM: "The debug information file is not supported",
+        EventErrorType.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: "An optional debug information file was missing.",
+        EventErrorType.NATIVE_MISSING_DSYM: "A required debug information file was missing.",
+        EventErrorType.NATIVE_MISSING_SYSTEM_DSYM: "A system debug information file was missing.",
+        EventErrorType.NATIVE_MISSING_SYMBOL: "Could not resolve one or more frames in debug information file.",
+        EventErrorType.NATIVE_SIMULATOR_FRAME: "Encountered an unprocessable simulator frame.",
+        EventErrorType.NATIVE_UNKNOWN_IMAGE: "A binary image is referenced that is unknown.",
+        EventErrorType.NATIVE_SYMBOLICATOR_FAILED: "Failed to process native stacktraces.",
+        EventErrorType.PROGUARD_MISSING_MAPPING: "A proguard mapping file was missing.",
+        EventErrorType.PROGUARD_MISSING_LINENO: "A proguard mapping file does not contain line info.",
     }
 
     @classmethod

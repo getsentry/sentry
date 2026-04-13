@@ -1,15 +1,15 @@
 import {Flex} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
-import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {Placeholder} from 'sentry/components/placeholder';
+import {ReplayMetaData} from 'sentry/components/replays/header/replayMetaData';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsMetadata({readerResult}: Props) {
+export function ReplayDetailsMetadata({readerResult}: Props) {
   return (
     <ReplayLoadingState
       readerResult={readerResult}

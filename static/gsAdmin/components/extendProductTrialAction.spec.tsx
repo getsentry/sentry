@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import ExtendProductTrialAction from 'admin/components/extendProductTrialAction';
+import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 
 describe('ExtendProductTrialAction', () => {
   const activeProductTrial = {

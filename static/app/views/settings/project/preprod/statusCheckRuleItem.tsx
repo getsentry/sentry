@@ -10,7 +10,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import {StatusCheckRuleForm} from './statusCheckRuleForm';
 import type {StatusCheckFilter, StatusCheckRule} from './types';
@@ -112,7 +111,7 @@ const ItemHeader = styled('button')`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   background: none;
   border: none;
   cursor: pointer;
@@ -128,7 +127,7 @@ const ItemHeader = styled('button')`
 `;
 
 const ItemContent = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl};
 `;
 
 const BoldText = styled('span')`

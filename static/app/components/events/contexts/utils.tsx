@@ -36,10 +36,9 @@ import {
   PLATFORM_CONTEXT_KEYS,
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -134,6 +133,7 @@ export function getRelativeTimeFromEventDateCreated(
 
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
@@ -356,8 +356,6 @@ export function getContextIcon({
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
-    default:
-      break;
   }
   if (iconName.length === 0) {
     return null;
@@ -569,8 +567,6 @@ export function getContextSummary({
         subtitleType = t('Version');
       }
       break;
-    default:
-      break;
   }
   return {
     title,
@@ -581,7 +577,8 @@ export function getContextSummary({
 
 const RelativeTime = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
-export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;
+export const CONTEXT_DOCS_LINK =
+  'https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/';

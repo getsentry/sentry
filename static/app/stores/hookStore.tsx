@@ -15,13 +15,9 @@ type HookCallback = (...args: any[]) => void;
 interface HookStoreDefinition extends StoreDefinition, Internals {
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   get<H extends HookName>(hookName: H): Array<Hooks[H]>;
-  getCallback<H extends HookName>(hookName: H, key: string): HookCallback | undefined;
+  getCallback(hookName: HookName, key: string): HookCallback | undefined;
   init(): void;
-  persistCallback<H extends HookName>(
-    hookName: H,
-    key: string,
-    value: HookCallback
-  ): void;
+  persistCallback(hookName: HookName, key: string, value: HookCallback): void;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
 }
 
@@ -79,5 +75,4 @@ const storeConfig: HookStoreDefinition = {
  * This functionality is primarily used by the SASS sentry.io product.
  */
 
-const HookStore = createStore(storeConfig);
-export default HookStore;
+export const HookStore = createStore(storeConfig);

@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {

@@ -1,19 +1,18 @@
 import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
 }
 
 export interface AutofixSetupResponse {
-  autofixEnabled: boolean;
   billing: {
     hasAutofixQuota: boolean;
   } | null;
@@ -34,7 +33,7 @@ function makeAutofixSetupQueryKey(
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
     {
@@ -61,7 +60,6 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
-    autofixEnabled: Boolean(queryData.data?.autofixEnabled),
     canStartAutofix: Boolean(queryData.data?.integration.ok),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),

@@ -1,11 +1,11 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
+import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 
 interface Props {
   onClose: WidgetBuilderSearchBarProps['onClose'];

@@ -7,10 +7,10 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PRWidget from 'sentry/views/seerExplorer/prWidget';
+import {PRWidget} from 'sentry/views/seerExplorer/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {
@@ -47,14 +47,14 @@ interface InputSectionProps {
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  wasJustInterrupted: boolean;
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
-  wasJustInterrupted?: boolean;
 }
 
-function InputSection({
+export function InputSection({
   blocks,
   enabled,
   inputValue,
@@ -62,6 +62,7 @@ function InputSection({
   isMinimized = false,
   isPolling,
   interruptRequested,
+  wasJustInterrupted = false,
   isVisible = false,
   onCreatePR,
   onInputChange,
@@ -74,16 +75,12 @@ function InputSection({
   textAreaRef,
   fileApprovalActions,
   questionActions,
-  wasJustInterrupted = false,
 }: InputSectionProps) {
   // Check if there are any file patches for showing the PR widget
   const hasCodeChanges = useMemo(() => {
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
   }, [blocks]);
   const getPlaceholder = () => {
-    if (!enabled) {
-      return 'This conversation is owned by another user and is read-only';
-    }
     if (wasJustInterrupted) {
       return 'Interrupted. What should Seer do instead?';
     }
@@ -169,12 +166,9 @@ function InputSection({
           <StyledInputGroup>
             <InputGroup.TextArea
               disabled
-              ref={textAreaRef}
-              value={inputValue}
-              onChange={onInputChange}
-              onKeyDown={onKeyDown}
-              onClick={onInputClick}
-              placeholder={getPlaceholder()}
+              placeholder={t(
+                'This conversation is owned by another user and is read-only'
+              )}
               rows={1}
               data-test-id="seer-explorer-input"
             />
@@ -328,8 +322,6 @@ function InputSection({
     </InputBlock>
   );
 }
-
-export default InputSection;
 
 // Styled components
 const InputBlock = styled('div')`

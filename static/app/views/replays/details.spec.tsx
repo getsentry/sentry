@@ -5,8 +5,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 import ReplayDetails from './details';
 
@@ -78,7 +78,7 @@ describe('ReplayDetails', () => {
 
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {
     const organization = OrganizationFixture({
-      features: ['session-replay', 'granular-replay-permissions'],
+      features: ['session-replay'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999], // User ID 1 is not in this list
     });

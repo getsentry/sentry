@@ -8,7 +8,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.eventstream.types import EventStreamEventType
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ingest import save_issue_occurrence
@@ -28,6 +27,7 @@ from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.tasks.delayed_workflows import process_delayed_workflows
 from sentry.workflow_engine.tasks.workflows import schedule_delayed_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -220,7 +220,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         from sentry.types.group import GroupSubStatus
 
         project = self.create_project(fire_project_created=True)
-        detector = Detector.objects.get(project=project, type=ErrorGroupType.slug)
+        detector = Detector.objects.get(project=project, type=IssueStreamGroupType.slug)
         workflow = DetectorWorkflow.objects.get(detector=detector).workflow
         workflow.update(config={"frequency": 0})
 
@@ -263,7 +263,10 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         # does not fire for low priority issue
         mock_trigger.reset_mock()
         low_priority_event = self.create_error_event(
-            project=project, detector=detector, fingerprint="asdf", level="warning"
+            project=project,
+            detector=detector,
+            fingerprint="asdf",
+            level="warning",
         )
         self.post_process_error(low_priority_event, is_new=True)
         assert not mock_trigger.called
@@ -344,39 +347,43 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             },
         )
 
-        # event that is not high priority = no enqueue
-        event_1 = self.create_error_event(fingerprint="abcd", level="warning")
-        self.post_process_error(event_1, is_new=True)
-        assert not mock_trigger.called
+        now = timezone.now()
 
-        batch_client = DelayedWorkflowClient()
-        project_ids = batch_client.get_project_ids(0, timezone.now().timestamp())
-        assert not project_ids
+        with freeze_time(now):
+            # event that is not high priority = no enqueue
+            event_1 = self.create_error_event(fingerprint="abcd", level="warning")
+            self.post_process_error(event_1, is_new=True)
+            assert not mock_trigger.called
 
-        # event that does not have the tags = no enqueue
-        event_2 = self.create_error_event(fingerprint="asdf")
-        self.post_process_error(event_2, is_new=True)
-        assert not mock_trigger.called
+            batch_client = DelayedWorkflowClient()
+            project_ids = batch_client.get_project_ids(0, now.timestamp() + 1)
+            assert not project_ids
 
-        project_ids = batch_client.get_project_ids(0, timezone.now().timestamp())
-        assert not project_ids
+            # event that does not have the tags = no enqueue
+            event_2 = self.create_error_event(fingerprint="asdf")
+            self.post_process_error(event_2, is_new=True)
+            assert not mock_trigger.called
 
-        # event that fires
-        event_4 = self.create_error_event(tags=[["hello", "world"]])
-        self.post_process_error(event_4, is_new=True)
-        assert not mock_trigger.called
+            project_ids = batch_client.get_project_ids(0, now.timestamp() + 1)
+            assert not project_ids
 
-        event_5 = self.create_error_event(tags=[["hello", "world"]])
-        self.post_process_error(event_5)
-        assert not mock_trigger.called
+            # event that fires
+            event_4 = self.create_error_event(tags=[["hello", "world"]])
+            self.post_process_error(event_4, is_new=True)
+            assert not mock_trigger.called
 
-        project_ids = batch_client.get_project_ids(
-            min=0,
-            max=timezone.now().timestamp(),
-        )
+            event_5 = self.create_error_event(tags=[["hello", "world"]])
+            self.post_process_error(event_5)
+            assert not mock_trigger.called
 
-        process_delayed_workflows(list(project_ids.keys())[0])
-        mock_trigger.assert_called_once()
+            project_ids = batch_client.get_project_ids(
+                min=0,
+                max=now.timestamp() + 1,
+            )
+            assert project_ids, "Expected data to be buffered for delayed processing"
+
+            process_delayed_workflows(list(project_ids.keys())[0])
+            mock_trigger.assert_called_once()
 
     def test_slow_condition_subqueries(self, mock_trigger: MagicMock) -> None:
         env = self.create_environment(self.project, name="production")
@@ -399,8 +406,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         now = timezone.now()
 
-        batch_client = DelayedWorkflowClient()
         with freeze_time(now):
+            batch_client = DelayedWorkflowClient()
             event_1 = self.create_error_event(environment="production", tags=[["hello", "world"]])
             self.post_process_error(event_1)
             assert not mock_trigger.called
@@ -415,8 +422,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             project_ids = batch_client.get_project_ids(
                 min=0,
-                max=timezone.now().timestamp(),
+                max=now.timestamp() + 1,
             )
+            assert project_ids, "Expected data to be buffered for delayed processing"
 
             process_delayed_workflows(list(project_ids.keys())[0])
             assert not mock_trigger.called
@@ -429,8 +437,9 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             project_ids = batch_client.get_project_ids(
                 min=0,
-                max=timezone.now().timestamp(),
+                max=(now + timedelta(minutes=1)).timestamp() + 1,
             )
+            assert project_ids, "Expected data to be buffered for delayed processing"
 
             process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()

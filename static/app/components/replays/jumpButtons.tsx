@@ -12,7 +12,7 @@ interface Props {
 
 const offsetFromEdge = 5;
 
-export default function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
+export function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
   if (jump === 'up') {
     return (
       <JumpButton
@@ -44,5 +44,6 @@ export default function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
 
 const JumpButton = styled(Button)`
   position: absolute;
-  justify-self: center;
+  left: 50%;
+  transform: translateX(-50%);
 `;

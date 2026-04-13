@@ -23,10 +23,11 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Create GitHub job
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
-            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/deploy`).updateChangeType({
+            const { updateChangeType } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/deploy.js`);
+            await updateChangeType({
               github,
               context,
               fileChanges: ${{ toJson(steps.changes.outputs) }}

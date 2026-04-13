@@ -84,13 +84,13 @@ class TestSentryAppInstallationDeletionTask(TestCase):
         with outbox_runner():
             deletions.exec_sync(self.install)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ServiceHook.objects.filter(pk=hook.id).exists()
 
         with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
             schedule_hybrid_cloud_foreign_key_jobs()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     def test_soft_deletes_installation(self) -> None:

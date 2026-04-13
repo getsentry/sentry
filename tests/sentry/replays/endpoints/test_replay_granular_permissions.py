@@ -5,11 +5,11 @@ from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test
+@cell_silo_test
 class TestReplayGranularPermissions(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -35,9 +35,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_organization_replay_index_with_permission(self) -> None:
         """User with replay permission can access org replay index"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -49,9 +47,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_organization_replay_index_without_permission(self) -> None:
         """User without replay permission cannot access org replay index"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -63,9 +59,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_organization_replay_details_with_permission(self) -> None:
         """User with replay permission can access org replay details (gets 404 for non-existent replay, not 403)"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -78,9 +72,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_organization_replay_details_without_permission(self) -> None:
         """User without replay permission cannot access org replay details"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -92,9 +84,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_organization_replay_count_without_permission(self) -> None:
         """User without replay permission cannot access org replay count"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -106,9 +96,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_project_replay_details_without_permission(self) -> None:
         """User without replay permission cannot access project replay details"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -120,9 +108,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_empty_allowlist_denies_all_users(self) -> None:
         """When allowlist is empty and org option is enabled, no org members have access"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             self.login_as(self.user_without_access)
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
@@ -131,21 +117,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_org_option_disabled_allows_all_users(self) -> None:
         """When org option is disabled, all org members have access even with allowlist"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
-            OrganizationMemberReplayAccess.objects.create(
-                organizationmember=self.member_with_access
-            )
-            self.login_as(self.user_without_access)
-            url = f"/api/0/organizations/{self.organization.slug}/replays/"
-            response = self.client.get(url)
-            assert response.status_code == 200
-
-    def test_feature_flag_disabled_allows_all_users(self) -> None:
-        """When feature flag is disabled, all org members have access"""
         with self.feature("organizations:session-replay"):
-            self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
             )
@@ -156,9 +128,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_removing_last_user_from_allowlist_keeps_access_denied(self) -> None:
         """When the last user is removed from allowlist, access remains denied (empty allowlist = no access)"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             access_record = OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -180,9 +150,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_disabling_org_option_reopens_access(self) -> None:
         """When org option is disabled, all org members regain access"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -207,9 +175,7 @@ class TestReplayGranularPermissions(APITestCase):
         superuser = self.create_user(is_superuser=True)
         self.create_member(organization=self.organization, user=superuser)
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -225,9 +191,7 @@ class TestReplayGranularPermissions(APITestCase):
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user)
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -243,9 +207,7 @@ class TestReplayGranularPermissions(APITestCase):
         superuser = self.create_user(is_superuser=True)
         self.create_member(organization=self.organization, user=superuser)
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -261,9 +223,7 @@ class TestReplayGranularPermissions(APITestCase):
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=self.organization, user=staff_user)
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
 
             self.login_as(staff_user, staff=True)
@@ -276,9 +236,7 @@ class TestReplayGranularPermissions(APITestCase):
         superuser = self.create_user(is_superuser=True)
         # Note: superuser is NOT added as org member
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -294,9 +252,7 @@ class TestReplayGranularPermissions(APITestCase):
         superuser = self.create_user(is_superuser=True)
         # Note: superuser is NOT added as org member
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             # No allowlist records created
 
@@ -307,9 +263,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_org_auth_token_with_event_read_has_access(self) -> None:
         """Org auth tokens with event:read scope should have access to replays"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -332,9 +286,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_org_auth_token_without_event_read_denied(self) -> None:
         """Org auth tokens without event:read scope should be denied replay access"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -357,9 +309,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_org_auth_token_with_event_read_empty_allowlist_has_access(self) -> None:
         """Org auth tokens with event:read scope should have access even when allowlist is empty"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             # No OrganizationMemberReplayAccess records created - empty allowlist
 
@@ -380,9 +330,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_personal_token_with_replay_permission(self) -> None:
         """Personal tokens should have granular permissions applied - user with access can access"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -399,9 +347,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_personal_token_without_replay_permission(self) -> None:
         """Personal tokens should have granular permissions applied - user without access cannot access"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -418,9 +364,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_sentry_app_with_event_read_scope_has_access(self) -> None:
         """SentryApp with event:read scope should have access to replays"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -448,9 +392,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_sentry_app_without_event_read_scope_denied(self) -> None:
         """SentryApp without event:read scope should be denied replay access"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             OrganizationMemberReplayAccess.objects.create(
                 organizationmember=self.member_with_access
@@ -477,9 +419,7 @@ class TestReplayGranularPermissions(APITestCase):
 
     def test_sentry_app_with_event_read_empty_allowlist_has_access(self) -> None:
         """SentryApp with event:read scope should have access even with empty allowlist"""
-        with self.feature(
-            ["organizations:session-replay", "organizations:granular-replay-permissions"]
-        ):
+        with self.feature("organizations:session-replay"):
             self._enable_granular_permissions()
             # No OrganizationMemberReplayAccess records - empty allowlist
 

@@ -45,7 +45,6 @@ export function PreprodBuildsSizeTable({
     const linkUrl =
       getSizeBuildPath({
         organizationSlug,
-        projectId: build.project_id.toString(),
         baseArtifactId: build.id,
       }) ?? '';
     return (

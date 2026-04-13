@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Client} from 'sentry/api';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 

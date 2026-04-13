@@ -4,10 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization as TOrganization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -98,7 +98,7 @@ describe('SentryAppExternalInstallation', () => {
     it('sets the org automatically', async () => {
       render(<SentryAppExternalInstallation />, {
         initialRouterConfig: {
-          route: `/sentry-apps/:sentryAppSlug/external-install/`,
+          route: '/sentry-apps/:sentryAppSlug/external-install/',
           location: {
             pathname: `/sentry-apps/${sentryApp.slug}/external-install/`,
           },
@@ -134,7 +134,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(<SentryAppExternalInstallation />, {
         initialRouterConfig: {
-          route: `/sentry-apps/:sentryAppSlug/external-install/`,
+          route: '/sentry-apps/:sentryAppSlug/external-install/',
           location: {
             pathname: `/sentry-apps/${sentryApp.slug}/external-install/`,
           },
@@ -174,7 +174,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(<SentryAppExternalInstallation />, {
         initialRouterConfig: {
-          route: `/sentry-apps/:sentryAppSlug/external-install/`,
+          route: '/sentry-apps/:sentryAppSlug/external-install/',
           location: {
             pathname: `/sentry-apps/${sentryApp.slug}/external-install/`,
             query: {state},
@@ -234,7 +234,7 @@ describe('SentryAppExternalInstallation', () => {
     it('sets the org automatically', async () => {
       render(<SentryAppExternalInstallation />, {
         initialRouterConfig: {
-          route: `/sentry-apps/:sentryAppSlug/external-install/`,
+          route: '/sentry-apps/:sentryAppSlug/external-install/',
           location: {
             pathname: `/sentry-apps/${sentryApp.slug}/external-install/`,
           },
@@ -273,7 +273,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(<SentryAppExternalInstallation />, {
         initialRouterConfig: {
-          route: `/sentry-apps/:sentryAppSlug/external-install/`,
+          route: '/sentry-apps/:sentryAppSlug/external-install/',
           location: {
             pathname: `/sentry-apps/${sentryApp.slug}/external-install/`,
           },
@@ -301,7 +301,7 @@ describe('SentryAppExternalInstallation', () => {
       ConfigStore.loadInitialData(window.__initialData);
 
       getOrgMock = MockApiClient.addMockResponse({
-        url: `/organizations/org1/`,
+        url: '/organizations/org1/',
         body: preselectedOrg,
       });
       getInstallationsMock = MockApiClient.addMockResponse({
@@ -312,7 +312,7 @@ describe('SentryAppExternalInstallation', () => {
       render(<SentryAppExternalInstallation />, {
         organization: preselectedOrg,
         initialRouterConfig: {
-          route: `/sentry-apps/:sentryAppSlug/external-install/`,
+          route: '/sentry-apps/:sentryAppSlug/external-install/',
           location: {
             pathname: `/sentry-apps/${sentryApp.slug}/external-install/`,
           },

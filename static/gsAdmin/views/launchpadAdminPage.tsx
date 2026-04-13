@@ -11,16 +11,16 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
-function LaunchpadAdminPage() {
+export function LaunchpadAdminPage() {
   const api = useApi();
   const [rerunArtifactId, setRerunArtifactId] = useState<string>('');
   const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
@@ -33,32 +33,42 @@ function LaunchpadAdminPage() {
 
   const {mutate: rerunAnalysis} = useMutation({
     mutationFn: () => {
+      const ids = rerunArtifactId
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => id);
       return fetchMutation({
-        url: `/internal/preprod-artifact/rerun-analysis/`,
+        url: '/internal/preprod-artifact/batch-rerun-analysis/',
         method: 'POST',
-        data: {
-          preprod_artifact_id: rerunArtifactId,
-        },
-        options: {
-          host: region?.url,
-        },
+        data: {artifact_ids: ids},
+        options: {host: region?.url},
       });
     },
-    onSuccess: () => {
-      addSuccessMessage(
-        `Analysis rerun initiated successfully for artifact: ${rerunArtifactId}`
-      );
+    onSuccess: (data: any) => {
+      const results = data?.results ?? [];
+      const succeeded = results.filter((r: any) => r.success);
+      const failed = results.filter((r: any) => !r.success);
+      if (failed.length > 0) {
+        addErrorMessage(
+          `Failed to dispatch ${failed.length} artifact${failed.length > 1 ? 's' : ''}: ${failed.map((r: any) => r.artifact_id).join(', ')}`
+        );
+      }
+      if (succeeded.length > 0) {
+        addSuccessMessage(
+          `Analysis rerun initiated for ${succeeded.length} artifact${succeeded.length > 1 ? 's' : ''}`
+        );
+      }
       setRerunArtifactId('');
     },
     onError: () => {
-      addErrorMessage(`Failed to rerun analysis for artifact: ${rerunArtifactId}`);
+      addErrorMessage('Failed to rerun analysis');
     },
   });
 
   const {mutate: deleteArtifactData} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: [deleteArtifactId],
@@ -108,7 +118,7 @@ function LaunchpadAdminPage() {
   const {mutate: batchDeleteArtifacts} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/batch-delete/`,
+        url: '/internal/preprod-artifact/batch-delete/',
         method: 'DELETE',
         data: {
           preprod_artifact_ids: batchDeleteArtifactIds
@@ -129,7 +139,7 @@ function LaunchpadAdminPage() {
       setBatchDeleteArtifactIds('');
     },
     onError: () => {
-      addErrorMessage(`Failed to batch delete artifacts`);
+      addErrorMessage('Failed to batch delete artifacts');
     },
   });
 
@@ -305,32 +315,33 @@ function LaunchpadAdminPage() {
             }
           `}
         >
-          <form onSubmit={handleRerunSubmit}>
+          <form onSubmit={handleFetchInfoSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
-                <Heading as="h3">Rerun Analysis</Heading>
+                <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for a specific preprod artifact.
+                  Retrieve all data and details for a specific preprod artifact (includes
+                  snapshot info).
                 </Text>
-                <label htmlFor="rerunArtifactId">
+                <label htmlFor="fetchInfoArtifactId">
                   <Text bold>Preprod Artifact ID:</Text>
                 </label>
                 <StyledInput
                   type="text"
-                  name="rerunArtifactId"
-                  value={rerunArtifactId}
-                  onChange={e => setRerunArtifactId(e.target.value)}
+                  name="fetchInfoArtifactId"
+                  value={fetchInfoArtifactId}
+                  onChange={e => setFetchInfoArtifactId(e.target.value)}
                   placeholder="Enter preprod artifact ID"
                 />
                 <Button
-                  priority="primary"
+                  priority="default"
                   type="submit"
-                  disabled={!rerunArtifactId.trim() || !region}
+                  disabled={!fetchInfoArtifactId.trim() || !region}
                   css={css`
                     width: fit-content;
                   `}
                 >
-                  Rerun Analysis
+                  Fetch Info
                 </Button>
               </Flex>
             </Container>
@@ -367,32 +378,33 @@ function LaunchpadAdminPage() {
             </Container>
           </form>
 
-          <form onSubmit={handleFetchInfoSubmit}>
+          <form onSubmit={handleRerunSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md">
-                <Heading as="h3">Fetch Artifact Info</Heading>
+                <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
-                  Retrieve all data and details for a specific preprod artifact.
+                  Rerun analysis for one or more preprod artifacts using comma-separated
+                  IDs.
                 </Text>
-                <label htmlFor="fetchInfoArtifactId">
-                  <Text bold>Preprod Artifact ID:</Text>
+                <label htmlFor="rerunArtifactId">
+                  <Text bold>Preprod Artifact ID (comma-separated):</Text>
                 </label>
                 <StyledInput
                   type="text"
-                  name="fetchInfoArtifactId"
-                  value={fetchInfoArtifactId}
-                  onChange={e => setFetchInfoArtifactId(e.target.value)}
-                  placeholder="Enter preprod artifact ID"
+                  name="rerunArtifactId"
+                  value={rerunArtifactId}
+                  onChange={e => setRerunArtifactId(e.target.value)}
+                  placeholder="e.g., 123, 456, 789"
                 />
                 <Button
-                  priority="default"
+                  priority="primary"
                   type="submit"
-                  disabled={!fetchInfoArtifactId.trim() || !region}
+                  disabled={!rerunArtifactId.trim() || !region}
                   css={css`
                     width: fit-content;
                   `}
                 >
-                  Fetch Info
+                  Rerun Analysis
                 </Button>
               </Flex>
             </Container>
@@ -523,5 +535,3 @@ const InfoDisplay = styled('div')`
     word-break: break-word;
   }
 `;
-
-export default LaunchpadAdminPage;

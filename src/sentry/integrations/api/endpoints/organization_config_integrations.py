@@ -4,10 +4,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
@@ -18,6 +17,7 @@ from sentry.integrations.api.serializers.models.integration import (
     IntegrationProviderResponse,
     IntegrationProviderSerializer,
 )
+from sentry.integrations.base import is_provider_enabled
 from sentry.integrations.manager import default_manager as integrations
 from sentry.models.organization import Organization
 
@@ -27,7 +27,7 @@ class OrganizationConfigIntegrationsEndpointResponse(TypedDict):
 
 
 @extend_schema(tags=["Integrations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
@@ -54,19 +54,14 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         Get integration provider information about all available integrations for an organization.
         """
 
-        def is_provider_enabled(provider):
-            if not provider.requires_feature_flag:
-                return True
-            provider_key = provider.key.replace("_", "-")
-            feature_flag_name = "organizations:integrations-%s" % provider_key
-            return features.has(feature_flag_name, organization, actor=request.user)
-
         providers = list(integrations.all())
         provider_key = request.GET.get("provider_key") or request.GET.get("providerKey")
         if provider_key:
             providers = [p for p in providers if p.key == provider_key]
 
-        providers = list(filter(is_provider_enabled, providers))
+        providers = list(
+            filter(lambda p: is_provider_enabled(p, organization, actor=request.user), providers)
+        )
 
         providers.sort(key=lambda i: i.key)
 

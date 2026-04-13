@@ -9,12 +9,13 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
 from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
     produce_preprod_size_metric_to_eap,
@@ -26,10 +27,17 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quotas import has_installable_quota, has_size_quota
+from sentry.preprod.quotas import (
+    has_installable_quota,
+    has_size_quota,
+)
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
-from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
+from sentry.preprod.size_analysis.tasks import (
+    compare_preprod_artifact_size_analysis,
+    maybe_emit_issues_from_absolute_size_results,
+)
+from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
+from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -41,8 +49,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
+from sentry.taskworker.namespaces import launchpad_tasks, preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
@@ -50,12 +57,23 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 
+# Typed RPC stub — the body is never called. The decorator registers the task signature
+# with the external namespace; dispatch happens via process_artifact.apply_async().
+@launchpad_tasks.register(
+    name="process_artifact",
+    retry=Retry(times=3),
+    processing_deadline_duration=60 * 12,
+)
+def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
+    pass
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact(
     org_id: int,
@@ -78,6 +96,7 @@ def assemble_preprod_artifact(
         },
     )
 
+    assemble_result = None
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
@@ -137,47 +156,19 @@ def assemble_preprod_artifact(
         )
 
         return
+    finally:
+        try:
+            if assemble_result is not None:
+                assemble_result.bundle_temp_file.close()
+        except Exception:
+            pass
 
-    try:
-        # Note: requested_features is no longer used for filtering - all features are
-        # requested here, and the actual quota/filter checks happen in the update endpoint
-        # (project_preprod_artifact_update.py) after preprocessing completes.
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            requested_features=[
-                PreprodFeature.SIZE_ANALYSIS,
-                PreprodFeature.BUILD_DISTRIBUTION,
-            ],
-        )
-    except Exception as e:
-        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
-        sentry_sdk.capture_exception(e)
-        logger.exception(
-            user_friendly_error_message,
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-                "preprod_artifact_id": artifact_id,
-            },
-        )
-        PreprodArtifact.objects.filter(id=artifact_id).update(
-            state=PreprodArtifact.ArtifactState.FAILED,
-            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
-            error_message=user_friendly_error_message,
-        )
-        create_preprod_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact_id,
-                "caller": "assemble_dispatch_error",
-            }
-        )
+    taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
+    if not taskbroker_dispatched:
         return
 
     logger.info(
-        "Finished preprod artifact row creation and kafka dispatch",
+        "Finished preprod artifact dispatch",
         extra={
             "preprod_artifact_id": artifact_id,
             "project_id": project_id,
@@ -513,23 +504,22 @@ def _assemble_preprod_artifact_size_analysis(
 
         try:
             organization = preprod_artifact.project.organization
-            if features.has("organizations:preprod-size-metrics-eap-write", organization):
-                for size_metric in size_metrics_updated:
-                    produce_preprod_size_metric_to_eap(
-                        size_metric=size_metric,
-                        organization=organization,
-                        organization_id=org_id,
-                        project_id=project.id,
-                    )
-                logger.info(
-                    "Successfully wrote preprod size metrics to EAP",
-                    extra={
-                        "preprod_artifact_id": preprod_artifact.id,
-                        "size_metrics_ids": [m.id for m in size_metrics_updated],
-                        "organization_id": org_id,
-                        "project_id": project.id,
-                    },
+            for size_metric in size_metrics_updated:
+                produce_preprod_size_metric_to_eap(
+                    size_metric=size_metric,
+                    organization=organization,
+                    organization_id=org_id,
+                    project_id=project.id,
                 )
+            logger.info(
+                "Successfully wrote preprod size metrics to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "size_metrics_ids": [m.id for m in size_metrics_updated],
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                },
+            )
         except Exception as eap_error:
             logger.exception(
                 "Failed to write preprod size metrics to EAP",
@@ -541,6 +531,9 @@ def _assemble_preprod_artifact_size_analysis(
                     "error": str(eap_error),
                 },
             )
+
+        for size_metric in size_metrics_updated:
+            maybe_emit_issues_from_absolute_size_results(head_metric=size_metric)
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -562,6 +555,7 @@ def _assemble_preprod_artifact_size_analysis(
                 "was_created": was_created,
                 "project_id": project.id,
                 "organization_id": org_id,
+                "organization_slug": organization.slug,
             },
         )
 
@@ -604,6 +598,10 @@ def _assemble_preprod_artifact_size_analysis(
                             "organization_id": org_id,
                         },
                     )
+
+        # Fire webhook unconditionally — the comparison task won't run
+        # (re-raise below) so notify subscribers with whatever DB state exists.
+        send_size_analysis_webhook(artifact=preprod_artifact, organization_id=org_id)
 
         # Re-raise to trigger further error handling if needed
         raise
@@ -674,6 +672,7 @@ def _assemble_preprod_artifact_size_analysis(
             "project_id": project.id,
             "org_id": org_id,
             "artifact_id": artifact_id,
+            "triggered_at": timezone.now().isoformat(),
         }
     )
 
@@ -682,7 +681,7 @@ def _assemble_preprod_artifact_size_analysis(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact_size_analysis(
     org_id: int,
@@ -741,23 +740,24 @@ def _assemble_preprod_artifact_installable_app(
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
         preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
 
+    send_build_distribution_webhook(artifact=preprod_artifact, organization_id=org_id)
+
     try:
         organization = preprod_artifact.project.organization
-        if features.has("organizations:preprod-build-distribution-eap-write", organization):
-            produce_preprod_build_distribution_to_eap(
-                artifact=preprod_artifact,
-                organization=organization,
-                organization_id=org_id,
-                project_id=project.id,
-            )
-            logger.info(
-                "Successfully wrote preprod build distribution to EAP",
-                extra={
-                    "preprod_artifact_id": preprod_artifact.id,
-                    "organization_id": org_id,
-                    "project_id": project.id,
-                },
-            )
+        produce_preprod_build_distribution_to_eap(
+            artifact=preprod_artifact,
+            organization=organization,
+            organization_id=org_id,
+            project_id=project.id,
+        )
+        logger.info(
+            "Successfully wrote preprod build distribution to EAP",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "organization_id": org_id,
+                "project_id": project.id,
+            },
+        )
     except Exception:
         logger.exception(
             "Failed to write preprod build distribution to EAP",
@@ -791,12 +791,19 @@ def _assemble_preprod_artifact_installable_app(
         key_id=None,
     )
 
+    create_preprod_pr_comment_task.apply_async(
+        kwargs={
+            "preprod_artifact_id": artifact_id,
+            "caller": "installable_app_assembled",
+        }
+    )
+
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact_installable_app(
     org_id: int, project_id: int, checksum: str, chunks: Any, artifact_id: int, **kwargs: Any
@@ -817,7 +824,7 @@ def assemble_preprod_artifact_installable_app(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
     namespace=preprod_tasks,
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def detect_expired_preprod_artifacts() -> None:
     """
@@ -844,6 +851,7 @@ def detect_expired_preprod_artifacts() -> None:
     expired_artifacts = PreprodArtifact.objects.filter(
         state__in=[PreprodArtifact.ArtifactState.UPLOADING, PreprodArtifact.ArtifactState.UPLOADED],
         date_updated__lte=timeout_threshold,
+        preprodsnapshotmetrics__isnull=True,
     )
 
     expired_artifacts_count = 0
@@ -959,3 +967,44 @@ def detect_expired_preprod_artifacts() -> None:
             + expired_size_comparisons_count,
         },
     )
+
+
+def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
+    try:
+        logger.info(
+            "preprod.dispatch_taskbroker",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+
+        process_artifact.delay(
+            artifact_id=str(artifact_id),
+            project_id=str(project_id),
+            organization_id=str(org_id),
+        )
+        return True
+    except Exception:
+        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
+        logger.exception(
+            user_friendly_error_message,
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
+        )
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
+            }
+        )
+        return False

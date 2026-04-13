@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,14 +6,14 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import useMedia from 'sentry/utils/useMedia';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {useMedia} from 'sentry/utils/useMedia';
 
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, type ProductTrial} from 'getsentry/types';
@@ -34,8 +34,8 @@ import {
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
-import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {ProductTrialRibbon} from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
 import {SIDE_PANEL_MIN_SCREEN_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -60,7 +60,7 @@ type DisabledProductRowProps = Omit<UsageOverviewTableRowProps, 'isChildProduct'
   showPanelInline: boolean;
 };
 
-function UsageOverviewTableRow({
+export function UsageOverviewTableRow({
   organization,
   product,
   selectedProduct,
@@ -74,7 +74,6 @@ function UsageOverviewTableRow({
   const showPanelInline = useMedia(
     `(max-width: calc(${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]} - 1px))`
   );
-  const [isHovered, setIsHovered] = useState(false);
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
 
@@ -238,8 +237,6 @@ function UsageOverviewTableRow({
     <Fragment>
       <ProductRow
         data-test-id={`product-row-${product}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
         onClick={() => onRowClick(product)}
         onKeyDown={e => {
@@ -315,7 +312,7 @@ function UsageOverviewTableRow({
                 )}
               </Text>
               {formattedFree && (
-                <Text size="xs">{tct(` ([formattedFree] gifted)`, {formattedFree})}</Text>
+                <Text size="xs">{tct(' ([formattedFree] gifted)', {formattedFree})}</Text>
               )}
             </Flex>
           </td>
@@ -355,8 +352,6 @@ function UsageOverviewTableRow({
             </td>
           ) : null}
         </Fragment>
-
-        {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </ProductRow>
       {showPanelInline && isSelected && (
         <Row>
@@ -386,14 +381,11 @@ function DisabledProductRow({
   usageData,
   subscription,
 }: DisabledProductRowProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const isSelected = selectedProduct === product;
   return (
     <Fragment>
       <ProductRow
         data-test-id={`product-row-disabled-${product}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         isSelected={isSelected}
         onClick={() => onRowClick(product)}
         onKeyDown={e => {
@@ -448,7 +440,6 @@ function DisabledProductRow({
             </td>
           </Fragment>
         )}
-        {(isSelected || isHovered) && <SelectedPill isSelected={isSelected} />}
       </ProductRow>
       {showPanelInline && isSelected && (
         <Row>
@@ -466,8 +457,6 @@ function DisabledProductRow({
     </Fragment>
   );
 }
-
-export default UsageOverviewTableRow;
 
 const Row = styled('tr')`
   &:not(:last-child) {
@@ -495,25 +484,32 @@ const ProductRow = styled(Row)<{isSelected: boolean}>`
   &:active {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 30%;
+    width: 4px;
+    height: 22px;
+    border-radius: 2px;
+    background: ${p =>
+      p.isSelected
+        ? p.theme.tokens.graphics.accent.vibrant
+        : p.theme.tokens.graphics.neutral.moderate};
+    opacity: ${p => (p.isSelected ? 1 : 0)};
+    pointer-events: none;
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
 `;
 
 const MobilePanelContainer = styled('td')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-`;
-
-const SelectedPill = styled('td')<{isSelected: boolean}>`
-  position: absolute;
-  right: -1px;
-  top: 30%;
-  width: 4px;
-  height: 22px;
-  border-radius: 2px;
-  background: ${p =>
-    p.isSelected
-      ? p.theme.tokens.graphics.accent.vibrant
-      : p.theme.tokens.graphics.neutral.moderate};
 `;
 
 const IconContainer = styled('span')`

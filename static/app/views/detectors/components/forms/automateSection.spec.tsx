@@ -14,9 +14,10 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionHandlerGroupType,
@@ -37,6 +38,7 @@ describe('AutomateSection', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -130,14 +132,14 @@ describe('AutomateSection', () => {
 
   it('can connect an existing automation', async () => {
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
-        <Form>
+      <DetectorFormProvider detectorType="metric_issue">
+        <Form initialData={{projectId: project.id}}>
           <AutomateSection />
         </Form>
       </DetectorFormProvider>
     );
 
-    expect(screen.getByText('Alert')).toBeInTheDocument();
+    expect(await screen.findByText('Alert')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Connect Existing Alerts'));
 
@@ -165,8 +167,8 @@ describe('AutomateSection', () => {
 
   it('can disconnect an existing automation', async () => {
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
-        <Form initialData={{workflowIds: [automation1.id]}}>
+      <DetectorFormProvider detectorType="metric_issue">
+        <Form initialData={{projectId: project.id, workflowIds: [automation1.id]}}>
           <AutomateSection />
         </Form>
       </DetectorFormProvider>
@@ -217,15 +219,15 @@ describe('AutomateSection', () => {
     });
 
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
-        <Form>
+      <DetectorFormProvider detectorType="metric_issue">
+        <Form initialData={{projectId: project.id}}>
           <AutomateSection />
         </Form>
       </DetectorFormProvider>
     );
 
     // Click "Create New Alert" button
-    await userEvent.click(screen.getByRole('button', {name: 'Create New Alert'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Create New Alert'}));
 
     // Wait for the drawer to open
     const drawer = await screen.findByRole('complementary', {

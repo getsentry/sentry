@@ -8,11 +8,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   ImageCandidate,
   ImageCandidateInternalOk,
@@ -22,9 +21,9 @@ import type {
 import {CandidateDownloadStatus, SymbolType} from 'sentry/types/debugImage';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import Divider from './divider';
-import Features from './features';
-import ProcessingIcon, {getProcessingInfoTooltip} from './processingIcon';
+import {Divider} from './divider';
+import {Features} from './features';
+import {getProcessingInfoTooltip, ProcessingIcon} from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
@@ -33,7 +32,7 @@ type Props = {
   eventDateReceived?: string;
 };
 
-function Information({
+export function Information({
   candidate,
   isInternalSource,
   hasReprocessWarning,
@@ -243,8 +242,6 @@ function Information({
   );
 }
 
-export default Information;
-
 const Wrapper = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
@@ -252,7 +249,7 @@ const Wrapper = styled('div')`
 `;
 
 const FilenameOrLocation = styled('span')`
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;
 
@@ -260,7 +257,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.font.size.sm};
 `;
@@ -269,11 +266,11 @@ const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-variant-numeric: tabular-nums;
 `;
 
 const DateTimeWrapper = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   font-variant-numeric: tabular-nums;
 `;

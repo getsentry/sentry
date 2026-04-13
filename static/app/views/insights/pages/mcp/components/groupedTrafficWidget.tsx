@@ -4,10 +4,10 @@ import {useTheme} from '@emotion/react';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -34,7 +34,7 @@ interface GroupedTrafficWidgetProps {
   title: string;
 }
 
-export default function GroupedTrafficWidget(props: GroupedTrafficWidgetProps) {
+export function GroupedTrafficWidget(props: GroupedTrafficWidgetProps) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -153,7 +153,7 @@ export default function GroupedTrafficWidget(props: GroupedTrafficWidgetProps) {
               ],
               groupBy: [props.groupBy],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

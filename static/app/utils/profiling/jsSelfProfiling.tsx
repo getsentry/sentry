@@ -36,7 +36,7 @@ export function resolveJSSelfProfilingStack(
     return callStack;
   }
 
-  let stack: JSSelfProfiling.Stack | undefined = trace.stacks[stackId];
+  let stack = trace.stacks[stackId];
 
   // If the stackId cannot be resolved from the stacks dict, it means the format is corrupt or partial (possibly due to termination reasons).
   // This should never happen, but in the offchance that it somehow does, it should be handled.

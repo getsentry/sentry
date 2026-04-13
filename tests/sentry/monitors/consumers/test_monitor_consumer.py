@@ -33,6 +33,7 @@ from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
@@ -737,6 +738,7 @@ class MonitorConsumerTest(TestCase):
         assert closed_checkin.status == CheckInStatus.OK
         assert closed_checkin.guid != uuid.UUID(int=0)
 
+    @freeze_time()
     def test_rate_limit(self) -> None:
         now = datetime.now()
         monitor = self._create_monitor(slug="my-monitor")

@@ -6,7 +6,7 @@ from django.db import router, transaction
 from django.forms import ValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -509,7 +509,7 @@ def create_workflow(
         enabled=True,
         created_by_id=user.id if user else None,
         owner_user_id=alert_rule.user_id,
-        owner_team=alert_rule.team,
+        owner_team_id=alert_rule.team_id,
         config={},
     )
 
@@ -525,7 +525,7 @@ def get_detector_field_values(
         "description": alert_rule.description,
         "workflow_condition_group": data_condition_group,
         "owner_user_id": alert_rule.user_id,
-        "owner_team": alert_rule.team,
+        "owner_team_id": alert_rule.team_id,
         "config": {
             "comparison_delta": alert_rule.comparison_delta,
             "detection_type": alert_rule.detection_type,
@@ -914,13 +914,13 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
         with transaction.atomic(router.db_for_write(Detector)):
             detector.update(status=ObjectStatus.PENDING_DELETION)
             workflow.update(status=ObjectStatus.PENDING_DELETION)
-            RegionScheduledDeletion.schedule(instance=detector, days=0)
-            RegionScheduledDeletion.schedule(instance=workflow, days=0)
+            CellScheduledDeletion.schedule(instance=detector, days=0)
+            CellScheduledDeletion.schedule(instance=workflow, days=0)
 
     else:
         with transaction.atomic(router.db_for_write(Detector)):
             detector.update(status=ObjectStatus.PENDING_DELETION)
-            RegionScheduledDeletion.schedule(instance=detector, days=0)
+            CellScheduledDeletion.schedule(instance=detector, days=0)
 
     return
 

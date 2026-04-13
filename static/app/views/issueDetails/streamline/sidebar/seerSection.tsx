@@ -1,36 +1,23 @@
-import {useMemo, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
-import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  getArtifactsFromBlocks,
-  useExplorerAutofix,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ExplorerArtifactPreviews} from 'sentry/components/events/autofix/v2/artifactPreviews';
-import {ExplorerSeerSectionCtaButton} from 'sentry/components/events/autofix/v2/autofixSidebarCtaButton';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {Resources} from 'sentry/views/issueDetails/streamline/sidebar/resources';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
 
@@ -58,11 +45,9 @@ function SeerSectionContent({
   group,
   project,
   event,
-  isExplorerEnabled,
 }: {
   event: Event | undefined;
   group: Group;
-  isExplorerEnabled: boolean;
   project: Project;
 }) {
   const aiConfig = useAiConfig(group, project);
@@ -75,7 +60,7 @@ function SeerSectionContent({
   }
 
   if (aiConfig.hasSummary) {
-    if (aiConfig.hasAutofix && !isExplorerEnabled) {
+    if (aiConfig.hasAutofix) {
       return (
         <Summary>
           <GroupSummaryWithAutofix
@@ -98,7 +83,7 @@ function SeerSectionContent({
   return null;
 }
 
-export default function SeerSection({
+export function SeerSection({
   group,
   project,
   event,
@@ -107,31 +92,11 @@ export default function SeerSection({
   group: Group;
   project: Project;
 }) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-  // We don't use this on the streamlined UI, since the section folds.
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const issueTypeDoesntHaveSeer =
     !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
-
-  const organization = useOrganization();
-  const isExplorerEnabled =
-    isSeerExplorerEnabled(organization) &&
-    organization.features.includes('autofix-on-explorer');
-
-  // Get explorer artifacts when autofix-on-explorer is enabled
-  const {runState: explorerRunState} = useExplorerAutofix(group.id, {
-    enabled: isExplorerEnabled,
-  });
-  const explorerArtifacts = useMemo(
-    () =>
-      isExplorerEnabled ? getArtifactsFromBlocks(explorerRunState?.blocks ?? []) : {},
-    [isExplorerEnabled, explorerRunState?.blocks]
-  );
-  const hasExplorerArtifacts = Object.keys(explorerArtifacts).length > 0;
 
   if (
     (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
@@ -156,7 +121,7 @@ export default function SeerSection({
     <HeaderContainer>{t('Resources')}</HeaderContainer>
   ) : (
     <HeaderContainer>
-      {t('Seer')}
+      {t('Seer Autofix')}
       <IconSeer />
     </HeaderContainer>
   );
@@ -168,45 +133,22 @@ export default function SeerSection({
       return <SeerWelcomeEntrypoint />;
     }
 
-    // When explorer is enabled and has artifacts, show artifact previews
-    if (isExplorerEnabled && hasExplorerArtifacts) {
-      return (
-        <ExplorerArtifactPreviews
-          artifacts={explorerArtifacts}
-          blocks={explorerRunState?.blocks ?? []}
-          prStates={explorerRunState?.repo_pr_states}
-        />
-      );
-    }
-
     // Default: show group summary
     if (aiConfig.hasAutofix || aiConfig.hasSummary) {
-      return (
-        <SeerSectionContent
-          group={group}
-          project={project}
-          event={event}
-          isExplorerEnabled={isExplorerEnabled}
-        />
-      );
+      return <SeerSectionContent group={group} project={project} event={event} />;
     }
 
     // Resources only
     if (issueTypeConfig.resources) {
       return (
-        <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
-          <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
+        <ResourcesWrapper>
+          <ResourcesContent>
             <Resources
               configResources={issueTypeConfig.resources}
               eventPlatform={event?.platform}
               group={group}
             />
           </ResourcesContent>
-          {!hasStreamlinedUI && (
-            <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
-              {isExpanded ? t('SHOW LESS') : t('READ MORE')}
-            </ExpandButton>
-          )}
         </ResourcesWrapper>
       );
     }
@@ -218,84 +160,44 @@ export default function SeerSection({
     <SidebarFoldSection
       title={titleComponent}
       sectionKey={SectionKey.SEER}
-      preventCollapse={!hasStreamlinedUI}
+      preventCollapse={false}
     >
       <Stack>
         {renderSectionContent()}
-        {event &&
-          showCtaButton &&
-          (isExplorerEnabled ? (
-            <ExplorerSeerSectionCtaButton
-              aiConfig={aiConfig}
-              event={event}
-              group={group}
-              project={project}
-              hasStreamlinedUI={hasStreamlinedUI}
-            />
-          ) : (
-            <SeerSectionCtaButton
-              aiConfig={aiConfig}
-              event={event}
-              group={group}
-              project={project}
-              hasStreamlinedUI={hasStreamlinedUI}
-            />
-          ))}
+        {event && showCtaButton && (
+          <SeerSectionCtaButton
+            aiConfig={aiConfig}
+            event={event}
+            group={group}
+            project={project}
+            hasStreamlinedUI
+          />
+        )}
       </Stack>
     </SidebarFoldSection>
   );
 }
 
 const Summary = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   position: relative;
 `;
 
-const ResourcesWrapper = styled('div')<{isExpanded: boolean}>`
+const ResourcesWrapper = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
-const ResourcesContent = styled('div')<{isExpanded: boolean}>`
+const ResourcesContent = styled('div')`
   position: relative;
-  max-height: ${p => (p.isExpanded ? 'none' : '68px')};
-  overflow: hidden;
-  padding-bottom: ${p => (p.isExpanded ? space(2) : 0)};
-
-  ${p =>
-    !p.isExpanded &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 40px;
-        background: linear-gradient(transparent, ${p.theme.tokens.background.primary});
-      }
-    `}
-`;
-
-const ExpandButton = styled(Button)`
-  position: absolute;
-  bottom: -${space(1)};
-  right: 0;
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  border: none;
-  box-shadow: none;
-
-  &:hover {
-    color: ${p => p.theme.colors.gray500};
-  }
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderContainer = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StyledP = styled('p')`

@@ -6,12 +6,10 @@ import {sessionReplay} from './sessionReplay';
 import {userFeedback} from './userFeedback';
 import {platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs<PlatformOptions> = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: userFeedback,
   replayOnboarding: sessionReplay,
   crashReportOnboarding: crashReport,
 };
-
-export default docs;

@@ -6,5 +6,5 @@ export function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}
   if (!metricType) {
     return null;
   }
-  return <Tag variant="muted">{metricType}</Tag>;
+  return <Tag variant="info">{metricType}</Tag>;
 }

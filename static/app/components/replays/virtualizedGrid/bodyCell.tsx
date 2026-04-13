@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
-
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
     return `background-color: ${p.theme.tokens.background.accent.vibrant};`;
@@ -13,9 +11,9 @@ const cellBackground = (p: CellProps & {theme: Theme}) => {
     return `background-color: ${p.theme.colors.red100};`;
   }
   if (p.isStatusWarning) {
-    return `background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));`;
+    return 'background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));';
   }
-  return `background-color: inherit;`;
+  return 'background-color: inherit;';
 };
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
@@ -24,7 +22,7 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
     return `color: ${color};`;
   }
 
-  return `color: inherit`;
+  return 'color: inherit';
 };
 
 type CellProps = {
@@ -59,9 +57,9 @@ export const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 export function AvatarWrapper(props: ContainerProps<'div'>) {
@@ -70,5 +68,5 @@ export function AvatarWrapper(props: ContainerProps<'div'>) {
 
 export const ButtonWrapper = styled('div')`
   align-items: center;
-  padding-inline: ${space(1.5)};
+  padding-inline: ${p => p.theme.space.lg};
 `;

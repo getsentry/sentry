@@ -19,18 +19,17 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useProjects from 'sentry/utils/useProjects';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
 export const feedbackClient = new BrowserClient({
@@ -353,7 +352,7 @@ export const modalCss = css`
 `;
 
 const BackButtonWrapper = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   width: 100%;
 `;
 

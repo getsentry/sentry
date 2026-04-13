@@ -1,11 +1,11 @@
 import Feature from 'sentry/components/acl/feature';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {getOption, getOptionField} from './options';

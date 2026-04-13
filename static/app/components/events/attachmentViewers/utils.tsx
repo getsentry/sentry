@@ -1,6 +1,6 @@
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export type ViewerProps = {
   attachment: EventAttachment;

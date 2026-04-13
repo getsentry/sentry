@@ -62,7 +62,9 @@ class DatabaseBackedUserService(UserService):
         auth_context: AuthenticationContext | None = None,
         serializer: UserSerializeType | None = None,
     ) -> list[OpaqueSerializedResponse]:
-        return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
+        return self._FQ.serialize_many(
+            filter, as_user, auth_context, serializer, select_related=False
+        )
 
     def get_many(self, *, filter: UserFilterArgs) -> list[RpcUser]:
         return self._FQ.get_many(filter)
@@ -151,16 +153,16 @@ class DatabaseBackedUserService(UserService):
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
 
-    def get_member_region_names(self, *, user_id: int) -> list[str]:
+    def get_member_cell_names(self, *, user_id: int) -> list[str]:
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
-        region_query = (
+        cell_query = (
             OrganizationMapping.objects.filter(organization_id__in=org_ids)
-            .values_list("region_name", flat=True)
+            .values_list("cell_name", flat=True)
             .distinct()
         )
-        return list(region_query)
+        return list(cell_query)
 
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()

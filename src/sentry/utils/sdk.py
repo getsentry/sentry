@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import copy
 import logging
 import sys
@@ -78,18 +79,13 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
+    "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
 }
 
 SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
-    # Temporary: 100% sampling for ai-conversations endpoint debugging (sentry org)
-    "/api/0/organizations/sentry/ai-conversations/": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -256,10 +252,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
-        if settings.SENTRY_REGION:
-            event["tags"]["sentry_region"] = settings.SENTRY_REGION
+        if settings.SENTRY_LOCAL_CELL:
+            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
-    if hint.get("exc_info", [None])[0] == OperationalError:
+    event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
+    if event_exc == asyncio.CancelledError:
+        return None
+    if event_exc == OperationalError:
         event["level"] = "warning"
 
     return event
@@ -273,6 +272,15 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
         if attributes.get("sentry.message.template") == "New partitions assigned: %r":
             return None
 
+    try:
+        # FIXME: when in ASGI, the call to `options.store` from `in_random_rollout`
+        #        would fail, because of SyncOnlyOperation.
+        #        While we should ideally figure out how to actually fix this,
+        #        for the moment let's just simplify and skip this entirely.
+        asyncio.get_running_loop()
+        return None
+    except Exception:
+        pass
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None

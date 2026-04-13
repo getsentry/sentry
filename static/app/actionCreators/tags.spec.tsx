@@ -1,7 +1,7 @@
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 
 import {loadOrganizationTags} from './tags';
 

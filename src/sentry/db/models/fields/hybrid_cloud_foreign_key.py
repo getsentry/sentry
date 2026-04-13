@@ -1,6 +1,6 @@
 """
 A 'foreign key' which is not enforced in the local database, but triggers eventually consistent delete work in the
-presence of either RegionTombstone or ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
+presence of either CellTombstone or ControlTombstone model objects through the tasks/deletion/hybrid_cloud.py logic.
 
 Its main purpose is to support foreign key columns in, say, region silos that refer to User or Integration objects (conversely
 also columns in the control silo that point to, say, Organization objects) that do not actually exist in the local database,

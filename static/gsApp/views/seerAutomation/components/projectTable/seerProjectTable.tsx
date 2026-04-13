@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
@@ -6,68 +6,104 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 
 import {
-  useGetBulkAutofixAutomationSettings,
+  bulkAutofixAutomationSettingsInfiniteOptions,
   useUpdateBulkAutofixAutomationSettings,
-  type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import {useInfiniteQuery, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import parseAsSort from 'sentry/utils/url/parseAsSort';
-import useProjects from 'sentry/utils/useProjects';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
-import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
-import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
+import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
+import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
 
-function getDefaultAutofixSettings(projectId: string): AutofixAutomationSettings {
-  return {
-    autofixAutomationTuning: 'off',
-    automatedRunStoppingPoint: 'code_changes',
-    automationHandoff: undefined,
-    projectId,
-    reposCount: 0,
-  };
-}
-
-export default function SeerProjectTable() {
+export function SeerProjectTable() {
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
-  const {pages: autofixAutomationSettings, isFetching: isFetchingSettings} =
-    useGetBulkAutofixAutomationSettings();
+  const agentOptions = useFetchAgentOptions({organization});
 
-  const [mutationData, setMutations] = useState<
-    Record<string, Partial<AutofixAutomationSettings>>
-  >({});
+  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
+    organization,
+  });
+  const result = useInfiniteQuery({
+    ...autofixSettingsQueryOptions,
+    select: ({pages}) => pages.flatMap(page => page.json),
+  });
+
+  // Auto-fetch each page, one at a time
+  useFetchAllPages({result});
+
+  const {data: autofixAutomationSettings} = result;
+
+  const {data: integrations, isPending: isPendingIntegrations} = useQuery({
+    ...organizationIntegrationsCodingAgents(organization),
+    select: data => data.json.integrations ?? [],
+  });
 
   const {mutate: updateBulkAutofixAutomationSettings} =
     useUpdateBulkAutofixAutomationSettings({
       onSuccess: (_data, variables) => {
-        const {projectIds, ...rest} = variables;
-        setMutations(prev => {
-          const updated = {...prev};
-          projectIds.forEach(projectId => {
-            updated[projectId] = {
-              ...prev[projectId],
-              ...rest,
-            };
-          });
-          return updated;
+        const {projectIds, ...updates} = variables;
+        const projectIdSet = new Set(projectIds);
+
+        queryClient.setQueryData(autofixSettingsQueryOptions.queryKey, oldData => {
+          if (!oldData) {
+            return oldData;
+          }
+          return {
+            ...oldData,
+            pages: oldData.pages.map(page => ({
+              ...page,
+              json: page.json.map(setting =>
+                projectIdSet.has(String(setting.projectId))
+                  ? {
+                      ...setting,
+                      ...(updates.autofixAutomationTuning !== undefined && {
+                        autofixAutomationTuning: updates.autofixAutomationTuning,
+                      }),
+                      ...(updates.automatedRunStoppingPoint !== undefined && {
+                        automatedRunStoppingPoint: updates.automatedRunStoppingPoint,
+                      }),
+                    }
+                  : setting
+              ),
+            })),
+          };
         });
+
+        for (const projectId of projectIds) {
+          if (updates.autofixAutomationTuning !== undefined) {
+            ProjectsStore.onUpdateSuccess({
+              id: projectId,
+              autofixAutomationTuning: updates.autofixAutomationTuning ?? undefined,
+            });
+          }
+        }
       },
     });
 
   const autofixSettingsByProjectId = useMemo(
     () =>
       new Map(
-        autofixAutomationSettings.flatMap(page =>
-          page.map(setting => [String(setting.projectId), setting])
-        )
+        (autofixAutomationSettings ?? []).map(setting => [
+          String(setting.projectId),
+          setting,
+        ])
       ),
     [autofixAutomationSettings]
   );
@@ -82,7 +118,7 @@ export default function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = [
+  const queryKey = [
     'seer-projects',
     {query: {query: searchTerm, sort}},
   ] as unknown as ApiQueryKey;
@@ -95,19 +131,24 @@ export default function SeerProjectTable() {
           : b.name.localeCompare(a.name);
       }
 
-      // TODO: if we can bulk-fetch all the preferences, then it'll be easier to sort by fixes, pr creation, and repos
-      // if (sort.field === 'fixes') {
-      //   return a.slug.localeCompare(b.slug);
-      // }
-      // if (sort.field === 'pr_creation') {
-      //   return a.platform.localeCompare(b.platform);
-      // }
-      // if (sort.field === 'repos') {
-      //   return a.status.localeCompare(b.status);
-      // }
+      const aSettings = autofixSettingsByProjectId.get(a.id);
+      const bSettings = autofixSettingsByProjectId.get(b.id);
+      if (sort.field === 'agent') {
+        const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
+        const bAgent = bSettings?.automationHandoff?.target ?? 'seer';
+        return sort.kind === 'asc'
+          ? aAgent.localeCompare(bAgent)
+          : bAgent.localeCompare(aAgent);
+      }
+
+      if (sort.field === 'repo_count') {
+        return sort.kind === 'asc'
+          ? (aSettings?.reposCount ?? 0) - (bSettings?.reposCount ?? 0)
+          : (bSettings?.reposCount ?? 0) - (aSettings?.reposCount ?? 0);
+      }
       return 0;
     });
-  }, [projects, sort]);
+  }, [projects, sort, autofixSettingsByProjectId]);
 
   const filteredProjects = useMemo(() => {
     const lowerCase = searchTerm?.toLowerCase() ?? '';
@@ -179,14 +220,11 @@ export default function SeerProjectTable() {
           filteredProjects.map(project => (
             <SeerProjectTableRow
               key={project.id}
+              autofixSettings={autofixSettingsByProjectId.get(project.id)}
+              integrations={integrations ?? []}
+              isPendingIntegrations={isPendingIntegrations}
               project={project}
-              isFetchingSettings={isFetchingSettings}
-              autofixSettings={{
-                ...getDefaultAutofixSettings(project.id),
-                ...autofixSettingsByProjectId.get(project.id),
-                ...mutationData[project.id],
-              }}
-              updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+              agentOptions={agentOptions}
             />
           ))
         )}
@@ -251,5 +289,6 @@ const FiltersContainer = styled('div')`
 `;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: max-content 1fr repeat(4, max-content);
+  grid-template-columns: max-content 3fr minmax(300px, 1fr) repeat(2, max-content);
+  overflow: visible;
 `;

@@ -8,7 +8,7 @@ interface Props {
   message?: string;
 }
 
-export default function ArchivedReplayAlert({message}: Props) {
+export function ArchivedReplayAlert({message}: Props) {
   return (
     <Alert variant="warning" data-test-id="replay-archived" showIcon={false}>
       <Flex gap="xs" align="center">

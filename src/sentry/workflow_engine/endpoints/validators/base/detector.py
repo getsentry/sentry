@@ -1,6 +1,6 @@
 import builtins
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from jsonschema import ValidationError as JSONSchemaValidationError
@@ -10,7 +10,7 @@ from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -24,9 +24,16 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
 )
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_source import DataSourceInput
 from sentry.workflow_engine.endpoints.validators.utils import (
+    connect_detectors_to_workflows,
     get_unknown_detector_type_error,
+    log_alerting_quota_hit,
     toggle_detector,
+    update_owner,
 )
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -45,11 +52,28 @@ class DetectorQuota:
     count: int
 
 
+class DetectorInput(TypedDict):
+    name: str
+    type: str
+    data_sources: NotRequired[list[DataSourceInput]]
+    config: NotRequired[dict[str, Any]]
+    condition_group: NotRequired[DataConditionGroupInput]
+    owner: NotRequired[str | int | None]
+    description: NotRequired[str]
+    enabled: NotRequired[bool]
+
+
 class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     enforce_single_datasource = False
     """
     Set to True in subclasses to enforce that only a single data source can be configured.
     This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
+
+    data_source_required = True
+    """
+    Set to False in subclasses if data sources are not required for this detector type.
+    By default, data sources are required when creating a new detector.
     """
 
     name = serializers.CharField(
@@ -58,6 +82,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         help_text="Name of the monitor.",
     )
     type = serializers.CharField(help_text="The type of monitor - `metric_issue`.")
+    workflow_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs.",
+    )
     data_sources = serializers.ListField(
         required=False,
         help_text=DATA_SOURCES_HELP_TEXT,
@@ -136,6 +165,17 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
         return value
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate detector data, enforcing data source requirements if configured.
+        """
+        # Check if data sources are missing when creating a new detector
+        if self.data_source_required and not self.instance and not attrs.get("data_sources"):
+            raise serializers.ValidationError(
+                {"data_sources": ["This field is required when creating a detector."]}
+            )
+        return attrs
+
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
@@ -148,11 +188,20 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         """
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type=f"detector:{validated_data['type'].slug}",
+                organization=self.context["organization"],
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
                 f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
             )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        organization = self.context["organization"]
+        request = self.context["request"]
+
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
@@ -169,20 +218,11 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
             # Handle owner field update
             if "owner" in validated_data:
-                owner = validated_data.get("owner")
-                if owner:
-                    if owner.is_user:
-                        instance.owner_user_id = owner.id
-                        instance.owner_team_id = None
-                    elif owner.is_team:
-                        instance.owner_user_id = None
-                        instance.owner_team_id = owner.id
-                else:
-                    # Clear owner if None is passed
-                    instance.owner_user_id = None
-                    instance.owner_team_id = None
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.pop("owner")
+                )
 
-            if "condition_group" in validated_data:
+            if "condition_group" in validated_data and validated_data.get("condition_group"):
                 condition_group = validated_data.pop("condition_group")
                 data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
@@ -199,15 +239,27 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
 
+            # Update detector connections
+            workflow_ids = None
+            if "workflow_ids" in validated_data:
+                workflow_ids = validated_data.pop("workflow_ids")
+            connect_detectors_to_workflows(
+                request,
+                organization,
+                instance.id,
+                workflow_ids,
+                update=True,
+            )
+
             instance.save()
 
-        create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
-            target_object=instance.id,
-            event=audit_log.get_event_id("DETECTOR_EDIT"),
-            data=instance.get_audit_log_data(),
-        )
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=instance.id,
+                event=audit_log.get_event_id("DETECTOR_EDIT"),
+                data=instance.get_audit_log_data(),
+            )
 
         return instance
 
@@ -220,7 +272,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         They should call super().delete() to perform the actual deletion.
         """
         assert self.instance is not None
-        RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        CellScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
     def _create_data_source(
@@ -241,10 +293,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         # Do not disable or prevent the users from updating existing detectors.
         self.enforce_quota(validated_data)
 
+        organization = self.context["organization"]
+        request = self.context["request"]
+
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,
-                organization_id=self.context["organization"].id,
+                organization_id=organization.id,
             )
 
             if "condition_group" in validated_data:
@@ -256,14 +311,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                         condition_group=condition_group,
                     )
 
-            owner = validated_data.get("owner")
-            owner_user_id = None
-            owner_team_id = None
-            if owner:
-                if owner.is_user:
-                    owner_user_id = owner.id
-                elif owner.is_team:
-                    owner_team_id = owner.id
+            owner_user_id, owner_team_id = update_owner(validated_data.get("owner"))
 
             detector = Detector(
                 project_id=self.context["project"].id,
@@ -274,7 +322,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
-                created_by_id=self.context["request"].user.id,
+                created_by_id=request.user.id,
             )
 
             try:
@@ -289,9 +337,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 for validated_data_source in validated_data["data_sources"]:
                     self._create_data_source(validated_data_source, detector)
 
+            # connect workflows
+            workflow_ids = validated_data.get("workflow_ids")
+            connect_detectors_to_workflows(request, organization, detector.id, workflow_ids)
+
             create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
+                request=request,
+                organization=organization,
                 target_object=detector.id,
                 event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),

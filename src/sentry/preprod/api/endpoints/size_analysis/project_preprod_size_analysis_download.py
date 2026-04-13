@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from django.conf import settings
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -21,7 +20,7 @@ from sentry.preprod.size_analysis.download import (
 )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -57,11 +56,6 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
                 artifact_id=head_artifact_id,
             )
         )
-
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         cutoff = get_size_retention_cutoff(project.organization)
         if head_artifact.date_added < cutoff:

@@ -5,7 +5,7 @@ const DEFAULT = '';
 
 type ResponseCodeClass = (typeof OPTIONS)[number];
 
-export default function decode(
+export function decodeResponseCodeClass(
   value: string | string[] | undefined | null
 ): ResponseCodeClass {
   const decodedValue = decodeScalar(value, DEFAULT);

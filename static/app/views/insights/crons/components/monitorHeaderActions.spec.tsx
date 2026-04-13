@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MonitorHeaderActions from 'sentry/views/insights/crons/components/monitorHeaderActions';
+import {MonitorHeaderActions} from 'sentry/views/insights/crons/components/monitorHeaderActions';
 
 describe('MonitorHeaderActions', () => {
   const organization = OrganizationFixture();

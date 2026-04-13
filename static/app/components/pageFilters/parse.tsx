@@ -6,9 +6,9 @@ import moment from 'moment-timezone';
 
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {IntervalPeriod, PageFilters} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import type {PageFiltersState} from './types';
@@ -31,7 +31,7 @@ const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?(-\\w+)?$';
  * parseStatsPeriod("30m") // returns { period: "30", periodLength: "m" }
  * parseStatsPeriod("invalid") // returns undefined
  */
-export function parseStatsPeriod(input: string | IntervalPeriod) {
+export function parseStatsPeriod(input: string) {
   const result = input.match(STATS_PERIOD_PATTERN);
 
   if (!result) {

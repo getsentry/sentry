@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {defaultRenderers} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/defaultRenderers';
@@ -11,7 +12,6 @@ import {
   ContentBlockCssVariables,
   renderBlocks,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/utils';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   /**
@@ -36,14 +36,15 @@ interface Props {
 }
 
 const NO_RENDERERS = {};
-const DEFAULT_SPACING = space(2);
 
 export function ContentBlocksRenderer({
   contentBlocks,
   renderers: customRenderers = NO_RENDERERS,
-  spacing = DEFAULT_SPACING,
+  spacing,
   className,
 }: Props) {
+  const theme = useTheme();
+  const resolvedSpacing = spacing ?? theme.space.xl;
   const contextValue = useMemo(
     () => ({
       renderers: {
@@ -55,7 +56,7 @@ export function ContentBlocksRenderer({
   );
   return (
     <RendererContext value={contextValue}>
-      <Wrapper className={className} spacing={spacing}>
+      <Wrapper className={className} spacing={resolvedSpacing}>
         {renderBlocks(contentBlocks, contextValue.renderers)}
       </Wrapper>
     </RendererContext>

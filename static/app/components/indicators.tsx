@@ -3,7 +3,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Toast} from '@sentry/scraps/toast';
 
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 type Props = {
@@ -37,7 +37,7 @@ export default Indicators;
 
 const Toasts = styled('div')`
   position: fixed;
-  right: 30px;
+  right: calc(30px + var(--scrollbar-size, 0px));
   bottom: 30px;
   z-index: ${p => p.theme.zIndex.toast};
 `;

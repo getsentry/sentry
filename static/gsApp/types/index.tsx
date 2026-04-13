@@ -571,8 +571,6 @@ export type BillingStatTotal = {
 };
 
 export type CustomerUsage = {
-  onDemandEventsAllowed: number;
-  onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
   stats: Record<string, BillingStats>;
@@ -1189,10 +1187,6 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * Whether the category has spike protection support
    */
   hasSpikeProtection: boolean;
-  /**
-   * The maximum number of free events that can be gifted
-   */
-  maxAdminGift: number;
   /**
    * How usage is tallied for the category
    */

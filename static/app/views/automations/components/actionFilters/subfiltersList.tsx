@@ -10,7 +10,6 @@ import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/aut
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {
   DataConditionType,
@@ -340,7 +339,7 @@ export function validateSubfilters(subfilters: Subfilter[]): string | undefined 
 const RowWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :first-child {
     margin-top: 3px;
@@ -364,6 +363,6 @@ const StyledRowLine = styled(RowLine)`
 const DetailsListWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  padding: ${space(1)} 0 0 ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} 0 0 ${p => p.theme.space.xl};
 `;

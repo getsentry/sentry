@@ -1,9 +1,9 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Region} from 'sentry/types/system';
 import {useQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationsWithRegion() {
@@ -16,7 +16,7 @@ export function useOrganizationsWithRegion() {
       const results = await Promise.all(
         regions.map<Promise<[Region, Organization[]]>>(async region => [
           region,
-          await api.requestPromise(`/organizations/`, {
+          await api.requestPromise('/organizations/', {
             host: region.url,
             // Authentication errors can happen as we span regions.
             allowAuthError: true,

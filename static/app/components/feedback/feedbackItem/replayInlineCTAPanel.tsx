@@ -5,12 +5,12 @@ import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backen
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import PageBanner from 'sentry/components/alerts/pageBanner';
+import {PageBanner} from 'sentry/components/alerts/pageBanner';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 
-export default function ReplayInlineCTAPanel() {
+export function ReplayInlineCTAPanel() {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   return (

@@ -10,7 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-import SampleTable from './sampleTable';
+import {SampleTable} from './sampleTable';
 
 const DEFAULT_SELECTION: PageFilters = {
   datetime: {
@@ -25,8 +25,7 @@ const DEFAULT_SELECTION: PageFilters = {
 
 jest.mock('sentry/components/pageFilters/usePageFilters', () => {
   return {
-    __esModule: true,
-    default: () => ({isReady: true, selection: DEFAULT_SELECTION}),
+    usePageFilters: () => ({isReady: true, selection: DEFAULT_SELECTION}),
   };
 });
 
@@ -161,7 +160,7 @@ describe('SampleTable', () => {
 
 const initializeMockRequests = () => {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     body: {
       data: [
         {
@@ -179,7 +178,7 @@ const initializeMockRequests = () => {
     ],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     body: {
       data: [
         {

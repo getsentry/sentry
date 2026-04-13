@@ -8,13 +8,13 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
-import Version from 'sentry/components/version';
+import {Placeholder} from 'sentry/components/placeholder';
+import {Version} from 'sentry/components/version';
 import {IconClock, IconFile, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -26,7 +26,7 @@ import {
 
 interface BuildInstallHeaderProps {
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectId?: string;
 }
 
 export function BuildInstallHeader(props: BuildInstallHeaderProps) {

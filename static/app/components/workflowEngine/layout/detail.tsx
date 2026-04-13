@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface WorkflowEngineDetailLayoutProps {
   /**
@@ -20,18 +20,20 @@ interface WorkflowEngineDetailLayoutProps {
 /**
  * Precomposed 67/33 layout for Monitors / Alerts detail pages.
  */
-function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
-  return <StyledPage>{children}</StyledPage>;
+function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
+  // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Stack flex={1} background={hasPageFrame ? undefined : 'primary'}>
+      {children}
+    </Stack>
+  );
 }
-
-const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 const StyledBody = styled(Layout.Body)`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;
 
 interface RequiredChildren {
@@ -85,7 +87,7 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
   );
 }
 
-const WorkflowEngineDetailLayout = Object.assign(DetailLayout, {
+export const DetailLayout = Object.assign(DetailLayoutComponent, {
   Body: StyledBody,
   Main,
   Sidebar,
@@ -94,5 +96,3 @@ const WorkflowEngineDetailLayout = Object.assign(DetailLayout, {
   Actions,
   Title,
 });
-
-export default WorkflowEngineDetailLayout;

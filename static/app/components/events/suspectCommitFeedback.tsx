@@ -6,23 +6,17 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUser} from 'sentry/utils/useUser';
 
-interface CommitWithGroupOwner extends Commit {
-  group_owner_id: number;
-}
-
 interface SuspectCommitFeedbackProps {
-  commit: CommitWithGroupOwner;
+  groupOwnerId: number;
   organization: Organization;
 }
 
 export function SuspectCommitFeedback({
-  commit,
+  groupOwnerId,
   organization,
 }: SuspectCommitFeedbackProps) {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
@@ -32,7 +26,7 @@ export function SuspectCommitFeedback({
     (isCorrect: boolean) => {
       const analyticsData = {
         choice_selected: isCorrect,
-        group_owner_id: commit.group_owner_id,
+        group_owner_id: groupOwnerId,
         user_id: user.id,
         organization,
       };
@@ -41,7 +35,7 @@ export function SuspectCommitFeedback({
 
       setFeedbackSubmitted(true);
     },
-    [commit, organization, user]
+    [groupOwnerId, organization, user]
   );
 
   if (feedbackSubmitted) {
@@ -57,14 +51,14 @@ export function SuspectCommitFeedback({
       <FeedbackText>{t('Is this correct?')}</FeedbackText>
       <Flex gap="2xs">
         <Button
-          size="xs"
-          icon={<IconThumb direction="up" size="sm" />}
+          size="zero"
+          icon={<IconThumb direction="up" size="xs" />}
           onClick={() => handleFeedback(true)}
           aria-label={t('Yes, this suspect commit is correct')}
         />
         <Button
-          size="xs"
-          icon={<IconThumb direction="down" size="sm" />}
+          size="zero"
+          icon={<IconThumb direction="down" size="xs" />}
           onClick={() => handleFeedback(false)}
           aria-label={t('No, this suspect commit is incorrect')}
         />
@@ -74,13 +68,10 @@ export function SuspectCommitFeedback({
 }
 
 const FeedbackContainer = styled('div')`
-  position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   @media (max-width: ${p => p.theme.breakpoints.xs}) {
     display: none;

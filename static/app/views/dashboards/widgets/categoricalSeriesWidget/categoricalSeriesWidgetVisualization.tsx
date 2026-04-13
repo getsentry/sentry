@@ -10,7 +10,7 @@ import type {
 
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
-import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
+import {BaseChart, type BaseChartProps} from 'sentry/components/charts/baseChart';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import type {
   EChartClickHandler,
@@ -275,7 +275,7 @@ export function CategoricalSeriesWidgetVisualization(
               false
             );
 
-            let formattedValue: string = ECHARTS_MISSING_DATA_VALUE;
+            let formattedValue = ECHARTS_MISSING_DATA_VALUE;
 
             // Technically we've already filtered out invalid values in `filteredParams` above, but TypeScript isn't easy to appease.
             if (Array.isArray(param.value)) {

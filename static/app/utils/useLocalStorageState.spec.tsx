@@ -1,6 +1,6 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 describe('useLocalStorageState', () => {
@@ -201,7 +201,7 @@ describe('useLocalStorageState', () => {
     );
 
     expect(() => result.current[1](recursiveReferenceMap)).toThrow(
-      `useLocalStorage: Native serialization of Map is not supported`
+      'useLocalStorage: Native serialization of Map is not supported'
     );
   });
 

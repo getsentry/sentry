@@ -9,7 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -47,7 +47,7 @@ type Props = {
   transactionMethod?: string;
 };
 
-function SampleTable({
+export function SampleTable({
   groupId,
   moduleName,
   transactionName,
@@ -214,5 +214,3 @@ function SampleTable({
     </SpanSamplesTableContainer>
   );
 }
-
-export default SampleTable;

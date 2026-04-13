@@ -4,12 +4,12 @@ import moment from 'moment-timezone';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import PullRequestLink from 'sentry/components/pullRequestLink';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Duration} from 'sentry/components/duration';
+import {PullRequestLink} from 'sentry/components/pullRequestLink';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
@@ -21,10 +21,10 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
-export default function getGroupActivityItem(
+export function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   project: Project,
@@ -123,7 +123,7 @@ export default function getGroupActivityItem(
       const team = teams.find(({id}) => id === data.assignee);
       // TODO: could show a loading indicator if the team is loading
       assignee = team ? `#${team.slug}` : '<unknown-team>';
-    } else if (activity.user && data.assignee === activity.user.id) {
+    } else if (data.assignee === activity.user?.id) {
       assignee = t('themselves');
     } else if (data.assigneeType === 'user' && data.assigneeEmail) {
       assignee = data.assigneeEmail;

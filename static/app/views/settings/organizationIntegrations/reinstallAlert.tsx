@@ -8,7 +8,7 @@ type Props = {
   integrations: Integration[] | null;
 };
 
-function ReinstallAlert({integrations = []}: Props) {
+export function ReinstallAlert({integrations = []}: Props) {
   const statusList = integrations?.map(getIntegrationStatus);
   if (statusList?.includes('disabled')) {
     return (
@@ -21,5 +21,3 @@ function ReinstallAlert({integrations = []}: Props) {
   }
   return null;
 }
-
-export default ReinstallAlert;

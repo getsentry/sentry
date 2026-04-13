@@ -6,7 +6,7 @@ from sentry import analytics, tagstore
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
@@ -29,7 +29,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupTagKeyValuesEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

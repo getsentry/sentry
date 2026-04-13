@@ -12,11 +12,10 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -556,6 +555,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
+        organization = projects[0].organization
+
         queryset_conditions: dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
@@ -591,35 +592,15 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
-            "issue.seer_last_run": ScalarCondition("seer_autofix_last_triggered"),
+            "issue.seer_last_run": ScalarCondition(
+                "seer_explorer_autofix_last_triggered"
+                if features.has("organizations:autofix-on-explorer", organization)
+                else "seer_autofix_last_triggered"
+            ),
+            "issue.id": QCallbackCondition(
+                lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
+            ),
         }
-
-        message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
-        if message_filter:
-
-            def _issue_platform_issue_message_condition(query: str) -> Q:
-                return Q(
-                    ~Q(type=ErrorGroupType.type_id),
-                    message__icontains=query,
-                )
-
-            queryset_conditions.update(
-                {
-                    "message": (
-                        QCallbackCondition(
-                            lambda query: Q(type=ErrorGroupType.type_id)
-                            | _issue_platform_issue_message_condition(query)
-                        )
-                        # negation should only apply on the message search icontains, we have to include
-                        # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
-                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
-                        if not message_filter.is_negation
-                        else QCallbackCondition(
-                            lambda query: _issue_platform_issue_message_condition(query)
-                        )
-                    )
-                }
-            )
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
@@ -630,7 +611,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                             # if environment(s) are selected, we just filter on the group
                             # environment's first_release attribute.
                             id__in=GroupEnvironment.objects.filter(
-                                first_release__organization_id=projects[0].organization_id,
+                                first_release__organization_id=organization.id,
                                 first_release__version__in=versions,
                                 environment_id__in=environment_ids,
                             ).values_list("group_id"),

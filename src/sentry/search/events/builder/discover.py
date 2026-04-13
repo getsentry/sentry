@@ -483,7 +483,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
 
 class HistogramQueryBuilder(DiscoverQueryBuilder):
-    base_function_acl = ["array_join", "histogram", "spans_histogram"]
+    base_function_acl = ["array_join", "histogram"]
 
     def __init__(
         self,

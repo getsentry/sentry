@@ -511,7 +511,7 @@ class PostSentryAppsTest(SentryAppsTest):
             scope_list=["project:read", "event:read", "org:read"],
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
             response = self.client.get(
                 url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
@@ -767,7 +767,7 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_members_cant_create(self) -> None:
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member_om = OrganizationMember.objects.get(
                 user_id=self.user.id, organization=self.organization
             )
@@ -779,7 +779,7 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_create_integration_exceeding_scopes(self) -> None:
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member_om = OrganizationMember.objects.get(
                 user_id=self.user.id, organization=self.organization
             )

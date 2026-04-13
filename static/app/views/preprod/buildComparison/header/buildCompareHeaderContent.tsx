@@ -7,9 +7,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {
   IconCode,
   IconDownload,
@@ -20,7 +20,9 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -36,35 +38,37 @@ import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 interface BuildCompareHeaderContentProps {
   buildDetails: BuildDetailsApiResponse;
-  projectId: string;
   baseArtifactId?: string;
   headArtifactId?: string;
   isRerunning?: boolean;
   onRerunComparison?: () => void;
 }
 
+const buildCompareFeedbackOptions = {
+  tags: {
+    'feedback.source': 'preprod.buildDetails',
+  },
+};
+
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
-  const {
-    buildDetails,
-    projectId,
-    headArtifactId,
-    baseArtifactId,
-    onRerunComparison,
-    isRerunning,
-  } = props;
+  const {buildDetails, headArtifactId, baseArtifactId, onRerunComparison, isRerunning} =
+    props;
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, String(buildDetails.project_id), {
+        tab: 'mobile-builds',
+      }),
       label: t('Releases'),
     },
   ];
 
   if (buildDetails.app_info.version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, projectId, {
+      to: makeReleasesUrl(organization.slug, String(buildDetails.project_id), {
         query: buildDetails.app_info.version,
         tab: 'mobile-builds',
       }),
@@ -90,7 +94,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
               <AppIcon
                 appName={buildDetails.app_info.name}
                 appIconId={buildDetails.app_info.app_icon_id}
-                projectId={projectId}
+                projectId={buildDetails.project_slug}
               />
               <Text>{buildDetails.app_info.name}</Text>
             </Flex>
@@ -146,13 +150,15 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
       </Stack>
       <Flex align="center" gap="sm">
-        <FeedbackButton
-          feedbackOptions={{
-            tags: {
-              'feedback.source': 'preprod.buildDetails',
-            },
-          }}
-        />
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="feedback">
+            <FeedbackButton feedbackOptions={buildCompareFeedbackOptions}>
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        ) : (
+          <FeedbackButton feedbackOptions={buildCompareFeedbackOptions} />
+        )}
         {isSentryEmployee &&
           headArtifactId &&
           baseArtifactId &&

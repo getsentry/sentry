@@ -1,25 +1,24 @@
-import {Fragment, useCallback, useState} from 'react';
+import {useCallback, useState, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
@@ -112,14 +111,14 @@ export default function MonitorDetails() {
 
   if (!monitor) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
@@ -190,10 +189,10 @@ export default function MonitorDetails() {
           </Layout.Side>
         </TimezoneProvider>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

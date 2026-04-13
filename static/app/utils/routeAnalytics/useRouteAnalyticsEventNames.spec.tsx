@@ -2,7 +2,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
-import useRouteAnalyticsEventNames from './useRouteAnalyticsEventNames';
+import {useRouteAnalyticsEventNames} from './useRouteAnalyticsEventNames';
 
 function TestComponent({eventKey, eventName}: {eventKey: string; eventName: string}) {
   useRouteAnalyticsEventNames(eventKey, eventName);

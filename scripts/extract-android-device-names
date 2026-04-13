@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+"""
+Extract device names from the supported_devices.csv file.
+
+The mapping translates device models to their more human readable marketing names
+during query time for several discover events and tags endpoints.
+
+The supported_devices.csv file is obtained from: https://support.google.com/googleplay/answer/1727131
+
+Steps:
+1. Download the CSV: https://storage.googleapis.com/play_public/supported_devices.csv
+2. Run this script to convert the contents to a dict
+3. Paste dict into src/sentry/api/helpers/android_models.py
+"""
+
+import csv
+import json
+import sys
+
+
+def main():
+    with open("supported_devices.csv", encoding="utf-16") as f:
+        content = f.read()
+
+    reader = csv.DictReader(content.splitlines())
+
+    if "Marketing Name" not in (reader.fieldnames or []) or "Model" not in (
+        reader.fieldnames or []
+    ):
+        sys.exit(1)
+
+    device_mapping: dict[str, str] = {}
+    for row in reader:
+        name = row["Marketing Name"].strip().replace("\\", "")
+        model = row["Model"].strip().replace("\\", "")
+        if name and model and name != model:
+            device_mapping[model] = name
+
+    with open("devices.json", "w") as f:
+        json.dump(device_mapping, f, indent=4, ensure_ascii=False)
+        f.write("\n")
+
+
+if __name__ == "__main__":
+    main()

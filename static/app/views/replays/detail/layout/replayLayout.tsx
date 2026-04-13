@@ -4,17 +4,22 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
-import ReplayController from 'sentry/components/replays/replayController';
-import ReplayView from 'sentry/components/replays/replayView';
-import {space} from 'sentry/styles/space';
-import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {Placeholder} from 'sentry/components/placeholder';
+import {ReplayController} from 'sentry/components/replays/replayController';
+import {ReplayView} from 'sentry/components/replays/replayView';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  LayoutKey,
+  useDefaultReplayLayout,
+  useReplayLayout,
+} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useFullscreen from 'sentry/utils/window/useFullscreen';
-import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
-import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
-import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useFullscreen} from 'sentry/utils/window/useFullscreen';
+import {FocusArea} from 'sentry/views/replays/detail/layout/focusArea';
+import {FocusTabs} from 'sentry/views/replays/detail/layout/focusTabs';
+import {ReplaySplitPanel as SplitPanel} from 'sentry/views/replays/detail/layout/splitPanel';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 const MIN_CONTENT_WIDTH = 340;
@@ -24,7 +29,7 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-export default function ReplayLayout({
+export function ReplayLayout({
   isVideoReplay = false,
   replayRecord,
   isLoading,
@@ -33,8 +38,9 @@ export default function ReplayLayout({
   replayRecord: ReplayRecord | undefined;
   isVideoReplay?: boolean;
 }) {
-  const {getLayout} = useReplayLayout();
-  const layout = getLayout() ?? LayoutKey.TOPBAR;
+  const organization = useOrganization();
+  const defaultLayout = useDefaultReplayLayout();
+  const [layout, setLayout] = useReplayLayout();
 
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -48,7 +54,21 @@ export default function ReplayLayout({
     <VideoSection ref={fullscreenRef}>
       <TooltipContext value={{container: fullscreenRef.current}}>
         <ErrorBoundary mini>
-          <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
+          <ReplayView
+            isLoading={isLoading}
+            layout={layout}
+            toggleFullscreen={toggleFullscreen}
+            toggleLayout={() => {
+              const chosenLayout =
+                layout === LayoutKey.VIDEO_ONLY ? defaultLayout : LayoutKey.VIDEO_ONLY;
+              trackAnalytics('replay.details-layout-changed', {
+                organization,
+                default_layout: defaultLayout,
+                chosen_layout: chosenLayout,
+              });
+              setLayout(chosenLayout);
+            }}
+          />
         </ErrorBoundary>
       </TooltipContext>
     </VideoSection>
@@ -67,8 +87,10 @@ export default function ReplayLayout({
   if (layout === LayoutKey.VIDEO_ONLY) {
     return (
       <BodyGrid>
-        {video}
-        {controller}
+        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
+          {video}
+          {controller}
+        </Stack>
       </BodyGrid>
     );
   }
@@ -104,6 +126,7 @@ export default function ReplayLayout({
         <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
           {hasSize ? (
             <SplitPanel
+              layout={layout}
               key={layout}
               availableSize={width}
               left={{
@@ -127,6 +150,7 @@ export default function ReplayLayout({
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
+            layout={layout}
             key={layout}
             availableSize={height}
             top={{
@@ -148,7 +172,7 @@ const FluidContainer = styled('section')`
   display: grid;
   grid-template-rows: max-content 1fr;
   height: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const BodyGrid = styled('main')`
@@ -156,8 +180,8 @@ const BodyGrid = styled('main')`
 
   display: grid;
   grid-template-rows: 1fr auto;
-  gap: ${space(2)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 
   /*
   Grid items have default \`min-height: auto\` to contain all content.
@@ -173,10 +197,10 @@ const VideoSection = styled('div')`
   flex-grow: 1;
 
   background: ${p => p.theme.tokens.background.primary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :fullscreen {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
   }
 `;
 

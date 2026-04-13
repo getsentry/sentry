@@ -36,7 +36,7 @@ function isValid(timestamp: number, expirationDays: number) {
  * The real lifecycle depends on whether users reset localStorage or not, if you
  * need something really permanent then save the users' preference to the server.
  */
-function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}: Opts) {
+export function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}: Opts) {
   const [dismissedTimestamp, setDismissedTimestamp] = useLocalStorageState<
     undefined | string
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -56,5 +56,3 @@ function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}: Opts) 
     dismiss,
   };
 }
-
-export default useDismissAlert;

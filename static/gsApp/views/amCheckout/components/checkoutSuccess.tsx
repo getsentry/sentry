@@ -12,10 +12,12 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -498,13 +500,23 @@ function Receipt({
   );
 }
 
-function CheckoutSuccess({
+const checkoutSuccessFeedbackOptions = {
+  formTitle: t('Give feedback'),
+  messagePlaceholder: t('How can we make the checkout experience better for you?'),
+  tags: {
+    ['feedback.source']: 'checkout_success',
+    ['feedback.owner']: 'billing',
+  },
+};
+
+export function CheckoutSuccess({
   invoice,
   basePlan,
   nextQueryParams,
   previewData,
 }: CheckoutSuccessProps) {
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
@@ -607,19 +619,18 @@ function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton
-              feedbackOptions={{
-                formTitle: t('Give feedback'),
-                messagePlaceholder: t(
-                  'How can we make the checkout experience better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'checkout_success',
-                  ['feedback.owner']: 'billing',
-                },
-              }}
-              size="md"
-            />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions}>
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton
+                feedbackOptions={checkoutSuccessFeedbackOptions}
+                size="md"
+              />
+            )}
           </Flex>
         </Flex>
       </Flex>
@@ -640,8 +651,6 @@ function CheckoutSuccess({
     </Flex>
   );
 }
-
-export default CheckoutSuccess;
 
 const Title = styled(Heading)`
   @media (max-width: ${p => p.theme.breakpoints.md}) {

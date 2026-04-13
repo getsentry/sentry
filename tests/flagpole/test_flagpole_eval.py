@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 import yaml
 
-from flagpole import Feature, OwnerInfo
+from flagpole import ExperimentMode, Feature, InvalidFeatureFlagConfiguration, OwnerInfo
 from flagpole.conditions import EqualsCondition, Segment
 from flagpole.evaluation_context import EvaluationContext
 from flagpole.flagpole_eval import evaluate_flag, get_arguments, read_feature
@@ -380,3 +380,84 @@ class TestEvaluateFlag:
         assert rollout == 75
         assert segment
         assert segment.name == "partial-rollout-segment"
+
+
+class TestExperimentMode:
+    """Test experiment_mode field on Feature dataclass."""
+
+    def test_feature_with_experiment_mode_simple(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "experiment_mode": "simple",
+            "segments": [{"name": "all-orgs", "rollout": 50, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-experiment", config_dict)
+
+        assert feature.experiment_mode == ExperimentMode.SIMPLE
+
+    def test_feature_without_experiment_mode(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "segments": [{"name": "all-orgs", "rollout": 100, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-feature", config_dict)
+
+        assert feature.experiment_mode is None
+
+    def test_experiment_mode_does_not_affect_match(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "segments": [{"name": "all-orgs", "rollout": 100, "conditions": []}],
+        }
+        config_with_experiment = {**config_dict, "experiment_mode": "simple"}
+
+        feature_regular = Feature.from_feature_dictionary("regular", config_dict)
+        feature_experiment = Feature.from_feature_dictionary("experiment", config_with_experiment)
+
+        context = EvaluationContext({"user_id": 123})
+
+        assert feature_regular.match(context) == feature_experiment.match(context)
+
+    def test_invalid_experiment_mode_raises_on_parse(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "experiment_mode": "invalid",
+            "segments": [{"name": "all-orgs", "rollout": 50, "conditions": []}],
+        }
+
+        with pytest.raises(InvalidFeatureFlagConfiguration):
+            Feature.from_feature_dictionary("test-feature", config_dict)
+
+    def test_validate_valid_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode=ExperimentMode.SIMPLE,
+        )
+
+        assert feature.validate() is True
+
+    def test_validate_none_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode=None,
+        )
+
+        assert feature.validate() is True

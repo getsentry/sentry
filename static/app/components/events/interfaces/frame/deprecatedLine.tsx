@@ -8,17 +8,17 @@ import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
+import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
-import StrictClick from 'sentry/components/strictClick';
+import {StrictClick} from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -27,12 +27,12 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
-import Context from './context';
-import DefaultTitle from './defaultTitle';
+import {Context} from './context';
+import {DefaultTitle} from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,
@@ -40,6 +40,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasPotentialSourceContext,
   isPotentiallyThirdPartyFrame,
 } from './utils';
 
@@ -110,19 +111,21 @@ function DeprecatedLine({
   components,
 }: Props) {
   const organization = useOrganization();
+  const {hasScmSourceContext} = useStacktraceContext();
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
-  const leadsToApp: boolean = !data.inApp && (nextFrame?.inApp || !nextFrame);
+  const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
 
   const isExpandable = useMemo((): boolean => {
     return !!(
       (hasContextSource(data) && data.context) ||
       hasContextVars(data) ||
       hasContextRegisters(registers) ||
-      hasAssembly(data, platform)
+      hasAssembly(data, platform) ||
+      (hasScmSourceContext && hasPotentialSourceContext(data))
     );
-  }, [data, registers, platform]);
+  }, [data, registers, platform, hasScmSourceContext]);
 
   const toggleContext = (evt?: React.MouseEvent) => {
     evt?.preventDefault();
@@ -225,7 +228,7 @@ function DeprecatedLine({
           </DefaultLineTitleWrapper>
           <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
-            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+            {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
@@ -345,6 +348,7 @@ function DeprecatedLine({
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(data, platform)}
+        hasScmSourceContext={hasScmSourceContext}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
@@ -417,12 +421,10 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p =>
-    p.isSubFrame
-      ? `${p.theme.colors.surface200}`
-      : `${p.theme.tokens.background.tertiary}`};
+    p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
   min-height: 40px;
   word-break: break-word;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
@@ -450,7 +452,7 @@ const DefaultLine = styled('div')<{
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const ToggleContextButton = styled(Button)`
@@ -462,7 +464,7 @@ const ToggleButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 
   &:hover {
     color: ${p => p.theme.tokens.content.secondary};
@@ -470,11 +472,11 @@ const ToggleButton = styled(Button)`
 `;
 
 const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.sm};
 `;

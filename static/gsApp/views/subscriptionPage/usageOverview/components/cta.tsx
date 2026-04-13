@@ -14,7 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {
   AddOnCategory,
   BillingType,

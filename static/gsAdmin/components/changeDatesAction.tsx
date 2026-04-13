@@ -6,8 +6,8 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import InputField from 'sentry/components/forms/fields/inputField';
-import Form from 'sentry/components/forms/form';
+import {InputField} from 'sentry/components/forms/fields/inputField';
+import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
@@ -127,10 +127,8 @@ function ChangeDatesModal({
 
 type Options = Omit<ChangeDatesModalProps, keyof ModalRenderProps>;
 
-const triggerChangeDatesModal = (opts: Options) =>
+export const triggerChangeDatesModal = (opts: Options) =>
   openModal(deps => <ChangeDatesModal {...deps} {...opts} />);
-
-export default triggerChangeDatesModal;
 
 const DateField = styled(InputField)`
   padding-left: 0px;

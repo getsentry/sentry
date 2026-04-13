@@ -6,13 +6,16 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type {
+  EventView,
+  ImmutableEventView,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -227,7 +230,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
 
     const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol(`tableFetchID`);
+    const tableFetchID = Symbol('tableFetchID');
     const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(this.props);
 
     this.setState({isLoading: true, tableFetchID});
@@ -279,7 +282,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       tableData,
       pageLinks,
     };
-    const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
+    const children = this.props.children; // Explicitly setting type due to issues with generics and React's children
     return children?.(childrenProps);
   }
 }
@@ -403,8 +406,8 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
   const additionalQueryKey = props.options?.additionalQueryKey ?? [];
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: [...additionalQueryKey, route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {

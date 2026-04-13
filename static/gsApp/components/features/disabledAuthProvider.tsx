@@ -24,7 +24,12 @@ type Props = {
   organization: Organization;
 };
 
-function DisabledAuthProvider({organization, features, children, ...props}: Props) {
+export function DisabledAuthProvider({
+  organization,
+  features,
+  children,
+  ...props
+}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) =>
@@ -59,5 +64,3 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
     </PlanFeature>
   );
 }
-
-export default DisabledAuthProvider;

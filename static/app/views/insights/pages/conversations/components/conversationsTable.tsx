@@ -1,57 +1,61 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
-import useDrawer from 'sentry/components/globalDrawer';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Count} from 'sentry/components/count';
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
-import TimeSince from 'sentry/components/timeSince';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
-import type {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ToolTags} from 'sentry/views/insights/pages/conversations/components/toolTags';
 import {
   useConversations,
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversations';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
-interface ConversationsTableProps {
-  openConversationViewDrawer: ReturnType<
-    typeof useConversationViewDrawer
-  >['openConversationViewDrawer'];
+function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {
+  const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
+  const params = new URLSearchParams();
+  if (conversation.startTimestamp) {
+    params.set('start', String(conversation.startTimestamp));
+  }
+  if (conversation.endTimestamp) {
+    params.set('end', String(conversation.endTimestamp));
+  }
+  const qs = params.toString();
+  return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
 
-export function ConversationsTable({
-  openConversationViewDrawer,
-}: ConversationsTableProps) {
+export function ConversationsTable() {
   const organization = useOrganization();
   const showTable = hasGenAiConversationsFeature(organization);
 
   if (!showTable) {
     return null;
   }
-  return (
-    <ConversationsTableInner openConversationViewDrawer={openConversationViewDrawer} />
-  );
+  return <ConversationsTableInner />;
 }
 
 const EMPTY_ARRAY: never[] = [];
@@ -61,14 +65,14 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
   {key: 'steps', name: t('Steps'), width: 80},
-  {key: 'toolsUsed', name: t('Tools Used'), width: 200},
+  {key: 'toolsUsed', name: t('Tools'), width: 200},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
 
 const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
 
-function ConversationsTableInner({openConversationViewDrawer}: ConversationsTableProps) {
+function ConversationsTableInner() {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
@@ -83,7 +87,6 @@ function ConversationsTableInner({openConversationViewDrawer}: ConversationsTabl
         gap="xs"
         justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
       >
-        {column.key === 'user' && <IconUser size="xs" />}
         {column.key === 'steps' ? (
           <Tooltip title={t('LLM calls + Tool calls')}>
             <DashedUnderline>{column.name}</DashedUnderline>
@@ -99,15 +102,9 @@ function ConversationsTableInner({openConversationViewDrawer}: ConversationsTabl
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: Conversation) => {
-      return (
-        <BodyCell
-          column={column}
-          dataRow={dataRow}
-          openConversationViewDrawer={openConversationViewDrawer}
-        />
-      );
+      return <BodyCell column={column} dataRow={dataRow} />;
     },
-    [openConversationViewDrawer]
+    []
   );
 
   return (
@@ -142,7 +139,7 @@ const CELL_MAX_CHARS = 256;
 function TooltipContent({text}: {text: string}) {
   return (
     <TooltipTextContainer>
-      <MarkedText text={ellipsize(text, TOOLTIP_MAX_CHARS)} />
+      <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );
 }
@@ -187,26 +184,21 @@ function UserNotInstrumentedTooltip() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
-  openConversationViewDrawer,
 }: {
   column: GridColumnHeader<string>;
   dataRow: Conversation;
-  openConversationViewDrawer: ConversationsTableProps['openConversationViewDrawer'];
 }) {
-  const {isDrawerOpen} = useDrawer();
+  const organization = useOrganization();
+  const navigate = useNavigate();
+
+  const navigateToDetail = useCallback(() => {
+    navigate(getConversationDetailUrl(organization.slug, dataRow));
+  }, [navigate, organization.slug, dataRow]);
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdButton
-          priority="link"
-          onClick={() =>
-            openConversationViewDrawer({
-              conversation: dataRow,
-              source: 'table_conversation_id',
-            })
-          }
-        >
+        <ConversationIdButton type="button" onClick={navigateToDetail}>
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
@@ -220,32 +212,18 @@ const BodyCell = memo(function BodyCell({
       }
       const displayName = getUserDisplayName(dataRow.user);
       return (
-        <Flex align="center" gap="sm">
-          <UserAvatar
-            user={{
-              id: dataRow.user.id ?? '',
-              name: displayName,
-              email: dataRow.user.email ?? '',
-              username: dataRow.user.username ?? '',
-              ip_address: dataRow.user.ip_address ?? '',
-            }}
-            size={20}
-          />
-          <Tooltip title={displayName} showOnlyOnOverflow>
+        <Tooltip title={displayName} showOnlyOnOverflow>
+          <Flex align="center" gap="xs" minWidth={0}>
+            <IconUser size="md" variant="muted" />
             <Text ellipsis>{displayName}</Text>
-          </Tooltip>
-        </Flex>
+          </Flex>
+        </Tooltip>
       );
     }
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow
-            type="button"
-            onClick={() =>
-              openConversationViewDrawer({conversation: dataRow, source: 'table_input'})
-            }
-          >
+          <InputOutputRow type="button" onClick={navigateToDetail}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -257,7 +235,6 @@ const BodyCell = memo(function BodyCell({
                   delay={500}
                   skipWrapper
                   position="right"
-                  disabled={isDrawerOpen}
                 >
                   <CellContent text={dataRow.firstInput} />
                 </Tooltip>
@@ -266,12 +243,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow
-            type="button"
-            onClick={() =>
-              openConversationViewDrawer({conversation: dataRow, source: 'table_output'})
-            }
-          >
+          <InputOutputRow type="button" onClick={navigateToDetail}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
@@ -283,7 +255,6 @@ const BodyCell = memo(function BodyCell({
                   delay={500}
                   skipWrapper
                   position="right"
-                  disabled={isDrawerOpen}
                 >
                   <CellContent text={dataRow.lastOutput} />
                 </Tooltip>
@@ -305,13 +276,7 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.toolNames.length === 0) {
         return <Text variant="muted">&mdash;</Text>;
       }
-      return (
-        <ToolTags
-          toolNames={dataRow.toolNames}
-          conversation={dataRow}
-          openConversationViewDrawer={openConversationViewDrawer}
-        />
-      );
+      return <ToolTags toolNames={dataRow.toolNames} />;
     case 'tokensAndCost':
       return (
         <TextAlignRight>
@@ -365,9 +330,17 @@ const CellExpander = styled('div')`
   width: 100vw;
 `;
 
-const ConversationIdButton = styled(Button)`
-  font-weight: normal;
+const ConversationIdButton = styled('button')`
+  background: transparent;
+  border: none;
   padding: 0;
+  cursor: pointer;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-weight: normal;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const InputOutputRow = styled('button')`

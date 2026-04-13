@@ -17,9 +17,7 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/link';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/link');
 
 The Link component provides context-aware navigation within the Sentry application, while ExternalLink handles external URLs. Both components maintain consistent styling and accessibility standards.
 

@@ -15,7 +15,7 @@ import type {
   GetActorArgs,
   GetMenuArgs,
 } from 'sentry/components/deprecatedDropdownMenu';
-import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import {DropdownMenu as DeprecatedDropdownMenu} from 'sentry/components/deprecatedDropdownMenu';
 import {uniqueId} from 'sentry/utils/guid';
 
 interface DefaultProps {
@@ -148,7 +148,10 @@ export interface AutoCompleteProps<T> extends DefaultProps {
   resetInputOnClose?: boolean;
 }
 
-class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State<T>> {
+export class AutoComplete<T extends Item> extends Component<
+  AutoCompleteProps<T>,
+  State<T>
+> {
   static defaultProps = defaultProps;
 
   state: State<T> = this.getInitialState();
@@ -244,11 +247,11 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
       valueOrEvent: string | React.ChangeEvent<E>,
       event?: React.ChangeEvent<E>
     ) => {
-      const value: string =
+      const value =
         event === undefined
           ? (valueOrEvent as React.ChangeEvent<E>).target.value
           : (valueOrEvent as string);
-      const changeEvent: React.ChangeEvent<E> =
+      const changeEvent =
         event === undefined ? (valueOrEvent as React.ChangeEvent<E>) : event;
 
       // We force `isOpen: true` here because:
@@ -536,5 +539,3 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     );
   }
 }
-
-export default AutoComplete;

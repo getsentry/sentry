@@ -8,7 +8,7 @@ from sentry.api.serializers.models.event import (
     SqlFormatEventSerializer,
 )
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import TestCase
@@ -47,7 +47,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         result = serialize(event)
         assert len(result["errors"]) == 1
         assert "data" in result["errors"][0]
-        assert result["errors"][0]["type"] == EventError.INVALID_DATA
+        assert result["errors"][0]["type"] == EventErrorType.INVALID_DATA
         assert result["errors"][0]["data"] == {
             "name": "stacktrace",
             "reason": "expected rawstacktrace",

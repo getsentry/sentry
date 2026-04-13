@@ -1,29 +1,31 @@
 import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {
   feedbackOnboardingPlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 function createWrapper(projectSlug?: string) {
   return function Wrapper({children}: any) {
+    const wrapped = <SentryNuqsTestingAdapter>{children}</SentryNuqsTestingAdapter>;
     const memoryRouter = createMemoryRouter([
       {
         path: '/',
-        element: children,
+        element: wrapped,
       },
       {
         path: '/:projectId/',
-        element: children,
+        element: wrapped,
       },
     ]);
 

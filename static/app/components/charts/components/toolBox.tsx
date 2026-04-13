@@ -21,7 +21,7 @@ function getFeatures({
   };
 }
 
-export default function ToolBox(
+export function ToolBox(
   options: ToolboxComponentOption,
   features: ToolboxComponentOption['feature']
 ): ToolboxComponentOption {

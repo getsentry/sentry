@@ -1,8 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import omit from 'lodash/omit';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -11,8 +11,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 interface IssueAskSeerSearchQuery {
   query: string;
@@ -46,6 +46,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -87,10 +88,6 @@ export function IssueListSeerComboBox() {
     initialSeerQuery =
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
-
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
 
   // Get selected project IDs for the polling variant
   const selectedProjectIds = useMemo(() => {
@@ -193,6 +190,11 @@ export function IssueListSeerComboBox() {
         organization,
         query: queryToUse,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+      });
 
       let timeParams: Record<string, string | undefined> = {};
 
@@ -231,35 +233,29 @@ export function IssueListSeerComboBox() {
         {replace: true, preventScrollReset: true}
       );
     },
-    [askSeerSuggestedQueryRef, location.pathname, location.query, navigate, organization]
+    [
+      analyticsArea,
+      askSeerSuggestedQueryRef,
+      location.pathname,
+      location.query,
+      navigate,
+      organization,
+    ]
   );
 
   if (!enableAISearch) {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<IssueAskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Issues"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="issue.list"
-        feedbackSource="issue_list_ai_query"
-        fallbackMutationOptions={issueListAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<IssueAskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={issueListAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Issues"
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
       analyticsSource="issue.list"
-      feedbackSource="issue_list_ai_query"
+      fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );
 }

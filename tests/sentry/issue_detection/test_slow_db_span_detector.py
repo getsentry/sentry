@@ -140,7 +140,7 @@ class SlowDBQueryDetectorTest(TestCase):
         )
         slow_span_event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = SlowDBQueryDetector(settings[SlowDBQueryDetector.settings_key], slow_span_event)
 
         assert detector.is_creation_allowed_for_project(project)
@@ -151,7 +151,7 @@ class SlowDBQueryDetectorTest(TestCase):
             value={"slow_db_queries_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
+        settings = get_detection_settings(project)
         detector = SlowDBQueryDetector(settings[SlowDBQueryDetector.settings_key], slow_span_event)
 
         assert not detector.is_creation_allowed_for_project(project)

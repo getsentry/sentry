@@ -10,19 +10,18 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import Count from 'sentry/components/count';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventMessage from 'sentry/components/events/eventMessage';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Count} from 'sentry/components/count';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {EventMessage} from 'sentry/components/events/eventMessage';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
@@ -32,11 +31,11 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -45,7 +44,7 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
-import SeerBadge from 'sentry/views/issueDetails/streamline/header/seerBadge';
+import {SeerBadge} from 'sentry/views/issueDetails/streamline/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -53,6 +52,8 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -60,11 +61,7 @@ interface GroupHeaderProps {
   project: Project;
 }
 
-export default function StreamlinedGroupHeader({
-  event,
-  group,
-  project,
-}: GroupHeaderProps) {
+export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -89,12 +86,23 @@ export default function StreamlinedGroupHeader({
 
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
-    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS;
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
+    group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2;
   const feedbackSource =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
       ? 'issue_details_query_injection'
-      : 'issue_details_n_plus_one_api_calls';
+      : group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2
+        ? 'issue_details_llm_detected_experimental_v2'
+        : 'issue_details_n_plus_one_api_calls';
   const {feedback} = useFeedbackSDKIntegration();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  const feedbackOptions = {
+    messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
+    tags: {
+      ['feedback.source']: feedbackSource,
+    },
+  };
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -152,18 +160,22 @@ export default function StreamlinedGroupHeader({
               </LinkButton>
             )}
             {hasFeedbackForm && feedback ? (
-              <FeedbackButton
-                aria-label={t('Give feedback on the issue Sentry detected')}
-                size="xs"
-                feedbackOptions={{
-                  messagePlaceholder: t(
-                    'Please provide feedback on the issue Sentry detected.'
-                  ),
-                  tags: {
-                    ['feedback.source']: feedbackSource,
-                  },
-                }}
-              />
+              hasPageFrameFeature ? (
+                <TopBar.Slot name="feedback">
+                  <FeedbackButton
+                    aria-label={t('Give feedback on the issue Sentry detected')}
+                    feedbackOptions={feedbackOptions}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </TopBar.Slot>
+              ) : (
+                <FeedbackButton
+                  aria-label={t('Give feedback on the issue Sentry detected')}
+                  size="xs"
+                  feedbackOptions={feedbackOptions}
+                />
+              )
             ) : (
               <NewIssueExperienceButton />
             )}
@@ -204,12 +216,7 @@ export default function StreamlinedGroupHeader({
                 </StatLink>
               ))}
           </StatTitle>
-          <EventMessage
-            data={group}
-            level={group.level}
-            message={secondaryTitle}
-            type={group.type}
-          />
+          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
@@ -309,7 +316,7 @@ const Header = styled('header')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, 1fr) auto auto;
-  column-gap: ${space(2)};
+  column-gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
@@ -354,9 +361,9 @@ const Subtext = styled('span')`
 const ActionBar = styled('div')<{isComplete: boolean}>`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-wrap: wrap;
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} 24px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   transition: background 0.3s ease-in-out;
@@ -388,7 +395,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
 const WorkflowActions = styled('div')`
   display: flex;
   justify-content: flex-end;
-  column-gap: ${space(2)};
+  column-gap: ${p => p.theme.space.xl};
   flex-wrap: wrap;
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     justify-content: flex-start;
@@ -398,7 +405,7 @@ const WorkflowActions = styled('div')`
 const Workflow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

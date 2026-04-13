@@ -4,10 +4,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
@@ -25,7 +26,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectEventsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -95,6 +96,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         data_fn = partial(
             eventstore.backend.get_events,
             filter=event_filter,
+            eap_conditions=TraceItemFilter(),  # TODO: not currently taking the query into account
             referrer="api.project-events",
             tenant_ids={"organization_id": project.organization_id},
         )

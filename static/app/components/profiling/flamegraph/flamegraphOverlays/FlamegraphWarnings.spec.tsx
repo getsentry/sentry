@@ -15,7 +15,7 @@ const noDataProfile: Profiling.SampledProfile = {
   samples: [],
 };
 
-const noDataProfileGroup: Profiling.Schema = {
+const noDataProfileGroup = {
   activeProfileIndex: 0,
   profileID: '',
   profiles: [noDataProfile],
@@ -37,7 +37,7 @@ const onlySystemFramesProfile = {
   samples: [[0], [0]],
 };
 
-const onlySystemFramesProfileGroup: Profiling.Schema = {
+const onlySystemFramesProfileGroup = {
   ...noDataProfileGroup,
   profiles: [onlySystemFramesProfile],
   shared: {

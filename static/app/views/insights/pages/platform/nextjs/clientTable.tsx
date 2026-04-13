@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {

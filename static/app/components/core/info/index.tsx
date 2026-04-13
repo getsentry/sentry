@@ -1,2 +1,2 @@
 export {InfoText} from './infoText';
-export {InfoTip} from './infoTip';
+export {InfoTip, DisabledTip} from './infoTip';

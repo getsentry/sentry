@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 
 describe('showNewSeer', () => {
   describe('new seat-based Seer plan', () => {

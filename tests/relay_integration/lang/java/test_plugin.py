@@ -451,7 +451,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert len(response.json()) == 1
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -513,7 +512,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_value_only_class_names_are_deobfuscated(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -542,7 +540,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert "org.a.b.g$a" not in exc.value
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_value_only_multiple_exceptions_are_all_deobfuscated(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -576,7 +573,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_resolving_does_not_fail_when_no_value(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -621,7 +617,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert not metrics.get("flag.processing.error")
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_resolving_does_not_fail_when_no_module_or_function(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -678,7 +673,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert not metrics.get("flag.processing.error")
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_removes_frames_not_found_in_mapping_but_preserves_native_frames(self) -> None:
         """Test that outline frames are removed while native frames are preserved."""
         self.upload_proguard_mapping(PROGUARD_OUTLINE_UUID, PROGUARD_OUTLINE_SOURCE)
@@ -759,7 +753,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[2].instruction_addr == "0x79571a8000"
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_sets_inapp_after_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -843,7 +836,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[4].in_app is True
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_resolving_inline(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -906,7 +898,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].module == "io.sentry.sample.MainActivity"
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_resolving_inline_with_native_frames(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -994,7 +985,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_error_on_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -1099,7 +1089,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_basic_source_lookup(self) -> None:
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
@@ -1290,7 +1279,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @pytest.mark.skip(reason="flaky: #93951")
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_source_lookup_with_proguard(self) -> None:
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
@@ -1586,7 +1574,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_invalid_exception(self) -> None:
         event_data = {
             "user": {"ip_address": "31.172.207.97"},

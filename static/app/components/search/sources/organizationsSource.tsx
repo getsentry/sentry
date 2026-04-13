@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {t} from 'sentry/locale';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -21,7 +21,7 @@ type Props = {
   searchOptions?: Fuse.IFuseOptions<ResultItem>;
 };
 
-function OrganizationsSource({children, query, searchOptions}: Props) {
+export function OrganizationsSource({children, query, searchOptions}: Props) {
   const {organizations, loaded} = useLegacyStore(OrganizationsStore);
   const [fuzzy, setFuzzy] = useState<Fuse<ResultItem> | null>(null);
 
@@ -55,5 +55,3 @@ function OrganizationsSource({children, query, searchOptions}: Props) {
 
   return children({results, isLoading: !loaded});
 }
-
-export default OrganizationsSource;

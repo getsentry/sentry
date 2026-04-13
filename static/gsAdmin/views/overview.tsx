@@ -14,12 +14,11 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconSync} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
 
-import CustomerContact from 'admin/components/customerContact';
-import CustomerStatus from 'admin/components/customerStatus';
-import PercentChange from 'admin/components/percentChange';
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {PercentChange} from 'admin/components/percentChange';
 import ResultGrid from 'admin/components/resultGrid';
 
 /**
@@ -160,7 +159,7 @@ const getCustomerRow = (row: any) => [
 const CustomerName = styled('div')`
   display: grid;
   grid-template: max-content max-content / max-content 1fr;
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 
   > :first-child {
     grid-row: 1 / 3;
@@ -226,7 +225,7 @@ function CustomersByVolume() {
  * DEPRECATION WARNING
  * THIS COMPONENT WILL SOON BE REMOVED
  */
-function Overview() {
+export function Overview() {
   return (
     <OverviewContainer>
       <CustomersByVolume />
@@ -266,8 +265,8 @@ const OverviewContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-auto-flow: row;
-  gap: 0 ${space(2)};
-  margin-top: ${space(3)};
+  gap: 0 ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const SectionFull = styled('div')`
@@ -278,7 +277,5 @@ const SectionHeading = styled('h3')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
-
-export default Overview;

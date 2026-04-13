@@ -2,6 +2,33 @@ from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.lang.native.applecrashreport import AppleCrashReport
 
 
+def _make_acr_with_context():
+    return AppleCrashReport(
+        context={
+            "device": {
+                "arch": "x86",
+                "family": "iPhone",
+                "freeMemory": 169684992,
+                "memorySize": 17179869184,
+                "model": "iPhone9,1",
+                "simulator": True,
+                "storageSize": 249695305728,
+                "type": "device",
+                "usableMemory": 14919622656,
+            },
+            "os": {
+                "build": "16C67",
+                "bundleID": "com.rokkincat.SentryExample",
+                "bundleVersion": "2",
+                "kernel_version": "Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64",
+                "name": "iOS",
+                "type": "os",
+                "version": "10.2",
+            },
+        }
+    )
+
+
 def test_get_threads_apple_string() -> None:
     acr = AppleCrashReport(
         threads=[
@@ -92,6 +119,74 @@ def test_get_threads_apple_string() -> None:
 Thread 2 name: com.apple.test\n\
 0   SwiftExample                    0xf6c78             0xf0000 + 116\n\
 1   SwiftExample                    0xf6cd4             0xf0000 + 60"
+    )
+
+
+def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
+    """
+    When an exception's thread_id matches a thread's id, prefer the thread
+    entry (richer metadata) and skip the exception to avoid duplication.
+    """
+    acr = AppleCrashReport(
+        exceptions=[
+            {
+                "thread_id": 1,
+                "mechanism": {"type": "mach"},
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0x2c8000",
+                            "instruction_addr": "0x31c3e8",
+                            "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
+                        },
+                    ]
+                },
+            }
+        ],
+        threads=[
+            {
+                "crashed": True,
+                "id": 1,
+                "name": "com.apple.main-thread",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0x2c8000",
+                            "instruction_addr": "0x31c3e8",
+                            "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
+                        },
+                    ]
+                },
+            },
+            {
+                "crashed": False,
+                "id": 2,
+                "name": "background",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0xf0000",
+                            "instruction_addr": "0xf6c78",
+                            "symbol_addr": "0xf6c04",
+                            "package": "/path/to/BackgroundLib.framework/BackgroundLib",
+                        },
+                    ]
+                },
+            },
+        ],
+    )
+    threads = acr.get_threads_apple_string()
+    assert threads.count("Thread 1") == 1
+    assert threads.count("Thread 2") == 1
+    assert "com.apple.main-thread" in threads
+    assert (
+        threads
+        == "Thread 1 name: com.apple.main-thread Crashed:\n\
+0   MainApp                         0x31c3e8            0x2c8000 + 2544\n\n\
+Thread 2 name: background\n\
+0   BackgroundLib                   0xf6c78             0xf0000 + 116"
     )
 
 
@@ -489,30 +584,7 @@ def test_binary_images_without_code_file() -> None:
 
 
 def test__convert_debug_meta_to_binary_image_row() -> None:
-    acr = AppleCrashReport(
-        context={
-            "device": {
-                "arch": "x86",
-                "family": "iPhone",
-                "freeMemory": 169684992,
-                "memorySize": 17179869184,
-                "model": "iPhone9,1",
-                "simulator": True,
-                "storageSize": 249695305728,
-                "type": "device",
-                "usableMemory": 14919622656,
-            },
-            "os": {
-                "build": "16C67",
-                "bundleID": "com.rokkincat.SentryExample",
-                "bundleVersion": "2",
-                "kernel_version": "Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64",
-                "name": "iOS",
-                "type": "os",
-                "version": "10.2",
-            },
-        }
-    )
+    acr = _make_acr_with_context()
     binary_image = acr._convert_debug_meta_to_binary_image_row(
         debug_image={
             "cpu_subtype": 3,
@@ -528,6 +600,45 @@ def test__convert_debug_meta_to_binary_image_row() -> None:
     assert (
         binary_image
         == "0xd69a000 - 0xd712fff SentrySwift x86  <b427ae1dbf363b50936fd78a7d1c8340> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift"
+    )
+
+
+def test__convert_debug_meta_to_binary_image_row_debug_id_none() -> None:
+    acr = _make_acr_with_context()
+    binary_image = acr._convert_debug_meta_to_binary_image_row(
+        debug_image={
+            "cpu_subtype": 3,
+            "cpu_type": 16777223,
+            "image_addr": 0xD69A000,
+            "image_size": 495616,
+            "image_vmaddr": 0x0,
+            "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
+            "type": "apple",
+            "debug_id": None,
+        }
+    )
+    assert (
+        binary_image
+        == "0xd69a000 - 0xd712fff SentrySwift x86  <<unknown>> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift"
+    )
+
+
+def test__convert_debug_meta_to_binary_image_row_image_size_missing() -> None:
+    acr = _make_acr_with_context()
+    binary_image = acr._convert_debug_meta_to_binary_image_row(
+        debug_image={
+            "cpu_subtype": 3,
+            "cpu_type": 16777223,
+            "image_addr": 0xD69A000,
+            "image_vmaddr": 0x0,
+            "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
+            "type": "apple",
+            "debug_id": "B427AE1D-BF36-3B50-936F-D78A7D1C8340",
+        }
+    )
+    assert (
+        binary_image
+        == "0xd69a000 - <unknown> SentrySwift x86  <b427ae1dbf363b50936fd78a7d1c8340> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift"
     )
 
 

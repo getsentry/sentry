@@ -4,23 +4,22 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import type {ControlProps} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {APIRequestMethod} from 'sentry/api';
-import NewBooleanField from 'sentry/components/forms/fields/booleanField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
+import {useApi} from 'sentry/utils/useApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
@@ -28,11 +27,11 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 
-import ProjectSelectControl from './projectSelectControl';
+import {ProjectSelectControl} from './projectSelectControl';
 import {HalvedGrid} from './styles';
 import type {SpendAllocation} from './types';
 
@@ -125,7 +124,7 @@ function AllocationForm({
     return rootAllocation ? rootAllocation.costPerItem : 0;
   }, [rootAllocation]);
 
-  const allocationSpend: number = useMemo(() => {
+  const allocationSpend = useMemo(() => {
     return Number(((allocationVolume * costPerItem) / 100).toFixed(2));
   }, [allocationVolume, costPerItem]);
 
@@ -161,10 +160,6 @@ function AllocationForm({
     setAllocationVolume(quantity);
   };
 
-  const onTargetChange: ControlProps['onChange'] = selection => {
-    setTargetId(selection!.value);
-  };
-
   const spendToVolume = (spend: unknown) => {
     return costPerItem ? Math.ceil(Math.max(Number(spend), 0) / (costPerItem / 100)) : 0; // costPerItem is in cents while spend is in $
   };
@@ -198,7 +193,7 @@ function AllocationForm({
     const PATH = `/organizations/${organization.slug}/spend-allocations/`;
     try {
       await api.requestPromise(PATH, {
-        method: METHOD as APIRequestMethod,
+        method: METHOD as RequestMethod,
         data: {
           billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           target_id: targetId,
@@ -291,7 +286,9 @@ function AllocationForm({
                     : allocatedTargetIds[AllocationTargetTypes.PROJECT]!
                 }
                 value={targetId || ''}
-                onChange={onTargetChange}
+                onChange={selection => {
+                  setTargetId(selection.value);
+                }}
                 disabled={!!initializedData}
               />
             </HalvedGrid>

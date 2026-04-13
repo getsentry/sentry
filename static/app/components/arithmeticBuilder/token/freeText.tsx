@@ -18,8 +18,10 @@ import {
   isTokenLiteral,
   isTokenOperator,
   isTokenParenthesis,
+  isTokenReference,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
+import {Row} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextSimilarTokenKey,
   nextTokenKeyOfKind,
@@ -35,9 +37,7 @@ import {IconDivide} from 'sentry/icons/iconDivide';
 import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import type {AggregateParameter} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -131,14 +131,14 @@ function InternalInput({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {dispatch, aggregations, getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, aggregations, getFieldDefinition, references} = useArithmeticBuilder();
 
   const getNextFocusOverride = useCallback(
     (focusToken?: FocusToken): string => {
       if (defined(focusToken)) {
         if (focusToken.kind === TokenKind.FUNCTION) {
           const definition = getFieldDefinition(focusToken.func);
-          const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+          const parameterDefinitions = definition?.parameters ?? [];
           if (parameterDefinitions.length > 0) {
             // if they selected a function with arguments, move focus into the function argument
             return nextTokenKeyOfKind(state, token, TokenKind.FUNCTION);
@@ -157,7 +157,7 @@ function InternalInput({
   const getFunctionDefault = useCallback(
     (func: string): string => {
       const definition = getFieldDefinition(func);
-      const parameterDefinitions: AggregateParameter[] = definition?.parameters ?? [];
+      const parameterDefinitions = definition?.parameters ?? [];
       const parameters: string[] = parameterDefinitions.map(
         parameterDefinition => parameterDefinition.defaultValue ?? ''
       );
@@ -166,7 +166,7 @@ function InternalInput({
     [getFieldDefinition]
   );
 
-  const items: Array<SelectSectionWithKey<string>> = useSuggestionItems({
+  const items = useSuggestionItems({
     nextAllowedTokenKinds,
     allowedFunctions: aggregations,
     filterValue,
@@ -194,10 +194,23 @@ function InternalInput({
     (evt: ChangeEvent<HTMLInputElement>) => {
       const text = evt.target.value;
 
-      const tokens = tokenizeExpression(text);
+      const tokens = tokenizeExpression(text, references);
 
       for (const tok of tokens) {
         if (isTokenParenthesis(tok) || isTokenOperator(tok)) {
+          dispatch({
+            type: 'REPLACE_TOKEN',
+            token,
+            text,
+            focusOverride: {
+              itemKey: getNextFocusOverride(),
+            },
+          });
+          resetInputValue();
+          return;
+        }
+
+        if (isTokenReference(tok)) {
           dispatch({
             type: 'REPLACE_TOKEN',
             token,
@@ -273,6 +286,7 @@ function InternalInput({
       dispatch,
       getNextFocusOverride,
       getFunctionDefault,
+      references,
       resetInputValue,
       token,
     ]
@@ -283,9 +297,12 @@ function InternalInput({
       type: 'REPLACE_TOKEN',
       token,
       text: inputValue.trim(),
+      focusOverride: {
+        itemKey: getNextFocusOverride(),
+      },
     });
     resetInputValue();
-  }, [dispatch, inputValue, token, resetInputValue]);
+  }, [dispatch, inputValue, token, resetInputValue, getNextFocusOverride]);
 
   const onInputEscape = useCallback(() => {
     dispatch({
@@ -444,10 +461,14 @@ function useSuggestionItems({
     filterValue,
     nextAllowedTokenKinds,
   });
+  const referenceItems = useReferenceItems({nextAllowedTokenKinds});
 
   return useMemo(() => {
+    if (referenceItems.length > 0) {
+      return [...parenthesisItems, ...operatorItems, ...referenceItems];
+    }
     return [...parenthesisItems, ...operatorItems, ...functionItems];
-  }, [parenthesisItems, operatorItems, functionItems]);
+  }, [parenthesisItems, operatorItems, functionItems, referenceItems]);
 }
 
 function useParenthesisItems({
@@ -581,39 +602,41 @@ function useFunctionItems({
   }, [allowedFunctions, filterValue, nextAllowedTokenKinds]);
 }
 
+function useReferenceItems({
+  nextAllowedTokenKinds,
+}: {
+  nextAllowedTokenKinds: TokenKind[];
+}): Array<SelectSectionWithKey<string>> {
+  const {references} = useArithmeticBuilder();
+
+  return useMemo(() => {
+    if (
+      !references ||
+      references.size === 0 ||
+      !nextAllowedTokenKinds.includes(TokenKind.REFERENCE)
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        key: 'references',
+        label: t('references'),
+        options: [...references].map(key => ({
+          key: `${TokenKind.REFERENCE}:${key}`,
+          label: key,
+          value: key,
+          textValue: key,
+          hideCheck: true,
+        })),
+      },
+    ];
+  }, [references, nextAllowedTokenKinds]);
+}
+
 function stopPropagation(evt: MouseEvent<HTMLElement>) {
   evt.stopPropagation();
 }
-
-const Row = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 24px;
-  max-width: 100%;
-
-  &:last-child {
-    flex-grow: 1;
-  }
-
-  &[aria-invalid='true'] {
-    input {
-      color: ${p => p.theme.colors.red500};
-    }
-  }
-
-  &[aria-selected='true'] {
-    [data-hidden-text='true']::before {
-      content: '';
-      position: absolute;
-      left: ${space(0.5)};
-      right: ${space(0.5)};
-      top: 0;
-      bottom: 0;
-      background-color: ${p => p.theme.colors.gray100};
-    }
-  }
-`;
 
 const GridCell = styled('div')`
   position: relative;
@@ -623,7 +646,7 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space.xs};
     min-width: 9px;
     width: 100%;
   }

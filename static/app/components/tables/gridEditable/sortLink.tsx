@@ -20,7 +20,7 @@ type Props = {
   replace?: boolean;
 };
 
-function SortLink({
+export function SortLink({
   align,
   title,
   canSort,
@@ -96,5 +96,3 @@ const StyledNonLink = styled('div')<{align: Alignments}>`
 const StyledIconArrow = styled(IconArrow)`
   vertical-align: top;
 `;
-
-export default SortLink;

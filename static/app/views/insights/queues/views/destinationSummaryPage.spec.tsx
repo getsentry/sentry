@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -23,7 +23,7 @@ describe('destinationSummaryPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/queues/destination/`,
       query: {statsPeriod: '10d', project: project.id},
     },
-    route: `/organizations/:orgId/insights/backend/queues/destination/`,
+    route: '/organizations/:orgId/insights/backend/queues/destination/',
   };
 
   jest.mocked(useReleaseStats).mockReturnValue({

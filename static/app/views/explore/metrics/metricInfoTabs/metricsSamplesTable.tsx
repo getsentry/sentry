@@ -1,16 +1,17 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
+  getTraceSamplesTableFields,
   TraceSamplesTableColumns,
   TraceSamplesTableEmbeddedColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
-import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {
   StyledSimpleTable,
   StyledSimpleTableBody,
@@ -23,17 +24,14 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
 const TWO_MINUTE_DELAY = 120;
-const MAX_TELEMETRY_WIDTH = 40;
 
 export const SAMPLES_PANEL_MIN_WIDTH = 350;
-export const WIDTH_WITH_TELEMETRY_ICONS_VISIBLE =
-  SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3;
 
 interface MetricsSamplesTableProps {
   embedded?: boolean;
@@ -49,7 +47,7 @@ export function MetricsSamplesTable({
   overrideTableData,
 }: MetricsSamplesTableProps) {
   const columns = embedded ? TraceSamplesTableEmbeddedColumns : TraceSamplesTableColumns;
-  const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
+  const fields = getTraceSamplesTableFields(columns);
 
   const {
     result: {data},
@@ -64,20 +62,23 @@ export function MetricsSamplesTable({
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
   });
 
-  const traceIds = useMemo(() => {
-    if (!data || embedded) {
-      return [];
-    }
-    return data.map(row => row[TraceMetricKnownFieldKey.TRACE]).filter(Boolean);
-  }, [data, embedded]);
-
-  const {data: telemetryData} = useTraceTelemetry({
-    enabled: Boolean(traceMetric?.name) && traceIds.length > 0 && !embedded,
-    traceIds,
-  });
+  const metaWithValueUnit = useMemo<EventsMetaType>(() => {
+    const {fieldType, unit} = mapMetricUnitToFieldType(traceMetric?.unit);
+    return {
+      ...meta,
+      fields: {
+        ...meta.fields,
+        [TraceMetricKnownFieldKey.METRIC_VALUE]: fieldType,
+      },
+      units: {
+        ...meta.units,
+        [TraceMetricKnownFieldKey.METRIC_VALUE]: unit ?? '',
+      },
+    };
+  }, [meta, traceMetric?.unit]);
 
   return (
-    <SimpleTableWithHiddenColumns numColumns={columns.length - 1} embedded={embedded}>
+    <SimpleTableGrid embedded={embedded}>
       {isFetching && <TransparentLoadingMask />}
       <MetricsSamplesTableHeader columns={columns} embedded={embedded} />
       <StyledSimpleTableBody>
@@ -90,9 +91,8 @@ export function MetricsSamplesTable({
             <SampleTableRow
               key={i}
               row={row}
-              telemetryData={telemetryData}
               columns={columns}
-              meta={meta}
+              meta={metaWithValueUnit}
               embedded={embedded}
             />
           ))
@@ -106,42 +106,16 @@ export function MetricsSamplesTable({
           </SimpleTable.Empty>
         )}
       </StyledSimpleTableBody>
-    </SimpleTableWithHiddenColumns>
+    </SimpleTableGrid>
   );
 }
 
-const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{
+const SimpleTableGrid = styled(StyledSimpleTable)<{
   embedded: boolean;
-  numColumns: number;
 }>`
-  grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
+  grid-template-columns: ${p =>
+    p.embedded
+      ? 'min-content min-content min-content minmax(0, 1fr) min-content min-content'
+      : 'min-content min-content minmax(0, 1fr) min-content min-content'};
   grid-column: 1 / -1;
-
-  ${p =>
-    !p.embedded &&
-    `
-    @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3}px) {
-      grid-template-columns: repeat(${p.numColumns - 1}, min-content) 1fr;
-
-      [data-column-name='errors'] {
-        display: none;
-      }
-    }
-
-    @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 2}px) {
-      grid-template-columns: repeat(${p.numColumns - 2}, min-content) 1fr;
-
-      [data-column-name='spans'] {
-        display: none;
-      }
-    }
-
-    @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 1}px) {
-      grid-template-columns: repeat(${p.numColumns - 3}, min-content) 1fr;
-
-      [data-column-name='logs'] {
-        display: none;
-      }
-    }
-  `}
 `;

@@ -316,7 +316,7 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         # Only create issues if the detection was successful
         if finish_reason == MissingSdkIntegrationFinishReason.SUCCESS:
             for integration in missing_integrations:
-                description = f"{integration.summary}\n\n" f"Learn more: {integration.docs_url}"
+                description = f"{integration.summary}\n\nLearn more: {integration.docs_url}"
 
                 logger.info(
                     "missing_sdk_integration_detector.issue_would_be_created",

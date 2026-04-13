@@ -7,7 +7,7 @@ import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import AlertRuleDetails from './ruleDetails';
 

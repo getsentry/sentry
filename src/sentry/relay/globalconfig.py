@@ -16,14 +16,14 @@ RELAY_OPTIONS: list[str] = [
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
     "profiling.profile_metrics.unsampled_profiles.enabled",
     "relay.span-usage-metric",
-    "relay.cardinality-limiter.mode",
-    "relay.cardinality-limiter.error-sample-rate",
     "relay.eap-outcomes.rollout-rate",
+    "relay.eap-span-outcomes.rollout-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.sessions-eap.rollout-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
+    "relay.objectstore-attachments.sample-rate",
 ]
 
 

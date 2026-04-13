@@ -32,7 +32,7 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def rule(self) -> Rule:
-        rule = self.event.project.rule_set.all()[0]
+        rule = self.event.project.rule_set.all().order_by("id")[0]
         rule.data["actions"][0]["legacy_rule_id"] = rule.id
         rule.save()
         return rule
@@ -72,7 +72,7 @@ class GroupRecordsTestCase(TestCase):
 
     @cached_property
     def rule(self) -> Rule:
-        return self.project.rule_set.all()[0]
+        return self.project.rule_set.all().order_by("id")[0]
 
     def test_success(self) -> None:
         events = [

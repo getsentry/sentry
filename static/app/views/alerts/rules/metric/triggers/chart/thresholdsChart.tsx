@@ -6,15 +6,22 @@ import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'ec
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {
+  axisLabelFormatterUsingAggregateOutputType,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleThresholdType,
@@ -22,7 +29,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
-import {alertAxisFormatter, alertTooltipValueFormatter} from 'sentry/views/alerts/utils';
+import {alertAxisFormatter, isSessionAggregate} from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 type DefaultProps = {
@@ -45,13 +52,15 @@ type Props = DefaultProps & {
   maxValue?: number;
   minValue?: number;
   minutesThresholdToDisplaySeconds?: number;
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
 } & Partial<PageFilters['datetime']>;
 
 const CHART_GRID = {
-  left: space(2),
-  right: space(2),
-  top: space(4),
-  bottom: space(2),
+  left: '16px',
+  right: '16px',
+  top: '32px',
+  bottom: '16px',
 };
 
 // Colors to use for trigger thresholds
@@ -104,7 +113,7 @@ function getYAxisBounds(
  * This chart displays shaded regions that represent different Trigger thresholds in a
  * Metric Alert rule.
  */
-export default class ThresholdsChart extends PureComponent<Props> {
+export class ThresholdsChart extends PureComponent<Props> {
   static defaultProps: DefaultProps = {
     data: [],
     comparisonData: [],
@@ -206,6 +215,8 @@ export default class ThresholdsChart extends PureComponent<Props> {
       resolveThreshold,
       anomalies = [],
       theme,
+      timeseriesResultsTypes,
+      timeseriesResultsUnits,
     } = this.props;
 
     const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
@@ -230,12 +241,34 @@ export default class ThresholdsChart extends PureComponent<Props> {
       })
     );
 
+    // Resolve output type and unit from server-provided metadata, falling back
+    // to inferring from the aggregate string when not available.
+    const outputType =
+      timeseriesResultsTypes?.[aggregate] ?? aggregateOutputType(aggregate);
+    const dataUnit = timeseriesResultsUnits?.[aggregate];
+    const isDurationChart = outputType === 'duration';
+    const durationUnit = isDurationChart
+      ? getDurationUnit(dataWithoutRecentBucket, undefined, dataUnit)
+      : undefined;
+    const rateUnit = Object.values(RateUnit).includes(
+      timeseriesResultsUnits?.[aggregate] as RateUnit
+    )
+      ? (timeseriesResultsUnits?.[aggregate] as RateUnit)
+      : undefined;
+
     const chartOptions = {
       tooltip: {
         // use the main aggregate for all series (main, min, max, avg, comparison)
         // to format all values similarly
-        valueFormatter: (value: number) =>
-          alertTooltipValueFormatter(value, aggregate, aggregate),
+        valueFormatter: (value: number) => {
+          if (isSessionAggregate(aggregate)) {
+            return defined(value) ? `${value}%` : '\u2015';
+          }
+          const type =
+            timeseriesResultsTypes?.[aggregate] ?? aggregateOutputType(aggregate);
+          const unit = timeseriesResultsUnits?.[aggregate];
+          return tooltipFormatter(value, type, unit);
+        },
 
         formatAxisLabel: (
           value: number,
@@ -305,8 +338,20 @@ export default class ThresholdsChart extends PureComponent<Props> {
           resolveThreshold === '' ? null : resolveThreshold
         ),
         axisLabel: {
-          formatter: (value: number) =>
-            alertAxisFormatter(value, data[0]!.seriesName, aggregate),
+          formatter: (value: number) => {
+            if (timeseriesResultsTypes && !isSessionAggregate(aggregate)) {
+              return axisLabelFormatterUsingAggregateOutputType(
+                value,
+                outputType,
+                true,
+                durationUnit,
+                rateUnit,
+                0,
+                dataUnit
+              );
+            }
+            return alertAxisFormatter(value, data[0]!.seriesName, aggregate);
+          },
         },
         splitLine: {
           show: false,

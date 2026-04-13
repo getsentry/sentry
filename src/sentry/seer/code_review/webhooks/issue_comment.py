@@ -50,8 +50,8 @@ def handle_issue_comment_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
-    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -64,7 +64,7 @@ def handle_issue_comment_event(
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
-        logger.info(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        logger.info(Log.UNSUPPORTED_ACTION.value)
         return
 
     comment = event.get("comment", {})
@@ -77,14 +77,14 @@ def handle_issue_comment_event(
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.NOT_PR_COMMENT
         )
-        logger.info(Log.NOT_PR_COMMENT.value, extra=extra)
+        logger.info(Log.NOT_PR_COMMENT.value)
         return
 
     if not is_pr_review_command(comment_body or ""):
         record_webhook_filtered(
             github_event, github_event_action, WebhookFilteredReason.NOT_REVIEW_COMMAND
         )
-        logger.info(Log.NOT_REVIEW_COMMAND.value, extra=extra)
+        logger.info(Log.NOT_REVIEW_COMMAND.value)
         return
 
     if comment_id:
@@ -104,7 +104,6 @@ def handle_issue_comment_event(
             comment_id=str(comment_id),
             reactions_to_delete=reactions_to_delete,
             reaction_to_add=GitHubReaction.EYES,
-            extra=extra,
         )
 
     target_commit_sha = _get_target_commit_sha(github_event, event, repo, integration)
@@ -118,4 +117,5 @@ def handle_issue_comment_event(
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
+        tags=tags,
     )

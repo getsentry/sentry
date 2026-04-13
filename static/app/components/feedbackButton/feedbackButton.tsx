@@ -51,7 +51,7 @@ interface Props extends Omit<ButtonProps, 'children'> {
  *
  * @returns A Button that opens the feedback widget on click, or null if feedback is not enabled
  */
-export default function FeedbackButton({feedbackOptions, ...buttonProps}: Props) {
+export function FeedbackButton({feedbackOptions, ...buttonProps}: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const openForm = useFeedbackForm();
 

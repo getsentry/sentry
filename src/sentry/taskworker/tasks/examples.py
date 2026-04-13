@@ -4,10 +4,11 @@ import logging
 from time import sleep
 from typing import Any
 
-from sentry.taskworker.constants import CompressionType
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
+from taskbroker_client.retry import retry_task as retry_task_helper
+
 from sentry.taskworker.namespaces import exampletasks
-from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
-from sentry.taskworker.retry import retry_task as retry_task_helper
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -19,14 +20,16 @@ def say_hello(name: str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
 
 
 @exampletasks.register(
-    name="examples.retry_deadletter", retry=Retry(times=2, times_exceeded=LastAction.Deadletter)
+    name="examples.retry_deadletter",
+    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),
 )
 def retry_deadletter() -> None:
     raise RetryTaskError
 
 
 @exampletasks.register(
-    name="examples.retry_state", retry=Retry(times=2, times_exceeded=LastAction.Deadletter)
+    name="examples.retry_state",
+    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),
 )
 def retry_state() -> None:
     try:

@@ -12,7 +12,7 @@ export function formatSort<F extends string>(
   fallback: Sort<F>
 ): Sort<F> {
   value = value || '';
-  const order: Sort<F>['order'] = value[0] === '-' ? 'desc' : 'asc';
+  const order = value[0] === '-' ? 'desc' : 'asc';
   const key = order === 'asc' ? value : value.substring(1);
 
   if (!allowedKeys.includes(key as F)) {

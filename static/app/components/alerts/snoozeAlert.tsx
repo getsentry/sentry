@@ -7,10 +7,10 @@ import {Grid} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   hasAccess: boolean;
@@ -26,7 +26,7 @@ type Props = {
   ruleId?: string;
 };
 
-function SnoozeAlert({
+export function SnoozeAlert({
   isSnoozed,
   onSnooze,
   projectSlug,
@@ -158,8 +158,6 @@ function SnoozeAlert({
     </Grid>
   );
 }
-
-export default SnoozeAlert;
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;

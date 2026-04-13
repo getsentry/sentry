@@ -20,7 +20,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -140,7 +140,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             )
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleProjects(Model):
     """
     Specify a project for the AlertRule
@@ -172,7 +172,7 @@ class ComparisonDeltaChoices(models.IntegerChoices):
     ONE_MONTH = (2592000, "1 month ago")
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -289,7 +289,7 @@ class AlertRuleThresholdType(Enum):
     ABOVE_AND_BELOW = 2
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleTrigger(Model):
     """
     This model represents the *threshold* trigger for an AlertRule
@@ -393,7 +393,7 @@ class _FactoryRegistry:
         self.by_slug[factory.slug] = factory
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
     This model represents an action that occurs when a trigger (over/under) is fired. This is
@@ -589,7 +589,7 @@ class AlertRuleActivityType(Enum):
     DEACTIVATED = 8
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleActivity(Model):
     """
     Provides an audit log of activity for the alert rule

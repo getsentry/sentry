@@ -4,8 +4,9 @@ import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSup
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {OnboardingTask, OnboardingTaskDescriptor} from 'sentry/types/onboarding';
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -59,7 +60,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects?.length) {
     return makeProjectsPathname({
-      path: `/:projectId/getting-started/`,
+      path: '/:projectId/getting-started/',
       organization,
     });
   }
@@ -69,7 +70,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
     return makeProjectsPathname({
-      path: `/:projectId/getting-started/`,
+      path: '/:projectId/getting-started/',
       organization,
     });
   }
@@ -228,11 +229,11 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'action',
-      action: router => {
+      action: ({navigate, location}) => {
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(performanceUrl, router);
+          navigateTo(performanceUrl, navigate, location);
           return;
         }
 
@@ -240,21 +241,23 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(performanceUrl, router);
+          navigateTo(performanceUrl, navigate, location);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
             `${performanceUrl}?project=${projectsForOnboarding[0]!.id}#performance-sidequest`,
-            router
+            navigate,
+            location
           );
           return;
         }
 
         navigateTo(
           `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0]!.id}#performance-sidequest`,
-          router
+          navigate,
+          location
         );
       },
       display: true,
@@ -267,8 +270,8 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'action',
-      action: router => {
-        router.push({
+      action: ({navigate}) => {
+        navigate({
           pathname: makeReplaysPathname({
             path: '/',
             organization,

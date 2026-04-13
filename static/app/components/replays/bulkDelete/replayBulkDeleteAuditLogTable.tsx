@@ -3,20 +3,19 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 
-export default function ReplayBulkDeleteAuditLogTable({
+export function ReplayBulkDeleteAuditLogTable({
   error,
   isPending,
   rows,
 }: {
-  error: RequestError | null;
+  error: Error | null;
   isPending: boolean;
   rows: ReplayBulkDeleteAuditLog[] | undefined;
 }) {
@@ -80,18 +79,17 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content max-content 1fr max-content max-content;
 `;
 
-function getErrorMessage(fetchError: RequestError) {
-  if (typeof fetchError === 'string') {
-    return fetchError;
-  }
-  if (typeof fetchError?.responseJSON?.detail === 'string') {
-    return fetchError.responseJSON.detail;
-  }
-  if (fetchError?.responseJSON?.detail?.message) {
-    return fetchError.responseJSON.detail.message;
-  }
-  if (fetchError.name === ERROR_MAP[500]) {
-    return t('There was an internal systems error.');
+function getErrorMessage(fetchError: Error) {
+  if (fetchError instanceof RequestError) {
+    if (typeof fetchError?.responseJSON?.detail === 'string') {
+      return fetchError.responseJSON.detail;
+    }
+    if (fetchError?.responseJSON?.detail?.message) {
+      return fetchError.responseJSON.detail.message;
+    }
+    if (fetchError.name === ERROR_MAP[500]) {
+      return t('There was an internal systems error.');
+    }
   }
   return t(
     'This could be due to invalid search parameters or an internal systems error.'
@@ -101,5 +99,5 @@ function getErrorMessage(fetchError: RequestError) {
 const Query = styled('dl')`
   max-width: 100%;
   overflow: scroll;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;

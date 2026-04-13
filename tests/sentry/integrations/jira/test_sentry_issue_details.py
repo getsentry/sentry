@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.types.region import Region, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.http import absolute_uri
 
 pytestmark = [requires_snuba]
@@ -25,8 +25,8 @@ pytestmark = [requires_snuba]
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"
 CLICK_TO_FINISH = b"Click to Finish Installation"
 
-us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 region_config = (us, de)
 
 
@@ -173,7 +173,7 @@ class JiraIssueHookTest(APITestCase):
         assert b"This Sentry issue is not linked to a Jira issue" in response.content
 
 
-@control_silo_test(regions=region_config)
+@control_silo_test(cells=region_config)
 class JiraIssueHookControlTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -193,8 +193,8 @@ class JiraIssueHookControlTest(APITestCase):
             },
         )
 
-        with assume_test_silo_mode(SiloMode.REGION, region_name="us"):
-            self.us_org = self.create_organization(region="us")
+        with assume_test_silo_mode(SiloMode.CELL, cell_name="us"):
+            self.us_org = self.create_organization(cell="us")
             self.us_project = Project.objects.create(organization=self.us_org)
             self.first_release = self.create_release(
                 project=self.us_project, version="v1.0", date_added=self.first_seen
@@ -215,8 +215,8 @@ class JiraIssueHookControlTest(APITestCase):
                 integration=self.integration,
                 key=self.issue_key,
             )
-        with assume_test_silo_mode(SiloMode.REGION, region_name="de"):
-            self.de_org = self.create_organization(region="de")
+        with assume_test_silo_mode(SiloMode.CELL, cell_name="de"):
+            self.de_org = self.create_organization(cell="de")
             self.de_project = Project.objects.create(organization=self.de_org)
             self.de_group = self.create_group(
                 self.de_project,
@@ -258,26 +258,22 @@ class JiraIssueHookControlTest(APITestCase):
         assert response.status_code == 200
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
 
-    @patch.object(ExternalIssue.objects, "get")
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
     def test_simple_get(
         self,
         mock_get_integration_from_request: MagicMock,
-        mock_get_external_issue: MagicMock,
     ) -> None:
         responses.add(
             responses.PUT, self.properties_url % (self.issue_key, self.properties_key), json={}
         )
-
-        mock_get_external_issue.side_effect = [self.de_external_issue, self.us_external_issue]
-
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200
         resp_content = response.content.decode()
 
         for group in [self.us_group, self.de_group]:
+            assert group.title in resp_content
             assert group.get_absolute_url() in resp_content
 
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")

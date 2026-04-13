@@ -2,7 +2,7 @@ import {FeedbackIssueFixture} from 'sentry-fixture/feedbackIssue';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import {FeedbackItemUsername} from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 
 describe('FeedbackItemUsername', () => {
   let seerSetupMock: any;
@@ -148,7 +148,7 @@ describe('FeedbackItemUsername', () => {
 
       render(<FeedbackItemUsername feedbackIssue={issue} />, {
         organization: {
-          features: ['user-feedback-ai-titles', 'gen-ai-features'],
+          features: ['gen-ai-features'],
         },
       });
 
@@ -168,17 +168,12 @@ describe('FeedbackItemUsername', () => {
     it.each([
       {
         description: 'AI features are disabled',
-        features: ['user-feedback-ai-titles'],
-        summary: 'Login issue with payment flow',
-      },
-      {
-        description: 'user feedback AI titles are disabled',
-        features: ['gen-ai-features'],
+        features: [] as string[],
         summary: 'Login issue with payment flow',
       },
       {
         description: 'AI features enabled but summary is null',
-        features: ['user-feedback-ai-titles', 'gen-ai-features'],
+        features: ['gen-ai-features'],
         summary: null,
       },
     ])(

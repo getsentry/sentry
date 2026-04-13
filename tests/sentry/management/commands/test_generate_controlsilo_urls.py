@@ -27,9 +27,12 @@ class TestGenerateControlsiloUrls(TestCase):
     def test_render_code(self) -> None:
         result = self.call_command(format="js")
         assert "new RegExp('^api/0/users/$')," in result
-        assert "new RegExp('^api/0/internal/integration-proxy/$')," in result
-        assert "const patterns" in result
-        assert "export default patterns;" in result
+        assert "export const controlsiloUrlPatterns: RegExp[] = [" in result
+
+        assert "api/0/internal/org-cell-mappings" not in result
+        assert "api/0/internal/projectkey-cell-mappings" not in result
+        assert "api/0/internal/integration-proxy" not in result
+        assert "api/0/internal/rpc" not in result
 
     def test_write_file(self) -> None:
         with tempfile.NamedTemporaryFile() as tf:
@@ -37,8 +40,7 @@ class TestGenerateControlsiloUrls(TestCase):
             tf.seek(0)
             result = tf.read().decode("utf8")
         assert "This is generated code" in result
-        assert "const patterns" in result
-        assert "export default patterns;" in result
+        assert "export const controlsiloUrlPatterns: RegExp[] = [" in result
         assert "new RegExp('^api/0/users/$')," in result
         # Wizard is an HTML view that gets POST from UI code.
         assert "new RegExp('^account/settings/wizard/[^/]+/$')," in result

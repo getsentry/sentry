@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -47,7 +47,7 @@ class DiscoverSavedQueryBase(OrganizationEndpoint):
 
 
 @extend_schema(tags=["Discover"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -167,7 +167,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,

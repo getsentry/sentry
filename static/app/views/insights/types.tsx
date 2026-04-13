@@ -129,6 +129,13 @@ export enum SpanFields {
   AI_TOTAL_COST = 'ai.total_cost',
   AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
 
+  // Span Operation Breakdown fields
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_RESOURCE = 'spans.resource',
+  SPANS_UI = 'spans.ui',
+
   // DB fields
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
@@ -253,7 +260,11 @@ export type SpanNumberFields =
   | SpanFields.TTFD;
 
 // TODO: Enforce that these fields all come from SpanFields
-export type SpanStringFields =
+// These fields should never be `null` when coming from the backend. This list
+// is _not_ up-to-date! If you discover more nullable string fields, update this
+// list. In theory, maybe _all_ of these fields are actually nullable in
+// reality, which means we'll need to update a lot of code.
+export type NonNullableStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD
@@ -265,6 +276,7 @@ export type SpanStringFields =
   | SpanFields.KIND
   | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
+  | SpanFields.GEN_AI_FUNCTION_ID
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_REQUEST_MESSAGES
   | SpanFields.GEN_AI_INPUT_MESSAGES
@@ -300,7 +312,6 @@ export type SpanStringFields =
   | SpanFields.DEVICE_CLASS
   | SpanFields.SPAN_ACTION
   | SpanFields.SPAN_DOMAIN
-  | SpanFields.NORMALIZED_DESCRIPTION
   | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
   | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
@@ -310,7 +321,6 @@ export type SpanStringFields =
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_CATEGORY
   | SpanFields.SPAN_SYSTEM
   | SpanFields.TIMESTAMP
@@ -326,6 +336,10 @@ export type SpanStringFields =
   | SpanFields.PROFILER_ID
   | SpanFields.USER_DISPLAY
   | SpanFields.SENTRY_ORIGIN;
+
+type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
+
+export type SpanStringFields = NullableStringFields | NonNullableStringFields;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
@@ -491,7 +505,9 @@ type SpanResponseRaw = {
 } & {
   [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
 } & {
-  [Property in SpanStringFields as `${Property}`]: string;
+  [Property in NonNullableStringFields as `${Property}`]: string;
+} & {
+  [Property in NullableStringFields as `${Property}`]: string | null;
 } & {
   [Property in SpanNumberFields as `${Property}`]: number;
 } & {

@@ -13,7 +13,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     provider = PerforceIntegrationProvider
     installation: PerforceIntegration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -30,21 +30,21 @@ class PerforceIntegrationTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
-    def test_format_source_url_absolute_path(self):
+    def test_format_source_url_absolute_path(self) -> None:
         """Test formatting URL with absolute depot path"""
         url = self.installation.format_source_url(
             repo=self.repo, filepath="//depot/app/services/processor.cpp", branch=None
         )
         assert url == "p4://depot/app/services/processor.cpp"
 
-    def test_format_source_url_relative_path(self):
+    def test_format_source_url_relative_path(self) -> None:
         """Test formatting URL with relative path - should prepend depot_path"""
         url = self.installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp", branch=None
         )
         assert url == "p4://depot/app/services/processor.cpp"
 
-    def test_format_source_url_path_starting_with_depot_name(self):
+    def test_format_source_url_path_starting_with_depot_name(self) -> None:
         """Test that paths starting with depot name don't get duplicated (depot/app -> //depot/app not //depot/depot/app)"""
         url = self.installation.format_source_url(
             repo=self.repo, filepath="depot/app/services/processor.cpp", branch=None
@@ -52,7 +52,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         # Should strip "depot/" prefix and prepend "//depot/" -> "//depot/app/services/processor.cpp"
         assert url == "p4://depot/app/services/processor.cpp"
 
-    def test_format_source_url_absolute_path_starting_with_depot_name(self):
+    def test_format_source_url_absolute_path_starting_with_depot_name(self) -> None:
         """Test that absolute paths with depot name are handled correctly (//depot/app stays as //depot/app)"""
         url = self.installation.format_source_url(
             repo=self.repo, filepath="//depot/app/services/processor.cpp", branch=None
@@ -60,7 +60,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         # Should preserve as-is (already absolute)
         assert url == "p4://depot/app/services/processor.cpp"
 
-    def test_format_source_url_with_revision_in_filename(self):
+    def test_format_source_url_with_revision_in_filename(self) -> None:
         """
         Test formatting URL with revision in filename (from Symbolic transformer).
         Perforce uses # for file revisions, which should be preserved.
@@ -70,7 +70,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "p4://depot/app/services/processor.cpp#1"
 
-    def test_format_source_url_swarm_viewer(self):
+    def test_format_source_url_swarm_viewer(self) -> None:
         """Test formatting URL for Swarm viewer with revision"""
         integration_with_swarm = self.create_integration(
             organization=self.organization,
@@ -93,7 +93,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp?v=1"
 
-    def test_format_source_url_swarm_viewer_no_revision(self):
+    def test_format_source_url_swarm_viewer_no_revision(self) -> None:
         """Test formatting URL for Swarm viewer without revision"""
         integration_with_swarm = self.create_integration(
             organization=self.organization,
@@ -116,7 +116,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
 
-    def test_format_source_url_swarm_viewer_absolute_path(self):
+    def test_format_source_url_swarm_viewer_absolute_path(self) -> None:
         """Test Swarm viewer with absolute path (//depot/...)"""
         integration_with_swarm = self.create_integration(
             organization=self.organization,
@@ -140,7 +140,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
         assert "depot/depot" not in url
 
-    def test_format_source_url_swarm_viewer_depot_name_path(self):
+    def test_format_source_url_swarm_viewer_depot_name_path(self) -> None:
         """Test Swarm viewer with path starting with depot name (depot/...)"""
         integration_with_swarm = self.create_integration(
             organization=self.organization,
@@ -164,14 +164,14 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
         assert "depot/depot" not in url
 
-    def test_format_source_url_strips_leading_slash_from_relative_path(self):
+    def test_format_source_url_strips_leading_slash_from_relative_path(self) -> None:
         """Test that leading slash is stripped from relative paths"""
         url = self.installation.format_source_url(
             repo=self.repo, filepath="/app/services/processor.cpp", branch=None
         )
         assert url == "p4://depot/app/services/processor.cpp"
 
-    def test_format_source_url_uses_repo_name_as_fallback_depot(self):
+    def test_format_source_url_uses_repo_name_as_fallback_depot(self) -> None:
         """Test that repo name is used as depot_path fallback"""
         repo_without_config = Repository.objects.create(
             name="//myproject",
@@ -249,11 +249,11 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert url == "p4://depot/app/services/processor.cpp#1"
         assert "#1" in url
 
-    def test_integration_name(self):
+    def test_integration_name(self) -> None:
         """Test integration has correct name"""
         assert self.installation.model.name == "Perforce"
 
-    def test_integration_provider(self):
+    def test_integration_provider(self) -> None:
         """Test integration has correct provider"""
         assert self.installation.model.provider == "perforce"
 
@@ -263,7 +263,7 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
 
     provider = PerforceIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -280,7 +280,7 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
-    def test_format_source_url_from_code_mapping_output(self):
+    def test_format_source_url_from_code_mapping_output(self) -> None:
         """
         Test that paths coming from code mapping (depot/ -> /) work correctly.
         Code mapping strips 'depot/' and leaves 'app/services/processor.cpp',
@@ -296,7 +296,7 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
         # Should prepend depot_path to create full depot path
         assert url == "p4://depot/app/services/processor.cpp"
 
-    def test_format_source_url_preserves_revision_in_filename(self):
+    def test_format_source_url_preserves_revision_in_filename(self) -> None:
         """
         Test that #revision syntax in filename is preserved.
         This tests the Symbolic transformer output format.
@@ -311,7 +311,7 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
         # The #1 should be preserved in the path
         assert url == "p4://depot/app/services/processor.cpp#1"
 
-    def test_format_source_url_python_path_without_revision(self):
+    def test_format_source_url_python_path_without_revision(self) -> None:
         """Test Python SDK paths without revision"""
         # Python SDK typically doesn't include revisions
         python_path = "app/services/processor.py"
@@ -326,7 +326,7 @@ class PerforceIntegrationDepotPathTest(IntegrationTestCase):
 
     provider = PerforceIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -336,7 +336,7 @@ class PerforceIntegrationDepotPathTest(IntegrationTestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
-    def test_multiple_depots(self):
+    def test_multiple_depots(self) -> None:
         """Test handling multiple depot configurations"""
         depot_repo = Repository.objects.create(
             name="//depot",
@@ -364,7 +364,7 @@ class PerforceIntegrationDepotPathTest(IntegrationTestCase):
         )
         assert url2 == "p4://myproject/app/services/processor.cpp"
 
-    def test_nested_depot_paths(self):
+    def test_nested_depot_paths(self) -> None:
         """Test handling nested depot paths"""
         repo = Repository.objects.create(
             name="//depot/game/project",
@@ -376,7 +376,7 @@ class PerforceIntegrationDepotPathTest(IntegrationTestCase):
         url = self.installation.format_source_url(repo=repo, filepath="src/main.cpp", branch=None)
         assert url == "p4://depot/game/project/src/main.cpp"
 
-    def test_depot_path_with_trailing_slash(self):
+    def test_depot_path_with_trailing_slash(self) -> None:
         """Test depot_path with trailing slash is handled correctly"""
         repo = Repository.objects.create(
             name="//depot",
@@ -397,7 +397,7 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
 
     provider = PerforceIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -414,7 +414,7 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
-    def test_swarm_extracts_revision_from_filename(self):
+    def test_swarm_extracts_revision_from_filename(self) -> None:
         """Test Swarm viewer correctly extracts and formats revision from #revision syntax"""
         integration_with_swarm = self.create_integration(
             organization=self.organization,
@@ -452,7 +452,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 
     provider = PerforceIntegrationProvider
 
-    def test_integration_lifecycle(self):
+    def test_integration_lifecycle(self) -> None:
         """Test complete integration lifecycle from installation to updates"""
 
         # Step 1: Simulate installation with build_integration

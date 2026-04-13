@@ -17,6 +17,7 @@ from sentry.users.services.user import RpcUser
 class SentryAppInstallationAppResult(TypedDict):
     uuid: str
     slug: str
+    sentryAppId: int
 
 
 class SentryAppInstallationOrganizationResult(TypedDict):
@@ -64,7 +65,11 @@ class SentryAppInstallationSerializer(Serializer):
     ) -> SentryAppInstallationResult:
         access = kwargs.get("access")
         data: SentryAppInstallationResult = {
-            "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
+            "app": {
+                "uuid": attrs["sentry_app"].uuid,
+                "slug": attrs["sentry_app"].slug,
+                "sentryAppId": attrs["sentry_app"].id,
+            },
             "organization": {"slug": attrs["organization"].slug, "id": attrs["organization"].id},
             "uuid": obj.uuid,
             "status": SentryAppInstallationStatus.as_str(obj.status),

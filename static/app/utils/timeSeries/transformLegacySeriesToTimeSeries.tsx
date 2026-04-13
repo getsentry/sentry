@@ -16,6 +16,14 @@ import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/q
  */
 export const SERIES_NAME_PART_DELIMITER = ' : ';
 
+/**
+ * Delimiter used to separate the query alias/prefix from group-by and
+ * aggregate parts in a series name. Distinct from {@link SERIES_NAME_PART_DELIMITER}
+ * so the query prefix can be reliably extracted.
+ * Format: "queryPrefix > groupValue : yAxis"
+ */
+export const SERIES_QUERY_DELIMITER = ' > ';
+
 export function transformLegacySeriesToTimeSeries(
   timeseriesResult: Series | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
@@ -35,8 +43,13 @@ export function transformLegacySeriesToTimeSeries(
   const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, yAxis);
   const seriesName = timeseriesResult.seriesName ?? yAxis;
   const valueType =
-    timeseriesResultsTypes?.[seriesName] ?? (mapped.valueType as AggregationOutputType);
-  const valueUnit = timeseriesResultsUnits?.[seriesName] ?? mapped.valueUnit;
+    timeseriesResultsTypes?.[seriesName] ??
+    timeseriesResultsTypes?.[yAxis] ??
+    (mapped.valueType as AggregationOutputType);
+  const valueUnit =
+    timeseriesResultsUnits?.[seriesName] ??
+    timeseriesResultsUnits?.[yAxis] ??
+    mapped.valueUnit;
 
   const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
 

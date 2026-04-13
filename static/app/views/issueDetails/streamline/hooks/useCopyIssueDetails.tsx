@@ -1,5 +1,7 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
 
+import {useHotkeys} from '@sentry/scraps/hotkey';
+
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
@@ -16,9 +18,8 @@ import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Simple store for active thread ID from the UI with subscription support
 let _activeThreadId: number | undefined;
@@ -41,8 +42,8 @@ export function useActiveThreadId() {
 }
 
 function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
-  let markdownText = `#### Stacktrace\n\n`;
-  markdownText += `\`\`\`\n`;
+  let markdownText = '#### Stacktrace\n\n';
+  markdownText += '```\n';
 
   // Process frames (show at most 16 frames, similar to Python example)
   const maxFrames = 16;
@@ -68,13 +69,13 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
 
     // Add variables if available
     if (frame.vars) {
-      markdownText += `---\nVariable values:\n`;
+      markdownText += '---\nVariable values:\n';
       markdownText += JSON.stringify(frame.vars, null, 2) + '\n';
-      markdownText += `\n=======\n`;
+      markdownText += '\n=======\n';
     }
   });
 
-  markdownText += `\`\`\`\n`;
+  markdownText += '```\n';
   return markdownText;
 }
 
@@ -86,7 +87,7 @@ export function formatEventToMarkdown(
 
   // Add tags
   if (event && Array.isArray(event.tags) && event.tags.length > 0) {
-    markdownText += `\n## Tags\n\n`;
+    markdownText += '\n## Tags\n\n';
     event.tags.forEach(tag => {
       if (tag && typeof tag.key === 'string') {
         markdownText += `- **${tag.key}:** ${tag.value}\n`;
@@ -113,7 +114,7 @@ export function formatEventToMarkdown(
           if (exception.stacktrace?.frames && exception.stacktrace.frames.length > 0) {
             markdownText += formatStacktraceToMarkdown(exception.stacktrace);
             if (index < arr.length - 1) {
-              markdownText += `------\n`;
+              markdownText += '------\n';
             }
           }
         }
@@ -126,12 +127,12 @@ export function formatEventToMarkdown(
       if (activeThread?.stacktrace) {
         markdownText += `\n## Thread: ${activeThread.name || ` Thread ${activeThread.id}`}`;
         if (activeThread.crashed) {
-          markdownText += ` (crashed)`;
+          markdownText += ' (crashed)';
         }
         if (activeThread.current) {
-          markdownText += ` (current)`;
+          markdownText += ' (current)';
         }
-        markdownText += `\n\n`;
+        markdownText += '\n\n';
         markdownText += formatStacktraceToMarkdown(activeThread.stacktrace);
       }
     }

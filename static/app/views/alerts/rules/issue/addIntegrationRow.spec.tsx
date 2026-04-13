@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 jest.mock('sentry/actionCreators/modal');

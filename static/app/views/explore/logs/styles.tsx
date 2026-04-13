@@ -6,13 +6,13 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {HighlightComponent} from 'sentry/components/highlight';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import Panel from 'sentry/components/panels/panel';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
-import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
+  Table,
   TableBody,
   TableBodyCell,
   TableHeadCell,
@@ -104,30 +104,44 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 `;
 
 export const LogAttributeTreeWrapper = styled('div')`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-bottom: 0px;
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
-  padding: 2px ${space(2)};
+  padding: 2px ${p => p.theme.space.xl};
 
   font-size: ${p => p.theme.font.size.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: 2px 0 2px ${space(3)};
+    padding: 2px 0 2px ${p => p.theme.space['2xl']};
   }
 
   &:last-child {
-    padding: 2px ${space(2)};
+    padding: 2px ${p => p.theme.space.xl};
   }
+`;
+
+function ContentsTable(props: React.ComponentProps<typeof Table>) {
+  return <Table contentsBody {...props} />;
+}
+
+export const LogTable = styled(ContentsTable)`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  overflow-x: hidden;
 `;
 
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
+  expanded?: boolean;
   showHeader?: boolean;
 }>`
   ${p =>
@@ -136,8 +150,22 @@ export const LogTableBody = styled(TableBody)<{
       : p.disableBodyPadding
         ? ''
         : `
-    padding-top: ${space(1)};
-    padding-bottom: ${space(1)};
+    padding-top: ${p.theme.space.md};
+    padding-bottom: ${p.theme.space.md};
+    `}
+  align-content: start;
+  overflow-x: hidden;
+  overflow-anchor: none;
+
+  /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
+  min-height: 1px;
+
+  ${p =>
+    p.expanded === undefined
+      ? ''
+      : `
+    overflow-y: auto;
+    height: 100%;
     `}
 `;
 
@@ -151,28 +179,25 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   }
 `;
 export const LogDetailTableActionsCell = styled(TableBodyCell)`
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   min-height: 0px;
 
   ${LogTableRow} & {
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
   &:last-child {
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${p => p.theme.space.xs} 0;
   }
 `;
 export const LogDetailTableActionsButtonBar = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  & button {
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-  }
+  gap: ${p => p.theme.space.md};
 `;
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;
   background-color: ${p => p.theme.colors.gray100};
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
@@ -186,7 +211,7 @@ export const DetailsContent = styled(StyledPanel)`
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 export function LogFirstCellContent(props: FlexProps<'div'>) {
@@ -202,7 +227,7 @@ export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right
 export const DetailsBody = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
 
@@ -212,7 +237,7 @@ export const DetailsBody = styled('div')`
 `;
 
 export const StyledChevronButton = styled(Button)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const DEFAULT_SIZE = '8px';
@@ -225,7 +250,7 @@ export const ColoredLogCircle = styled('span')<{
   position: relative;
   width: ${p => p.size || DEFAULT_SIZE};
   height: ${p => p.size || DEFAULT_SIZE};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   text-indent: -9999em;
   display: inline-block;
   border-radius: 50%;
@@ -278,41 +303,53 @@ export const AlignedCellContent = styled('div')<{
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`
-  padding-right: ${space(1)};
-  padding-left: ${space(2)};
+  padding-right: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 export function TableActionsContainer(props: FlexProps<'div'>) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
 }
 
-export const LogsItemContainer = styled('div')`
-  flex: 1 1 auto;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
+export function LogsItemContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex
+      direction="column"
+      minHeight="0"
+      overflow="hidden"
+      position="relative"
+      {...props}
+    />
+  );
+}
 
-export const LogsTableActionsContainer = styled(LogsItemContainer)`
-  margin-bottom: 0;
-  display: flex;
-  justify-content: space-between;
-`;
+export function LogsTableActionsContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex
+      direction="row"
+      flex="0 0 auto"
+      overflow="visible"
+      justify="between"
+      {...props}
+    />
+  );
+}
 
-export const LogsGraphContainer = styled(LogsItemContainer)`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogsGraphContainer(props: FlexProps<'div'>) {
+  return (
+    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
+  );
+}
 
 export const AutoRefreshLabel = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   margin-bottom: 0;
 `;
 
@@ -418,15 +455,15 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
-  tableLeft?: number;
+  position?: 'absolute' | 'fixed';
   tableWidth?: number;
 }>`
-  position: ${p => (p.inReplay ? 'absolute' : 'fixed')};
+  --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  ${p => (p.inReplay ? 'top: 90px;' : 'top: 20px;')}
-  ${p => (p.inReplay ? '' : p.tableLeft ? `left: ${p.tableLeft}px;` : 'left: 0;')}
-  width: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
+  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  width: var(--floatingWidth);
   display: flex;
   justify-content: center;
 

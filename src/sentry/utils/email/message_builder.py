@@ -190,7 +190,8 @@ class MessageBuilder:
         reference = self.reference
         if isinstance(reference, Activity):
             reference = reference.group
-            subject = f"Re: {subject}"
+            if reference is not None:
+                subject = f"Re: {subject}"
 
         if isinstance(reference, Group):
             thread, created = GroupEmailThread.objects.get_or_create(

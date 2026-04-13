@@ -18,7 +18,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:visibility-explore-view"]
 
         if query is None:
             query = {}
@@ -64,7 +64,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
 
         for features in [
             None,  # use the default features
-            ["organizations:performance-trace-explorer"],
+            ["organizations:visibility-explore-view"],
         ]:
             response = self.do_request(
                 features=features,
@@ -113,7 +113,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
 
         for features in [
             None,  # use the default features
-            ["organizations:performance-trace-explorer"],
+            ["organizations:visibility-explore-view"],
         ]:
             response = self.do_request(
                 features=features,
@@ -173,7 +173,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:visibility-explore-view"]
 
         if query is None:
             query = {}
@@ -549,7 +549,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         self.create_project(id=base_id + 399, name="baz")
 
         features = [
-            "organizations:performance-trace-explorer",
+            "organizations:visibility-explore-view",
         ]
 
         for key in ["project", "project.name"]:

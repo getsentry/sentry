@@ -2,13 +2,14 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Stack} from '@sentry/scraps/layout';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -26,11 +27,12 @@ import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSe
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
-import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
+import {VitalCard} from 'sentry/views/insights/mobile/screens/components/vitalCard';
 import {VitalDetailPanel} from 'sentry/views/insights/mobile/screens/components/vitalDetailPanel';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
@@ -42,7 +44,6 @@ import {
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
-import useHasDashboardsPlatformizedMobileVitals from 'sentry/views/insights/mobile/screens/utils/useHasDashboardsPlatformizedMobileVitals';
 import {PlatformizedMobileVitalsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -124,7 +125,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.slow_frames,mobile.total_frames)` as const,
+      field: 'division(mobile.slow_frames,mobile.total_frames)' as const,
       dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -141,7 +142,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.frozen_frames,mobile.total_frames)` as const,
+      field: 'division(mobile.frozen_frames,mobile.total_frames)' as const,
       dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -160,7 +161,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `avg(mobile.frames_delay)` as const,
+      field: 'avg(mobile.frames_delay)' as const,
       dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -178,7 +179,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_initial_display)` as const,
+      field: 'avg(measurements.time_to_initial_display)' as const,
       dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -196,7 +197,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_full_display)` as const,
+      field: 'avg(measurements.time_to_full_display)' as const,
       dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
@@ -265,7 +266,7 @@ function ScreensLandingPage() {
       moduleName={ModuleName.MOBILE_VITALS}
       maxPickableDays={maxPickableDays.maxPickableDays}
     >
-      <Layout.Page>
+      <Stack flex={1}>
         <PageAlertProvider>
           <ModuleFeature moduleName={moduleName}>
             <Layout.Body>
@@ -324,13 +325,13 @@ function ScreensLandingPage() {
             </Layout.Body>
           </ModuleFeature>
         </PageAlertProvider>
-      </Layout.Page>
+      </Stack>
     </ModulePageProviders>
   );
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Flex = styled('div')<{gap?: number}>`
@@ -338,16 +339,15 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
+  gap: ${p => (p.gap ? `${p.gap}px` : p.theme.space.md)};
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 function ScreensLandingPageWithPlatformization() {
-  const hasDashboardsPlatformizedMobileVitals =
-    useHasDashboardsPlatformizedMobileVitals();
-  if (hasDashboardsPlatformizedMobileVitals) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedMobileVitalsOverview />;
   }
   return <ScreensLandingPage />;

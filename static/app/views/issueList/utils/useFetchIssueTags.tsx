@@ -11,7 +11,6 @@ import {
   PriorityLevel,
   VALID_ISSUE_CATEGORIES,
   VISIBLE_ISSUE_TYPES,
-  type Tag,
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -26,10 +25,10 @@ import {
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
-import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
-import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
@@ -160,9 +159,9 @@ export const useFetchIssueTags = ({
   const usernames = useMemberUsernames();
 
   const allTags = useMemo(() => {
-    const eventsTags: Tag[] = eventsTagsQuery.data || [];
-    const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
-    const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
+    const eventsTags = eventsTagsQuery.data || [];
+    const issuePlatformTags = issuePlatformTagsQuery.data || [];
+    const featureFlagTags = featureFlagTagsQuery.data || [];
 
     const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
       (acc, tag) => {

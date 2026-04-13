@@ -12,7 +12,7 @@ type Props = {
   download: CandidateDownload;
 };
 
-function Features({download}: Props) {
+export function Features({download}: Props) {
   let features: string[] = [];
 
   if (
@@ -43,8 +43,6 @@ function Features({download}: Props) {
     </Fragment>
   );
 }
-
-export default Features;
 
 const StyledTag = styled(Tag)<{disabled: boolean}>`
   opacity: ${p => (p.disabled ? '0.35' : 1)};

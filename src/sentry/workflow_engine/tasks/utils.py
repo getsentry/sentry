@@ -1,6 +1,7 @@
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
+from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -62,6 +63,12 @@ class EventNotFoundError(Exception):
         super().__init__(msg)
 
 
+class ProjectNotActiveError(Exception):
+    def __init__(self, project_id: int):
+        msg = f"Project not active: project_id={project_id}"
+        super().__init__(msg)
+
+
 @scopedstats.timer()
 def build_workflow_event_data_from_event(
     event_id: str,
@@ -78,9 +85,13 @@ def build_workflow_event_data_from_event(
     """
     group = Group.objects.get_from_cache(id=group_id)
     project_id = group.project_id
+
     event = fetch_event(event_id, project_id)
     if event is None:
         raise EventNotFoundError(event_id, project_id)
+
+    if event.project.status != ObjectStatus.ACTIVE:
+        raise ProjectNotActiveError(project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
 

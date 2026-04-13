@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('StructuredEventData', story => {
@@ -144,7 +144,9 @@ export default Storybook.story('StructuredEventData', story => {
           customize when and how certain data types are displayed.
         </p>
         <p>Input:</p>
-        <CodeBlock language="javascript">{`data: {nil: null, bool: 'this_should_look_like_a_boolean'}`}</CodeBlock>
+        <CodeBlock language="javascript">
+          {"data: {nil: null, bool: 'this_should_look_like_a_boolean'}"}
+        </CodeBlock>
         <p>Config:</p>
         <CodeBlock language="javascript">
           {`const config = {

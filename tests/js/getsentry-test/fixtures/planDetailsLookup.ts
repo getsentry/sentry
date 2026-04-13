@@ -1,36 +1,46 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import AM1_PLANS from 'getsentry-test/fixtures/am1Plans';
-import AM2_PLANS from 'getsentry-test/fixtures/am2Plans';
-import AM3_PLANS from 'getsentry-test/fixtures/am3Plans';
-import MM1_PLANS from 'getsentry-test/fixtures/mm1Plans';
-import MM2_PLANS from 'getsentry-test/fixtures/mm2Plans';
+import {AM1_PLANS} from 'getsentry-test/fixtures/am1Plans';
+import {AM2_PLANS} from 'getsentry-test/fixtures/am2Plans';
+import {AM3_PLANS} from 'getsentry-test/fixtures/am3Plans';
+import {MM1_PLANS} from 'getsentry-test/fixtures/mm1Plans';
+import {MM2_PLANS} from 'getsentry-test/fixtures/mm2Plans';
 
 import {PlanTier} from 'getsentry/types';
 
-type PlanIds = keyof typeof AM1_PLANS &
-  keyof typeof AM2_PLANS &
-  keyof typeof AM3_PLANS &
-  keyof typeof MM1_PLANS &
-  keyof typeof MM2_PLANS;
+export type PlanIds =
+  | keyof typeof AM1_PLANS
+  | keyof typeof AM2_PLANS
+  | keyof typeof AM3_PLANS
+  | keyof typeof MM1_PLANS
+  | keyof typeof MM2_PLANS;
+
+type AllPlans = typeof AM1_PLANS &
+  typeof AM2_PLANS &
+  typeof AM3_PLANS &
+  typeof MM1_PLANS &
+  typeof MM2_PLANS;
 
 // Pass a planId to get back details for that particular plan, or 'all'
 // to get a list of all plan detail objects for a plan tier.
-export function PlanDetailsLookupFixture(planId: PlanIds, tier?: PlanTier) {
+export function PlanDetailsLookupFixture<PlanId extends PlanIds>(
+  planId: PlanId,
+  tier?: PlanTier
+): AllPlans[PlanId] {
   if (!planId) {
     throw new Error('Must provide a planId or `all`');
   }
 
   const planData =
     (tier ?? planId.startsWith(PlanTier.AM3))
-      ? AM3_PLANS[planId]
+      ? AM3_PLANS[planId as keyof typeof AM3_PLANS]
       : planId.startsWith(PlanTier.AM1)
-        ? AM1_PLANS[planId]
+        ? AM1_PLANS[planId as keyof typeof AM1_PLANS]
         : planId.startsWith(PlanTier.AM2)
-          ? AM2_PLANS[planId]
+          ? AM2_PLANS[planId as keyof typeof AM2_PLANS]
           : planId.startsWith(PlanTier.MM2)
-            ? MM2_PLANS[planId]
-            : MM1_PLANS[planId];
+            ? MM2_PLANS[planId as keyof typeof MM2_PLANS]
+            : MM1_PLANS[planId as keyof typeof MM1_PLANS];
 
-  return cloneDeep(planData);
+  return cloneDeep(planData) as AllPlans[PlanId];
 }

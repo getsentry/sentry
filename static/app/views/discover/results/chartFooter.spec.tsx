@@ -2,9 +2,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import ChartFooter from 'sentry/views/discover/results/chartFooter';
+import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
 
 describe('Discover > ChartFooter', () => {
   const yAxisValue = ['count()', 'failure_count()'];

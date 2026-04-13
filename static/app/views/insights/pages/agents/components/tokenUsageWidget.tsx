@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -31,7 +31,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function TokenUsageWidget() {
+export function TokenUsageWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -42,7 +42,7 @@ export default function TokenUsageWidget() {
 
   const tokensRequest = useSpans(
     {
-      fields: ['gen_ai.request.model', 'sum(gen_ai.usage.total_tokens)'],
+      fields: [SpanFields.GEN_AI_RESPONSE_MODEL, 'sum(gen_ai.usage.total_tokens)'],
       sorts: [{field: 'sum(gen_ai.usage.total_tokens)', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -54,7 +54,7 @@ export default function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       query: fullQuery,
-      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
+      groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
       yAxis: ['sum(gen_ai.usage.total_tokens)'],
       sort: {field: 'sum(gen_ai.usage.total_tokens)', kind: 'desc'},
       topEvents: 3,
@@ -112,7 +112,7 @@ export default function TokenUsageWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {tokens?.map((item, index) => {
-        const modelId = `${item['gen_ai.request.model']}`;
+        const modelId = `${item[SpanFields.GEN_AI_RESPONSE_MODEL]}`;
         return (
           <Fragment key={modelId}>
             <div>
@@ -152,9 +152,9 @@ export default function TokenUsageWidget() {
                   yAxes: ['sum(gen_ai.usage.total_tokens)'],
                 },
               ],
-              groupBy: ['gen_ai.request.model'],
+              groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
               query: fullQuery,
-              sort: `-sum(gen_ai.usage.total_tokens)`,
+              sort: '-sum(gen_ai.usage.total_tokens)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

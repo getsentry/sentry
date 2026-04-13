@@ -2,15 +2,17 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {TraceAiSpans} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
   TraceViewMetricsProviderWrapper,
@@ -43,7 +45,7 @@ import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
-import useTraceStateAnalytics from './useTraceStateAnalytics';
+import {useTraceStateAnalytics} from './useTraceStateAnalytics';
 
 function decodeTraceSlug(maybeSlug: string | undefined): string {
   if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
@@ -135,7 +137,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     logs: logsData,
     traceId: traceSlug,
   });
-  const traceInnerLayoutRef = useRef<HTMLDivElement>(null);
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
@@ -149,7 +150,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <TraceExternalLayout>
+        <LayoutPageWithHiddenFooter flex={1}>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -160,7 +161,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             logs={logsData}
             metrics={metricsData}
           />
-          <TraceInnerLayout ref={traceInnerLayoutRef}>
+          <TraceInnerLayout>
             <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
@@ -197,9 +198,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? (
-              <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
-            ) : null}
+            {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />
@@ -212,31 +211,31 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceAiSpans traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </TraceExternalLayout>
+        </LayoutPageWithHiddenFooter>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
-const TraceExternalLayout = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  max-height: 100vh;
-
+// @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
+// When that feature is enabled, the footer is no longer rendered at the bottom of the page.
+const LayoutPageWithHiddenFooter = styled(Stack)`
   ~ footer {
     display: none;
   }
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TraceInnerLayout = styled(FlexBox)`
-  padding: ${space(2)} ${space(3)};
-  flex-grow: 1;
-  overflow-y: auto;
-`;
+function TraceInnerLayout(props: FlexProps<'div'>) {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Flex
+      {...props}
+      background={hasPageFrame ? 'primary' : undefined}
+      direction="column"
+      gap="md"
+      padding="xl"
+      flex="1"
+      overflowY="auto"
+    />
+  );
+}

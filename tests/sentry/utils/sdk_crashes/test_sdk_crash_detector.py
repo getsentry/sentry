@@ -71,6 +71,42 @@ def test_build_sdk_crash_detection_configs(
             True,
             "Should report a crash when function pattern is wildcard but module doesn't match",
         ),
+        (
+            "invoke_match_module_prefix_with_suffix",
+            [
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteStatement$*",
+                    function_pattern="invoke",
+                )
+            ],
+            [
+                {
+                    "function": "invoke",
+                    "module": "io.sentry.android.sqlite.SentrySupportSQLiteStatement$bindLong$1",
+                    "package": "MyApp",
+                }
+            ],
+            False,
+            "Should not report a crash when module matches SentrySupportSQLiteStatement$* and function is invoke",
+        ),
+        (
+            "begin_transaction_match_database_wrapper",
+            [
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    function_pattern="beginTransaction*",
+                )
+            ],
+            [
+                {
+                    "function": "beginTransactionNonExclusive",
+                    "module": "io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    "package": "MyApp",
+                }
+            ],
+            False,
+            "Should not report a crash when beginTransaction* is called on SentrySupportSQLiteDatabase",
+        ),
     ],
 )
 def test_sdk_crash_ignore_matchers(

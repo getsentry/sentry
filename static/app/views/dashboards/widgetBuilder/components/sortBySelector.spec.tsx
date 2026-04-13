@@ -6,10 +6,8 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -44,9 +42,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders for spans', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -63,9 +59,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders for logs', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -82,9 +76,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders correct fields for table widgets', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -103,7 +95,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     expect(await screen.findByText('Sort by')).toBeInTheDocument();
     expect(await screen.findByText('High to low')).toBeInTheDocument();
-    expect(await screen.findByText(`Select a column\u{2026}`)).toBeInTheDocument();
+    expect(await screen.findByText('Select a column\u{2026}')).toBeInTheDocument();
   });
 
   it('renders and functions correctly', async () => {
@@ -112,9 +104,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -150,9 +140,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders the correct limit options', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -165,9 +153,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -194,9 +180,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -220,7 +204,7 @@ describe('WidgetBuilderSortBySelector', () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [{key: 'span.duration', name: 'span.duration'}],
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -231,9 +215,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -271,18 +253,12 @@ describe('WidgetBuilderSortBySelector', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const organizationWithFlag = OrganizationFixture({
-      features: [
-        'open-membership',
-        'visibility-explore-view',
-        'visibility-explore-equations',
-      ],
+      features: ['open-membership', 'visibility-explore-view'],
     });
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFlag,
@@ -328,9 +304,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('renders a limit selector for categorical bar widgets', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -355,9 +329,7 @@ describe('WidgetBuilderSortBySelector', () => {
   it('does not render a limit selector for table widgets', async () => {
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -384,9 +356,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -422,18 +392,12 @@ describe('WidgetBuilderSortBySelector', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     const organizationWithFlag = OrganizationFixture({
-      features: [
-        'open-membership',
-        'visibility-explore-view',
-        'visibility-explore-equations',
-      ],
+      features: ['open-membership', 'visibility-explore-view'],
     });
 
     render(
       <WidgetBuilderProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <WidgetBuilderSortBySelector />
-        </TraceItemAttributeProvider>
+        <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
         organization: organizationWithFlag,
@@ -452,7 +416,7 @@ describe('WidgetBuilderSortBySelector', () => {
     );
 
     const sortDirectionSelector = await screen.findByText('High to low');
-    const sortFieldSelector = await screen.findByText(`Select a column\u{2026}`);
+    const sortFieldSelector = await screen.findByText('Select a column\u{2026}');
 
     expect(sortFieldSelector).toBeInTheDocument();
 

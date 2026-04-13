@@ -7,7 +7,7 @@ import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {

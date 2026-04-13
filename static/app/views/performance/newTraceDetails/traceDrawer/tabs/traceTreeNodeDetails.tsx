@@ -13,5 +13,6 @@ export interface TraceTreeNodeDetailsProps<T> {
   replay: ReplayRecord | null;
   traceId: string;
   hideNodeActions?: boolean;
+  initiallyCollapseAiIO?: boolean;
   tree?: TraceTree;
 }

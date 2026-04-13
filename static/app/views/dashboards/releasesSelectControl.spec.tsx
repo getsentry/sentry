@@ -4,7 +4,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';

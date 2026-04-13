@@ -6,7 +6,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 import {FTCConsentLocation} from 'getsentry/types';
 
-import InnerIntentForm from './innerIntentForm';
+import {InnerIntentForm} from './innerIntentForm';
 
 describe('InnerIntentForm', () => {
   const organization = OrganizationFixture({});

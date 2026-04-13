@@ -8,14 +8,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
@@ -202,6 +201,6 @@ export function IssueDetailsEventNavigation({
 
 const Navigation = styled('div')`
   display: flex;
-  padding-right: ${space(0.25)};
+  padding-right: ${p => p.theme.space['2xs']};
   border-right: 1px solid ${p => p.theme.colors.gray100};
 `;

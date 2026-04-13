@@ -3,7 +3,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {tctCode} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 

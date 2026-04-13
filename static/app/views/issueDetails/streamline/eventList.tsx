@@ -6,11 +6,10 @@ import {Grid} from '@sentry/scraps/layout';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueType, type Group} from 'sentry/types/group';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {
   EventListTable,
@@ -22,7 +21,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/eventListTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
   group: Group;
@@ -33,7 +32,6 @@ export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const location = useLocation();
   const organization = useOrganization();
-  const routes = useRoutes();
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({
@@ -83,7 +81,6 @@ export function EventList({group}: EventListProps) {
         issueId={group.id}
         isRegressionIssue={isRegressionIssue}
         organization={organization}
-        routes={routes}
         excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
         projectSlug={group.project.slug}
         customColumns={['minidump']}

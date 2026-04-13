@@ -16,12 +16,17 @@ from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.constants import (
+    RESERVED_ORGANIZATION_SLUGS,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ObjectStatus,
+)
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
@@ -35,12 +40,12 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics import SpanMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
@@ -83,10 +88,10 @@ class MockAccess:
         return False
 
 
-regions = create_test_regions("us", "de")
+cells = create_test_cells("us", "de")
 
 
-@region_silo_test(regions=regions, include_monolith_run=True)
+@cell_silo_test(cells=cells, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -100,7 +105,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
+            "regionUrl": generate_locality_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -128,7 +133,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
+            "regionUrl": generate_locality_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -576,16 +581,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         self.login_as(user=member_user)
 
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_1.id,
             org_id=self.organization.id,
         )
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_2.id,
@@ -628,7 +633,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_region_url() + "/organization-avatar/abc123/"
+            == generate_locality_url() + "/organization-avatar/abc123/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
@@ -672,8 +677,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
+    def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
 
-@region_silo_test(regions=regions)
+
+@cell_silo_test(cells=cells)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -1153,13 +1166,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        CellScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.ACTIVE
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()
 
@@ -1223,13 +1236,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
         assert res.json()["slug"] == ['The slug "taken" is already in use.']
 
-    def test_org_mapping_already_taken_org_in_other_region(self) -> None:
-        de_region = regions[1]
-        assert de_region.name == "de"
+    def test_org_mapping_already_taken_org_in_other_cell(self) -> None:
+        de_cell = cells[1]
+        assert de_cell.name == "de"
 
         # Create an org, mapping, and slug reservation. For us to reach the RPC conflict,
         # we need to not have the org record in our database.
-        conflict = self.create_organization(slug="taken", region=de_region)
+        conflict = self.create_organization(slug="taken", cell=de_cell)
         Organization.objects.filter(id=conflict.id).delete()
 
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
@@ -1437,24 +1450,61 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
-    def test_enable_pr_review_test_generation_default_false(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["enablePrReviewTestGeneration"] is False
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revocation_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking console platforms dispatches the cleanup task with remaining platforms"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
 
-    def test_enable_pr_review_test_generation_can_be_disabled(self) -> None:
-        data = {"enablePrReviewTestGeneration": False}
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data = {"enabledConsolePlatforms": ["playstation"]}
         self.get_success_response(self.organization.slug, **data)
 
-        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is False
+        mock_cleanup_task.assert_called_once_with(self.organization.id, ["playstation"])
 
-    def test_enable_pr_review_test_generation_can_be_enabled(self) -> None:
-        # First disable it
-        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_addition_does_not_dispatch_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Adding console platforms without revoking any does not dispatch the cleanup task"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
 
-        data = {"enablePrReviewTestGeneration": True}
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
         self.get_success_response(self.organization.slug, **data)
 
-        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
+        mock_cleanup_task.assert_not_called()
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revoke_all_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking all console platforms dispatches the cleanup task with empty list"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, [])
 
     def test_enable_seer_enhanced_alerts_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
@@ -1494,7 +1544,174 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
 
-    @with_feature("organizations:granular-replay-permissions")
+    @with_feature("organizations:seer-disable-coding-setting")
+    def test_enable_seer_coding_cannot_be_disabled_when_flag_enabled(self) -> None:
+        data = {"enableSeerCoding": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is not False
+
+    @with_feature("organizations:seer-disable-coding-setting")
+    def test_enable_seer_coding_cannot_be_enabled_when_flag_enabled(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        data = {"enableSeerCoding": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is False
+
+    def test_default_coding_agent_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
+
+    def test_default_coding_agent_can_be_set_to_seer(self) -> None:
+        data = {"defaultCodingAgent": "seer"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_can_be_set_to_cursor(self) -> None:
+        for value in ("cursor", "cursor_background_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "cursor_background_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "cursor_background_agent"
+
+    def test_default_coding_agent_can_be_set_to_claude(self) -> None:
+        for value in ("claude_code", "claude_code_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "claude_code_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "claude_code_agent"
+
+    def test_default_coding_agent_none_casts_to_seer(self) -> None:
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_none_resets_to_seer(self) -> None:
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_rejects_invalid_choice(self) -> None:
+        data = {"defaultCodingAgent": "invalid_agent"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_writing_default_value_stores_but_skips_audit_log(
+        self,
+    ) -> None:
+        # Sending the default value does not produce an audit log entry (by design:
+        # the ORG_OPTIONS loop only audits writes that differ from the default).
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"defaultCodingAgent": SEER_DEFAULT_CODING_AGENT_DEFAULT}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent")
+            == SEER_DEFAULT_CODING_AGENT_DEFAULT
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_default_coding_agent_integration_id_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_coding_agent_integration_id_can_be_set(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
+        other_org = self.create_organization()
+        integration = self.create_integration(
+            organization=other_org, provider="github", external_id="other-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_integration_id_rejects_nonexistent_id(self) -> None:
+        data = {"defaultCodingAgentIntegrationId": 99999999}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_integration_id_coerces_string_input(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id-str"
+        )
+        data = {"defaultCodingAgentIntegrationId": str(integration.id)}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
+        # Tests the create path (no OrganizationOption row exists yet): sending null
+        # must store null rather than crashing via int(None).
+        data = {"defaultCodingAgentIntegrationId": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") is None
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_automated_run_stopping_point_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
+
+    def test_default_automated_run_stopping_point_can_be_set(self) -> None:
+        for choice in ("code_changes", "open_pr"):
+            with self.subTest(choice=choice):
+                data = {"defaultAutomatedRunStoppingPoint": choice}
+                response = self.get_success_response(self.organization.slug, **data)
+                assert response.data["defaultAutomatedRunStoppingPoint"] == choice
+
+    def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
+        for invalid in ("solution", "invalid_point", "root_cause"):
+            with self.subTest(value=invalid):
+                data = {"defaultAutomatedRunStoppingPoint": invalid}
+                self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_automated_run_stopping_point_accepts_root_cause_with_flag(self) -> None:
+        with self.feature("organizations:root-cause-stopping-point"):
+            data = {"defaultAutomatedRunStoppingPoint": "root_cause"}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert response.data["defaultAutomatedRunStoppingPoint"] == "root_cause"
+
+    def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
+        data = {"defaultCodingAgentIntegrationId": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") is None
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
@@ -1512,7 +1729,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         assert "to True" in log.data["hasGranularReplayPermissions"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_unset(self) -> None:
         self.organization.update_option("sentry:granular-replay-permissions", True)
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -1532,7 +1748,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert "to False" in log.data["hasGranularReplayPermissions"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_no_spurious_audit_log(self) -> None:
         self.organization.update_option("sentry:granular-replay-permissions", True)
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -1546,7 +1761,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             audit_logs = AuditLogEntry.objects.filter(organization_id=self.organization.id)
             assert audit_logs.count() == 0
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_change_logs_old_value(self) -> None:
         self.organization.update_option("sentry:granular-replay-permissions", False)
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -1565,11 +1779,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         assert log.data["hasGranularReplayPermissions"] == "from False to True"
 
-    def test_granular_replay_permissions_flag_requires_feature(self) -> None:
-        data = {"hasGranularReplayPermissions": True}
-        self.get_error_response(self.organization.slug, **data, status_code=404)
-
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_requires_admin_scope(self) -> None:
         member_user = self.create_user()
         self.create_member(
@@ -1581,7 +1790,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_error_response(self.organization.slug, **data, status_code=403)
         assert response.status_code == 403
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_add(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1608,7 +1816,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "added 2 user(s)" in log.data["replayAccessMembers"]
         assert "total: 2 user(s)" in log.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_remove(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1637,7 +1844,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "removed 1 user(s)" in log.data["replayAccessMembers"]
         assert "total: 1 user(s)" in log.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_add_and_remove(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1669,7 +1875,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "removed 1 user(s)" in log.data["replayAccessMembers"]
         assert "total: 2 user(s)" in log.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_clear_all(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1692,14 +1897,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "removed 1 user(s)" in log.data["replayAccessMembers"]
         assert "total: 0 user(s)" in log.data["replayAccessMembers"]
 
-    def test_replay_access_members_requires_feature(self) -> None:
-        member1 = self.create_member(
-            organization=self.organization, user=self.create_user(), role="member"
-        )
-        data = {"replayAccessMembers": [member1.user_id]}
-        self.get_error_response(self.organization.slug, **data, status_code=404)
-
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_requires_admin_scope(self) -> None:
         member_user = self.create_user()
         self.create_member(
@@ -1713,7 +1910,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"replayAccessMembers": [other_member.user_id]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_invalid_user_ids(self) -> None:
         nonexistent_id = 999999999
         data = {"replayAccessMembers": [nonexistent_id]}
@@ -1721,7 +1917,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert str(nonexistent_id) in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_from_other_organization(self) -> None:
         other_org = self.create_organization(owner=self.create_user())
         other_org_member = self.create_member(
@@ -1732,7 +1927,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert str(other_org_member.user_id) in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_mixed_valid_and_invalid(self) -> None:
         valid_member = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1749,7 +1943,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ).count()
         assert access_count == 0
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_owner_can_edit(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1763,7 +1956,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["hasGranularReplayPermissions"] is True
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_manager_can_edit(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1779,7 +1971,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["hasGranularReplayPermissions"] is True
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_admin_cannot_edit(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1792,7 +1983,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
         )
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_member_cannot_edit_boolean(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1802,7 +1992,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         self.get_error_response(org.slug, hasGranularReplayPermissions=True, status_code=403)
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_member_cannot_edit_list(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1815,7 +2004,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             org.slug, replayAccessMembers=[other_member.user_id], status_code=403
         )
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_owner(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1831,7 +2019,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_manager(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1849,7 +2036,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_admin(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1867,7 +2053,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_member(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1885,10 +2070,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert other_member.user_id in response.data["replayAccessMembers"]
 
-    def test_granular_replay_permissions_retrieve_hidden_without_feature(self) -> None:
+    def test_granular_replay_permissions_retrieve_without_option(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
-        org.update_option("sentry:granular-replay-permissions", True)
         self.login_as(owner)
 
         response = self.get_success_response(org.slug, method="get")
@@ -1914,7 +2098,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
@@ -1961,7 +2145,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
     def test_cannot_remove_default(self) -> None:
@@ -1975,14 +2159,14 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
     def test_redo_deletion(self) -> None:
         # Orgs can delete, undelete, delete within a day
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        CellScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        scheduled_deletions = RegionScheduledDeletion.objects.filter(
+        scheduled_deletions = CellScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
         )
         assert scheduled_deletions.exists()
@@ -2050,7 +2234,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
-        invite_url_regex = re.compile(r"http://.*/accept/[0-9]+/[a-f0-9]+/")
+        invite_url_regex = re.compile(r"http://.*/accept/[^/]+/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:

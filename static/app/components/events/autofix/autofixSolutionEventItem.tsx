@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
+import {AutofixInsightSources} from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
@@ -21,7 +21,6 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
 function getEventIcon(eventType: string) {
@@ -188,7 +187,7 @@ export function SolutionEventItem({
                 >
                   <StyledSpan text={event.code_snippet_and_analysis} inline />
                 </AutofixHighlightWrapper>
-                {event.relevant_code_file && event.relevant_code_file.url && (
+                {event.relevant_code_file?.url && (
                   <SourcesWrapper>
                     <AutofixInsightSources codeUrls={[event.relevant_code_file.url]} />
                   </SourcesWrapper>
@@ -203,7 +202,7 @@ export function SolutionEventItem({
 }
 
 const SourcesWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledIconChevron = styled(IconChevron)`
@@ -263,12 +262,12 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
   padding-right: 0;
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
   text-decoration: ${p =>
     p.isSelected ? (p.isActive ? 'underline dashed' : 'none') : 'line-through'};
@@ -281,7 +280,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   & > div:first-of-type {
     flex: 1;
     min-width: 0;
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 
   &:hover {

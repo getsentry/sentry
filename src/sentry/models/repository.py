@@ -15,7 +15,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -32,7 +32,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.email import MessageBuilder
 
 
-@region_silo_model
+@cell_silo_model
 class Repository(Model):
     __relocation_scope__ = RelocationScope.Global
 

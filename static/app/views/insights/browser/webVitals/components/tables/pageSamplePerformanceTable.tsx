@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -9,33 +10,31 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import {
@@ -53,8 +52,8 @@ import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -154,7 +153,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {projects} = useProjects();
   const organization = useOrganization();
   const {replayExists} = useReplayExists();
-  const routes = useRoutes();
+  const matches = useMatches();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
@@ -185,7 +184,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     sortableFields: sortableFields as unknown as string[],
   });
 
-  const replayLinkGenerator = generateReplayLink(routes);
+  const replayLinkGenerator = generateReplayLink(matches);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -657,9 +656,9 @@ const AlignCenter = styled('div')`
 `;
 
 const StyledProjectAvatar = styled(ProjectAvatar)`
-  top: ${space(0.25)};
+  top: ${p => p.theme.space['2xs']};
   position: relative;
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 const NoValue = styled('span')`

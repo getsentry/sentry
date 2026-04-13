@@ -3,7 +3,7 @@ import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
+import {CombinedAlertBadge} from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {CombinedAlertType} from 'sentry/views/alerts/types';
 
 describe('CombinedAlertBadge', () => {

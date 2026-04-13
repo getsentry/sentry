@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -14,10 +15,8 @@ import {
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -52,13 +51,7 @@ describe('MetricsTabContent', () => {
   });
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
-    return (
-      <MultiMetricsQueryParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.TRACEMETRICS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </MultiMetricsQueryParamsProvider>
-    );
+    return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
   }
 
   const initialRouterConfig = {
@@ -137,6 +130,11 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
     });
 
     MockApiClient.addMockResponse({
@@ -242,7 +240,7 @@ describe('MetricsTabContent', () => {
           table_result_sort: ['-timestamp'],
           user_queries: '',
           user_queries_count: 0,
-          aggregate_function: 'per_second',
+          aggregate_function: 'sum',
           confidences: ['null'],
           dataScanned: 'full',
           dataset: 'metrics',
@@ -277,7 +275,7 @@ describe('MetricsTabContent', () => {
         table_result_sort: ['-timestamp'],
         user_queries: '',
         user_queries_count: 0,
-        aggregate_function: 'per_second',
+        aggregate_function: 'sum',
         confidences: ['null'],
         dataScanned: 'full',
         dataset: 'metrics',
@@ -316,7 +314,7 @@ describe('MetricsTabContent', () => {
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
-          aggregate_function: 'per_second',
+          aggregate_function: 'sum',
           group_bys: [],
           metric_name: 'foo',
           metric_type: 'distribution',
@@ -584,5 +582,89 @@ describe('MetricsTabContent', () => {
       expect(parsedQuery.mode).toBe('aggregate');
     });
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
+  });
+
+  it('does not show the Add Equation button when the feature flag is disabled', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization,
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
+  });
+
+  it('shows the Add Equation button when the feature flag is enabled', async () => {
+    const orgWithFeature = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeature,
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.getByText('Add Equation')).toBeInTheDocument();
+  });
+
+  it('disables both Add Metric and Add Equation buttons when the maximum number of metric queries is reached', async () => {
+    const metricQueryWithGroupBy = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {groupBy: 'environment'},
+        {yAxes: ['per_second(bar)'], displayType: 'line'},
+      ],
+      aggregateSortBys: [],
+      mode: 'aggregate',
+    });
+    const orgWithFeature = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeature,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+              ],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.getByText('Add Equation')).toBeInTheDocument();
+
+    // Only 7 entries -> both buttons are enabled
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeEnabled();
+
+    // Add an entry, 8 entries -> both buttons are disabled
+    await userEvent.click(screen.getByRole('button', {name: 'Add Metric'}));
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeDisabled();
   });
 });

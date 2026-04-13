@@ -135,22 +135,28 @@ export function collectTraceMeasurements(
       score,
     });
 
-    const hasSeenMeasurement = tree.indicators.some(
-      indicator => indicator.type === collectableMeasurement
-    );
-    if (!RENDERABLE_MEASUREMENTS[collectableMeasurement] || hasSeenMeasurement) {
+    if (!RENDERABLE_MEASUREMENTS[collectableMeasurement]) {
       continue;
     }
 
-    // Standalone span measurements occur at the exact start timestamp of the span.
-    // We pass in 0 as the measurement value to prevent applying any unnecessary offset.
+    const isStandalone = isStandaloneSpanMeasurementNode(node);
+    const existingIndicatorIndex = tree.indicators.findIndex(
+      indicator => indicator.type === collectableMeasurement
+    );
+
+    if (existingIndicatorIndex !== -1 && !isStandalone) {
+      continue;
+    }
+
+    // Standalone spans should win over transaction-level measurements, but the
+    // measurement value is still applied relative to the provided timeline origin.
     const timestamp = traceMeasurementToTimestamp(
       start_timestamp,
-      isStandaloneSpanMeasurementNode(node) ? 0 : measurement.value,
+      measurement.value,
       measurement.unit ?? 'millisecond'
     );
 
-    indicators.push({
+    const indicator: TraceTree.Indicator = {
       start: timestamp,
       duration: 0,
       measurement,
@@ -162,7 +168,13 @@ export function collectTraceMeasurements(
         MEASUREMENT_ACRONYM_MAPPING[collectableMeasurement] ?? collectableMeasurement
       ).toUpperCase(),
       score,
-    });
+    };
+
+    if (existingIndicatorIndex === -1) {
+      indicators.push(indicator);
+    } else {
+      tree.indicators[existingIndicatorIndex] = indicator;
+    }
   }
 
   return indicators;

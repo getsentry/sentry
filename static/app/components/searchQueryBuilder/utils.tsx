@@ -46,6 +46,7 @@ function getSearchConfigFromKeys(
       case FieldValueType.NUMBER:
       case FieldValueType.INTEGER:
       case FieldValueType.PERCENTAGE:
+      case FieldValueType.CURRENCY:
         config.numericKeys.add(key);
         break;
       case FieldValueType.DATE:
@@ -235,7 +236,7 @@ export function findNearestFreeTextKey(
   startKey: Key | null,
   direction: 'right' | 'left'
 ): Key | null {
-  let key: Key | null = startKey;
+  let key = startKey;
   while (key) {
     const item = state.collection.getItem(key);
     if (!item) {

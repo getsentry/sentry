@@ -11,7 +11,7 @@ from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -30,6 +30,11 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+def get_detector_project_type_cache_key(project_id: int, detector_type: str) -> str:
+    """Generate cache key for detector lookup by project and type."""
+    return f"detector:by_proj_type:{project_id}:{detector_type}"
 
 
 class DetectorSnapshot(TypedDict):
@@ -60,7 +65,7 @@ class DetectorManager(BaseManager["Detector"]):
         return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
 
 
-@region_silo_model
+@cell_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -110,13 +115,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     CACHE_TTL = 60 * 10
 
     @classmethod
-    def _get_detector_project_type_cache_key(cls, project_id: int, detector_type: str) -> str:
-        """Generate cache key for detector lookup by project and type."""
-        return f"detector:by_proj_type:{project_id}:{detector_type}"
-
-    @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
-        cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
+        cache_key = get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
         if detector is None:
             detector = cls.objects.get(project_id=project_id, type=detector_type)
@@ -183,6 +183,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
+
+    def toggle(self, enabled: bool) -> None:
+        """Toggle the detector's enabled state and update status accordingly."""
+        new_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+        self.update(enabled=enabled, status=new_status)
 
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None

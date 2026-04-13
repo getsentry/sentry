@@ -1,6 +1,6 @@
 import * as qs from 'query-string';
 
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 export const makeAutomationBasePathname = (orgSlug: string) => {
   return normalizeUrl(`/organizations/${orgSlug}/monitors/alerts/`);

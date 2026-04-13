@@ -8,12 +8,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -22,10 +21,9 @@ import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attribu
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -166,7 +164,6 @@ function Chart({
   topEvents,
   setTab,
 }: ChartProps) {
-  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const {
@@ -271,9 +268,7 @@ function Chart({
   );
 
   const initialChartSelection =
-    chartSelection && chartSelection.chartIndex === index
-      ? chartSelection.selection
-      : undefined;
+    chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
     <ChartWrapper ref={chartWrapperRef}>
@@ -311,9 +306,7 @@ function Chart({
                 onClearSelection: () => {
                   setChartSelection(null);
                 },
-                disabled: !organization.features.includes(
-                  'performance-spans-suspect-attributes'
-                ),
+                disabled: false,
                 actionMenuRenderer: params => {
                   return (
                     <FloatingTrigger chartIndex={index} params={params} setTab={setTab} />
@@ -354,6 +347,6 @@ const ChartWrapper = styled('div')`
 const ChartList = styled('div')`
   position: relative;
   display: grid;
-  row-gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  row-gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;

@@ -6,15 +6,14 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import BaseSearchBar from 'sentry/components/searchBar';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
+import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import {CHART_AXIS_LABEL_FONT_SIZE, CHARTS_COLUMN_COUNT} from './constants';
@@ -182,12 +181,12 @@ const PopulationIndicator = styled(Flex)<{color?: string}>`
     height: 8px;
     border-radius: 50%;
     background-color: ${p => p.color || p.theme.colors.gray500};
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const ControlsContainer = styled(Flex)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;
 

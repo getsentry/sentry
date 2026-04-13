@@ -2,10 +2,10 @@ import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -17,7 +17,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -75,19 +75,19 @@ const COLUMN_ORDER: Column[] = [
     tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
-    key: `p50_if(span.duration,is_transaction,equals,true)`,
+    key: 'p50_if(span.duration,is_transaction,equals,true)',
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.p50,
   },
   {
-    key: `p75_if(span.duration,is_transaction,equals,true)`,
+    key: 'p75_if(span.duration,is_transaction,equals,true)',
     name: t('p75()'),
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.p75,
   },
   {
-    key: `p95_if(span.duration,is_transaction,equals,true)`,
+    key: 'p95_if(span.duration,is_transaction,equals,true)',
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.p95,
@@ -224,7 +224,7 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
   );
 }
 
-function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
+function renderPrependColumns(isHeader: boolean, row?: Row) {
   if (isHeader) {
     return [<IconStar key="star" variant="warning" isSolid />];
   }

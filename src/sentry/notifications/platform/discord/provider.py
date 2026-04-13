@@ -2,18 +2,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    NotificationProviderError,
+    SendResult,
+    SendSuccessResult,
+    integration_error_result,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     PreparedIntegrationNotificationTarget,
 )
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlock,
     NotificationBodyTextBlockType,
+    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -21,6 +29,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.discord.message_builder.base.base import DiscordMessage
@@ -129,7 +138,28 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         return False
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: DiscordRenderable) -> None:
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[DiscordRenderable]]:
+        from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
+        from sentry.notifications.platform.discord.renderers.metric_alert import (
+            DiscordMetricAlertRenderer,
+        )
+
+        if category == NotificationCategory.ISSUE:
+            return IssueDiscordRenderer
+        if category == NotificationCategory.METRIC_ALERT:
+            return DiscordMetricAlertRenderer
+        return cls.default_renderer
+
+    @classmethod
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: DiscordRenderable,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         from sentry.integrations.discord.integration import DiscordIntegration
 
         if not isinstance(target, cls.target_class):
@@ -140,4 +170,11 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         discord_target = PreparedIntegrationNotificationTarget[DiscordIntegration](
             target=target, installation_cls=DiscordIntegration
         )
-        discord_target.integration_installation.send_notification(target=target, payload=renderable)
+        try:
+            discord_target.integration_installation.send_notification(
+                target=target, payload=renderable
+            )
+        except IntegrationError as e:
+            return integration_error_result(e)
+
+        return SendSuccessResult()

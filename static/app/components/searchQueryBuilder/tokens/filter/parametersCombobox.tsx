@@ -115,8 +115,7 @@ function calculateNextFocus(
 ): FocusOverride | undefined {
   if (
     defined(parameterIndex) &&
-    definition &&
-    definition.kind === FieldKind.FUNCTION &&
+    definition?.kind === FieldKind.FUNCTION &&
     definition.parameters?.length &&
     parameterIndex + 1 < definition.parameters.length
   ) {

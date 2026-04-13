@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -12,7 +12,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.datasource import get_custom_measurements
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.analytics.events.issue_tracker_used import IssueTrackerUsedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
@@ -80,7 +80,7 @@ DEPRECATED_PLUGIN_URL_NAMES = [
 ]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -119,7 +119,7 @@ class _PluginIssue(TypedDict):
 
 
 # TODO(dcramer): remove this in favor of GroupEndpoint
-@region_silo_endpoint
+@cell_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

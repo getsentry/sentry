@@ -11,7 +11,7 @@ import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useAM2ProfilingUpsellModal} from 'getsentry/hooks/useAM2ProfilingUpsellModal';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
 import type {Subscription} from 'getsentry/types';
@@ -163,7 +163,7 @@ function ProductSelectionAvailabilityContainer({
     },
   });
 
-  const disabledProducts: DisabledProducts = useMemo(
+  const disabledProducts = useMemo(
     () =>
       getDisabledProducts({
         organization,

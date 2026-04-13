@@ -1,29 +1,37 @@
-import type {CSSProperties, RefObject} from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FileSize from 'sentry/components/fileSize';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {FileSize} from 'sentry/components/fileSize';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
+import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {
-  Table,
   TableBodyCell,
   TableHead,
   TableHeadCell,
@@ -45,6 +53,7 @@ import {
   FloatingBottomContainer,
   HoveringRowLoadingRendererContainer,
   LOGS_GRID_BODY_ROW_HEIGHT,
+  LogTable,
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
@@ -90,28 +99,27 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
+  expanded?: boolean;
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
   };
   numberAttributes?: TagCollection;
-  scrollContainer?: React.RefObject<HTMLElement | null>;
   stringAttributes?: TagCollection;
 };
 
 const {info, fmt} = Sentry.logger;
 
 const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; // If you are less than this number of pixels from the top of the table while scrolling backward, fetch the previous page.
-const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
 export function LogsInfiniteTable({
   embedded = false,
+  expanded,
   localOnlyItemFilters,
   emptyRenderer,
   numberAttributes,
   stringAttributes,
   booleanAttributes,
-  scrollContainer,
   embeddedStyling,
   embeddedOptions,
   additionalData,
@@ -159,7 +167,7 @@ export function LogsInfiniteTable({
     return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
-  const data: LogTableRowItem[] = useMemo(() => {
+  const data = useMemo(() => {
     if (
       !additionalData?.event ||
       !baseData ||
@@ -213,6 +221,7 @@ export function LogsInfiniteTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
     new Set(embeddedOptions?.openWithExpandedIds ?? [])
   );
@@ -246,31 +255,40 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
+  const searchString = search.formatString();
   const highlightTerms = useMemo(() => {
     const terms = getLogBodySearchTerms(search);
     if (localOnlyItemFilters?.filterText) {
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-  }, [search, localOnlyItemFilters?.filterText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchString, localOnlyItemFilters?.filterText]);
+
+  const isContainedVirtualizer = expanded !== undefined;
 
   const windowVirtualizer = useWindowVirtualizer({
-    count: data?.length ?? 0,
+    count: isContainedVirtualizer ? 0 : (data?.length ?? 0),
     estimateSize,
-    overscan: LOGS_OVERSCAN_AMOUNT,
+    overscan: 50,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
     scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
   });
 
-  const containerVirtualizer = useVirtualizer({
-    count: data?.length ?? 0,
+  const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
+    count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
     estimateSize,
-    overscan: LOGS_OVERSCAN_AMOUNT,
-    getScrollElement: () => scrollContainer?.current ?? null,
+    overscan: expanded ? 50 : 25,
+    getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
 
-  const virtualizer = scrollContainer?.current ? containerVirtualizer : windowVirtualizer;
+  const virtualizer = isContainedVirtualizer ? containerVirtualizer : windowVirtualizer;
+
+  useLayoutEffect(() => {
+    virtualizer.measure();
+  }, [expanded, virtualizer]);
+
   const virtualItems = virtualizer.getVirtualItems();
 
   const firstItem = virtualItems[0]?.start;
@@ -291,13 +309,13 @@ export function LogsInfiniteTable({
   useEffect(() => {
     if (
       pseudoRowIndex !== -1 &&
-      scrollContainer?.current &&
+      tableBodyRef?.current &&
       !additionalData?.scrollToDisabled
     ) {
       setTimeout(() => {
         const scrollToIndex =
           pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
-        containerVirtualizer.scrollToIndex(scrollToIndex, {
+        virtualizer.scrollToIndex(scrollToIndex, {
           behavior: 'smooth',
           align: 'center',
         });
@@ -305,8 +323,8 @@ export function LogsInfiniteTable({
     }
   }, [
     pseudoRowIndex,
-    containerVirtualizer,
-    scrollContainer,
+    virtualizer,
+    tableBodyRef,
     baseDataLength,
     additionalData?.scrollToDisabled,
   ]);
@@ -335,9 +353,7 @@ export function LogsInfiniteTable({
         ]
       : [0, 0];
 
-  const {scrollDirection, scrollOffset, isScrolling} = scrollContainer
-    ? containerVirtualizer
-    : virtualizer;
+  const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
@@ -418,7 +434,7 @@ export function LogsInfiniteTable({
       '.log-table-row-chevron-button': {
         width: '24px',
         height: '24px',
-        padding: `${space(0.5)} ${space(0.75)}`,
+        padding: '4px 6px',
         marginRight: '4px',
         display: 'flex',
         alignItems: 'center',
@@ -450,10 +466,11 @@ export function LogsInfiniteTable({
 
   return (
     <Fragment>
-      <Table
+      <LogTable
         ref={tableRef}
         style={initialTableStyles}
         css={tableStaticCSS}
+        height="100%"
         hideBorder={embedded}
         data-test-id="logs-table"
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
@@ -471,6 +488,7 @@ export function LogsInfiniteTable({
           showHeader={!embedded}
           ref={tableBodyRef}
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
+          expanded={expanded}
         >
           {paddingTop > 0 && (
             <TableRow>
@@ -515,7 +533,6 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
-                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
@@ -537,11 +554,11 @@ export function LogsInfiniteTable({
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
         </LogTableBody>
-      </Table>
+      </LogTable>
       <FloatingBackToTopContainer
+        position={expanded === undefined ? 'fixed' : 'absolute'}
         inReplay={!!embeddedOptions?.replay}
-        tableLeft={tableRef.current?.getBoundingClientRect().left ?? 0}
-        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
+        tableWidth={tableWidth}
       >
         {!embeddedOptions?.replay && (
           <BackToTopButton
@@ -556,9 +573,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="up" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBackToTopContainer>
-      <FloatingBottomContainer
-        tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
-      >
+      <FloatingBottomContainer tableWidth={tableWidth}>
         {embeddedOptions?.replay && showJumpDownButton ? (
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
@@ -662,26 +677,26 @@ function EmptyRenderer({
   if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
     return (
       <TableStatus>
-        <EmptyStateWarning withIcon>
+        <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
             {tct(
-              'We scanned [bytesScanned] already but did not find any matching logs yet.[break]You can narrow your time range or you can [continueScanning].',
-              {
-                bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
-                break: <br />,
-                continueScanning: (
-                  <Button
-                    priority="link"
-                    onClick={resumeAutoFetch}
-                    aria-label={t('continue scanning')}
-                  >
-                    {t('Continue Scanning')}
-                  </Button>
-                ),
-              }
+              'We scanned [bytesScanned] so far but have not found anything matching your filters',
+              {bytesScanned: <FileSize bytes={bytesScanned} base={2} />}
             )}
           </EmptyStateText>
+          <EmptyStateText size="md">
+            {t('We can keep digging or you can narrow down your search.')}
+          </EmptyStateText>
+          <Container paddingTop="md">
+            <Button
+              priority="default"
+              onClick={resumeAutoFetch}
+              aria-label={t('continue scanning')}
+            >
+              {t('Continue Scanning')}
+            </Button>
+          </Container>
         </EmptyStateWarning>
       </TableStatus>
     );
@@ -689,11 +704,11 @@ function EmptyRenderer({
 
   return (
     <TableStatus>
-      <EmptyStateWarning withIcon>
+      <EmptyStateWarning withIcon variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
           {tct(
-            'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+            'Try adjusting your filters or get started with sending logs by checking these [instructions].',
             {
               instructions: (
                 <ExternalLink href={LOGS_INSTRUCTIONS_URL}>

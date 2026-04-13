@@ -7,12 +7,13 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as orgsActionCreators from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import * as intercom from 'sentry/utils/intercom';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider} from './organizationContext';
 
@@ -114,6 +115,7 @@ describe('OrganizationContext', () => {
     const {orgMock, projectMock, teamMock} = setupOrgMocks(anotherOrg);
 
     const switchOrganization = jest.spyOn(orgsActionCreators, 'switchOrganization');
+    const shutdownIntercom = jest.spyOn(intercom, 'shutdownIntercom');
 
     // re-render with another-org
     testRouter.navigate(`/organizations/${anotherOrg.slug}/`);
@@ -123,6 +125,7 @@ describe('OrganizationContext', () => {
     expect(projectMock).toHaveBeenCalled();
     expect(teamMock).toHaveBeenCalled();
     expect(switchOrganization).toHaveBeenCalled();
+    expect(shutdownIntercom).toHaveBeenCalled();
     expect(JSON.stringify(OrganizationStore.getState().organization)).toEqual(
       JSON.stringify(anotherOrg)
     );
@@ -190,7 +193,7 @@ describe('OrganizationContext', () => {
         initialRouterConfig: {
           route: '/organizations/',
           location: {
-            pathname: `/organizations/`,
+            pathname: '/organizations/',
           },
         },
       }

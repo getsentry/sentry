@@ -7,7 +7,7 @@ from sentry import options
 from sentry.event_manager import EventManager
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from tests.sentry.event_manager.test_severity import make_event
@@ -15,7 +15,7 @@ from tests.sentry.event_manager.test_severity import make_event
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@cell_silo_test
 @with_feature("projects:first-event-severity-calculation")
 @with_feature("organizations:seer-based-priority")
 class TestEventManagerPriority(TestCase):

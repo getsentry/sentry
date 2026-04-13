@@ -111,7 +111,6 @@ def test_shared_mri_string_range(mri, id) -> None:
         "sessions": (1, 99),
         "transactions": (100, 199),
         "spans": (400, 499),
-        "escalating_issues": (500, 599),
         "profiles": (600, 699),
         "bundle_analysis": (700, 799),
         "metric_stats": (800, 899),

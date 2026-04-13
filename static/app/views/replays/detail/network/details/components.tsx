@@ -8,11 +8,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const Indent = styled('div')`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 export function InspectorMargin(props: ContainerProps<'div'>) {
@@ -105,9 +104,9 @@ const ToggleButton = styled('button')`
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 
   :hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
@@ -146,7 +145,7 @@ export function SectionItem({
 const StyledKeyValueTable = styled(KeyValueTable)`
   & > dt {
     font-size: ${p => p.theme.font.size.sm};
-    padding-left: ${space(4)};
+    padding-left: ${p => p.theme.space['3xl']};
   }
   & > dd {
     width: 100%;

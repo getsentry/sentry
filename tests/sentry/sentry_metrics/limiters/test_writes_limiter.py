@@ -23,7 +23,7 @@ def get_writes_limiter(namespace: str) -> WritesLimiter:
 MOCK_METRIC_PATH_MAPPING = {
     UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
     UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
-    UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
+    UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
 }
 
 MOCK_REVERSE_METRIC_PATH_MAPPING = {
@@ -34,7 +34,7 @@ MOCK_REVERSE_METRIC_PATH_MAPPING = {
 MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.transactions",
     UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.uc1",
-    UseCaseID.ESCALATING_ISSUES: "sentry-metrics.writes-limiter.limits.uc2",
+    UseCaseID.PROFILES: "sentry-metrics.writes-limiter.limits.uc2",
 }
 
 
@@ -67,7 +67,7 @@ def test_writes_limiter_no_limits() -> None:
                     10: {"x", "y", "z"},
                     11: {"a", "b", "c"},
                 },
-                UseCaseID.ESCALATING_ISSUES: {
+                UseCaseID.PROFILES: {
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
                 },
@@ -115,7 +115,7 @@ def test_writes_limiter_doesnt_limit() -> None:
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
-                UseCaseID.ESCALATING_ISSUES: {
+                UseCaseID.PROFILES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
@@ -164,7 +164,7 @@ def test_writes_limiter_org_limit() -> None:
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
-                UseCaseID.ESCALATING_ISSUES: {
+                UseCaseID.PROFILES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
@@ -230,7 +230,7 @@ def test_writes_limiter_global_limit() -> None:
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
-                UseCaseID.ESCALATING_ISSUES: {
+                UseCaseID.PROFILES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
@@ -282,7 +282,7 @@ def test_writes_limiter_respects_use_case_id() -> None:
                     10: {"x", "y", "z"},
                     11: {"a", "b", "c"},
                 },
-                UseCaseID.ESCALATING_ISSUES: {
+                UseCaseID.PROFILES: {
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
                 },

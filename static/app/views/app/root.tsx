@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**

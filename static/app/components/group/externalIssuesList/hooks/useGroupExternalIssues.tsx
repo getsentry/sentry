@@ -1,4 +1,4 @@
-import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
+import {useIssueTrackingFilter} from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -17,7 +17,7 @@ interface Props {
 /**
  * Aggregates external issues from integrations, plugins, and sentry apps
  */
-export default function useGroupExternalIssues({
+export function useGroupExternalIssues({
   group,
   event,
   project,

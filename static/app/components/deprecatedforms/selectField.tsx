@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 
 import {Select} from '@sentry/scraps/select';
 
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
-import FormField, {type FormFieldProps} from './formField';
+import {FormField, type FormFieldProps} from './formField';
 
 // Combined interface for SelectField props
 export interface SelectFieldProps extends FormFieldProps {
@@ -129,7 +129,7 @@ export class SelectField extends FormField<SelectFieldProps> {
       <StyledSelectControl
         creatable={creatable}
         inputId={this.getId()}
-        choices={choices}
+        choices={choices as any}
         options={options}
         placeholder={placeholder}
         disabled={disabled}

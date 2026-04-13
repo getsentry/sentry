@@ -13,7 +13,7 @@ export function hasSpanTags(span: RawSpanType) {
 
 export function Tags({node}: {node: SpanNode}) {
   const span = node.value;
-  const tags: Record<string, string> | undefined = span?.tags;
+  const tags = span?.tags;
 
   if (!tags) {
     return null;

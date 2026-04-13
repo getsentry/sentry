@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
 import type {GroupListColumn} from './groupList';
@@ -13,7 +12,7 @@ type Props = {
   withColumns?: GroupListColumn[];
 };
 
-function GroupListHeader({
+export function GroupListHeader({
   withChart = true,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
@@ -60,15 +59,13 @@ function GroupListHeader({
   );
 }
 
-export default GroupListHeader;
-
 const GroupListHeaderLabel = styled(IssueStreamHeaderLabel)`
   text-transform: capitalize;
 `;
 
 const IssueWrapper = styled(GroupListHeaderLabel)`
   flex: 1;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 const LastSeenWrapper = styled(GroupListHeaderLabel)`

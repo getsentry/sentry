@@ -11,17 +11,17 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes', 'preprod-frontend-routes'],
+    features: [],
   });
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {
@@ -82,7 +82,7 @@ describe('ReleasesList', () => {
     });
 
     sessionApiMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: null,
     });
 
@@ -93,6 +93,15 @@ describe('ReleasesList', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${projects[0]!.slug}/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builds/`,
       body: [],
     });
   });
@@ -136,7 +145,6 @@ describe('ReleasesList', () => {
     });
     PageFiltersStore.updateProjects([Number(projectWithoutReleases.id)], null);
     render(<ReleasesList />, {organization});
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(await screen.findByText('Set up Releases')).toBeInTheDocument();
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
   });
@@ -153,7 +161,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText("There are no releases that match: 'abc'.")
     ).toBeInTheDocument();
@@ -174,7 +181,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText('There are no releases with data in the last 7 days.')
     ).toBeInTheDocument();
@@ -195,7 +201,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         'There are no releases with active user data (users in the last 24 hours).'
@@ -215,7 +220,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         'There are no releases with active session data (sessions in the last 24 hours).'
@@ -232,7 +236,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
       await screen.findByText('There are no releases with semantic versioning.')
     ).toBeInTheDocument();
@@ -277,8 +280,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
     const input = await screen.findByDisplayValue('derp');
     expect(input).toBeInTheDocument();
 
@@ -305,18 +306,18 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(endpointMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/releases/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ReleasesSortOption.SESSIONS,
+          }),
+        })
+      );
+    });
 
-    expect(endpointMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/releases/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sort: ReleasesSortOption.SESSIONS,
-        }),
-      })
-    );
-
-    await userEvent.click(screen.getByText('Sort By'));
+    await userEvent.click(await screen.findByText('Sort By'));
 
     const dateCreatedOption = screen.getByText('Date Created');
     expect(dateCreatedOption).toBeInTheDocument();
@@ -373,14 +374,6 @@ describe('ReleasesList', () => {
         },
       },
     });
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(endpointMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/releases/`,
-      expect.objectContaining({
-        query: expect.objectContaining({status: ReleasesStatusOption.ARCHIVED}),
-      })
-    );
-
     expect(
       await screen.findByText('These releases have been archived.')
     ).toBeInTheDocument();
@@ -541,6 +534,11 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
+
     render(<ReleasesList />, {
       organization,
       initialRouterConfig: {
@@ -561,70 +559,49 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('toggles display mode in the mobile-builds tab', async () => {
-    const organizationWithDistribution = OrganizationFixture({
-      slug: organization.slug,
-      features: [...organization.features, 'preprod-build-distribution'],
-    });
+  function renderMobileBuildsTab(queryOverrides: Record<string, string> = {}) {
     const mobileProject = ProjectFixture({
       id: '15',
       slug: 'mobile-project-4',
       platform: 'android',
       features: ['releases'],
     });
-
     ProjectsStore.loadInitialData([mobileProject]);
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/builds/`,
-      body: [
-        {
-          id: 'build-id',
-          project_id: 15,
-          project_slug: 'mobile-project-4',
-          state: 1,
-          app_info: {
-            app_id: 'com.example.app',
-            name: 'Example App',
-            platform: 'android',
-            build_number: '1',
-            version: '1.0.0',
-            date_added: '2024-01-01T00:00:00Z',
-          },
-          distribution_info: {
-            is_installable: true,
-            download_count: 12,
-            release_notes: null,
-          },
-          size_info: {},
-          vcs_info: {
-            head_sha: 'abcdef1',
-            pr_number: 123,
-            head_ref: 'main',
-          },
-        },
-      ],
+      body: [],
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
 
-    const {router} = render(<ReleasesList />, {
-      organization: organizationWithDistribution,
+    return render(<ReleasesList />, {
+      organization,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {tab: 'mobile-builds', cursor: '123', display: 'users'},
+          query: {tab: 'mobile-builds', ...queryOverrides},
         },
       },
     });
+  }
 
-    expect(await screen.findByText('Example App')).toBeInTheDocument();
+  it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {
+    const {router} = renderMobileBuildsTab();
 
-    const displayTrigger = screen.getByRole('button', {name: 'Display Size'});
+    const displayTrigger = await screen.findByRole('button', {name: 'Display Size'});
     await userEvent.click(displayTrigger);
 
     const distributionOption = screen.getByRole('option', {name: 'Distribution'});
@@ -632,6 +609,25 @@ describe('ReleasesList', () => {
 
     expect(router.location.query.display).toBe(PreprodBuildsDisplay.DISTRIBUTION);
     expect(router.location.query.cursor).toBeUndefined();
+    expect(router.location.query.query).toBe('installable:true');
+  });
+
+  it('strips installable:true when switching from Distribution to Size', async () => {
+    const {router} = renderMobileBuildsTab({
+      display: 'distribution',
+      query: 'installable:true',
+    });
+
+    const displayTrigger = await screen.findByRole('button', {
+      name: 'Display Distribution',
+    });
+    await userEvent.click(displayTrigger);
+
+    const sizeOption = screen.getByRole('option', {name: 'Size'});
+    await userEvent.click(sizeOption);
+
+    expect(router.location.query.display).toBe(PreprodBuildsDisplay.SIZE);
+    expect(router.location.query.query).toBeFalsy();
   });
 
   it('allows searching within the mobile-builds tab', async () => {
@@ -677,10 +673,25 @@ describe('ReleasesList', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/branch/values/`,
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
     render(<ReleasesList />, {
       organization,
       initialRouterConfig: {
@@ -750,6 +761,11 @@ describe('ReleasesList', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
 

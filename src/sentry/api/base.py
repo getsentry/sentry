@@ -71,10 +71,11 @@ __all__ = [
     "Endpoint",
     "StatsMixin",
     "control_silo_endpoint",
-    "region_silo_endpoint",
+    "cell_silo_endpoint",
     "all_silo_endpoint",
-    "internal_region_silo_endpoint",
+    "internal_cell_silo_endpoint",
     "internal_all_silo_endpoint",
+    "internal_control_silo_endpoint",
 ]
 
 PAGINATION_DEFAULT_PER_PAGE = 100
@@ -723,24 +724,30 @@ If a request is received and the application is not in CONTROL
 mode 404s will be returned.
 """
 
-region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+internal_control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, internal=True)
 """
-Apply to endpoints that exist in REGION silo.
-If a request is received and the application is not in REGION
+Apply to endpoints that exist in CONTROL silo that
+should not be included in the frontend URL mapping
+"""
+
+cell_silo_endpoint = EndpointSiloLimit(SiloMode.CELL)
+"""
+Apply to endpoints that exist in CELL silo.
+If a request is received and the application is not in CELL
 mode 404s will be returned.
 """
 
-internal_region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION, internal=True)
+internal_cell_silo_endpoint = EndpointSiloLimit(SiloMode.CELL, internal=True)
 """
-Apply to endpoints that exist in REGION silo that are internal only.
+Apply to endpoints that exist in CELL silo that are internal only.
 Internal endpoints are not subject to URL pattern rules required
 for public endpoints in cells.
 
-If a request is received and the application is not in REGION
+If a request is received and the application is not in CELL
 mode 404s will be returned.
 """
 
-all_silo_endpoint = EndpointSiloLimit([SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH])
+all_silo_endpoint = EndpointSiloLimit([SiloMode.CONTROL, SiloMode.CELL, SiloMode.MONOLITH])
 """
 Apply to endpoints that are available in all silo modes.
 
@@ -748,7 +755,7 @@ This should be rarely used, but is relevant for resources like ROBOTS.txt.
 """
 
 internal_all_silo_endpoint = EndpointSiloLimit(
-    [SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH], internal=True
+    [SiloMode.CONTROL, SiloMode.CELL, SiloMode.MONOLITH], internal=True
 )
 """
 Apply to endpoints that exist in all silo modes that are internal only.

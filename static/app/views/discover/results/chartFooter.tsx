@@ -1,5 +1,5 @@
-import IntervalSelector from 'sentry/components/charts/intervalSelector';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {IntervalSelector} from 'sentry/components/charts/intervalSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
@@ -8,7 +8,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
@@ -25,7 +25,7 @@ type Props = {
   yAxisValue: string[];
 };
 
-export default function ChartFooter({
+export function ChartFooter({
   total,
   yAxisValue,
   yAxisOptions,

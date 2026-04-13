@@ -137,6 +137,11 @@ class VstsIntegrationTestCase(IntegrationTestCase):
                         "id": self.repo_id,
                         "name": self.repo_name,
                         "project": {"name": self.project_a["name"]},
+                        "_links": {
+                            "web": {
+                                "href": f"https://{self.vsts_account_name.lower()}.visualstudio.com/_git/{self.repo_name}"
+                            }
+                        },
                     }
                 ]
             },
@@ -217,16 +222,13 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert f'<option value="{account_id}"'.encode() in response.content
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_installation(self, new=False):
+    def assert_installation(self):
         # Initial request to the installation URL for VSTS
         resp = self.make_init_request()
         redirect = urlparse(resp["Location"])
 
         assert resp.status_code == 302
-        if new:
-            self.assert_vsts_new_oauth_redirect(redirect)
-        else:
-            self.assert_vsts_oauth_redirect(redirect)
+        self.assert_vsts_new_oauth_redirect(redirect)
 
         query = parse_qs(redirect.query)
 

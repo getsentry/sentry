@@ -15,12 +15,12 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.utils import json
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
 
-@region_silo_view
+@cell_silo_view
 class ReleaseWebhookView(View):
     def verify(self, plugin_id, project_id, token, signature):
         return constant_time_compare(
@@ -109,6 +109,7 @@ class ReleaseWebhookView(View):
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()
+        assert cls is not None
         hook = cls(project)
         try:
             hook.handle(request)

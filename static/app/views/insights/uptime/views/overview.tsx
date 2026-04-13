@@ -1,62 +1,69 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {type UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
 import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/uptime/settings';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function UptimeOverview() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
   const {projects} = useProjects();
 
-  const {
-    data: detectors,
-    getResponseHeader: uptimeListHeaders,
-    isPending,
-  } = useDetectorsQuery<UptimeDetector>({
-    query: `type:uptime ${location.query.query ?? ''}`,
-    cursor: decodeScalar(location.query.cursor),
-    projects: project.map(Number),
+  const {data, isPending} = useQuery({
+    ...detectorListApiOptions(organization, {
+      type: 'uptime',
+      query: decodeScalar(location.query.query),
+      cursor: decodeScalar(location.query.cursor),
+      projects: project.map(Number),
+    }),
+    select: selectJsonWithHeaders,
   });
+  const detectors = data?.json;
 
   useRouteAnalyticsEventNames('uptime.page_viewed', 'Uptime: Page Viewed');
   useRouteAnalyticsParams({empty_state: !detectors || detectors.length === 0});
 
-  const uptimeListPageLinks = uptimeListHeaders?.('Link');
+  const uptimeListPageLinks = data?.headers.Link;
 
   const canCreateAlert =
     hasEveryAccess(['alerts:write'], {organization}) ||
@@ -78,21 +85,40 @@ export default function UptimeOverview() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton />
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={makeAlertsPathname({path: `/new/uptime/`, organization})}
-              icon={<IconAdd />}
-              disabled={!canCreateAlert}
-              tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
-            >
-              {t('Add Uptime Monitor')}
-            </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <LinkButton
+                priority="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton />
+              <LinkButton
+                size="sm"
+                priority="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
@@ -116,6 +142,28 @@ export default function UptimeOverview() {
               }}
             />
           </Filters>
+          {organization.features.includes('workflow-engine-ui') && (
+            <Alert.Container>
+              <Alert variant="info" showIcon>
+                {tct(
+                  'Uptime Monitors are moving to [link:Monitors]. Head over there for the same functionality in a new home.',
+                  {
+                    link: (
+                      <Link
+                        to={{
+                          pathname: makeMonitorTypePathname(
+                            organization.slug,
+                            'uptime_domain_failure'
+                          ),
+                          query: extractSelectionParameters(location.query),
+                        }}
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
           {isPending ? (
             <LoadingIndicator />
           ) : detectors?.length ? (
@@ -131,7 +179,7 @@ export default function UptimeOverview() {
                   <LinkButton
                     size="sm"
                     priority="primary"
-                    to={makeAlertsPathname({path: `/new/uptime/`, organization})}
+                    to={makeAlertsPathname({path: '/new/uptime/', organization})}
                     icon={<IconAdd />}
                   >
                     {t('Add Uptime Monitor')}
@@ -156,8 +204,8 @@ export default function UptimeOverview() {
 
 const Filters = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
 
   > :last-child {
     flex-grow: 1;

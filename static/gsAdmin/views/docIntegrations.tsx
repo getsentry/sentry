@@ -7,8 +7,8 @@ import {Link} from '@sentry/scraps/link';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {DocIntegration} from 'sentry/types/integrations';
 
-import DocIntegrationModal from 'admin/components/docIntegrationModal';
-import PageHeader from 'admin/components/pageHeader';
+import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (doc: DocIntegration) => [
@@ -34,7 +34,7 @@ const getRow = (doc: DocIntegration) => [
   </td>,
 ];
 
-export default function DocIntegrations() {
+export function DocIntegrations() {
   return (
     <div>
       <PageHeader title="Document Integrations">

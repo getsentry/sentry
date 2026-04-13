@@ -23,7 +23,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -40,7 +40,7 @@ def should_sync_assignee_inbound(
     organization: Organization | RpcOrganization, provider: str
 ) -> bool:
     if provider == "github":
-        return features.has("organizations:integrations-github-project-management", organization)
+        return True
     elif provider == "github_enterprise":
         return features.has(
             "organizations:integrations-github_enterprise-project-management", organization
@@ -131,7 +131,7 @@ def _handle_assign(
     return groups_assigned
 
 
-@region_silo_function
+@cell_silo_function
 def sync_group_assignee_inbound_by_external_actor(
     integration: RpcIntegration | Integration,
     external_user_name: str,
@@ -187,7 +187,7 @@ def sync_group_assignee_inbound_by_external_actor(
         return groups_assigned
 
 
-@region_silo_function
+@cell_silo_function
 def sync_group_assignee_inbound(
     integration: RpcIntegration | Integration,
     email: str | None,

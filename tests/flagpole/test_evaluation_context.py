@@ -13,24 +13,29 @@ class TestEvaluationContext:
     def test_adds_identity_fields(self) -> None:
         eval_context = EvaluationContext({}, set())
         assert eval_context.id == 1245845410931227995499360226027473197403882391305
+        assert eval_context.id % 100 == 5, "bucket should be correct"
 
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
         expected_id = 484477975355580460928302712356218993825269143262
         assert eval_context.id == expected_id
+        assert eval_context.id % 100 == 62, "bucket should be correct"
 
         # Assert that we skip the missing field but still generate the same
         # context ID.
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo", "whoops"})
         assert eval_context.id == expected_id
+        assert eval_context.id % 100 == 62, "bucket should be correct"
 
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo", "baz"})
         expected_id = 1249805218608667754842212156585681631068251083301
         assert eval_context.id == expected_id
+        assert eval_context.id % 100 == 1, "bucket should be correct"
 
         # Assert that we use all properties to generate the context when all
         # identity fields are missing.
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"whoops", "test"})
         assert eval_context.id == expected_id
+        assert eval_context.id % 100 == 1, "bucket should be correct"
 
     def test_no_identity_fields_included(self) -> None:
         eval_context = EvaluationContext({})

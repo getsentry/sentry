@@ -3,7 +3,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 

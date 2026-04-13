@@ -11,20 +11,19 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
@@ -37,7 +36,7 @@ import {
   type MonitorViewContextValue,
 } from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
+import {MonitorEnvironmentLabel} from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {
@@ -57,7 +56,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   const cronEnvironments = detector.dataSources[0].queryObj.environments;
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({
@@ -255,7 +254,13 @@ export default function CronDetectorsList() {
           </InsightsRedirectNotice>
           <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
           <GlobalMonitorProcessingErrors project={selectedProjects} />
-          <DetectorListContent {...detectorListQuery} emptyState={<CronEmptyState />} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+            emptyState={<CronEmptyState />}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>
@@ -275,5 +280,5 @@ const TimelineFadeIn = styled('div')`
 const PlatformLinkButton = styled(LinkButton)`
   width: 80px;
   height: 80px;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;

@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {
   AskSeerPollingResponse,
@@ -60,6 +60,7 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
   strategy: string;
   onError?: (error: Error) => void;
   onSuccess?: (result: T) => void;
+  options?: Record<string, unknown>;
 }
 
 /**
@@ -117,6 +118,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              ...(options.options ? {options: options.options} : {}),
             },
           }
         )) as AskSeerStartResponse;

@@ -1,15 +1,17 @@
+import {useTheme} from '@emotion/react';
+
 import {IconUser} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 export function UserCell({value}: {value: number}) {
+  const theme = useTheme();
   return (
     <div
       style={{
         minWidth: '0',
         display: 'flex',
         alignItems: 'center',
-        gap: space(0.5),
+        gap: theme.space.xs,
         justifyContent: 'flex-end',
       }}
     >

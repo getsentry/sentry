@@ -6,7 +6,7 @@ type Props = {
   orgStatus: Subscription['orgStatus'];
 };
 
-function OrganizationStatus({orgStatus}: Props) {
+export function OrganizationStatus({orgStatus}: Props) {
   if (!orgStatus) {
     return null;
   }
@@ -24,8 +24,6 @@ function OrganizationStatus({orgStatus}: Props) {
     case 'deletion_in_progress':
       message = 'This organization in the process of being deleted.';
       break;
-    default:
-      break;
   }
 
   if (!message) {
@@ -40,5 +38,3 @@ function OrganizationStatus({orgStatus}: Props) {
     </Alert.Container>
   );
 }
-
-export default OrganizationStatus;

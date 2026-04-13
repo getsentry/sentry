@@ -6,23 +6,43 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 
-export function createPlottableFromTimeSeries(
-  timeSeries: TimeSeries,
-  widget: Widget,
-  alias?: string,
-  name?: string
-): Plottable | null {
-  const shouldStack = widget.queries[0]?.columns.length! > 0;
+type PlottableConfig = {
+  alias?: string;
+  color?: string;
+  name?: string;
+  stack?: string;
+};
 
-  const {displayType, title} = widget;
+export function createPlottableFromTimeSeries(
+  displayType: DisplayType,
+  timeSeries: TimeSeries,
+  config?: PlottableConfig
+): Plottable | null {
   switch (displayType) {
     case DisplayType.LINE:
-      return new Line(timeSeries, {alias, name});
+      return new Line(timeSeries, config);
     case DisplayType.AREA:
-      return new Area(timeSeries, {alias, name});
+      return new Area(timeSeries, config);
     case DisplayType.BAR:
-      return new Bars(timeSeries, {stack: shouldStack ? title : undefined, alias, name});
+      return new Bars(timeSeries, config);
     default:
       return null;
   }
+}
+
+export function createPlottableFromTimeSeriesAndWidget(
+  timeSeries: TimeSeries,
+  widget: Widget,
+  alias?: string,
+  name?: string,
+  color?: string
+): Plottable | null {
+  const shouldStack = widget.queries[0]?.columns.length! > 0;
+
+  return createPlottableFromTimeSeries(widget.displayType, timeSeries, {
+    alias,
+    name,
+    color,
+    stack: shouldStack ? widget.title : undefined,
+  });
 }

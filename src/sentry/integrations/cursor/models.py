@@ -51,3 +51,7 @@ class CursorAgentLaunchResponse(BaseModel):
     target: CursorAgentResponseTarget
     name: str | None = None
     createdAt: datetime
+
+
+class CursorModelsResponse(BaseModel):
+    models: list[str]

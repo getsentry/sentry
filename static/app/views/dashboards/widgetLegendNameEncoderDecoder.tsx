@@ -8,7 +8,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 
 const SERIES_NAME_DELIMITER = '|~|';
 
-const WidgetLegendNameEncoderDecoder = {
+export const WidgetLegendNameEncoderDecoder = {
   encodeSeriesNameForLegend(seriesName: string, widgetId?: string) {
     return `${seriesName}${SERIES_NAME_DELIMITER}${widgetId}`;
   },
@@ -50,5 +50,3 @@ const WidgetLegendNameEncoderDecoder = {
       : [];
   },
 };
-
-export default WidgetLegendNameEncoderDecoder;

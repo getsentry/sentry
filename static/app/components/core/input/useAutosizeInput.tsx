@@ -73,7 +73,7 @@ export function useAutosizeInput(
     }
   }, []);
 
-  const autosizingCallbackRef: React.RefCallback<HTMLInputElement> = useCallback(
+  const autosizingCallbackRef = useCallback(
     (element: HTMLInputElement | null) => {
       if (!enabled || !element) {
         sourceRef.current?.removeEventListener('input', onInputChange);

@@ -28,7 +28,7 @@ class OrganizationEventsStatsProfileFunctionsEndpointTest(OrganizationEventsEndp
             for i, function_value in enumerate(function_values)
         ]
 
-        self.store_profile_functions(profile_functions)
+        self.store_eap_items(profile_functions)
 
         response = self.do_request(
             {

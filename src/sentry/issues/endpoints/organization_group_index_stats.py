@@ -4,14 +4,13 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
-from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -19,7 +18,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -68,10 +67,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         """
 
         stats_period = request.GET.get("groupStatsPeriod")
-        try:
-            start, end = get_date_range_from_stats_period(request.GET)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_stats_period(request.GET)
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", ["base"])

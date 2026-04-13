@@ -81,8 +81,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         # Enable usage of external relays, for use with Relay. See
         # https://github.com/getsentry/relay.
         "organizations:relay": True,
-        # Enable core remote-config backend APIs
-        "organizations:remote-config": False,
         # Enable core Session Replay backend APIs
         "organizations:session-replay": False,
         # Measure usage by spans instead of transactions
@@ -116,6 +114,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
+        # Show Seer run ID in Slack notification footers
+        "organizations:seer-run-id-in-slack": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
         # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.

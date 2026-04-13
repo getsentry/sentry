@@ -1,0 +1,38 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes:
+      title: '{{ message }}'
+    fingerprint:
+    - dogs are great
+    - '{{ message }}'
+    matchers:
+    - - message
+      - '*dog*'
+    text: message:"*dog*" -> "dogs are great{{ message }}" title="{{ message }}"
+  version: 1
+fingerprint:
+- dogs are great
+- '{{ message }}'
+title: 'Number 1 dog, dog #1'
+variants:
+  custom_server_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_server_fingerprint
+    matched_rule: message:"*dog*" -> "dogs are great{{ message }}" title="{{ message
+      }}"
+    type: custom_fingerprint
+    values:
+    - dogs are great
+    - 'Number <int> dog, dog #<int>'
+  default:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: message
+    type: component

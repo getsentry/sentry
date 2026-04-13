@@ -10,7 +10,7 @@ interface Opts {
   virtualizer: Virtualizer<HTMLDivElement, Element> | null;
 }
 
-function useScrollToCurrentItem({frames, virtualizer}: Opts) {
+export function useScrollToCurrentItem({frames, virtualizer}: Opts) {
   const {currentTime} = useReplayContext();
   const currentItem = useMemo(
     () =>
@@ -31,5 +31,3 @@ function useScrollToCurrentItem({frames, virtualizer}: Opts) {
     }
   }, [frames, currentItem, virtualizer]);
 }
-
-export default useScrollToCurrentItem;

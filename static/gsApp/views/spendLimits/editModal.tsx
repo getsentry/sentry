@@ -10,12 +10,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {
   OnDemandBudgetMode,
   OnDemandBudgets,
@@ -23,7 +22,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import EmbeddedSpendLimitSettings from 'getsentry/views/spendLimits/embeddedSettings';
+import {EmbeddedSpendLimitSettings} from 'getsentry/views/spendLimits/embeddedSettings';
 
 import {
   convertOnDemandBudget,
@@ -247,10 +246,10 @@ class SpendLimitsEditModal extends Component<Props, State> {
 }
 
 const OffsetBody = styled('div')`
-  margin: -${space(3)} -${space(4)};
+  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(3)};
+    margin: -${p => p.theme.space['2xl']};
   }
 `;
 

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
-import WidgetWrapper from './widgetWrapper';
+import {WidgetWrapper} from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 
@@ -24,7 +24,7 @@ type Props = {
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
 };
 
-function AddWidget({onAddWidget}: Props) {
+export function AddWidget({onAddWidget}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -85,8 +85,6 @@ function AddWidget({onAddWidget}: Props) {
     </Feature>
   );
 }
-
-export default AddWidget;
 
 const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;

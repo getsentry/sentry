@@ -19,7 +19,7 @@ export function useTraceQueryParams(
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
-    const timestamp: string | undefined = decodeScalar(normalizedParams.timestamp);
+    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
     const numberTimestamp = timestamp ? Number(timestamp) : undefined;

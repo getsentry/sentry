@@ -2,9 +2,9 @@ import type {ComponentProps, CSSProperties} from 'react';
 
 import type {Tooltip} from '@sentry/scraps/tooltip';
 
-import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
+import {HeaderCell} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import {t} from 'sentry/locale';
-import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import type {useSortErrors} from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 type SortConfig = ReturnType<typeof useSortErrors>['sortConfig'];
 type Props = {
@@ -29,7 +29,7 @@ const COLUMNS: Array<{
 
 export const COLUMN_COUNT = COLUMNS.length;
 
-function ErrorHeaderCell({handleSort, index, sortConfig, style, ref}: Props) {
+export function ErrorHeaderCell({handleSort, index, sortConfig, style, ref}: Props) {
   const {field, label, tooltipTitle} = COLUMNS[index]!;
   return (
     <HeaderCell
@@ -43,5 +43,3 @@ function ErrorHeaderCell({handleSort, index, sortConfig, style, ref}: Props) {
     />
   );
 }
-
-export default ErrorHeaderCell;

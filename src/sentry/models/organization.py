@@ -23,14 +23,14 @@ from sentry.constants import (
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
 )
-from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, cell_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
@@ -146,8 +146,8 @@ class OrganizationManager(BaseManager["Organization"]):
 
 
 @snowflake_id_model
-@region_silo_model
-class Organization(ReplicatedRegionModel):
+@cell_silo_model
+class Organization(ReplicatedCellModel):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -280,9 +280,9 @@ class Organization(ReplicatedRegionModel):
         from sentry.hybridcloud.services.organization_mapping.service import (
             organization_mapping_service,
         )
-        from sentry.types.region import get_local_region
+        from sentry.types.cell import get_local_cell
 
-        update = update_organization_mapping_from_instance(self, get_local_region())
+        update = update_organization_mapping_from_instance(self, get_local_cell())
         organization_mapping_service.upsert(organization_id=self.id, update=update)
 
     @classmethod

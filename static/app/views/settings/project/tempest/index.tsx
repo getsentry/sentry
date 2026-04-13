@@ -5,22 +5,24 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import DevKitSettings from './DevKitSettings';
-import PlayStationSettings from './PlayStationSettings';
+import {DevKitSettings} from './DevKitSettings';
+import {PlayStationSettings} from './PlayStationSettings';
 
 type Tab = 'retail' | 'devkit-crashes';
 
@@ -34,6 +36,7 @@ const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 export default function TempestSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
@@ -60,7 +63,6 @@ export default function TempestSettings() {
     // setupInstructions is only available on the retail tab
     delete newQuery.setupInstructions;
     navigate({
-      pathname: location.pathname,
       query: newQuery,
     });
   };
@@ -111,7 +113,13 @@ export default function TempestSettings() {
         title={getPageTitle()}
         action={
           <Grid flow="column" align="center" gap="lg">
-            <FeedbackButton />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton />
+            )}
             <RequestSdkAccessButton
               gamingPlatform="playstation"
               organization={organization}
@@ -139,7 +147,7 @@ export default function TempestSettings() {
               }
             >
               {t(
-                `Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!`
+                "Currently Sentry only supports PlayStation 5. If you're looking for PS4 support, please let us know!"
               )}
             </Alert>
           </Alert.Container>

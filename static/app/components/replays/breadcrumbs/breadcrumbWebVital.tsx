@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
@@ -151,7 +150,7 @@ const SelectorButton = styled(Button)`
   box-shadow: none;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
   height: auto;
   min-height: auto;
 `;

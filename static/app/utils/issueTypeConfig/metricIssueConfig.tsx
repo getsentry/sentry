@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const metricIssueConfig: IssueCategoryConfigMapping = {
+export const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: false},
@@ -27,6 +27,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'detector-history'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
@@ -53,5 +54,3 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: false},
   },
 };
-
-export default metricIssueConfig;

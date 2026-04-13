@@ -4,10 +4,9 @@ import {TabList} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
   activeTab: 'stats' | 'issues' | 'health';
@@ -48,7 +47,7 @@ function StatsHeaderTabs({organization}: Props) {
   );
 }
 
-function StatsHeader({organization, activeTab}: Props) {
+export function StatsHeader({organization, activeTab}: Props) {
   return (
     <SettingsPageHeader
       title={t('Stats & Usage')}
@@ -66,7 +65,5 @@ function StatsHeader({organization, activeTab}: Props) {
 
 const TabsContainer = styled(Layout.HeaderTabs)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export default StatsHeader;

@@ -1,13 +1,10 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
-
 const StepperContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border-radius: 4px;
   position: relative;
   overflow: hidden;
@@ -33,7 +30,7 @@ type Props = Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'> & {
   onClick: (stepIndex: number) => void;
 };
 
-function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
+export function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
   return (
     <StepperContainer {...props}>
       {new Array(numSteps).fill(0).map((_, i) => (
@@ -45,11 +42,11 @@ function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
           {currentStepIndex === i && (
             <StepperTransitionIndicator
               layout
-              transition={testableTransition({
+              transition={{
                 type: 'spring',
                 stiffness: 175,
                 damping: 18,
-              })}
+              }}
               initial={false}
               layoutId="animation"
             />
@@ -59,5 +56,3 @@ function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
     </StepperContainer>
   );
 }
-
-export default Stepper;

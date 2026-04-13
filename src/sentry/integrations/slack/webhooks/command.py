@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -67,7 +67,7 @@ def get_team_admin_member_ids(org_members: Iterable[OrganizationMember]) -> set[
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SlackCommandsEndpoint(SlackDMEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

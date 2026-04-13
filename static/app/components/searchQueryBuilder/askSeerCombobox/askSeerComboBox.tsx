@@ -11,11 +11,12 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import QueryTokens from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {
   AskSeerSearchItems,
   QueryTokensProps,
@@ -32,8 +33,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useMutation, type MutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
@@ -108,19 +109,11 @@ interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
     Error,
     string
   >;
-  /**
-   * The owner of the feedback form, must be an underscore-separated identifier like
-   * "trace_explorer_ai_query" or "issue_list_ai_query"
-   *
-   * @example 'trace_explorer_ai_query'
-   */
-  feedbackSource: string;
   initialQuery: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
   initialQuery,
-  feedbackSource,
   analyticsSource,
   ...props
 }: AskSeerComboBoxProps<T>) {
@@ -147,6 +140,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     enableAISearch,
   } = useSearchQueryBuilder();
 
+  const analyticsArea = useAnalyticsArea();
+
   const {
     mutate: submitQuery,
     data,
@@ -154,9 +149,14 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     isError,
   } = useMutation({
     ...props.askSeerMutationOptions,
-    onError: (error, variables, context) => {
-      props.askSeerMutationOptions.onError?.(error, variables, context);
+    onError: (error, variables, onMutateResult, context) => {
+      props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+      });
     },
   });
 
@@ -165,7 +165,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       openForm({
         messagePlaceholder: t('Why were these queries incorrect?'),
         tags: {
-          ['feedback.source']: feedbackSource,
+          ['feedback.source']: `ai_query.${analyticsArea}`,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
           ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
@@ -177,7 +177,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
   };
 
-  const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
+  const items = useMemo(() => {
     if (data?.queries && data?.queries.length > 0) {
       const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
         ...query,
@@ -212,6 +212,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       if (key === 'none-of-these') {
         trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
           organization,
+          natural_language_query: searchQuery,
+          num_queries_returned: data?.queries?.length ?? 0,
+        });
+        trackAnalytics('ai_query.rejected', {
+          organization,
+          area: analyticsArea,
           natural_language_query: searchQuery,
           num_queries_returned: data?.queries?.length ?? 0,
         });
@@ -284,6 +290,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 organization,
                 action: 'closed',
               });
+              trackAnalytics('ai_query.interface', {
+                organization,
+                area: analyticsArea,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -294,6 +305,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
               trackAnalytics(`${analyticsSource}.ai_query_rejected`, {
                 organization,
+                natural_language_query: searchQuery,
+                num_queries_returned: data?.queries?.length ?? 0,
+              });
+              trackAnalytics('ai_query.rejected', {
+                organization,
+                area: analyticsArea,
                 natural_language_query: searchQuery,
                 num_queries_returned: data?.queries?.length ?? 0,
               });
@@ -324,6 +341,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             ) {
               trackAnalytics(`${analyticsSource}.ai_query_submitted`, {
                 organization,
+                natural_language_query: searchQuery.trim(),
+              });
+              trackAnalytics('ai_query.submitted', {
+                organization,
+                area: analyticsArea,
                 natural_language_query: searchQuery.trim(),
               });
               askSeerNLQueryRef.current = searchQuery.trim();
@@ -390,10 +412,16 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         organization,
         natural_language_query: searchQuery.trim(),
       });
+      trackAnalytics('ai_query.submitted', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery.trim(),
+      });
       submitQuery(searchQuery.trim());
       setAutoSubmitSeer(false);
     }
   }, [
+    analyticsArea,
     analyticsSource,
     autoSubmitSeer,
     organization,
@@ -432,6 +460,11 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           onClick={() => {
             trackAnalytics(`${analyticsSource}.ai_query_interface`, {
               organization,
+              action: 'closed',
+            });
+            trackAnalytics('ai_query.interface', {
+              organization,
+              area: analyticsArea,
               action: 'closed',
             });
             setDisplayAskSeerFeedback(false);
@@ -490,7 +523,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                   openForm({
                     messagePlaceholder: t('How can we make Seer search better for you?'),
                     tags: {
-                      ['feedback.source']: feedbackSource,
+                      ['feedback.source']: `ai_query.${analyticsArea}`,
                       ['feedback.owner']: 'ml-ai',
                     },
                   })

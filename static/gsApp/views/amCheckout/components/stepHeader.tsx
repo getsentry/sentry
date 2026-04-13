@@ -6,7 +6,7 @@ type Props = {
   title: string;
 };
 
-function StepHeader({title}: Props) {
+export function StepHeader({title}: Props) {
   const dataTestId = `header-${kebabCase(title)}`;
 
   return (
@@ -15,5 +15,3 @@ function StepHeader({title}: Props) {
     </Heading>
   );
 }
-
-export default StepHeader;

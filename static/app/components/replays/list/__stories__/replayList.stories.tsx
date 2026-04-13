@@ -4,13 +4,14 @@ import {ClassNames} from '@emotion/react';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import ReplayList from 'sentry/components/replays/list/__stories__/replayList';
-import EnvironmentPicker from 'sentry/components/replays/player/__stories__/environmentPicker';
-import ProjectPicker from 'sentry/components/replays/player/__stories__/projectPicker';
+import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
+import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/environmentPicker';
+import {ProjectPicker} from 'sentry/components/replays/player/__stories__/projectPicker';
 import * as Storybook from 'sentry/stories';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayListQueryKey} from 'sentry/utils/replays/hooks/useReplayListQueryKey';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export default Storybook.story('ReplayList', story => {
@@ -32,8 +33,9 @@ export default Storybook.story('ReplayList', story => {
       organization,
       queryReferrer: 'replayList',
     });
+    const {url, options} = parseQueryKey(listQueryKey);
     const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: ['infinite', ...(listQueryKey ?? '')],
+      queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
       enabled: Boolean(listQueryKey),
     });
 
@@ -77,8 +79,9 @@ export default Storybook.story('ReplayList', story => {
       organization,
       queryReferrer: 'replayList',
     });
+    const {url, options} = parseQueryKey(listQueryKey);
     const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: ['infinite', ...(listQueryKey ?? '')],
+      queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
       enabled: Boolean(listQueryKey),
     });
 

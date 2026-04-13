@@ -13,15 +13,14 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {SidebarButton} from 'sentry/views/nav/primary/components';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
+} from 'sentry/views/navigation/primary/components';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   OnDemandBudgetMode,
   type BillingMetricHistory,
@@ -33,7 +32,7 @@ import {
   listDisplayNames,
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
   size: 'xs',
@@ -356,7 +355,11 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+export function PrimaryNavigationQuotaExceeded({
+  organization,
+}: {
+  organization: Organization;
+}) {
   const subscription = useSubscription();
   const exceededCategories = (
     sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
@@ -429,8 +432,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     triggerProps: overlayTriggerProps,
     overlayProps,
     state: overlayState,
-  } = usePrimaryButtonOverlay({});
-
+  } = usePrimaryNavigationButtonOverlay({});
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
@@ -520,17 +522,17 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="billingStatus"
         label={t('Billing Status')}
+        indicator="warning"
         buttonProps={{
           ...overlayTriggerProps,
+          icon: <IconWarning />,
         }}
-      >
-        <IconWarning />
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
             exceededCategories={exceededCategories}
             subscription={subscription}
@@ -538,13 +540,11 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
             isDismissed={hasSnoozedAllPrompts()}
             onClick={onDismiss}
           />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );
 }
-
-export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

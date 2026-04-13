@@ -27,6 +27,7 @@ import {
   createFrameIndex,
   createSentrySampleProfileFrameIndex,
   wrapWithSpan,
+  type FrameIndex,
 } from './utils';
 
 interface ImportOptions {
@@ -562,10 +563,7 @@ function importSingleProfile(
     | Profiling.EventedProfile
     | Profiling.SampledProfile
     | JSSelfProfiling.Trace,
-  frameIndex:
-    | ReturnType<typeof createFrameIndex>
-    | ReturnType<typeof createContinuousProfileFrameIndex>
-    | ReturnType<typeof createSentrySampleProfileFrameIndex>,
+  frameIndex: FrameIndex,
   {span, type, frameFilter, profiles}: ImportOptions
 ): Profile {
   if (isSentryContinuousProfile(profile)) {

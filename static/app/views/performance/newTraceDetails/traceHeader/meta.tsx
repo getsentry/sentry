@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,

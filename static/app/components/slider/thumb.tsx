@@ -7,8 +7,6 @@ import {mergeRefs} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SliderState} from '@react-stately/slider';
 
-import {space} from 'sentry/styles/space';
-
 interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef'> {
   getFormattedValue: (value: number) => React.ReactNode;
   state: SliderState;
@@ -127,7 +125,7 @@ const SliderThumbWrap = styled('div')<{
 
 const SliderThumbLabel = styled('span')`
   position: absolute;
-  bottom: calc(100% + ${space(0.25)});
+  bottom: calc(100% + ${p => p.theme.space['2xs']});
 
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.medium};

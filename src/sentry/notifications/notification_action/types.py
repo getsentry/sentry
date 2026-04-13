@@ -5,6 +5,8 @@ from dataclasses import asdict
 from typing import Any, NotRequired, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
+from taskbroker_client.retry import RetryTaskError
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
@@ -31,8 +33,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationFormError,
 )
-from sentry.taskworker.retry import RetryTaskError
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
@@ -150,15 +150,24 @@ class BaseIssueAlertHandler(ABC):
         return {}
 
     @classmethod
+    def get_action_mapping(cls, action: Action) -> ActionFieldMapping:
+        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
+        if mapping is None:
+            raise ValueError(f"No mapping found for action type: {action.type}")
+        return mapping
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        return "Send a notification"
+
+    @classmethod
     def build_rule_action_blob(
         cls,
         action: Action,
         organization_id: int,
     ) -> dict[str, Any]:
         """Build the base action blob using the standard mapping"""
-        mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
-        if mapping is None:
-            raise ValueError(f"No mapping found for action type: {action.type}")
+        mapping = cls.get_action_mapping(action)
         blob: dict[str, Any] = {
             "id": mapping["id"],
         }
@@ -331,6 +340,20 @@ class BaseIssueAlertHandler(ABC):
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
+    # XXX: this label template is used by the WorkflowEngineRuleSerializer to return the same label as the old APIs
+    # once we remove those, we can remove this and all the render_label methods on the IssueAlertHanders
+    label_template = "Create a ticket in {integration}"
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        integration = integration_service.get_integration(
+            integration_id=blob.get("integration"),
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        integration_name = integration.name if integration else "[removed]"
+        return cls.label_template.format(integration=integration_name)
+
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         return {}
@@ -484,7 +507,7 @@ class BaseMetricAlertHandler(ABC):
                 "notification_context": asdict(notification_context),
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
-                "open_period_context": asdict(open_period_context),
+                "open_period_context": open_period_context.dict(),
                 "trigger_status": trigger_status,
             },
         )

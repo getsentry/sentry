@@ -51,7 +51,7 @@ const WEB_ALL = [
   ReplayActivityColumn,
 ] as const;
 
-export default function useReplayIndexTableColumns({
+export function useReplayIndexTableColumns({
   allMobileProj,
   tableDimensions,
 }: {

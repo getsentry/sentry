@@ -5,7 +5,7 @@ import ResourceSummaryAverageSizeChartWidget from 'sentry/views/insights/common/
 import ResourceSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/resourceSummaryDurationChartWidget';
 import ResourceSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/resourceSummaryThroughputChartWidget';
 
-function ResourceSummaryCharts() {
+export function ResourceSummaryCharts() {
   return (
     <Fragment>
       <ModuleLayout.Third>
@@ -22,5 +22,3 @@ function ResourceSummaryCharts() {
     </Fragment>
   );
 }
-
-export default ResourceSummaryCharts;

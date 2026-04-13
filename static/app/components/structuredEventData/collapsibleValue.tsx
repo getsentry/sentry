@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
+import {useExpandedState} from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   children: ReactNode;
@@ -102,12 +101,12 @@ const CollapsibleDataContainer = styled('span')`
 
   &[data-base-with-toggle='true'] {
     display: block;
-    padding-left: ${space(3)};
+    padding-left: ${p => p.theme.space['2xl']};
   }
 `;
 
 const IndentedValues = styled('div')`
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const NumItemsButton = styled(Button)`
@@ -119,7 +118,7 @@ const NumItemsButton = styled(Button)`
   box-shadow: none;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 
   height: 18px;
   min-height: 18px;
@@ -127,7 +126,7 @@ const NumItemsButton = styled(Button)`
 
 const ToggleButton = styled(Button)`
   position: absolute;
-  left: -${space(3)};
+  left: -${p => p.theme.space['2xl']};
   top: 0px;
   border-radius: 2px;
   align-items: center;

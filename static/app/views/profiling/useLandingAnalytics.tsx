@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useReducer, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type DataState = 'pending' | 'loading' | 'errored' | 'empty' | 'populated';
 
@@ -36,10 +36,7 @@ export function useLandingAnalytics() {
 
   const dispatchedAnalytics = useRef(false);
 
-  const dataState: DataState = useMemo(
-    () => deriveFinalDataState(dataLoaded),
-    [dataLoaded]
-  );
+  const dataState = useMemo(() => deriveFinalDataState(dataLoaded), [dataLoaded]);
 
   useEffect(() => {
     if (

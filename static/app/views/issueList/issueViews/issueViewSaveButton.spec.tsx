@@ -11,8 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {GlobalModal} from 'sentry/components/globalModal';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -58,6 +58,11 @@ describe('IssueViewSaveButton', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/100/',
       body: mockGroupSearchView,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issue-view-title/generate/',
+      method: 'POST',
+      body: {},
     });
   });
 

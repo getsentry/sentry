@@ -6,19 +6,18 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
-import GroupingIndicator from 'sentry/components/events/interfaces/frame/groupingIndicator';
+import {GroupingIndicator} from 'sentry/components/events/interfaces/frame/groupingIndicator';
 import {
   getPlatform,
   isDotnet,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import Truncate from 'sentry/components/truncate';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {Truncate} from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
@@ -47,7 +46,7 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-function DefaultTitle({
+export function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
@@ -251,12 +250,10 @@ function DefaultTitle({
   return <Fragment>{title}</Fragment>;
 }
 
-export default DefaultTitle;
-
 const StyledExternalLink = styled(ExternalLink)`
   position: relative;
-  top: ${space(0.25)};
-  margin-left: ${space(0.5)};
+  top: ${p => p.theme.space['2xs']};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const InFramePosition = styled('span')`
@@ -265,9 +262,9 @@ const InFramePosition = styled('span')`
 `;
 
 const StyledGroupingIndicator = styled(GroupingIndicator)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

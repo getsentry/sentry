@@ -8,17 +8,16 @@ import {AlertBadge} from '@sentry/scraps/badge';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Duration} from 'sentry/components/duration';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -333,16 +332,16 @@ function FilterKeyValueTableRow({
 
 const KeyWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 
   > span {
-    margin-top: ${space(0.25)};
-    height: ${space(2)};
+    margin-top: ${p => p.theme.space['2xs']};
+    height: ${p => p.theme.space.xl};
   }
 `;
 
 const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const HeaderItem = styled('div')`
@@ -361,14 +360,14 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   h4 {
     margin-top: 0;
@@ -386,8 +385,8 @@ const OverflowTableValue = styled('div')`
 const TriggerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
-  gap: ${space(1)};
-  margin-top: ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const TriggerTitle = styled('div')`
@@ -413,14 +412,14 @@ const TriggerStep = styled('div')`
 const TriggerActions = styled('div')`
   display: grid;
   grid-template-columns: repeat(1fr);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: center;
 `;
 
 const TriggerText = styled('span')`
   display: block;
   background-color: ${p => p.theme.tokens.background.tertiary};
-  padding: ${space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};

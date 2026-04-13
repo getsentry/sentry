@@ -1,7 +1,7 @@
-import type {Query} from 'history';
+import type {Location, Query} from 'history';
 
 import type {Category} from 'sentry/components/platformPicker';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 
@@ -53,8 +53,13 @@ interface OnboardingTaskDescriptorBase {
   serverTask?: string;
 }
 
+interface OnboardingTaskActionContext {
+  location: Location;
+  navigate: ReactRouter3Navigate;
+}
+
 interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBase {
-  action: (props: InjectedRouter) => void;
+  action: (context: OnboardingTaskActionContext) => void;
   actionType: 'action';
 }
 

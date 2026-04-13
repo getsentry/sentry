@@ -8,7 +8,6 @@ import {InputGroup} from '@sentry/scraps/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery?: string;
@@ -19,7 +18,7 @@ interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   width?: string;
 }
 
-function SearchBar({
+export function SearchBar({
   query: queryProp,
   defaultQuery = '',
   onChange,
@@ -112,7 +111,5 @@ const StyledInput = styled(InputGroup.Input)`
 
 export const SearchBarTrailingButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;
-
-export default SearchBar;

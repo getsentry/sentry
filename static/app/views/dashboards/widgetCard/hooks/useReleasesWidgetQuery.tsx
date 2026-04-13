@@ -8,11 +8,13 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
+import {useApi} from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -32,6 +34,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const api = useApi();
@@ -59,13 +62,13 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
         const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
         const includeTotals = query.columns.length > 0 ? 1 : 0;
-        const interval = getWidgetInterval(
-          filteredWidget,
-          {start, end, period},
-          '5m',
-          // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-          isCustomReleaseSorting ? 'medium' : undefined
-        );
+        // When custom release sorting is active the metrics API cannot handle
+        // high-fidelity series data for many rows, so always use medium fidelity
+        // regardless of any user-selected interval.
+        const interval = isCustomReleaseSorting
+          ? getWidgetInterval(filteredWidget, {start, end, period}, '5m', 'medium')
+          : (widgetInterval ??
+            getWidgetInterval(filteredWidget, {start, end, period}, '5m'));
 
         const requestData = getReleasesRequestData(
           1, // includeSeries
@@ -93,7 +96,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       // Return empty array to prevent queries from running
       return {queryKeys: [], validationError: errorMessage};
     }
-  }, [filteredWidget, organization, pageFilters]);
+  }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
   const createQueryFn = useCallback(
     (useSessionAPI: boolean) =>
@@ -197,14 +200,22 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         return;
       }
 
+      const seriesQueryPrefix = getSeriesQueryPrefix(
+        filteredWidget.queries[requestIndex]!,
+        filteredWidget
+      );
+
       transformedResult.forEach((result: Series, resultIndex: number) => {
+        if (seriesQueryPrefix) {
+          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+        }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
 
     // Memoize raw data to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -406,7 +417,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
     // Memoize raw data to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

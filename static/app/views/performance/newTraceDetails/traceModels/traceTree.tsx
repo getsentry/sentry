@@ -140,12 +140,12 @@ export declare namespace TraceTree {
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
+    issue_type: number;
     level: Level;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    type: number;
     short_id?: string;
   };
 
@@ -365,7 +365,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: RootNode = new RootNode(null, null, null);
 
-  vital_types: Set<'web' | 'mobile'> = new Set();
+  vital_types = new Set<'web' | 'mobile'>();
   vitals = new Map<BaseNode, TraceTree.CollectedVital[]>();
 
   profiled_events = new Set<BaseNode>();
@@ -437,7 +437,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     });
 
     // Track visited event_ids to prevent cycles during tree construction.
-    // Cyclic nodes are skipped and logged to Sentry for monitoring.
+    // Cyclic nodes are skipped and logged for debugging.
     const visitedIds = new Set<string>();
 
     function visit(
@@ -451,10 +451,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-tree-cycle-detected']);
-          Sentry.captureMessage('Cycle detected in trace tree structure');
-        });
+        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
         return;
       }
       if (nodeId) {
@@ -819,8 +816,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let end = head.space[0] + head.space[1];
 
       while (
-        tail &&
-        tail.children.length === 1 &&
+        tail?.children.length === 1 &&
         tail.children[0]!.canAutogroup &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0]!.op !== 'default' &&
@@ -1234,7 +1230,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const connectors: number[] = [];
-    let start: BaseNode | null = node.parent;
+    let start = node.parent;
 
     if (start?.isRootNodeChild() && !node.isLastChild()) {
       node.connectors = [-TraceTree.Depth(node)];

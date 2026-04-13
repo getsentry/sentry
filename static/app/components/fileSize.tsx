@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-function FileSize(props: Props) {
+export function FileSize(props: Props) {
   const {className, bytes, base} = props;
 
   return (
@@ -22,5 +22,3 @@ function FileSize(props: Props) {
 const Span = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
-
-export default FileSize;
