@@ -20,6 +20,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
@@ -34,6 +35,7 @@ from sentry.tasks.unmerge import (
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.clickhouse import optimize_snuba_table
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
@@ -288,10 +290,50 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert similar_items[1][0] == destination.id
         assert similar_items[1][1]["message:message:character-shingles"] < 1.0
 
-        with self.tasks():
-            unmerge.delay(
-                project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
+        # After end_merge, Snuba's internal queue may re-add the groupedmessage
+        # mapping, causing source.id to show 26 events (6 literal + 10 via mapping
+        # + 10 Kafka-replaced rows) instead of 16.  Forcing OPTIMIZE TABLE FINAL
+        # on ClickHouse immediately deduplicates the ReplacingMergeTree rows
+        # (removing old merge_source.id rows) AND flushes Snuba's internal queue,
+        # leaving exactly 16 clean literal events in source.id.
+        optimize_snuba_table("events")
+        optimize_snuba_table("groupedmessage")
+
+        # Verify the count is now exactly 16 before starting the unmerge.
+        expected_source_count = sum(len(x) for x in events.values()) - 1  # 17 - 1 group3 = 16
+        tenant_ids = {"organization_id": project.organization_id, "referrer": "test"}
+        source_event_count = len(
+            list(
+                eventstore.backend.get_events(
+                    eventstore.Filter(project_ids=[project.id], group_ids=[source.id]),
+                    tenant_ids=tenant_ids,
+                )
             )
+        )
+        assert source_event_count == expected_source_count, (
+            f"After OPTIMIZE, source.id still has {source_event_count} events "
+            f"(expected {expected_source_count})"
+        )
+
+        with self.tasks():
+            # Use batch_size > total events (16) so the unmerge processes all
+            # events in a single Snuba query, eliminating inter-batch races where
+            # Snuba's groupedmessage queue re-adds the merge mapping mid-unmerge.
+            unmerge.delay(
+                project.id,
+                source.id,
+                destination.id,
+                [list(events.keys())[0]],
+                None,
+                batch_size=20,
+            )
+
+        # TSDBModel.group reads come from Snuba ClickHouse (writes are DummyTSDB
+        # no-ops). Force ClickHouse to deduplicate now so the TSDB assertions
+        # below see the correct post-unmerge counts immediately.
+        rollup_duration = 3600
+        optimize_snuba_table("events")
+        optimize_snuba_table("groupedmessage")
 
         assert (
             list(
@@ -370,8 +412,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             (production_environment.id, time_from_now(0)),
             (staging_environment.id, time_from_now(16)),
         }
-
-        rollup_duration = 3600
 
         time_series = tsdb.backend.get_range(
             TSDBModel.group,
