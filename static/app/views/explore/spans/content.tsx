@@ -190,7 +190,10 @@ function SpansTabHeader() {
         ) : (
           <Fragment>
             {title && defined(id) ? (
-              <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
+              <ExploreBreadcrumb
+                traceItemDataset={TraceItemDataset.SPANS}
+                savedQueryName={savedQuery?.name}
+              />
             ) : null}
             <Layout.Title>
               {title ? title : t('Traces')}
