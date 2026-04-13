@@ -557,28 +557,24 @@ export const useSeerExplorer = () => {
   }, [sessionData?.repo_pr_states]);
 
   // On response load
-  useEffect(() => {
-    if (
-      waitingForResponse &&
-      filteredSessionData &&
-      Array.isArray(filteredSessionData.blocks)
-    ) {
-      // Stop waiting once we see the response is no longer loading
-      if (
-        filteredSessionData.status !== 'processing' &&
-        filteredSessionData.blocks.every(block => !block.loading)
-      ) {
-        setWaitingForResponse(false);
-        // Clear deleted index once response is complete
-        setDeletedFromIndex(null);
+  const isLoading =
+    filteredSessionData &&
+    (filteredSessionData.status === 'processing' ||
+      filteredSessionData.blocks.some((block: Block) => block.loading));
 
-        if (interruptRequested) {
-          setInterruptRequested(false);
-          setWasJustInterrupted(true); // set persistent UI flag until next request
-        }
+  useEffect(() => {
+    if (waitingForResponse && !isLoading) {
+      // Stop waiting once we see the response is no longer loading
+      setWaitingForResponse(false);
+      // Clear deleted index once response is complete
+      setDeletedFromIndex(null);
+
+      if (interruptRequested) {
+        setInterruptRequested(false);
+        setWasJustInterrupted(true); // set persistent UI flag until next request
       }
     }
-  }, [waitingForResponse, filteredSessionData, interruptRequested]);
+  }, [waitingForResponse, interruptRequested, isLoading]);
 
   return {
     sessionData: filteredSessionData,
