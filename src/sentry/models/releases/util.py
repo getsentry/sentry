@@ -221,7 +221,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         if lookup == "in":
             env_filter: dict[str, object] = {
-                "environment__name__in": value if isinstance(value, list) else [value]
+                "environment__name__in": [value] if isinstance(value, str) else list(value)
             }
         else:
             env_filter = {f"environment__name__{lookup}": value}
