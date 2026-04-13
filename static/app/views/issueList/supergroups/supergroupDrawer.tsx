@@ -32,7 +32,7 @@ import {
   LoadingStreamGroup,
   StreamGroup,
 } from 'sentry/components/stream/group';
-import {IconChevron, IconFilter, IconFocus} from 'sentry/icons';
+import {IconChevron, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
@@ -103,7 +103,13 @@ export function SupergroupDetailDrawer({
               <StyledMarkedText text={supergroup.title} inline as="span" />
             </Heading>
 
-            <Flex wrap="wrap" gap="lg">
+            {supergroup.summary && (
+              <Text size="md">
+                <StyledMarkedText text={supergroup.summary} inline as="span" />
+              </Text>
+            )}
+
+            <Stack gap="sm">
               {supergroup.error_type && (
                 <Flex gap="xs">
                   <Text size="sm" variant="muted">
@@ -120,23 +126,7 @@ export function SupergroupDetailDrawer({
                   <Text size="sm">{supergroup.code_area}</Text>
                 </Flex>
               )}
-            </Flex>
-
-            {supergroup.summary && (
-              <Container background="secondary" border="primary" radius="md">
-                <Flex direction="column" padding="md lg" gap="sm">
-                  <Flex align="center" gap="xs">
-                    <IconFocus size="xs" variant="promotion" />
-                    <Text size="sm" bold>
-                      {t('Root Cause')}
-                    </Text>
-                  </Flex>
-                  <Text size="sm">
-                    <StyledMarkedText text={supergroup.summary} inline as="span" />
-                  </Text>
-                </Flex>
-              </Container>
-            )}
+            </Stack>
           </Stack>
         </Container>
 
