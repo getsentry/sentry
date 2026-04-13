@@ -213,34 +213,19 @@ class AppleCrashReport:
         exceptions = self.exceptions or []
         threads = self.threads or []
 
-        # Build a mapping from thread id to thread info for enriching exceptions
-        threads_by_id = {t.get("id"): t for t in threads if t.get("id") is not None}
-
-        # Track which thread IDs we successfully output from exceptions
-        output_thread_ids = set()
+        # When an exception's thread_id matches a thread's id, prefer the
+        # thread entry (it carries richer metadata like name/crashed state).
+        thread_ids = {t.get("id") for t in threads if t.get("id") is not None}
 
         for exception_info in exceptions:
-            thread_id = exception_info.get("thread_id")
-            # Enrich exception with thread data if available
-            if thread_id is not None and thread_id in threads_by_id:
-                matching_thread = threads_by_id[thread_id]
-                if matching_thread.get("name") and not exception_info.get("name"):
-                    exception_info["name"] = matching_thread["name"]
-                if matching_thread.get("crashed") and not exception_info.get("crashed"):
-                    exception_info["crashed"] = matching_thread["crashed"]
-
+            # Skip exceptions whose thread already exists in the threads list
+            if exception_info.get("thread_id") in thread_ids:
+                continue
             thread_string = self.get_thread_apple_string(exception_info)
             if thread_string is not None:
                 rv.append(thread_string)
-                # Only mark as output if we actually produced output
-                if thread_id is not None:
-                    output_thread_ids.add(thread_id)
 
         for thread_info in threads:
-            # Skip threads already output from exceptions
-            thread_id = thread_info.get("id")
-            if thread_id is not None and thread_id in output_thread_ids:
-                continue
             thread_string = self.get_thread_apple_string(thread_info)
             if thread_string is not None:
                 rv.append(thread_string)

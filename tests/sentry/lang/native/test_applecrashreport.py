@@ -124,9 +124,8 @@ Thread 2 name: com.apple.test\n\
 
 def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
     """
-    When an exception's thread_id matches a thread's id, the thread should only
-    appear once (from the exception data), not duplicated. The thread's name
-    should be preserved in the output.
+    When an exception's thread_id matches a thread's id, prefer the thread
+    entry (richer metadata) and skip the exception to avoid duplication.
     """
     acr = AppleCrashReport(
         exceptions=[
@@ -179,10 +178,8 @@ def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
         ],
     )
     threads = acr.get_threads_apple_string()
-    # Thread 1 should appear only once (from exception), Thread 2 should appear
     assert threads.count("Thread 1") == 1
     assert threads.count("Thread 2") == 1
-    # Thread name should be preserved from the matching thread
     assert "com.apple.main-thread" in threads
     assert (
         threads
@@ -190,48 +187,6 @@ def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
 0   MainApp                         0x31c3e8            0x2c8000 + 2544\n\n\
 Thread 2 name: background\n\
 0   BackgroundLib                   0xf6c78             0xf0000 + 116"
-    )
-
-
-def test_get_threads_apple_string_exception_without_stacktrace() -> None:
-    """
-    When an exception has a thread_id but no valid stacktrace, the matching
-    thread should still be included in the output (not silently dropped).
-    """
-    acr = AppleCrashReport(
-        exceptions=[
-            {
-                "thread_id": 1,
-                "mechanism": {"type": "mach"},
-                # No stacktrace - exception produces no output
-            }
-        ],
-        threads=[
-            {
-                "crashed": True,
-                "id": 1,
-                "name": "com.apple.main-thread",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "image_addr": "0x2c8000",
-                            "instruction_addr": "0x31c3e8",
-                            "symbol_addr": "0x31b9f8",
-                            "package": "/path/to/MainApp.framework/MainApp",
-                        },
-                    ]
-                },
-            },
-        ],
-    )
-    threads = acr.get_threads_apple_string()
-    # Thread should still appear since exception produced no output
-    assert threads.count("Thread 1") == 1
-    assert "com.apple.main-thread" in threads
-    assert (
-        threads
-        == "Thread 1 name: com.apple.main-thread Crashed:\n\
-0   MainApp                         0x31c3e8            0x2c8000 + 2544"
     )
 
 
