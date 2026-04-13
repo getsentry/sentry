@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0005_delete_seerorganizationsettings
+seer: 0006_add_night_shift_models
 
 sentry: 1066_add_export_format_in_data_export_obj
 
