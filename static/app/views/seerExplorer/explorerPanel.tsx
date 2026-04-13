@@ -148,6 +148,7 @@ export function ExplorerPanel() {
   const user = useUser();
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
+    sessionData.owner_user_id !== null &&
     sessionData.owner_user_id.toString() !== user.id;
 
   // Get PR widget data for menu
