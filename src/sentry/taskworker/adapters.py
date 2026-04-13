@@ -174,7 +174,7 @@ class ViewerContextHook:
             return contextlib.nullcontext()
         try:
             ctx = ViewerContext.deserialize(orjson.loads(raw))
-        except (orjson.JSONDecodeError, TypeError, KeyError):
+        except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
             logger.exception("Failed to deserialize viewer context header")
             return contextlib.nullcontext()
         return viewer_context_scope(ctx)

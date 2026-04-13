@@ -150,3 +150,9 @@ class TestViewerContextHook:
         headers = {"sentry-viewer-context": "not-valid-json{"}
         cm = hook.on_execute(headers)
         assert isinstance(cm, contextlib.nullcontext)
+
+    def test_on_execute_non_dict_json(self) -> None:
+        hook = ViewerContextHook()
+        headers = {"sentry-viewer-context": "[1, 2, 3]"}
+        cm = hook.on_execute(headers)
+        assert isinstance(cm, contextlib.nullcontext)
