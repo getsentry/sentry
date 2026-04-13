@@ -56,6 +56,11 @@ interface BackendJsonSubmitFormProps {
    */
   initialValues?: Record<string, unknown>;
   /**
+   * Enables clearing for single-select fields.
+   * Defaults to false to preserve existing behavior.
+   */
+  isClearable?: boolean;
+  /**
    * Whether the form is in a loading state (e.g., dynamic field refetch in progress).
    */
   isLoading?: boolean;
@@ -71,11 +76,6 @@ interface BackendJsonSubmitFormProps {
    * Called when a field with `updatesForm: true` changes value.
    */
   onFieldChange?: (fieldName: string, value: unknown) => void;
-  /**
-   * Enables clearing for single-select fields.
-   * Defaults to false to preserve existing behavior for non-plugin forms.
-   */
-  singleSelectClearable?: boolean;
   /**
    * Whether the submit button should be disabled (e.g., form has errors).
    */
@@ -161,7 +161,7 @@ export function BackendJsonSubmitForm({
   onAsyncOptionsFetched,
   onFieldChange,
   footer,
-  singleSelectClearable = false,
+  isClearable = false,
 }: BackendJsonSubmitFormProps) {
   // Ref to avoid including the callback in queryKey (would cause refetches)
   const onAsyncOptionsFetchedRef = useRef(onAsyncOptionsFetched);
@@ -339,7 +339,7 @@ export function BackendJsonSubmitForm({
                             required={field.required}
                           >
                             <fieldApi.SelectAsync
-                              clearable={singleSelectClearable}
+                              clearable={isClearable}
                               value={fieldApi.state.value as string | null}
                               onChange={handleChange}
                               disabled={field.disabled}
@@ -372,7 +372,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Select
-                            clearable={singleSelectClearable}
+                            clearable={isClearable}
                             value={fieldApi.state.value as string | null}
                             onChange={handleChange}
                             options={transformChoices(field.choices)}
