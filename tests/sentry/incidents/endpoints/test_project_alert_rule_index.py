@@ -8,9 +8,12 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 
 pytestmark = [requires_snuba]
 
@@ -49,6 +52,27 @@ class AlertRuleListEndpointTest(APITestCase):
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 404
+
+
+@freeze_time("2024-12-11 03:21:34")
+class AlertRuleListDeltaTest(APITestCase):
+    endpoint = "sentry-api-0-project-alert-rules"
+
+    @with_feature("organizations:incidents")
+    def test_assert_serializer_parity(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule(resolve_threshold=50)
+        self.create_alert_rule_trigger(alert_rule, label="critical")
+        dual_write_alert_rule(alert_rule)
+        self.login_as(self.user)
+
+        old_resp = self.get_success_response(self.organization.slug, self.project.slug)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert len(old_resp.data) == len(new_resp.data) == 1
+        assert_serializer_parity(old=old_resp.data[0], new=new_resp.data[0])
 
 
 @freeze_time()

@@ -11,11 +11,16 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_write_alert_rule,
+    migrate_alert_rule,
+)
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 
 pytestmark = [requires_snuba]
@@ -130,6 +135,26 @@ class AlertRuleDetailsGetEndpointWorkflowEngineTest(AlertRuleDetailsBase):
     def test_single_written_fake_id_not_found_returns_404(self) -> None:
         fake_id = get_fake_id_from_object_id(999999999)
         self.get_error_response(self.organization.slug, self.project.slug, fake_id, status_code=404)
+
+
+@freeze_time("2024-12-11 03:21:34")
+class AlertRuleDetailsGetDeltaTest(AlertRuleDetailsBase):
+    @with_feature("organizations:incidents")
+    def test_assert_serializer_parity(self) -> None:
+        alert_rule = self.create_alert_rule(name="parity", resolve_threshold=50)
+        self.create_alert_rule_trigger(alert_rule, label="critical")
+        dual_write_alert_rule(alert_rule)
+
+        old_resp = self.get_success_response(
+            self.organization.slug, self.project.slug, alert_rule.id
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(
+                self.organization.slug, self.project.slug, alert_rule.id
+            )
+
+        assert_serializer_parity(old=old_resp.data, new=new_resp.data)
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
