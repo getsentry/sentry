@@ -22,7 +22,7 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 
-import {RuleNode} from './ruleNode';
+import {isSchemaFormConfig, RuleNode} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -172,7 +172,7 @@ export class RuleNodeList extends Component<Props> {
     const item = items[itemIdx]!;
 
     const nodeFormFields =
-      node.formFields && !('uri' in node.formFields) ? node.formFields : {};
+      node.formFields && !isSchemaFormConfig(node.formFields) ? node.formFields : {};
 
     let changeAlertNode: IssueAlertRuleActionTemplate = {
       ...node,

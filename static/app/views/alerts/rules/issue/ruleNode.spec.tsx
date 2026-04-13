@@ -88,16 +88,16 @@ describe('RuleNode', () => {
     id: 'sentry.rules.schema_form_mock',
     label: 'Configure SentryApp with these',
     enabled: true,
-    actionType: 'sentryapp' as const,
+    actionType: 'sentryapp',
     sentryAppInstallationUuid: '1027',
     formFields: {
       uri: '/sentry-app/configure/',
       required_fields: [
-        {type: 'text' as const, label: 'Example String', name: 'exampleStringField'},
+        {type: 'text', label: 'Example String', name: 'exampleStringField'},
       ],
       optional_fields: [
         {
-          type: 'select' as const,
+          type: 'select',
           label: 'Example Choice',
           name: 'exampleStringChoiceField',
           choices: [

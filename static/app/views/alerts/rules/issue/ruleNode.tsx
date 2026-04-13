@@ -149,6 +149,12 @@ function MailActionFields({
   );
 }
 
+export function isSchemaFormConfig(
+  formFields: Record<string, IssueAlertRuleFormField> | SchemaFormConfig
+): formFields is SchemaFormConfig {
+  return 'uri' in formFields;
+}
+
 /**
  * Narrows node.formFields to a Record of form fields.
  * For ticket/sentryapp actions, formFields is a SchemaFormConfig — not a Record.
@@ -156,7 +162,7 @@ function MailActionFields({
 function getFormFieldsRecord(
   node?: IssueAlertRuleActionTemplate | null
 ): Record<string, IssueAlertRuleFormField> | undefined {
-  if (!node?.formFields || 'uri' in node.formFields) {
+  if (!node?.formFields || isSchemaFormConfig(node.formFields)) {
     return undefined;
   }
   return node.formFields;
@@ -166,7 +172,7 @@ function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
   const formFields = getFormFieldsRecord(node);
   const fieldConfig = formFields?.value;
 
-  if (!fieldConfig || fieldConfig.type !== 'choice') {
+  if (fieldConfig?.type !== 'choice') {
     return undefined;
   }
 
@@ -448,8 +454,10 @@ export function RuleNode({
       node.actionType === 'sentryapp' &&
       node.sentryAppInstallationUuid &&
       node.formFields &&
-      'uri' in node.formFields
+      isSchemaFormConfig(node.formFields)
     ) {
+      const sentryAppConfig = node.formFields;
+      const sentryAppUuid = node.sentryAppInstallationUuid;
       return (
         <Button
           size="sm"
@@ -460,8 +468,8 @@ export function RuleNode({
               deps => (
                 <SentryAppRuleModal
                   {...deps}
-                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
-                  config={node.formFields as SchemaFormConfig}
+                  sentryAppInstallationUuid={sentryAppUuid}
+                  config={sentryAppConfig}
                   appName={node.prompt ?? node.label}
                   onSubmitSuccess={updateParentFromSentryAppRule}
                   resetValues={data}
