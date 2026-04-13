@@ -486,7 +486,7 @@ export default function ReleasesList() {
 
               <ReleasesPageFilterBar
                 condensed
-                shouldShowMobileBuildsTab={shouldShowMobileBuildsTab}
+                shouldShowPreprodTabs={shouldShowPreprodTabs}
               >
                 <ProjectPageFilter />
                 <EnvironmentPageFilter
@@ -654,8 +654,8 @@ export default function ReleasesList() {
   );
 }
 
-const ReleasesPageFilterBar = styled(PageFilterBar)<{shouldShowMobileBuildsTab: boolean}>`
-  ${p => !p.shouldShowMobileBuildsTab && `margin-bottom: ${p.theme.space.xl};`}
+const ReleasesPageFilterBar = styled(PageFilterBar)<{shouldShowPreprodTabs: boolean}>`
+  ${p => !p.shouldShowPreprodTabs && `margin-bottom: ${p.theme.space.xl};`}
 `;
 
 const SortAndFilterWrapper = styled('div')`
