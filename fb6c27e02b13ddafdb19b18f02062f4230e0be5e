@@ -1,0 +1,76 @@
+# Fix: AuthIndexEndpoint returns 400 for valid Bearer token auth
+
+**Issue**: https://github.com/getsentry/sentry/issues/112778
+
+## Problem
+
+`GET /api/0/auth/` returns **400 Bad Request** when called with a valid `Authorization: Bearer <token>` header because `BaseAuthIndexEndpoint` overrides `authentication_classes` to only `(QuietBasicAuthentication, SessionAuthentication)`, excluding `UserAuthTokenAuthentication`.
+
+DRF tries each authenticator in order. Both return `None` for a Bearer token → request is anonymous → `request.user.is_authenticated` is `False` → 400.
+
+## Design Decision
+
+The `authentication_classes` restriction was intentional for POST (login), PUT (sudo), and DELETE (logout) — these are session-management operations where Bearer token auth is inappropriate. Only **GET** (whoami) needs Bearer token support.
+
+We override `initialize_request` on `AuthIndexEndpoint` to conditionally prepend `UserAuthTokenAuthentication` for GET requests only. Django creates a fresh view instance per request, so mutating `self.authentication_classes` is safe.
+
+## Changes
+
+### 1. `src/sentry/api/endpoints/auth_index.py`
+
+Add import for `UserAuthTokenAuthentication` (line 17):
+```python
+from sentry.api.authentication import QuietBasicAuthentication, UserAuthTokenAuthentication
+```
+
+Add `initialize_request` override on `AuthIndexEndpoint` (before `_validate_superuser`):
+```python
+def initialize_request(self, request, *args, **kwargs):
+    if request.method == "GET":
+        self.authentication_classes = (
+            UserAuthTokenAuthentication,
+            *self.authentication_classes,
+        )
+    return super().initialize_request(request, *args, **kwargs)
+```
+
+**Why on `AuthIndexEndpoint` not `BaseAuthIndexEndpoint`?** The base is shared with `StaffAuthIndexEndpoint` in getsentry. Safer to scope the fix to the endpoint the CLI actually hits. Staff endpoint can adopt it separately if needed.
+
+### 2. `tests/sentry/api/endpoints/test_auth.py`
+
+Add a new test class for Bearer token GET, following the `test_auth_validate.py` pattern:
+
+```python
+@control_silo_test
+class AuthGetTest(APITestCase):
+    def test_get_with_bearer_token(self):
+        """Bearer token auth should work for GET /api/0/auth/"""
+        user = self.create_user(email="a@example.com")
+        api_token = ApiToken.objects.create(token_type=AuthTokenType.USER, user=user)
+        url = reverse("sentry-api-0-auth")
+        response = self.client.get(
+            url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {api_token.plaintext_token}",
+        )
+        assert response.status_code == 200
+        assert response.data["id"] == str(user.id)
+
+    def test_get_unauthenticated(self):
+        """GET /api/0/auth/ without any auth returns 400"""
+        url = reverse("sentry-api-0-auth")
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+```
+
+Imports to add: `ApiToken`, `AuthTokenType`.
+
+## Verification
+
+```bash
+# Run the specific test file
+.venv/bin/pytest -svv --reuse-db tests/sentry/api/endpoints/test_auth.py
+
+# Run pre-commit on modified files
+.venv/bin/pre-commit run --files src/sentry/api/endpoints/auth_index.py tests/sentry/api/endpoints/test_auth.py
+```
