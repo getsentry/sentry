@@ -157,8 +157,9 @@ def parse_integration_from_request(request: HttpRequest, provider: str) -> Integ
 
 
 class AtlassianConnectTokenValidator:
-    def __init__(self, request: HttpRequest) -> None:
+    def __init__(self, request: HttpRequest, method: str) -> None:
         self.request = request
+        self.method = method
 
     def get_token(self) -> str:
         try:
@@ -177,7 +178,7 @@ class AtlassianConnectTokenValidator:
             raise AtlassianConnectValidationError("Missing key_id (kid)")
         try:
             decoded_claims = authenticate_asymmetric_jwt(token, key_id)
-            verify_claims(decoded_claims, self.request.path, self.request.GET, self.request.method)
+            verify_claims(decoded_claims, self.request.path, self.request.GET, self.method)
         except InvalidKeyError:
             raise AtlassianConnectValidationError("JWT contained invalid key_id (kid)")
         except ExpiredSignatureError:
