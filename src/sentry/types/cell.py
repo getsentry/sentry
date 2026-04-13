@@ -350,7 +350,7 @@ def get_new_org_cell_for_locality(name: str) -> Cell:
     global_directory = get_global_directory()
     locality = global_directory.get_locality_by_name(name)
     if not locality:
-        raise CellResolutionError("No locality with name: {name}")
+        raise CellResolutionError(f"No locality with name: {name}")
     return get_cell_by_name(locality.new_org_cell)
 
 
