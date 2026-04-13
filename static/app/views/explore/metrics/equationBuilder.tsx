@@ -18,8 +18,14 @@ function unresolveExpression(
   referenceMap: Record<string, string> = {}
 ): string {
   // Reverse the keys and values of the reference map, duplicates keep the first reference found
-  const reversedReferenceMap = Object.fromEntries(
-    Object.entries(referenceMap).map(([key, value]) => [value, key])
+  const reversedReferenceMap = Object.entries(referenceMap).reduce(
+    (reversedMap: Record<string, string>, [key, value]) => {
+      if (!reversedMap[value]) {
+        reversedMap[value] = key;
+      }
+      return reversedMap;
+    },
+    {}
   );
 
   const tokens = tokenizeExpression(expression);
