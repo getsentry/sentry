@@ -58,7 +58,6 @@ export function ConversationsTable() {
   return <ConversationsTableInner />;
 }
 
-const FILTERED = '[Filtered]';
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
@@ -228,21 +227,17 @@ const BodyCell = memo(function BodyCell({
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
-                dataRow.firstInput === FILTERED ? (
-                  <Text variant="muted">{FILTERED}</Text>
-                ) : (
-                  <Tooltip
-                    title={<TooltipContent text={dataRow.firstInput} />}
-                    showOnlyOnOverflow
-                    maxWidth={800}
-                    isHoverable
-                    delay={500}
-                    skipWrapper
-                    position="right"
-                  >
-                    <CellContent text={dataRow.firstInput} />
-                  </Tooltip>
-                )
+                <Tooltip
+                  title={<TooltipContent text={dataRow.firstInput} />}
+                  showOnlyOnOverflow
+                  maxWidth={800}
+                  isHoverable
+                  delay={500}
+                  skipWrapper
+                  position="right"
+                >
+                  <CellContent text={dataRow.firstInput} />
+                </Tooltip>
               ) : (
                 <Text variant="muted">&mdash;</Text>
               )}
@@ -252,21 +247,17 @@ const BodyCell = memo(function BodyCell({
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
-                dataRow.lastOutput === FILTERED ? (
-                  <Text variant="muted">{FILTERED}</Text>
-                ) : (
-                  <Tooltip
-                    title={<TooltipContent text={dataRow.lastOutput} />}
-                    showOnlyOnOverflow
-                    maxWidth={800}
-                    isHoverable
-                    delay={500}
-                    skipWrapper
-                    position="right"
-                  >
-                    <CellContent text={dataRow.lastOutput} />
-                  </Tooltip>
-                )
+                <Tooltip
+                  title={<TooltipContent text={dataRow.lastOutput} />}
+                  showOnlyOnOverflow
+                  maxWidth={800}
+                  isHoverable
+                  delay={500}
+                  skipWrapper
+                  position="right"
+                >
+                  <CellContent text={dataRow.lastOutput} />
+                </Tooltip>
               ) : (
                 <Text variant="muted">&mdash;</Text>
               )}
