@@ -153,26 +153,6 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -
 
 @django_db_all
 @cell_silo_test
-@mock.patch("sentry.relay.config.capture_exception")
-def test_get_experimental_config_transaction_metrics_exception(
-    mock_capture_exception, default_project
-):
-    keys = ProjectKey.objects.filter(project=default_project)
-    default_project.update_option("sentry:breakdowns", {"invalid_breakdowns": "test"})
-    # wrong type
-    default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
-
-    with Feature({"organizations:transaction-metrics-extraction": True}):
-        cfg = get_project_config(default_project, project_keys=keys)
-
-    config = cfg.to_dict()["config"]
-
-    assert config["transactionMetrics"]["extractCustomTags"] == []
-    assert mock_capture_exception.call_count == 2
-
-
-@django_db_all
-@cell_silo_test
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
 def test_project_config_uses_filter_features(
@@ -538,7 +518,6 @@ def test_project_config_with_breakdown(
     insta_snapshot(
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
-            "transactionMetrics": cfg["config"].get("transactionMetrics"),
             "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
@@ -603,52 +582,6 @@ def test_project_config_satisfaction_thresholds(
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
-
-
-@django_db_all
-@cell_silo_test
-@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-@pytest.mark.parametrize(
-    "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
-)
-def test_has_metric_extraction(default_project, feature_flag, killswitch) -> None:
-    options = override_options(
-        {
-            "relay.drop-transaction-metrics": (
-                [{"project_id": default_project.id}] if killswitch else []
-            )
-        }
-    )
-    feature = Feature(
-        {
-            "organizations:transaction-metrics-extraction": feature_flag,
-        }
-    )
-    with feature, options:
-        project_config = get_project_config(default_project)
-        config = project_config.to_dict()["config"]
-        _validate_project_config(config)
-        if killswitch or not feature_flag:
-            assert "transactionMetrics" not in config
-        else:
-            config = config["transactionMetrics"]
-            assert config["customMeasurements"]["limit"] > 0
-
-
-@django_db_all
-def test_accept_transaction_names(default_project) -> None:
-    feature = Feature(
-        {
-            "organizations:transaction-metrics-extraction": True,
-        }
-    )
-    with feature:
-        config = get_project_config(default_project).to_dict()["config"]
-
-        _validate_project_config(config)
-        transaction_metrics_config = config["transactionMetrics"]
-
-        assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
 
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
