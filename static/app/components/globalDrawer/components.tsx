@@ -9,6 +9,8 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {
   DEFAULT_WIDTH_PERCENT,
@@ -125,12 +127,14 @@ export function DrawerHeader({
   hideBar = false,
   hideCloseButton = false,
 }: DrawerHeaderProps) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {onClose} = useDrawerContentContext();
 
   return (
     <Header
       ref={ref}
       className={className}
+      height={hasPageFrameFeature ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
     >
@@ -160,7 +164,11 @@ const HeaderBar = styled('div')`
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
+const Header = styled('header')<{
+  height?: string;
+  hideBar?: boolean;
+  hideCloseButton?: boolean;
+}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.drawer + 1};
@@ -175,6 +183,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
+  height: ${p => p.height ?? undefined};
 `;
 
 export const DrawerBody = styled('aside')`
