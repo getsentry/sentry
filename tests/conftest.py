@@ -41,6 +41,7 @@ pytest_plugins = ["sentry.testutils.pytest"]
 
 
 _PYTHON_BASE_PREFIX = sys.base_prefix
+_PYTHON_PREFIX = sys.prefix
 
 if sys.platform == "linux":
 
@@ -56,9 +57,13 @@ if sys.platform == "linux":
                 # Exclude Python stdlib .py source files. Background threads from
                 # live_server fixtures or the Python runtime itself (importlib,
                 # linecache, traceback) may open these; they are not test-code leaks.
-                if os.path.exists(path) and not (
-                    path.startswith(_PYTHON_BASE_PREFIX) and path.endswith(".py")
-                ):
+                if path.startswith(_PYTHON_BASE_PREFIX) and path.endswith(".py"):
+                    continue
+                # Exclude SSL CA bundles (certifi etc.) opened by urllib3/requests
+                # during HTTPS connections; these are not test-code resource leaks.
+                if path.startswith(_PYTHON_PREFIX) and path.endswith(".pem"):
+                    continue
+                if os.path.exists(path):
                     ret.append(path)
         return frozenset(ret)
 
