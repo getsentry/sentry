@@ -301,7 +301,7 @@ class CellDirectoryTest(TestCase):
                 name="de2",
                 snowflake_id=4,
                 category=RegionCategory.MULTI_TENANT,
-                address="10.0.0.3",
+                address="10.0.0.4",
                 visible=True,
             ),
         ]
