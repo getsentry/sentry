@@ -113,7 +113,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         {...props}
       >
         {props.children}
-        {showSuperuserWarning && (
+        {/* page-frame renders a marquee for the visual superuser indicator */}
+        {!hasPageFrame && showSuperuserWarning && (
           <Container
             position="absolute"
             top={0}
@@ -122,9 +123,6 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
             style={{
               zIndex: theme.zIndex.initial,
               background: theme.tokens.background.danger.vibrant,
-              // In page frame mode the marquee takes over the visual indicator,
-              // but we keep the hook rendered so its AlertStore side-effect still fires.
-              display: hasPageFrame ? 'none' : undefined,
             }}
           >
             <Hook name="component:superuser-warning" organization={organization} />
