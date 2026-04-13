@@ -1350,6 +1350,22 @@ class OrganizationReleasesStatsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, query="release:*baz*")
         assert [r["version"] for r in response.data] == []
 
+    def test_environment_in_query_param(self) -> None:
+        """environment: in the query string filters the stats endpoint's ValuesQuerySet correctly."""
+        env = self.create_environment(name="prod", project=self.project1)
+
+        release_in_env = self.create_release(project=self.project1, version="release-in-env")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project1.id,
+            release_id=release_in_env.id,
+            environment_id=env.id,
+        )
+
+        self.create_release(project=self.project2, version="release-not-in-env")
+
+        response = self.get_success_response(self.organization.slug, query="environment:prod")
+        assert [r["version"] for r in response.data] == [release_in_env.version]
+
 
 class OrganizationReleaseCreateTest(APITestCase):
     def test_empty_release_version(self) -> None:
