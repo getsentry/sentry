@@ -10,7 +10,8 @@ from django.utils import timezone
 from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
+from sentry.incidents.detectorconfig import MetricIssueDetectorHandler
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
 from sentry.issues.grouptype import (
     FeedbackGroup,

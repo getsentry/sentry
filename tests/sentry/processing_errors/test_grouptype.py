@@ -1,11 +1,11 @@
 from typing import Any
 
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.processing_errors.detectorconfig import SourcemapDetectorHandler
 from sentry.processing_errors.grouptype import (
     ProcessingErrorCheckStatus,
     ProcessingErrorPacketValue,
     SourcemapConfigurationType,
-    SourcemapDetectorHandler,
 )
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition
