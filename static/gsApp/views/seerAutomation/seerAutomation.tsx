@@ -26,7 +26,7 @@ export default function SeerAutomation() {
   const showNoActiveSeerSubscriptionBanner =
     !hasSeatBasedSeer &&
     (hasLegacySeer || hasCodeReviewBeta) &&
-    !subscription?.canSelfServe;
+    subscription?.canSelfServe;
 
   if (showNewSeer(organization)) {
     return <SeerAutomationSettings />;
