@@ -474,7 +474,7 @@ function flattenActions(
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
         const hasPromptOrResource =
           ('prompt' in node && !!node.prompt) || ('resource' in node && !!node.resource);
-        if (!hasPromptOrResource) {
+        if (!hasPromptOrResource || isEmptyResourceNode(node)) {
           continue;
         }
       }
@@ -558,7 +558,8 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
     node.children.length === 0 &&
     'resource' in node &&
     !('to' in node) &&
-    !('onAction' in node)
+    !('onAction' in node) &&
+    !('prompt' in node && node.prompt)
   );
 }
 
