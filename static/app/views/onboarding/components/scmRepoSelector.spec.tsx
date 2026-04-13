@@ -11,6 +11,21 @@ import {
 
 import {ScmRepoSelector} from './scmRepoSelector';
 
+// Mock the virtualizer so all items render in JSDOM (no layout engine).
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: jest.fn(({count}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, i) => ({
+        key: i,
+        index: i,
+        start: i * 36,
+        size: 36,
+      })),
+    getTotalSize: () => count * 36,
+    measureElement: jest.fn(),
+  })),
+}));
+
 function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
     return (
@@ -45,15 +60,6 @@ describe('ScmRepoSelector', () => {
   });
 
   it('renders search placeholder', () => {
-    render(<ScmRepoSelector integration={mockIntegration} />, {
-      organization,
-      wrapper: makeOnboardingWrapper(),
-    });
-
-    expect(screen.getByText('Search repositories')).toBeInTheDocument();
-  });
-
-  it('shows empty state message when search returns no results', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {repos: []},
@@ -64,7 +70,21 @@ describe('ScmRepoSelector', () => {
       wrapper: makeOnboardingWrapper(),
     });
 
-    await userEvent.type(screen.getByRole('textbox'), 'nonexistent');
+    expect(screen.getByText('Search repositories')).toBeInTheDocument();
+  });
+
+  it('shows empty state message when no repos are available', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
+      body: {repos: []},
+    });
+
+    render(<ScmRepoSelector integration={mockIntegration} />, {
+      organization,
+      wrapper: makeOnboardingWrapper(),
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
 
     expect(
       await screen.findByText(
@@ -85,14 +105,14 @@ describe('ScmRepoSelector', () => {
       wrapper: makeOnboardingWrapper(),
     });
 
-    await userEvent.type(screen.getByRole('textbox'), 'sentry');
+    await userEvent.click(screen.getByRole('textbox'));
 
     expect(
-      await screen.findByText('Failed to search repositories. Please try again.')
+      await screen.findByText('Failed to load repositories. Please try again.')
     ).toBeInTheDocument();
   });
 
-  it('displays repos returned by search', async () => {
+  it('displays repos fetched on mount', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {
@@ -108,7 +128,7 @@ describe('ScmRepoSelector', () => {
       wrapper: makeOnboardingWrapper(),
     });
 
-    await userEvent.type(screen.getByRole('textbox'), 'get');
+    await userEvent.click(screen.getByRole('textbox'));
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'sentry'})
@@ -117,6 +137,11 @@ describe('ScmRepoSelector', () => {
   });
 
   it('shows selected repo value when one is in context', () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
+      body: {repos: []},
+    });
+
     const selectedRepo = RepositoryFixture({
       name: 'getsentry/old-repo',
       externalSlug: 'getsentry/old-repo',
@@ -130,7 +155,7 @@ describe('ScmRepoSelector', () => {
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
   });
 
-  it('selects a repo from search results and triggers repo lookup', async () => {
+  it('selects a repo and triggers repo lookup', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {
@@ -153,13 +178,18 @@ describe('ScmRepoSelector', () => {
       wrapper: makeOnboardingWrapper(),
     });
 
-    await userEvent.type(screen.getByRole('textbox'), 'get');
+    await userEvent.click(screen.getByRole('textbox'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
     await waitFor(() => expect(reposLookup).toHaveBeenCalled());
   });
 
   it('clears the selected repo', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
+      body: {repos: []},
+    });
+
     const selectedRepo = RepositoryFixture({
       name: 'getsentry/old-repo',
       externalSlug: 'getsentry/old-repo',
@@ -172,16 +202,14 @@ describe('ScmRepoSelector', () => {
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
 
-    // The clear indicator uses Sentry's IconClose which renders with
-    // role="img" rather than aria-hidden, so use the test-id directly.
-    await userEvent.click(screen.getByTestId('icon-close'));
+    await userEvent.click(await screen.findByTestId('icon-close'));
 
     await waitFor(() => {
       expect(screen.queryByText('getsentry/old-repo')).not.toBeInTheDocument();
     });
   });
 
-  it('does not duplicate selected repo when it appears in search results', async () => {
+  it('does not duplicate selected repo when it appears in results', async () => {
     const selectedRepo = RepositoryFixture({
       name: 'getsentry/sentry',
       externalSlug: 'getsentry/sentry',
@@ -202,15 +230,14 @@ describe('ScmRepoSelector', () => {
       wrapper: makeOnboardingWrapper({selectedRepository: selectedRepo}),
     });
 
-    await userEvent.type(screen.getByRole('textbox'), 'get');
+    await userEvent.click(screen.getByRole('textbox'));
 
-    // Wait for search results to arrive
     expect(await screen.findByRole('menuitemradio', {name: 'relay'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
 
     // If the options-prepend logic fires incorrectly, it adds an extra option
     // with label 'getsentry/sentry' (selectedRepository.name) alongside the
-    // search result option with label 'sentry' (repo.name).
+    // result option with label 'sentry' (repo.name).
     expect(
       screen.queryByRole('menuitemradio', {name: 'getsentry/sentry'})
     ).not.toBeInTheDocument();
