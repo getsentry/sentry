@@ -223,20 +223,18 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             "detail": "No projects found for this organization that the user has access to"
         }
 
-    @mock.patch(
-        "sentry.workflow_engine.endpoints.organization_test_fire_action.get_test_notification_event_data"
-    )
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
     def test_uses_specified_project_slug(
         self,
-        mock_get_test_event: mock.MagicMock,
+        mock_test_fire_actions: mock.MagicMock,
     ) -> None:
         """Test that providing project_slug uses the specified project"""
+        mock_test_fire_actions.return_value = (None, None)
+
         team = self.create_team(organization=self.organization, members=[self.user])
         target_project = self.create_project(
             organization=self.organization, name="zzz-target-project", teams=[team]
         )
-
-        mock_get_test_event.return_value = None
 
         action_data = [
             {
@@ -246,17 +244,20 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             }
         ]
 
-        self.get_error_response(
+        response = self.get_success_response(
             self.organization.slug,
             actions=action_data,
             project_slug=target_project.slug,
         )
+        assert response.status_code == 200
 
-        # Verify get_test_notification_event_data was called with the specified project
-        mock_get_test_event.assert_called_once_with(target_project)
+        # Verify test_fire_actions was called with the specified project
+        mock_test_fire_actions.assert_called_once()
+        _, project_arg = mock_test_fire_actions.call_args[0]
+        assert project_arg == target_project
 
-    def test_invalid_project_slug_falls_through(self) -> None:
-        """Test that an invalid project_slug returns an error"""
+    def test_invalid_project_slug(self) -> None:
+        """Test that an invalid project_slug returns with a 400 error"""
         action_data = [
             {
                 "type": Action.Type.PLUGIN.value,

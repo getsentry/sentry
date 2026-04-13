@@ -86,24 +86,19 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=HTTP_401_UNAUTHORIZED)
 
+        qs = Project.objects.filter(
+            organization=organization,
+            teams__organizationmember__user_id=request.user.id,
+            status=ObjectStatus.ACTIVE,
+        )
+
         project_slug = data.get("project_slug")
         if project_slug:
-            project = Project.objects.filter(
-                organization=organization,
-                slug=project_slug,
-                teams__organizationmember__user_id=request.user.id,
-                status=ObjectStatus.ACTIVE,
-            ).first()
+            qs = qs.filter(slug=project_slug)
         else:
-            project = (
-                Project.objects.filter(
-                    organization=organization,
-                    teams__organizationmember__user_id=request.user.id,
-                    status=ObjectStatus.ACTIVE,
-                )
-                .order_by("name")
-                .first()
-            )
+            qs = qs.order_by("name")
+
+        project = qs.first()
 
         if not project:
             return Response(
