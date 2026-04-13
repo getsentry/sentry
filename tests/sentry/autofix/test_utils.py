@@ -89,8 +89,8 @@ class TestGetRepoFromCodeMappings(TestCase):
             provider="integrations:github",
             external_id="456",
             integration_id=234,
-            status=ObjectStatus.DISABLED,
         )
+        disabled_repo.update(status=ObjectStatus.DISABLED)
         self.create_code_mapping(
             project=project,
             repo=disabled_repo,
