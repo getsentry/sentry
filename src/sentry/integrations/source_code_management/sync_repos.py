@@ -162,17 +162,29 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             "provider": provider_key,
             "dry_run": str(dry_run),
         }
-        metrics.distribution("scm.repo_sync.new_repos", len(new_ids), tags=metric_tags)
-        metrics.distribution("scm.repo_sync.removed_repos", len(removed_ids), tags=metric_tags)
-        metrics.distribution("scm.repo_sync.restored_repos", len(restored_ids), tags=metric_tags)
         metrics.distribution(
-            "scm.repo_sync.provider_total", len(provider_external_ids), tags=metric_tags
+            "scm.repo_sync.new_repos", len(new_ids), tags=metric_tags, sample_rate=1.0
         )
         metrics.distribution(
-            "scm.repo_sync.sentry_active", len(sentry_active_ids), tags=metric_tags
+            "scm.repo_sync.removed_repos", len(removed_ids), tags=metric_tags, sample_rate=1.0
         )
         metrics.distribution(
-            "scm.repo_sync.sentry_disabled", len(sentry_disabled_ids), tags=metric_tags
+            "scm.repo_sync.restored_repos", len(restored_ids), tags=metric_tags, sample_rate=1.0
+        )
+        metrics.distribution(
+            "scm.repo_sync.provider_total",
+            len(provider_external_ids),
+            tags=metric_tags,
+            sample_rate=1.0,
+        )
+        metrics.distribution(
+            "scm.repo_sync.sentry_active", len(sentry_active_ids), tags=metric_tags, sample_rate=1.0
+        )
+        metrics.distribution(
+            "scm.repo_sync.sentry_disabled",
+            len(sentry_disabled_ids),
+            tags=metric_tags,
+            sample_rate=1.0,
         )
 
         if new_ids or removed_ids or restored_ids:
