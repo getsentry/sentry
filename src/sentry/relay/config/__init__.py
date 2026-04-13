@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from sentry_sdk import capture_exception
 
 from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import (
@@ -49,8 +48,6 @@ from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
-
-from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
@@ -948,14 +945,6 @@ def _get_project_config(
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
     if _should_extract_transaction_metrics(project):
-        add_experimental_config(
-            config,
-            "transactionMetrics",
-            get_transaction_metrics_settings,
-            project,
-            config.get("breakdownsV2"),
-        )
-
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
@@ -1184,67 +1173,9 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     return ret_val
 
 
-#: Version of the transaction metrics extraction.
-#: When you increment this version, outdated Relays will stop extracting
-#: transaction metrics.
-#: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 6
-
-
-class CustomMeasurementSettings(TypedDict):
-    limit: int
-
-
-TransactionNameStrategy = Literal["strict", "clientBased"]
-
-
-class TransactionMetricsSettings(TypedDict):
-    version: int
-    extractCustomTags: list[str]
-    customMeasurements: CustomMeasurementSettings
-    acceptTransactionNames: TransactionNameStrategy
-
-
 def _should_extract_transaction_metrics(project: Project) -> bool:
     return features.has(
         "organizations:transaction-metrics-extraction", project.organization
     ) and not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )
-
-
-def get_transaction_metrics_settings(
-    timeout: TimeChecker, project: Project, breakdowns_config: Mapping[str, Any] | None
-) -> TransactionMetricsSettings:
-    """This function assumes that the corresponding feature flag has been checked.
-    See _should_extract_transaction_metrics.
-    """
-    custom_tags: list[str] = []
-
-    if breakdowns_config is not None:
-        # we already have a breakdown configuration that tells relay which
-        # breakdowns to compute for an event. metrics extraction should
-        # probably be in sync with that, or at least not extract more metrics
-        # than there are breakdowns configured.
-        try:
-            for _, breakdown_config in breakdowns_config.items():
-                assert breakdown_config["type"] == "spanOperations"
-
-        except Exception:
-            capture_exception()
-
-    # Tells relay which user-defined tags to add to each extracted
-    # transaction metric.  This cannot include things such as `os.name`
-    # which are computed on the server, they have to come from the SDK as
-    # event tags.
-    try:
-        custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
-    except Exception:
-        capture_exception()
-
-    return {
-        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
-        "extractCustomTags": custom_tags,
-        "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
-        "acceptTransactionNames": "clientBased",
-    }

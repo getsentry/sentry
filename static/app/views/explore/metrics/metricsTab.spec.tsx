@@ -612,4 +612,59 @@ describe('MetricsTabContent', () => {
     expect(await screen.findByText('Add Metric')).toBeInTheDocument();
     expect(screen.getByText('Add Equation')).toBeInTheDocument();
   });
+
+  it('disables both Add Metric and Add Equation buttons when the maximum number of metric queries is reached', async () => {
+    const metricQueryWithGroupBy = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {groupBy: 'environment'},
+        {yAxes: ['per_second(bar)'], displayType: 'line'},
+      ],
+      aggregateSortBys: [],
+      mode: 'aggregate',
+    });
+    const orgWithFeature = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeature,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+              ],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.getByText('Add Equation')).toBeInTheDocument();
+
+    // Only 7 entries -> both buttons are enabled
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeEnabled();
+
+    // Add an entry, 8 entries -> both buttons are disabled
+    await userEvent.click(screen.getByRole('button', {name: 'Add Metric'}));
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeDisabled();
+  });
 });

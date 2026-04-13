@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
@@ -98,13 +99,43 @@ def run_night_shift_for_org(organization_id: int) -> None:
         )
         return
 
-    candidates = agentic_triage_strategy(eligible_projects, organization)
+    triage_strategy = "agentic_triage"
+    run = SeerNightShiftRun.objects.create(
+        organization=organization,
+        triage_strategy=triage_strategy,
+    )
+
+    try:
+        candidates = agentic_triage_strategy(eligible_projects, organization)
+
+        if candidates:
+            SeerNightShiftRunIssue.objects.bulk_create(
+                [
+                    SeerNightShiftRunIssue(
+                        run=run,
+                        group=c.group,
+                        action=c.action,
+                    )
+                    for c in candidates
+                ]
+            )
+    except Exception:
+        logger.exception(
+            "night_shift.run_failed",
+            extra={
+                "organization_id": organization_id,
+                "run_id": run.id,
+            },
+        )
+        run.update(error_message="Night shift run failed")
+        return
 
     logger.info(
         "night_shift.candidates_selected",
         extra={
             "organization_id": organization_id,
             "organization_slug": organization.slug,
+            "run_id": run.id,
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
             "candidates": [

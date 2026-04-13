@@ -127,6 +127,14 @@ def create_preprod_pr_comment_task(
         siblings = artifact.get_sibling_artifacts_for_commit()
         installable_siblings = [s for s in siblings if is_installable_artifact(s)]
         if not installable_siblings:
+            logger.info(
+                "preprod.pr_comments.create.no_installable_artifacts",
+                extra={
+                    "artifact_id": artifact.id,
+                    "project_id": artifact.project.id,
+                    "sibling_count": len(siblings),
+                },
+            )
             return
 
         existing_comment_id = _find_existing_comment_id(all_for_pr)

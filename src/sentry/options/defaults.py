@@ -1491,43 +1491,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
-# In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
-register(
-    "relay.cardinality-limiter.mode",
-    default="disabled",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Override to set a list of limits into passive mode by organization.
-#
-# In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
-#
-# Example: `{'1': ["transactions"]}`
-# Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
-register(
-    "relay.cardinality-limiter.passive-limits-by-org",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Sample rate for Cardinality Limiter Sentry errors.
-#
-# Rate needs to be between `0.0` and `1.0`.
-# If set to `1.0` all cardinality limiter rejections will be logged as a Sentry error.
-register(
-    "relay.cardinality-limiter.error-sample-rate",
-    default=0.00,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# List of additional cardinality limits and selectors.
-#
-# ```
-# {
-#   "rollout_rate": 0.001,
-#   "limit": { .. Cardinality Limit .. }
-# }
-# ```
-register("relay.cardinality-limiter.limits", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Controls the encoding used in Relay for encoding distributions and sets
 # when writing to Kafka.
 #

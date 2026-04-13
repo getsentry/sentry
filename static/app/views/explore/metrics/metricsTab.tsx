@@ -29,6 +29,7 @@ import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQu
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
 import {
+  MAX_METRICS_ALLOWED,
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
@@ -37,8 +38,6 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
-
-const MAX_METRICS_ALLOWED = 8;
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -80,6 +79,11 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
 
+  // Cannot add metric queries beyond Z
+  const isAddMetricDisabled =
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreBodySearch>
@@ -96,7 +100,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             <Flex gap="sm" align="center">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                disabled={isAddMetricDisabled}
                 label={t('Add Metric')}
                 display="button"
               />
@@ -148,13 +152,18 @@ function MetricsQueryBuilderSection() {
     return null;
   }
 
+  // Cannot add metric queries beyond Z
+  const isAddMetricDisabled =
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
+
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
         {metricQueries.map((metricQuery, index) => {
           return (
             <MetricsQueryParamsProvider
-              key={`queryBuilder-${index}`}
+              key={`queryBuilder-${metricQuery.label ?? index}`}
               queryParams={metricQuery.queryParams}
               setQueryParams={metricQuery.setQueryParams}
               traceMetric={metricQuery.metric}
@@ -163,7 +172,7 @@ function MetricsQueryBuilderSection() {
             >
               <MetricToolbar
                 traceMetric={metricQuery.metric}
-                queryIndex={index}
+                queryLabel={metricQuery.label ?? ''}
                 references={references}
               />
             </MetricsQueryParamsProvider>
@@ -172,7 +181,7 @@ function MetricsQueryBuilderSection() {
         <Flex direction="row" gap="sm" align="center" minWidth={0} width="100%">
           <ToolbarVisualizeAddChart
             add={addMetricQuery}
-            disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+            disabled={isAddMetricDisabled}
             label={t('Add Metric')}
           />
           {hasEquations && (
@@ -206,6 +215,11 @@ function MetricsTabBodySection() {
   });
   const references = useMetricReferences();
 
+  // Cannot add metric queries beyond Z
+  const isAddMetricDisabled =
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === 'Z');
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <ExploreContentSection>
@@ -214,7 +228,7 @@ function MetricsTabBodySection() {
             {metricQueries.map((metricQuery, index) => {
               return (
                 <MetricsQueryParamsProvider
-                  key={`queryPanel-${index}`}
+                  key={`queryPanel-${metricQuery.label ?? index}`}
                   queryParams={metricQuery.queryParams}
                   setQueryParams={metricQuery.setQueryParams}
                   traceMetric={metricQuery.metric}
@@ -224,6 +238,7 @@ function MetricsTabBodySection() {
                   <MetricPanel
                     traceMetric={metricQuery.metric}
                     queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
                     references={references}
                   />
                 </MetricsQueryParamsProvider>
@@ -232,7 +247,7 @@ function MetricsTabBodySection() {
             <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                disabled={isAddMetricDisabled}
                 label={t('Add Metric')}
                 display="button"
               />
@@ -259,7 +274,7 @@ function MetricsTabBodySection() {
             {metricQueries.map((metricQuery, index) => {
               return (
                 <MetricsQueryParamsProvider
-                  key={`queryPanel-${index}`}
+                  key={`queryPanel-${metricQuery.label ?? index}`}
                   queryParams={metricQuery.queryParams}
                   setQueryParams={metricQuery.setQueryParams}
                   traceMetric={metricQuery.metric}
@@ -269,6 +284,7 @@ function MetricsTabBodySection() {
                   <MetricPanel
                     traceMetric={metricQuery.metric}
                     queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
                     references={references}
                   />
                 </MetricsQueryParamsProvider>

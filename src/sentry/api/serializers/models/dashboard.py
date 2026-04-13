@@ -592,6 +592,8 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
                     member__organization=organization,
                 ).first()
                 result[dashboard]["last_visited"] = visit.last_visited if visit else None
+            else:
+                result[dashboard]["last_visited"] = dashboard.last_visited
 
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids

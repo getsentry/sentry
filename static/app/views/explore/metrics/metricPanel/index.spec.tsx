@@ -143,7 +143,7 @@ describe('MetricPanel', () => {
     });
 
     it('renders the metric panel', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
         organization,
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
@@ -152,7 +152,7 @@ describe('MetricPanel', () => {
     });
 
     it('does not render the visualize label badge', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
         organization,
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
@@ -237,7 +237,7 @@ describe('MetricPanel', () => {
     });
 
     it('renders the metric panel', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
         organization,
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
@@ -246,17 +246,17 @@ describe('MetricPanel', () => {
     });
 
     it('renders the visualize label badge', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
         organization,
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
 
-      // The visualize label badge "A" (from getVisualizeLabel(0)) should be present
+      // The visualize label badge "A" should be present
       expect(await screen.findByText('A')).toBeInTheDocument();
     });
 
     it('does not render orientation controls', async () => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} />, {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
         organization,
         additionalWrapper: createWrapper({queryParams, traceMetric}),
       });
