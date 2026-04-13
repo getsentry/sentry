@@ -1003,17 +1003,12 @@ class TestViewerContextAuthentication(TestCase):
         self,
         viewer_context: str | None = None,
         viewer_signature: str | None = None,
-        authorization: str | None = None,
     ) -> Request:
-        headers: dict[str, str] = {}
+        req = RequestFactory().get("/api/0/organizations/")
         if viewer_context is not None:
-            headers["HTTP_X_VIEWER_CONTEXT"] = viewer_context
+            req.META["HTTP_X_VIEWER_CONTEXT"] = viewer_context
         if viewer_signature is not None:
-            headers["HTTP_X_VIEWER_CONTEXT_SIGNATURE"] = viewer_signature
-        if authorization is not None:
-            headers["HTTP_AUTHORIZATION"] = authorization
-
-        req = RequestFactory().get("/api/0/organizations/", **headers)
+            req.META["HTTP_X_VIEWER_CONTEXT_SIGNATURE"] = viewer_signature
         return drf_request_from_request(req)
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
