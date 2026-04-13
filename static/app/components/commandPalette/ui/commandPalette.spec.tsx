@@ -838,10 +838,10 @@ describe('CommandPalette', () => {
 
   describe('resource action with 0 results', () => {
     function emptyResource() {
-      return {
+      return cmdkQueryOptions({
         queryKey: ['test-empty-resource'] as const,
         queryFn: (): CommandPaletteAction[] => [],
-      };
+      });
     }
 
     it('is omitted from browse mode at the top level', async () => {
