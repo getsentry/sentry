@@ -1,5 +1,4 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -15,10 +14,7 @@ import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboa
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,7 +23,7 @@ import SystemAlerts from 'sentry/views/app/systemAlerts';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
-import {SuperuserWarningMarquee} from 'sentry/views/navigation/superuserWarningMarquee';
+import {SuperuserWarning} from 'sentry/views/navigation/superuserWarningMarquee';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
@@ -76,32 +72,13 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
-  const theme = useTheme();
   const hasPageFrame = useHasPageFrameFeature();
-
-  const showSuperuserWarning =
-    hasPageFrame &&
-    isActiveSuperuser() &&
-    !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   return (
     <PrimaryNavigationContextProvider>
-      <Stack
-        flex="1"
-        minWidth="0"
-        minHeight="100vh"
-        style={
-          showSuperuserWarning
-            ? {
-                outline: `2px solid ${theme.tokens.background.danger.vibrant}`,
-                outlineOffset: '-2px',
-              }
-            : undefined
-        }
-      >
+      <Stack flex="1" minWidth="0" minHeight="100dvh">
+        {hasPageFrame && <SuperuserWarning />}
         {hasPageFrame && <SystemAlerts className="messages-container" />}
-        {hasPageFrame && <SuperuserWarningMarquee />}
         <Flex
           flex="1"
           minWidth="0"

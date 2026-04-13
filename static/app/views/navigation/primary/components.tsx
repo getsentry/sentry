@@ -122,6 +122,9 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
             style={{
               zIndex: theme.zIndex.initial,
               background: theme.tokens.background.danger.vibrant,
+              // In page frame mode the marquee takes over the visual indicator,
+              // but we keep the hook rendered so its AlertStore side-effect still fires.
+              display: hasPageFrame ? 'none' : undefined,
             }}
           >
             <Hook name="component:superuser-warning" organization={organization} />
