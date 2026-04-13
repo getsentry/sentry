@@ -106,6 +106,9 @@ class TestExtractFirstUserMessage:
         messages = "[]"
         assert _extract_first_user_message(messages) is None
 
+    def test_returns_filtered(self) -> None:
+        assert _extract_first_user_message("[Filtered]") == "[Filtered]"
+
 
 class TestGetFirstInputMessage:
     """Unit tests for _get_first_input_message helper function"""

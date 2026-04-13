@@ -96,6 +96,8 @@ def _extract_content_from_parts(msg: dict) -> str | None:
 
 def _extract_first_user_message(messages: str | list | None) -> str | None:
     """Extract first user message, handling both old (content) and new (parts) formats."""
+    if isinstance(messages, str) and messages == FILTERED:
+        return FILTERED
     parsed = _parse_messages(messages)
     if not parsed:
         return None
@@ -118,8 +120,6 @@ def _get_first_input_message(row: dict) -> str | None:
     # 1. Check new format first (gen_ai.input.messages)
     input_messages = row.get("gen_ai.input.messages")
     if input_messages:
-        if input_messages == FILTERED:
-            return FILTERED
         first_user = _extract_first_user_message(input_messages)
         if first_user:
             return first_user
@@ -127,8 +127,6 @@ def _get_first_input_message(row: dict) -> str | None:
     # 2. Check current format (gen_ai.request.messages)
     request_messages = row.get("gen_ai.request.messages")
     if request_messages:
-        if request_messages == FILTERED:
-            return FILTERED
         return _extract_first_user_message(request_messages)
 
     return None
