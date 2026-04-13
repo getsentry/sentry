@@ -1,8 +1,8 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -50,6 +50,7 @@ interface InstallationConfigAdvanceData {
 function InstallationConfigStep({
   stepData,
   advance,
+  advanceError,
   isAdvancing,
 }: PipelineStepProps<InstallationConfigStepData, InstallationConfigAdvanceData>) {
   const defaults = stepData.defaults ?? {};
@@ -78,6 +79,12 @@ function InstallationConfigStep({
       });
     },
   });
+
+  useEffect(() => {
+    if (advanceError) {
+      setFieldErrors(form, advanceError);
+    }
+  }, [advanceError, form]);
 
   const configForm = (
     <form.AppForm form={form}>

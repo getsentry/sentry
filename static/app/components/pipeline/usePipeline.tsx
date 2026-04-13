@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getPipelineDefinition} from './registry';
@@ -139,7 +141,7 @@ export function usePipeline<
     reset: resetAdvance,
   } = useMutation<
     PipelineAdvanceResponse,
-    Error,
+    RequestError,
     Record<string, unknown>,
     {generation: number}
   >({
@@ -205,11 +207,24 @@ export function usePipeline<
           break;
       }
     },
-    onError: (error: Error, _variables, context) => {
+    onError: (error: RequestError, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }
-      setState({status: 'error', error});
+      // 404 means the pipeline session expired — unrecoverable.
+      if (error.status === 404) {
+        setState({
+          status: 'error',
+          error: new Error(t('This flow has expired. Please start over.')),
+        });
+        return;
+      }
+      // Other 4xx errors are recoverable (e.g. validation failures) and are
+      // surfaced via advanceError. Only transition to the error state for
+      // 5xx or unknown errors which are unrecoverable.
+      if (!error.status || error.status >= 500) {
+        setState({status: 'error', error});
+      }
     },
   });
 
@@ -292,10 +307,26 @@ export function usePipeline<
       ? {stepIndex: state.stepInfo.stepIndex, totalSteps: state.stepInfo.totalSteps}
       : {stepIndex: 0, totalSteps: definition.steps.length};
 
-  const error =
-    state.status === 'error'
-      ? state.error
-      : (advanceError ?? initializeRest.error ?? null);
+  // Pipeline-level error displayed by the modal as a full-width alert with a
+  // "Start over" button. When state.status is 'error', the pipeline has hit an
+  // unrecoverable failure (backend PipelineStepResult.error() response, expired
+  // session, or 5xx). Otherwise falls back to initialization errors or
+  // advanceError — but only when it carries a `detail` message (a non-field
+  // error). Field-level validation errors from advanceError are handled by step
+  // components via setFieldErrors() and don't surface here.
+  const advanceDetailError =
+    advanceError && typeof (advanceError.responseJSON as any)?.detail === 'string'
+      ? ((advanceError.responseJSON as any).detail as string)
+      : null;
+
+  const rawError =
+    state.status === 'error' ? state.error : (initializeRest.error ?? null);
+
+  const error = rawError
+    ? ((rawError instanceof RequestError
+        ? ((rawError.responseJSON as any)?.detail as string | undefined)
+        : undefined) ?? rawError.message)
+    : advanceDetailError;
 
   const completionData = state.status === 'complete' ? state.data : null;
 

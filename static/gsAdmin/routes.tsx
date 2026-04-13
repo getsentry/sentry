@@ -35,6 +35,7 @@ import {RelocationArtifactDetails} from 'admin/views/relocationArtifactDetails';
 import {RelocationCreate} from 'admin/views/relocationCreate';
 import {RelocationDetails} from 'admin/views/relocationDetails';
 import {Relocations} from 'admin/views/relocations';
+import {SeerAdminPage} from 'admin/views/seerAdminPage';
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
 import {SentryApps} from 'admin/views/sentryApps';
 import {SentryEmployees} from 'admin/views/sentryEmployees';
@@ -290,6 +291,15 @@ function buildRoutes() {
           {
             index: true,
             component: LaunchpadAdminPage,
+          },
+        ],
+      },
+      {
+        path: 'seer/',
+        children: [
+          {
+            index: true,
+            component: SeerAdminPage,
           },
         ],
       },

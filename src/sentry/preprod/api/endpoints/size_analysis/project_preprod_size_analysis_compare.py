@@ -343,13 +343,39 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             head_size_analysis__in=head_size_metrics,
             base_size_analysis__in=base_size_metrics,
         )
+        is_rerun = request.query_params.get("rerun") == "true"
+
         if existing_comparisons.exists():
-            if is_active_superuser(request) or is_active_staff(request):
+            if is_rerun:
+                if is_active_superuser(request) or is_active_staff(request):
+                    comparisons_deleted, files_deleted = _delete_existing_comparisons(
+                        existing_comparisons
+                    )
+                    logger.info(
+                        "preprod.size_analysis.compare.api.post.rerun_deleted_existing",
+                        extra={
+                            "head_artifact_id": head_artifact.id,
+                            "base_artifact_id": base_artifact.id,
+                            "comparisons_deleted": comparisons_deleted,
+                            "files_deleted": files_deleted,
+                            "user_id": request.user.id,
+                        },
+                    )
+                elif request.user.is_staff:
+                    raise StaffRequired
+                else:
+                    return Response({"detail": "Only staff can rerun comparisons."}, status=403)
+            elif (
+                existing_comparisons.filter(
+                    state=PreprodArtifactSizeComparison.State.FAILED
+                ).count()
+                == existing_comparisons.count()
+            ):
                 comparisons_deleted, files_deleted = _delete_existing_comparisons(
                     existing_comparisons
                 )
                 logger.info(
-                    "preprod.size_analysis.compare.api.post.rerun_deleted_existing",
+                    "preprod.size_analysis.compare.api.post.retry_deleted_failed",
                     extra={
                         "head_artifact_id": head_artifact.id,
                         "base_artifact_id": base_artifact.id,
@@ -358,8 +384,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                         "user_id": request.user.id,
                     },
                 )
-            elif request.user.is_staff:
-                raise StaffRequired
             else:
                 comparison_models = []
                 for comparison in existing_comparisons:

@@ -12,7 +12,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
-FEATURE_FLAG = "organizations:github-repo-auto-sync"
+FEATURE_FLAG = "organizations:github-repo-auto-sync-webhook"
 
 
 @control_silo_test

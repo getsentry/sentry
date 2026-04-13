@@ -18,7 +18,7 @@ function TestHarness({onComplete}: {onComplete?: (data: any) => void} = {}) {
       <div data-test-id="is-initializing">{String(pipeline.isInitializing)}</div>
       <div data-test-id="is-advancing">{String(pipeline.isAdvancing)}</div>
       <div data-test-id="is-complete">{String(pipeline.isComplete)}</div>
-      <div data-test-id="error">{pipeline.error?.message ?? 'none'}</div>
+      <div data-test-id="error">{pipeline.error ?? 'none'}</div>
       <div data-test-id="completion-data">
         {pipeline.completionData ? JSON.stringify(pipeline.completionData) : 'none'}
       </div>

@@ -10,6 +10,10 @@ from pathlib import Path
 from sentry.preprod.snapshots.image_diff.types import OdiffResponse
 from sentry.utils import json
 
+_CLI_FLAG_MAP = {
+    "outputDiffMask": "diff-mask",
+}
+
 ODIFF_PLATFORM_SUFFIXES = {
     ("arm64", "Darwin"): "macos-arm64",
     ("aarch64", "Darwin"): "macos-arm64",
@@ -36,6 +40,42 @@ def _find_odiff_binary() -> str:
     if found:
         return found
     raise FileNotFoundError("odiff binary not found. Run 'pnpm install' to install odiff-bin.")
+
+
+def compare_cli(
+    base_path: str | Path,
+    compare_path: str | Path,
+    output_path: str | Path,
+    **options: object,
+) -> OdiffResponse:
+    """Run a single odiff comparison via CLI (no server mode).
+
+    Workaround for server-mode stdin buffer reuse bug
+    (https://github.com/dmtrKovalenko/odiff/pull/170).
+    Remove once the fix is released in odiff-bin.
+    """
+    binary = _find_odiff_binary()
+    cmd = [binary, str(base_path), str(compare_path), str(output_path)]
+
+    for key, value in options.items():
+        flag = _CLI_FLAG_MAP.get(key, key)
+        if isinstance(value, bool):
+            if value:
+                cmd.append(f"--{flag}")
+        else:
+            cmd.extend([f"--{flag}", str(value)])
+
+    result = subprocess.run(cmd, capture_output=True, timeout=30)
+
+    # Exit codes: 0=match, 21=layout diff, 22=pixel diff
+    if result.returncode not in (0, 21, 22):
+        stderr = result.stderr.decode(errors="replace").strip()
+        raise RuntimeError(f"odiff CLI error (exit {result.returncode}): {stderr}")
+
+    return OdiffResponse(
+        requestId=0,
+        match=(result.returncode == 0),
+    )
 
 
 class OdiffServer:

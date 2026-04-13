@@ -279,7 +279,7 @@ class Project(Model):
         # This Project has sent transactions
         has_transactions: bool
 
-        # This Project has filters
+        # has_alert_filters is DEPRECATED
         has_alert_filters: bool
 
         # This Project has sessions

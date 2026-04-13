@@ -104,8 +104,8 @@ export function CommandPalette(props: CommandPaletteProps) {
       {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
     >();
     scoreTree(currentNodes, scores, state.query.toLowerCase());
-    return flattenActions(currentNodes, scores);
-  }, [currentNodes, state.query]);
+    return flattenActions(currentNodes, scores, state.action !== null);
+  }, [currentNodes, state.action, state.query]);
 
   const analytics = useCommandPaletteAnalytics(actions.length);
 
@@ -221,15 +221,23 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       const resultIndex = actions.indexOf(action);
+      const sourceAction = getSourceAction(action, actions);
+      const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
-        analytics.recordGroupAction(action, resultIndex);
+        analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
           // Modifier keys are irrelevant here — this is not a link navigation.
           action.onAction();
         }
-        dispatch({type: 'push action', key: action.key, label: action.display.label});
+        dispatch({
+          type: 'push action',
+          key: getSourceActionKey(action.key),
+          label: sourceAction.display.label,
+          prompt: 'prompt' in sourceAction ? sourceAction.prompt : undefined,
+          query: carriedQuery,
+        });
         return;
       }
 
@@ -259,7 +267,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
       closeModal?.();
     },
-    [actions, analytics, closeModal, dispatch, navigate]
+    [actions, analytics, closeModal, dispatch, navigate, state.query]
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
@@ -529,7 +537,8 @@ function flattenActions(
   scores: Map<
     string,
     {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
-  > | null
+  > | null,
+  sortLeafResults = false
 ): CMDKFlatItem[] {
   // Browse mode: show each top-level node and its direct children.
   if (!scores) {
@@ -555,10 +564,12 @@ function flattenActions(
         if (!children.length) {
           continue;
         }
-        results.push({...node, listItemType: 'section'});
-        const visibleChildren =
-          node.limit === undefined ? children : children.slice(0, node.limit);
+        results.push(makeSectionAction(node));
+        const visibleChildren = getLimitedChildren(children, node.limit);
         results.push(...visibleChildren);
+        if (shouldShowSeeMore(children.length, node.limit)) {
+          results.push(makeSeeMoreAction(node));
+        }
       } else {
         results.push({...node, listItemType: 'action'});
       }
@@ -583,13 +594,17 @@ function flattenActions(
     dfs(node);
   }
 
-  // Sort top-level groups to the front by their max-scoring child.
+  // Keep the existing top-level search ordering by default, but when we are
+  // inside an expanded group we also sort leaf actions by their own score so
+  // the full result list matches the limited preview ordering.
   collected.sort((a, b) => {
-    const maxScore = (n: CMDKFlatItem) =>
-      n.children.length > 0
-        ? Math.max(0, ...n.children.map(c => scores.get(c.key)?.score.score ?? 0))
-        : 0;
-    return maxScore(b) - maxScore(a);
+    const sortScore = (n: CMDKFlatItem) => {
+      if (n.children.length > 0) {
+        return Math.max(0, ...n.children.map(c => scores.get(c.key)?.score.score ?? 0));
+      }
+      return sortLeafResults ? (scores.get(n.key)?.score.score ?? 0) : 0;
+    };
+    return sortScore(b) - sortScore(a);
   });
 
   // Track processed keys so children beyond a group's limit cannot resurface as
@@ -609,8 +624,7 @@ function flattenActions(
         (a, b) =>
           (scores.get(b.key)?.score.score ?? 0) - (scores.get(a.key)?.score.score ?? 0)
       );
-      const limitedMatches =
-        item.limit === undefined ? sortedMatches : sortedMatches.slice(0, item.limit);
+      const limitedMatches = getLimitedChildren(sortedMatches, item.limit);
       // Mark every child and their entire subtrees as seen — including those
       // beyond the limit — so neither over-limit children nor any of their
       // nested descendants can resurface as independent flat items later.
@@ -618,10 +632,11 @@ function flattenActions(
         markSubtreeSeen(child, seen);
       }
       return [
-        // Suffix the header key so a group used as both a section header and
-        // an action item inside its parent doesn't produce duplicate React keys.
-        {...item, key: `${item.key}:header`, listItemType: 'section'},
+        makeSectionAction(item),
         ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
+        ...(shouldShowSeeMore(matched.length, item.limit)
+          ? [makeSeeMoreAction(item)]
+          : []),
       ];
     }
 
@@ -634,6 +649,58 @@ function flattenActions(
   });
 
   return flattened;
+}
+
+function getLimitedChildren<T>(children: T[], limit?: number): T[] {
+  return limit === undefined ? children : children.slice(0, limit);
+}
+
+function shouldShowSeeMore(childCount: number, limit?: number): boolean {
+  return typeof limit === 'number' && childCount > limit;
+}
+
+function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatItem {
+  return {
+    children: node.children,
+    key: `${node.key}:see-more`,
+    parent: node.parent,
+    listItemType: 'action',
+    limit: node.limit,
+    ref: node.ref,
+    keywords: node.keywords,
+    display: {
+      details: node.display.details,
+      label: t('See all'),
+      icon: <IconArrow direction="right" />,
+    },
+  };
+}
+
+function makeSectionAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatItem {
+  return {
+    ...node,
+    key: `${node.key}:header`,
+    listItemType: 'section',
+  };
+}
+
+function getSourceAction(action: CMDKFlatItem, actions: CMDKFlatItem[]): CMDKFlatItem {
+  if (!isSeeMoreAction(action.key)) {
+    return action;
+  }
+
+  const sourceActionKey = getSourceActionKey(action.key);
+  return (
+    actions.find(candidate => candidate.key === `${sourceActionKey}:header`) ?? action
+  );
+}
+
+function isSeeMoreAction(key: string): boolean {
+  return key.endsWith(':see-more');
+}
+
+function getSourceActionKey(key: string): string {
+  return isSeeMoreAction(key) ? key.replace(/:see-more$/, '') : key;
 }
 
 function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean {

@@ -79,7 +79,7 @@ def sync_repos_on_install_change(
             )
             continue
 
-        if not features.has("organizations:github-repo-auto-sync", rpc_org):
+        if not features.has("organizations:github-repo-auto-sync-webhook", rpc_org):
             continue
 
         with SCMIntegrationInteractionEvent(
