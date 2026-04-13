@@ -7,6 +7,7 @@ export enum IssueTaxonomy {
   ERRORS_AND_OUTAGES = 'errors-outages',
   BREACHED_METRICS = 'breached-metrics',
   WARNINGS = 'warnings',
+  SENTRY_CONFIGURATION = 'sentry-configuration',
 }
 
 export const ISSUE_TAXONOMY_CONFIG: Record<
@@ -45,6 +46,14 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     key: 'warnings',
     description: t(
       'Issues in your code or configuration that may not break functionality but can degrade performance or user experience'
+    ),
+  },
+  [IssueTaxonomy.SENTRY_CONFIGURATION]: {
+    categories: [IssueCategory.CONFIGURATION],
+    label: t('Sentry Configuration'),
+    key: 'sentry-configuration',
+    description: t(
+      'Issues detected from SDK or tooling configuration problems, such as missing or broken source maps.'
     ),
   },
 };

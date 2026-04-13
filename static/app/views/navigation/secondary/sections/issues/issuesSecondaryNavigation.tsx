@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
-import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
+import {ISSUE_TAXONOMY_CONFIG, IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
@@ -38,23 +38,34 @@ export function IssuesSecondaryNavigation() {
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
           <SecondaryNavigation.List>
-            {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-              <SecondaryNavigation.ListItem key={key}>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/${key}/`}
-                  end
-                  analyticsItemName={`issues_types_${key}`}
-                >
-                  {label}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            ))}
+            {Object.values(ISSUE_TAXONOMY_CONFIG)
+              .filter(({key}) => key !== IssueTaxonomy.SENTRY_CONFIGURATION)
+              .map(({key, label}) => (
+                <SecondaryNavigation.ListItem key={key}>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/${key}/`}
+                    end
+                    analyticsItemName={`issues_types_${key}`}
+                  >
+                    {label}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              ))}
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/feedback/`}
                 analyticsItemName="issues_feedback"
               >
                 {t('User Feedback')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/${IssueTaxonomy.SENTRY_CONFIGURATION}/`}
+                end
+                analyticsItemName="issues_types_sentry-configuration"
+              >
+                {ISSUE_TAXONOMY_CONFIG[IssueTaxonomy.SENTRY_CONFIGURATION].label}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {organization.features.includes('seer-autopilot') && (
