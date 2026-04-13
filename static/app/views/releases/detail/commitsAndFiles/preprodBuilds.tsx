@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
@@ -54,12 +54,18 @@ export default function PreprodBuilds() {
 
   const [localSearchQuery, setLocalSearchQuery] = useState(urlSearchQuery || '');
   const debouncedLocalSearchQuery = useDebouncedValue(localSearchQuery);
+  const prevDebouncedRef = useRef(debouncedLocalSearchQuery);
 
   useEffect(() => {
     setLocalSearchQuery(urlSearchQuery || '');
   }, [urlSearchQuery]);
 
   useEffect(() => {
+    if (debouncedLocalSearchQuery === prevDebouncedRef.current) {
+      return;
+    }
+    prevDebouncedRef.current = debouncedLocalSearchQuery;
+
     if (debouncedLocalSearchQuery !== (urlSearchQuery || '')) {
       navigate({
         ...location,
