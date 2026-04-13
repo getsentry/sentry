@@ -246,10 +246,14 @@ class SeerSlackRendererExplorerTest(TestCase):
 
         assert renderable["text"] == "Seer Explorer has finished"
         blocks = renderable["blocks"]
-        assert len(blocks) == 1
+        assert len(blocks) == 2
 
         assert isinstance(blocks[0], MarkdownBlock)
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
+
+        assert isinstance(blocks[1], ContextBlock)
+        assert isinstance(blocks[1].elements[0], PlainTextObject)
+        assert f"Run ID: {MOCK_RUN_ID}" in blocks[1].elements[0].text
 
     def test_render_dispatches_to_explorer_response(self) -> None:
         data = self._create_explorer_response(summary="Test")

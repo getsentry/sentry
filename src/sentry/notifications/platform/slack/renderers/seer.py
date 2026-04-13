@@ -207,6 +207,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
 
         return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 
