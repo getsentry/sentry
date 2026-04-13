@@ -557,13 +557,13 @@ export const useSeerExplorer = () => {
   }, [sessionData?.repo_pr_states]);
 
   // On response load
-  const isLoading =
+  const isLoaded =
     filteredSessionData &&
-    (filteredSessionData.status === 'processing' ||
-      filteredSessionData.blocks.some((block: Block) => block.loading));
+    filteredSessionData.status !== 'processing' &&
+    filteredSessionData.blocks.every((block: Block) => !block.loading);
 
   useEffect(() => {
-    if (waitingForResponse && !isLoading) {
+    if (waitingForResponse && isLoaded) {
       // Stop waiting once we see the response is no longer loading
       setWaitingForResponse(false);
       // Clear deleted index once response is complete
@@ -574,7 +574,7 @@ export const useSeerExplorer = () => {
         setWasJustInterrupted(true); // set persistent UI flag until next request
       }
     }
-  }, [waitingForResponse, interruptRequested, isLoading]);
+  }, [waitingForResponse, interruptRequested, isLoaded]);
 
   return {
     sessionData: filteredSessionData,
