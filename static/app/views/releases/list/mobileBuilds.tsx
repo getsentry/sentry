@@ -118,6 +118,7 @@ export function MobileBuilds({
       selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`);
   const projectId = selectedProjectIds[0];
   const shouldShowOnboarding =
+    activeDisplay !== PreprodBuildsDisplay.SNAPSHOT &&
     builds.length === 0 &&
     !isLoadingBuilds &&
     !buildsError &&
@@ -134,7 +135,10 @@ export function MobileBuilds({
     enabled: selectedProjectIds.length > 0,
     error: !!buildsError,
     isLoading: isLoadingBuilds,
-    pageSource: 'releases_mobile_builds_tab',
+    pageSource:
+      activeDisplay === PreprodBuildsDisplay.SNAPSHOT
+        ? 'releases_snapshots_tab'
+        : 'releases_mobile_builds_tab',
     projectCount: selectedProjectIds.length,
     searchQuery,
   });
