@@ -80,7 +80,7 @@ export function SeerAdminPage() {
         <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleNightShiftSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md" alignItems="start">
+              <Flex direction="column" gap="md" align="start">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
                 <Text as="p" variant="muted">
                   Dispatch a night shift run for a specific organization. This will select
