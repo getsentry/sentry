@@ -174,6 +174,13 @@ function SpansTabHeader() {
                 traceItemDataset={TraceItemDataset.SPANS}
                 savedQueryName={savedQuery?.name}
               />
+              <PageHeadingQuestionTooltip
+                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                title={t(
+                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                )}
+                linkLabel={t('Read the Discussion')}
+              />
             </TopBar.Slot>
           ) : (
             <TopBar.Slot name="title">
