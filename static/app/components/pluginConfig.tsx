@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -67,36 +67,38 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
     help: field.help ?? undefined,
     placeholder: field.placeholder ?? undefined,
     disabled: field.readonly,
-    default: field.defaultValue ?? field.default,
   };
+
+  const defaultValue = field.defaultValue ?? field.default;
 
   // Backend uses 'bool', adapter uses 'boolean'
   const type = field.type === 'bool' ? 'boolean' : field.type;
 
   switch (type) {
     case 'boolean':
-      return {...base, type: 'boolean'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'boolean', default: defaultValue as boolean | undefined};
     case 'select':
     case 'choice':
       return {
         ...base,
         type: type as 'select' | 'choice',
+        default: defaultValue,
         choices: field.choices,
-      } as JsonFormAdapterFieldConfig;
+      };
     case 'secret':
-      return {...base, type: 'secret'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'secret', default: defaultValue};
     case 'textarea':
-      return {...base, type: 'textarea'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'textarea', default: defaultValue};
     case 'number':
-      return {...base, type: 'number'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'number', default: defaultValue as number | undefined};
     case 'email':
-      return {...base, type: 'email'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'email', default: defaultValue};
     case 'url':
-      return {...base, type: 'url'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'url', default: defaultValue};
     case 'string':
     case 'text':
     default:
-      return {...base, type: 'text'} as JsonFormAdapterFieldConfig;
+      return {...base, type: 'text', default: defaultValue};
   }
 }
 
@@ -138,39 +140,25 @@ export function PluginConfig({
     staleTime: 0,
   });
 
-  const wasConfiguredRef = useRef(false);
+  const config = pluginData?.config ?? [];
+  const wasConfigured = config.some(field => field.value);
 
-  const {fields, initialValues} = useMemo(() => {
-    if (!pluginData?.config) {
-      return {fields: [], initialValues: {}};
-    }
-
-    let configured = false;
-    const vals: Record<string, unknown> = {};
-    const mapped: JsonFormAdapterFieldConfig[] = [];
-
-    for (const field of pluginData.config) {
-      if (field.value) {
-        configured = true;
-      }
-      vals[field.name] = field.value ?? field.defaultValue ?? '';
-      mapped.push(mapPluginField(field));
-    }
-
-    wasConfiguredRef.current = configured;
-    return {fields: mapped, initialValues: vals};
-  }, [pluginData]);
+  const fields = config.map(mapPluginField);
+  const initialValues: Record<string, unknown> = {};
+  for (const field of config) {
+    initialValues[field.name] = field.value ?? field.defaultValue ?? '';
+  }
 
   const handleTestPlugin = async () => {
     setTestResults('');
     addLoadingMessage(t('Sending test...'));
 
     try {
-      const response = (await fetchMutation({
+      const response = await fetchMutation<{detail: string}>({
         method: 'POST',
         url: pluginEndpoint,
         data: {test: true},
-      })) as {detail: string};
+      });
 
       setTestResults(JSON.stringify(response.detail));
       addSuccessMessage(t('Test Complete!'));
@@ -181,12 +169,8 @@ export function PluginConfig({
     }
   };
 
-  const handleDisablePlugin = () => {
-    onDisablePlugin?.(plugin);
-  };
-
   const handleSubmit = async (values: Record<string, unknown>) => {
-    if (!wasConfiguredRef.current) {
+    if (!wasConfigured) {
       trackIntegrationAnalytics('integrations.installation_start', {
         integration: plugin.id,
         integration_type: 'plugin',
@@ -211,11 +195,11 @@ export function PluginConfig({
         integration: plugin.id,
         integration_type: 'plugin',
         view: 'plugin_details',
-        already_installed: wasConfiguredRef.current,
+        already_installed: wasConfigured,
         organization,
       });
 
-      if (!wasConfiguredRef.current) {
+      if (!wasConfigured) {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: plugin.id,
           integration_type: 'plugin',
@@ -283,7 +267,11 @@ export function PluginConfig({
                 {t('Test Plugin')}
               </Button>
             )}
-            <Button size="xs" onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
+            <Button
+              size="xs"
+              onClick={() => onDisablePlugin?.(plugin)}
+              disabled={!hasWriteAccess}
+            >
               {t('Disable')}
             </Button>
           </Grid>
