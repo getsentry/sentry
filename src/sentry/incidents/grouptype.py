@@ -8,8 +8,7 @@ from typing import Any, Literal, TypedDict
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.handlers.condition import *  # noqa
-from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
+from sentry.incidents.models.alert_rule import ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.incidents.utils.types import (
     AnomalyDetectionUpdate,
@@ -35,9 +34,7 @@ from sentry.workflow_engine.types import (
     DetectorException,
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
     DetectorType,
-    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)
@@ -341,31 +338,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             comparison=comparison,
             time_window=time_window,
         )
-
-
-detector_settings_registry.register(
-    DetectorType.METRIC_ISSUE,
-    DetectorSettings(
-        handler=MetricIssueDetectorHandler,
-        validator=MetricIssueDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of a metric detector config dict",
-            "type": "object",
-            "required": ["detection_type"],
-            "properties": {
-                "comparison_delta": {
-                    "type": ["integer", "null"],
-                    "enum": COMPARISON_DELTA_CHOICES,
-                },
-                "detection_type": {
-                    "type": "string",
-                    "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
-                },
-            },
-        },
-    ),
-)
 
 
 @dataclass(frozen=True)
