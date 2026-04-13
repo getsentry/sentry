@@ -3,7 +3,12 @@ from unittest import mock
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.workflow_engine.types import WorkflowEvaluation, WorkflowEvaluationData
+from sentry.workflow_engine.types import (
+    DetectorType,
+    WorkflowEvaluation,
+    WorkflowEvaluationData,
+    detector_settings_registry,
+)
 
 
 class TestWorkflowEvaluationLogTo(TestCase):
@@ -93,3 +98,9 @@ class TestWorkflowEvaluationLogTo(TestCase):
                     assert evaluation.log_to(mock_logger)
                     mock_logger.info.assert_called_once()
                     mock_sentry_logger.info.assert_not_called()
+
+
+class TestDetectorSettingsRegistryCompleteness(TestCase):
+    def test_all_detector_types_have_registered_settings(self) -> None:
+        missing = [dt for dt in DetectorType if detector_settings_registry.get(dt) is None]
+        assert missing == [], f"DetectorTypes with no registered DetectorSettings: {missing}"
