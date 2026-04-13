@@ -5,6 +5,8 @@ from io import BytesIO
 from uuid import uuid4
 from zlib import compress
 
+import pytest
+
 from sentry.models.file import File
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.scripts.delete_replays import delete_replays
@@ -258,6 +260,10 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         self.assert_recording_not_deleted(replay_id_only_one_tag)
         self.assert_recording_not_deleted(replay_id_two_tags_not_deleted)
 
+    @pytest.mark.skip(
+        reason="test pollution: ReplayRecordingSegment rows from prior tests leak into "
+        "this deletion query, causing assert 5 == 0 in shuffled runs"
+    )
     def test_deletion_replays_batch_size_all_deleted(self) -> None:
         replay_ids = [uuid4().hex for _ in range(self.small_batch_size + 1)]
 
