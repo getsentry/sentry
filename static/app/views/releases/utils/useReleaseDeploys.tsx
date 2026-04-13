@@ -1,6 +1,6 @@
-import type {Deploy} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
@@ -14,20 +14,13 @@ export function useReleaseDeploys({
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug});
 
-  return useApiQuery<Deploy[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/deploys/', {
-        path: {organizationIdOrSlug: organization.slug, version: release},
-      }),
-      {
-        query: {
-          project: project?.id, // Should be disabled if project is undefined
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!project,
-    }
-  );
+  return useQuery({
+    ...deploysApiOptions({
+      orgSlug: organization.slug,
+      releaseVersion: release,
+      // Should be disabled if project is undefined
+      query: {project: project?.id},
+    }),
+    enabled: !!project,
+  });
 }

@@ -1,14 +1,20 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   MultiMetricsQueryParamsProvider,
+  useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
@@ -258,5 +264,199 @@ describe('MultiMetricsQueryParamsProvider', () => {
     expect(result.current[0]!.queryParams.aggregateFields).toEqual([
       new VisualizeFunction('p50(value,bar,distribution,-)'),
     ]);
+  });
+
+  describe('useAddMetricQuery', () => {
+    it('adds new metric at the end of the list when adding without equations', () => {
+      const {result, router} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      act(() => result.current());
+
+      expect(router.location.query.metric).toHaveLength(2);
+
+      expect(JSON.parse(router.location.query.metric![0]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The last field was copied
+      expect(JSON.parse(router.location.query.metric![1]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+    });
+
+    it('duplicates the last metric when adding with equations', () => {
+      const {result, router} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      act(() => result.current());
+
+      expect(router.location.query.metric).toHaveLength(3);
+
+      expect(JSON.parse(router.location.query.metric![0]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The last metric query before the equation was duplicated
+      expect(JSON.parse(router.location.query.metric![1]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The equation remains
+      expect(JSON.parse(router.location.query.metric![2]!)).toEqual(
+        expect.objectContaining({
+          query: '',
+          aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+        })
+      );
+    });
+
+    it('adds equations to the end of the list', () => {
+      const {result, router} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeEquation(
+                      `${EQUATION_PREFIX}p50(value,foo,distribution,-)`
+                    ).serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+        initialProps: {
+          type: 'equation',
+        },
+      });
+
+      act(() => result.current());
+
+      expect(router.location.query.metric).toHaveLength(3);
+
+      expect(JSON.parse(router.location.query.metric![0]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The old equation remains
+      expect(JSON.parse(router.location.query.metric![1]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: '', type: ''},
+          query: '',
+          aggregateFields: [
+            new VisualizeEquation(
+              `${EQUATION_PREFIX}p50(value,foo,distribution,-)`
+            ).serialize(),
+          ],
+        })
+      );
+
+      // The new equation is added to the end of the list
+      expect(JSON.parse(router.location.query.metric![2]!)).toEqual(
+        expect.objectContaining({
+          query: '',
+          aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+        })
+      );
+    });
   });
 });

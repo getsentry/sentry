@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -22,6 +23,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial, assert_slo_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
@@ -358,6 +360,31 @@ class StatusActionTest(APITestCase):
         expected_data = {"status": "resolved", "statusDetails": {"inRelease": "latest"}}
 
         assert_mock_called_once_with_partial(client_put, data=expected_data)
+
+    @responses.activate
+    @override_options({"viewer-context.enabled": True})
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_action_submitted_sets_viewer_context(self, verify: MagicMock) -> None:
+        """ViewerContext is set with org_id and actor_type=INTEGRATION during action handling."""
+        from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+
+        captured_contexts: list[ViewerContext | None] = []
+
+        original_refresh = Group.refresh_from_db
+
+        def capturing_refresh(self_group: Any, *args: Any, **kwargs: Any) -> None:
+            captured_contexts.append(get_viewer_context())
+            return original_refresh(self_group, *args, **kwargs)
+
+        with patch.object(Group, "refresh_from_db", capturing_refresh):
+            resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+
+        assert resp.status_code == 200
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.organization_id == self.org.id
+        assert ctx.actor_type == ActorType.INTEGRATION
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

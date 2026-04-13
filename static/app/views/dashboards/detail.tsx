@@ -79,6 +79,8 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -86,6 +88,7 @@ import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
+import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardEditSeerChat} from './dashboardEditSeerChat';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -147,6 +150,7 @@ type Props = {
   router: InjectedRouter;
   theme: Theme;
   children?: React.ReactNode;
+  hasPageFrameFeature?: boolean;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   storageNamespace?: string;
   widgetInterval?: string;
@@ -158,6 +162,8 @@ type State = {
   isSavingDashboardFilters: boolean;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
+  seerEditApplied: boolean;
+  seerRunId: number | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   newlyAddedWidget?: Widget;
@@ -214,6 +220,8 @@ class DashboardDetail extends Component<Props, State> {
     openWidgetTemplates: undefined,
     newlyAddedWidget: undefined,
     isCommittingChanges: false,
+    seerEditApplied: false,
+    seerRunId: null,
   };
 
   componentDidMount() {
@@ -856,6 +864,18 @@ class DashboardDetail extends Component<Props, State> {
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
+              const seerRunId = location.query?.seerRunId
+                ? Number(location.query.seerRunId)
+                : null;
+              if (seerRunId) {
+                Sentry.metrics.count('dashboards.seer.create.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
@@ -899,6 +919,8 @@ class DashboardDetail extends Component<Props, State> {
             this.setState({
               dashboardState: DashboardState.VIEW,
               modifiedDashboard: null,
+              seerEditApplied: false,
+              seerRunId: null,
             });
             return;
           }
@@ -912,11 +934,22 @@ class DashboardDetail extends Component<Props, State> {
               }
               addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
+              if (this.state.seerEditApplied && this.state.seerRunId) {
+                Sentry.metrics.count('dashboards.seer.edit.save', 1, {
+                  attributes: {
+                    organization_slug: organization.slug,
+                    dashboard_id: newDashboard.id,
+                    seer_run_id: this.state.seerRunId,
+                  },
+                });
+              }
               this.setState(
                 {
                   dashboardState: DashboardState.VIEW,
                   modifiedDashboard: null,
                   isCommittingChanges: false,
+                  seerEditApplied: false,
+                  seerRunId: null,
                 },
                 () => {
                   if (dashboard && newDashboard.id !== dashboard.id) {
@@ -941,6 +974,8 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
+          seerEditApplied: false,
+          seerRunId: null,
         });
         break;
       }
@@ -949,6 +984,8 @@ class DashboardDetail extends Component<Props, State> {
         this.setState({
           dashboardState: DashboardState.VIEW,
           modifiedDashboard: null,
+          seerEditApplied: false,
+          seerRunId: null,
         });
         break;
       }
@@ -961,21 +998,37 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  handleSeerDashboardUpdate = ({
-    title,
-    widgets,
-  }: Pick<DashboardDetails, 'title' | 'widgets'>) => {
-    this.setState(state => {
-      const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
-      return {
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        modifiedDashboard: {
+  handleSeerDashboardUpdate = (
+    {title, widgets}: Pick<DashboardDetails, 'title' | 'widgets'>,
+    seerRunId: number | null
+  ) => {
+    const {organization} = this.props;
+    this.setState(
+      state => {
+        const dashboard = cloneDashboard(state.modifiedDashboard ?? this.props.dashboard);
+        const updatedDashboard = {
           ...dashboard,
           widgets,
           ...(title === undefined ? {} : {title}),
-        },
-      };
-    });
+        };
+        return {
+          widgetLimitReached: widgets.length >= MAX_WIDGETS,
+          seerEditApplied: true,
+          seerRunId,
+          modifiedDashboard: updatedDashboard,
+        };
+      },
+      () => {
+        if (this.state.modifiedDashboard) {
+          validateDashboardAndRecordMetrics({
+            organization,
+            dashboard: this.state.modifiedDashboard,
+            seerRunId,
+            source: 'edit',
+          });
+        }
+      }
+    );
   };
 
   handleUpdateEditStateWidgets = (widgets: Widget[]) => {
@@ -1154,23 +1207,43 @@ class DashboardDetail extends Component<Props, State> {
                       />
                     </Layout.Title>
                   </Layout.HeaderContent>
-                  <Layout.HeaderActions>
-                    <Controls
-                      organization={organization}
-                      dashboards={dashboards}
-                      dashboard={dashboard}
-                      hasUnsavedFilters={hasUnsavedFilters}
-                      onEdit={this.onEdit}
-                      onCancel={this.onCancel}
-                      onCommit={this.onCommit}
-                      onAddWidget={this.onAddWidget}
-                      onDelete={this.onDelete(dashboard)}
-                      onChangeEditAccess={this.onChangeEditAccess}
-                      dashboardState={dashboardState}
-                      widgetLimitReached={widgetLimitReached}
-                      isSaving={isCommittingChanges}
-                    />
-                  </Layout.HeaderActions>
+                  {this.props.hasPageFrameFeature ? (
+                    <TopBar.Slot name="actions">
+                      <Controls
+                        organization={organization}
+                        dashboards={dashboards}
+                        dashboard={dashboard}
+                        hasUnsavedFilters={hasUnsavedFilters}
+                        onEdit={this.onEdit}
+                        onCancel={this.onCancel}
+                        onCommit={this.onCommit}
+                        onAddWidget={this.onAddWidget}
+                        onDelete={this.onDelete(dashboard)}
+                        onChangeEditAccess={this.onChangeEditAccess}
+                        dashboardState={dashboardState}
+                        widgetLimitReached={widgetLimitReached}
+                        isSaving={isCommittingChanges}
+                      />
+                    </TopBar.Slot>
+                  ) : (
+                    <Layout.HeaderActions>
+                      <Controls
+                        organization={organization}
+                        dashboards={dashboards}
+                        dashboard={dashboard}
+                        hasUnsavedFilters={hasUnsavedFilters}
+                        onEdit={this.onEdit}
+                        onCancel={this.onCancel}
+                        onCommit={this.onCommit}
+                        onAddWidget={this.onAddWidget}
+                        onDelete={this.onDelete(dashboard)}
+                        onChangeEditAccess={this.onChangeEditAccess}
+                        dashboardState={dashboardState}
+                        widgetLimitReached={widgetLimitReached}
+                        isSaving={isCommittingChanges}
+                      />
+                    </Layout.HeaderActions>
+                  )}
                 </Layout.Header>
               )}
               <Layout.Body>
@@ -1464,6 +1537,7 @@ export function DashboardDetailWithInjectedProps(
   const router = useRouter();
   const [chartInterval] = useChartInterval();
   const queryClient = useQueryClient();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1484,6 +1558,7 @@ export function DashboardDetailWithInjectedProps(
       router={router}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
+      hasPageFrameFeature={hasPageFrameFeature}
     />
   );
 }

@@ -4,7 +4,7 @@ import html
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 from django.http.request import QueryDict
@@ -12,7 +12,7 @@ from django.http.request import QueryDict
 from sentry import analytics, features
 from sentry.api import client
 from sentry.charts import backend as charts
-from sentry.charts.types import ChartType
+from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -25,6 +25,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -33,77 +34,40 @@ from sentry.utils import json
 _logger = logging.getLogger(__name__)
 
 DEFAULT_PERIOD = "14d"
-DEFAULT_Y_AXIS = "count(span.duration)"
-
-# All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
-LINE_PLOT_FIELDS = {
-    "count_unique",
-    "min",
-    "max",
-    "p50",
-    "p75",
-    "p90",
-    "p95",
-    "p99",
-    "p100",
-    "percentile",
-    "avg",
-}
-
 TOP_N = 5
 
-
-def _serialize_single_series(series: dict[str, Any]) -> dict[str, Any]:
-    """Convert a single TimeSeries into events-stats format."""
-    values = series.get("values", [])
-    data = []
-    for row in values:
-        # events-timeseries uses milliseconds, events-stats uses seconds
-        timestamp = int(row["timestamp"] / 1000)
-        data.append((timestamp, [{"count": row.get("value", 0)}]))
-
-    start = int(values[0]["timestamp"] / 1000) if values else 0
-    end = int(values[-1]["timestamp"] / 1000) if values else 0
-
-    return {
-        "data": data,
-        "start": start,
-        "end": end,
-        "isMetricsData": False,
-    }
+EXPLORE_CHART_SIZE: ChartSize = {"width": 1600, "height": 1200}
 
 
-def timeseries_to_chart_data(
-    resp_data: dict[str, Any], y_axis: str, has_groups: bool = False
-) -> dict[str, Any]:
-    """
-    Converts an events-timeseries StatsResponse into the events-stats format
-    that Chartcuterie expects.
+class ExploreDatasetDefaults(TypedDict):
+    title: str
+    y_axis: str
 
-    For single series:
-        {"data": [(timestamp_sec, [{"count": N}]), ...], "start": sec, "end": sec}
 
-    For top events (grouped):
-        {"group_label": {"data": [...], "order": N, ...}, ...}
-    """
-    time_series = resp_data.get("timeSeries", [])
-    matching = [ts for ts in time_series if ts.get("yAxis") == y_axis]
+EXPLORE_DATASET_DEFAULTS: dict[SupportedTraceItemType, ExploreDatasetDefaults] = {
+    SupportedTraceItemType.SPANS: {
+        "title": "Explore Traces",
+        "y_axis": "count(span.duration)",
+    },
+    SupportedTraceItemType.LOGS: {
+        "title": "Explore Logs",
+        "y_axis": "count(message)",
+    },
+}
 
-    if not matching:
-        return {"data": [], "start": 0, "end": 0, "isMetricsData": False}
 
-    if has_groups:
-        # Top events: return dict keyed by group label
-        result = {}
-        for i, ts in enumerate(matching):
-            group_by = ts.get("groupBy", [])
-            label = ",".join(str(g.get("value", "")) for g in group_by) if group_by else str(i)
-            series_data = _serialize_single_series(ts)
-            series_data["order"] = ts.get("meta", {}).get("order", i)
-            result[label] = series_data
-        return result
+def _get_explore_dataset_defaults(dataset: SupportedTraceItemType) -> ExploreDatasetDefaults:
+    """Returns the default title and y_axis for the given explore dataset."""
+    return EXPLORE_DATASET_DEFAULTS.get(
+        dataset, EXPLORE_DATASET_DEFAULTS[SupportedTraceItemType.SPANS]
+    )
 
-    return _serialize_single_series(matching[0])
+
+def _get_explore_dataset(url: str) -> SupportedTraceItemType:
+    """Returns the dataset based on the explore URL."""
+    if explore_logs_link_regex.match(url) or customer_domain_explore_logs_link_regex.match(url):
+        return SupportedTraceItemType.LOGS
+    return SupportedTraceItemType.SPANS
 
 
 def unfurl_explore(
@@ -150,29 +114,30 @@ def _unfurl_explore(
             continue
 
         params = link.args["query"]
+        chart_type = link.args.get("chart_type")
+
+        explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)
+        defaults = _get_explore_dataset_defaults(explore_dataset)
 
         y_axes = params.getlist("yAxis")
         if not y_axes:
-            y_axes = [DEFAULT_Y_AXIS]
+            y_axes = [defaults["y_axis"]]
             params.setlist("yAxis", y_axes)
 
         group_bys = params.getlist("groupBy")
 
-        # Only one yAxis is charted; multiple charts per unfurl not yet supported.
+        style = ChartType.SLACK_EXPLORE_LINE
         if group_bys:
-            aggregate_fn = y_axes[-1].split("(")[0]
-            if aggregate_fn in LINE_PLOT_FIELDS:
-                style = ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE
-            else:
-                style = ChartType.SLACK_DISCOVER_TOP5_PERIOD
             params.setlist("topEvents", [str(TOP_N)])
-        else:
-            style = ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+            if not params.getlist("sort"):
+                # Default to descending by the first yAxis, matching Explore's
+                # defaultAggregateSortBys behavior
+                params.setlist("sort", [f"-{y_axes[0]}"])
 
         if not params.get("statsPeriod") and not params.get("start"):
             params["statsPeriod"] = DEFAULT_PERIOD
 
-        params["dataset"] = "spans"
+        params["dataset"] = explore_dataset.value
         params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
 
         try:
@@ -186,20 +151,21 @@ def _unfurl_explore(
             _logger.warning("Failed to load events-timeseries for explore unfurl")
             continue
 
-        # QueryDict.items() sends only the last value per key to the API,
-        # so we must match that by charting the last yAxis
-        y_axis = y_axes[-1]
-        stats = timeseries_to_chart_data(resp.data, y_axis, has_groups=bool(group_bys))
-        chart_data = {"seriesName": y_axis, "stats": stats}
+        chart_data: dict[str, Any] = {
+            "timeSeries": resp.data.get("timeSeries", []),
+            "type": _resolve_display_type(chart_type, y_axes),
+        }
 
         try:
-            url = charts.generate_chart(style, chart_data)
+            url = charts.generate_chart(style, chart_data, size=EXPLORE_CHART_SIZE)
         except RuntimeError:
             _logger.warning("Failed to generate chart for explore unfurl")
             continue
 
+        # Only one chart/y-axis is supported at a time in Explore
+        title = f"{defaults['title']} - {y_axes[0]}"
         unfurls[link.url] = SlackDiscoverMessageBuilder(
-            title="Explore Traces",
+            title=title,
             chart_url=url,
         ).build()
 
@@ -216,32 +182,66 @@ def _unfurl_explore(
     return unfurls
 
 
+CHART_TYPE_TO_DISPLAY_TYPE = {
+    0: "bar",
+    1: "line",
+    2: "area",
+}
+
+# Aggregates that default to bar charts in Explore's determineDefaultChartType.
+# All other aggregates default to line.
+_BAR_AGGREGATES = {"count", "count_unique", "sum"}
+
+
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
+    """Return the display type string for the chart.
+
+    Uses the explicit chartType from the URL when present, otherwise
+    mirrors the frontend's ``determineDefaultChartType`` logic which
+    maps count/count_unique/sum aggregates to bar and everything else
+    to line.
+    """
+    if chart_type is not None:
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "line")
+
+    for y_axis in y_axes:
+        func_name = y_axis.split("(")[0] if "(" in y_axis else ""
+        if func_name in _BAR_AGGREGATES:
+            return "bar"
+    return "line"
+
+
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
     Extracts explore arguments from the explore link's query string.
-    Parses aggregateField JSON params to extract yAxes and groupBy.
+    Parses visualize/aggregateField JSON params to extract yAxes, groupBy, and chartType.
     """
     # Slack uses HTML escaped ampersands in its Event Links
     url = html.unescape(url)
     parsed_url = urlparse(url)
     raw_query = QueryDict(parsed_url.query)
 
-    # Parse aggregateField JSON params
-    aggregate_fields = raw_query.getlist("aggregateField")
+    explore_dataset = _get_explore_dataset(url)
+
+    # Parse visualize (spans explore) or aggregateField (logs explore) JSON params
+    visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     y_axes: list[str] = []
     group_bys: list[str] = []
-    for field_json in aggregate_fields:
+    chart_type: int | None = None
+    for field_json in visualize_fields:
         try:
             parsed = json.loads(field_json)
             if "yAxes" in parsed and isinstance(parsed["yAxes"], list):
                 y_axes.extend(parsed["yAxes"])
             if "groupBy" in parsed and parsed["groupBy"]:
                 group_bys.append(parsed["groupBy"])
+            if chart_type is None and isinstance(parsed.get("chartType"), int):
+                chart_type = parsed["chartType"]
         except (json.JSONDecodeError, TypeError):
             continue
 
     if not y_axes:
-        y_axes = [DEFAULT_Y_AXIS]
+        y_axes = [_get_explore_dataset_defaults(explore_dataset)["y_axis"]]
 
     # Build query params
     query = QueryDict(mutable=True)
@@ -251,12 +251,18 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         query.setlist("groupBy", group_bys)
 
     # Copy standard params
-    for param in ("project", "statsPeriod", "start", "end", "query", "environment"):
+    for param in ("project", "statsPeriod", "start", "end", "query", "environment", "interval"):
         values = raw_query.getlist(param)
         if values:
             query.setlist(param, values)
 
-    return dict(**args, query=query)
+    # Explore stores the aggregate sort as "aggregateSort" in the URL;
+    # the events-timeseries endpoint expects it as "sort".
+    aggregate_sort = raw_query.getlist("aggregateSort")
+    if aggregate_sort:
+        query.setlist("sort", aggregate_sort)
+
+    return dict(**args, query=query, chart_type=chart_type, dataset=explore_dataset)
 
 
 explore_traces_link_regex = re.compile(
@@ -267,11 +273,21 @@ customer_domain_explore_traces_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/traces/"
 )
 
+explore_logs_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/logs/"
+)
+
+customer_domain_explore_logs_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/logs/"
+)
+
 explore_handler = Handler(
     fn=unfurl_explore,
     matcher=[
         explore_traces_link_regex,
         customer_domain_explore_traces_link_regex,
+        explore_logs_link_regex,
+        customer_domain_explore_logs_link_regex,
     ],
     arg_mapper=map_explore_query_args,
 )

@@ -14,7 +14,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.snapshots.image_diff.compare import compare_images_batch
+from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
@@ -381,6 +381,8 @@ def compare_snapshots(
             comparison.save(update_fields=["state", "error_code", "date_updated"])
             return
 
+        diff_threshold = head_manifest.diff_threshold
+
         head_images = head_manifest.images
         base_images = base_manifest.images
 
@@ -571,11 +573,28 @@ def compare_snapshots(
                     )
                     session.put(diff_mask_bytes, key=diff_mask_key, content_type="image/png")
 
-                    is_changed = diff_result.changed_pixels > 0
+                    diff_pct = (
+                        diff_result.changed_pixels / diff_result.total_pixels
+                        if diff_result.total_pixels > 0
+                        else 0
+                    )
+                    effective_threshold = diff_threshold if diff_threshold is not None else 0.0
+                    is_changed = diff_pct > effective_threshold
                     if is_changed:
                         changed_count += 1
                     else:
                         unchanged_count += 1
+
+                    logger.debug(
+                        "compare_snapshots: %s diff_pct=%.6f threshold=%s is_changed=%s pixels=%d/%d",
+                        name,
+                        diff_pct,
+                        diff_threshold,
+                        is_changed,
+                        diff_result.changed_pixels,
+                        diff_result.total_pixels,
+                        extra={"head_artifact_id": head_artifact_id},
+                    )
 
                     diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
 
@@ -649,6 +668,7 @@ def compare_snapshots(
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
+        extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
         comparison.extras = extras
         comparison.save(
             update_fields=[

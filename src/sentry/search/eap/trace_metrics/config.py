@@ -4,6 +4,7 @@ from typing import cast
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
+from sentry.discover.arithmetic import parse_arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
 from sentry.search.eap.resolver import SearchResolver
@@ -41,32 +42,39 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         selected_columns: list[str] | None,
         equations: list[str] | None,
     ) -> TraceItemFilter | None:
+        """While we also add the metric conditions inside -if combinators for each aggregate, adding it to the top level
+        where should help clickhouse prune more rows"""
         aggregate_all_metrics = False
         selected_metrics: set[TraceMetric] = set()
+        columns: set[str] = set()
 
         if selected_columns:
             stripped_columns = [column.strip() for column in selected_columns]
             for column in stripped_columns:
                 match = fields.is_function(column)
-                if not match:
-                    continue
-
-                resolved_function, _ = search_resolver.resolve_function(column)
-
-                if not isinstance(
-                    resolved_function, ResolvedTraceMetricAggregate
-                ) and not isinstance(resolved_function, ResolvedTraceMetricFormula):
-                    continue
-
-                if resolved_function.trace_metric is None:
-                    # found an aggregation across all metrics, not just 1
-                    aggregate_all_metrics = True
-                    continue
-
-                selected_metrics.add(resolved_function.trace_metric)
+                if match:
+                    columns.add(column)
 
         if equations:
-            raise InvalidSearchQuery("Cannot support equations on trace metrics yet")
+            for equation in equations:
+                _, _, terms = parse_arithmetic(equation)
+                for term in terms:
+                    columns.add(term)
+
+        for column in columns:
+            resolved_function, _ = search_resolver.resolve_function(column)
+
+            if not isinstance(resolved_function, ResolvedTraceMetricAggregate) and not isinstance(
+                resolved_function, ResolvedTraceMetricFormula
+            ):
+                continue
+
+            if resolved_function.trace_metric is None:
+                # found an aggregation across all metrics, not just 1
+                aggregate_all_metrics = True
+                continue
+
+            selected_metrics.add(resolved_function.trace_metric)
 
         # no selected metrics, no filter needed
         if not selected_metrics:

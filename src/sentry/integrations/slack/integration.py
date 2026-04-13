@@ -197,6 +197,36 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
+    @staticmethod
+    def send_threaded_ephemeral_message_static(
+        *,
+        integration_id: int,
+        channel_id: str,
+        renderable: SlackRenderable,
+        slack_user_id: str,
+        thread_ts: str | None,
+    ) -> None:
+        """
+        In most cases, you should use the instance method instead, so an organization is associated
+        with the message.
+
+        In rare cases where we cannot infer an organization, but need to invoke a Slack API, use this.
+        For example, when linking a Slack identity to a Sentry user, there could be multiple organizations
+        attached to the Slack Workspace. We cannot infer which the user may link to.
+        """
+        client = SlackSdkClient(integration_id=integration_id)
+        try:
+            client.chat_postEphemeral(
+                channel=channel_id,
+                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+                attachments=renderable.get("attachments"),
+                text=renderable["text"],
+                thread_ts=thread_ts,
+                user=slack_user_id,
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
+
     def update_message(
         self,
         *,
@@ -286,6 +316,34 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 extra={"channel_id": channel_id, "thread_ts": thread_ts},
             )
 
+    def set_suggested_prompts(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+        prompts: Sequence[dict[str, str]],
+        title: str = "",
+    ) -> None:
+        """
+        Set suggested prompts in a Slack assistant thread.
+
+        Each prompt is a dict with ``title`` (display label) and ``message``
+        (the text sent when clicked).  Slack allows a maximum of 4 prompts.
+        """
+        client = self.get_client()
+        try:
+            client.assistant_threads_setSuggestedPrompts(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                title=title,
+                prompts=list(prompts),
+            )
+        except SlackApiError:
+            _logger.warning(
+                "slack.set_suggested_prompts.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts},
+            )
+
 
 class SlackIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SLACK.value
@@ -319,6 +377,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             SlackScope.CHANNELS_HISTORY,
             SlackScope.GROUPS_HISTORY,
             SlackScope.APP_MENTIONS_READ,
+            SlackScope.ASSISTANT_WRITE,
         ]
     )
     user_scopes = frozenset(

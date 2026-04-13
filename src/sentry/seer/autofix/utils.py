@@ -1,11 +1,13 @@
 import logging
-from collections.abc import Iterable
+from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 import orjson
 import pydantic
+import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from pydantic import BaseModel
@@ -13,7 +15,7 @@ from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.util.retry import Retry
 
-from sentry import features, options, ratelimits
+from sentry import features, options, projectoptions, ratelimits
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -25,16 +27,20 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import (
+    AutofixHandoffPoint,
     BranchOverride,
     SeerApiError,
     SeerApiResponseValidationError,
+    SeerAutomationHandoffConfiguration,
     SeerPermissionError,
     SeerProjectPreference,
     SeerRawPreferenceResponse,
@@ -43,10 +49,6 @@ from sentry.seer.models import (
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
-)
-from sentry.seer.models.seer_api_models import (
-    AutofixHandoffPoint,
-    SeerAutomationHandoffConfiguration,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
@@ -624,24 +626,27 @@ def _write_preferences_to_sentry_db(
                         repo_def.branch_overrides
                     )
 
-        # Create project repos.
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+        if project_repos_to_create:
+            # Create project repos.
+            created_project_repos = SeerProjectRepository.objects.bulk_create(
+                project_repos_to_create
+            )
 
-        # Create branch overrides using the created project repos.
-        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
-        for seer_project_repo in created_project_repos:
-            for override in overrides_by_key.get(
-                (seer_project_repo.project_id, seer_project_repo.repository_id), []
-            ):
-                overrides_to_create.append(
-                    SeerProjectRepositoryBranchOverride(
-                        seer_project_repository=seer_project_repo,
-                        tag_name=override.tag_name,
-                        tag_value=override.tag_value,
-                        branch_name=override.branch_name,
+            # Create branch overrides using the created project repos.
+            overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+            for seer_project_repo in created_project_repos:
+                for override in overrides_by_key.get(
+                    (seer_project_repo.project_id, seer_project_repo.repository_id), []
+                ):
+                    overrides_to_create.append(
+                        SeerProjectRepositoryBranchOverride(
+                            seer_project_repository=seer_project_repo,
+                            tag_name=override.tag_name,
+                            tag_value=override.tag_value,
+                            branch_name=override.branch_name,
+                        )
                     )
-                )
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
         # Write ProjectOptions last so cache updates only happen after all DB writes succeed
         # (cache cannot be rolled back by the transaction).
@@ -674,6 +679,145 @@ def bulk_write_preferences_to_sentry_db(
     _write_preferences_to_sentry_db(project_preferences)
 
 
+def build_repo_definition_from_project_repo(
+    seer_project_repo: SeerProjectRepository,
+) -> SeerRepoDefinition | None:
+    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
+
+    Returns None if Repository name is invalid."""
+    repo = seer_project_repo.repository
+    repo_name_sections = repo.name.split("/")
+    if len(repo_name_sections) < 2:
+        sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
+        return None
+
+    return SeerRepoDefinition(
+        repository_id=repo.id,
+        organization_id=repo.organization_id,
+        integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
+        provider=repo.provider or "",
+        owner=repo_name_sections[0],
+        name="/".join(repo_name_sections[1:]),
+        external_id=repo.external_id or "",
+        branch_name=seer_project_repo.branch_name,
+        instructions=seer_project_repo.instructions,
+        branch_overrides=[
+            BranchOverride(
+                tag_name=bo.tag_name,
+                tag_value=bo.tag_value,
+                branch_name=bo.branch_name,
+            )
+            for bo in seer_project_repo.branch_overrides.all()
+        ],
+    )
+
+
+def _build_automation_handoff(
+    get_option: Callable[[str], Any],
+) -> SeerAutomationHandoffConfiguration | None:
+    """Build a SeerAutomationHandoffConfiguration from option values, or None if incomplete."""
+    handoff_point = get_option("sentry:seer_automation_handoff_point")
+    handoff_target = get_option("sentry:seer_automation_handoff_target")
+    handoff_integration_id = get_option("sentry:seer_automation_handoff_integration_id")
+
+    if handoff_point is None or handoff_target is None or handoff_integration_id is None:
+        return None
+
+    return SeerAutomationHandoffConfiguration(
+        handoff_point=handoff_point,
+        target=handoff_target,
+        integration_id=handoff_integration_id,
+        auto_create_pr=get_option("sentry:seer_automation_handoff_auto_create_pr"),
+    )
+
+
+def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | None:
+    """Read a single project's Seer preferences from Sentry DB.
+
+    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    seer_project_repo_qs = (
+        SeerProjectRepository.objects.filter(project=project)
+        .select_related("repository")
+        .prefetch_related("branch_overrides")
+    )
+    repo_definitions = [
+        repo_def
+        for project_repo in seer_project_repo_qs
+        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
+    ]
+
+    has_configured_options = any(
+        ProjectOption.objects.isset(project, key) for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
+    )
+    if not repo_definitions and not has_configured_options:
+        return None
+
+    return SeerProjectPreference(
+        organization_id=project.organization_id,
+        project_id=project.id,
+        repositories=repo_definitions,
+        automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
+        automation_handoff=_build_automation_handoff(project.get_option),
+    )
+
+
+def bulk_read_preferences_from_sentry_db(
+    organization_id: int, project_ids: list[int]
+) -> dict[int, SeerProjectPreference | None]:
+    """Bulk read Seer preferences from Sentry DB.
+
+    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    if not project_ids:
+        return {}
+
+    projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
+
+    repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
+    for project_repo in (
+        SeerProjectRepository.objects.filter(project_id__in=project_ids)
+        .select_related("repository")
+        .prefetch_related("branch_overrides")
+    ):
+        repo_def = build_repo_definition_from_project_repo(project_repo)
+        if repo_def is not None:
+            repo_definitions_by_project[project_repo.project_id].append(repo_def)
+
+    # get_value_bulk_id returns None for missing options, unlike project.get_option
+    # which automatically falls back to the registered well-known key default.
+    project_options: dict[str, Mapping[int, Any]] = {
+        key: ProjectOption.objects.get_value_bulk_id(project_ids, key)
+        for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
+    }
+
+    result: dict[int, SeerProjectPreference | None] = {}
+    for project in projects:
+        has_configured_options = any(
+            project_options[key][project.id] is not None
+            for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
+        )
+        if project.id not in repo_definitions_by_project and not has_configured_options:
+            result[project.id] = None
+            continue
+
+        def _get_project_option(key: str) -> Any:
+            value = project_options[key][project.id]
+            if value is None:
+                return projectoptions.get_well_known_default(key, project=project)
+            return value
+
+        result[project.id] = SeerProjectPreference(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            repositories=repo_definitions_by_project.get(project.id, []),
+            automated_run_stopping_point=_get_project_option(
+                "sentry:seer_automated_run_stopping_point"
+            ),
+            automation_handoff=_build_automation_handoff(_get_project_option),
+        )
+
+    return result
+
+
 def set_project_seer_preference(preference: SeerProjectPreference) -> None:
     """Set Seer project preference for a single project via Seer API."""
     response = make_set_project_preference_request(
@@ -686,51 +830,46 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
 
 
 def has_project_connected_repos(
-    organization_id: int, project_id: int, *, skip_cache: bool = False
+    organization: Organization, project: Project, *, skip_cache: bool = False
 ) -> bool:
     """
     Check if a project has connected repositories for Seer automation.
     Checks Seer preferences first, then falls back to Sentry code mappings.
     Results are cached for 15 minutes to minimize API calls.
     """
-    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
+    cache_key = f"seer-project-has-repos:{organization.id}:{project.id}"
     if not skip_cache:
         cached_value = cache.get(cache_key)
         if cached_value is not None:
             return cached_value
 
     has_repos = False
-
-    try:
-        project_preferences = get_project_seer_preferences(project_id)
-        has_repos = bool(
-            project_preferences.preference and project_preferences.preference.repositories
-        )
-    except (SeerApiError, SeerApiResponseValidationError):
-        pass
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preference = read_preference_from_sentry_db(project)
+        has_repos = bool(preference and preference.repositories)
+    else:
+        try:
+            preference = get_project_seer_preferences(project.id).preference
+            has_repos = bool(preference and preference.repositories)
+        except (SeerApiError, SeerApiResponseValidationError):
+            pass
 
     if not has_repos:
         # If it's the first autofix run of project we check code mapping.
-        try:
-            project = Project.objects.get(id=project_id)
-            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
-        except Project.DoesNotExist:
-            pass
+        has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
 
     logger.info(
         "Checking if project has repositories connected",
-        extra={
-            "org_id": organization_id,
-            "project_id": project_id,
-            "has_repos": has_repos,
-        },
+        extra={"org_id": organization.id, "project_id": project.id, "has_repos": has_repos},
     )
 
     cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
     return has_repos
 
 
-def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+def bulk_get_project_preferences(
+    organization_id: int, project_ids: list[int]
+) -> dict[str, dict | None]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
     viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_get_project_preferences_request(

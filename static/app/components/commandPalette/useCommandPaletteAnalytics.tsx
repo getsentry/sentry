@@ -2,16 +2,15 @@ import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import uniqueId from 'lodash/uniqueId';
 
-import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {
   getActionPath,
-  type LinkedList,
+  type CMDKNavStack,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function getLinkedListDepth(node: LinkedList | null): number {
+function getNavDepth(node: CMDKNavStack | null): number {
   let depth = 0;
   let current = node;
   while (current !== null) {
@@ -30,13 +29,14 @@ function getLinkedListDepth(node: LinkedList | null): number {
  * Returns `recordAction` and `recordGroupAction` callbacks for action
  * selections which can't be observed from state alone.
  */
+interface ActionLike {
+  display: {label: string};
+  to?: unknown;
+}
+
 export function useCommandPaletteAnalytics(filteredActionCount: number): {
-  recordAction: (
-    action: CommandPaletteActionWithKey,
-    resultIndex: number,
-    group: string
-  ) => void;
-  recordGroupAction: (action: CommandPaletteActionWithKey, resultIndex: number) => void;
+  recordAction: (action: ActionLike, resultIndex: number, group: string) => void;
+  recordGroupAction: (action: ActionLike, resultIndex: number) => void;
 } {
   const organization = useOrganization();
   const state = useCommandPaletteState();
@@ -89,10 +89,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
     s.prevFilteredCount = filteredActionCount;
 
     if (filteredActionCount === 0 && wasNonZero && state.query.length > 0) {
-      const actionLabel =
-        typeof state.action?.value.action.display.label === 'string'
-          ? state.action.value.action.display.label
-          : undefined;
+      const actionLabel = state.action?.value.label;
       trackAnalytics('command_palette.no_results', {
         organization,
         query: state.query,
@@ -135,11 +132,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
 
   return useMemo(
     () => ({
-      recordAction(
-        action: CommandPaletteActionWithKey,
-        resultIndex: number,
-        group: string
-      ) {
+      recordAction(action: ActionLike, resultIndex: number, group: string) {
         const s = analyticsState.current;
         const path = getActionPath(s.state);
         const label =
@@ -159,7 +152,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         s.actionsSelected++;
         s.completed = true;
       },
-      recordGroupAction(action: CommandPaletteActionWithKey, resultIndex: number) {
+      recordGroupAction(action: ActionLike, resultIndex: number) {
         const s = analyticsState.current;
 
         trackAnalytics('command_palette.action_selected', {
@@ -175,7 +168,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         s.hadInteraction = true;
         s.actionsSelected++;
 
-        const depth = getLinkedListDepth(s.state.action) + 1;
+        const depth = getNavDepth(s.state.action) + 1;
         if (depth > s.maxDrillDepth) {
           s.maxDrillDepth = depth;
         }

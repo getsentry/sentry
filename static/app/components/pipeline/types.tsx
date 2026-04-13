@@ -29,6 +29,14 @@ export interface PipelineStepDefinition<StepId extends string = string> {
 }
 
 /**
+ * Props passed to a pipeline's completion view component.
+ */
+export interface PipelineCompletionProps<D = unknown> {
+  data: D;
+  finish: () => void;
+}
+
+/**
  * Defines a complete pipeline with its type, provider, and ordered steps.
  */
 export interface PipelineDefinition<
@@ -39,6 +47,12 @@ export interface PipelineDefinition<
    * Title displayed in the pipeline modal header.
    */
   actionTitle: string;
+  /**
+   * Component rendered after the pipeline completes. When set, `onComplete`
+   * is deferred until the component calls `finish()`. When null, `onComplete`
+   * fires immediately on completion.
+   */
+  completionView: React.ComponentType<PipelineCompletionProps<any>> | null;
   /**
    * Casts the raw completion response to the typed completion data shape.
    * Use the {@link pipelineComplete} helper for this.

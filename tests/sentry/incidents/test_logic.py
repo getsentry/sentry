@@ -1542,6 +1542,27 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @patch("sentry.seer.anomaly_detection.store_data.handle_send_historical_data_to_seer_legacy")
+    def test_update_static_to_dynamic_without_time_window_preserves_resolution(
+        self, mock_handle_seer: MagicMock
+    ) -> None:
+        time_window_minutes = 30
+        alert_rule = self.create_alert_rule(
+            time_window=time_window_minutes, detection_type=AlertRuleDetectionType.STATIC
+        )
+        expected_resolution_seconds = time_window_minutes * 60
+
+        update_alert_rule(
+            alert_rule,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.resolution == expected_resolution_seconds
+
+    @with_feature("organizations:anomaly-detection-alerts")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )

@@ -380,7 +380,7 @@ class SlackExplorerEntrypoint(
     @staticmethod
     def has_access(organization: Organization) -> bool:
         has_seer_slack_feature_flag = features.has(
-            "organizations:seer-slack-workflows", organization
+            "organizations:seer-slack-explorer", organization
         )
         has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
         return has_seer_slack_feature_flag and has_explorer_access

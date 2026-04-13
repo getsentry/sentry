@@ -8,7 +8,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type RepositorySettings =
+type RepositorySettings =
   | {
       enabledCodeReview: boolean;
       repositoryIds: string[];

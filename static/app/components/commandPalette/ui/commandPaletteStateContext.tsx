@@ -6,17 +6,21 @@ import {
   openCommandPaletteDeprecated,
   toggleCommandPalette,
 } from 'sentry/actionCreators/modal';
-import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type LinkedList = {
-  previous: LinkedList | null;
-  value: {action: CommandPaletteActionWithKey; query: string};
+/**
+ * A stack entry for navigating into a CMDK group. Stores the group's
+ * collection key and display label so the palette can render the correct
+ * subtree and placeholder text without holding on to the full action object.
+ */
+export type CMDKNavStack = {
+  previous: CMDKNavStack | null;
+  value: {key: string; label: string; query: string; prompt?: string};
 };
 
 export type CommandPaletteState = {
-  action: LinkedList | null;
+  action: CMDKNavStack | null;
   input: React.RefObject<HTMLInputElement | null>;
   open: boolean;
   query: string;
@@ -28,7 +32,7 @@ export type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
-  | {action: CommandPaletteActionWithKey; type: 'push action'}
+  | {key: string; label: string; type: 'push action'; prompt?: string}
   | {type: 'trigger action'}
   | {type: 'pop action'};
 
@@ -59,7 +63,12 @@ function commandPaletteReducer(
       return {
         ...state,
         action: {
-          value: {action: action.action, query: state.query},
+          value: {
+            key: action.key,
+            label: action.label,
+            prompt: action.prompt,
+            query: state.query,
+          },
           previous: state.action,
         },
         query: '',
@@ -150,11 +159,7 @@ export function getActionPath(state: CommandPaletteState): string {
   const path: string[] = [];
   let node = state.action;
   while (node !== null) {
-    const label =
-      typeof node.value.action.display.label === 'string'
-        ? node.value.action.display.label
-        : '';
-    path.unshift(label);
+    path.unshift(node.value.label);
     node = node.previous;
   }
   return path.join(' → ');

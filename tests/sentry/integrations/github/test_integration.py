@@ -679,7 +679,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_get_repositories_accessible_only(self) -> None:
-        """When accessible_only=True, fetches installation repos and filters locally."""
+        """accessible_only+query filters cached repo list locally."""
         with self.tasks():
             self.assert_setup_flow()
 
@@ -700,7 +700,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_get_repositories_accessible_only_no_match(self) -> None:
-        """When accessible_only=True and nothing matches, returns empty list."""
+        """accessible_only+query with no matching repos returns empty list."""
         with self.tasks():
             self.assert_setup_flow()
 
@@ -711,6 +711,33 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         result = installation.get_repositories("nonexistent", accessible_only=True)
         assert result == []
+
+    @responses.activate
+    def test_get_repositories_accessible_only_caches_repos(self) -> None:
+        """Second accessible_only call uses cached repos instead of re-fetching from GitHub."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        # First call: cache miss, fetches /installation/repositories
+        result1 = installation.get_repositories("foo", accessible_only=True, use_cache=True)
+        install_repo_calls = [
+            c for c in responses.calls if "/installation/repositories" in c.request.url
+        ]
+        first_fetch_count = len(install_repo_calls)
+        assert first_fetch_count > 0
+
+        # Second call: cache hit, no new /installation/repositories calls
+        result2 = installation.get_repositories("foo", accessible_only=True, use_cache=True)
+        install_repo_calls = [
+            c for c in responses.calls if "/installation/repositories" in c.request.url
+        ]
+        assert len(install_repo_calls) == first_fetch_count
+        assert result1 == result2
 
     @responses.activate
     def test_get_repositories_all_and_pagination(self) -> None:

@@ -12,6 +12,7 @@ import type {
 import type {
   ApiPipeline,
   PipelineAdvanceResponse,
+  PipelineCompletionProps,
   PipelineStepProps,
   PipelineStepResponse,
 } from './types';
@@ -189,7 +190,11 @@ export function usePipeline<
           const data = definition.getCompletionData(rawData) as CompletionDataFor<T, P>;
 
           setState({status: 'complete', data});
-          onCompleteRef.current?.(data);
+
+          // If there's no completion view, fire onComplete immediately.
+          if (!definition.completionView) {
+            onCompleteRef.current?.(data);
+          }
           break;
         }
         case 'error':
@@ -237,7 +242,20 @@ export function usePipeline<
     return null;
   }, [state, definition]);
 
+  const finish = useCallback(() => {
+    if (state.status === 'complete') {
+      onCompleteRef.current?.(state.data);
+    }
+  }, [state]);
+
   const view = useMemo(() => {
+    // Render completion view when the pipeline is complete and one is defined
+    if (state.status === 'complete' && definition.completionView) {
+      const CompletionView: React.ComponentType<PipelineCompletionProps<any>> =
+        definition.completionView;
+      return <CompletionView data={state.data} finish={finish} />;
+    }
+
     if (!stepDefinition) {
       return null;
     }
@@ -259,7 +277,15 @@ export function usePipeline<
         advanceError={advanceError}
       />
     );
-  }, [state, stepDefinition, definition, advanceMutate, isAdvancePending, advanceError]);
+  }, [
+    state,
+    stepDefinition,
+    definition,
+    advanceMutate,
+    isAdvancePending,
+    advanceError,
+    finish,
+  ]);
 
   const {stepIndex, totalSteps} =
     state.status === 'active'

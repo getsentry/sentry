@@ -6,7 +6,9 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils.snuba_rpc import table_rpc
-from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.snuba.api.endpoints.test_organization_events import (
+    OrganizationEventsEndpointTestBase,
+)
 
 
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
@@ -283,7 +285,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
         }
 
-    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
+    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(
+        self,
+    ) -> None:
         gauge_metrics = [
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
@@ -776,6 +780,40 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         assert len(data) == 1
         assert data[0]["count_if(`release:abcdef`,value,request_duration,distribution,none)"] == 1
+
+    def test_count_if_in_equation(self):
+        trace_metrics = [
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                metric_unit="none",
+                attributes={"release": "abcdef"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "equation|count_if(`release:abcdef`,value,request_duration,distribution,none) + count_if(`!release:abcdef`,value,request_duration,distribution,none)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0][
+                "equation|count_if(`release:abcdef`,value,request_duration,distribution,none) + count_if(`!release:abcdef`,value,request_duration,distribution,none)"
+            ]
+            == 2
+        )
 
     def test_p50_if_with_arbitrary_search_term(self):
         trace_metrics = [

@@ -61,49 +61,51 @@ function PipelineModal<
       </Header>
       <Body>
         <Stack gap="2xl">
-          <Grid columns="1fr max-content">
-            <Flex gap="md" align="center">
-              <ProgressRing
-                maxValue={pipeline.totalSteps}
-                value={pipeline.stepIndex + 1}
-                text={pipeline.stepIndex + 1}
-                animate
-              />
-              <Grid>
-                <AnimatePresence>
-                  <motion.div
-                    key={stepDefinition?.stepId}
-                    initial={pipeline.stepIndex === 0 ? {} : {y: -15, opacity: 0}}
-                    animate={{y: 0, opacity: 1}}
-                    exit={{y: 15, opacity: 0}}
-                    transition={{duration: 0.2}}
-                    style={{gridColumn: 1, gridRow: 1}}
-                  >
-                    {stepText}
-                  </motion.div>
-                </AnimatePresence>
-              </Grid>
-            </Flex>
-            <Flex gap="md" align="center">
-              {loading && (
-                <LoadingIndicator
-                  mini
-                  size={20}
-                  style={{margin: 0, height: 20, width: 20}}
+          {!pipeline.isComplete && (
+            <Grid columns="1fr max-content">
+              <Flex gap="md" align="center">
+                <ProgressRing
+                  maxValue={pipeline.totalSteps}
+                  value={pipeline.stepIndex + 1}
+                  text={pipeline.stepIndex + 1}
+                  animate
                 />
-              )}
-              {pipeline.stepIndex !== 0 && (
-                <Button
-                  size="zero"
-                  priority="transparent"
-                  onClick={pipeline.restart}
-                  icon={<IconRefresh size="xs" variant="muted" />}
-                  tooltipProps={{title: t('Restart flow')}}
-                  aria-label={t('Restart flow')}
-                />
-              )}
-            </Flex>
-          </Grid>
+                <Grid>
+                  <AnimatePresence>
+                    <motion.div
+                      key={stepDefinition?.stepId}
+                      initial={pipeline.stepIndex === 0 ? {} : {y: -15, opacity: 0}}
+                      animate={{y: 0, opacity: 1}}
+                      exit={{y: 15, opacity: 0}}
+                      transition={{duration: 0.2}}
+                      style={{gridColumn: 1, gridRow: 1}}
+                    >
+                      {stepText}
+                    </motion.div>
+                  </AnimatePresence>
+                </Grid>
+              </Flex>
+              <Flex gap="md" align="center">
+                {loading && (
+                  <LoadingIndicator
+                    mini
+                    size={20}
+                    style={{margin: 0, height: 20, width: 20}}
+                  />
+                )}
+                {pipeline.stepIndex !== 0 && (
+                  <Button
+                    size="zero"
+                    priority="transparent"
+                    onClick={pipeline.restart}
+                    icon={<IconRefresh size="xs" variant="muted" />}
+                    tooltipProps={{title: t('Restart flow')}}
+                    aria-label={t('Restart flow')}
+                  />
+                )}
+              </Flex>
+            </Grid>
+          )}
 
           {pipeline.error && (
             <Alert
