@@ -24,7 +24,7 @@ export function SourceMapIssueDetails({event, project}: SourceMapIssueDetailsPro
 
   return (
     <div>
-      <ProblemSection />
+      <ProblemSection project={project} />
       <SectionDivider orientation="horizontal" />
       <DiagnosisSection sourceMapQuery={sourceMapQuery} />
       <SectionDivider orientation="horizontal" />

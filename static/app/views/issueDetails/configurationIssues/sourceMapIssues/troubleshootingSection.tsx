@@ -4,6 +4,10 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
+import {
+  getSourceMapsDocLinks,
+  projectPlatformToDocsMap,
+} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {IconDocs, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -17,6 +21,10 @@ interface TroubleshootingSectionProps {
 export function TroubleshootingSection({project}: TroubleshootingSectionProps) {
   const organization = useOrganization();
   const settingsUrl = `/settings/${organization.slug}/projects/${project.slug}/source-maps/`;
+
+  const docsSegment =
+    (project.platform && projectPlatformToDocsMap[project.platform]) ?? 'javascript';
+  const docLinks = getSourceMapsDocLinks(docsSegment);
 
   return (
     <Stack gap="md" padding="lg">
@@ -125,7 +133,7 @@ export function TroubleshootingSection({project}: TroubleshootingSectionProps) {
         </Disclosure>
         <Flex paddingTop="sm" align="center" gap="sm">
           <Text variant="muted">{t('Not what you\u2019re looking for?')}</Text>
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/">
+          <ExternalLink href={`${docLinks.sourcemaps}troubleshooting_js/`}>
             <Flex align="center" gap="xs">
               <IconDocs size="xs" />
               {t('Read all documentation')}
