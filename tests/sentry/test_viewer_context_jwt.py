@@ -140,7 +140,7 @@ class TestDecodeViewerContext(TestCase):
         vc = ViewerContext(organization_id=1, actor_type=ActorType.USER)
         token = encode_viewer_context(vc, key="some-key")
 
-        with pytest.raises(ValueError, match="No signing key available"):
+        with pytest.raises(ValueError, match="No verification keys available"):
             decode_viewer_context(token)
 
 

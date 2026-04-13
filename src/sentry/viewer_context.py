@@ -5,12 +5,15 @@ import contextvars
 import dataclasses
 import enum
 import hashlib
+import logging
 import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
@@ -114,8 +117,8 @@ def _key_id(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
 
 
-def _get_jwt_secret(key: str | None = None) -> str:
-    """Return the symmetric key to use for JWT signing/verification.
+def _get_signing_key(key: str | None = None) -> str:
+    """Return the key to use for JWT signing.
 
     Resolution: explicit *key* → ``SEER_API_SHARED_SECRET``.
 
@@ -132,6 +135,21 @@ def _get_jwt_secret(key: str | None = None) -> str:
     raise ValueError("No signing key available. Set SEER_API_SHARED_SECRET in settings.")
 
 
+def _get_verification_keys() -> list[str]:
+    """Return all keys that may have been used to sign a ViewerContext JWT.
+
+    The receiver tries each key (kid-matched first) when verifying.
+    Add new service keys here as more services propagate ViewerContext.
+    """
+    keys: list[str] = []
+
+    seer_secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
+    if seer_secret:
+        keys.append(seer_secret)
+
+    return keys
+
+
 def encode_viewer_context(
     viewer_context: ViewerContext,
     *,
@@ -139,7 +157,7 @@ def encode_viewer_context(
     ttl: int | None = None,
 ) -> str:
     """Encode a :class:`ViewerContext` as a signed HS256 JWT."""
-    secret = _get_jwt_secret(key)
+    secret = _get_signing_key(key)
 
     if ttl is None:
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
@@ -161,19 +179,56 @@ def decode_viewer_context(
     key: str | None = None,
     leeway: int = 5,
 ) -> ViewerContext:
-    """Decode and verify an HS256 JWT into a :class:`ViewerContext`."""
-    secret = _get_jwt_secret(key)
+    """Decode and verify an HS256 JWT into a :class:`ViewerContext`.
 
-    claims = pyjwt.decode(
-        token,
-        secret,
-        algorithms=["HS256"],
-        options={"require": ["iat", "exp", "iss"]},
-        issuer="sentry",
-        leeway=leeway,
-    )
-    vc_data = {k: v for k, v in claims.items() if k not in _JWT_STANDARD_CLAIMS}
-    return ViewerContext.deserialize(vc_data)
+    When *key* is provided it is used directly.  Otherwise all keys
+    from ``_get_verification_keys()`` are tried, kid-matched key first.
+    """
+    if key is not None:
+        keys = [key]
+    else:
+        keys = _get_verification_keys()
+
+    if not keys:
+        raise ValueError("No verification keys available.")
+
+    # Use kid to try the matching key first.
+    kid = pyjwt.get_unverified_header(token).get("kid")
+    if kid:
+        keys = sorted(keys, key=lambda k: _key_id(k) != kid)
+
+    last_exc: Exception | None = None
+    for k in keys:
+        try:
+            claims = pyjwt.decode(
+                token,
+                k,
+                algorithms=["HS256"],
+                options={"require": ["iat", "exp", "iss"]},
+                issuer="sentry",
+                leeway=leeway,
+            )
+            vc_data = {ck: cv for ck, cv in claims.items() if ck not in _JWT_STANDARD_CLAIMS}
+            return ViewerContext.deserialize(vc_data)
+        except pyjwt.exceptions.PyJWTError as exc:
+            last_exc = exc
+
+    raise last_exc  # type: ignore[misc]
+
+
+def viewer_context_from_header(header_value: str) -> ViewerContext | None:
+    """Try to decode a ViewerContext from an X-Viewer-Context header value.
+
+    Returns ``None`` if the value is not a JWT or fails verification.
+    """
+    if not is_jwt_viewer_context(header_value):
+        return None
+
+    try:
+        return decode_viewer_context(header_value)
+    except Exception:
+        logger.warning("viewer_context.jwt_decode_failed", exc_info=True)
+        return None
 
 
 def is_jwt_viewer_context(header_value: str) -> bool:

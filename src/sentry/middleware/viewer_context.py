@@ -11,8 +11,7 @@ from sentry import options
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
-    decode_viewer_context,
-    is_jwt_viewer_context,
+    viewer_context_from_header,
     viewer_context_scope,
 )
 
@@ -43,10 +42,10 @@ def ViewerContextMiddleware(
             return get_response(request)
 
         request_ctx = _viewer_context_from_request(request)
-        jwt_ctx = _viewer_context_from_jwt(request)
+        jwt_ctx = _viewer_context_from_jwt_header(request)
 
         if jwt_ctx is not None and request_ctx.user_id is not None:
-            # Authenticated user takes precedence. Log if the JWT disagrees.
+            # Authenticated user takes precedence.
             if (
                 jwt_ctx.organization_id is not None
                 and request_ctx.organization_id is not None
@@ -71,24 +70,11 @@ def ViewerContextMiddleware(
     return ViewerContextMiddleware_impl
 
 
-def _viewer_context_from_jwt(request: HttpRequest) -> ViewerContext | None:
-    """Try to extract a ViewerContext from the X-Viewer-Context JWT header.
-
-    Returns ``None`` if the header is absent, not a JWT, or fails
-    verification.
-    """
+def _viewer_context_from_jwt_header(request: HttpRequest) -> ViewerContext | None:
     header_value = request.META.get("HTTP_X_VIEWER_CONTEXT")
     if not header_value:
         return None
-
-    if not is_jwt_viewer_context(header_value):
-        return None
-
-    try:
-        return decode_viewer_context(header_value)
-    except Exception:
-        logger.warning("viewer_context.jwt_decode_failed", exc_info=True)
-        return None
+    return viewer_context_from_header(header_value)
 
 
 def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
