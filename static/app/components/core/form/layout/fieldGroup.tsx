@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
 export function FieldGroup({
   title,

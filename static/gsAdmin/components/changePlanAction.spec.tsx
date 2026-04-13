@@ -15,14 +15,14 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 
-import triggerChangePlanAction from 'admin/components/changePlanAction';
+import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 describe('ChangePlanAction', () => {

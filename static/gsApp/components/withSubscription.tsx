@@ -1,12 +1,12 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
-import getDisplayName from 'sentry/utils/getDisplayName';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
 type InjectedSubscriptionProps = {
@@ -40,7 +40,7 @@ type State = {
  * If no organization ID can be determined, the subscription will be passed as
  * a `null` value.
  */
-function withSubscription<P extends InjectedSubscriptionProps>(
+export function withSubscription<P extends InjectedSubscriptionProps>(
   WrappedComponent: React.ComponentType<P>,
   {noLoader}: Options = {}
 ) {
@@ -150,5 +150,3 @@ function withSubscription<P extends InjectedSubscriptionProps>(
 
   return WithSubscriptionWrapper;
 }
-
-export default withSubscription;

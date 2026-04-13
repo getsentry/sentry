@@ -9,10 +9,10 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import Model, cell_silo_model
 
 
-@region_silo_model
+@cell_silo_model
 class RelayUsage(OverwritableConfigMixin, Model):
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["relay_id", "version"]
@@ -39,7 +39,7 @@ class RelayUsage(OverwritableConfigMixin, Model):
         sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
 
 
-@region_silo_model
+@cell_silo_model
 class Relay(OverwritableConfigMixin, Model):
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["relay_id"]

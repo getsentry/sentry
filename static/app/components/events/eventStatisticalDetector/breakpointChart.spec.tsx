@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventBreakpointChart from './breakpointChart';
+import {EventBreakpointChart} from './breakpointChart';
 
 describe('EventBreakpointChart', () => {
   beforeEach(() => {

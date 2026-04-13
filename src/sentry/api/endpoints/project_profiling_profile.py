@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.project import Project
@@ -23,7 +23,7 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
@@ -70,7 +70,7 @@ def get_release(project: Project, version: str) -> Any:
         return {"version": version}
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
@@ -82,7 +82,7 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
         return proxy_profiling_service(**kwargs)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectProfilingRawChunkEndpoint(ProjectProfilingBaseEndpoint):
     def get(
         self, request: Request, project: Project, profiler_id: str, chunk_id: str

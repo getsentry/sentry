@@ -10,7 +10,7 @@ interface Props extends Omit<ButtonProps, 'children'> {
   willInvite: boolean;
 }
 
-export default function InviteButton({invites, willInvite, ...buttonProps}: Props) {
+export function InviteButton({invites, willInvite, ...buttonProps}: Props) {
   const label = buttonLabel(invites, willInvite);
 
   return <Button {...buttonProps}>{label}</Button>;

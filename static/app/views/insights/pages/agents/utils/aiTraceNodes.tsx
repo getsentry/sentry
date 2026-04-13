@@ -96,6 +96,37 @@ export function getStringAttr(node: AITraceSpanNode, field: string): string | un
   return typeof val === 'string' ? val : undefined;
 }
 
+/**
+ * Agent name fallback resolution.
+ *
+ * The Vercel AI SDK sends `gen_ai.function_id` instead of the standard
+ * `gen_ai.agent.name` attribute. The constants and helpers below provide
+ * centralized fallback logic so agent identification works regardless of
+ * which attribute the SDK sets.
+ */
+
+/**
+ * Fields to check when resolving an agent name, in priority order.
+ */
+export const AGENT_NAME_FIELDS = [
+  SpanFields.GEN_AI_AGENT_NAME,
+  SpanFields.GEN_AI_FUNCTION_ID,
+] as const;
+
+/**
+ * Resolves the agent name from a keyed record (span row, attributes map, etc.)
+ * by trying each field in priority order.
+ */
+export function resolveAgentName(data: Record<string, unknown>): string | undefined {
+  for (const field of AGENT_NAME_FIELDS) {
+    const value = data[field];
+    if (value && typeof value === 'string') {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 export function getNumberAttr(node: AITraceSpanNode, field: string): number | undefined {
   const val = getTraceNodeAttribute(field, node);
   if (typeof val === 'number') {
@@ -105,6 +136,40 @@ export function getNumberAttr(node: AITraceSpanNode, field: string): number | un
     const num = Number(val);
     return Number.isFinite(num) ? num : undefined;
   }
+  return undefined;
+}
+
+const MAX_TOOL_INPUT_PREVIEW_LENGTH = 80;
+
+/**
+ * Parses tool input JSON and returns the value of the first key.
+ * Used to show a preview of the tool input next to the tool name.
+ */
+export function getFirstToolInputValue(node: AITraceSpanNode): string | undefined {
+  const toolInput =
+    getStringAttr(node, 'gen_ai.tool.call.arguments') ||
+    getStringAttr(node, 'gen_ai.tool.input');
+  if (!toolInput) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(toolInput);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      const firstKey = Object.keys(parsed)[0];
+      if (firstKey !== undefined) {
+        const value = parsed[firstKey];
+        const str = typeof value === 'string' ? value : JSON.stringify(value);
+        if (str.length > MAX_TOOL_INPUT_PREVIEW_LENGTH) {
+          return str.slice(0, MAX_TOOL_INPUT_PREVIEW_LENGTH) + '\u2026';
+        }
+        return str;
+      }
+    }
+  } catch {
+    // Invalid JSON, return undefined
+  }
+
   return undefined;
 }
 

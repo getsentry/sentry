@@ -46,7 +46,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
@@ -386,7 +386,9 @@ export function renderTraceAsLinkable(widget?: Widget) {
 export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
-  widget?: Widget
+  widget?: Widget,
+  _organization?: Organization,
+  dashboardFilters?: DashboardFilters
 ): FieldFormatterRenderFunctionPartial {
   if (field === 'id') {
     return renderEventIdAsLinkable;
@@ -414,10 +416,16 @@ export function getCustomEventsFieldRenderer(
           </Container>
         );
       }
-      return getFieldRenderer(field, meta, false)(data, baggage);
+      return getFieldRenderer(
+        field,
+        meta,
+        false,
+        widget,
+        dashboardFilters
+      )(data, baggage);
     };
   }
-  return getFieldRenderer(field, meta, false);
+  return getFieldRenderer(field, meta, false, widget, dashboardFilters);
 }
 
 export async function doOnDemandMetricsRequest(

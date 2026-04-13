@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.backup.crypto import GCPKMSEncryptor, get_default_crypto_key_version
@@ -16,7 +16,7 @@ from sentry.utils.env import log_gcp_credentials_details
 logger = logging.getLogger("sentry.relocation")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RelocationPublicKeyEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     publish_status = {

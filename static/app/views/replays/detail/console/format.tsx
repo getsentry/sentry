@@ -22,7 +22,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 const formatRegExp = /%[csdj%]/g;
@@ -39,7 +39,7 @@ interface FormatProps {
  *
  * %c is ignored for now
  */
-export default function Format({onExpand, expandPaths, args}: FormatProps) {
+export function Format({onExpand, expandPaths, args}: FormatProps) {
   const onToggleExpand = (expandedPaths: any, path: any) => {
     onExpand(path, Object.fromEntries(expandedPaths.map((item: any) => [item, true])));
   };

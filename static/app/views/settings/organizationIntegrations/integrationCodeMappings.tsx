@@ -7,45 +7,45 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {
-  Integration,
-  Repository,
-  RepositoryProjectPathConfig,
-} from 'sentry/types/integrations';
+import type {Integration, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
   useApiQuery,
+  useInfiniteQuery,
   useMutation,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
+import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import RepositoryProjectPathConfigModal from './repositoryProjectPathConfigForm';
-import RepositoryProjectPathConfigRow, {
+import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';
+import {
   ButtonWrapper,
   InputPathColumn,
   NameRepoColumn,
   OutputPathColumn,
+  RepositoryProjectPathConfigRow,
 } from './repositoryProjectPathConfigRow';
 
 function getDocsLink(integration: Integration): string {
@@ -75,7 +75,7 @@ function makePathConfigQueryKey({
   cursor?: string | string[] | null;
 }): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {query: {integrationId, cursor}},
@@ -128,11 +128,7 @@ function useDeletePathConfig() {
   });
 }
 
-export default function IntegrationCodeMappings({
-  integration,
-}: {
-  integration: Integration;
-}) {
+export function IntegrationCodeMappings({integration}: {integration: Integration}) {
   const queryClient = useQueryClient();
   useRouteAnalyticsEventNames(
     'integrations.code_mappings_viewed',
@@ -162,19 +158,28 @@ export default function IntegrationCodeMappings({
     {staleTime: 10_000}
   );
 
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({
+      organization,
+      query: {status: 'active', per_page: 100},
+      staleTime: 10_000,
+    }),
+    select: data => data.pages.flatMap(page => page.json),
+  });
+  useFetchAllPages({result: repositoriesQuery});
+
   const {
     data: fetchedRepos = [],
-    isPending: isPendingRepos,
+    isPending: isPendingReposQuery,
     isError: isErrorRepos,
-  } = useApiQuery<Repository[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {status: 'active'}},
-    ],
-    {staleTime: 10_000}
-  );
+    hasNextPage: hasNextReposPage,
+    isFetchingNextPage: isFetchingNextReposPage,
+  } = repositoriesQuery;
+
+  const isPendingRepos =
+    isPendingReposQuery ||
+    isFetchingNextReposPage ||
+    (!!hasNextReposPage && !isErrorRepos);
 
   const pathConfigs = useMemo(() => {
     return sortBy(fetchedPathConfigs, [
@@ -254,7 +259,7 @@ export default function IntegrationCodeMappings({
     <Fragment>
       <TextBlock>
         {tct(
-          `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
+          'Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].',
           {
             link: (
               <ExternalLink

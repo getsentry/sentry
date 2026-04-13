@@ -8,8 +8,8 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import Count from 'sentry/components/count';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Count} from 'sentry/components/count';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
@@ -21,11 +21,11 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {
@@ -98,9 +98,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     options: {placeholderData: keepPreviousData},
   });
 
-  const attachmentPagination = parseLinkHeader(
-    attachments.getResponseHeader?.('Link') ?? null
-  );
+  const attachmentPagination = parseLinkHeader(attachments.pageLinks);
   // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;

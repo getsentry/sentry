@@ -6,7 +6,7 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

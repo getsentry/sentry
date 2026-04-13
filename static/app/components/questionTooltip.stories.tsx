@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('QuestionTooltip', story => {

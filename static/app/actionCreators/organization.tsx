@@ -4,18 +4,18 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {
   addOrganizationFeaturesHandler,
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 async function fetchOrg(api: Client, slug: string): Promise<Organization> {
   const [org] = await api.requestPromise(`/organizations/${slug}/`, {

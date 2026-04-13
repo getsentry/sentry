@@ -1,7 +1,7 @@
 import pytest
 from django.utils import timezone
 
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -29,8 +29,8 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, BaseMetri
         # Create 3 root transactions in the last minute: 2 dropped, 1 kept → rate = 1/3
         for decision in ["drop", "drop", "keep"]:
             self.store_performance_metric(
-                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"transaction": "foo_transaction", "decision": decision},
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"transaction": "foo_transaction", "decision": decision, "is_segment": "true"},
                 minutes_before_now=1,
                 value=1,
                 project_id=project.id,

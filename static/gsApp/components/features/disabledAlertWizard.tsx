@@ -12,7 +12,7 @@ type Props = React.PropsWithChildren<{
   organization: Organization;
 }>;
 
-function DisabledAlertWizard({organization}: Props) {
+export function DisabledAlertWizard({organization}: Props) {
   return (
     <Flex justify="between" align="center" wrap="wrap">
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
@@ -34,8 +34,6 @@ function DisabledAlertWizard({organization}: Props) {
     </Flex>
   );
 }
-
-export default DisabledAlertWizard;
 
 const Description = styled('div')`
   margin: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md} 0;

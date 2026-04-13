@@ -32,7 +32,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
 
   return {
     control: {
-      backgroundColor: `${theme.tokens.background.primary}`,
+      backgroundColor: theme.tokens.background.primary,
       fontSize: 15,
       fontWeight: 'normal',
     },
@@ -74,7 +74,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         maxHeight: 142,
         minWidth: 220,
         overflow: 'auto',
-        backgroundColor: `${theme.tokens.background.primary}`,
+        backgroundColor: theme.tokens.background.primary,
         border: '1px solid rgba(0,0,0,0.15)',
         borderRadius: theme.radius.md,
         fontSize: theme.font.size.sm,

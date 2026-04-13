@@ -1,19 +1,21 @@
+import {useEffect} from 'react';
 import type {QueryFunctionContext} from '@tanstack/react-query';
 
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
-import {parseQueryKey, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
-    Link: string | undefined;
-    'X-Hits': number | undefined;
-    'X-Max-Hits': number | undefined;
+    Link?: string;
+    'X-Hits'?: number;
+    'X-Max-Hits'?: number;
   };
   json: TResponseData;
 };
 
-export default async function apiFetch<TQueryFnData = unknown>(
+export async function apiFetch<TQueryFnData = unknown>(
   context: QueryFunctionContext<ApiQueryKey, never>
 ): Promise<ApiResponse<TQueryFnData>> {
   const {url, options} = parseQueryKey(context.queryKey);
@@ -66,4 +68,19 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
     },
     json: json as TQueryFnData,
   };
+}
+
+export function useFetchAllPages<TQueryFnData = unknown>({
+  result,
+  enabled = true,
+}: {
+  result: UseInfiniteQueryResult<TQueryFnData, Error>;
+  enabled?: boolean;
+}) {
+  const {fetchNextPage, hasNextPage, isError, isFetchingNextPage} = result;
+  useEffect(() => {
+    if (enabled && !isError && !isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [enabled, hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
 }

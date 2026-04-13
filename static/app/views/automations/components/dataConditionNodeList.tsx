@@ -16,7 +16,7 @@ import {
 import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
+import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {
   DataConditionNodeContext,
   dataConditionNodesMap,
@@ -41,7 +41,7 @@ interface Option {
   disabled?: boolean;
 }
 
-export default function DataConditionNodeList({
+export function DataConditionNodeList({
   handlerGroup,
   groupId,
   placeholder,

@@ -1,5 +1,5 @@
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
 
 /**

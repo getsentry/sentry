@@ -1,29 +1,30 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
-import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
-import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import FlagActionDropdown from 'sentry/components/events/featureFlags/flagActionDropdown';
+import {FeatureFlagSettingsButton} from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
+import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
+import {FlagActionDropdown} from 'sentry/components/events/featureFlags/flagActionDropdown';
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
   OrderBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import useDrawer from 'sentry/components/globalDrawer';
-import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -33,8 +34,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -77,14 +78,16 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
   const eventView = useIssueDetailsEventView({group});
-  const {data: rawFlagData} = useOrganizationFlagLog({
-    organization,
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-  });
+  const {data: rawFlagData} = useQuery(
+    organizationFlagLogOptions({
+      organization,
+      query: {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      },
+    })
+  );
   const location = useLocation();
 
   // issue list params we want to preserve in the search

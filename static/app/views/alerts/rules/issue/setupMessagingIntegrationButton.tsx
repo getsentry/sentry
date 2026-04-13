@@ -8,11 +8,11 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
@@ -25,7 +25,7 @@ type Props = {
   refetchConfigs?: () => void;
 };
 
-function SetupMessagingIntegrationButton({
+export function SetupMessagingIntegrationButton({
   refetchConfigs,
   analyticsView,
   projectId,
@@ -42,7 +42,7 @@ function SetupMessagingIntegrationButton({
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {integrationType: 'messaging'}},
@@ -52,7 +52,7 @@ function SetupMessagingIntegrationButton({
 
   const integrationProvidersQuery = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {provider_key: providerKey}},
@@ -135,5 +135,3 @@ function SetupMessagingIntegrationButton({
     </IntegrationFeatures>
   );
 }
-
-export default SetupMessagingIntegrationButton;

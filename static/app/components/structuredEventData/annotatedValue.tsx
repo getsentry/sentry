@@ -9,7 +9,7 @@ interface Props {
   withOnlyFormattedText?: boolean;
 }
 
-export default function AnnotatedValue({
+export function AnnotatedValue({
   value,
   withAnnotatedText,
   withOnlyFormattedText = false,

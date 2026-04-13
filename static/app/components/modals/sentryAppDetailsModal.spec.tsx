@@ -3,7 +3,7 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
+import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsModal';
 
 function renderMockRequests({sentryAppSlug}: {sentryAppSlug: string}) {
   const features = MockApiClient.addMockResponse({

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import PanelItem from 'sentry/components/panels/panelItem';
-import TimeSince from 'sentry/components/timeSince';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TimeSince} from 'sentry/components/timeSince';
 import type {InternetProtocol} from 'sentry/types/user';
 
 import {tableLayout} from './utils';
 
-function SessionRow({
+export function SessionRow({
   ipAddress,
   lastSeen,
   firstSeen,
@@ -30,8 +30,6 @@ function SessionRow({
     </SessionPanelItem>
   );
 }
-
-export default SessionRow;
 
 const IpAddress = styled('div')`
   margin-bottom: ${p => p.theme.space.xs};

@@ -12,7 +12,7 @@ from sentry.middleware.integrations.classifications import IntegrationClassifica
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from tests.sentry.integrations.msteams.test_helpers import (
     EXAMPLE_MENTIONED,
     EXAMPLE_PERSONAL_MEMBER_ADDED,
@@ -24,7 +24,7 @@ from tests.sentry.integrations.msteams.test_helpers import (
 )
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class MsTeamsRequestParserTest(TestCase):
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}msteams/webhook/"
@@ -64,7 +64,7 @@ class MsTeamsRequestParserTest(TestCase):
 
     @responses.activate
     def test_routing_events(self) -> None:
-        # No regions identified
+        # No cells identified
         request = self.factory.post(
             self.path,
             data=GENERIC_EVENT,
@@ -95,7 +95,7 @@ class MsTeamsRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"msteams:{self.integration.id}",
-            region_names=["us"],
+            cell_names=["us"],
         )
 
     def test_routing_events_no_org_integration(self) -> None:
@@ -147,7 +147,7 @@ class MsTeamsRequestParserTest(TestCase):
     def test_get_integration_from_request(self) -> None:
         CARD_ACTION_RESPONSE = self.generate_card_response(self.integration.id)
 
-        region_silo_payloads = [
+        cell_silo_payloads = [
             # Integration inferred from channelData.team.id
             EXAMPLE_TEAM_MEMBER_REMOVED,
             EXAMPLE_TEAM_MEMBER_ADDED,
@@ -156,7 +156,7 @@ class MsTeamsRequestParserTest(TestCase):
             CARD_ACTION_RESPONSE,
         ]
 
-        for payload in region_silo_payloads:
+        for payload in cell_silo_payloads:
             request = self.factory.post(
                 self.path,
                 data=payload,

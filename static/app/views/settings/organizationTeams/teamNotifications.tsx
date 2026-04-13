@@ -8,24 +8,24 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import TextField from 'sentry/components/forms/fields/textField';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Confirm} from 'sentry/components/confirm';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -158,7 +158,7 @@ export default function TeamNotificationSettings() {
     refetch: refetchTeam,
   } = useApiQuery<Team>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
       }),
       {
@@ -177,7 +177,7 @@ export default function TeamNotificationSettings() {
     refetch: refetchIntegrations,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import Stacked from 'sentry/components/container/stacked';
+import {Stacked} from 'sentry/components/container/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
+import {SplitDivider} from 'sentry/views/replays/detail/layout/splitDivider';
 
 interface Props extends Omit<ReturnType<typeof useResizableDrawer>, 'size' | 'setSize'> {
   onClose: () => void;
   children?: ReactNode;
 }
 
-export default function DetailsSplitDivider({
+export function DetailsSplitDivider({
   children,
   isHeld,
   onClose,

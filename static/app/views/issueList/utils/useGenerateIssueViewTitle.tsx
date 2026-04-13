@@ -1,6 +1,6 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface GenerateIssueViewTitleParams {
   query: string;
@@ -18,7 +18,7 @@ export function useGenerateIssueViewTitle({
   const organization = useOrganization();
   return useApiQuery<GenerateIssueViewTitleResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/issue-view-title/generate/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/issue-view-title/generate/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

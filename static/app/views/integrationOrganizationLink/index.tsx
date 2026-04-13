@@ -8,18 +8,18 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NarrowLayout from 'sentry/components/narrowLayout';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -27,12 +27,12 @@ import {
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
-import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {useAddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
   account: {
@@ -228,37 +228,19 @@ export default function IntegrationOrganizationLink() {
 
     const {IntegrationFeatures} = getIntegrationFeatureGate();
 
-    // Github uses a different installation flow with the installationId as a parameter
-    // We have to wrap our installation button with AddIntegration so we can get the
-    // addIntegrationWithInstallationId callback.
-    // if we don't have an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled, disabledReason}) => (
-          <AddIntegration
+          <AddIntegrationButton
             provider={provider}
-            onInstall={onInstallWithInstallationId}
             organization={organization}
-          >
-            {addIntegrationWithInstallationId => (
-              <ButtonWrapper>
-                <Button
-                  priority="primary"
-                  disabled={!hasAccess || disabled}
-                  onClick={() =>
-                    installationId
-                      ? addIntegrationWithInstallationId({
-                          installation_id: installationId,
-                        })
-                      : finishInstallation()
-                  }
-                >
-                  {t('Install %s', provider.name)}
-                </Button>
-                {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
-              </ButtonWrapper>
-            )}
-          </AddIntegration>
+            onInstall={onInstallWithInstallationId}
+            installationId={installationId}
+            hasAccess={hasAccess}
+            disabled={disabled}
+            disabledReason={disabledReason}
+            finishInstallation={finishInstallation}
+          />
         )}
       </IntegrationFeatures>
     );
@@ -344,7 +326,7 @@ export default function IntegrationOrganizationLink() {
     const target_url = `https://github.com/${installationData?.account.login}`;
 
     const alertText = tct(
-      `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+      'GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.',
       {
         account_type: <strong>{installationData?.account.type}</strong>,
         account_login: (
@@ -417,6 +399,45 @@ export default function IntegrationOrganizationLink() {
       </FieldGroup>
       {renderBottom}
     </NarrowLayout>
+  );
+}
+
+function AddIntegrationButton({
+  provider,
+  organization,
+  onInstall,
+  installationId,
+  hasAccess,
+  disabled,
+  disabledReason,
+  finishInstallation,
+}: {
+  disabled: boolean;
+  disabledReason: React.ReactNode;
+  finishInstallation: () => void;
+  hasAccess: boolean | undefined;
+  onInstall: (data: Integration) => void;
+  organization: Organization;
+  provider: IntegrationProvider;
+  installationId?: string;
+}) {
+  const {startFlow} = useAddIntegration({provider, organization, onInstall});
+
+  return (
+    <ButtonWrapper>
+      <Button
+        priority="primary"
+        disabled={!hasAccess || disabled}
+        onClick={() =>
+          installationId
+            ? startFlow({installation_id: installationId})
+            : finishInstallation()
+        }
+      >
+        {t('Install %s', provider.name)}
+      </Button>
+      {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
+    </ButtonWrapper>
   );
 }
 

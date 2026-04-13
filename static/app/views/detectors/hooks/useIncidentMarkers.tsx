@@ -10,7 +10,7 @@ import type {
   YAXisComponentOption,
 } from 'echarts';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {
   EChartChartReadyHandler,

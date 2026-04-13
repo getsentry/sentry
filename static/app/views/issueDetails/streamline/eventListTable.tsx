@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
   GridHead,
@@ -16,7 +16,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
-import type parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface EventListTableProps {

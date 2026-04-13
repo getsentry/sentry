@@ -5,15 +5,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import CrumbItem from 'sentry/components/replays/diff/picker/crumbItem';
-import MutationOption from 'sentry/components/replays/diff/picker/mutationOption';
+import {CrumbItem} from 'sentry/components/replays/diff/picker/crumbItem';
+import {MutationOption} from 'sentry/components/replays/diff/picker/mutationOption';
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import {t} from 'sentry/locale';
 import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/types';
 
 const maxOptions = 3;
 
-export default function DiffTimestampPicker() {
+export function DiffTimestampPicker() {
   const {
     frameOrEvent,
     leftOffsetMs,

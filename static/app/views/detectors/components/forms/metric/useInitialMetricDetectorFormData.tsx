@@ -2,7 +2,7 @@ import type {Organization} from 'sentry/types/organization';
 import {generateFieldAsString, parseFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   type MetricDetectorFormData,

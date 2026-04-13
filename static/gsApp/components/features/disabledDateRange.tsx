@@ -1,7 +1,7 @@
-import DateRange from 'sentry/components/timeRangeSelector/dateRange';
+import {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 type Props = React.ComponentProps<typeof DateRange> & {

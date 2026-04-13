@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
@@ -10,7 +11,7 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
@@ -19,16 +20,16 @@ import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
-import Candidates from './candidates';
-import GeneralInfo from './generalInfo';
-import ReprocessAlert from './reprocessAlert';
+import {Candidates} from './candidates';
+import {GeneralInfo} from './generalInfo';
+import {ReprocessAlert} from './reprocessAlert';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = ImageCandidate[];
@@ -218,15 +219,14 @@ export function DebugImageDetails({
     isPending,
     isError,
     refetch,
-  } = useApiQuery<DebugFile[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+  } = useQuery({
+    ...apiOptions.as<DebugFile[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projSlug,
         },
-      }),
-      {
         query: {
           debug_id: image?.debug_id,
           code_id: image?.code_id,
@@ -246,13 +246,11 @@ export function DebugImageDetails({
             'portablepdb',
           ],
         },
-      },
-    ],
-    {
-      enabled: hasUploadedDebugFiles,
-      staleTime: 0,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: hasUploadedDebugFiles,
+  });
 
   const {code_file, status} = image ?? {};
   const candidates = getCandidates({debugFiles, image, isLoading: isPending});

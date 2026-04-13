@@ -7,14 +7,14 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import IdBadge from 'sentry/components/idBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {IdBadge} from 'sentry/components/idBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
@@ -208,7 +208,7 @@ function YourTeamRow({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 125px 150px 130px;
+  grid-template-columns: 1fr 125px 150px auto;
   margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='actions'] {
@@ -216,7 +216,7 @@ const StyledSimpleTable = styled(SimpleTable)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 125px 130px;
+    grid-template-columns: 1fr 125px auto;
 
     [data-column-name='projects'] {
       display: none;

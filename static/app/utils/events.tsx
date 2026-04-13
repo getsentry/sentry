@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {
   EntryException,
   EntryRequest,
@@ -26,7 +26,7 @@ import {
   getExceptionGroupHeight,
   getExceptionGroupWidth,
 } from 'sentry/utils/eventExceptionGroup';
-import getDaysSinceDate, {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate, getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
@@ -44,7 +44,7 @@ export function eventTypeHasLogLevel(type: EventOrGroupType) {
   return EVENT_TYPES_WITH_LOG_LEVEL.has(type);
 }
 
-export function isTombstone(
+function isTombstone(
   maybe: BaseGroup | Event | GroupTombstoneHelper | SimpleGroup
 ): maybe is GroupTombstoneHelper {
   return 'isTombstone' in maybe && maybe.isTombstone;
@@ -517,6 +517,6 @@ export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneH
   return evidenceData.templateName === 'profile';
 }
 
-export function isGroup(event: BaseGroup | Event): event is BaseGroup {
+function isGroup(event: BaseGroup | Event): event is BaseGroup {
   return (event as BaseGroup).status !== undefined;
 }

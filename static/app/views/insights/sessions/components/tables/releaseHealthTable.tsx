@@ -6,23 +6,23 @@ import type {Location} from 'history';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import {renderSortableHeaderCell} from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {useQueryBasedSorting} from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReleaseProjectColumn} from 'sentry/views/releases/list/releaseCard';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
@@ -61,13 +61,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'status', name: 'status'},
 ];
 
-export default function ReleaseHealthTable({
-  data,
-  isError,
-  isLoading,
-  location,
-  meta,
-}: Props) {
+export function ReleaseHealthTable({data, isError, isLoading, location, meta}: Props) {
   const theme = useTheme();
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},

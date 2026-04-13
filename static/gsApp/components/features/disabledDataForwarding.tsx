@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow, IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
@@ -18,7 +18,7 @@ type Props = {
   organization: Organization;
 };
 
-function DisabledDataForwarding({organization, features}: Props) {
+export function DisabledDataForwarding({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
@@ -75,5 +75,3 @@ const ButtonGroup = styled('div')`
   grid-auto-flow: column;
   gap: ${p => p.theme.space.lg};
 `;
-
-export default DisabledDataForwarding;

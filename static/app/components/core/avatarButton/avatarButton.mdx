@@ -11,9 +11,8 @@ import {AvatarButton} from '@sentry/scraps/avatarButton';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/avatarButton/avatarButton';
-
-export {documentation};
+export const documentation =
+  import('!!type-loader!@sentry/scraps/avatarButton/avatarButton');
 
 Use `AvatarButton` when the avatar itself should be the clickable control.
 

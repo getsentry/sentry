@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 
 type Props = {
   location: Location;

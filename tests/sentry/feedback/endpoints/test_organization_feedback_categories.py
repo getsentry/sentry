@@ -8,11 +8,11 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationFeedbackCategoriesTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-categories"
 

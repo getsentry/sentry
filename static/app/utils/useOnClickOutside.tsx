@@ -1,7 +1,7 @@
 import {useLayoutEffect} from 'react';
 
 // hook from https://usehooks.com/useOnClickOutside/
-function useOnClickOutside<T extends HTMLElement = HTMLElement>(
+export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   ref: React.RefObject<T | null> | T | null,
   handler: (event: MouseEvent | TouchEvent) => void
 ) {
@@ -33,5 +33,3 @@ function useOnClickOutside<T extends HTMLElement = HTMLElement>(
     };
   }, [ref, handler]);
 }
-
-export default useOnClickOutside;

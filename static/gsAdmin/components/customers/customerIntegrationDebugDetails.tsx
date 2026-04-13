@@ -40,7 +40,7 @@ function getStatusLabel(status: number): string {
   return STATUS_LABELS[status] ?? `Unknown (${status})`;
 }
 
-function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
+export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const toggleRow = (id: number) => {
@@ -166,5 +166,3 @@ const MetadataContent = styled('pre')`
   white-space: pre-wrap;
   word-wrap: break-word;
 `;
-
-export default CustomerIntegrationDebugDetails;

@@ -10,7 +10,7 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import get_environment, get_environment_func
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
@@ -34,7 +34,7 @@ class _PaginateKwargs(TypedDict):
     post_query_filter: NotRequired[object]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {

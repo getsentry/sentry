@@ -8,7 +8,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -34,7 +34,7 @@ import {
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import useFocusControl from 'sentry/components/events/useFocusControl';
+import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -43,7 +43,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',

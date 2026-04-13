@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
@@ -70,13 +70,15 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def validate(self, attrs):
         query = RepositoryProjectPathConfig.objects.filter(
-            project_id=attrs.get("project_id"), stack_root=attrs.get("stack_root")
+            project_id=attrs.get("project_id"),
+            stack_root=attrs.get("stack_root"),
+            source_root=attrs.get("source_root"),
         )
         if self.instance:
             query = query.exclude(id=self.instance.id)
         if query.exists():
             raise serializers.ValidationError(
-                "Code path config already exists with this project and stack trace root"
+                "Code path config already exists with this project, stack trace root, and source root"
             )
         return attrs
 
@@ -152,7 +154,7 @@ class OrganizationIntegrationMixin:
             raise Http404
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {

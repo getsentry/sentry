@@ -1,13 +1,13 @@
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function useHasPlatformizedInsights() {
+export function useHasPlatformizedInsights() {
   const organization = useOrganization();
   const location = useLocation();
 
-  if (location.query.usePlatformizedView === '1') {
-    return true;
+  if (location.query.usePlatformizedView) {
+    return location.query.usePlatformizedView === '1';
   }
 
   return hasPlatformizedInsights(organization);

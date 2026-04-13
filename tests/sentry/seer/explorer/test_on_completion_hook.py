@@ -19,14 +19,14 @@ class SampleCompletionHook(ExplorerOnCompletionHook):
 
 
 class OnCompletionHookTest(TestCase):
-    def test_extract_hook_definition(self):
+    def test_extract_hook_definition(self) -> None:
         """Test extracting hook definition from a hook class."""
         hook_def = extract_hook_definition(SampleCompletionHook)
 
         assert isinstance(hook_def, OnCompletionHookDefinition)
         assert hook_def.module_path.endswith("test_on_completion_hook.SampleCompletionHook")
 
-    def test_extract_hook_definition_nested_class_raises(self):
+    def test_extract_hook_definition_nested_class_raises(self) -> None:
         """Test that nested classes are rejected."""
 
         class OuterClass:
@@ -39,7 +39,7 @@ class OnCompletionHookTest(TestCase):
             extract_hook_definition(OuterClass.NestedHook)
         assert "module-level class" in str(cm.value)
 
-    def test_call_on_completion_hook_success(self):
+    def test_call_on_completion_hook_success(self) -> None:
         """Test calling a completion hook successfully."""
         module_path = "tests.sentry.seer.explorer.test_on_completion_hook.SampleCompletionHook"
 
@@ -53,7 +53,7 @@ class OnCompletionHookTest(TestCase):
         # Verify side effect: hook wrote run_id to organization options
         assert self.organization.get_option("test_hook_run_id") == 12345
 
-    def test_call_on_completion_hook_security_restriction(self):
+    def test_call_on_completion_hook_security_restriction(self) -> None:
         """Test that module path must start with allowed prefix."""
         with pytest.raises(ValueError) as cm:
             call_on_completion_hook(
@@ -64,7 +64,7 @@ class OnCompletionHookTest(TestCase):
             )
         assert "must start with one of" in str(cm.value)
 
-    def test_call_on_completion_hook_invalid_module(self):
+    def test_call_on_completion_hook_invalid_module(self) -> None:
         """Test calling a non-existent hook module."""
         with pytest.raises(ValueError) as cm:
             call_on_completion_hook(
@@ -74,7 +74,7 @@ class OnCompletionHookTest(TestCase):
             )
         assert "Could not import" in str(cm.value)
 
-    def test_call_on_completion_hook_not_a_hook_class(self):
+    def test_call_on_completion_hook_not_a_hook_class(self) -> None:
         """Test calling something that isn't an ExplorerOnCompletionHook."""
         # BaseModel is importable but not an ExplorerOnCompletionHook
         with pytest.raises(ValueError) as cm:

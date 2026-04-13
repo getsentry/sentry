@@ -6,11 +6,11 @@ import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-import SentryApplicationRowButtons from './sentryApplicationRowButtons';
+import {SentryApplicationRowButtons} from './sentryApplicationRowButtons';
 
 interface Props {
   app: SentryApp;
@@ -19,7 +19,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function SentryApplicationRow({
+export function SentryApplicationRow({
   app,
   organization,
   onPublishSubmission,

@@ -1,8 +1,8 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 describe('PermissionsObserver', () => {
   let model: FormModel;

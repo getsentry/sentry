@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TimezoneProvider} from 'sentry/components/timezoneProvider';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {TimestampTooltipBody} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 

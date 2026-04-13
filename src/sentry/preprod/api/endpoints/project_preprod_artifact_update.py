@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import internal_region_silo_endpoint
+from sentry.api.base import internal_cell_silo_endpoint
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
@@ -26,8 +26,7 @@ from sentry.preprod.models import (
     PreprodArtifactMobileAppInfo,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.producer import PreprodFeature
-from sentry.preprod.quotas import should_run_distribution, should_run_size
+from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -205,7 +204,7 @@ def find_or_create_release(
         return None
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

@@ -16,7 +16,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';

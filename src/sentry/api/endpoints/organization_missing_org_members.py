@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
@@ -148,7 +148,7 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
     return None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

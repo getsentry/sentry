@@ -17,7 +17,7 @@ type Props = {
   title: React.ReactNode;
 };
 
-function NoUnresolvedIssues({title, subtitle}: Props) {
+export function NoUnresolvedIssues({title, subtitle}: Props) {
   return (
     <Wrapper>
       <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
@@ -46,5 +46,3 @@ const EmptyMessage = styled('div')`
     font-size: ${p => p.theme.font.size.xl};
   }
 `;
-
-export default NoUnresolvedIssues;

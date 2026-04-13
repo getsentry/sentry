@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar, type UserAvatarProps} from './userAvatar';
@@ -30,30 +29,15 @@ type Props = {
 
 export function CollapsedAvatars({
   ref,
-  size,
   children,
 }: {
   children: React.ReactNode;
-  size: number;
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  if (hasStreamlinedUI) {
-    return (
-      <Tag ref={ref} data-test-id="avatarList-collapsedavatars" variant="muted">
-        {children}
-      </Tag>
-    );
-  }
   return (
-    <CollapsedAvatarsCicle
-      ref={ref}
-      size={size}
-      data-test-id="avatarList-collapsedavatars"
-    >
+    <Tag ref={ref} data-test-id="avatarList-collapsedavatars" variant="muted">
       {children}
-    </CollapsedAvatarsCicle>
+    </Tag>
   );
 }
 
@@ -100,10 +84,7 @@ export function AvatarList({
           renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
         ) : (
           <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
-            <CollapsedAvatars
-              size={avatarSize}
-              data-test-id="avatarList-collapsedavatars"
-            >
+            <CollapsedAvatars data-test-id="avatarList-collapsedavatars">
               {numCollapsedAvatars < 99 && '+'}
               {numCollapsedAvatars}
             </CollapsedAvatars>
@@ -186,20 +167,4 @@ const StyledUserAvatar = styled(UserAvatar)`
 const StyledTeamAvatar = styled(TeamAvatar)`
   overflow: hidden;
   ${AvatarStyle}
-`;
-
-const CollapsedAvatarsCicle = styled('div')<{size: number}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  text-align: center;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  background-color: ${p => p.theme.colors.gray200};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => Math.floor(p.size / 2.3)}px;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
-  border-radius: 50%;
-  ${AvatarStyle};
 `;

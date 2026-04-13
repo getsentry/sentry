@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import Accordion from 'sentry/components/container/accordion';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Accordion} from 'sentry/components/container/accordion';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   HeaderContainer,
@@ -19,12 +19,12 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
-import ExampleReplaysList from 'sentry/views/replays/selectors/exampleReplaysList';
-import ProjectInfo from 'sentry/views/replays/selectors/projectInfo';
+import {ExampleReplaysList} from 'sentry/views/replays/selectors/exampleReplaysList';
+import {ProjectInfo} from 'sentry/views/replays/selectors/projectInfo';
 import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
 import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 
-export default function DeadRageSelectorCards() {
+export function DeadRageSelectorCards() {
   return (
     <SplitCardContainer>
       <AccordionWidget

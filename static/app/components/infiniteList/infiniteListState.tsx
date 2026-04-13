@@ -17,7 +17,7 @@ interface Props<Data> {
   loadingMessage?: () => React.ReactNode;
 }
 
-export default function InfiniteListState<Data>({
+export function InfiniteListState<Data>({
   backgroundUpdatingMessage = BackgroundUpdatingMessage,
   children,
   errorMessage = ErrorMessage,

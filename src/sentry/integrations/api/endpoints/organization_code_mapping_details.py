@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
@@ -21,7 +21,7 @@ from .organization_code_mappings import (
 )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {

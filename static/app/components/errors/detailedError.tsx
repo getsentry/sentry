@@ -29,7 +29,13 @@ type Props = {
   onRetry?: (e: React.MouseEvent) => void;
 };
 
-function DetailedError({className, heading, message, onRetry, hideSupportLinks}: Props) {
+export function DetailedError({
+  className,
+  heading,
+  message,
+  onRetry,
+  hideSupportLinks,
+}: Props) {
   const showFooter = !!onRetry || !hideSupportLinks;
   const lastEventId = getLastEventId();
 
@@ -94,5 +100,3 @@ const ErrorFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-top: ${p => p.theme.space.xl};
 `;
-
-export default DetailedError;

@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import HotkeysLabel from 'sentry/components/hotkeysLabel';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -53,7 +53,7 @@ type Props = {
   visibleShortcuts?: Shortcut[];
 };
 
-function SearchDropdown({
+export function SearchDropdown({
   className,
   loading,
   items,
@@ -147,7 +147,7 @@ function SearchDropdown({
                 onClick={() => runShortcut(shortcut)}
               >
                 <HotkeyGlyphWrapper>
-                  <HotkeysLabel
+                  <Hotkey
                     value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
                   />
                 </HotkeyGlyphWrapper>
@@ -168,8 +168,6 @@ function SearchDropdown({
     </SearchDropdownOverlay>
   );
 }
-
-export default SearchDropdown;
 
 type HeaderItemProps = {
   group: SearchGroup;
@@ -625,7 +623,7 @@ const Documentation = styled('span')`
   white-space: pre;
 `;
 
-const DropdownFooter = styled(`div`)`
+const DropdownFooter = styled('div')`
   width: 100%;
   min-height: 45px;
   background-color: ${p => p.theme.tokens.background.secondary};

@@ -8,11 +8,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
-import MenuItem from 'sentry/components/menuItem';
+import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
@@ -23,7 +23,8 @@ type Props = {
   title: React.ComponentType<TitleProps>;
 };
 
-function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const menuEl = useRef<Element | null>(null);
 
@@ -75,7 +76,7 @@ function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
               onClick={() => {
                 const sortLink = generateSortLink({field: operation});
                 if (sortLink) {
-                  browserHistory.push(sortLink);
+                  navigate(sortLink);
                 }
               }}
             />
@@ -246,5 +247,3 @@ const DropdownContent = styled('div')`
 const TitleWrapper = styled('div')`
   cursor: pointer;
 `;
-
-export default OperationSort;

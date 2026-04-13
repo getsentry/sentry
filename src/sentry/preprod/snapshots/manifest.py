@@ -6,8 +6,9 @@ from pydantic import BaseModel, Field
 
 
 class ImageMetadata(BaseModel):
+    content_hash: str | None = None
     display_name: str | None = None
-    image_file_name: str
+    group: str | None = None
     width: int = Field(ge=0)
     height: int = Field(ge=0)
 
@@ -17,6 +18,7 @@ class ImageMetadata(BaseModel):
 
 class SnapshotManifest(BaseModel):
     images: dict[str, ImageMetadata]
+    diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
 
 
 class ComparisonImageResult(BaseModel):

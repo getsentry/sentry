@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
     name="sentry.integrations.source_code_management.tasks.pr_comment_workflow",
     namespace=integrations_tasks,
     processing_deadline_duration=45,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def pr_comment_workflow(pr_id: int, project_id: int) -> None:
     cache_key = _debounce_pr_comment_cache_key(pullrequest_id=pr_id)

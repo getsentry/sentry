@@ -5,8 +5,8 @@ import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import List from 'sentry/components/list';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';

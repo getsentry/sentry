@@ -6,7 +6,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 
@@ -39,13 +39,13 @@ describe('Testing new onboarding ui', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/keys/`,
+      url: '/projects/org-slug/project-slug/keys/',
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/sdks/`,
+      url: '/organizations/org-slug/sdks/',
       method: 'GET',
     });
 
@@ -62,7 +62,7 @@ describe('Testing new onboarding ui', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: projectMock,
     });
@@ -115,7 +115,7 @@ describe('Testing new onboarding ui', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: projectMock,
     });
@@ -177,7 +177,7 @@ describe('Testing new onboarding ui', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: projectMock,
     });
@@ -235,7 +235,7 @@ describe('Testing new onboarding ui', () => {
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {
         location: {
-          pathname: `/onboarding/`,
+          pathname: '/onboarding/',
           query: {
             guidedStep: '4',
           },

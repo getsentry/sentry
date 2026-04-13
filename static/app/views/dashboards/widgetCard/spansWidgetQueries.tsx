@@ -10,7 +10,7 @@ import type {
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -54,7 +54,7 @@ type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
   };
 };
 
-function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
+export function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       let seriesConfidence: Confidence | null;
@@ -174,5 +174,3 @@ function SpansWidgetQueriesSingleRequestImpl({
     fixed: <div />,
   });
 }
-
-export default SpansWidgetQueries;

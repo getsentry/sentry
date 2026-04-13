@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {maybeEquationAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
@@ -13,13 +13,13 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
   }
 
   if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
-    return `${timeSeries.groupBy
+    return timeSeries.groupBy
       ?.map(groupBy => {
         if (Array.isArray(groupBy.value)) {
           return JSON.stringify(groupBy.value);
         }
 
-        if (groupBy.key === 'release' && groupBy.value) {
+        if (groupBy.key === 'release' && typeof groupBy.value === 'string') {
           return formatVersion(groupBy.value);
         }
 
@@ -27,9 +27,9 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return t('(no value)');
         }
 
-        return `${groupBy.value}`;
+        return String(groupBy.value);
       })
-      .join(',')}`;
+      .join(',');
   }
 
   let {yAxis: seriesName} = timeSeries;

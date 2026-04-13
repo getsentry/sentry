@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -192,7 +192,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         return release_version or None
 
 
-@region_silo_model
+@cell_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -637,11 +637,11 @@ class Release(Model):
                     organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
                 )[0]
                 # update head commit for repo/release if exists
-                ReleaseHeadCommit.objects.create_or_update(
+                ReleaseHeadCommit.objects.update_or_create(
                     organization_id=self.organization_id,
                     repository_id=repo.id,
                     release=self,
-                    values={"commit": commit},
+                    defaults={"commit": commit},
                 )
             if fetch:
                 prev_release = get_previous_release(self)

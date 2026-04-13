@@ -5,15 +5,16 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -56,7 +57,7 @@ export function MetricsDataSwitcherAlert(
   props: MetricEnhancedDataAlertProps
 ): React.ReactElement | null {
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const isOnFallbackThresolds = props.organization.features.includes(
     'performance-mep-bannerless-ui'
@@ -89,8 +90,8 @@ export function MetricsDataSwitcherAlert(
   }, [location, props.projects]);
 
   const handleSwitchToCompatibleProjects = useCallback(() => {
-    updateProjects(props.compatibleProjects || [], router);
-  }, [props.compatibleProjects, router]);
+    updateProjects(props.compatibleProjects || [], location, navigate);
+  }, [props.compatibleProjects, location, navigate]);
 
   if (!props.shouldNotifyUnnamedTransactions && !props.shouldWarnIncompatibleSDK) {
     // Control showing generic sdk-alert here since stacking alerts is noisy.
@@ -122,7 +123,7 @@ export function MetricsDataSwitcherAlert(
               data-test-id="landing-mep-alert-multi-project-all-incompatible"
             >
               {tct(
-                `A few projects are incompatible with dynamic sampling. To enable this feature [updateSDK].`,
+                'A few projects are incompatible with dynamic sampling. To enable this feature [updateSDK].',
                 {
                   updateSDK,
                 }
@@ -138,7 +139,7 @@ export function MetricsDataSwitcherAlert(
             data-test-id="landing-mep-alert-multi-project-incompatible"
           >
             {tct(
-              `A few projects are incompatible with dynamic sampling. You can either [updateSDK] or [onlyViewCompatible]`,
+              'A few projects are incompatible with dynamic sampling. You can either [updateSDK] or [onlyViewCompatible]',
               {
                 updateSDK,
                 onlyViewCompatible: (
@@ -160,7 +161,7 @@ export function MetricsDataSwitcherAlert(
           data-test-id="landing-mep-alert-single-project-incompatible"
         >
           {tct(
-            `Your project has an outdated SDK which is incompatible with dynamic sampling. To enable this feature [updateSDK].`,
+            'Your project has an outdated SDK which is incompatible with dynamic sampling. To enable this feature [updateSDK].',
             {
               updateSDK,
             }
@@ -177,7 +178,7 @@ export function MetricsDataSwitcherAlert(
         <Alert.Container>
           <Alert variant="warning" data-test-id="landing-mep-alert-unnamed-discover">
             {tct(
-              `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
+              'You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]',
               {
                 discover,
               }
@@ -191,7 +192,7 @@ export function MetricsDataSwitcherAlert(
       <Alert.Container>
         <Alert variant="warning" data-test-id="landing-mep-alert-unnamed-discover-or-set">
           {tct(
-            `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
+            'You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]',
             {
               setNames: (
                 <ExternalLink href={docsLink}>{t('set names manually')}</ExternalLink>

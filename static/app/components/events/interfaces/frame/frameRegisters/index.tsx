@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';

@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {MobileVital, WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
@@ -81,7 +81,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
         return (
           <div key={vitalKey}>
             <strong>
-              {`${vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}`}:
+              {vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}:
             </strong>{' '}
             <span>{formattedValue}</span>
             {vital?.score !== undefined &&
@@ -144,7 +144,7 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   return (
     <Flex>
       <VitalPillName status={status}>
-        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+        <Tooltip title={toolTipTitle}>{acronym}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </Flex>

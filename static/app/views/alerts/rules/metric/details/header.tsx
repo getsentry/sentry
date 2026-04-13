@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import Access from 'sentry/components/acl/access';
-import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
+import {Access} from 'sentry/components/acl/access';
+import {SnoozeAlert} from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,6 +24,8 @@ import {
   deprecateTransactionAlerts,
   hasEAPAlerts,
 } from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   hasMetricRuleDetailsError: boolean;
@@ -37,13 +39,14 @@ type Props = {
   rule?: MetricRule;
 };
 
-function DetailsHeader({
+export function DetailsHeader({
   hasMetricRuleDetailsError,
   rule,
   organization,
   project,
   onSnooze,
 }: Props) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const isRuleReady = !!rule && !hasMetricRuleDetailsError;
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink = rule
@@ -55,7 +58,7 @@ function DetailsHeader({
 
   const duplicateLink = {
     pathname: makeAlertsPathname({
-      path: `/new/metric/`,
+      path: '/new/metric/',
       organization,
     }),
     query: {
@@ -88,7 +91,7 @@ function DetailsHeader({
             {
               label: t('Alerts'),
               to: makeAlertsPathname({
-                path: `/rules/`,
+                path: '/rules/',
                 organization,
               }),
             },
@@ -111,8 +114,8 @@ function DetailsHeader({
           {ruleTitle}
         </RuleTitle>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
+      {hasPageFrameFeature ? (
+        <TopBar.Slot name="actions">
           {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
@@ -128,7 +131,6 @@ function DetailsHeader({
             </Access>
           )}
           <LinkButton
-            size="sm"
             icon={<IconCopy />}
             to={duplicateLink}
             disabled={deprecateTransactionsAlerts}
@@ -144,16 +146,53 @@ function DetailsHeader({
           >
             {t('Duplicate')}
           </LinkButton>
-          <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
+          <LinkButton icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </LinkButton>
-        </Grid>
-      </Layout.HeaderActions>
+        </TopBar.Slot>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            {rule && project && (
+              <Access access={['alerts:write']}>
+                {({hasAccess}) => (
+                  <SnoozeAlert
+                    isSnoozed={rule?.snoozeForEveryone ?? false}
+                    onSnooze={onSnooze}
+                    ruleId={rule.id}
+                    projectSlug={project.slug}
+                    hasAccess={hasAccess}
+                    type="metric"
+                  />
+                )}
+              </Access>
+            )}
+            <LinkButton
+              size="sm"
+              icon={<IconCopy />}
+              to={duplicateLink}
+              disabled={deprecateTransactionsAlerts}
+              tooltipProps={{
+                title: deprecateTransactionsAlerts
+                  ? hasEAPAlerts(organization)
+                    ? t(
+                        'Transaction alerts are being deprecated. Please create Span alerts instead.'
+                      )
+                    : t('Transaction alerts are being deprecated.')
+                  : undefined,
+              }}
+            >
+              {t('Duplicate')}
+            </LinkButton>
+            <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>
+              {t('Edit Rule')}
+            </LinkButton>
+          </Grid>
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }
-
-export default DetailsHeader;
 
 const RuleTitle = styled(Layout.Title, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',

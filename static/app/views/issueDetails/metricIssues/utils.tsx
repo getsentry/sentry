@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';

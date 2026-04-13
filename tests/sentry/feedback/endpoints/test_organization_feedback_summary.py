@@ -9,7 +9,7 @@ from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
@@ -43,7 +43,7 @@ def test_get_summary_from_seer_http_errors(mock_make_seer_api_request: MagicMock
         assert get_summary_from_seer(["hello world"]) is None
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationFeedbackSummaryTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-summary"
 

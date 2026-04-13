@@ -18,7 +18,7 @@ type EventComparisonProps = {
   project: Project;
 };
 
-function EventComparison({event, project}: EventComparisonProps) {
+export function EventComparison({event, project}: EventComparisonProps) {
   const now = useMemo(() => Date.now(), []);
   const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const {aggregateRange1, aggregateRange2, dataStart, breakpoint, transaction} =
@@ -55,8 +55,6 @@ function EventComparison({event, project}: EventComparisonProps) {
     </InterimSection>
   );
 }
-
-export default EventComparison;
 
 const StyledGrid = styled('div')`
   display: grid;

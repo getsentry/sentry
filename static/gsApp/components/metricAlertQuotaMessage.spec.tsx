@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {MetricAlertQuotaMessage} from './metricAlertQuotaMessage';
 

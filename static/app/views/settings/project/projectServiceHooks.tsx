@@ -9,29 +9,29 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import Truncate from 'sentry/components/truncate';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {Truncate} from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
   hook: ServiceHook;
@@ -79,7 +79,7 @@ export default function ProjectServiceHooks() {
     refetch,
   } = useApiQuery<ServiceHook[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
       }),
     ],
@@ -108,7 +108,7 @@ export default function ProjectServiceHooks() {
       setApiQueryData<ServiceHook[]>(
         queryClient,
         [
-          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/`, {
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/', {
             path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
           }),
         ],

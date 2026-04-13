@@ -2,8 +2,9 @@ import {useCallback} from 'react';
 import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
-import getDuration from 'sentry/utils/duration/getDuration';
-import useRouter from 'sentry/utils/useRouter';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {usePageFilterDates} from './useMonitorDates';
 
@@ -29,7 +30,8 @@ export interface DateNavigation {
 }
 
 export function useDateNavigation(): DateNavigation {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {since, until, now} = usePageFilterDates();
 
   const windowMs = until.getTime() - since.getTime();
@@ -38,8 +40,12 @@ export function useDateNavigation(): DateNavigation {
     const nextUntil = moment(until).subtract(windowMs, 'milliseconds');
     const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
 
-    updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, router);
-  }, [windowMs, router, until]);
+    updateDateTime(
+      {start: nextSince.toDate(), end: nextUntil.toDate()},
+      location,
+      navigate
+    );
+  }, [windowMs, location, navigate, until]);
 
   const navigateToNextPeriod = useCallback(() => {
     // Do not navigate past the current time
@@ -49,10 +55,15 @@ export function useDateNavigation(): DateNavigation {
     );
     const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
 
-    updateDateTime({start: nextSince.toDate(), end: nextUntil.toDate()}, router, {
-      keepCursor: true,
-    });
-  }, [until, windowMs, now, router]);
+    updateDateTime(
+      {start: nextSince.toDate(), end: nextUntil.toDate()},
+      location,
+      navigate,
+      {
+        keepCursor: true,
+      }
+    );
+  }, [until, windowMs, now, location, navigate]);
 
   return {
     endIsNow: until.getTime() === now.getTime(),

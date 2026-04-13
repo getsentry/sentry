@@ -9,7 +9,7 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
@@ -27,7 +27,7 @@ interface Props {
   renderContextMenu?: () => React.ReactNode;
 }
 
-function DashboardCard({
+export function DashboardCard({
   title,
   detail,
   createdBy,
@@ -176,12 +176,12 @@ const Detail = styled('div')`
 `;
 
 const CardBody = styled('div')`
-  background: ${p => p.theme.colors.gray100};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.colors.gray100};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const DateSelected = styled('div')`
@@ -204,5 +204,3 @@ const StyledButton = styled(Button)`
   margin-right: -10px;
   padding: 5px;
 `;
-
-export default DashboardCard;

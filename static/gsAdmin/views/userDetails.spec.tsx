@@ -1,8 +1,9 @@
+import {notifyManager} from '@tanstack/react-query';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UserDetails from 'admin/views/userDetails';
+import {UserDetails} from 'admin/views/userDetails';
 
 describe('User Details', () => {
   const mockUser = UserFixture({
@@ -12,6 +13,9 @@ describe('User Details', () => {
   });
 
   beforeEach(() => {
+    // Use synchronous scheduling to avoid React 19 act() timing issues
+    // with TanStack Query's default setTimeout-based batching
+    notifyManager.setScheduler(cb => cb());
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/users/${mockUser.id}/`,
@@ -24,7 +28,7 @@ describe('User Details', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
       body: [
         {
           id: '8',
@@ -40,6 +44,11 @@ describe('User Details', () => {
     });
   });
 
+  afterEach(() => {
+    // Restore default scheduler
+    notifyManager.setScheduler(setTimeout);
+  });
+
   describe('page rendering', () => {
     it('renders correct sections', async () => {
       render(<UserDetails />, {
@@ -47,7 +56,7 @@ describe('User Details', () => {
           location: {
             pathname: `/admin/users/${mockUser.id}/`,
           },
-          route: `/admin/users/:userId/`,
+          route: '/admin/users/:userId/',
         },
       });
 
@@ -62,7 +71,7 @@ describe('User Details', () => {
           location: {
             pathname: `/admin/users/${mockUser.id}/`,
           },
-          route: `/admin/users/:userId/`,
+          route: '/admin/users/:userId/',
         },
       });
 
@@ -79,7 +88,7 @@ describe('User Details', () => {
           location: {
             pathname: `/admin/users/${mockUser.id}/`,
           },
-          route: `/admin/users/:userId/`,
+          route: '/admin/users/:userId/',
         },
       });
 

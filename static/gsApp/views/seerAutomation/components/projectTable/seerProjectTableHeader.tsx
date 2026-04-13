@@ -5,19 +5,26 @@ import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  useBulkMutateSelectedAgent,
+  useFetchAgentOptions,
+} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   onSortClick: (key: Sort) => void;
@@ -30,21 +37,48 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Autofix Agent'), key: 'fixes'},
+  {
+    title: ({organization}: {organization: Organization}) => (
+      <Flex gap="sm" align="center">
+        {t('Preferred Coding Agent')}
+        <InfoTip
+          title={tct(
+            'Select the coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
+            {
+              manageLink: (
+                <Link
+                  to={{
+                    pathname: normalizeUrl(
+                      `/settings/${organization.slug}/integrations/`
+                    ),
+                    query: {category: 'coding agent'},
+                  }}
+                >
+                  {t('Manage Coding Agent Integrations')}
+                </Link>
+              ),
+            }
+          )}
+        />
+      </Flex>
+    ),
+    key: 'fixes',
+    sortKey: 'agent',
+  },
   {
     title: (
       <Flex gap="sm" align="center">
         {t('PR Creation')}
         <InfoTip
           title={t(
-            'This setting only applies when an Autofix Agent is configured to run automatically.'
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
           )}
         />
       </Flex>
     ),
     key: 'pr_creation',
   },
-  {title: t('Repos'), key: 'repos'},
+  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
 ];
 
 function getMutationCallbacks(count: number) {
@@ -64,7 +98,7 @@ function getMutationCallbacks(count: number) {
   };
 }
 
-export default function ProjectTableHeader({
+export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,
@@ -91,15 +125,18 @@ export default function ProjectTableHeader({
     [projects, selectedIds]
   );
 
+  const agentOptions = useFetchAgentOptions({organization});
+  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
+
   return (
     <Fragment>
       <TableHeader>
-        {/* <SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell> */}
+        </SimpleTable.HeaderCell>
         {COLUMNS.map(({title, key, sortKey}) => (
           <SimpleTable.HeaderCell
             key={key}
@@ -119,7 +156,7 @@ export default function ProjectTableHeader({
             }
             sort={sort?.field === sortKey ? sort.kind : undefined}
           >
-            {title}
+            {typeof title === 'function' ? title({organization}) : title}
           </SimpleTable.HeaderCell>
         ))}
       </TableHeader>
@@ -133,6 +170,23 @@ export default function ProjectTableHeader({
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
+            <DropdownMenu
+              isDisabled={!canWrite}
+              size="xs"
+              items={
+                agentOptions.data?.map(({value, label}) => ({
+                  key: typeof value === 'object' ? value.provider : value,
+                  label,
+                  onAction: () => {
+                    const selectedProjects = projects.filter(p =>
+                      projectIds.includes(p.id)
+                    );
+                    bulkMutateSelectedAgent(selectedProjects, value);
+                  },
+                })) ?? []
+              }
+              triggerLabel={t('Agent')}
+            />
             <DropdownMenu
               isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
@@ -156,7 +210,7 @@ export default function ProjectTableHeader({
                     ),
                 },
               ]}
-              triggerLabel={t('Auto Create PRs')}
+              triggerLabel={t('Create PRs')}
             />
           </TableCellsRemainingContent>
         </TableHeader>

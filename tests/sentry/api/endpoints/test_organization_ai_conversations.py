@@ -23,11 +23,11 @@ from .test_organization_ai_conversations_base import (
 class TestExtractContentFromParts:
     """Unit tests for _extract_content_from_parts helper function"""
 
-    def test_single_text_part(self):
+    def test_single_text_part(self) -> None:
         msg = {"parts": [{"type": "text", "content": "Hello, world!"}]}
         assert _extract_content_from_parts(msg) == "Hello, world!"
 
-    def test_multiple_text_parts(self):
+    def test_multiple_text_parts(self) -> None:
         msg = {
             "parts": [
                 {"type": "text", "content": "First part."},
@@ -36,7 +36,7 @@ class TestExtractContentFromParts:
         }
         assert _extract_content_from_parts(msg) == "First part.\nSecond part."
 
-    def test_mixed_part_types(self):
+    def test_mixed_part_types(self) -> None:
         msg = {
             "parts": [
                 {"type": "text", "content": "User question"},
@@ -47,23 +47,23 @@ class TestExtractContentFromParts:
         # Should only extract text parts
         assert _extract_content_from_parts(msg) == "User question\nMore text"
 
-    def test_empty_parts(self):
+    def test_empty_parts(self) -> None:
         msg: dict[str, Any] = {"parts": []}
         assert _extract_content_from_parts(msg) is None
 
-    def test_no_parts_key(self):
+    def test_no_parts_key(self) -> None:
         msg = {"content": "old format"}
         assert _extract_content_from_parts(msg) is None
 
-    def test_parts_not_list(self):
+    def test_parts_not_list(self) -> None:
         msg = {"parts": "invalid"}
         assert _extract_content_from_parts(msg) is None
 
-    def test_empty_content(self):
+    def test_empty_content(self) -> None:
         msg = {"parts": [{"type": "text", "content": ""}]}
         assert _extract_content_from_parts(msg) is None
 
-    def test_missing_content(self):
+    def test_missing_content(self) -> None:
         msg = {"parts": [{"type": "text"}]}
         assert _extract_content_from_parts(msg) is None
 
@@ -71,38 +71,38 @@ class TestExtractContentFromParts:
 class TestExtractFirstUserMessage:
     """Unit tests for _extract_first_user_message helper function"""
 
-    def test_old_format_content(self):
+    def test_old_format_content(self) -> None:
         messages = '[{"role": "user", "content": "Hello"}]'
         assert _extract_first_user_message(messages) == "Hello"
 
-    def test_new_format_parts(self):
+    def test_new_format_parts(self) -> None:
         messages = '[{"role": "user", "parts": [{"type": "text", "content": "Hello"}]}]'
         assert _extract_first_user_message(messages) == "Hello"
 
-    def test_prefers_old_format_when_both_exist(self):
+    def test_prefers_old_format_when_both_exist(self) -> None:
         messages = (
             '[{"role": "user", "content": "Old", "parts": [{"type": "text", "content": "New"}]}]'
         )
         assert _extract_first_user_message(messages) == "Old"
 
-    def test_finds_first_user_message(self):
+    def test_finds_first_user_message(self) -> None:
         messages = '[{"role": "system", "content": "System"}, {"role": "user", "content": "First"}, {"role": "user", "content": "Second"}]'
         assert _extract_first_user_message(messages) == "First"
 
-    def test_returns_none_for_no_user_messages(self):
+    def test_returns_none_for_no_user_messages(self) -> None:
         messages = (
             '[{"role": "system", "content": "System"}, {"role": "assistant", "content": "Hi"}]'
         )
         assert _extract_first_user_message(messages) is None
 
-    def test_returns_none_for_invalid_json(self):
+    def test_returns_none_for_invalid_json(self) -> None:
         messages = "invalid json"
         assert _extract_first_user_message(messages) is None
 
-    def test_returns_none_for_none_input(self):
+    def test_returns_none_for_none_input(self) -> None:
         assert _extract_first_user_message(None) is None
 
-    def test_returns_none_for_empty_list(self):
+    def test_returns_none_for_empty_list(self) -> None:
         messages = "[]"
         assert _extract_first_user_message(messages) is None
 
@@ -110,22 +110,22 @@ class TestExtractFirstUserMessage:
 class TestGetFirstInputMessage:
     """Unit tests for _get_first_input_message helper function"""
 
-    def test_prefers_new_format(self):
+    def test_prefers_new_format(self) -> None:
         row = {
             "gen_ai.input.messages": '[{"role": "user", "parts": [{"type": "text", "content": "New"}]}]',
             "gen_ai.request.messages": '[{"role": "user", "content": "Old"}]',
         }
         assert _get_first_input_message(row) == "New"
 
-    def test_falls_back_to_old_format(self):
+    def test_falls_back_to_old_format(self) -> None:
         row = {"gen_ai.request.messages": '[{"role": "user", "content": "Old"}]'}
         assert _get_first_input_message(row) == "Old"
 
-    def test_returns_none_when_both_empty(self):
+    def test_returns_none_when_both_empty(self) -> None:
         row: dict[str, Any] = {}
         assert _get_first_input_message(row) is None
 
-    def test_skips_invalid_new_format(self):
+    def test_skips_invalid_new_format(self) -> None:
         row = {
             "gen_ai.input.messages": "invalid",
             "gen_ai.request.messages": '[{"role": "user", "content": "Old"}]',
@@ -136,35 +136,35 @@ class TestGetFirstInputMessage:
 class TestGetLastOutput:
     """Unit tests for _get_last_output helper function"""
 
-    def test_prefers_new_format_text_part(self):
+    def test_prefers_new_format_text_part(self) -> None:
         row = {
             "gen_ai.output.messages": '[{"role": "assistant", "parts": [{"type": "text", "content": "New"}]}]',
             "gen_ai.response.text": "Old",
         }
         assert _get_last_output(row) == "New"
 
-    def test_prefers_new_format_content(self):
+    def test_prefers_new_format_content(self) -> None:
         row = {
             "gen_ai.output.messages": '[{"role": "assistant", "content": "New content"}]',
             "gen_ai.response.text": "Old",
         }
         assert _get_last_output(row) == "New content"
 
-    def test_falls_back_to_old_format(self):
+    def test_falls_back_to_old_format(self) -> None:
         row = {"gen_ai.response.text": "Old response"}
         assert _get_last_output(row) == "Old response"
 
-    def test_returns_none_when_empty(self):
+    def test_returns_none_when_empty(self) -> None:
         row: dict[str, Any] = {}
         assert _get_last_output(row) is None
 
-    def test_finds_last_assistant_message(self):
+    def test_finds_last_assistant_message(self) -> None:
         row = {
             "gen_ai.output.messages": '[{"role": "assistant", "content": "First"}, {"role": "user", "content": "Question"}, {"role": "assistant", "content": "Last"}]'
         }
         assert _get_last_output(row) == "Last"
 
-    def test_skips_invalid_new_format(self):
+    def test_skips_invalid_new_format(self) -> None:
         row = {
             "gen_ai.output.messages": "invalid",
             "gen_ai.response.text": "Fallback",
@@ -637,7 +637,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_first_input_last_output(self) -> None:
         """Test firstInput and lastOutput are correctly populated from ai_client spans"""
-        now = before_now(days=90).replace(microsecond=0)
+        now = before_now(days=11).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -699,7 +699,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_no_ai_client_spans_filtered_out(self) -> None:
         """Test conversations without input/output are filtered out"""
-        now = before_now(days=91).replace(microsecond=0)
+        now = before_now(days=12).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -732,7 +732,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=25).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
 
@@ -770,7 +770,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_conversation_with_user_data(self) -> None:
         """Test that user data is extracted from spans and returned in the response"""
-        now = before_now(days=100).replace(microsecond=0)
+        now = before_now(days=13).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -822,7 +822,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_conversation_with_partial_user_data(self) -> None:
         """Test that user is returned even with partial user data"""
-        now = before_now(days=101).replace(microsecond=0)
+        now = before_now(days=14).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -857,7 +857,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_input_output_messages(self) -> None:
         """Test that new format gen_ai.input.messages and gen_ai.output.messages are parsed correctly"""
-        now = before_now(days=102).replace(microsecond=0)
+        now = before_now(days=16).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -904,7 +904,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_with_multiple_text_parts(self) -> None:
         """Test that multiple text parts are concatenated correctly"""
-        now = before_now(days=103).replace(microsecond=0)
+        now = before_now(days=17).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -955,7 +955,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_priority_over_old_format(self) -> None:
         """Test that new format attributes take priority over old format when both exist"""
-        now = before_now(days=104).replace(microsecond=0)
+        now = before_now(days=18).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1010,7 +1010,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_new_format_parts_structure(self) -> None:
         """Test that new format with parts structure works correctly"""
-        now = before_now(days=105).replace(microsecond=0)
+        now = before_now(days=19).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1055,7 +1055,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_names_populated(self) -> None:
         """Test that toolNames is populated with distinct tool names from tool spans"""
-        now = before_now(days=106).replace(microsecond=0)
+        now = before_now(days=21).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1128,7 +1128,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_errors_counted(self) -> None:
         """Test that toolErrors counts only failed tool spans"""
-        now = before_now(days=107).replace(microsecond=0)
+        now = before_now(days=35).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1212,7 +1212,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_empty_tool_names_when_no_tool_calls(self) -> None:
         """Test that toolNames is empty when there are no tool calls"""
-        now = before_now(days=108).replace(microsecond=0)
+        now = before_now(days=23).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1257,7 +1257,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         This prevents double counting when both agent spans (invoke_agent) and their
         child ai_client spans have token/cost data.
         """
-        now = before_now(days=109).replace(microsecond=0)
+        now = before_now(days=24).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 

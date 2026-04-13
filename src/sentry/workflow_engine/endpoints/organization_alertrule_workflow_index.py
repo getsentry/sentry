@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -26,7 +26,7 @@ from sentry.workflow_engine.endpoints.validators.alertrule_workflow import (
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAlertRuleWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

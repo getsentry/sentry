@@ -370,7 +370,7 @@ describe('useCopyIssueDetails', () => {
 
       mockCopy.mockResolvedValue('');
 
-      jest.mocked(copyToClipboardModule.default).mockReturnValue({
+      jest.mocked(copyToClipboardModule.useCopyToClipboard).mockReturnValue({
         copy: mockCopy,
       });
 
@@ -386,18 +386,21 @@ describe('useCopyIssueDetails', () => {
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
-      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+      jest.spyOn(useOrganization, 'useOrganization').mockReturnValue(organization);
     });
 
     it('calls useCopyToClipboard hook', () => {
       renderHook(() => useCopyIssueDetails(group, event));
 
       // Check that the hook was called
-      expect(copyToClipboardModule.default).toHaveBeenCalled();
+      expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
+      const useHotkeysMock = jest.spyOn(
+        require('@sentry/scraps/hotkey/useHotkeys'),
+        'useHotkeys'
+      );
 
       renderHook(() => useCopyIssueDetails(group, event));
 

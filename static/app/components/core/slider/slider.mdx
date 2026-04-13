@@ -16,16 +16,13 @@ import {Fragment, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Slider} from '@sentry/scraps/slider';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/slider';
+export const documentation = import('!!type-loader!@sentry/scraps/slider');
 
-export {documentation};
-
-`<Slider>` is a range slider component that allows users to select a numeric value by dragging a handle along a track. It provides visual and interactive feedback, making it ideal for adjusting continuous values.
-
-Use `<Slider>` for selecting numeric values from a range, such as volume controls, zoom levels, or adjustable thresholds.
+`<Slider>` allows users to select a numeric value by dragging a thumb along a track. It shows the current value above the thumb, with min/max labels that fade in during interaction.
 
 ```jsx
 const [value, setValue] = useState(50);
@@ -40,9 +37,11 @@ The simplest slider with default range (0-100):
 export function BasicDemo() {
   const [value, setValue] = useState(50);
   return (
-    <Stack as="label" align="center" gap="md">
-      Basic slider (value: {value})
-      <Slider value={value} onChange={setValue} />
+    <Stack gap="md" flexGrow={1} padding="3xl">
+      <Text size="lg" tabular>
+        Value: {value}
+      </Text>
+      <Slider value={value} onChange={setValue} aria-label="Basic slider" />
     </Stack>
   );
 }
@@ -54,7 +53,7 @@ export function BasicDemo() {
 ```jsx
 const [value, setValue] = useState(50);
 
-<Slider value={value} onChange={setValue} />;
+<Slider value={value} onChange={setValue} aria-label="Basic slider" />;
 ```
 
 ## Min and Max Values
@@ -64,9 +63,17 @@ Use `min` and `max` props to define the slider's range:
 export function MinMaxDemo() {
   const [value, setValue] = useState(150);
   return (
-    <Stack as="label" align="center" gap="md">
-      Range 100-200 (value: {value})
-      <Slider value={value} onChange={setValue} min={100} max={200} />
+    <Stack gap="md" flexGrow={1} padding="3xl">
+      <Text size="lg" tabular>
+        Value: {value}
+      </Text>
+      <Slider
+        value={value}
+        onChange={setValue}
+        min={100}
+        max={200}
+        aria-label="Range slider"
+      />
     </Stack>
   );
 }
@@ -84,18 +91,14 @@ export function MinMaxDemo() {
 The `step` prop restricts which values can be selected. This creates discrete stops along the slider track.
 
 export function StepDemo() {
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState(50);
   return (
-    <Fragment>
-      <Stack as="label" align="center" gap="md">
-        Every 10th value (value: {value})
-        <Slider value={value} onChange={setValue} defaultValue={0} step={10} />
-      </Stack>
-      <Stack as="label" align="center" gap="md">
-        Steps of 25 (value: {value})
-        <Slider value={value} onChange={setValue} min={100} max={200} step={25} />
-      </Stack>
-    </Fragment>
+    <Stack gap="md" flexGrow={1} padding="3xl">
+      <Text size="lg" tabular>
+        Value: {value}
+      </Text>
+      <Slider value={value} onChange={setValue} step={10} aria-label="Step slider" />
+    </Stack>
   );
 }
 
@@ -104,37 +107,137 @@ export function StepDemo() {
 </Storybook.Demo>
 
 ```jsx
-// Step by 10
 <Slider value={value} onChange={setValue} step={10} />
+```
 
-// Custom range with steps
-<Slider value={value} onChange={setValue} min={100} max={200} step={25} />
+## Tick Marks
+
+Tick marks are purely visual indicators — they are independent from `step`. The `ticks` prop accepts an object with `count` for evenly spaced ticks, `interval` for fixed spacing, or `values` for explicit positions.
+
+export function TicksDemo() {
+  const [value1, setValue1] = useState(50);
+  const [value2, setValue2] = useState(50);
+  const [value3, setValue3] = useState(50);
+  return (
+    <Stack gap="xl" flexGrow={1} padding="3xl">
+      <Stack gap="md" flexGrow={1}>
+        <Text size="lg" tabular>
+          11 tick marks (value: {value1})
+        </Text>
+        <Slider
+          value={value1}
+          onChange={setValue1}
+          ticks={{count: 11}}
+          aria-label="Slider with tick count"
+        />
+      </Stack>
+      <Stack gap="md" flexGrow={1}>
+        <Text size="lg" tabular>
+          Ticks every 25 (value: {value2})
+        </Text>
+        <Slider
+          value={value2}
+          onChange={setValue2}
+          ticks={{interval: 25}}
+          aria-label="Slider with tick interval"
+        />
+      </Stack>
+      <Stack gap="md" flexGrow={1}>
+        <Text size="lg" tabular>
+          Ticks at specific values (value: {value3})
+        </Text>
+        <Slider
+          value={value3}
+          onChange={setValue3}
+          ticks={{values: [0, 10, 25, 50, 75, 100]}}
+          aria-label="Slider with tick values"
+        />
+      </Stack>
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <TicksDemo />
+</Storybook.Demo>
+
+```jsx
+// 11 evenly spaced tick marks
+<Slider ticks={{count: 11}} />
+
+// Tick marks every 25 units
+<Slider ticks={{interval: 25}} />
+
+// Tick marks at specific values
+<Slider ticks={{values: [0, 10, 25, 50, 75, 100]}} />
+```
+
+Note: ticks and step are decoupled. A slider with `step={1}` (smooth dragging) can display `ticks={{count: 5}}` as visual markers.
+
+## Tick Labels
+
+Set `labels: true` in the `ticks` object to display value labels below each tick mark:
+
+export function TickLabelsDemo() {
+  const [value, setValue] = useState(50);
+  return (
+    <Stack gap="md" flexGrow={1} padding="3xl">
+      <Text size="lg" tabular>
+        Value: {value}
+      </Text>
+      <Slider
+        value={value}
+        onChange={setValue}
+        ticks={{count: 5, labels: true}}
+        aria-label="Slider with tick labels"
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <TickLabelsDemo />
+</Storybook.Demo>
+
+```jsx
+<Slider ticks={{count: 5, labels: true}} />
 ```
 
 ## Label Formatting
 
-Use the `formatLabel` callback to customize how the value is displayed:
+Use the `formatOptions` prop to customize how values are displayed in the value label, edge labels, and tick labels. It accepts standard [`Intl.NumberFormatOptions`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat):
 
 export function FormatDemo() {
-  const [value, setValue] = useState(50);
+  const [value1, setValue1] = useState(50);
+  const [value2, setValue2] = useState(500);
   return (
-    <Fragment>
-      <Stack as="label" align="center" gap="md">
-        Percentage format
-        <Slider value={value} onChange={setValue} formatLabel={v => `${v}%`} />
-      </Stack>
-      <Stack as="label" align="center" gap="md">
-        Currency format
+    <Stack gap="xl" flexGrow={1} padding="3xl">
+      <Stack gap="md" flexGrow={1}>
+        <Text size="lg" tabular>
+          Percentage: {value1}%
+        </Text>
         <Slider
-          value={value}
-          onChange={setValue}
+          value={value1}
+          onChange={setValue1}
+          formatOptions={{style: 'unit', unit: 'percent'}}
+          aria-label="Percentage slider"
+        />
+      </Stack>
+      <Stack gap="md" flexGrow={1}>
+        <Text size="lg" tabular>
+          Currency: ${value2}
+        </Text>
+        <Slider
+          value={value2}
+          onChange={setValue2}
           min={0}
           max={1000}
           step={50}
-          formatLabel={v => `$${v}`}
+          formatOptions={{style: 'currency', currency: 'USD', maximumFractionDigits: 0}}
+          aria-label="Currency slider"
         />
       </Stack>
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -143,17 +246,9 @@ export function FormatDemo() {
 </Storybook.Demo>
 
 ```jsx
-<Slider
-  value={value}
-  onChange={setValue}
-  formatLabel={v => `${v}%`}
-/>
+<Slider formatOptions={{style: 'unit', unit: 'percent'}} />
 
-<Slider
-  value={value}
-  onChange={setValue}
-  formatLabel={v => `$${v}`}
-/>
+<Slider formatOptions={{style: 'currency', currency: 'USD', maximumFractionDigits: 0}} />
 ```
 
 ## Disabled State
@@ -161,10 +256,7 @@ export function FormatDemo() {
 Set `disabled` to prevent interaction with the slider:
 
 <Storybook.Demo>
-  <Stack as="label" align="center" gap="md">
-    Disabled slider
-    <Slider disabled defaultValue={50} />
-  </Stack>
+  <Slider disabled defaultValue={50} aria-label="Disabled slider" />
 </Storybook.Demo>
 
 ```jsx
@@ -193,60 +285,6 @@ const [value, setValue] = useState(50);
 - **Home**: Jump to minimum value
 - **End**: Jump to maximum value
 - **Page Up/Down**: Larger increments (10× step)
-
-## Usage Patterns
-
-### Volume Controls
-
-```jsx
-const [volume, setVolume] = useState(75);
-
-<label>
-  Volume
-  <Slider
-    value={volume}
-    onChange={setVolume}
-    min={0}
-    max={100}
-    formatLabel={v => `${v}%`}
-    aria-label="Volume level"
-  />
-</label>;
-```
-
-### Zoom Controls
-
-```jsx
-const [zoom, setZoom] = useState(100);
-
-<Slider
-  value={zoom}
-  onChange={setZoom}
-  min={50}
-  max={200}
-  step={10}
-  formatLabel={v => `${v}%`}
-  aria-label="Zoom level"
-/>;
-```
-
-### Threshold Adjustments
-
-```jsx
-const [threshold, setThreshold] = useState(80);
-
-<label>
-  Error Threshold
-  <Slider
-    value={threshold}
-    onChange={setThreshold}
-    min={0}
-    max={100}
-    step={5}
-    formatLabel={v => `${v}%`}
-  />
-</label>;
-```
 
 ## Accessibility
 
@@ -282,9 +320,8 @@ The component automatically includes:
 
 **Value Communication**
 
-- Use `formatLabel` to provide meaningful value displays
-- Consider showing the current value near the slider
-- Ensure the value format is clear to users
+- Use `formatOptions` to provide meaningful value displays
+- The slider's built-in value label, edge labels, and tick labels all use `formatOptions`
 
 **Keyboard Interaction**
 

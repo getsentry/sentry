@@ -523,9 +523,18 @@ type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
+/**
+ * Mirrors OwnershipRuleOwnerResponse from the backend
+ */
+interface OwnershipRuleOwner {
+  name: string;
+  type: 'user' | 'team';
+  id?: string;
+}
+
 export interface ParsedOwnershipRule {
   matcher: {pattern: string; type: string};
-  owners: Actor[];
+  owners: OwnershipRuleOwner[];
 }
 
 export type IssueOwnership = {
@@ -1019,6 +1028,7 @@ export interface BaseGroup {
   latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   seerAutofixLastTriggered?: string | null;
+  seerExplorerAutofixLastTriggered?: string | null;
   seerFixabilityScore?: number | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;

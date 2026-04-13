@@ -5,7 +5,7 @@ import Feature from 'sentry/components/acl/feature';
 import {IconBusiness} from 'sentry/icons';
 
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {isEnterprise} from 'getsentry/utils/billing';
 

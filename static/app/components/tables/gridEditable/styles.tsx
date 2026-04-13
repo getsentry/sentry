@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 
 const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
@@ -47,14 +47,16 @@ export const HeaderButtonContainer = styled('div')`
 export const Body = styled(
   ({
     children,
+    contentsBody,
     showVerticalScrollbar: _,
     ...props
   }: React.ComponentProps<typeof Panel> & {
     children?: React.ReactNode;
+    contentsBody?: boolean;
     showVerticalScrollbar?: boolean;
   }) => (
     <Panel {...props}>
-      <StyledPanelBody>{children}</StyledPanelBody>
+      <PanelBody display={contentsBody ? 'contents' : undefined}>{children}</PanelBody>
     </Panel>
   )
 )`
@@ -98,6 +100,12 @@ export const Grid = styled('table')<{
       ? css`
           height: 100%;
           max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+          flex: 1;
+          min-height: 0;
+
+          &:has(> thead + tbody) {
+            grid-template-rows: auto 1fr;
+          }
         `
       : ''}
 
@@ -246,21 +254,16 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
 const GridStatusWrapper = styled(GridBodyCell)`
   grid-column: 1 / -1;
   width: 100%;
-  height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
 `;
 
 const GridStatusFloat = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
-  overflow: hidden;
+  min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
 `;
 
 export function GridBodyCellStatus(props: any) {
@@ -336,8 +339,4 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  height: 100%;
 `;

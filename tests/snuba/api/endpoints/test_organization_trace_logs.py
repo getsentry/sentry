@@ -36,7 +36,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_invalid_trace_id(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -59,7 +59,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_simple(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -88,7 +88,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_multiple_traces(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -121,7 +121,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_sort(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -154,7 +154,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_orderby_validation(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -179,7 +179,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         project2 = self.create_project(organization=self.organization)
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -213,7 +213,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_query_field(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": trace_id_1},
@@ -245,7 +245,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             {"body": "test", "trace_id": trace_id},
             timestamp=self.ten_mins_ago,
         )
-        self.store_ourlogs([log])
+        self.store_eap_items([log])
 
         response = self.client.get(
             self.url,
@@ -278,7 +278,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 timestamp=self.ten_mins_ago,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
             mock_run_query.return_value = {
@@ -318,7 +318,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 timestamp=self.ten_mins_ago,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
             mock_run_query.return_value = {
@@ -352,7 +352,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
     def test_replay_id_simple(self) -> None:
         replay_id = "1" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "replay_id": replay_id},
@@ -378,7 +378,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["message"] == "foo"
 
     def test_replay_id_invalid(self) -> None:
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "replay_id": "1" * 32},
@@ -397,7 +397,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     def test_trace_and_replay_id_combined(self) -> None:
         trace_id = "1" * 32
         replay_id = "2" * 32
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "trace_log", "trace_id": trace_id},
@@ -426,7 +426,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert messages == {"trace_log", "replay_log"}
 
     def test_no_trace_or_replay_id(self) -> None:
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo", "trace_id": "1" * 32},

@@ -8,9 +8,9 @@ import type {Project} from 'sentry/types/project';
 import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
 import {ProjectAnrScoreCard} from './projectAnrScoreCard';
-import ProjectApdexScoreCard from './projectApdexScoreCard';
-import ProjectStabilityScoreCard from './projectStabilityScoreCard';
-import ProjectVelocityScoreCard from './projectVelocityScoreCard';
+import {ProjectApdexScoreCard} from './projectApdexScoreCard';
+import {ProjectStabilityScoreCard} from './projectStabilityScoreCard';
+import {ProjectVelocityScoreCard} from './projectVelocityScoreCard';
 
 type Props = {
   hasSessions: boolean | null;
@@ -23,7 +23,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectScoreCards({
+export function ProjectScoreCards({
   organization,
   selection,
   isProjectStabilized,
@@ -98,5 +98,3 @@ const CardWrapper = styled('div')`
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 `;
-
-export default ProjectScoreCards;

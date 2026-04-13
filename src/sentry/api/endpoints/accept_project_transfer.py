@@ -9,13 +9,13 @@ from rest_framework.response import Response
 
 from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializerWithProjectsAndTeams,
+    OrganizationWithProjectsAndTeamsSerializer,
 )
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.core.endpoints.project_transfer import SALT
@@ -34,7 +34,7 @@ class InvalidPayload(Exception):
     pass
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -94,7 +94,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
                 "organizations": serialize(
                     list(organizations),
                     request.user,
-                    DetailedOrganizationSerializerWithProjectsAndTeams(),
+                    OrganizationWithProjectsAndTeamsSerializer(),
                     access=request.access,
                 ),
                 "project": {"slug": project.slug, "id": project.id},

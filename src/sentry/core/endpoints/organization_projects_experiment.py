@@ -15,7 +15,7 @@ from rest_framework.serializers import ValidationError
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -63,7 +63,7 @@ class AuditData(TypedDict):
     target_object: int
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,

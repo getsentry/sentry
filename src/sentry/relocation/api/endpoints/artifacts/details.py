@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, StaffRequired, SuperuserRequired
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.auth.elevated_mode import has_elevated_mode
@@ -36,7 +36,7 @@ def _orjson_default(obj: Any) -> Any:
     raise TypeError
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RelocationArtifactDetailsEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     publish_status = {

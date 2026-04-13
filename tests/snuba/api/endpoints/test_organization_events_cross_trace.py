@@ -17,7 +17,7 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_spans(
             [
                 # only this event should show up since we'll filtered to trace_id
@@ -122,7 +122,7 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_spans(
             [
                 # only this event should show up since we'll filtered to trace_id
@@ -251,7 +251,7 @@ class OrganizationEventsCrossTraceEndpointTest(OrganizationEventsEndpointTestBas
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_spans(
             [
                 # only this event should show up since we'll filtered to trace_id

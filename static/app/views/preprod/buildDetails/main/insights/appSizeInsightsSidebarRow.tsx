@@ -14,7 +14,7 @@ import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
 import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
@@ -38,7 +38,7 @@ export function formatUpside(percentage: number): string {
     return `-${formatPercentage(percentage, 1)}`;
   }
   // Format smaller than 0.001 (so 0.1%) as "(~0%)"
-  return `~0%`;
+  return '~0%';
 }
 
 const INSIGHTS_WITH_MORE_INFO_MODAL = [

@@ -8,7 +8,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.toolbar.utils.url import is_origin_allowed
-from sentry.web.frontend.base import ProjectView, region_silo_view
+from sentry.web.frontend.base import ProjectView, cell_silo_view
 
 TEMPLATE = "sentry/toolbar/iframe.html"
 
@@ -18,7 +18,7 @@ def _get_referrer(request) -> str | None:
     return request.META.get("HTTP_REFERER")
 
 
-@region_silo_view
+@cell_silo_view
 class IframeView(ProjectView):
     default_context = {}
 

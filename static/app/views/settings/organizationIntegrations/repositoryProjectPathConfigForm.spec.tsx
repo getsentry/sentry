@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import * as analytics from 'sentry/utils/analytics';
 
-import RepositoryProjectPathConfigModal from './repositoryProjectPathConfigForm';
+import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';
 
 describe('RepositoryProjectPathConfigModal', () => {
   const organization = OrganizationFixture();

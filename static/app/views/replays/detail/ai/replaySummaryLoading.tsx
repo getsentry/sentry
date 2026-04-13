@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {useRotatingMessage} from 'sentry/views/replays/detail/ai/useRotatingMessage';
 import {REPLAY_SUMMARY_PROCESSING_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 

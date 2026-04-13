@@ -28,7 +28,7 @@ const Heading = styled('h1')`
   margin: 0;
 `;
 
-const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
+export const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   <header {...props}>
     <Breadcrumbs>
       <Heading>{title}</Heading>
@@ -46,5 +46,3 @@ const PageHeader = styled(({children, title, breadcrumbs, ...props}: Props) => (
   justify-content: space-between;
   min-height: 40px;
 `;
-
-export default PageHeader;

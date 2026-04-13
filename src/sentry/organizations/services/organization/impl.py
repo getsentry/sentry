@@ -12,7 +12,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
@@ -20,7 +20,6 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
-from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
@@ -46,13 +45,13 @@ from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
+    RpcCellUser,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
-    RpcRegionUser,
     RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -79,7 +78,7 @@ from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
 
@@ -310,7 +309,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 return serialize_member(org_member)
             except OrganizationMember.DoesNotExist:
                 try:
-                    org_member = OrganizationMember.objects.get(
+                    org_member = OrganizationMember.objects.select_for_update().get(
                         id=organization_member_id, organization_id=organization_id
                     )
                     org_member.set_user(user_id)
@@ -581,7 +580,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 Activity,
                 AlertRule,
                 AlertRuleActivity,
-                CustomDynamicSamplingRule,
                 Dashboard,
                 DashboardFavoriteUser,
                 GroupAssignee,
@@ -636,12 +634,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(organization_id=organization_id).update(idp_provisioned=False)
 
-    def update_region_user(
+    def update_cell_user(
         self,
         *,
-        user: RpcRegionUser,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        user: RpcCellUser,
+        cell_name: str,
     ) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
@@ -727,13 +724,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
             )
 
-        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+        with transaction.atomic(router.db_for_write(CellScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=orm_organization.id
             )
 
             if updated_organization is not None:
-                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+                schedule = CellScheduledDeletion.schedule(orm_organization, days=1, actor=user)
 
                 Organization.objects.uncache_object(updated_organization.id)
                 return RpcOrganizationDeleteResponse(
@@ -768,7 +765,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
 class ControlOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         try:
             org = OrganizationMapping.objects.get(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
@@ -780,7 +777,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return None
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
         if org_mapping is None:
             return False
@@ -789,7 +786,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return True
 
 
-class RegionOrganizationCheckService(OrganizationCheckService):
+class CellOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         # See ControlOrganizationCheckService above
         try:
@@ -824,11 +821,11 @@ class OutboxBackedOrganizationSignalService(OrganizationSignalService):
                 "args": args,
                 "signal": int(RpcOrganizationSignal.from_signal(signal)),
             }
-            for region_name in find_regions_for_orgs([organization_id]):
+            for region_name in find_cells_for_orgs([organization_id]):
                 ControlOutbox(
                     shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                     shard_identifier=organization_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     category=OutboxCategory.SEND_SIGNAL,
                     object_identifier=ControlOutbox.next_object_identifier(),
                     payload=payload,

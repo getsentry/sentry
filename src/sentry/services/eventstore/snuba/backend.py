@@ -9,6 +9,7 @@ from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.utils import timezone
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import (
     Column,
     Condition,
@@ -25,10 +26,17 @@ from snuba_sdk import (
 )
 
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.base import EventStorage, Filter
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
 from sentry.utils.validators import normalize_event_id
@@ -220,10 +228,11 @@ class SnubaEventStorage(EventStorage):
     def get_events(
         self,
         filter: Filter,
+        eap_conditions: TraceItemFilter | None = None,
         orderby: Sequence[str] | None = None,
         limit: int = DEFAULT_LIMIT,
         offset: int = DEFAULT_OFFSET,
-        referrer: str = "eventstore.get_events",
+        referrer: str = Referrer.EVENTSTORE_GET_EVENTS.value,
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
@@ -233,6 +242,7 @@ class SnubaEventStorage(EventStorage):
         with sentry_sdk.start_span(op="eventstore.snuba.get_events"):
             return self.__get_events(
                 filter,
+                eap_conditions=eap_conditions,
                 orderby=orderby,
                 limit=limit,
                 offset=offset,
@@ -245,10 +255,11 @@ class SnubaEventStorage(EventStorage):
     def get_unfetched_events(
         self,
         filter: Filter,
+        eap_conditions: TraceItemFilter | None = None,
         orderby: Sequence[str] | None = None,
         limit: int = DEFAULT_LIMIT,
         offset: int = DEFAULT_OFFSET,
-        referrer: str = "eventstore.get_unfetched_events",
+        referrer: str = Referrer.EVENTSTORE_GET_UNFETCHED_EVENTS.value,
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
@@ -257,6 +268,7 @@ class SnubaEventStorage(EventStorage):
         """
         return self.__get_events(
             filter,
+            eap_conditions=eap_conditions,
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -269,10 +281,11 @@ class SnubaEventStorage(EventStorage):
     def __get_events(
         self,
         filter: Filter,
+        eap_conditions: TraceItemFilter | None = None,
         orderby: Sequence[str] | None = None,
         limit: int = DEFAULT_LIMIT,
         offset: int = DEFAULT_OFFSET,
-        referrer: str = "eventstore.get_unfetched_events",
+        referrer: str = Referrer.EVENTSTORE_GET_UNFETCHED_EVENTS.value,
         should_bind_nodes: bool = False,
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
@@ -361,6 +374,56 @@ class SnubaEventStorage(EventStorage):
             events = [self.__make_event(evt) for evt in result["data"]]
             if should_bind_nodes:
                 self.bind_nodes(events)
+
+            callsite = "eventstore.backend.get_events"
+            if (
+                eap_conditions is not None
+                and tenant_ids
+                and "organization_id" in tenant_ids
+                and EAPOccurrencesComparator.should_check_experiment(callsite)
+            ):
+                occurrence_category = (
+                    OccurrenceCategory.ISSUE_PLATFORM
+                    if dataset == Dataset.IssuePlatform
+                    else OccurrenceCategory.ERROR
+                )
+                eap_results = self._get_events_eap(
+                    eap_conditions=eap_conditions,
+                    project_ids=filter.project_ids or [],
+                    organization_id=tenant_ids["organization_id"],
+                    occurrence_category=occurrence_category,
+                    orderby=orderby,
+                    limit=limit,
+                    offset=offset,
+                    referrer=referrer,
+                    start=filter.start,
+                    end=filter.end,
+                    group_ids=filter.group_ids,
+                )
+                control_data = {(e.event_id, e.group_id) for e in events}
+                experimental_data = (
+                    {(row["id"], row["group_id"]) for row in eap_results}
+                    if eap_results is not None
+                    else set()
+                )
+                EAPOccurrencesComparator.check_and_choose(
+                    control_data=control_data,
+                    experimental_data=experimental_data,
+                    callsite=callsite,
+                    is_experimental_data_a_null_result=eap_results is None,
+                    reasonable_match_comparator=lambda ctl, exp: exp.issubset(ctl),
+                    debug_context={
+                        "project_ids": list(filter.project_ids) if filter.project_ids else [],
+                        "group_ids": list(filter.group_ids) if filter.group_ids else [],
+                        "dataset": dataset.value,
+                        "limit": limit,
+                        "offset": offset,
+                        "referrer": referrer,
+                        "control_count": len(events),
+                        "experimental_count": len(experimental_data),
+                    },
+                )
+
             return events
 
         return []
@@ -468,7 +531,7 @@ class SnubaEventStorage(EventStorage):
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys=filter_keys,
                     limit=1,
-                    referrer="eventstore.backend.get_event_by_id_nodestore",
+                    referrer=Referrer.EVENTSTORE_GET_EVENT_BY_ID_NODESTORE.value,
                     tenant_ids=tenant_ids,
                     **raw_query_kwargs,
                 )
@@ -498,12 +561,190 @@ class SnubaEventStorage(EventStorage):
             # Inject the snuba data here to make sure any snuba columns are available
             event._snuba_data = result["data"][0]
 
+            callsite = "eventstore.backend.get_event_by_id"
+            if EAPOccurrencesComparator.should_check_experiment(callsite):
+                eap_occurrence_category = (
+                    OccurrenceCategory.ISSUE_PLATFORM
+                    if event.get_event_type() in ("transaction", "generic")
+                    else OccurrenceCategory.ERROR
+                )
+                eap_result = self._get_event_by_id_eap(
+                    project_id=project_id,
+                    event_id=event_id,
+                    event_datetime=event.datetime,
+                    organization_id=tenant_ids["organization_id"],
+                    occurrence_category=eap_occurrence_category,
+                    group_id=group_id,
+                )
+
+                eap_group_id = eap_result.get("group_id") if eap_result else None
+                control_group_id = result["data"][0]["group_id"]
+
+                chosen_group_id = EAPOccurrencesComparator.check_and_choose(
+                    control_data=control_group_id,
+                    experimental_data=eap_group_id,
+                    callsite=callsite,
+                    is_experimental_data_a_null_result=eap_result is None,
+                    reasonable_match_comparator=lambda snuba, eap: snuba == eap,
+                    debug_context={
+                        "project_id": project_id,
+                        "event_id": event_id,
+                        "group_id": group_id,
+                        "event_type": event.get_event_type(),
+                        "dataset": dataset.value,
+                    },
+                )
+                event.group_id = chosen_group_id
+
         # Set passed group_id if not a transaction
         if event.get_event_type() == "transaction" and not skip_transaction_groupevent and group_id:
             logger.warning("eventstore.passed-group-id-for-transaction")
             return event.for_group(Group.objects.get(id=group_id))
 
         return event
+
+    def _get_event_by_id_eap(
+        self,
+        project_id: int,
+        event_id: str,
+        event_datetime: datetime,
+        organization_id: int,
+        occurrence_category: OccurrenceCategory,
+        group_id: int | None = None,
+    ) -> dict[str, Any] | None:
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            project = Project.objects.get_from_cache(id=project_id)
+        except (Organization.DoesNotExist, Project.DoesNotExist):
+            return None
+
+        snuba_params = SnubaParams(
+            start=event_datetime,
+            end=event_datetime + timedelta(seconds=1),
+            organization=organization,
+            projects=[project],
+            environments=[],
+        )
+
+        query_string = f"id:{event_id}"
+        if group_id is not None:
+            query_string += f" group_id:{group_id}"
+
+        try:
+            result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=[
+                    "id",
+                    "group_id",
+                    "project_id",
+                    "timestamp",
+                    "issue_occurrence_id",
+                ],
+                orderby=None,
+                offset=0,
+                limit=1,
+                referrer=Referrer.EVENTSTORE_GET_EVENT_BY_ID_NODESTORE.value,
+                config=SearchResolverConfig(),
+                occurrence_category=occurrence_category,
+            )
+            if result["data"]:
+                return result["data"][0]
+            return None
+        except Exception:
+            logger.exception(
+                "EAP query failed for get_event_by_id",
+                extra={
+                    "project_id": project_id,
+                    "event_id": event_id,
+                    "group_id": group_id,
+                },
+            )
+            return None
+
+    def _get_events_eap(
+        self,
+        eap_conditions: TraceItemFilter,
+        project_ids: Sequence[int],
+        organization_id: int,
+        occurrence_category: OccurrenceCategory,
+        orderby: Sequence[str] | None = None,
+        limit: int = DEFAULT_LIMIT,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = Referrer.EVENTSTORE_GET_EVENTS.value,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        group_ids: Sequence[int] | None = None,
+    ) -> list[dict[str, Any]] | None:
+        try:
+            try:
+                organization = Organization.objects.get_from_cache(id=organization_id)
+            except Organization.DoesNotExist:
+                return None
+
+            projects = list(
+                Project.objects.filter(id__in=project_ids, organization_id=organization_id)
+            )
+            if not projects:
+                return None
+
+            try:
+                prepared_start, prepared_end = _prepare_start_end(
+                    start,
+                    end,
+                    organization_id,
+                    group_ids,
+                )
+            except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
+                return None
+
+            snuba_params = SnubaParams(
+                start=prepared_start,
+                end=prepared_end,
+                organization=organization,
+                projects=projects,
+                environments=[],
+            )
+
+            eap_orderby: list[str] | None = None
+            if orderby:
+                eap_orderby = []
+                for col in orderby:
+                    stripped = col.lstrip("-")
+                    prefix = "-" if col.startswith("-") else ""
+                    # EAP uses "id" as the public alias for event_id
+                    eap_name = "id" if stripped == "event_id" else stripped
+                    eap_orderby.append(f"{prefix}{eap_name}")
+
+            selected_columns = ["id", "group_id", "project_id", "timestamp"]
+            if occurrence_category == OccurrenceCategory.ISSUE_PLATFORM:
+                selected_columns.append("issue_occurrence_id")
+
+            result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string="",
+                selected_columns=selected_columns,
+                orderby=eap_orderby,
+                offset=offset,
+                limit=limit,
+                referrer=referrer,
+                config=SearchResolverConfig(),
+                occurrence_category=occurrence_category,
+                extra_conditions=eap_conditions,
+            )
+
+            return result.get("data", [])
+
+        except Exception:
+            logger.exception(
+                "EAP query failed in _get_events_eap",
+                extra={
+                    "project_ids": list(project_ids),
+                    "group_ids": list(group_ids) if group_ids else [],
+                    "referrer": referrer,
+                },
+            )
+            return None
 
     def _get_dataset_for_event(self, event: Event | GroupEvent) -> Dataset:
         if getattr(event, "occurrence", None) or event.get_event_type() == "generic":

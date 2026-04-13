@@ -71,6 +71,13 @@ class FeatureHandler:
     ) -> dict[str, bool] | None:
         raise NotImplementedError
 
+    def get_experiment_assignments(
+        self,
+        organization: Organization,
+        actor: User | RpcUser | AnonymousUser | None = None,
+    ) -> dict[str, str]:
+        return {}
+
 
 class BatchFeatureHandler(FeatureHandler):
     """

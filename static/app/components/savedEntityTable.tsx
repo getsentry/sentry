@@ -8,19 +8,19 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type SavedEntityTableProps = {
   children: ReactNode;

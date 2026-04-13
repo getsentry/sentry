@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -18,7 +18,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-function TraceAiSpans({traceSlug}: {traceSlug: string}) {
+export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,14 +129,13 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   );
 }
 
-export default TraceAiSpans;
-
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: minmax(300px, 400px) 1fr;
   grid-template-rows: 38px 1fr;
   flex: 1 1 100%;
   min-height: 0;
+  overflow-x: auto;
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};

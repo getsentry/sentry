@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 export function getUploadSourceMapsStep({
   guideLink,

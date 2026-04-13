@@ -15,10 +15,10 @@ import {
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {sortCategories} from 'getsentry/utils/dataCategory';
-import UsageOverviewTableRow from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
+import {UsageOverviewTableRow} from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
-function UsageOverviewTable({
+export function UsageOverviewTable({
   organization,
   subscription,
   onRowClick,
@@ -155,8 +155,6 @@ function UsageOverviewTable({
     </Table>
   );
 }
-
-export default UsageOverviewTable;
 
 const Table = styled('table')`
   display: grid;

@@ -2,8 +2,8 @@ import {useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -12,7 +12,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function SsoForm({authConfig}: Props) {
+export function SsoForm({authConfig}: Props) {
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
@@ -72,5 +72,3 @@ function SlugExample({hostname, slug}: SlugExampleProps) {
     </code>
   );
 }
-
-export default SsoForm;

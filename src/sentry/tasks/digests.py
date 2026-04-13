@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.digests.schedule_digests",
     namespace=digests_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_digests() -> None:
     from sentry import digests
@@ -44,7 +44,7 @@ def schedule_digests() -> None:
     name="sentry.tasks.digests.deliver_digest",
     namespace=digests_tasks,
     processing_deadline_duration=20 * 60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def deliver_digest(
     key: str,

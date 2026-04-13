@@ -25,7 +25,7 @@ type TeamKeyTransactionProps = Omit<
   transactionName: string;
 };
 
-function TeamKeyTransaction({
+export function TeamKeyTransaction({
   keyedTeams,
   teams,
   project,
@@ -131,5 +131,3 @@ const Wrapper = styled('div')`
     margin: 0;
   }
 `;
-
-export default TeamKeyTransaction;

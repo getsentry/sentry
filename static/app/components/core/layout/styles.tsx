@@ -137,7 +137,7 @@ function borderValue(key: BorderVariant, theme: Theme): string {
   if (key === 'primary') {
     return theme.tokens.border[key];
   }
-  if (key === 'muted') {
+  if (key === 'muted' || key === 'secondary') {
     return theme.tokens.border.secondary;
   }
   return theme.tokens.border[key].vibrant;

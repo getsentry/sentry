@@ -47,7 +47,7 @@ class OrganizationMappingService(RpcService):
         """Find all organizations with one of the given IDs.
 
         In contrast to the "get" methods on OrganizationService, this method is
-        region-independent. It can find organizations from different regions in the
+        cell-independent. It can find organizations from different cells in the
         same query.
         """
 

@@ -1,6 +1,6 @@
 import type {Project} from 'sentry/types/project';
-import getDisplayName from 'sentry/utils/getDisplayName';
-import useProjects from 'sentry/utils/useProjects';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type InjectedProjectsProps = {
   projects: Project[];
@@ -10,7 +10,7 @@ type InjectedProjectsProps = {
 /**
  * Higher order component that uses ProjectsStore and provides a list of projects
  */
-function withProjects<P extends InjectedProjectsProps>(
+export function withProjects<P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedProjectsProps>;
@@ -27,5 +27,3 @@ function withProjects<P extends InjectedProjectsProps>(
 
   return Wrapper;
 }
-
-export default withProjects;

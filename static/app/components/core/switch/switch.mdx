@@ -22,9 +22,7 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/switch';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/switch');
 
 To create a basic switch, use the `<Switch>` component with `checked` and `onChange` props. The switch doesn't include a label, so you'll need to provide your own accompanying label using HTML `<label>` element for accessibility.
 

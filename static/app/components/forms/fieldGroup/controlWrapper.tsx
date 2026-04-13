@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FieldControlState from './fieldControlState';
+import {FieldControlState} from './fieldControlState';
 import type {FieldGroupProps} from './types';
 
 interface ControlWrapperProps extends Pick<

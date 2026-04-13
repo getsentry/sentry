@@ -20,7 +20,7 @@ from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
@@ -56,8 +56,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.seer.entrypoints.operator import SeerOperator
-from sentry.seer.entrypoints.slack.entrypoint import SlackEntrypoint
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
+from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -180,7 +180,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return data.get("original_message", {}).get("type") == "message"
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SlackActionEndpoint(Endpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
@@ -572,7 +572,7 @@ class SlackActionEndpoint(Endpoint):
         group: Group,
         user: RpcUser,
     ) -> None:
-        entrypoint = SlackEntrypoint(
+        entrypoint = SlackAutofixEntrypoint(
             slack_request=slack_request,
             action=action,
             group=group,
@@ -588,14 +588,14 @@ class SlackActionEndpoint(Endpoint):
             "user_id": user.id,
         }
         _logger.info("seer.slack.trigger_autofix.start", extra=logging_ctx)
-        lock_key = SlackEntrypoint.get_autofix_lock_key(
+        lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
             group_id=group.id,
             stopping_point=stopping_point,
         )
         lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
         try:
             with lock.acquire():
-                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                SeerAutofixOperator(entrypoint=entrypoint).trigger_autofix(
                     group=group,
                     user=user,
                     stopping_point=stopping_point,
@@ -660,7 +660,7 @@ class SlackActionEndpoint(Endpoint):
                     name=action_name,
                     label=action_data["text"]["text"],
                     type=action_data["type"],
-                    value=action_data["value"],
+                    value=action_data.get("value", ""),
                     action_id=action_data["action_id"],
                     block_id=action_data["block_id"],
                 )
@@ -709,6 +709,7 @@ class SlackActionEndpoint(Endpoint):
         if action_id in {
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+            SlackAction.LINK_IDENTITY.value,
         }:
             return self.respond()
 

@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength, hasPerformance} from 'getsentry/utils/billing';
 
-import Details from './details';
+import {Details} from './details';
 
 type Props = ModalRenderProps & {
   organization: Organization;

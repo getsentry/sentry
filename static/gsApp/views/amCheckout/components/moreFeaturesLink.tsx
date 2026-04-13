@@ -11,7 +11,7 @@ type Props = {
   legacySize?: SVGIconProps['legacySize'];
 };
 
-function MoreFeaturesLink({color, legacySize}: Props) {
+export function MoreFeaturesLink({color, legacySize}: Props) {
   return (
     <MoreLink href="https://sentry.io/pricing" color={color}>
       <IconCheckmark legacySize={legacySize} />
@@ -35,5 +35,3 @@ const MoreLink = styled(ExternalLink)<{color?: string}>`
     color: ${p => p.color ?? p.theme.tokens.content.primary};
   }
 `;
-
-export default MoreFeaturesLink;

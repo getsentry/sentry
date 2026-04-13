@@ -6,11 +6,14 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section, {SectionSubHeading} from 'sentry/components/workflowEngine/ui/section';
+import {
+  FormSection,
+  FormSectionSubHeading,
+} from 'sentry/components/workflowEngine/ui/formSection';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -44,7 +47,6 @@ function ScheduleTypeField() {
       hideLabel
       options={SCHEDULE_OPTIONS}
       defaultValue={CRON_DEFAULT_SCHEDULE_TYPE}
-      orientInline
       required
       stacked
       inline={false}
@@ -141,7 +143,7 @@ function Margins() {
   return (
     <Fragment>
       <SubSectionSeparator aria-hidden="true" />
-      <SectionSubHeading>{t('Set margins')}</SectionSubHeading>
+      <FormSectionSubHeading>{t('Set margins')}</FormSectionSubHeading>
       <InputGroup>
         <NumberField
           name="checkinMargin"
@@ -178,7 +180,7 @@ function Thresholds() {
   return (
     <Fragment>
       <SubSectionSeparator aria-hidden="true" />
-      <SectionSubHeading>{t('Set thresholds')}</SectionSubHeading>
+      <FormSectionSubHeading>{t('Set thresholds')}</FormSectionSubHeading>
       <InputGroup>
         <NumberField
           name="failureIssueThreshold"
@@ -196,13 +198,13 @@ function Thresholds() {
   );
 }
 
-export function CronDetectorFormDetectSection() {
+export function CronDetectorFormDetectSection({step}: {step?: number}) {
   return (
     <Container>
-      <Section title={t('Detect')}>
+      <FormSection step={step} title={t('Issue Detection')}>
         <DetectFieldsContainer>
           <div>
-            <SectionSubHeading>{t('Set your schedule')}</SectionSubHeading>
+            <FormSectionSubHeading>{t('Set your schedule')}</FormSectionSubHeading>
             <Text variant="muted">
               {tct('You can use [link:the crontab syntax] or our interval schedule.', {
                 link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
@@ -213,7 +215,7 @@ export function CronDetectorFormDetectSection() {
             <Thresholds />
           </div>
         </DetectFieldsContainer>
-      </Section>
+      </FormSection>
     </Container>
   );
 }

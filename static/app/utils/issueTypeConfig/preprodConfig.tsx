@@ -2,8 +2,13 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const preprodDetectedConfig: IssueCategoryConfigMapping = {
+export const preprodConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
+    detector: {
+      enabled: true,
+      title: t('Mobile Build Monitor'),
+      ctaText: t('View monitor details'),
+    },
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
@@ -43,5 +48,3 @@ const preprodDetectedConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: true},
   },
 };
-
-export default preprodDetectedConfig;

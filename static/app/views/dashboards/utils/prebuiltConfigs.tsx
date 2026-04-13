@@ -1,3 +1,4 @@
+import type {Project} from 'sentry/types/project';
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
 import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
 import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
@@ -9,7 +10,7 @@ import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltC
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/caches';
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
-import {FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsSummary';
+import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsDetails';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
 import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
 import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
@@ -21,12 +22,13 @@ import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from 'sentry/views/dashboard
 import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenRendering';
 import {NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/nextJsOverview';
 import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
-import {QUERIES_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/querySummary';
+import {QUERIES_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queryDetails';
+import {QUEUE_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueDetails';
 import {QUEUES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
-import {QUEUE_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueSummary';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
-import {WEB_VITALS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageSummary';
+import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
 import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
@@ -59,18 +61,47 @@ export enum PrebuiltDashboardId {
   BACKEND_CACHES = 28,
 }
 
-export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
+/** Boolean flags on Project that indicate whether telemetry data has been received. */
+type ProjectTelemetryFlag = Extract<
+  keyof Project,
+  `hasInsights${string}` | 'hasSessions' | 'firstTransactionEvent'
+>;
+
+export type OnboardingConfig =
+  | {
+      moduleName: ModulesWithOnboarding;
+      // Single-module onboarding: shows ModulesOnboardingPanel
+      type: 'module';
+      requiredProjectFlags?: ProjectTelemetryFlag[];
+    }
+  | {
+      componentId: 'agent-monitoring' | 'mcp';
+      requiredProjectFlags: ProjectTelemetryFlag[];
+      // Custom onboarding component (AI Agents, MCP)
+      type: 'custom';
+    }
+  | {
+      description: string;
+      requiredProjectFlags: ProjectTelemetryFlag[];
+      // Overview dashboard onboarding: shows a generic onboarding panel
+      // when NONE of the listed project flags are set
+      type: 'overview';
+    };
+
+export type PrebuiltDashboard = Omit<DashboardDetails, 'id'> & {
+  onboarding?: OnboardingConfig;
+};
 
 // NOTE: These configs must be in sync with the prebuilt dashboards declared in
 // the backend in the `PREBUILT_DASHBOARDS` constant.
 export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard> = {
   [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]: SESSION_HEALTH_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUERIES]: QUERIES_PREBUILT_CONFIG,
-  [PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY]: QUERIES_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY]: QUERIES_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.HTTP]: HTTP_PREBUILT_CONFIG,
   [PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY]: HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG,
   [PrebuiltDashboardId.WEB_VITALS]: WEB_VITALS_PREBUILT_CONFIG,
-  [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: WEB_VITALS_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: WEB_VITALS_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS]: MOBILE_VITALS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_OVERVIEW]: BACKEND_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS]:
@@ -92,8 +123,8 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.MCP_OVERVIEW]: MCP_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.LARAVEL_OVERVIEW]: LARAVEL_OVERVIEW_PREBUILT_CONFIG,
   [PrebuiltDashboardId.FRONTEND_ASSETS]: FRONTEND_ASSETS_PREBUILT_CONFIG,
-  [PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY]: FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY]: FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUEUES]: QUEUES_PREBUILT_CONFIG,
-  [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
 };

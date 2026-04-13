@@ -6,10 +6,10 @@ import {isIssueQuickFixable} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
-function SeerBadge({group}: {group: Group}) {
+export function SeerBadge({group}: {group: Group}) {
   const organization = useOrganization();
   const seerFixable = isIssueQuickFixable(group);
 
@@ -38,5 +38,3 @@ const Wrapper = styled('div')`
   gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default SeerBadge;

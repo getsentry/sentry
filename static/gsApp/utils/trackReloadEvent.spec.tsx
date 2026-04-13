@@ -1,6 +1,6 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-import trackReloadEvent from 'getsentry/utils/trackReloadEvent';
+import {trackReloadEvent} from 'getsentry/utils/trackReloadEvent';
 
 jest.unmock('getsentry/utils/trackReloadEvent');
 

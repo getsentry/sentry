@@ -1,9 +1,9 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
@@ -12,7 +12,9 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface ContinuousProfileHeader {
   transaction: Event | null;
@@ -21,6 +23,7 @@ interface ContinuousProfileHeader {
 export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   // @TODO add breadcrumbs when other views are implemented
   const breadCrumbs = useMemo((): ProfilingBreadcrumbsProps['trails'] => {
@@ -50,14 +53,29 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
           <ProfilingBreadcrumbs organization={organization} trails={breadCrumbs} />
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
-      <StyledHeaderActions>
-        <FeedbackButton />
-        {transactionTarget && (
-          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
-            {t('Go to Trace')}
-          </LinkButton>
-        )}
-      </StyledHeaderActions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          {transactionTarget && (
+            <TopBar.Slot name="actions">
+              <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
+                {t('Go to Trace')}
+              </LinkButton>
+            </TopBar.Slot>
+          )}
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <StyledHeaderActions>
+          <FeedbackButton />
+          {transactionTarget && (
+            <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+              {t('Go to Trace')}
+            </LinkButton>
+          )}
+        </StyledHeaderActions>
+      )}
     </SmallerLayoutHeader>
   );
 }

@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import NamedTuple
 
 import orjson
 from django.db import IntegrityError
+from django.utils import timezone
+from objectstore_client import Session
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
+from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
-from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.image_diff.compare import compare_images_batch
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
@@ -24,7 +28,8 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +56,9 @@ class _ImageDiffResult(NamedTuple):
 def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
 ) -> _ImageDiffResult:
-    head_by_name = {meta.image_file_name: h for h, meta in head_manifest.images.items()}
-    base_by_name = {meta.image_file_name: h for h, meta in base_manifest.images.items()}
+    # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+    head_by_name = {key: (meta.content_hash or key) for key, meta in head_manifest.images.items()}
+    base_by_name = {key: (meta.content_hash or key) for key, meta in base_manifest.images.items()}
 
     matched = head_by_name.keys() & base_by_name.keys()
     added = head_by_name.keys() - base_by_name.keys()
@@ -108,11 +114,134 @@ def _create_pixel_batches(
     return batches
 
 
+class ImageFingerprint(NamedTuple):
+    name: str
+    status: str
+    head_hash: str | None = None
+    previous_image_file_name: str | None = None
+
+
+def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFingerprint]:
+    fingerprints: set[ImageFingerprint] = set()
+    for name, image in manifest.images.items():
+        if image.status == "unchanged":
+            continue
+        if image.status in ("changed", "added"):
+            if not image.head_hash:
+                continue
+            fingerprints.add(ImageFingerprint(name, image.status, image.head_hash))
+        elif image.status == "renamed":
+            if not image.head_hash or not image.previous_image_file_name:
+                continue
+            fingerprints.add(
+                ImageFingerprint(name, "renamed", image.head_hash, image.previous_image_file_name)
+            )
+        else:
+            fingerprints.add(ImageFingerprint(name, image.status))
+    return fingerprints
+
+
+def _try_auto_approve_snapshot(
+    head_artifact: PreprodArtifact,
+    comparison_manifest: ComparisonManifest,
+    session: Session,
+) -> None:
+    cc = head_artifact.commit_comparison
+    if not cc or not cc.pr_number or not cc.head_repo_name:
+        return
+
+    head_fingerprints = _build_comparison_fingerprints(comparison_manifest)
+    if not head_fingerprints:
+        return
+
+    approved_sibling = (
+        PreprodArtifact.objects.filter(
+            project_id=head_artifact.project_id,
+            app_id=head_artifact.app_id,
+            build_configuration=head_artifact.build_configuration,
+            commit_comparison__pr_number=cc.pr_number,
+            commit_comparison__head_repo_name=cc.head_repo_name,
+            preprodcomparisonapproval__preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            preprodcomparisonapproval__approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
+        )
+        .exclude(id=head_artifact.id)
+        .order_by("-date_added")
+        .first()
+    )
+
+    if not approved_sibling:
+        return
+
+    sibling_comparison = (
+        PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics__preprod_artifact=approved_sibling,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+        )
+        .order_by("-date_updated")
+        .first()
+    )
+
+    if not sibling_comparison:
+        return
+
+    sibling_comparison_key = (sibling_comparison.extras or {}).get("comparison_key")
+    if not sibling_comparison_key:
+        return
+
+    try:
+        sibling_manifest = ComparisonManifest(
+            **orjson.loads(session.get(sibling_comparison_key).payload.read())
+        )
+    except Exception:
+        logger.exception(
+            "auto_approve: failed to load sibling comparison manifest",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "sibling_artifact_id": approved_sibling.id,
+                "comparison_key": sibling_comparison_key,
+            },
+        )
+        return
+
+    sibling_fingerprints = _build_comparison_fingerprints(sibling_manifest)
+
+    if head_fingerprints != sibling_fingerprints:
+        logger.info(
+            "auto_approve: fingerprints do not match",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "sibling_artifact_id": approved_sibling.id,
+            },
+        )
+        return
+
+    PreprodComparisonApproval.objects.create(
+        preprod_artifact=head_artifact,
+        preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        approved_at=timezone.now(),
+        extras={
+            "auto_approval": True,
+            "prev_approved_artifact_id": approved_sibling.id,
+        },
+    )
+
+    logger.info(
+        "auto_approve: snapshot auto-approved",
+        extra={
+            "head_artifact_id": head_artifact.id,
+            "prev_approved_artifact_id": approved_sibling.id,
+            "organization_slug": head_artifact.project.organization.slug,
+        },
+    )
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.compare_snapshots",
     namespace=preprod_tasks,
     retry=Retry(times=3),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     processing_deadline_duration=300,
 )
 def compare_snapshots(
@@ -121,6 +250,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -130,7 +260,7 @@ def compare_snapshots(
     )
 
     try:
-        head_artifact = PreprodArtifact.objects.get(
+        head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
             id=head_artifact_id,
             project__organization_id=org_id,
             project_id=project_id,
@@ -251,8 +381,14 @@ def compare_snapshots(
             comparison.save(update_fields=["state", "error_code", "date_updated"])
             return
 
+        diff_threshold = head_manifest.diff_threshold
+
         head_images = head_manifest.images
         base_images = base_manifest.images
+
+        # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+        head_meta_by_hash = {(m.content_hash or k): m for k, m in head_images.items()}
+        base_meta_by_hash = {(m.content_hash or k): m for k, m in base_images.items()}
 
         categories = categorize_image_diff(head_manifest, base_manifest)
         renamed_pairs = categories.renamed_pairs
@@ -284,8 +420,8 @@ def compare_snapshots(
                 }
                 continue
 
-            head_meta = head_images[head_hash]
-            base_meta = base_images[base_hash]
+            head_meta = head_meta_by_hash[head_hash]
+            base_meta = base_meta_by_hash[base_hash]
             head_pixels = head_meta.width * head_meta.height
             base_pixels = base_meta.width * base_meta.height
             pixel_count = max(head_pixels, base_pixels)
@@ -325,6 +461,9 @@ def compare_snapshots(
             },
         )
 
+        total_fetched_bytes = 0
+        total_fetched_count = 0
+
         batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
 
         logger.info(
@@ -342,15 +481,30 @@ def compare_snapshots(
                 batch_names: list[str] = []
                 batch_hashes: list[tuple[str, str]] = []
 
+                unique_hashes: set[str] = set()
                 for candidate in batch:
+                    unique_hashes.add(candidate.head_hash)
+                    unique_hashes.add(candidate.base_hash)
+
+                fetch_cache: dict[str, bytes] = {}
+                failed_hashes: set[str] = set()
+                cache_lock = threading.Lock()
+
+                def _fetch_hash(h: str) -> None:
                     try:
-                        head_data = session.get(
-                            f"{image_key_prefix}/{candidate.head_hash}"
-                        ).payload.read()
-                        base_data = session.get(
-                            f"{image_key_prefix}/{candidate.base_hash}"
-                        ).payload.read()
+                        data = session.get(f"{image_key_prefix}/{h}").payload.read()
+                        with cache_lock:
+                            fetch_cache[h] = data
                     except Exception:
+                        with cache_lock:
+                            failed_hashes.add(h)
+
+                # Fetch unique hashes in parallel; session.get() is thread-safe
+                with ContextPropagatingThreadPoolExecutor(max_workers=8) as executor:
+                    list(executor.map(_fetch_hash, unique_hashes))
+
+                for candidate in batch:
+                    if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
                         logger.warning(
                             "compare_snapshots: failed to fetch images for %s",
                             candidate.name,
@@ -368,13 +522,18 @@ def compare_snapshots(
                             "reason": "image_fetch_failed",
                         }
                         continue
+                    head_data = fetch_cache[candidate.head_hash]
+                    base_data = fetch_cache[candidate.base_hash]
+                    total_fetched_bytes += len(head_data) + len(base_data)
+                    total_fetched_count += 2
                     diff_pairs.append((base_data, head_data))
                     batch_names.append(candidate.name)
                     batch_hashes.append((candidate.head_hash, candidate.base_hash))
 
                 logger.info(
-                    "compare_snapshots: running batch of %d pairs",
+                    "compare_snapshots: running batch of %d pairs (%d unique hashes fetched)",
                     len(diff_pairs),
+                    len(fetch_cache),
                     extra={"head_artifact_id": head_artifact_id, "names": batch_names},
                 )
                 diff_results = compare_images_batch(diff_pairs, server=server)
@@ -414,11 +573,28 @@ def compare_snapshots(
                     )
                     session.put(diff_mask_bytes, key=diff_mask_key, content_type="image/png")
 
-                    is_changed = diff_result.changed_pixels > 0
+                    diff_pct = (
+                        diff_result.changed_pixels / diff_result.total_pixels
+                        if diff_result.total_pixels > 0
+                        else 0
+                    )
+                    effective_threshold = diff_threshold if diff_threshold is not None else 0.0
+                    is_changed = diff_pct > effective_threshold
                     if is_changed:
                         changed_count += 1
                     else:
                         unchanged_count += 1
+
+                    logger.debug(
+                        "compare_snapshots: %s diff_pct=%.6f threshold=%s is_changed=%s pixels=%d/%d",
+                        name,
+                        diff_pct,
+                        diff_threshold,
+                        is_changed,
+                        diff_result.changed_pixels,
+                        diff_result.total_pixels,
+                        extra={"head_artifact_id": head_artifact_id},
+                    )
 
                     diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
 
@@ -442,7 +618,7 @@ def compare_snapshots(
 
         for name in sorted(removed):
             base_hash = base_by_name[name]
-            base_meta = base_images[base_hash]
+            base_meta = base_meta_by_hash[base_hash]
             image_results[name] = {
                 "status": "removed",
                 "base_hash": base_hash,
@@ -492,6 +668,7 @@ def compare_snapshots(
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
+        extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
         comparison.extras = extras
         comparison.save(
             update_fields=[
@@ -507,6 +684,53 @@ def compare_snapshots(
             ]
         )
 
+        time_now = timezone.now()
+
+        metric_tags = {
+            "app_id_temp": head_artifact.app_id or "",
+        }
+
+        diff_duration_s = (time_now - task_start_time).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.diff.duration_s",
+            diff_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        e2e_duration_s = (time_now - head_artifact.date_added).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.e2e_duration_s",
+            e2e_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        if total_fetched_count > 0:
+            metrics.distribution(
+                "preprod.snapshots.image.avg_size_bytes",
+                total_fetched_bytes / total_fetched_count,
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+
+        if (
+            changed_count == 0
+            and not added
+            and not removed
+            and not renamed_pairs
+            and not error_count
+        ):
+            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
+
+        try:
+            _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
+        except Exception:
+            logger.exception(
+                "Auto-approve failed after successful comparison",
+                extra={"head_artifact_id": head_artifact_id},
+            )
+
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": head_artifact_id,
@@ -519,6 +743,7 @@ def compare_snapshots(
             extra={
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
+                "organization_slug": head_artifact.project.organization.slug,
                 "changed": changed_count,
                 "unchanged": unchanged_count,
                 "added": len(added),
@@ -534,6 +759,7 @@ def compare_snapshots(
             extra={
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
+                "organization_slug": head_artifact.project.organization.slug,
             },
         )
         if comparison is not None:

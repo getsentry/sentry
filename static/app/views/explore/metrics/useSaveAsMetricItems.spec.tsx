@@ -6,7 +6,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -28,7 +28,7 @@ const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
+    features: ['tracemetrics-enabled'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();

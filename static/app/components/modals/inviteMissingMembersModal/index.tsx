@@ -8,20 +8,20 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
 import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
@@ -270,7 +270,6 @@ export function InviteMissingMembersModal({
                 isInsideModal
               />
               <TeamSelector
-                organization={organization}
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}

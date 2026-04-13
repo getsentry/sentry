@@ -58,7 +58,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
             ) as mock_get_similarity_data,
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
@@ -83,7 +83,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
             ) as mock_get_similarity_data,
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
@@ -102,7 +102,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
             ) as mock_get_similarity_data,
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
@@ -128,7 +128,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2")
             ) as mock_get_similarity_data,
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):

@@ -6,7 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
@@ -14,8 +14,8 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import withOrganization from 'sentry/utils/withOrganization';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 const grayText = css`
   color: #979ba0;

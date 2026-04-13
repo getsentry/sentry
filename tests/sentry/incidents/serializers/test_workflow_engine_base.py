@@ -38,7 +38,7 @@ from sentry.workflow_engine.models.workflow_action_group_status import WorkflowA
 
 @freeze_time("2024-12-11 03:21:34")
 class TestWorkflowEngineSerializer(TestCase):
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def setUp(self) -> None:
         # XXX: do this so that DCGA and Action IDs aren't one to one
         other_action = self.create_action()

@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
@@ -124,9 +124,7 @@ describe('AlertWizard', () => {
     });
 
     await userEvent.click(screen.getByText('Throughput'));
-    expect(
-      screen.getByText(/Throughput is the total number of spans/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/total number of spans/)).toBeInTheDocument();
   });
 
   it('hides logs aggregate alerts according to feature flag', () => {
@@ -188,9 +186,7 @@ describe('AlertWizard', () => {
     });
 
     await userEvent.click(screen.getByText('Throughput'));
-    expect(
-      screen.getByText(/Throughput is the total number of transactions/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/total number of spans/)).toBeInTheDocument();
   });
 
   it('hides custom metrics alerts when feature flag is disabled', () => {

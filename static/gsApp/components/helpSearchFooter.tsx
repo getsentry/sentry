@@ -12,7 +12,7 @@ type Props = {
   organization: Organization;
 };
 
-function HelpSearchFooter({organization, closeModal}: Props) {
+export function HelpSearchFooter({organization, closeModal}: Props) {
   return (
     <Container>
       {t('Need personalized help? Contact our support team!')}
@@ -45,5 +45,3 @@ const Container = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.md};
 `;
-
-export default HelpSearchFooter;

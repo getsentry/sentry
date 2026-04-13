@@ -1,9 +1,7 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
-
-const StepHeading = styled(
+export const StepHeading = styled(
   (props: React.ComponentProps<typeof motion.h2> & {step: number}) => (
     <motion.h2
       variants={{
@@ -11,9 +9,9 @@ const StepHeading = styled(
         animate: {clipPath: 'inset(0% 0% 0% 0%)', opacity: 1},
         exit: {opacity: 0},
       }}
-      transition={testableTransition({
+      transition={{
         duration: 0.3,
-      })}
+      }}
       {...props}
     />
   )
@@ -38,5 +36,3 @@ const StepHeading = styled(
     font-size: 1rem;
   }
 `;
-
-export default StepHeading;

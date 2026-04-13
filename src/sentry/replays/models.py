@@ -10,7 +10,7 @@ from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedIntegerField, BoundedPositiveIntegerField
@@ -23,7 +23,7 @@ class DeletionJobStatus(models.TextChoices):
     FAILED = "failed", gettext_lazy("Failed")
 
 
-@region_silo_model
+@cell_silo_model
 class ReplayDeletionJobModel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -42,7 +42,7 @@ class ReplayDeletionJobModel(DefaultFieldsModel):
 
 
 # Based heavily on EventAttachment
-@region_silo_model
+@cell_silo_model
 class ReplayRecordingSegment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -81,7 +81,7 @@ class ReplayRecordingSegment(Model):
         return rv
 
 
-@region_silo_model
+@cell_silo_model
 class OrganizationMemberReplayAccess(DefaultFieldsModel):
     """
     Tracks which organization members have permission to access replay data.

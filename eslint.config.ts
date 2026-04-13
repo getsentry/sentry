@@ -37,8 +37,7 @@ import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
-// @ts-expect-error TS(7016): Could not find a declaration file
-import sentry from 'eslint-plugin-sentry';
+import regexp from 'eslint-plugin-regexp';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
@@ -48,9 +47,9 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
-// eslint-disable-next-line boundaries/element-types
+// eslint-disable-next-line boundaries/dependencies
 import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
 
 invariant(react.configs.flat, 'For typescript');
@@ -172,6 +171,11 @@ const restrictedImportPaths = [
   {
     name: '@tanstack/react-form',
     message: 'Use @sentry/scraps/form instead',
+  },
+  {
+    name: 'framer-motion',
+    importNames: ['Reorder'],
+    message: "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead.",
   },
 ];
 
@@ -304,8 +308,6 @@ export default typescript.config([
     rules: {
       'array-callback-return': 'error',
       'block-scoped-var': 'error',
-      'consistent-return': 'error',
-      'default-case': 'error',
       'dot-notation': 'error',
       eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -383,6 +385,11 @@ export default typescript.config([
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
         },
+        {
+          selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+          message:
+            "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
+        },
         // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
         {
           selector:
@@ -398,6 +405,7 @@ export default typescript.config([
       'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
+      quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
       radix: 'error',
       'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
@@ -449,7 +457,10 @@ export default typescript.config([
     name: 'plugin/@sentry/sentry',
     plugins: {'@sentry': sentryPlugin},
     rules: {
+      '@sentry/no-digits-in-tn': 'error',
+      '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-static-translations': 'error',
+      '@sentry/no-styled-shortcut': 'error',
     },
   },
   {
@@ -530,8 +541,13 @@ export default typescript.config([
       '@tanstack/query': pluginQuery,
     },
     rules: {
-      ...pluginQuery.configs.recommended.rules,
+      ...pluginQuery.configs.recommendedStrict.rules,
+      '@tanstack/query/prefer-query-options': 'off',
       '@tanstack/query/no-rest-destructuring': 'error',
+      '@tanstack/query/exhaustive-deps': [
+        'error',
+        {allowlist: {variables: ['api'], types: ['Client']}},
+      ],
     },
   },
   {
@@ -591,15 +607,36 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-duplicate-type-constituents': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-template-expression': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/no-unnecessary-type-parameters': 'error',
+          '@typescript-eslint/switch-exhaustiveness-check': [
+            'error',
+            {considerDefaultExhaustiveForUnions: true},
+          ],
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
+          '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
+  },
+  {
+    name: 'files/allowing default exports',
+    files: [
+      '*.config.*',
+      '**/__mocks__/*',
+      'static/app/stories/*-loader.ts',
+      'static/app/chartcuterie/config.tsx',
+      'tests/js/*-transform.*',
+      'tests/js/test-*/*',
+    ],
+    rules: {
+      '@sentry/no-default-exports': 'off',
+    },
   },
   {
     name: 'plugin/typescript-eslint/custom',
@@ -714,16 +751,6 @@ export default typescript.config([
     },
   },
   {
-    name: 'plugin/sentry',
-    // https://github.com/getsentry/eslint-config-sentry/tree/master/packages/eslint-plugin-sentry/docs/rules
-    plugins: {sentry},
-    rules: {
-      'sentry/no-digits-in-tn': 'error',
-      'sentry/no-dynamic-translations': 'error', // TODO(ryan953): There are no docs for this rule
-      'sentry/no-styled-shortcut': 'error',
-    },
-  },
-  {
     name: 'plugin/@emotion',
     // https://github.com/emotion-js/emotion/tree/main/packages/eslint-plugin/docs/rules
     plugins: {'@emotion': emotion},
@@ -799,6 +826,10 @@ export default typescript.config([
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
       'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
+      'jest/no-standalone-expect': [
+        'error',
+        {additionalTestBlockFunctions: ['it.isKnownFlake']},
+      ],
     },
   },
   {
@@ -806,6 +837,20 @@ export default typescript.config([
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/testing-library/eslint-plugin-jest-dom/tree/main?tab=readme-ov-file#supported-rules
     ...jestDom.configs['flat/recommended'],
+  },
+  {
+    extends: [regexp.configs.recommended],
+    name: 'plugin/regexp',
+    rules: {
+      'prefer-regex-literals': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-misleading-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-obscure-range': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-super-linear-backtracking': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-unused-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/optimal-quantifier-concatenation': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/strict': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/use-ignore-case': 'off', // TODO(JoshuaKGoldberg): do we want this?
+    },
   },
   {
     name: 'plugin/testing-library',
@@ -820,14 +865,14 @@ export default typescript.config([
     },
   },
   {
+    // turn off features that conflict with formatter
     name: 'plugin/prettier',
     ...prettier,
     rules: {
-      // import sorting is handled with prettier-plugin-sort-imports
+      // import sorting is handled by oxfmt
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      // prettier-plugin-sort-imports always combines imports
       'import/no-duplicates': 'off',
     },
   },
@@ -887,6 +932,7 @@ export default typescript.config([
     name: 'files/jest related',
     files: [
       'tests/js/jest-pegjs-transform.js',
+      'tests/js/sentry-test/jest-environment.js',
       'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/setup.ts',
@@ -1101,7 +1147,7 @@ export default typescript.config([
         },
         {
           type: 'story-book',
-          pattern: 'static/app/stories',
+          pattern: ['static/app/stories', '**/__stories__'],
         },
         // --- debug tools (e.g. notifications) ---
         {
@@ -1202,103 +1248,122 @@ export default typescript.config([
       'boundaries/no-ignored': 'off',
       'boundaries/no-private': 'off',
       'boundaries/no-unknown': 'off',
-      'boundaries/element-types': [
+      // Deprecated in v6 in favor of boundaries/dependencies. The strict preset
+      // still enables it, so we turn it off to avoid running both rules.
+      'boundaries/element-types': 'off',
+      'boundaries/dependencies': [
         'error',
         {
           default: 'disallow',
-          message: '${file.type} is not allowed to import ${dependency.type}',
+          message: '{{from.type}} is not allowed to import {{to.type}}',
           rules: [
             // --- figma code connect ---
             {
-              from: ['figma-code-connect'],
-              allow: ['core*'],
+              from: [{type: 'figma-code-connect'}],
+              allow: [{to: {type: 'core*'}}],
             },
             {
-              from: ['sentry*'],
-              allow: ['core*', 'sentry*'],
+              from: [{type: 'sentry*'}],
+              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
             },
             {
-              from: ['getsentry*'],
-              allow: ['core*', 'getsentry*', 'sentry*'],
+              from: [{type: 'getsentry*'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'getsentry*'}},
+                {to: {type: 'sentry*'}},
+              ],
             },
             {
-              from: ['gsAdmin*'],
-              disallow: ['sentry-locale'],
-              allow: ['core*', 'gsAdmin*', 'sentry*', 'getsentry*'],
+              from: [{type: 'gsAdmin*'}],
+              disallow: [{to: {type: 'sentry-locale'}}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'gsAdmin*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'getsentry*'}},
+              ],
             },
             {
-              from: ['test-sentry'],
-              allow: ['test-sentry', 'test', 'core*', 'sentry*'],
+              from: [{type: 'test-sentry'}],
+              allow: [
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+              ],
             },
             {
               // todo does test-gesentry need test-sentry?
-              from: ['test-getsentry'],
+              from: [{type: 'test-getsentry'}],
               allow: [
-                'test-getsentry',
-                'test-sentry',
-                'test',
-                'core*',
-                'getsentry*',
-                'sentry*',
+                {to: {type: 'test-getsentry'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'getsentry*'}},
+                {to: {type: 'sentry*'}},
               ],
             },
             {
-              from: ['test-gsAdmin'],
+              from: [{type: 'test-gsAdmin'}],
               allow: [
-                'test-gsAdmin',
-                'test-getsentry',
-                'test-sentry',
-                'test',
-                'core*',
-                'gsAdmin*',
-                'sentry*',
-                'getsentry*',
+                {to: {type: 'test-gsAdmin'}},
+                {to: {type: 'test-getsentry'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'gsAdmin*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'getsentry*'}},
               ],
             },
             {
-              from: ['test'],
-              allow: ['test', 'test-sentry', 'sentry*'],
+              from: [{type: 'test'}],
+              allow: [
+                {to: {type: 'test'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'sentry*'}},
+              ],
             },
             {
-              from: ['configs'],
-              allow: ['configs', 'build-utils'],
+              from: [{type: 'configs'}],
+              allow: [{to: {type: 'configs'}}, {to: {type: 'build-utils'}}],
             },
             // --- stories ---
             {
-              from: ['story-files', 'story-book'],
-              allow: ['core*', 'sentry*', 'story-book'],
+              from: [{type: 'story-files'}, {type: 'story-book'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'story-book'}},
+              ],
             },
             // --- debug tools (e.g. notifications) ---
             {
-              from: ['debug-tools'],
-              allow: ['core*', 'sentry*', 'debug-tools'],
+              from: [{type: 'debug-tools'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'debug-tools'}},
+              ],
             },
             // --- core ---
             // todo: sentry* shouldn't be allowed
             {
-              from: ['core'],
-              allow: ['core*', 'sentry*'],
+              from: [{type: 'core'}],
+              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
             },
-          ],
-        },
-      ],
-      'boundaries/entry-point': [
-        'error',
-        {
-          default: 'disallow',
-          rules: [
+            // --- core entry points (enforce isolation) ---
             {
-              target: ['core'],
-              allow: [
-                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
-                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
-                '**/*.png', // needed for story-files
-                '**/__stories__/*.{ts,tsx}', // story demo helpers imported by .mdx files
-              ],
-            },
-            {
-              target: ['!core'],
-              allow: '**/*',
+              to: {
+                type: 'core',
+                internalPath:
+                  '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
+              },
+              disallow: {
+                from: {type: '*'},
+              },
             },
           ],
         },
@@ -1309,7 +1374,7 @@ export default typescript.config([
     name: 'files/core-inspector',
     files: ['static/app/components/core/inspector.tsx'],
     rules: {
-      'boundaries/element-types': 'off',
+      'boundaries/dependencies': 'off',
     },
   },
 ]);

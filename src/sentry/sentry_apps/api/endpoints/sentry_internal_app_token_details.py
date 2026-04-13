@@ -11,6 +11,7 @@ from sentry.analytics.events.sentry_app_installation_token_deleted import (
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
@@ -27,7 +28,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (SentryInternalAppTokenPermission,)
+    permission_classes = (SentryInternalAppTokenPermission, DisallowImpersonatedTokenCreation)
 
     def convert_args(self, request: Request, sentry_app_id_or_slug, api_token_id, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class

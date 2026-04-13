@@ -4,10 +4,10 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 

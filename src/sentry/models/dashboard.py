@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -23,7 +23,7 @@ from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.organization import Organization
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -213,7 +213,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             return True
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -244,7 +244,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -406,7 +406,7 @@ class Dashboard(Model):
         }
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardTombstone(Model):
     """
     A tombstone to indicate that a pre-built dashboard
@@ -427,7 +427,7 @@ class DashboardTombstone(Model):
     __repr__ = sane_repr("organization", "slug")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardLastVisited(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 

@@ -5,8 +5,8 @@ import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
@@ -77,7 +77,7 @@ function createIncidentSeries(
   const formatter = ({value, marker}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
-      `<div class="tooltip-series"><div>`,
+      '<div class="tooltip-series"><div>',
       `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
         openPeriod.id
       }</strong></span>${
@@ -89,7 +89,7 @@ function createIncidentSeries(
             )}`
           : ''
       }`,
-      `</div></div>`,
+      '</div></div>',
       `<div class="tooltip-footer">${time}</div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');

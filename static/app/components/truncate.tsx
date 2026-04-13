@@ -13,7 +13,7 @@ interface TruncateProps {
   trimRegex?: RegExp;
 }
 
-function Truncate({
+export function Truncate({
   value,
   trimRegex,
   className,
@@ -113,5 +113,3 @@ const FullValue = styled('span')<{
       display: block;
     `}
 `;
-
-export default Truncate;

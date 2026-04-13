@@ -7,8 +7,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';

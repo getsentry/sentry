@@ -16,7 +16,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {BufferedInput} from 'sentry/views/discover/table/queryField';
@@ -72,7 +72,7 @@ const LOG_OPERATIONS = [
   value: aggregate as OurLogsAggregate,
 })) satisfies Array<{label: string; value: OurLogsAggregate}>;
 
-export default function EAPField({aggregate, onChange, eventTypes, project}: Props) {
+export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
   const organization = useOrganization();
   const traceItemType =
     getTraceItemTypeForDatasetAndEventType(

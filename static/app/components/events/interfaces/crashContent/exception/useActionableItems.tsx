@@ -7,13 +7,12 @@ import {
   useFetchProguardMappingFiles,
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import type {Event} from 'sentry/types/event';
-import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActionableItemErrors} from './actionableItemsUtils';
 
@@ -34,7 +33,7 @@ const actionableItemsQuery = ({
   ),
 ];
 
-export interface ActionableItemsResponse {
+interface ActionableItemsResponse {
   errors: ActionableItemErrors[];
 }
 
@@ -44,7 +43,7 @@ interface UseActionableItemsProps {
   projectSlug: string;
 }
 
-export function useActionableItems(props?: UseActionableItemsProps) {
+function useActionableItems(props?: UseActionableItemsProps) {
   return useApiQuery<ActionableItemsResponse>(
     props ? actionableItemsQuery(props) : ([''] as unknown as ApiQueryKey),
     {
@@ -55,24 +54,6 @@ export function useActionableItems(props?: UseActionableItemsProps) {
       enabled: defined(props),
     }
   );
-}
-
-/**
- * Check we have all required props
- */
-export function actionableItemsEnabled({
-  eventId,
-  organization,
-  projectSlug,
-}: {
-  eventId?: string;
-  organization?: Organization | SharedViewOrganization | null;
-  projectSlug?: string;
-}) {
-  if (!organization?.features || !projectSlug || !eventId) {
-    return false;
-  }
-  return true;
 }
 
 export function useActionableItemsWithProguardErrors({

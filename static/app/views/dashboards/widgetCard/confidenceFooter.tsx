@@ -1,4 +1,4 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -45,7 +45,7 @@ export function WidgetCardConfidenceFooter({
   const selection = selectionProp ?? pageFilterSelection;
   const rawCounts = useWidgetRawCounts({selection, widget});
   const hasOtherSeries = timeseriesResults?.some(({seriesName}) =>
-    seriesName?.match(/(?:.* : Other)$|^Other$/)
+    seriesName?.match(/.* : Other$|^Other$/)
   );
 
   const topEventsCountExcludingOther =

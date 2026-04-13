@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-import BarSeries from 'sentry/components/charts/series/barSeries';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 
 import {

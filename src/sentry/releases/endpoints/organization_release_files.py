@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.parameters import CursorQueryParam
@@ -15,7 +15,7 @@ from sentry.releases.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -103,7 +103,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         logger = logging.getLogger("sentry.files")
         logger.info("organizationreleasefile.start")
 
-        if not self.has_release_permission(request, organization, release):
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             raise ResourceDoesNotExist
 
         return self.post_releasefile(request, release, logger)

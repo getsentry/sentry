@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -16,7 +16,7 @@ import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWi
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
 import {
   CHART_TITLES,

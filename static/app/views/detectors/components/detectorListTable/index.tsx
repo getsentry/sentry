@@ -87,7 +87,7 @@ export function HeaderCell({
   );
 }
 
-function DetectorListTable({
+export function DetectorListTable({
   detectors,
   isPending,
   isError,
@@ -139,7 +139,7 @@ function DetectorListTable({
   );
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
@@ -518,5 +518,3 @@ const VisualizationExpandButton = styled('div')`
     justify-content: center;
   }
 `;
-
-export default DetectorListTable;

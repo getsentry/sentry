@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import textStyles from 'sentry/styles/text';
+import {textStyles} from 'sentry/styles/text';
 
 type BaseProps = {
+  display?: 'contents';
   withPadding?: boolean;
 };
 
-const PanelBody = styled('div')<BaseProps>`
+export const PanelBody = styled('div')<BaseProps>`
+  ${p => p.display && `display: ${p.display};`}
   padding: ${p => (p.withPadding ? p.theme.space.xl : undefined)};
   ${textStyles};
 `;
-
-export default PanelBody;

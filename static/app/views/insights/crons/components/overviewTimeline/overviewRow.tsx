@@ -14,14 +14,14 @@ import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ActorBadge from 'sentry/components/idBadge/actorBadge';
+import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -34,7 +34,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
-import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
+import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
 
 interface Props {
   monitor: Monitor;

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
@@ -12,7 +12,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationsTableActions} from 'sentry/views/automations/components/automationListTable/actions';
 import {
   AutomationListRow,
@@ -74,7 +74,7 @@ function HeaderCell({
   );
 }
 
-function AutomationListTable({
+export function AutomationListTable({
   automations,
   isPending,
   isError,
@@ -234,5 +234,3 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 `;
-
-export default AutomationListTable;

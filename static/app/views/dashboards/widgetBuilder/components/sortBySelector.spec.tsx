@@ -6,7 +6,7 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -95,7 +95,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
     expect(await screen.findByText('Sort by')).toBeInTheDocument();
     expect(await screen.findByText('High to low')).toBeInTheDocument();
-    expect(await screen.findByText(`Select a column\u{2026}`)).toBeInTheDocument();
+    expect(await screen.findByText('Select a column\u{2026}')).toBeInTheDocument();
   });
 
   it('renders and functions correctly', async () => {
@@ -204,7 +204,7 @@ describe('WidgetBuilderSortBySelector', () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [{key: 'span.duration', name: 'span.duration'}],
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -416,7 +416,7 @@ describe('WidgetBuilderSortBySelector', () => {
     );
 
     const sortDirectionSelector = await screen.findByText('High to low');
-    const sortFieldSelector = await screen.findByText(`Select a column\u{2026}`);
+    const sortFieldSelector = await screen.findByText('Select a column\u{2026}');
 
     expect(sortFieldSelector).toBeInTheDocument();
 

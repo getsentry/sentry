@@ -9,15 +9,15 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
@@ -385,7 +385,7 @@ const TableRow = memo(function TableRow({
           )}
         </SubContent>
       </Cell>
-      <Flex direction="column" padding="xl xl md xl" style={{minWidth: 0}}>
+      <Flex direction="column" padding="xl xl md xl" gap="xs" style={{minWidth: 0}}>
         <FirstCellLine align="center" height="32px">
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
@@ -394,6 +394,7 @@ const TableRow = memo(function TableRow({
               onChange={handleChange}
               size="sm"
               value={sampleRate}
+              aria-label={t('Sample rate for %s', project.slug)}
             />
           </Tooltip>
         </FirstCellLine>

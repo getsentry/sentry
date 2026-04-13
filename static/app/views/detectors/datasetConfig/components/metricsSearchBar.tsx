@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -33,7 +32,6 @@ export function MetricsDetectorSearchBar({
   projectIds,
   disabled,
 }: DetectorSearchBarProps) {
-  const organization = useOrganization();
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
@@ -45,10 +43,6 @@ export function MetricsDetectorSearchBar({
     // aggregateFunction may be unset during form init / dataset switching
   }
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
-
-  const hasBooleanFilters = organization.features.includes(
-    'search-query-builder-explicit-boolean-filters'
-  );
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
@@ -67,7 +61,7 @@ export function MetricsDetectorSearchBar({
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
-    enabled: Boolean(traceMetricFilter) && hasBooleanFilters,
+    enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,
     projectIds,
   });

@@ -5,14 +5,14 @@ import {Link} from '@sentry/scraps/link';
 
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import NoStackTraceMessage from 'sentry/components/events/interfaces/noStackTraceMessage';
-import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {
   getEventTimestampInSeconds,
   getThreadById,
   inferPlatform,
 } from 'sentry/components/events/interfaces/utils';
-import ShortId from 'sentry/components/group/inboxBadges/shortId';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -22,12 +22,12 @@ import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 enum AnrRootCauseAllowlist {
   PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,

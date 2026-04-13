@@ -4,8 +4,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
@@ -47,7 +47,7 @@ export function useBuildDetailsActions({
   const {mutate: rerunAnalysis} = useMutation<void, RequestError>({
     mutationFn: () => {
       return fetchMutation({
-        url: `/internal/preprod-artifact/rerun-analysis/`,
+        url: '/internal/preprod-artifact/rerun-analysis/',
         method: 'POST',
         data: {
           preprod_artifact_id: artifactId,

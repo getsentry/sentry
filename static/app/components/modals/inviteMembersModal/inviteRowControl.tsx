@@ -9,14 +9,14 @@ import {Select} from '@sentry/scraps/select';
 
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization, OrgRole} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import EmailValue from './emailValue';
+import {EmailValue} from './emailValue';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
@@ -40,7 +40,7 @@ function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boole
   return isMemberInvite && membersCanOnlyInviteMemberTeams;
 }
 
-function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
+export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   const organization = useOrganization();
   const filterByUserMembership = orgOnlyAllowsMemberInvitesWithinTeam(organization);
   const {
@@ -127,7 +127,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
-          onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
+          onBlur={(e: any) => {
             handleInput(e.target.value);
           }}
           styles={getStyles(theme, inviteStatus)}
@@ -237,5 +237,3 @@ const RoleTeamWrapper = styled('div')`
   grid-template-columns: 1fr 1fr;
   align-items: start;
 `;
-
-export default InviteRowControl;

@@ -15,20 +15,18 @@ type Props = {
   withHeading: boolean;
 };
 
-function ReleaseCardCommits({release, withHeading = true}: Props) {
+export function ReleaseCardCommits({release, withHeading = true}: Props) {
   const commitCount = release.commitCount || 0;
   const authorCount = release.authors?.length || 0;
 
   const authors = useMemo(
     () =>
-      release.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      release.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [release.authors]
   );
 
@@ -58,5 +56,3 @@ const ReleaseSummaryHeading = styled('div')`
   text-transform: uppercase;
   margin-bottom: ${p => p.theme.space.xs};
 `;
-
-export default ReleaseCardCommits;

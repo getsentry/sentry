@@ -1,3 +1,4 @@
+from collections.abc import Set
 from datetime import timedelta
 
 import sentry_sdk
@@ -6,7 +7,7 @@ from django.utils import timezone
 from sentry.models.files import FileBlob
 
 
-def find_missing_chunks(organization_id: int, chunks: set[str]) -> list[str]:
+def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
     """Returns a list of chunks which are missing for an org."""
     with sentry_sdk.start_span(op="find_missing_chunks") as span:
         span.set_tag("organization_id", organization_id)

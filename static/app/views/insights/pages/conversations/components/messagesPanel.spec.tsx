@@ -7,16 +7,20 @@ import {MessagesPanel} from './messagesPanel';
 function createMockNode(overrides: {
   id: string;
   attributes?: Record<string, string | number>;
+  endTimestamp?: number;
   startTimestamp?: number;
 }) {
-  const {id, attributes = {}, startTimestamp = 1000} = overrides;
+  const {id, attributes = {}, startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
     op: 'gen_ai.generate',
     startTimestamp,
+    endTimestamp: end,
     value: {
       start_timestamp: startTimestamp,
+      end_timestamp: end,
     },
     attributes: {
       // Must be 'ai_client' for getIsAiGenerationSpan to return true
@@ -30,16 +34,20 @@ function createMockNode(overrides: {
 function createMockToolNode(overrides: {
   id: string;
   toolName: string;
+  endTimestamp?: number;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000} = overrides;
+  const {id, toolName, startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
     op: 'gen_ai.execute_tool',
     startTimestamp,
+    endTimestamp: end,
     value: {
       start_timestamp: startTimestamp,
+      end_timestamp: end,
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
@@ -311,6 +319,76 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('Response 2')).toBeInTheDocument();
   });
 
+  it('displays agent name in assistant header when available', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response',
+        [SpanFields.GEN_AI_AGENT_NAME]: 'my-cool-agent',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('my-cool-agent')).toBeInTheDocument();
+    expect(screen.queryByText('Assistant')).not.toBeInTheDocument();
+  });
+
+  it('displays model name in assistant header when no agent name', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response',
+        [SpanFields.GEN_AI_RESPONSE_MODEL]: 'gpt-4o',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('gpt-4o')).toBeInTheDocument();
+    expect(screen.queryByText('Assistant')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Assistant when no agent name or model name', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('Assistant')).toBeInTheDocument();
+  });
+
   it('displays tool calls on assistant messages', () => {
     const requestMessages = JSON.stringify([
       {role: 'user', content: 'Check the weather'},
@@ -354,6 +432,47 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('The weather is sunny')).toBeInTheDocument();
 
     expect(screen.getByText('weather')).toBeInTheDocument();
+  });
+
+  it('renders tool calls with called tool prefix', () => {
+    const requestMessages = JSON.stringify([
+      {role: 'user', content: 'Check the weather'},
+    ]);
+
+    const generationNode1 = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check',
+      },
+    });
+
+    const toolNode1 = createMockToolNode({
+      id: 'tool-1',
+      toolName: 'weather_api',
+      startTimestamp: 1500,
+    });
+
+    const generationNode2 = createMockNode({
+      id: 'span-2',
+      startTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'The weather is sunny',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[generationNode1, toolNode1, generationNode2] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('Called tool')).toBeInTheDocument();
+    expect(screen.getByText('weather_api')).toBeInTheDocument();
   });
 
   it('carries forward tool calls from spans without text to the next message with text', () => {

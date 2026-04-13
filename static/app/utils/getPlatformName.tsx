@@ -1,6 +1,6 @@
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 
-export default function getPlatformName(platform: string | null) {
+export function getPlatformName(platform: string | null) {
   const platformData: {name: string} | undefined = platforms.find(
     ({id}) => platform === id
   );

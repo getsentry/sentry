@@ -16,8 +16,10 @@ type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
  * Can specifcy default options with the defaultOptions argument as well.
  * Can make orgnization required with the second generic.
  */
-export default function makeAnalyticsFunction<
+export function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,
+  // This is used to provide a nice curried type for consumers.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   OrgRequirement extends OptionalOrg = OptionalOrg,
 >(
   eventKeyToNameMap: Record<keyof EventParameters, string | null>,

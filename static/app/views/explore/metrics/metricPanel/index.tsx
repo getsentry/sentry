@@ -1,12 +1,18 @@
 import {useState} from 'react';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Container, Stack} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {TraceSamplesTableColumns} from 'sentry/views/explore/metrics/constants';
+import {
+  getTraceSamplesTableFields,
+  TraceSamplesTableColumns,
+} from 'sentry/views/explore/metrics/constants';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
@@ -14,7 +20,9 @@ import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/use
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
@@ -27,9 +35,11 @@ const TWO_MINUTE_DELAY = 120;
 interface MetricPanelProps {
   queryIndex: number;
   traceMetric: TraceMetric;
+  references?: Set<string>;
 }
 
-export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
+export function MetricPanel({traceMetric, queryIndex, references}: MetricPanelProps) {
+  const organization = useOrganization();
   const {
     orientation,
     setOrientation: setUserPreferenceOrientation,
@@ -42,8 +52,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
   });
 
-  const columns = TraceSamplesTableColumns;
-  const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
+  const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
 
   const metricSamplesTableResult = useMetricSamplesTable({
     disabled: !traceMetric?.name || isMetricOptionsEmpty,
@@ -64,6 +74,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
+  const visualize = useMetricVisualize();
 
   useMetricsPanelAnalytics({
     interval,
@@ -77,6 +88,35 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     aggregateSortBys,
     panelIndex: queryIndex,
   });
+
+  if (hasMetricsUIRefresh) {
+    return (
+      <Panel data-test-id="metric-panel">
+        <PanelBody>
+          <Stack gap="sm">
+            <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
+              <MetricToolbar
+                traceMetric={traceMetric}
+                queryIndex={queryIndex}
+                references={references}
+              />
+            </Container>
+            {visualize.visible ? (
+              <SideBySideOrientation
+                timeseriesResult={timeseriesResult}
+                traceMetric={traceMetric}
+                setOrientation={setUserPreferenceOrientation}
+                orientation={orientation}
+                infoContentHidden={infoContentHidden}
+                setInfoContentHidden={setInfoContentHidden}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
+              />
+            ) : null}
+          </Stack>
+        </PanelBody>
+      </Panel>
+    );
+  }
 
   return (
     <Panel data-test-id="metric-panel">

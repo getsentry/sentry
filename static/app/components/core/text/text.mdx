@@ -19,9 +19,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/text/text';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/text/text');
 
 To create basic text, wrap content in a `<Text>` component. For semantic headings, use `<Heading>` with the appropriate `as` prop.
 
@@ -55,7 +53,7 @@ Text components support different sizes: `xs`, `sm`, `md` (default), `lg`, `xl`,
 
 ## Variants
 
-Text components support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
+Text components support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, `promotion`, and `inherit`.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
@@ -66,6 +64,7 @@ Text components support various color variants: `primary` (default), `muted`, `a
     <Text variant="warning">Warning text</Text>
     <Text variant="danger">Danger text</Text>
     <Text variant="promotion">Promotion text</Text>
+    <Text variant="inherit">Inherit text (inherits color from parent)</Text>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -76,6 +75,7 @@ Text components support various color variants: `primary` (default), `muted`, `a
 <Text variant="warning">Warning text</Text>
 <Text variant="danger">Danger text</Text>
 <Text variant="promotion">Promotion text</Text>
+<Text variant="inherit">Inherit text (inherits color from parent)</Text>
 ```
 
 ## Custom Elements with `as` Prop

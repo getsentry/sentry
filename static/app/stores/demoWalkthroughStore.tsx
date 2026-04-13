@@ -46,5 +46,4 @@ const storeConfig: DemoWalkthroughStoreDefinition = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const DemoWalkthroughStore = createStore(storeConfig);
-export default DemoWalkthroughStore;
+export const DemoWalkthroughStore = createStore(storeConfig);

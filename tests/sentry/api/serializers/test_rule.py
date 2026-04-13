@@ -205,8 +205,8 @@ class WorkflowRuleSerializerTest(TestCase):
             [workflow, workflow_2, workflow_3]
         )
         assert workflow_projects == {
-            workflow_2: {self.project},
-            workflow_3: {self.project, project_2},
+            workflow_2.id: {self.project},
+            workflow_3.id: {self.project, project_2},
         }
 
     def test_fetch_workflows__prefetch(self) -> None:
@@ -403,7 +403,7 @@ class WorkflowRuleSerializerTest(TestCase):
             },
             {
                 "id": IssueOccurrencesFilter.id,
-                "value": "10",
+                "value": 10,
             },
             {
                 "id": IssueTypeFilter.id,
@@ -626,7 +626,7 @@ class WorkflowRuleSerializerTest(TestCase):
                 metadata={"access_token": "xoxb-access-token"},
             )
         action_data = {
-            "workspace": self.integration.id,
+            "workspace": str(self.integration.id),
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
             "channel_id": "C0123456789",
             "tags": "hellboy, meow",
@@ -1024,3 +1024,13 @@ class WorkflowRuleSerializerTest(TestCase):
             serialized_workflow["errors"][0]["detail"]
             == "Could not fetch details from Test Application"
         )
+
+    def test_workflow_without_data_condition_groups(self) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+
+        serialized = serialize(workflow, self.user, WorkflowEngineRuleSerializer())
+
+        assert serialized["filterMatch"] is None
+        assert serialized["conditions"] == []
+        assert serialized["filters"] == []
+        assert serialized["actions"] == []

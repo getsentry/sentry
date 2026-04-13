@@ -11,6 +11,6 @@ export function TimelineScaleContextProvider({children}: {children: React.ReactN
   return <Context value={state}>{children}</Context>;
 }
 
-export default function useTimelineScale() {
+export function useTimelineScale() {
   return useContext(Context);
 }

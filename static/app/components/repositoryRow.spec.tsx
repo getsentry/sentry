@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import RepositoryRow from 'sentry/components/repositoryRow';
+import {RepositoryRow} from 'sentry/components/repositoryRow';
 import {RepositoryStatus} from 'sentry/types/integrations';
 
 describe('RepositoryRow', () => {

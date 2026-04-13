@@ -152,6 +152,8 @@ def is_black_alpha_only(data: IO[bytes]) -> bool:
     result = False
     with Image.open(data) as image:
         if image.mode == "RGBA":
-            result = not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
+            # tobytes() returns raw RGBA bytes (4 bytes per pixel)
+            raw = image.tobytes()
+            result = not any(raw[i : i + 3] != b"\x00\x00\x00" for i in range(0, len(raw), 4))
     data.seek(0)
     return result

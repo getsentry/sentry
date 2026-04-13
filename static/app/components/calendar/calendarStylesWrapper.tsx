@@ -3,7 +3,7 @@ import 'react-date-range/dist/theme/default.css';
 
 import styled from '@emotion/styled';
 
-const CalendarStylesWrapper = styled('div')`
+export const CalendarStylesWrapper = styled('div')`
   padding: ${p => p.theme.space.xl};
 
   .rdrCalendarWrapper:not(.rdrDateRangeWrapper) .rdrDayHovered .rdrDayNumber:after {
@@ -246,5 +246,3 @@ const CalendarStylesWrapper = styled('div')`
     visibility: hidden;
   }
 `;
-
-export default CalendarStylesWrapper;

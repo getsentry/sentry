@@ -9,7 +9,7 @@ from sentry import projectoptions
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
@@ -74,7 +74,12 @@ OPTION_KEYS = frozenset(
         "sentry:preprod_distribution_enabled_query",
         "sentry:preprod_size_enabled_by_customer",
         "sentry:preprod_distribution_enabled_by_customer",
+        "sentry:preprod_snapshot_status_checks_enabled",
+        "sentry:preprod_snapshot_status_checks_fail_on_added",
+        "sentry:preprod_snapshot_status_checks_fail_on_removed",
         "sentry:preprod_distribution_pr_comments_enabled_by_customer",
+        "sentry:preprod_snapshot_pr_comments_enabled",
+        "sentry:scm_source_context_enabled",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -83,7 +88,6 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
-        "relay.cardinality-limiter.limits",
     ]
 )
 
@@ -204,7 +208,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         return self.get_value(project, key, default=Ellipsis) is not Ellipsis
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.

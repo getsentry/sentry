@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class BuildsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -89,6 +89,8 @@ class BuildsEndpoint(OrganizationEndpoint):
             display = request.GET.get("display")
             if display in ("size", "distribution"):
                 queryset = queryset.filter(preprodsnapshotmetrics__isnull=True)
+            elif display == "snapshot":
+                queryset = queryset.filter(preprodsnapshotmetrics__isnull=False)
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.

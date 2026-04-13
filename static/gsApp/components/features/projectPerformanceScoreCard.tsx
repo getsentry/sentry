@@ -9,7 +9,7 @@ type Props = React.PropsWithChildren<{
   organization: Organization;
 }>;
 
-function ProjectPerformanceScoreCard({organization}: Props) {
+export function ProjectPerformanceScoreCard({organization}: Props) {
   return (
     <Button
       size="sm"
@@ -20,5 +20,3 @@ function ProjectPerformanceScoreCard({organization}: Props) {
     </Button>
   );
 }
-
-export default ProjectPerformanceScoreCard;

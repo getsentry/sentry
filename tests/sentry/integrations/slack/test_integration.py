@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
 import pytest
 import responses
+from django.urls import reverse
 from responses.matchers import query_string_matcher
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
@@ -11,7 +15,9 @@ from slack_sdk.web import SlackResponse
 from sentry import audit_log
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
+from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
@@ -87,6 +93,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         access_json = {
             "ok": True,
             "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            "scope": ",".join(sorted(self.provider.identity_oauth_scopes)),
             "team": {"id": team_id, "name": "Example"},
             "authed_user": {"id": authorizing_user_id},
         }
@@ -542,6 +549,9 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             channel="C1234567890",
             blocks=self.slack_renderable.get("blocks", []),
             text="Mock Notification",
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
@@ -567,6 +577,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             channel=self.channel_id,
             thread_ts=self.thread_ts,
             blocks=self.slack_renderable.get("blocks", []),
+            attachments=self.slack_renderable.get("attachments"),
             text=self.slack_renderable.get("text", ""),
         )
 
@@ -594,6 +605,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_chat_ephemeral.assert_called_once_with(
             channel=self.channel_id,
             thread_ts=self.thread_ts,
+            attachments=self.slack_renderable.get("attachments"),
             user=self.slack_user_id,
             blocks=self.slack_renderable.get("blocks", []),
             text=self.slack_renderable.get("text", ""),
@@ -611,3 +623,154 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
                 renderable=self.slack_renderable,
                 slack_user_id=self.slack_user_id,
             )
+
+    def test_get_thread_history_missing_scope_returns_empty(self) -> None:
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_success(self, mock_conversations_replies: MagicMock) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [
+                {"ts": self.thread_ts, "text": "Original message"},
+                {"ts": "1712345679.000001", "text": "Reply 1"},
+                {"ts": "1712345680.000002", "text": "Reply 2"},
+            ],
+        }
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 3
+        assert result[0]["text"] == "Original message"
+        mock_conversations_replies.assert_called_once_with(
+            channel=self.channel_id,
+            ts=self.thread_ts,
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_error_returns_empty_list(
+        self, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id, thread_ts=self.thread_ts
+        )
+        assert result == []
+
+
+@control_silo_test
+class SlackApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "slack"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "slack"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "slack.com/oauth/v2/authorize" in oauth_url
+        assert "user_scope=" in oauth_url
+
+        # Verify the OAuth URL requests the correct bot scopes, not the
+        # identity provider's default scopes
+        parsed = urlparse(oauth_url)
+        params = parse_qs(parsed.query)
+        requested_scopes = set(params["scope"][0].split(" "))
+        assert requested_scopes == SlackIntegrationProvider.identity_oauth_scopes
+
+    @responses.activate
+    def test_oauth_step_missing_code(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @responses.activate
+    @patch("sentry.integrations.slack.integration.WebClient")
+    def test_full_pipeline_flow(self, mock_web_client_cls: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_web_client_cls.return_value = mock_client
+        mock_client.team_info.return_value = SlackResponse(
+            client=mock_client,
+            http_verb="GET",
+            api_url="https://slack.com/api/team.info",
+            req_args={},
+            data={
+                "ok": True,
+                "team": {
+                    "name": "Test Team",
+                    "id": "T1234",
+                    "domain": "test-team",
+                    "icon": {"image_132": "https://example.com/icon.png"},
+                },
+            },
+            headers={},
+            status_code=200,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://slack.com/api/oauth.v2.access",
+            json={
+                "ok": True,
+                "access_token": "xoxb-test-token",
+                "scope": "channels:read,chat:write",
+                "team": {"name": "Test Team", "id": "T1234"},
+                "authed_user": {"id": "U1234"},
+            },
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "slack-auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="slack")
+        assert integration.external_id == "T1234"
+        assert integration.name == "Test Team"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()

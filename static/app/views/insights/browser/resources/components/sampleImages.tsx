@@ -6,18 +6,18 @@ import * as Sentry from '@sentry/react';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {ChartPanel} from 'sentry/views/insights/common/components/chartPanel';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -37,7 +37,7 @@ const {
 const imageWidth = '200px';
 const imageHeight = '180px';
 
-function SampleImages({groupId, projectId, noVisualizationPadding}: Props) {
+export function SampleImages({groupId, projectId, noVisualizationPadding}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
@@ -328,5 +328,3 @@ const ChartPanelTextContainer = styled('div')`
   width: 300px;
   margin: auto;
 `;
-
-export default SampleImages;

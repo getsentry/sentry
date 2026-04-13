@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
@@ -42,7 +42,7 @@ class SearchAgentStartSerializer(serializers.Serializer):
     strategy = serializers.CharField(
         required=False,
         default="Traces",
-        help_text="Search strategy to use (Traces, Issues, Logs, Errors).",
+        help_text="Search strategy to use (Traces, Issues, Logs, Errors, Metrics).",
     )
     options = serializers.DictField(
         required=False,
@@ -67,6 +67,7 @@ def send_search_agent_start_request(
     user_email: str | None = None,
     timezone: str | None = None,
     model_name: str | None = None,
+    metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> dict[str, Any]:
     """
@@ -87,6 +88,8 @@ def send_search_agent_start_request(
     options: dict[str, Any] = {}
     if model_name is not None:
         options["model_name"] = model_name
+    if metric_context is not None:
+        options["metric_context"] = metric_context
     if options:
         body["options"] = options
 
@@ -96,7 +99,7 @@ def send_search_agent_start_request(
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SearchAgentStartEndpoint(OrganizationEndpoint):
     """
     Endpoint to start an async search agent and return a run_id for polling.
@@ -129,15 +132,23 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         strategy = validated_data.get("strategy", "Traces")
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
+        metric_context = options.get("metric_context")
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
         )
         project_ids = [project.id for project in projects]
 
-        if not features.has(
+        has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        ):
+        )
+        if strategy == "Metrics":
+            has_feature = has_feature and features.has(
+                "organizations:gen-ai-explore-metrics-search",
+                organization,
+                actor=request.user,
+            )
+        if not has_feature:
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -174,6 +185,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 user_email=user_email,
                 timezone=timezone,
                 model_name=model_name,
+                metric_context=metric_context,
                 viewer_context=viewer_context,
             )
 

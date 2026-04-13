@@ -2,12 +2,12 @@ import {useEffect, useMemo, useState} from 'react';
 import type {Query} from 'history';
 
 import type {Client} from 'sentry/api';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {decodeScalar} from 'sentry/utils/queryString';
-import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
+import {fetchReplayClicks} from 'sentry/utils/replays/fetchReplayClicks';
 import type {highlightNode} from 'sentry/utils/replays/highlightNode';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type TimeOffsetLocationQueryParams = {
@@ -162,7 +162,7 @@ async function fromListPageQuery({
   }
 }
 
-export default function useInitialTimeOffsetMs({
+export function useInitialTimeOffsetMs({
   orgSlug,
   replayId,
   projectSlug,

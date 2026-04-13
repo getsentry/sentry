@@ -6,7 +6,7 @@ from django.db.models import CheckConstraint, Exists, OuterRef, Q, UniqueConstra
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.workflow_engine.models import AlertRuleDetector
@@ -44,7 +44,7 @@ class RuleSnoozeManager(BaseManager["RuleSnooze"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class RuleSnooze(Model):
     """
     Duration an issue alert or metric alert is snoozed for a user.

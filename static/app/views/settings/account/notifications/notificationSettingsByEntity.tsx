@@ -6,19 +6,19 @@ import keyBy from 'lodash/keyBy';
 import {Button} from '@sentry/scraps/button';
 import {Select} from '@sentry/scraps/select';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -41,7 +41,7 @@ interface NotificationSettingsByEntityProps {
   organizations: Organization[];
 }
 
-function NotificationSettingsByEntity({
+export function NotificationSettingsByEntity({
   entityType,
   handleAddNotificationOption,
   handleEditNotificationOption,
@@ -81,7 +81,7 @@ function NotificationSettingsByEntity({
     refetch,
   } = useApiQuery<Project[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: orgSlug!},
       }),
       {
@@ -134,7 +134,7 @@ function NotificationSettingsByEntity({
       option => option.type === notificationType && option.scopeType === entityType
     );
     return matchedOptions.map(option => {
-      const entity = entityById[`${option.scopeIdentifier}`];
+      const entity = entityById[option.scopeIdentifier];
       if (!entity) {
         return null;
       }
@@ -306,8 +306,6 @@ function NotificationSettingsByEntity({
     </MinHeight>
   );
 }
-
-export default NotificationSettingsByEntity;
 
 const MinHeight = styled('div')`
   min-height: 400px;

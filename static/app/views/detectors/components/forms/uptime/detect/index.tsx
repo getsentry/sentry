@@ -1,16 +1,16 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RangeField from 'sentry/components/forms/fields/rangeField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
-import type FormModel from 'sentry/components/forms/model';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RangeField} from 'sentry/components/forms/fields/rangeField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import type {FormModel} from 'sentry/components/forms/model';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
 import {
@@ -59,10 +59,10 @@ function ConnectedHttpSnippet() {
   );
 }
 
-export function UptimeDetectorFormDetectSection() {
+export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
   return (
     <Container>
-      <Section title={t('Detect')}>
+      <FormSection step={step} title={t('Issue Detection')}>
         <UptimeSectionGrid>
           <SelectField
             options={VALID_INTERVALS_SEC.map(value => ({
@@ -180,7 +180,7 @@ export function UptimeDetectorFormDetectSection() {
           />
         </UptimeSectionGrid>
         <ConnectedHttpSnippet />
-      </Section>
+      </FormSection>
     </Container>
   );
 }

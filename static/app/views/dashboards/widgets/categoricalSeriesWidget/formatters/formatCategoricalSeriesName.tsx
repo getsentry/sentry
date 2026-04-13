@@ -5,7 +5,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
  * Combines valueAxis with groupBy information to create unique series names.
  */
 export function formatCategoricalSeriesName(series: CategoricalSeries): string {
-  let name = `${series.valueAxis}`;
+  let name = series.valueAxis;
 
   if (series.groupBy?.length) {
     name += ` : ${series.groupBy

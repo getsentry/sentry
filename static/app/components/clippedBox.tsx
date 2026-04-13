@@ -143,7 +143,7 @@ interface ClippedBoxProps {
   title?: string;
 }
 
-function ClippedBox(props: ClippedBoxProps) {
+export function ClippedBox(props: ClippedBoxProps) {
   const revealRef = useRef(false);
   const mountedRef = useRef(false);
 
@@ -336,8 +336,6 @@ function ClippedBox(props: ClippedBoxProps) {
     </Wrapper>
   );
 }
-
-export default ClippedBox;
 
 const Wrapper = styled('div')`
   position: relative;

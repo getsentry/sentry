@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -28,6 +28,9 @@ from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRule
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     DetailedAlertRuleSerializer,
+)
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    DetailedWorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -61,14 +64,17 @@ def _anon_to_None[T](u: T | AnonymousUser) -> T | None:
 def fetch_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule | Detector
 ) -> Response:
-    if isinstance(alert_rule, Detector):
-        return Response(
-            {"alert_rule": ["Passing a detector through this endpoint is not yet supported"]},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    # Serialize Alert Rule
     expand = request.GET.getlist("expand", [])
+    if isinstance(alert_rule, Detector):
+        detector = alert_rule
+        serialized = serialize(
+            detector,
+            request.user,
+            DetailedWorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
+        )
+        return Response(serialized)
 
+    assert isinstance(alert_rule, AlertRule)
     serialized_rule = serialize(
         alert_rule,
         request.user,
@@ -149,7 +155,7 @@ def remove_alert_rule(
         try:
             remove_detector(request, organization, target)
             try:
-                ard = AlertRuleDetector.objects.get(detector_id=target.id)
+                ard = AlertRuleDetector.objects_for_deletion.get(detector_id=target.id)
                 target = AlertRule.objects.get(id=ard.alert_rule_id, organization=organization)
                 delete_alert_rule(
                     target,
@@ -325,8 +331,11 @@ def _check_project_access[T](
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-orgalertruledetails-get",
+    }
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

@@ -16,9 +16,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconSync} from 'sentry/icons';
 import type {DocIntegration} from 'sentry/types/integrations';
 
-import CustomerContact from 'admin/components/customerContact';
-import CustomerStatus from 'admin/components/customerStatus';
-import PercentChange from 'admin/components/percentChange';
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {PercentChange} from 'admin/components/percentChange';
 import ResultGrid from 'admin/components/resultGrid';
 
 /**
@@ -225,7 +225,7 @@ function CustomersByVolume() {
  * DEPRECATION WARNING
  * THIS COMPONENT WILL SOON BE REMOVED
  */
-function Overview() {
+export function Overview() {
   return (
     <OverviewContainer>
       <CustomersByVolume />
@@ -279,5 +279,3 @@ const SectionHeading = styled('h3')`
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
 `;
-
-export default Overview;

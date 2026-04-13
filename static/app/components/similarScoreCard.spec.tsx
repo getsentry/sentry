@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import SimilarScoreCard from 'sentry/components/similarScoreCard';
+import {SimilarScoreCard} from 'sentry/components/similarScoreCard';
 
 describe('SimilarScoreCard', () => {
   beforeEach(() => {});

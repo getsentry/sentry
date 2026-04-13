@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tempest.tasks.poll_tempest",
     namespace=tempest_tasks,
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def poll_tempest(**kwargs):
     for credentials in TempestCredentials.objects.select_related("project__organization").all():
@@ -58,7 +58,7 @@ def poll_tempest(**kwargs):
     name="sentry.tempest.tasks.fetch_latest_item_id",
     namespace=tempest_tasks,
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # Lock duration should be slightly longer than the task deadline to prevent
@@ -250,7 +250,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
     name="sentry.tempest.tasks.poll_tempest_crashes",
     namespace=tempest_tasks,
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     # Lock duration should be slightly longer than the task deadline to prevent

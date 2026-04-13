@@ -30,7 +30,7 @@ export function hasSpanMeasurements(span: TraceTree.Span) {
   return !!span.measurements && Object.keys(span.measurements).length > 0;
 }
 
-function Measurements({
+export function Measurements({
   node,
   location,
   organization,
@@ -115,5 +115,3 @@ const Wrapper = styled('div')`
     text-align: left;
   }
 `;
-
-export default Measurements;

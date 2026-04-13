@@ -15,13 +15,11 @@ class DynamicSamplingMode(models.TextChoices):
 class SamplingMeasure(Enum):
     """The type of data being measured for dynamic sampling rebalancing.
 
-    - TRANSACTIONS: Legacy transaction-based counting using TransactionMRI.
     - SPANS: Span-based counting using SpanMRI WITHOUT is_segment filter.
              Used for AM3/project mode where we count all spans.
     - SEGMENTS: Span-based counting using SpanMRI WITH is_segment=true filter.
-                Used as a replacement for TRANSACTIONS, counting only root spans.
+                Default measure, counting only root spans (segments).
     """
 
     SPANS = "spans"
-    TRANSACTIONS = "transactions"
     SEGMENTS = "segments"

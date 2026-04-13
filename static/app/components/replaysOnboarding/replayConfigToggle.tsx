@@ -3,7 +3,7 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {t} from 'sentry/locale';
 
-function ReplayConfigToggle({
+export function ReplayConfigToggle({
   maskToggle,
   onMaskToggle,
   blockToggle,
@@ -27,5 +27,3 @@ function ReplayConfigToggle({
     </Flex>
   );
 }
-
-export default ReplayConfigToggle;

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -24,7 +24,7 @@ from sentry.models.organization import Organization
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     owner = ApiOwner.ECOSYSTEM

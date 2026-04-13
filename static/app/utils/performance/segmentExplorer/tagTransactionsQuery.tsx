@@ -24,7 +24,7 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   return prevProps.query !== nextProps.query;
 }
 
-function TagTransactionsQuery(props: QueryProps) {
+export function TagTransactionsQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
       route="events"
@@ -33,5 +33,3 @@ function TagTransactionsQuery(props: QueryProps) {
     />
   );
 }
-
-export default TagTransactionsQuery;

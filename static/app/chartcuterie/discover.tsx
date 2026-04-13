@@ -1,10 +1,10 @@
 import type {Theme} from '@emotion/react';
 import type {SeriesOption} from 'echarts';
 
-import XAxis from 'sentry/components/charts/components/xAxis';
-import AreaSeries from 'sentry/components/charts/series/areaSeries';
-import BarSeries from 'sentry/components/charts/series/barSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Duration from 'sentry/components/duration';
-import FileSize from 'sentry/components/fileSize';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Duration} from 'sentry/components/duration';
+import {FileSize} from 'sentry/components/fileSize';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {defined} from 'sentry/utils';
 import {

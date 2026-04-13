@@ -7,10 +7,10 @@ from sentry.integrations.models.data_forwarder_project import DataForwarderProje
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-forwarding-details"
 
@@ -26,7 +26,7 @@ class DataForwardingDetailsEndpointTest(APITestCase):
             return super().get_response(*args, **kwargs)
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
     method = "PUT"
 
@@ -578,7 +578,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert data_forwarder.is_enabled
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingDetailsDeleteTest(DataForwardingDetailsEndpointTest):
     method = "DELETE"
 

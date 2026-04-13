@@ -69,7 +69,11 @@ export type GraphicsVariant = SemanticVariant;
 /**
  * Border color variant.
  */
-export type BorderVariant = Exclude<SemanticVariant, 'neutral'> | 'primary' | 'muted';
+export type BorderVariant =
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'primary'
+  | 'secondary'
+  | 'muted';
 
 // -----------------------------------------------------------------------------
 // Component Variants (should be moved locally, aligned to SemanticVariant)

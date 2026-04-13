@@ -1,15 +1,15 @@
 import {Outlet} from 'react-router-dom';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import Redirect from 'sentry/components/redirect';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {Redirect} from 'sentry/components/redirect';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
 export default function ReplaysContainer() {
   const organization = useOrganization();
 
-  const redirectPath = useRedirectNavV2Routes({
+  const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/replays/',
     newPathPrefix: '/explore/replays/',
   });

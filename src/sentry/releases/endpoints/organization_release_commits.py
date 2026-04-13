@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -12,7 +12,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

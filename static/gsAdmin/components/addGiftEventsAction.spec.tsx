@@ -5,7 +5,7 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
-import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
+import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';

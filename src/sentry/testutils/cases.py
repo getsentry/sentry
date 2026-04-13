@@ -17,6 +17,7 @@ from urllib.parse import urlencode
 from uuid import UUID, uuid4
 from zlib import compress
 
+import httpx
 import pytest
 import requests
 import responses
@@ -36,7 +37,6 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 from google.protobuf.timestamp_pb2 import Timestamp
-from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -219,7 +219,7 @@ __all__ = (
     "MonitorIngestTestCase",
 )
 
-from ..types.region import get_cell_by_name
+from ..types.cell import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -462,15 +462,15 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     for mode in endpoint_silo_limit.modes:
                         if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
                             continue
-                        region = None
-                        if mode is SiloMode.REGION:
+                        cell = None
+                        if mode is SiloMode.CELL:
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+                            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
                         with (
                             SingleProcessSiloModeState.exit(),
-                            SingleProcessSiloModeState.enter(mode, region),
+                            SingleProcessSiloModeState.enter(mode, cell),
                         ):
                             return old_request(**request)
             return old_request(**request)
@@ -678,36 +678,45 @@ class APITestCaseMixin:
     def api_gateway_proxy_stubbed(self):
         """Mocks a fake api gateway proxy that redirects via Client objects"""
 
-        def proxy_raw_request(
-            method: str,
-            url: str,
-            headers: Mapping[str, str],
-            params: Mapping[str, str] | None,
-            data: Any,
-            **kwds: Any,
-        ) -> requests.Response:
-            from django.test.client import Client
+        from asgiref.sync import sync_to_async
+        from django.test.client import Client
 
-            client = Client()
-            extra: Mapping[str, Any] = {
-                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
-            }
-            if params:
-                url += "?" + urlencode(params)
-            with assume_test_silo_mode(SiloMode.REGION):
-                resp = getattr(client, method.lower())(
-                    url, b"".join(data), headers["Content-Type"], **extra
-                )
-            response = requests.Response()
-            response.status_code = resp.status_code
-            response.headers = CaseInsensitiveDict(resp.headers)
-            response.encoding = get_encoding_from_headers(response.headers)
-            response.raw = BytesIO(resp.content)
-            return response
+        class MockedProxy:
+            def __init__(self):
+                self.client = Client()
 
+            @staticmethod
+            async def _consume_body(content):
+                ret = b""
+                async for chunk in content:
+                    ret += chunk
+                return ret
+
+            def build_request(self, method, url, headers, params, content, timeout):
+                assert not params
+                target = getattr(self.client, method.lower())
+                content_type = headers.pop("Content-Type", "application/octet-stream")
+                extra: Mapping[str, Any] = {
+                    f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+                }
+                return target, (url, content, content_type), extra
+
+            async def send(self, req, stream, follow_redirects):
+                with assume_test_silo_mode(SiloMode.CELL):
+                    url, content, content_type = req[1]
+                    content = await self._consume_body(content)
+                    resp = await sync_to_async(req[0])(url, content, content_type, **req[2])
+                    wresp = httpx.Response(
+                        status_code=resp.status_code,
+                        headers=dict(resp.headers),
+                        content=resp.content,
+                    )
+                    return wresp
+
+        mock_client = MockedProxy()
         with mock.patch(
-            "sentry.hybridcloud.apigateway.proxy.external_request",
-            new=proxy_raw_request,
+            "sentry.hybridcloud.apigateway_async.proxy.proxy_client",
+            new=mock_client,
         ):
             yield
 
@@ -732,7 +741,7 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization.flags.require_2fa = True
             organization.save()
 
@@ -998,7 +1007,7 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
@@ -1041,13 +1050,16 @@ class SnubaTestCase(BaseTestCase):
 
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
+    reset_snuba_data: bool = True
 
     def setUp(self):
         super().setUp()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba, call_snuba):
+    def initialize(self, request, call_snuba):
+        if self.reset_snuba_data:
+            request.getfixturevalue("reset_snuba")
         self.call_snuba = call_snuba
 
     def create_project(self, **kwargs) -> Project:
@@ -1167,14 +1179,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_ourlogs(self, ourlogs):
-        files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def produce_and_store_eap_items(
         self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> list[TraceItem]:
@@ -1239,17 +1243,6 @@ class SnubaTestCase(BaseTestCase):
                 events.append(event)
         return events
 
-    def store_trace_metrics(self, trace_metrics):
-        files = {
-            f"trace_metric_{i}": trace_metric.SerializeToString()
-            for i, trace_metric in enumerate(trace_metrics)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
@@ -1257,6 +1250,11 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+        # Reverse the ids since these are stored in little endian in
+        # ClickHouse and end up reversed. This helps if we want to compare
+        # these inserted items to results returned from EAP.
+        for item in items:
+            item.item_id = item.item_id[::-1]
 
     def store_issues(self, issues):
         assert (
@@ -2492,7 +2490,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_repository(
         self,
         repository_config,
@@ -2983,7 +2981,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
-            blocks[-2]["elements"][0]["text"]
+            blocks[-1]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
@@ -3211,24 +3209,22 @@ class MonitorIngestTestCase(MonitorTestCase):
 class UptimeTestCaseMixin:
     def setUp(self):
         super().setUp()
-        self.mock_resolve_hostname_ctx = mock.patch(
+        patcher = mock.patch(
             "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
         )
-        self.mock_resolve_rdap_provider_ctx = mock.patch(
-            "sentry.uptime.rdap.query.resolve_rdap_provider",
-            return_value="https://fake.com/",
-        )
-        self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
-        self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
-        self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
-        self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
-        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.mock_resolve_hostname = patcher.start()
+        self.addCleanup(patcher.stop)
 
-    def tearDown(self):
-        super().tearDown()
-        self.mock_resolve_hostname_ctx.__exit__(None, None, None)
-        self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
-        self.mock_requests_get_ctx.__exit__(None, None, None)
+        patcher = mock.patch(
+            "sentry.uptime.rdap.query.resolve_rdap_provider", return_value="https://fake.com/"
+        )
+        self.mock_resolve_rdap_provider = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_requests_get = patcher.start()
+        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.addCleanup(patcher.stop)
 
     def create_uptime_result(
         self,
@@ -3569,10 +3565,11 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         environment: str | None = None,
         title: str = "some error",
         transaction: str | None = None,
-        occurrence_type: str = "error",
+        issue_occurrence_id: str | None = None,
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
+        client_sample_rate: float = 1.0,
     ) -> TraceItem:
         if organization is None:
             organization = self.organization
@@ -3591,11 +3588,12 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         data: dict[str, Any] = {
             "level": level,
             "title": title,
-            "type": occurrence_type,
         }
         preprocessed: dict[str, Any] = {}
         if group_id is not None:
             preprocessed["group_id"] = group_id
+        if issue_occurrence_id is not None:
+            preprocessed["issue_occurrence_id"] = issue_occurrence_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
@@ -3618,6 +3616,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             received=timestamp_proto,
             retention_days=retention_days,
             attributes=attributes_proto,
+            client_sample_rate=client_sample_rate,
         )
 
 
@@ -4073,22 +4072,6 @@ class ReplayEAPTestCase(BaseTestCase):
             server_sample_rate=1.0,
         )
 
-    def store_replays_eap(self, replays):
-        import requests
-        from django.conf import settings
-
-        files = {f"replay_{i}": replay.SerializeToString() for i, replay in enumerate(replays)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for replay in replays:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            replay.item_id = replay.item_id[::-1]
-
 
 class UptimeResultEAPTestCase(BaseTestCase):
     """Test case for creating and storing EAP uptime results."""
@@ -4213,25 +4196,6 @@ class UptimeResultEAPTestCase(BaseTestCase):
             retention_days=90,
             attributes=attributes_proto,
         )
-
-    def store_uptime_results(self, uptime_results):
-        """Store uptime results in the EAP dataset."""
-        import requests
-        from django.conf import settings
-
-        files = {
-            f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for result in uptime_results:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            result.item_id = result.item_id[::-1]
 
 
 class ProcessingErrorTestCase(BaseTestCase):

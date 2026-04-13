@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -9,12 +9,12 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 
 export const TRACE_COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
 
-export const TRACE_RIGHT_COLUMN_EVEN_CLASSNAME = `TraceRightColumn`;
+export const TRACE_RIGHT_COLUMN_EVEN_CLASSNAME = 'TraceRightColumn';
 export const TRACE_RIGHT_COLUMN_ODD_CLASSNAME = [
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   'Odd',
 ].join(' ');
-export const TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME = `TraceChildrenCountWrapper`;
+export const TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME = 'TraceChildrenCountWrapper';
 export const TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME = [
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
   'Orphaned',

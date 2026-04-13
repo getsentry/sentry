@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 
 import type {AvatarUser} from 'sentry/types/user';
 
-import BadgeDisplayName from './badgeDisplayName';
+import {BadgeDisplayName} from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
 export interface UserBadgeProps extends BaseBadgeProps {
@@ -15,7 +15,7 @@ export interface UserBadgeProps extends BaseBadgeProps {
   user?: AvatarUser;
 }
 
-function UserBadge({
+export function UserBadge({
   hideEmail = false,
   displayName,
   displayEmail,
@@ -72,5 +72,3 @@ const Email = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default UserBadge;

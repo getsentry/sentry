@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
 type SpanEvidencePreviewProps = {

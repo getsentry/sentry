@@ -7,7 +7,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
+import {HighlightCornerContainer} from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

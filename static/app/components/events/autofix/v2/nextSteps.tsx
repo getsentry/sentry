@@ -20,7 +20,7 @@ import {IconChat, IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
 
 const STEP_LABELS: Record<AutofixExplorerStep, string> = {

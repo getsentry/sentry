@@ -34,7 +34,7 @@ export function getProcessingTooltip(status: ImageStatus): string | undefined {
   }
 }
 
-function ProcessingIcon({status}: Props) {
+export function ProcessingIcon({status}: Props) {
   switch (status) {
     case ImageStatus.TIMEOUT:
     case ImageStatus.FETCHING_FAILED:
@@ -57,5 +57,3 @@ function ProcessingIcon({status}: Props) {
     }
   }
 }
-
-export default ProcessingIcon;

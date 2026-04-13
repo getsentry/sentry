@@ -1,22 +1,23 @@
 import {useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {addRepository} from 'sentry/actionCreators/integrations';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
-import RepositoryStore from 'sentry/stores/repositoryStore';
+import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {
   Integration,
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationReposAddRepositoryProps {
   currentRepositories: Repository[];
@@ -43,10 +44,11 @@ export function IntegrationReposAddRepository({
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const query = useQuery({
     queryKey: [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
         {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
       ),
       {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
@@ -78,19 +80,32 @@ export function IntegrationReposAddRepository({
       return selection.value === item.externalSlug;
     });
 
-    let promise: Promise<Repository>;
     if (migratableRepo) {
-      promise = migrateRepository(api, organization.slug, migratableRepo.id, integration);
-    } else {
-      promise = addRepository(api, organization.slug, selection.value, integration);
+      Sentry.captureException(
+        new Error(
+          'Attempted to migrate repository integration — this code path is disabled'
+        ),
+        {
+          extra: {
+            repositoryId: migratableRepo.id,
+            integrationId: integration.id,
+            orgSlug: organization.slug,
+          },
+        }
+      );
     }
 
     try {
-      const repo = await promise;
+      const repo = await addRepository(
+        api,
+        organization.slug,
+        selection.value,
+        integration
+      );
       onAddRepository(repo);
       RepositoryStore.resetRepositories();
     } catch {
-      // Error feedback is handled by addRepository/migrateRepository
+      // Error feedback is handled by addRepository
     } finally {
       setAdding(false);
     }

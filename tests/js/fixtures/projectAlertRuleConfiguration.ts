@@ -70,7 +70,7 @@ export function ProjectAlertRuleConfigurationFixture(
       },
       {
         id: 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
-        label: 'The issue changes state from ignored to unresolved',
+        label: 'An issue escalates',
         enabled: true,
       },
       {

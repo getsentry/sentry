@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ProgressBar from 'sentry/components/progressBar';
+import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct, tn} from 'sentry/locale';
 import {percent} from 'sentry/utils';
 
@@ -9,7 +9,7 @@ type Props = {
   totalEvents: number;
 };
 
-function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
+export function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
   const remainingEventsToReprocess = totalEvents - pendingEvents;
   const remainingEventsToReprocessPercent = percent(
     remainingEventsToReprocess,
@@ -37,7 +37,6 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
     </Wrapper>
   );
 }
-export default ReprocessingProgress;
 
 const Wrapper = styled('div')`
   margin: ${p => p.theme.space['3xl']} 40px;

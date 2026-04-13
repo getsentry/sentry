@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 import {AvatarList} from '@sentry/scraps/avatar';
 
 import {ListGroupItem} from 'sentry/components/listGroup';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import type {CommitAuthor} from 'sentry/types/integrations';
 import type {AvatarUser} from 'sentry/types/user';
 
-import FileIcon from './fileIcon';
+import {FileIcon} from './fileIcon';
 
 interface FileChangeProps {
   authors: CommitAuthor[];
   filename: string;
 }
 
-function FileChange({filename, authors}: FileChangeProps) {
+export function FileChange({filename, authors}: FileChangeProps) {
   return (
     <FileItem>
       <Filename>
@@ -58,5 +58,3 @@ const FileIconWrapper = styled('div')`
   color: ${p => p.theme.colors.gray200};
   border-radius: 3px;
 `;
-
-export default FileChange;

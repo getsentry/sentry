@@ -1,14 +1,14 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {GDPRPanel} from 'getsentry/views/legalAndCompliance/gdprPanel';
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 export default function LegalAndCompliance() {
   const organization = useOrganization();

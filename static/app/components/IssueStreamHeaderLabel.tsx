@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-const IssueStreamHeaderLabel = styled('div')<{
+export const IssueStreamHeaderLabel = styled('div')<{
   align?: 'left' | 'right';
   breakpoint?: string;
   hideDivider?: boolean;
@@ -47,5 +47,3 @@ const IssueStreamHeaderLabel = styled('div')<{
       }
     `}
 `;
-
-export default IssueStreamHeaderLabel;

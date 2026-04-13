@@ -2,7 +2,7 @@ import {FeedbackIssueFixture} from 'sentry-fixture/feedbackIssue';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import {FeedbackItemUsername} from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 
 describe('FeedbackItemUsername', () => {
   let seerSetupMock: any;

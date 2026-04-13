@@ -11,7 +11,11 @@ type Props = {
   projectSlug: string;
 };
 
-function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Props) {
+export function EventAttachmentsCrashReportsNotice({
+  orgSlug,
+  projectSlug,
+  groupId,
+}: Props) {
   const location = useLocation();
   const settingsUrl = `/settings/${orgSlug}/projects/${projectSlug}/security-and-privacy/`;
   const attachmentsUrl = {
@@ -33,5 +37,3 @@ function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Pro
     </Alert.Container>
   );
 }
-
-export default EventAttachmentsCrashReportsNotice;

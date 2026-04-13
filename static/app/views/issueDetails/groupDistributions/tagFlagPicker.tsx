@@ -8,7 +8,7 @@ interface Props {
   tab: DrawerTab;
 }
 
-export default function TagFlagPicker({setTab, tab}: Props) {
+export function TagFlagPicker({setTab, tab}: Props) {
   return (
     <SegmentedControl size="xs" value={tab} onChange={setTab}>
       <SegmentedControl.Item key={DrawerTab.TAGS}>{t('All Tags')}</SegmentedControl.Item>

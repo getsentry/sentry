@@ -1,4 +1,4 @@
-import slugify from 'sentry/utils/slugify';
+import {slugify} from 'sentry/utils/slugify';
 
 describe('slugify', () => {
   it('forces to lowercase', () => {

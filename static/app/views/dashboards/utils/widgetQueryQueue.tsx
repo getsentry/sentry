@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-pacer';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FetchDataFn = () => Promise<void>;
 

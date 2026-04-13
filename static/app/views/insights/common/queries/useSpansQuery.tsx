@@ -1,12 +1,11 @@
 import moment from 'moment-timezone';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -14,7 +13,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   RPCQueryExtras,
   SamplingMode,

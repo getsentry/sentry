@@ -21,7 +21,7 @@ type RadioPanelGroupProps<C extends string> = {
 type Props<C extends string> = RadioPanelGroupProps<C> &
   Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioPanelGroupProps<C>>;
 
-function RadioPanelGroup<C extends string>({
+export function RadioPanelGroup<C extends string>({
   value,
   choices,
   label,
@@ -50,8 +50,6 @@ function RadioPanelGroup<C extends string>({
     </Container>
   );
 }
-
-export default RadioPanelGroup;
 
 const Container = styled('div')`
   display: grid;

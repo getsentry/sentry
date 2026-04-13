@@ -3,23 +3,23 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {
   OrganizationIntegration,
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
 
 export function IntegrationServerlessFunctions({
@@ -31,7 +31,7 @@ export function IntegrationServerlessFunctions({
   const queryClient = useQueryClient();
   const queryKey: ApiQueryKey = [
     getApiUrl(
-      `/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/`,
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
       {
         path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
       }

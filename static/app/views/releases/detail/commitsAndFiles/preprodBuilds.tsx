@@ -1,31 +1,31 @@
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {PreprodOnboarding} from './preprodOnboarding';
@@ -107,25 +107,15 @@ export default function PreprodBuilds() {
   }
 
   const {
-    data: buildsData,
+    data: buildsResponse,
     isPending: isLoadingBuilds,
     error: buildsError,
     refetch,
-    getResponseHeader,
-  }: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> = useApiQuery<
-    BuildDetailsApiResponse[]
-  >(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: 0,
-      enabled: !!projectSlug && !!params.release,
-    }
-  );
+  } = useQuery({
+    ...buildDetailsApiOptions({organization, queryParams}),
+    select: selectJsonWithHeaders,
+    enabled: !!projectSlug && !!params.release,
+  });
 
   const handleSearch = (query: string, _state?: {queryIsValid: boolean}) => {
     setLocalSearchQuery(query);
@@ -145,8 +135,8 @@ export default function PreprodBuilds() {
     [location, navigate]
   );
 
-  const builds = buildsData ?? [];
-  const pageLinks = getResponseHeader?.('Link') || null;
+  const builds = buildsResponse?.json ?? [];
+  const pageLinks = buildsResponse?.headers.Link ?? null;
 
   const hasSearchQuery = !!urlSearchQuery?.trim();
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;

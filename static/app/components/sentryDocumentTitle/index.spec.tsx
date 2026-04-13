@@ -1,7 +1,7 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {DocumentTitleManager} from './documentTitleManager';
-import SentryDocumentTitle from '.';
+import {SentryDocumentTitle} from '.';
 
 describe('SentryDocumentTitle', () => {
   it('sets the document title', () => {

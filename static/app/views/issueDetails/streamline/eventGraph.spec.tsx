@@ -7,8 +7,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
@@ -190,7 +190,9 @@ describe('EventGraph', () => {
         },
       },
     });
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument();
+    });
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',

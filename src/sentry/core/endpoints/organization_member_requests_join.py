@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.auth.services.auth import auth_service
 from sentry.demo_mode.utils import is_demo_user
@@ -57,7 +57,7 @@ def create_organization_join_request(
         return om
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,

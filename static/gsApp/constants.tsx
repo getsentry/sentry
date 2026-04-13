@@ -196,6 +196,13 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ),
     shortenedUnitName: 'GB',
   },
+  [DataCategoryExact.TRACE_METRIC_BYTE]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.TRACE_METRIC_BYTE],
+    canProductTrial: true,
+    freeEventsMultiple: 1,
+    feature: 'expose-category-trace-metric-byte',
+    shortenedUnitName: 'GB',
+  },
   [DataCategoryExact.SEER_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
     feature: 'seer-user-billing-launch',
@@ -208,7 +215,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
     freeEventsMultiple: 1,
     shortenedUnitName: t('build'),
-    adminOnlyProductTrialFeature: 'expose-category-size-analysis',
+    adminOnlyProductTrialFeature: true,
   },
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],

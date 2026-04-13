@@ -37,7 +37,7 @@ describe('useSortByFields', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/trace-items/attributes/`,
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
 

@@ -1,10 +1,11 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
+
 import type {Release} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
-export default function useProjectReleaseVersionIsSemver({
+export function useProjectReleaseVersionIsSemver({
   version,
   enabled,
 }: {
@@ -13,17 +14,18 @@ export default function useProjectReleaseVersionIsSemver({
 }) {
   const organization = useOrganization();
 
-  const {data, isError, isPending} = useApiQuery<Release>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          version: version ?? '',
-        },
-      }),
-    ],
-    {staleTime: 0, enabled: Boolean(version) && enabled}
-  );
+  const {data, isError, isPending} = useQuery({
+    ...apiOptions.as<Release>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
+      {
+        path:
+          version && enabled
+            ? {organizationIdOrSlug: organization.slug, version}
+            : skipToken,
+        staleTime: 0,
+      }
+    ),
+  });
 
   if (isPending || isError || !data?.versionInfo) {
     return false;

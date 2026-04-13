@@ -5,7 +5,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import type {ImageStatus} from 'sentry/types/debugImage';
 
-import ProcessingIcon, {getProcessingTooltip} from './processingIcon';
+import {getProcessingTooltip, ProcessingIcon} from './processingIcon';
 
 type Props = {
   debug_status?: ImageStatus | null;
@@ -24,7 +24,7 @@ function StatusItem({status, label}: {label: string; status: ImageStatus}) {
   );
 }
 
-function Processings({unwind_status, debug_status}: Props) {
+export function Processings({unwind_status, debug_status}: Props) {
   if (!debug_status && !unwind_status) {
     return null;
   }
@@ -38,5 +38,3 @@ function Processings({unwind_status, debug_status}: Props) {
     </Flex>
   );
 }
-
-export default Processings;

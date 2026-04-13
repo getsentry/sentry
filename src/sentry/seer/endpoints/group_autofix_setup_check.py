@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -23,7 +23,6 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
     has_project_connected_repos,
-    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerApiError
@@ -101,7 +100,7 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     return repos_and_access
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -151,29 +150,24 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
-        seer_seat_based_tier_enabled = is_seer_seat_based_tier_enabled(org)
-
         seer_repos_linked = False
         # Check if org has github integration and is on seat-based tier.
-        if integration_check is None and seer_seat_based_tier_enabled:
+        if integration_check is None:
             try:
                 # Check if project has repos linked in Seer.
                 # Skip cache to ensure latest data from Seer API.
-                seer_repos_linked = has_project_connected_repos(
-                    org.id, group.project.id, skip_cache=True
-                )
+                seer_repos_linked = has_project_connected_repos(org, group.project, skip_cache=True)
             except Exception as e:
                 # Default to False if we can't check if the project has repos linked in Seer.
                 sentry_sdk.capture_exception(e)
 
         autofix_enabled = False
         autofix_automation_tuning = group.project.get_option("sentry:autofix_automation_tuning")
-        if seer_seat_based_tier_enabled:
-            if (
-                autofix_automation_tuning
-                and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
-            ):
-                autofix_enabled = True
+        if (
+            autofix_automation_tuning
+            and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+        ):
+            autofix_enabled = True
 
         return Response(
             {

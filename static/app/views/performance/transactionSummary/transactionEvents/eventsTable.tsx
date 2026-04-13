@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -9,21 +10,20 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Pagination from 'sentry/components/pagination';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {Pagination} from 'sentry/components/pagination';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
-import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -33,13 +33,13 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
@@ -52,7 +52,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TitleProps} from './operationSort';
-import OperationSort from './operationSort';
+import {OperationSort} from './operationSort';
 
 function shouldRenderColumn(containsSpanOpsBreakdown: boolean, col: string): boolean {
   if (containsSpanOpsBreakdown && isSpanOperationBreakdownField(col)) {
@@ -79,7 +79,7 @@ function OperationTitle({onClick}: TitleProps) {
         size="xs"
         position="top"
         title={t(
-          `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
+          'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
         )}
       />
     </div>
@@ -90,7 +90,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   theme: Theme;
   transactionName: string;
@@ -113,11 +112,10 @@ type Props = {
   }) => ReactNode;
 };
 
-export default function EventsTable({
+export function EventsTable({
   eventView,
   location,
   organization,
-  routes,
   setError,
   theme,
   transactionName,
@@ -134,13 +132,14 @@ export default function EventsTable({
   referrer,
   renderTableHeader,
 }: Props) {
+  const matches = useMatches();
   const navigate = useNavigate();
   const api = useApi({persistInFlight: true});
   const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
   const [hasMinidumps, setHasMinidumps] = useState(false);
 
-  const replayLinkGenerator = useMemo(() => generateReplayLink(routes), [routes]);
+  const replayLinkGenerator = useMemo(() => generateReplayLink(matches), [matches]);
 
   const handleCellAction = useCallback(
     (column: TableColumn<keyof TableDataRow>) => {
@@ -232,27 +231,27 @@ export default function EventsTable({
 
       if (field === 'id' || field === 'trace') {
         const isIssue = !!issueId;
-        let target: LocationDescriptor = {};
+        let target: LocationDescriptor | null = null;
         if (isIssue && !isRegressionIssue && field === 'id') {
-          target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
-        } else {
-          if (field === 'id') {
-            target = generateLinkToEventInTraceView({
-              traceSlug: dataRow.trace?.toString()!,
-              eventId: dataRow.id,
-              timestamp: dataRow.timestamp!,
-              location,
-              organization,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-              view: domainViewFilters?.view,
-            });
-          } else {
-            target = generateTraceLink(transactionName, domainViewFilters?.view)(
-              organization,
-              dataRow,
-              location
-            );
-          }
+          target = {
+            pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
+          };
+        } else if (field === 'id') {
+          target = generateLinkToEventInTraceView({
+            traceSlug: dataRow.trace?.toString()!,
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp!,
+            location,
+            organization,
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            view: domainViewFilters?.view,
+          });
+        } else if (dataRow.trace) {
+          target = generateTraceLink(transactionName, domainViewFilters?.view)(
+            organization,
+            dataRow,
+            location
+          );
         }
 
         return (
@@ -262,7 +261,7 @@ export default function EventsTable({
             handleCellAction={cellActionHandler}
             allowActions={allowActions}
           >
-            <Link to={target}>{rendered}</Link>
+            {target ? <Link to={target}>{rendered}</Link> : rendered}
           </CellAction>
         );
       }

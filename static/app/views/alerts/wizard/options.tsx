@@ -4,7 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

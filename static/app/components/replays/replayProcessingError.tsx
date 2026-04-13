@@ -12,7 +12,7 @@ interface Props {
   className?: string;
 }
 
-export default function ReplayProcessingError({className}: Props) {
+export function ReplayProcessingError({className}: Props) {
   const replay = useReplayReader();
   const {sdk} = replay?.getReplay() || {};
 

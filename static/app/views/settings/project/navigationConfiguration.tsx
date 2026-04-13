@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
@@ -13,7 +13,7 @@ type ConfigParams = {
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({
+export function getNavigationConfiguration({
   project,
   organization,
   debugFilesNeedsReview,
@@ -60,7 +60,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
-          show: () => !organization?.hideAiFeatures,
         },
         {
           path: `${pathPrefix}/user-feedback/`,

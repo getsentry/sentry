@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -32,12 +31,8 @@ interface FilterProps {
 }
 
 export function Filter({traceMetric}: FilterProps) {
-  const organization = useOrganization();
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
-  const hasBooleanFilters = organization.features.includes(
-    'search-query-builder-explicit-boolean-filters'
-  );
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -56,7 +51,7 @@ export function Filter({traceMetric}: FilterProps) {
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
-    enabled: Boolean(traceMetricFilter) && hasBooleanFilters,
+    enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,
   });
 

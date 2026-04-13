@@ -154,7 +154,7 @@ class TestUpdater(TestCase):
         with outbox_runner():
             updater.run(self.user)
         assert sentry_app.events == expand_events(["issue"])
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.filter(
                 application_id=sentry_app.application_id
             ).order_by("id")[0]
@@ -172,7 +172,7 @@ class TestUpdater(TestCase):
         with outbox_runner():
             updater.run(self.user)
         assert sentry_app.webhook_url == "http://example.com/hooks"
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
         assert service_hook.url == "http://example.com/hooks"
         assert service_hook.events == expand_events(["event.alert"])
@@ -246,14 +246,14 @@ class TestUpdater(TestCase):
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url=None, scopes=("event:read",)
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ["issue"]
         with outbox_runner():
             updater.run(self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
         assert service_hook.events == expand_events(["issue"])
@@ -274,13 +274,13 @@ class TestUpdater(TestCase):
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url="https://sentry.io/hook"
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = ""
         with outbox_runner():
             updater.run(self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
 
     def test_update_service_hooks_with_outbox_feature_enabled(self) -> None:
@@ -308,12 +308,12 @@ class TestUpdater(TestCase):
         # Verify the outbox entry has correct data
         entry = outbox_entries[0]
         assert entry.object_identifier == installation.id
-        assert entry.region_name is not None
+        assert entry.cell_name is not None
 
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id, organization_id=self.org.id
             )
@@ -368,7 +368,7 @@ class TestUpdater(TestCase):
         # Verify the outbox entry has correct data
         entry = outbox_entries[0]
         assert entry.object_identifier == installation.id
-        assert entry.region_name is not None
+        assert entry.cell_name is not None
 
         with outbox_runner():
             pass
@@ -383,7 +383,7 @@ class TestUpdater(TestCase):
             assert outbox_entries.count() == 0
 
         # Verify the service hook was updated in the region
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id, organization_id=self.org.id
             )

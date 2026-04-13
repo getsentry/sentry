@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 
 jest.mock('echarts-for-react/lib/core', () => {
   // We need to do this because `jest.mock` gets hoisted by babel and `React` is not

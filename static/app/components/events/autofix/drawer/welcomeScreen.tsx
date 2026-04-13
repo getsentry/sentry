@@ -1,7 +1,7 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {GroupSummary} from 'sentry/components/group/groupSummary';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

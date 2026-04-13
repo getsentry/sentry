@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
@@ -11,6 +11,7 @@ import {
   isBaseVisualize,
   isVisualize,
   Visualize,
+  VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
@@ -44,10 +45,7 @@ export interface MetricQuery extends BaseMetricQuery {
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
-export function decodeMetricsQueryParams(
-  value: string,
-  multiVisualize = false
-): BaseMetricQuery | null {
+export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null {
   let json: any;
   try {
     json = JSON.parse(value);
@@ -61,7 +59,7 @@ export function decodeMetricsQueryParams(
 
   const metric = json.metric;
   const query = parseQuery(json.query);
-  const visualizes = parseVisualizes(json.aggregateFields, multiVisualize);
+  const visualizes = parseVisualizes(json.aggregateFields);
 
   if (!visualizes.length) {
     return null;
@@ -106,7 +104,11 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   });
 }
 
-export function defaultMetricQuery(): BaseMetricQuery {
+export function defaultMetricQuery({
+  type = 'aggregate',
+}: {type?: 'aggregate' | 'equation'} = {}): BaseMetricQuery {
+  const newFields =
+    type === 'equation' ? [defaultAggregateEquation()] : defaultAggregateFields();
   return {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
@@ -119,8 +121,8 @@ export function defaultMetricQuery(): BaseMetricQuery {
       sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
-      aggregateFields: defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
+      aggregateFields: newFields,
+      aggregateSortBys: defaultAggregateSortBys(newFields),
     }),
   };
 }
@@ -156,7 +158,7 @@ export function defaultSortBys(fields: string[]): Sort[] {
 }
 
 function defaultVisualize(): Visualize {
-  return new VisualizeFunction('per_second(value)');
+  return new VisualizeFunction('sum(value)');
 }
 
 function defaultGroupBys(): GroupBy[] {
@@ -165,6 +167,10 @@ function defaultGroupBys(): GroupBy[] {
 
 export function defaultAggregateFields(): AggregateField[] {
   return [defaultVisualize(), ...defaultGroupBys()];
+}
+
+function defaultAggregateEquation() {
+  return new VisualizeEquation(EQUATION_PREFIX);
 }
 
 export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
@@ -190,17 +196,12 @@ function parseQuery(value: unknown): string {
   return typeof value === 'string' ? value : defaultQuery();
 }
 
-function parseVisualizes(value: unknown, multiVisualize = false): Visualize[] {
+function parseVisualizes(value: unknown): Visualize[] {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  if (multiVisualize) {
-    return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
-  }
-
-  const baseVisualize = value.find(isBaseVisualize);
-  return baseVisualize ? Visualize.fromJSON(baseVisualize) : [];
+  return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
 }
 
 function parseGroupBys(value: unknown): GroupBy[] {

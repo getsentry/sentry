@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CustomerContractDetails from 'admin/views/customerContractDetails';
+import {CustomerContractDetails} from 'admin/views/customerContractDetails';
 
 const MOCK_CONTRACT = {
   metadata: {id: 'contract-123', organizationId: 'org-456'},

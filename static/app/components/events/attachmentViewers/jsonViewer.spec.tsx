@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
+import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
 
 describe('JsonViewer', () => {
   const organization = OrganizationFixture();

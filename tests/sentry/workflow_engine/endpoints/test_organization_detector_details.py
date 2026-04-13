@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -21,7 +21,7 @@ from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
@@ -95,7 +95,7 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
         assert self.detector.data_sources is not None
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
@@ -209,7 +209,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["ruleId"] is None
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     method = "PUT"
 
@@ -325,6 +325,47 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         self.detector.refresh_from_db()
         assert self.detector.description == "New description for the detector"
+
+    def test_update_eap_invalid_time_window_rejected(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.EventsAnalyticsPlatform.value,
+                "query": "span.op:http.client",
+                "aggregate": "count()",
+                "timeWindow": 60,  # below the 300-second EAP floor
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert "Invalid Time Window" in str(response.data)
+
+        # 450 seconds is above the floor but not a valid granularity
+        data["dataSources"][0]["timeWindow"] = 450
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert "Invalid Time Window" in str(response.data)
+
+        # 300 seconds (5 minutes) is the smallest valid EAP window
+        data["dataSources"][0]["timeWindow"] = 300
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -966,7 +1007,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query_snapshot.get("user_updated") is True
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
@@ -977,7 +1018,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1004,7 +1045,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with outbox_runner():
             self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
 
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1030,7 +1071,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1057,12 +1098,12 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         # Verify detector was not deleted
         error_detector.refresh_from_db()
         assert error_detector.status != ObjectStatus.PENDING_DELETION
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id
         ).exists()
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsPutCacheInvalidationTest(OrganizationDetectorDetailsBaseTest):
     """Tests that PUT requests correctly invalidate the detector cache."""
 

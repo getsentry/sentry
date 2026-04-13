@@ -57,7 +57,7 @@ const CronsStatusText: Record<
  * Takes in an alert rule (metric or issue) and renders the
  * appropriate tooltip and AlertBadge
  */
-export default function CombinedAlertBadge({rule}: Props) {
+export function CombinedAlertBadge({rule}: Props) {
   if (rule.type === CombinedAlertType.UPTIME) {
     const {statusText, incidentStatus} = UptimeStatusText[rule.uptimeStatus];
     const disabled = rule.status === 'disabled';

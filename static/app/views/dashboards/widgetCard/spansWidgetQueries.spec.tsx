@@ -4,10 +4,10 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import SpansWidgetQueries from './spansWidgetQueries';
+import {SpansWidgetQueries} from './spansWidgetQueries';
 
 describe('spansWidgetQueries', () => {
   const {organization} = initializeOrg();
@@ -134,7 +134,7 @@ describe('spansWidgetQueries', () => {
     });
 
     const normalModeMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-stats/`,
+      url: '/organizations/org-slug/events-stats/',
       body: {
         data: [
           [1, [{count: 1}]],
@@ -189,7 +189,7 @@ describe('spansWidgetQueries', () => {
     });
 
     const normalModeMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         data: [{a: 'normal mode'}],
       },

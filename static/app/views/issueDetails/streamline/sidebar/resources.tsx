@@ -6,7 +6,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig, ResourceLink} from 'sentry/utils/issueTypeConfig/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   configResources: NonNullable<IssueTypeConfig['resources']>;
@@ -14,7 +14,7 @@ type Props = {
   group: Group;
 };
 
-export default function Resources({configResources, eventPlatform, group}: Props) {
+export function Resources({configResources, eventPlatform, group}: Props) {
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,

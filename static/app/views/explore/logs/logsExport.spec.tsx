@@ -14,7 +14,7 @@ jest.mock('sentry/views/explore/logs/logsExportCsv');
 
 describe('LogsExportButton', () => {
   const {organization, setupPageFilters} = initializeLogsTest({
-    organization: {features: ['ourlogs-enabled', 'ourlogs-export', 'discover-query']},
+    organization: {features: ['ourlogs-enabled', 'discover-query']},
   });
   const initialRouterConfig = {
     location: {

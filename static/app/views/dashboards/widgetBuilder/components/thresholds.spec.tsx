@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
-import Thresholds from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
+import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,

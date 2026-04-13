@@ -1,10 +1,10 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 

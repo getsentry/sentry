@@ -7,7 +7,7 @@ import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 

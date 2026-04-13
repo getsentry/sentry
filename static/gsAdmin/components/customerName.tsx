@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const CustomerName = styled('div')`
+export const CustomerName = styled('div')`
   display: grid;
   grid-template: max-content max-content / max-content 1fr;
   gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
@@ -9,5 +9,3 @@ const CustomerName = styled('div')`
     grid-row: 1 / 3;
   }
 `;
-
-export default CustomerName;

@@ -5,7 +5,7 @@ from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 
 COMMIT_FILE_CHANGE_TYPES = frozenset(("A", "D", "M"))
@@ -21,7 +21,7 @@ class CommitFileChangeManager(BaseManager["CommitFileChange"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class CommitFileChange(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

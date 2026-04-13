@@ -26,7 +26,7 @@ type Props = {
 /**
  * Renders the parsed query with syntax highlighting.
  */
-export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
+export function HighlightQuery({parsedQuery, cursorPosition}: Props) {
   const result = renderResult(parsedQuery, cursorPosition ?? -1);
 
   return <Fragment>{result}</Fragment>;

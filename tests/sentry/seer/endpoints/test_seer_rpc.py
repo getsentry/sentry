@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -14,13 +14,18 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
+    bulk_get_project_preferences,
     check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_project_preferences,
+    get_repo_installation_id,
     has_repo_code_mappings,
+    trigger_coding_agent_launch,
     validate_repo,
 )
 from sentry.seer.explorer.tools import get_trace_item_attributes
@@ -81,6 +86,50 @@ class TestSeerRpc(APITestCase):
 
         assert response.status_code == 429
         assert "Rate limit exceeded" in response.data["detail"]
+
+    def test_rest_framework_exceptions_are_reraised(self) -> None:
+        """Test that REST framework exceptions preserve their status codes."""
+        from rest_framework.exceptions import APIException
+
+        class CustomAPIException(APIException):
+            status_code = 503
+            default_detail = "Service temporarily unavailable"
+
+        path = self._get_path("get_organization_slug")
+        data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
+
+        with patch(
+            "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
+        ) as mock_dispatch:
+            mock_dispatch.side_effect = CustomAPIException()
+
+            response = self.client.post(
+                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+            )
+
+        assert response.status_code == 503
+        assert "Service temporarily unavailable" in response.data["detail"]
+
+    def test_generic_exceptions_return_500(self) -> None:
+        """Test that generic exceptions return 500 instead of 400."""
+        path = self._get_path("get_organization_slug")
+        data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
+
+        for is_test_environment in [True, False]:
+            with patch(
+                "sentry.seer.endpoints.seer_rpc.in_test_environment",
+                return_value=is_test_environment,
+            ):
+                with patch(
+                    "sentry.seer.endpoints.seer_rpc.SeerRpcServiceEndpoint._dispatch_to_local_method"
+                ) as mock_dispatch:
+                    mock_dispatch.side_effect = RuntimeError("Unexpected internal error")
+
+                    response = self.client.post(
+                        path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+                    )
+
+                assert response.status_code == 500
 
 
 class TestSeerRpcMethods(APITestCase):
@@ -1002,7 +1051,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="nonexistent",
             name="nonexistent",
         )
-        assert result == {"has_code_mappings": False}
+        assert result == {"has_code_mappings": False, "project_slug_to_id": {}}
 
     def test_has_repo_code_mappings_no_mappings(self) -> None:
         """Test when repository exists but has no code mappings"""
@@ -1021,7 +1070,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="test",
             name="repo",
         )
-        assert result == {"has_code_mappings": False}
+        assert result == {"has_code_mappings": False, "project_slug_to_id": {}}
 
     def test_has_repo_code_mappings_with_mappings(self) -> None:
         """Test when repository exists and has code mappings"""
@@ -1057,7 +1106,10 @@ class TestSeerRpcMethods(APITestCase):
             owner="test",
             name="repo",
         )
-        assert result == {"has_code_mappings": True}
+        assert result == {
+            "has_code_mappings": True,
+            "project_slug_to_id": {project.slug: project.id},
+        }
 
     def test_validate_repo_valid(self) -> None:
         """Test when repository exists and matches all fields"""
@@ -1317,3 +1369,360 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"valid": True, "integration_id": integration.id}
+
+    def test_get_repo_installation_id_github(self) -> None:
+        """Test returns external_id as installation_id for GitHub repos"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="12345"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"installation_id": "12345", "permissions": None}
+
+    def test_get_repo_installation_id_github_with_permissions(self) -> None:
+        """Test returns permissions from integration metadata"""
+        permissions = {"contents": "read", "issues": "write", "pull_requests": "read"}
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="12345",
+            metadata={"permissions": permissions},
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"installation_id": "12345", "permissions": permissions}
+
+    def test_get_repo_installation_id_github_enterprise(self) -> None:
+        """Test returns metadata installation_id for GitHub Enterprise repos"""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="ghe:1",
+            metadata={"installation_id": "99999"},
+        )
+
+        Repository.objects.create(
+            name="mycompany/internal-repo",
+            organization_id=self.organization.id,
+            provider="integrations:github_enterprise",
+            external_id="789",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github_enterprise",
+            external_id="789",
+            owner="mycompany",
+            name="internal-repo",
+        )
+
+        assert result == {"installation_id": "99999", "permissions": None}
+
+    def test_get_repo_installation_id_not_found(self) -> None:
+        """Test returns error when repository does not exist"""
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="nonexistent",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "repository_not_found"}
+
+    def test_get_repo_installation_id_unsupported_provider(self) -> None:
+        """Test returns error for unsupported provider"""
+        integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "unsupported_provider"}
+
+    def test_get_repo_installation_id_no_integration(self) -> None:
+        """Test returns error when repo has no integration_id"""
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=None,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "no_integration"}
+
+    def test_get_repo_installation_id_integration_not_found(self) -> None:
+        """Test returns error when integration record doesn't exist"""
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=999999,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="123456",
+            owner="getsentry",
+            name="sentry",
+        )
+
+        assert result == {"error": "integration_not_found"}
+
+    @patch("sentry.seer.endpoints.seer_rpc.read_preference_from_sentry_db")
+    def test_get_project_preferences_returns_preference(self, mock_read: Any) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_read.return_value = MagicMock(
+            dict=MagicMock(return_value={"project_id": project.id, "repositories": []})
+        )
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+        assert result == {"project_id": project.id, "repositories": []}
+        mock_read.assert_called_once()
+
+    @patch("sentry.seer.endpoints.seer_rpc.read_preference_from_sentry_db")
+    def test_get_project_preferences_returns_none_when_no_preference(self, mock_read: Any) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_read.return_value = None
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+        assert result is None
+
+    def test_get_project_preferences_raises_for_nonexistent_project(self) -> None:
+        with pytest.raises(Project.DoesNotExist):
+            get_project_preferences(
+                organization_id=self.organization.id,
+                project_id=999999,
+            )
+
+    def test_get_project_preferences_raises_for_wrong_org(self) -> None:
+        project = self.create_project(organization=self.organization)
+        other_org = self.create_organization(owner=self.user)
+        with pytest.raises(Project.DoesNotExist):
+            get_project_preferences(
+                organization_id=other_org.id,
+                project_id=project.id,
+            )
+
+    @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
+    def test_bulk_get_project_preferences_returns_preferences(self, mock_bulk_read: Any) -> None:
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        mock_bulk_read.return_value = {
+            project1.id: MagicMock(
+                dict=MagicMock(return_value={"project_id": project1.id, "repositories": []})
+            ),
+            project2.id: None,
+        }
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[project1.id, project2.id],
+        )
+        assert result == {
+            str(project1.id): {"project_id": project1.id, "repositories": []},
+            str(project2.id): None,
+        }
+        mock_bulk_read.assert_called_once_with(self.organization.id, [project1.id, project2.id])
+
+    @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
+    def test_bulk_get_project_preferences_returns_empty_for_no_projects(
+        self, mock_bulk_read: Any
+    ) -> None:
+        mock_bulk_read.return_value = {}
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[],
+        )
+        assert result == {}
+
+
+class TestTriggerCodingAgentLaunch:
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_not_found_returns_integration_not_found_error_code(self, mock_launch):
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+
+        mock_launch.side_effect = IntegrationNotFound()
+
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            project_id=4,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": False, "error_code": "integration_not_found"}
+
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_organization_not_found_does_not_return_integration_error_code(self, mock_launch):
+        from sentry.seer.autofix.coding_agent import OrganizationNotFound
+
+        mock_launch.side_effect = OrganizationNotFound()
+
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            project_id=4,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": False}
+        assert result.get("error_code") != "integration_not_found"
+
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_autofix_state_not_found_does_not_return_integration_error_code(self, mock_launch):
+        from sentry.seer.autofix.coding_agent import AutofixStateNotFound
+
+        mock_launch.side_effect = AutofixStateNotFound()
+
+        result = trigger_coding_agent_launch(
+            organization_id=1,
+            project_id=4,
+            integration_id=2,
+            run_id=3,
+        )
+
+        assert result == {"success": False}
+        assert result.get("error_code") != "integration_not_found"
+
+
+class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
+    def _make_preference_response(self):
+        from sentry.seer.models.seer_api_models import (
+            AutofixHandoffPoint,
+            SeerAutomationHandoffConfiguration,
+            SeerProjectPreference,
+            SeerRawPreferenceResponse,
+        )
+
+        return SeerRawPreferenceResponse(
+            preference=SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[],
+                automation_handoff=SeerAutomationHandoffConfiguration(
+                    handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+                    target="cursor_background_agent",
+                    integration_id=42,
+                ),
+            )
+        )
+
+    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_integration_not_found_clears_handoff_project_options(
+        self, mock_launch, mock_get_prefs
+    ):
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+
+        mock_launch.side_effect = IntegrationNotFound()
+        mock_get_prefs.return_value = self._make_preference_response()
+
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        with self.feature("organizations:seer-project-settings-dual-write"):
+            result = trigger_coding_agent_launch(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                integration_id=42,
+                run_id=99,
+            )
+
+        assert result == {"success": False, "error_code": "integration_not_found"}
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_integration_not_found_skips_clear_without_feature_flag(
+        self, mock_launch, mock_get_prefs
+    ):
+        from sentry.seer.autofix.coding_agent import IntegrationNotFound
+
+        mock_launch.side_effect = IntegrationNotFound()
+        mock_get_prefs.return_value = self._make_preference_response()
+
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+
+        result = trigger_coding_agent_launch(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            integration_id=42,
+            run_id=99,
+        )
+
+        assert result == {"success": False, "error_code": "integration_not_found"}
+        assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+        mock_get_prefs.assert_not_called()

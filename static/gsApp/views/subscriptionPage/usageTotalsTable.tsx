@@ -6,8 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -224,7 +224,12 @@ type Props = {
   isEventBreakdown?: boolean;
 };
 
-function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+export function UsageTotalsTable({
+  category,
+  isEventBreakdown,
+  totals,
+  subscription,
+}: Props) {
   const categoryInfo = getCategoryInfoFromPlural(category);
   const theme = useTheme();
   const colorPalette = theme.chart.getColorPalette(6);
@@ -341,8 +346,6 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
     </Flex>
   );
 }
-
-export default UsageTotalsTable;
 
 const OutcomeType = styled(TextOverflow)<{indent?: boolean}>`
   display: grid;

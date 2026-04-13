@@ -5,11 +5,11 @@ from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test
+@cell_silo_test
 class TestReplayGranularPermissions(APITestCase):
     def setUp(self) -> None:
         super().setUp()

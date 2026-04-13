@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, TypedDict, cast
 
 from rest_framework.request import Request
@@ -17,7 +16,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Extrap
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.utils import handle_query_errors
@@ -34,6 +33,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 PARALLELIZATION_FACTOR = 2
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -326,7 +326,7 @@ def query_attribute_distributions(
                 referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
             )
 
-    with ThreadPoolExecutor(
+    with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
         max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
     ) as query_thread_pool:

@@ -19,7 +19,7 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 }
 
 export function nl2br(str: string): string {
-  return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
+  return str.replace(/\r\n|\r|\n/g, '<br />');
 }
 
 export function escape(str: string): string {

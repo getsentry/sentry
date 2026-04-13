@@ -7,11 +7,11 @@ import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import IdBadge from 'sentry/components/idBadge';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {IdBadge} from 'sentry/components/idBadge';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   Score,
   ScoreCard,
@@ -22,19 +22,19 @@ import {
 } from 'sentry/components/scoreCard';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
-import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
@@ -48,7 +48,10 @@ interface ProjectCardProps {
   project: Project;
 }
 
-function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProps) {
+export function ProjectCard({
+  project: simpleProject,
+  hasProjectAccess,
+}: ProjectCardProps) {
   const api = useApi();
   const organization = useOrganization();
 
@@ -343,5 +346,3 @@ const FooterPlaceholder = styled(Placeholder)`
   width: auto;
   margin-right: ${p => p.theme.space.xl};
 `;
-
-export default ProjectCard;

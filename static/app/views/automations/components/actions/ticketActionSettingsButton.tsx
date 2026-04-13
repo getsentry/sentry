@@ -1,7 +1,9 @@
+import {useMemo} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
+import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
@@ -11,9 +13,11 @@ import {
   actionNodesMap,
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
+import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function TicketActionSettingsButton() {
   const {action, onUpdate} = useActionNodeContext();
+  const {automation} = useAutomationFormContext();
 
   const ticketAction = action as TicketCreationAction;
 
@@ -42,10 +46,31 @@ export function TicketActionSettingsButton() {
     });
   };
 
+  // Find saved action data from the API response
+  const savedActionData = useMemo(() => {
+    if (!automation) return undefined;
+
+    for (const af of automation.actionFilters) {
+      const found = af.actions?.find(a => a.id === action.id);
+      if (found) return found.data;
+    }
+
+    return undefined;
+  }, [automation, action.id]);
+
+  const additionalFields =
+    ticketAction.data.additional_fields ??
+    savedActionData?.additionalFields ??
+    savedActionData?.additional_fields;
+
+  const dynamicFormFields = ticketAction.data.dynamic_form_fields?.length
+    ? ticketAction.data.dynamic_form_fields
+    : (savedActionData?.dynamicFormFields ?? savedActionData?.dynamic_form_fields ?? []);
+
   const instance = {
-    ...ticketAction.data.additional_fields,
+    ...additionalFields,
     integration: ticketAction.integrationId,
-    dynamic_form_fields: ticketAction.data.dynamic_form_fields || [],
+    dynamic_form_fields: dynamicFormFields,
   } as TicketActionData;
 
   return (

@@ -62,7 +62,7 @@ If your model's natural grouping doesn't match the scope's shard key, you get ei
 
 **Always create a new category** when:
 
-- You have a new model inheriting from `ReplicatedRegionModel` or `ReplicatedControlModel`
+- You have a new model inheriting from `ReplicatedCellModel` or `ReplicatedControlModel`
 - You have a new type of event/signal that needs outbox delivery
 - The handler logic is distinct from all existing categories
 

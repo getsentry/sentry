@@ -1,7 +1,7 @@
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Project} from 'sentry/types/project';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function useOnboardingProject({
   property,

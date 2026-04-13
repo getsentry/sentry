@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
@@ -24,7 +24,7 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
@@ -73,13 +73,13 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            created = RecentSearch.objects.create_or_update(
+            _, created = RecentSearch.objects.update_or_create(
                 organization_id=organization.id,
                 user_id=request.user.id,
                 type=result["type"],
                 query=result["query"],
-                values={"last_seen": timezone.now()},
-            )[1]
+                defaults={"last_seen": timezone.now()},
+            )
             if created:
                 remove_excess_recent_searches(organization, request.user, result["type"])
             status = 201 if created else 204

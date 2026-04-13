@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {
   AdminConfirmParams,
@@ -27,7 +27,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class TrialSubscriptionAction extends Component<Props, State> {
+export class TrialSubscriptionAction extends Component<Props, State> {
   state: State = {
     trialDays:
       this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
@@ -143,5 +143,3 @@ class TrialSubscriptionAction extends Component<Props, State> {
     );
   }
 }
-
-export default TrialSubscriptionAction;

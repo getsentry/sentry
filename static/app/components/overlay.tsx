@@ -8,12 +8,11 @@ import type {OverlayArrowProps} from 'sentry/components/overlayArrow';
 import {OverlayArrow} from 'sentry/components/overlayArrow';
 import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
-import PanelProvider from 'sentry/utils/panelProvider';
-import testableTransition from 'sentry/utils/testableTransition';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 
-interface OverlayProps
+export interface OverlayProps
   extends HTMLMotionProps<'div'>, React.RefAttributes<HTMLDivElement> {
   /**
    * Whether the overlay should animate in/out. If true, we'll also need
@@ -48,15 +47,15 @@ const overlayAnimation: MotionProps = {
   animate: {
     opacity: 1,
     scale: 1,
-    transition: testableTransition({
+    transition: {
       type: 'spring',
       duration: 0.2,
-    }),
+    },
   },
   exit: {
     opacity: 0,
     scale: 0.95,
-    transition: testableTransition({type: 'spring', delay: 0.1}),
+    transition: {type: 'spring', delay: 0.1},
   },
 };
 
@@ -83,7 +82,7 @@ function computeOriginFromArrow(
     case 'right':
       return {originX: 0, originY: y ? `${y}px` : '50%'};
     default:
-      return {originX: `50%`, originY: '50%'};
+      return {originX: '50%', originY: '50%'};
   }
 }
 

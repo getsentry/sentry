@@ -1,4 +1,4 @@
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
 

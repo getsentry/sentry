@@ -5,6 +5,7 @@ import {
   isTokenLiteral,
   isTokenOperator,
   isTokenParenthesis,
+  isTokenReference,
   Parenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
@@ -108,6 +109,7 @@ class ExpressionValidator {
     if (this.pushFunction(dryRun)) {
       tokenKinds.push(TokenKind.FUNCTION);
       tokenKinds.push(TokenKind.LITERAL);
+      tokenKinds.push(TokenKind.REFERENCE);
     }
 
     return tokenKinds;
@@ -136,6 +138,10 @@ class ExpressionValidator {
       return this.pushParenthesis(token.parenthesis, options);
     }
 
+    if (isTokenReference(token)) {
+      return this.pushReference(options);
+    }
+
     throw new Error(`Unknown token type: ${token.kind}`);
   }
 
@@ -147,8 +153,12 @@ class ExpressionValidator {
     return this.pushTerm(TokenKind.LITERAL, options);
   }
 
+  private pushReference(options: PushOptions): boolean {
+    return this.pushTerm(TokenKind.REFERENCE, options);
+  }
+
   private pushTerm(
-    kind: TokenKind.FUNCTION | TokenKind.LITERAL,
+    kind: TokenKind.FUNCTION | TokenKind.LITERAL | TokenKind.REFERENCE,
     {dryRun}: PushOptions
   ): boolean {
     if (this.empty()) {
@@ -167,7 +177,11 @@ class ExpressionValidator {
     }
 
     if (this.end() === TokenKind.OPERATOR) {
-      if (this.end(1) === TokenKind.FUNCTION || this.end(1) === TokenKind.LITERAL) {
+      if (
+        this.end(1) === TokenKind.FUNCTION ||
+        this.end(1) === TokenKind.LITERAL ||
+        this.end(1) === TokenKind.REFERENCE
+      ) {
         if (!dryRun) {
           // combine the 2 expressions with the operator
           // we can just pop off the operator as we
@@ -188,7 +202,11 @@ class ExpressionValidator {
   }
 
   private pushOperator({dryRun}: PushOptions): boolean {
-    if (this.end() === TokenKind.FUNCTION || this.end() === TokenKind.LITERAL) {
+    if (
+      this.end() === TokenKind.FUNCTION ||
+      this.end() === TokenKind.LITERAL ||
+      this.end() === TokenKind.REFERENCE
+    ) {
       if (!dryRun) {
         this.stack.push(TokenKind.OPERATOR);
       }
@@ -221,7 +239,11 @@ class ExpressionValidator {
     }
 
     if (parenthesis === Parenthesis.CLOSE) {
-      if (this.end() === TokenKind.FUNCTION || this.end() === TokenKind.LITERAL) {
+      if (
+        this.end() === TokenKind.FUNCTION ||
+        this.end() === TokenKind.LITERAL ||
+        this.end() === TokenKind.REFERENCE
+      ) {
         if (this.end(1) === TokenKind.OPEN_PARENTHESIS) {
           // found a parenthesized expression
           // we can strip the parenthesis and
@@ -252,7 +274,9 @@ class ExpressionValidator {
   isValid(): boolean {
     return (
       this.stack.length === 1 &&
-      (this.stack[0] === TokenKind.FUNCTION || this.stack[0] === TokenKind.LITERAL)
+      (this.stack[0] === TokenKind.FUNCTION ||
+        this.stack[0] === TokenKind.LITERAL ||
+        this.stack[0] === TokenKind.REFERENCE)
     );
   }
 

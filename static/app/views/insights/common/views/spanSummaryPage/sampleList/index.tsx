@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
@@ -11,14 +11,14 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
-import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
+import {decodeSubregions} from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
@@ -26,9 +26,9 @@ import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
-import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
-import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
-import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {DurationChart} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import {SampleInfo} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
+import {SampleTable} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -82,7 +82,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
     },
   });
 
-  const router = useRouter();
+  const navigate = useNavigate();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
@@ -101,13 +101,16 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        spanSearchQuery: newSpanSearchQuery,
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          spanSearchQuery: newSpanSearchQuery,
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   // set additional query filters from the span search bar and the `query` param
@@ -146,7 +149,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   const handleClickSample = useCallback(
     (span: SpanSample) => {
-      router.push(
+      navigate(
         generateLinkToEventInTraceView({
           targetId: span['transaction.span_id'],
           spanId: span.span_id,
@@ -157,7 +160,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
         })
       );
     },
-    [organization, location, router]
+    [organization, location, navigate]
   );
 
   const handleMouseOverSample = useCallback(

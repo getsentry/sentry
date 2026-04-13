@@ -1,7 +1,7 @@
 import {defined} from 'sentry/utils';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
-import Format from 'sentry/views/replays/detail/console/format';
+import {Format} from 'sentry/views/replays/detail/console/format';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 interface Props {
@@ -31,7 +31,7 @@ function isSerializedError(frame: ConsoleFrame) {
 /**
  * Attempt to emulate the browser console as much as possible
  */
-export default function MessageFormatter({frame, expandPaths, onExpand}: Props) {
+export function MessageFormatter({frame, expandPaths, onExpand}: Props) {
   if (!isConsoleFrame(frame)) {
     return (
       <Format

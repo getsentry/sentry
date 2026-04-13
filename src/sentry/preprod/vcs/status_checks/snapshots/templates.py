@@ -4,12 +4,19 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    COMPARISON_TABLE_HEADER,
+    PROCESSING_STATUS,
+    _app_display_info,
+    _format_name_cell,
+    _name_cell,
+    _section_cell,
+)
 
 _SNAPSHOT_TITLE_BASE = _("Snapshot Testing")
-_PROCESSING_STATUS = "⏳ Processing"
 
 
 def format_snapshot_status_check_messages(
@@ -18,6 +25,8 @@ def format_snapshot_status_check_messages(
     comparisons_map: dict[int, PreprodSnapshotComparison],
     overall_status: StatusCheckStatus,
     base_artifact_map: dict[int, PreprodArtifact],
+    changes_map: dict[int, bool],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -108,6 +117,8 @@ def format_snapshot_status_check_messages(
         snapshot_metrics_map,
         comparisons_map,
         base_artifact_map,
+        changes_map,
+        approvals_map=approvals_map,
     )
 
     return str(title), str(subtitle), str(summary)
@@ -140,6 +151,32 @@ def format_first_snapshot_status_check_messages(
     return str(title), str(subtitle), str(summary)
 
 
+def format_generated_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> tuple[str, str, str]:
+    if not artifacts:
+        raise ValueError("Cannot format messages for empty artifact list")
+
+    title = _SNAPSHOT_TITLE_BASE
+
+    total_images = 0
+    for artifact in artifacts:
+        metrics = snapshot_metrics_map.get(artifact.id)
+        if metrics:
+            total_images += metrics.image_count
+
+    subtitle = ngettext(
+        "Generated %(count)d snapshot",
+        "Generated %(count)d snapshots",
+        total_images,
+    ) % {"count": total_images}
+
+    summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
+
+    return str(title), str(subtitle), str(summary)
+
+
 def format_missing_base_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
@@ -163,25 +200,16 @@ def _format_solo_snapshot_summary(
     table_rows = []
 
     for artifact in artifacts:
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
-        app_name = mobile_app_info.app_name if mobile_app_info else None
-        app_display = app_name or artifact.app_id or str(_("Unknown App"))
-        app_id = artifact.app_id or ""
-
+        app_display, app_id = _app_display_info(artifact)
         artifact_url = get_preprod_artifact_url(artifact, view_type="snapshots")
-
-        name_cell = (
-            f"[{app_display}]({artifact_url})<br>`{app_id}`"
-            if app_id
-            else f"[{app_display}]({artifact_url})"
-        )
+        name = _format_name_cell(app_display, app_id, artifact_url)
 
         metrics = snapshot_metrics_map.get(artifact.id)
         if not metrics:
-            table_rows.append(f"| {name_cell} | - | {_PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | {PROCESSING_STATUS} |")
             continue
 
-        table_rows.append(f"| {name_cell} | {metrics.image_count} | ✅ Uploaded |")
+        table_rows.append(f"| {name} | {metrics.image_count} | ✅ Uploaded |")
 
     table_header = "| Name | Snapshots | Status |\n| :--- | :---: | :---: |\n"
 
@@ -193,60 +221,56 @@ def _format_snapshot_summary(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
+    changes_map: dict[int, bool],
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
 ) -> str:
     table_rows = []
 
     for artifact in artifacts:
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
-        app_name = mobile_app_info.app_name if mobile_app_info else None
-        app_display = app_name or artifact.app_id or str(_("Unknown App"))
-        app_id = artifact.app_id or ""
+        name = _name_cell(artifact, snapshot_metrics_map, base_artifact_map)
 
         metrics = snapshot_metrics_map.get(artifact.id)
-        base_artifact = base_artifact_map.get(artifact.id)
-
-        if base_artifact and metrics:
-            artifact_url = get_preprod_artifact_comparison_url(
-                artifact, base_artifact, comparison_type="snapshots"
-            )
-        else:
-            artifact_url = get_preprod_artifact_url(artifact, view_type="snapshots")
-
-        name_cell = (
-            f"[{app_display}]({artifact_url})<br>`{app_id}`"
-            if app_id
-            else f"[{app_display}]({artifact_url})"
-        )
-
         if not metrics:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | {_PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         comparison = comparisons_map.get(metrics.id)
         if not comparison:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | {_PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         if comparison.state in (
             PreprodSnapshotComparison.State.PENDING,
             PreprodSnapshotComparison.State.PROCESSING,
         ):
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | {_PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
         else:
-            added = comparison.images_added
-            removed = comparison.images_removed
-            modified = comparison.images_changed
-            renamed = comparison.images_renamed
-            unchanged = comparison.images_unchanged
-            has_changes = modified > 0 or added > 0 or removed > 0 or renamed > 0
-            status = "⏳ Needs approval" if has_changes else "✅ Unchanged"
-            table_rows.append(
-                f"| {name_cell} | {added} | {removed} | {modified} | {renamed} | {unchanged} | {status} |"
+            base_artifact = base_artifact_map.get(artifact.id)
+            artifact_url = (
+                get_preprod_artifact_comparison_url(
+                    artifact, base_artifact, comparison_type="snapshots"
+                )
+                if base_artifact
+                else get_preprod_artifact_url(artifact, view_type="snapshots")
             )
 
-    table_header = (
-        "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
-        "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-    )
+            has_changes = changes_map.get(artifact.id, False)
+            is_approved = approvals_map is not None and artifact.id in approvals_map
+            if has_changes and is_approved:
+                status = "✅ Approved"
+            elif has_changes:
+                status = "⏳ Needs approval"
+            else:
+                status = "✅ Unchanged"
 
-    return table_header + "\n".join(table_rows)
+            table_rows.append(
+                f"| {name}"
+                f" | {_section_cell(comparison.images_added, 'added', artifact_url)}"
+                f" | {_section_cell(comparison.images_removed, 'removed', artifact_url)}"
+                f" | {_section_cell(comparison.images_changed, 'changed', artifact_url)}"
+                f" | {_section_cell(comparison.images_renamed, 'renamed', artifact_url)}"
+                f" | {_section_cell(comparison.images_unchanged, 'unchanged', artifact_url)}"
+                f" | {status} |"
+            )
+
+    return COMPARISON_TABLE_HEADER + "\n".join(table_rows)

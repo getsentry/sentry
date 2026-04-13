@@ -6,8 +6,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
@@ -83,8 +83,10 @@ describe('IssueUptimeCheckTimeline', () => {
     });
     render(<IssueUptimeCheckTimeline group={group} />, {organization});
 
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
-
+    // Wait for all legend items to render - MISSED_WINDOW ("Unknown") renders last
+    expect(
+      await screen.findByText(statusToText[CheckStatus.MISSED_WINDOW])
+    ).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     expect(
       within(legend).getByText(statusToText[CheckStatus.SUCCESS])
@@ -134,8 +136,10 @@ describe('IssueUptimeCheckTimeline', () => {
       },
     });
     render(<IssueUptimeCheckTimeline group={group} />, {organization});
-    expect(await screen.findByTestId('check-in-placeholder')).not.toBeInTheDocument();
 
+    expect(
+      await screen.findByText(statusToText[CheckStatus.SUCCESS])
+    ).toBeInTheDocument();
     const legend = screen.getByRole('caption');
     expect(
       within(legend).getByText(statusToText[CheckStatus.SUCCESS])

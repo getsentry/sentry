@@ -1,26 +1,34 @@
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
+import type {IconVariant} from 'sentry/icons/svgIcon';
 
 type Props = {
   children?: React.ReactNode;
   className?: string;
   small?: boolean;
+  variant?: IconVariant;
   withIcon?: boolean;
 };
 
-function EmptyStateWarning({small = false, withIcon = true, children, className}: Props) {
+export function EmptyStateWarning({
+  small = false,
+  variant = 'muted',
+  withIcon = true,
+  children,
+  className,
+}: Props) {
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch variant="muted" size="lg" />}
+        {withIcon && <StyledIconSearch variant={variant} size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch variant="muted" legacySize="54px" />}
+      {withIcon && <IconSearch variant={variant} legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
@@ -55,5 +63,3 @@ const SmallMessage = styled('div')`
 const StyledIconSearch = styled(IconSearch)`
   margin-right: ${p => p.theme.space.md};
 `;
-
-export default EmptyStateWarning;

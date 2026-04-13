@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_id
@@ -13,7 +13,7 @@ from sentry.models.environment import Environment
 from sentry.tsdb.base import TSDBModel
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupStatsEndpoint(GroupEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

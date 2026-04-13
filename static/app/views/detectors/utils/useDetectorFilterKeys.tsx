@@ -3,7 +3,7 @@ import {useCallback, useMemo} from 'react';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
-import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 
 const DETECTOR_FILTER_KEYS: Record<
   string,

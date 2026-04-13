@@ -16,8 +16,8 @@ import type {
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationServerlessRowProps {
   integration: OrganizationIntegration;
@@ -175,7 +175,7 @@ const StyledSwitch = styled(Switch)`
 
 const UpdateButton = styled(Button)``;
 
-const Name = styled(`span`)`
+const Name = styled('span')`
   padding-bottom: ${p => p.theme.space.md};
 `;
 

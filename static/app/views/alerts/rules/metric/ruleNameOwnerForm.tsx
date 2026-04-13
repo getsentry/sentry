@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import TextField from 'sentry/components/forms/fields/textField';
-import FormField from 'sentry/components/forms/formField';
-import ListItem from 'sentry/components/list/listItem';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {FormField} from 'sentry/components/forms/formField';
+import {ListItem} from 'sentry/components/list/listItem';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
@@ -14,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function RuleNameOwnerForm({disabled, project}: Props) {
+export function RuleNameOwnerForm({disabled, project}: Props) {
   const renderRuleName = () => (
     <StyledTextField
       data-test-id="alert-name"
@@ -91,5 +91,5 @@ const StyledFormField = styled(FormField)<{extraMargin?: boolean}>`
     width: 100%;
   }
 
-  margin-bottom: ${p => `${p.extraMargin ? '60px' : p.theme.space.md}`};
+  margin-bottom: ${p => (p.extraMargin ? '60px' : p.theme.space.md)};
 `;

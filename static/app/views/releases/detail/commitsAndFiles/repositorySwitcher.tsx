@@ -13,7 +13,10 @@ interface RepositorySwitcherProps {
   activeRepository?: Repository;
 }
 
-function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcherProps) {
+export function RepositorySwitcher({
+  repositories,
+  activeRepository,
+}: RepositorySwitcherProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,8 +46,6 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
     />
   );
 }
-
-export default RepositorySwitcher;
 
 const RepoLabel = styled('div')`
   display: block;

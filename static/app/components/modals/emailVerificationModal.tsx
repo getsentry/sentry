@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {EmailAddresses} from 'sentry/views/settings/account/accountEmails';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type Props = Pick<ModalRenderProps, 'Body' | 'Header'> & {
   actionMessage?: string;

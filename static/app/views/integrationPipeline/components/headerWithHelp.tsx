@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import LogoSentry from 'sentry/components/logoSentry';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
 
-export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
+export function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (
     <Header>
       <StyledLogoSentry />

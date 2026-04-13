@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
@@ -12,7 +12,7 @@ import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
 import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';
 
-import PlanMigrationTable from './planMigrationTable';
+import {PlanMigrationTable} from './planMigrationTable';
 
 type Props = {
   migration: undefined | PlanMigration;
@@ -38,7 +38,7 @@ function getMigrationDate(migration: PlanMigration, subscription: Subscription) 
   return moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
 }
 
-function PlanMigrationActive({subscription, migration}: Props) {
+export function PlanMigrationActive({subscription, migration}: Props) {
   if (!migration?.cohort?.nextPlan) {
     return null;
   }
@@ -110,8 +110,6 @@ function PlanMigrationActive({subscription, migration}: Props) {
     </Panel>
   );
 }
-
-export default PlanMigrationActive;
 
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h6 {

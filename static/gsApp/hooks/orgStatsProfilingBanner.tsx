@@ -6,7 +6,7 @@ import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
-function OrgStatsProfilingBanner() {
+export function OrgStatsProfilingBanner() {
   const location = useLocation();
   return (
     <BannerGrid>
@@ -123,5 +123,3 @@ const CategoryItemRight = styled('div')`
 const StyledProfilingButton = styled(LinkButton)`
   margin-top: ${p => p.theme.space.md};
 `;
-
-export default OrgStatsProfilingBanner;

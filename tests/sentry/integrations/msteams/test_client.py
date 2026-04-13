@@ -275,7 +275,7 @@ class MsTeamsProxyApiClientTest(TestCase):
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = MsTeamsProxyApiTestClient(self.integration)
             client.get_channel_list("foobar")
             assert len(responses.calls) == 1

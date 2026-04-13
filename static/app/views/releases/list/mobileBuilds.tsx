@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
@@ -13,16 +14,14 @@ import {
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 
 import {MobileBuildsChart} from './mobileBuildsChart';
 
@@ -31,7 +30,7 @@ type Props = {
   selectedProjectIds: string[];
 };
 
-export default function MobileBuilds({organization, selectedProjectIds}: Props) {
+export function MobileBuilds({organization, selectedProjectIds}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -46,6 +45,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     const query: Record<string, any> = {
       per_page: 25,
       ...normalizeDateTimeParams(location.query),
+      display: activeDisplay,
     };
 
     if (cursor) {
@@ -71,25 +71,15 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
   }, [activeDisplay, cursor, location, searchQuery, selectedProjectIds]);
 
   const {
-    data: buildsData,
+    data: buildsResponse,
     isPending: isLoadingBuilds,
     error: buildsError,
     refetch,
-    getResponseHeader,
-  }: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> = useApiQuery<
-    BuildDetailsApiResponse[]
-  >(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: buildsQueryParams},
-    ],
-    {
-      staleTime: 0,
-      enabled: selectedProjectIds.length > 0,
-    }
-  );
+  } = useQuery({
+    ...buildDetailsApiOptions({organization, queryParams: buildsQueryParams}),
+    select: selectJsonWithHeaders,
+    enabled: selectedProjectIds.length > 0,
+  });
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -111,8 +101,8 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     [location, navigate]
   );
 
-  const builds = buildsData ?? [];
-  const pageLinks = getResponseHeader?.('Link') ?? undefined;
+  const builds = buildsResponse?.json ?? [];
+  const pageLinks = buildsResponse?.headers.Link ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
   const showProjectColumn = selectedProjectIds.length > 1;
   const projectId = selectedProjectIds[0];

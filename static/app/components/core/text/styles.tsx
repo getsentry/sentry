@@ -2,10 +2,16 @@ import type {Theme} from '@emotion/react';
 
 import type {HeadingSize, TextSize} from 'sentry/utils/theme';
 
-import type {HeadingProps} from './heading';
-import type {TextProps} from './text';
+import type {HeadingProps, HeadingPropsWithRenderFunction} from './heading';
+import type {TextProps, TextPropsWithRenderFunction} from './text';
 
-export function getTextDecoration(p: TextProps<any> | HeadingProps) {
+export function getTextDecoration(
+  p:
+    | TextProps<any>
+    | HeadingProps
+    | TextPropsWithRenderFunction
+    | HeadingPropsWithRenderFunction
+) {
   const decorations: string[] = [];
   if (p.strikethrough) {
     decorations.push('line-through');

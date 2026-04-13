@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   makePerformanceScoreColors,
   type PerformanceScore,
@@ -18,7 +18,7 @@ type Props = {
   onClick?: () => void;
 };
 
-function VitalCard({
+export function VitalCard({
   description,
   formattedValue,
   status,
@@ -111,5 +111,3 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
   right: ${p => p.theme.space.md};
 `;
-
-export default VitalCard;

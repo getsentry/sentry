@@ -83,10 +83,16 @@ export type Project = {
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;
+  preprodDistributionPrCommentsEnabledByCustomer?: boolean;
   preprodSizeEnabledByCustomer?: boolean;
   preprodSizeEnabledQuery?: string | null;
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
+  preprodSnapshotPrCommentsEnabled?: boolean;
+  preprodSnapshotStatusChecksEnabled?: boolean;
+  preprodSnapshotStatusChecksFailOnAdded?: boolean;
+  preprodSnapshotStatusChecksFailOnRemoved?: boolean;
+  scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
@@ -294,6 +300,7 @@ export type PlatformKey =
   | 'python-fastapi'
   | 'python-flask'
   | 'python-gcpfunctions'
+  | 'python-litestar'
   | 'python-pylons'
   | 'python-pymongo'
   | 'python-pyramid'

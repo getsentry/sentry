@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
+import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
   BreadcrumbLevelType,
   BreadcrumbMessageFormat,

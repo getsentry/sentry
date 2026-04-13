@@ -1,16 +1,16 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
+import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {tct} from 'sentry/locale';
 
 type State = {
   showRawJson: boolean;
 };
 
-export default class RRWebJsonViewer extends Component<ViewerProps, State> {
+export class RRWebJsonViewer extends Component<ViewerProps, State> {
   state: State = {
     showRawJson: false,
   };

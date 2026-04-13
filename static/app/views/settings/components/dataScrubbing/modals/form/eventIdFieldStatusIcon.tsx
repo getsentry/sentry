@@ -1,4 +1,4 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
@@ -6,7 +6,7 @@ type Props = {
   status: EventIdStatus;
 };
 
-function EventIdFieldStatusIcon({status}: Props) {
+export function EventIdFieldStatusIcon({status}: Props) {
   switch (status) {
     case EventIdStatus.LOADING:
       return <LoadingIndicator size={16} />;
@@ -16,5 +16,3 @@ function EventIdFieldStatusIcon({status}: Props) {
       return null;
   }
 }
-
-export default EventIdFieldStatusIcon;

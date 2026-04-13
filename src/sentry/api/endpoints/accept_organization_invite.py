@@ -23,7 +23,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
-from sentry.types.region import RegionResolutionError, get_cell_by_name
+from sentry.types.cell import CellResolutionError, get_cell_by_name
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def handle_empty_organization_id_or_slug(
             if get_cell_by_name(mapping.cell_name).is_historic_monolith_region():
                 member_mapping = member_mappings.get(mapping.organization_id)
                 break
-        except RegionResolutionError:
+        except CellResolutionError:
             pass
 
     if member_mapping is None:
@@ -204,7 +204,14 @@ class AcceptOrganizationInvite(Endpoint):
             # When SSO is required do *not* set a next_url to return to accept
             # invite. The invite will be accepted after SSO is completed.
             url = (
-                reverse("sentry-accept-invite", args=[member_id, token])
+                reverse(
+                    "sentry-organization-accept-invite",
+                    kwargs={
+                        "organization_slug": invite_context.organization.slug,
+                        "member_id": member_id,
+                        "token": token,
+                    },
+                )
                 if not auth_provider
                 else "/"
             )

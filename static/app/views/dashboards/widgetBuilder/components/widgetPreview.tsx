@@ -1,12 +1,12 @@
 import {useState} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
   WidgetType,
@@ -19,8 +19,8 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 interface WidgetPreviewProps {
@@ -33,7 +33,7 @@ interface WidgetPreviewProps {
 
 const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 
-function WidgetPreview({
+export function WidgetPreview({
   dashboard,
   dashboardFilters,
   isWidgetInvalid,
@@ -44,6 +44,7 @@ function WidgetPreview({
   const location = useLocation();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
+  const [chartInterval] = useChartInterval();
 
   const {state, dispatch} = useWidgetBuilderContext();
   const [tableWidths, setTableWidths] = useState<number[]>();
@@ -111,10 +112,10 @@ function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      renderErrorMessage={errorMessage =>
-        typeof errorMessage === 'string' && (
-          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
-        )
+      widgetInterval={
+        organization.features.includes('dashboards-interval-selection')
+          ? chartInterval
+          : undefined
       }
       onLegendSelectChanged={() => {}}
       legendOptions={
@@ -144,5 +145,3 @@ function WidgetPreview({
     />
   );
 }
-
-export default WidgetPreview;

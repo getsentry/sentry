@@ -256,7 +256,7 @@ function updateDataItemBorderRadius(
   });
 }
 
-function MiniBarChart({
+export function MiniBarChart({
   animateBars = false,
   barOpacity = 0.6,
   emphasisColors,
@@ -376,5 +376,3 @@ function MiniBarChart({
     />
   );
 }
-
-export default MiniBarChart;

@@ -1,4 +1,4 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 

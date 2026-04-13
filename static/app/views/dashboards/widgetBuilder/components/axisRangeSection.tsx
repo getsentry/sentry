@@ -8,7 +8,7 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-function AxisRangeSection() {
+export function AxisRangeSection() {
   const theme = useTheme();
   const {state, dispatch} = useWidgetBuilderContext();
   const datasetConfig = getDatasetConfig(state.dataset);
@@ -34,5 +34,3 @@ function AxisRangeSection() {
     </Flex>
   );
 }
-
-export default AxisRangeSection;

@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import * as React from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
@@ -9,7 +10,7 @@ import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,13 +25,12 @@ import {
   getUtcToSystem,
 } from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import DateRange from './dateRange';
-import SelectorItems from './selectorItems';
+import {DateRange} from './dateRange';
+import {SelectorItems} from './selectorItems';
 import type {TimeRangeItem} from './types';
 import {
   getAbsoluteSummary,
@@ -168,7 +168,7 @@ export function TimeRangeSelector({
   menuFooterMessage,
   ...selectProps
 }: TimeRangeSelectorProps) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const organization = useOrganization({allowNull: true});
 
   const defaultMaxPickableDays = useDefaultMaxPickableDays();
@@ -420,7 +420,7 @@ export function TimeRangeSelector({
 
                           trackAnalytics('dateselector.utc_changed', {
                             utc: newUtc,
-                            path: getRouteStringFromRoutes(routes),
+                            path: getRouteStringFromRoutes({matches}),
                             organization,
                           });
 

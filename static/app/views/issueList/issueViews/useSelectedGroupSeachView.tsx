@@ -1,6 +1,6 @@
 import {defined} from 'sentry/utils';
 import {getApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useFetchGroupSearchView} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';

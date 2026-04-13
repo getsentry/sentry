@@ -1206,7 +1206,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
 
             result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
 
-            assert result_data[0]["name"] == "bar"
+            # transaction name is preferred over span.name
+            assert result_data[0]["name"] == "foo"
 
 
 @pytest.mark.parametrize(

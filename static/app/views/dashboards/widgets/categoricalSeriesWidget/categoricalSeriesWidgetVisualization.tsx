@@ -10,7 +10,7 @@ import type {
 
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
-import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
+import {BaseChart, type BaseChartProps} from 'sentry/components/charts/baseChart';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import type {
   EChartClickHandler,

@@ -6,14 +6,14 @@ import type {Location} from 'history';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {FieldFormatterRenderFunctionPartial} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Container, FieldShortId, OverflowLink} from 'sentry/utils/discover/styles';

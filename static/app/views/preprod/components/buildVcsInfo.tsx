@@ -8,7 +8,7 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formatBuildName,

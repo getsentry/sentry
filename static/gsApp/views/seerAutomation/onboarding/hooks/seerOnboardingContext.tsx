@@ -11,14 +11,15 @@ import {
 import * as Sentry from '@sentry/react';
 import uniqBy from 'lodash/uniqBy';
 
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
   RepositoryWithSettings,
 } from 'sentry/types/integrations';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {useInfiniteQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
 import {useIntegrationProvider} from './useIntegrationProvider';
@@ -89,15 +90,8 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   // Track if we've initialized the map to avoid overwriting user changes
   const hasInitializedCodeReviewMap = useRef(false);
 
-  const {
-    data: repositories,
-    isError: isRepositoriesError,
-    isFetching: isRepositoriesFetching,
-    hasNextPage: hasNextPageRepositories,
-    fetchNextPage: fetchNextPageRepositories,
-    isFetchingNextPage: isFetchingNextPageRepositories,
-  } = useInfiniteQuery({
-    ...organizationRepositoriesInfiniteOptions({
+  const repositoriesResult = useInfiniteQuery({
+    ...organizationRepositoriesWithSettingsInfiniteOptions({
       organization,
       query: {per_page: 100},
     }),
@@ -107,21 +101,11 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
         'externalId'
       ).filter(repository => repository.externalId !== null),
   });
+
   // Auto-fetch each page, one at a time
-  useEffect(() => {
-    if (
-      !isRepositoriesError &&
-      !isFetchingNextPageRepositories &&
-      hasNextPageRepositories
-    ) {
-      fetchNextPageRepositories();
-    }
-  }, [
-    fetchNextPageRepositories,
-    hasNextPageRepositories,
-    isRepositoriesError,
-    isFetchingNextPageRepositories,
-  ]);
+  useFetchAllPages({result: repositoriesResult});
+
+  const {data: repositories, isFetching: isRepositoriesFetching} = repositoriesResult;
 
   const {data: installationData, isPending: isInstallationPending} =
     useIntegrationInstallation('github');

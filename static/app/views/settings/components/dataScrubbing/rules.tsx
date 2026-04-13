@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import TextOverflow from 'sentry/components/textOverflow';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -19,7 +19,7 @@ type Props = {
   ref?: React.Ref<HTMLUListElement>;
 };
 
-function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
+export function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
@@ -70,8 +70,6 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
     </List>
   );
 }
-
-export default Rules;
 
 const List = styled('ul')<{
   isDisabled?: boolean;

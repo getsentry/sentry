@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
@@ -66,7 +66,7 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -93,7 +93,10 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             if integration.provider != "github_copilot"
         ]
 
-        if features.has("organizations:integrations-github-copilot-agent", organization):
+        github_copilot_installed = any(i.provider == "github_copilot" for i in integrations)
+        if github_copilot_installed and features.has(
+            "organizations:integrations-github-copilot-agent", organization
+        ):
             has_identity = False
             if request.user and request.user.id:
                 try:
@@ -150,6 +153,8 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             trigger_source=trigger_source,
             instruction=instruction,
             user_id=request.user.id,
+            initiator="user",
+            referrer="api.organization_coding_agents",
         )
 
         successes = results["successes"]

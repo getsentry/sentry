@@ -5,8 +5,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 import ReplayDetails from './details';
 

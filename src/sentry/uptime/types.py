@@ -32,6 +32,19 @@ DEFAULT_DOWNTIME_THRESHOLD = 3
 Default number of consecutive failed checks required to mark monitor as down.
 """
 
+DEFAULT_2XX_STATUS_ASSERTION: dict[str, Any] = {
+    "root": {
+        "op": "and",
+        "children": [
+            {"op": "status_code_check", "operator": {"cmp": "greater_than"}, "value": 199},
+            {"op": "status_code_check", "operator": {"cmp": "less_than"}, "value": 300},
+        ],
+    }
+}
+"""
+Default assertion that checks for a 2xx status code response.
+"""
+
 RegionScheduleMode = Literal["round_robin"]
 """
 Defines how we'll schedule checks based on other active regions.

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
@@ -20,7 +20,7 @@ class ProjectFilterResponse(TypedDict):
     active: bool | list[str]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Projects"])
 class ProjectFiltersEndpoint(ProjectEndpoint):
     owner = ApiOwner.UNOWNED

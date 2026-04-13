@@ -4,18 +4,18 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EventMessage from 'sentry/components/events/eventMessage';
+import {EventMessage} from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ShortId from 'sentry/components/shortId';
+import {ShortId} from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
   group: Group;
 };
 
-function SharedGroupHeader({group}: Props) {
+export function SharedGroupHeader({group}: Props) {
   const date = new Date(
     (group.latestEvent?.dateCreated ?? group.latestEvent?.dateReceived) as string
   );
@@ -53,14 +53,11 @@ function SharedGroupHeader({group}: Props) {
           message={group.culprit}
           level={group.level}
           type={group.type}
-          data={group}
         />
       </Details>
     </Wrapper>
   );
 }
-
-export default SharedGroupHeader;
 
 const Wrapper = styled('div')`
   padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}

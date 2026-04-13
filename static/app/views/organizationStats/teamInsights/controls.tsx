@@ -15,13 +15,14 @@ import {
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {TeamWithProjects} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import localStorage from 'sentry/utils/localStorage';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {dataDatetime} from './utils';
 
@@ -48,19 +49,19 @@ const PAGE_QUERY_PARAMS = [
   'environment',
 ];
 
-type Props = Pick<RouteComponentProps, 'router' | 'location'> & {
+type Props = {
   currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
   showEnvironment?: boolean;
 };
 
-function TeamStatsControls({
-  location,
-  router,
+export function TeamStatsControls({
   currentTeam,
   currentEnvironment,
   showEnvironment,
 }: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const {projects} = useProjects({
     slugs: currentTeam?.projects?.map(project => project.slug) ?? [],
   });
@@ -72,7 +73,7 @@ function TeamStatsControls({
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
   function handleChangeTeam(teamId: string) {
-    localStorage.setItem(localStorageKey, teamId);
+    localStorageWrapper.setItem(localStorageKey, teamId);
     // TODO(workflow): Preserve environment if it exists for the new team
     setStateOnUrl({team: teamId, environment: undefined});
   }
@@ -125,7 +126,7 @@ function TeamStatsControls({
       },
     };
 
-    router.push(nextLocation);
+    navigate(nextLocation);
 
     return nextLocation;
   }
@@ -219,8 +220,6 @@ function TeamStatsControls({
     </ControlsWrapper>
   );
 }
-
-export default TeamStatsControls;
 
 const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   display: grid;

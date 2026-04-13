@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -10,39 +13,41 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {AutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {
-  useAgentOptions,
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
-} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+} from 'sentry/views/settings/seer/seerAgentHooks';
+
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: ReturnType<typeof useFetchAgentOptions>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
   project: Project;
 }
 
-export default function SeerProjectTableRow({
+export function SeerProjectTableRow({
+  agentOptions,
   autofixSettings,
+  integrations,
   isPendingIntegrations,
   project,
-  integrations,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
-  // const {isSelected, toggleSelected} = useListItemCheckboxContext();
+  const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const options = useAgentOptions({integrations: integrations ?? []});
   const autofixAgent = useSelectedAgentFromBulkSettings({
     autofixSettings: autofixSettings ?? {
       autofixAutomationTuning: 'off',
@@ -66,7 +71,7 @@ export default function SeerProjectTableRow({
 
   return (
     <SimpleTable.Row key={project.id}>
-      {/* <SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <CheckboxClickTarget htmlFor={`replay-table-select-${project.id}`}>
           <Checkbox
             id={`replay-table-select-${project.id}`}
@@ -75,7 +80,7 @@ export default function SeerProjectTableRow({
             onChange={() => toggleSelected(project.id)}
           />
         </CheckboxClickTarget>
-      </SimpleTable.RowCell> */}
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Link to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}>
           <ProjectBadge disableLink project={project} avatarSize={16} />
@@ -88,31 +93,26 @@ export default function SeerProjectTableRow({
           <Stack align="stretch" flex="1">
             <Select
               size="xs"
-              width="100%"
               disabled={!canWrite}
               name="autofixAgent"
-              options={options}
-              value={autofixAgent}
-              onChange={(option: ReturnType<typeof useAgentOptions>[number]) => {
+              options={agentOptions.data ?? []}
+              value={autofixAgent ?? 'seer'}
+              onChange={option => {
                 mutateSelectedAgent(option.value, {
                   onSuccess: () => {
                     addSuccessMessage(
-                      option.value === 'none'
-                        ? t('Removed autofix agent from %s', project.name)
-                        : tct('Started using [name] for [project]', {
-                            name: <strong>{option.label}</strong>,
-                            project: project.name,
-                          })
+                      tct('Selected [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
                     );
                   },
                   onError: () =>
                     addErrorMessage(
-                      option.value === 'none'
-                        ? t('Failed to update autofix agent')
-                        : tct('Failed to set [name] for [project]', {
-                            name: <strong>{option.label}</strong>,
-                            project: project.name,
-                          })
+                      tct('Failed to set [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
                     ),
                 });
               }}
@@ -122,53 +122,49 @@ export default function SeerProjectTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {autofixSettings ? (
-          autofixAgent === 'none' ? (
-            <span>{'\u2014'}</span>
-          ) : (
-            <Flex align="center" gap="sm">
-              {organization.enableSeerCoding === false && autofixAgent === 'seer' ? (
-                <InfoTip
-                  title={tct(
-                    '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-                    {
-                      settings: (
-                        <Link
-                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
-                        />
-                      ),
-                    }
-                  )}
-                  size="xs"
-                />
-              ) : null}
-
-              <Switch
-                disabled={
-                  !canWrite ||
-                  (organization.enableSeerCoding === false && autofixAgent === 'seer')
-                }
-                checked={isCreatePrEnabled}
-                onChange={e => {
-                  const value = e.target.checked;
-                  mutateCreatePr(autofixAgent, value, {
-                    onSuccess: () =>
-                      addSuccessMessage(
-                        value
-                          ? t('Enabled auto create pull requests for %s', project.name)
-                          : t('Disabled auto create pull requests for %s', project.name)
-                      ),
-                    onError: () =>
-                      addErrorMessage(
-                        t(
-                          'Failed to update auto create pull requests setting for %s',
-                          project.name
-                        )
-                      ),
-                  });
-                }}
+          <Flex align="center" gap="sm">
+            {organization.enableSeerCoding === false && autofixAgent === 'seer' ? (
+              <InfoTip
+                title={tct(
+                  '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                  {
+                    settings: (
+                      <Link
+                        to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                      />
+                    ),
+                  }
+                )}
+                size="xs"
               />
-            </Flex>
-          )
+            ) : null}
+
+            <Switch
+              disabled={
+                !canWrite ||
+                (organization.enableSeerCoding === false && autofixAgent === 'seer')
+              }
+              checked={isCreatePrEnabled}
+              onChange={e => {
+                const value = e.target.checked;
+                mutateCreatePr(autofixAgent, value, {
+                  onSuccess: () =>
+                    addSuccessMessage(
+                      value
+                        ? t('Enabled auto create pull requests for %s', project.name)
+                        : t('Disabled auto create pull requests for %s', project.name)
+                    ),
+                  onError: () =>
+                    addErrorMessage(
+                      t(
+                        'Failed to update auto create pull requests setting for %s',
+                        project.name
+                      )
+                    ),
+                });
+              }}
+            />
+          </Flex>
         ) : (
           <Placeholder height="28px" width="36px" />
         )}
@@ -195,11 +191,11 @@ export default function SeerProjectTableRow({
   );
 }
 
-// const CheckboxClickTarget = styled('label')`
-//   cursor: pointer;
-//   display: block;
-//   margin: -${p => p.theme.space.md};
-//   padding: ${p => p.theme.space.md};
-//   max-width: unset;
-//   line-height: 0;
-// `;
+const CheckboxClickTarget = styled('label')`
+  cursor: pointer;
+  display: block;
+  margin: -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
+  max-width: unset;
+  line-height: 0;
+`;

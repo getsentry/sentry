@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction';
+import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 
 describe('Cancel Subscription', () => {
   it('cancels immediately', async () => {

@@ -1,13 +1,14 @@
 import {useCallback, useEffect} from 'react';
 
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useSelectedProjectsHaveField} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
   const {hasField: hasSentOneReplay, fetching} =

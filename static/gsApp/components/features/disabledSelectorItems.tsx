@@ -3,14 +3,14 @@ import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {TimeRangeItem} from 'sentry/components/timeRangeSelector/types';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 const PREMIUM_PERIODS = ['90d'];

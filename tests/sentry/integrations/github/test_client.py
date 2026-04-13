@@ -818,7 +818,7 @@ class GithubProxyClientTest(TestCase):
 
         responses.calls.reset()
         assert control_proxy_responses.call_count == 0
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = GithubProxyTestClient(integration=self.integration)
             client.get_issue("test-repo", "123")
             request = responses.calls[0].request

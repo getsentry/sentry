@@ -16,7 +16,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.users.models.identity import Identity
 
 
@@ -215,7 +215,7 @@ class TestCommitContextIntegrationSLO(TestCase):
 
 
 class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def setUp(self) -> None:
         super().setUp()

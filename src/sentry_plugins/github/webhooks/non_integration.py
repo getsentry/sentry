@@ -9,14 +9,14 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 
 from .base import GithubWebhookBase
 
 logger = logging.getLogger("sentry.webhooks")
 
 
-@region_silo_view
+@cell_silo_view
 class GithubPluginWebhookEndpoint(GithubWebhookBase):
     def get_logging_data(self, organization):
         return {"organization_id": organization.id}

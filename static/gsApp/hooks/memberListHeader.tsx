@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconBusiness, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
-import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, getBestPlanForUnlimitedMembers} from 'getsentry/utils/billing';

@@ -6,11 +6,11 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import Confirm from 'sentry/components/confirm';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {Confirm} from 'sentry/components/confirm';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
@@ -24,7 +24,7 @@ type Props = {
   associations?: ProguardMappingAssociation;
 };
 
-function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
+export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
@@ -120,5 +120,3 @@ const TimeWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${p => p.theme.space.md};
 `;
-
-export default ProjectProguardRow;

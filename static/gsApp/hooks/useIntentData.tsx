@@ -6,7 +6,7 @@ import {
   useMutation,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 

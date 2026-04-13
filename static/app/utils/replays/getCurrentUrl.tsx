@@ -5,10 +5,10 @@ import type {
 } from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-function getCurrentUrl(
+export function getCurrentUrl(
   replayRecord: undefined | ReplayRecord,
   frames: undefined | Array<BreadcrumbFrame | SpanFrame>,
   currentOffsetMS: number
@@ -45,5 +45,3 @@ function getCurrentUrl(
 
   throw new Error('Unknown frame type in getCurrentUrl');
 }
-
-export default getCurrentUrl;

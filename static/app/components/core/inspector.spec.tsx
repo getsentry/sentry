@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {SentryComponentInspector, serializeTraceForLLM} from './inspector';
 

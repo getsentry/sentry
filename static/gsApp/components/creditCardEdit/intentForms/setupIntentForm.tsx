@@ -7,16 +7,17 @@ import type {
 } from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
-import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
+import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {useSetupIntentData} from 'getsentry/hooks/useIntentData';
 import type {Subscription} from 'getsentry/types';
 
-function SetupIntentForm(props: IntentFormProps) {
+export function SetupIntentForm(props: IntentFormProps) {
   const {
     organization,
     location: ftcConsentLocation,
@@ -26,8 +27,9 @@ function SetupIntentForm(props: IntentFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const {url} = parseQueryKey(props.intentDataQueryKey);
   const {intentData, isLoading, isError, error} = useSetupIntentData({
-    endpoint: props.intentDataQueryKey[0],
+    endpoint: url,
   });
 
   const {mutateAsync: updateSubscription} = useMutation({
@@ -119,5 +121,3 @@ function SetupIntentForm(props: IntentFormProps) {
     />
   );
 }
-
-export default SetupIntentForm;

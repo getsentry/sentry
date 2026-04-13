@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
+import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {useParams} from 'sentry/utils/useParams';
 
 import type {Result} from './sources/types';
@@ -43,7 +43,7 @@ function HighlightedMarker(p: React.ComponentProps<typeof HighlightMarker>) {
   return <HighlightMarker data-test-id="highlight" {...p} />;
 }
 
-function SearchResult({item, matches, highlighted}: Props) {
+export function SearchResult({item, matches, highlighted}: Props) {
   const params = useParams<{orgId: string}>();
 
   const {sourceType, model, extra} = item;
@@ -97,8 +97,6 @@ function SearchResult({item, matches, highlighted}: Props) {
     </Flex>
   );
 }
-
-export default SearchResult;
 
 const SearchDetail = styled('div')`
   font-size: 0.8em;

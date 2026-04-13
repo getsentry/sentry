@@ -7,7 +7,7 @@ type Props = {
   children?: React.ReactNode;
 };
 
-function DisableInDemoMode({children}: Props) {
+export function DisableInDemoMode({children}: Props) {
   if (!isDemoModeActive()) {
     return children;
   }
@@ -32,5 +32,3 @@ function DisableInDemoMode({children}: Props) {
     </Tooltip>
   );
 }
-
-export default DisableInDemoMode;

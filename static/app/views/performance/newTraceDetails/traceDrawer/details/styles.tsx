@@ -10,7 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {
   DropdownMenu,
@@ -29,11 +29,11 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
@@ -50,16 +50,16 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -321,15 +321,15 @@ const getDurationComparison = (
 
   const deltaText =
     status === 'equal'
-      ? tct(`equal to avg [formattedBaseDuration]`, {
+      ? tct('equal to avg [formattedBaseDuration]', {
           formattedBaseDuration,
         })
       : status === 'faster'
-        ? tct(`[deltaPct] faster than avg [formattedBaseDuration]`, {
+        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           })
-        : tct(`[deltaPct] slower than avg [formattedBaseDuration]`, {
+        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
             formattedBaseDuration,
             deltaPct: `${deltaPct}%`,
           });
@@ -1195,7 +1195,13 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-function MultilineText({children}: {children: string}) {
+function MultilineText({
+  children,
+  renderFormatted,
+}: {
+  children: string;
+  renderFormatted?: (text: string) => React.ReactNode;
+}) {
   const [showRaw, setShowRaw] = useState<boolean>(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
@@ -1218,11 +1224,11 @@ function MultilineText({children}: {children: string}) {
               </SegmentedControl>
             )}
           </Container>
-          {showRaw ? (
-            children.trim()
-          ) : (
-            <MarkedText as={MarkdownContainer} text={children} />
-          )}
+          {showRaw
+            ? children.trim()
+            : (renderFormatted?.(children) ?? (
+                <MarkedText as={MarkdownContainer} text={children} />
+              ))}
         </MultilineTextWrapper>
       </StyledClippedBox>
     </Fragment>
@@ -1313,7 +1319,7 @@ function MultilineJSON({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
-  const json = useMemo(() => tryParseJson(value), [value]);
+  const json = useMemo(() => tryParseJsonRecursive(value), [value]);
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {

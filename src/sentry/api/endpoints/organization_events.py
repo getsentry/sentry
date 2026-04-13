@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
@@ -25,7 +25,6 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -54,6 +53,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.snuba import SnubaError
 
@@ -87,7 +87,7 @@ class EventsApiResponse(TypedDict):
 
 
 @extend_schema(tags=["Explore"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -193,8 +193,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     },
                 }
             )
-        except InvalidParams as err:
-            raise ParseError(detail=str(err))
 
         batch_features = self.get_features(organization, request)
 
@@ -409,7 +407,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     # Unable to infer based on selected fields and query string, so run both queries.
                     else:
                         map = {}
-                        with ThreadPoolExecutor(max_workers=3) as exe:
+                        with ContextPropagatingThreadPoolExecutor(max_workers=3) as exe:
                             futures = {
                                 exe.submit(
                                     _data_fn, dataset_query, offset, limit, scoped_query

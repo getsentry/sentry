@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {ANNUAL} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
 import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
-import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
+import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 type BillingCycleSelectCardProps = {
@@ -23,7 +23,7 @@ type BillingCycleSelectCardProps = {
   subscription: Subscription;
 };
 
-function BillingCycleSelectCard({
+export function BillingCycleSelectCard({
   subscription,
   isSelected,
   plan,
@@ -119,5 +119,3 @@ function BillingCycleSelectCard({
     />
   );
 }
-
-export default BillingCycleSelectCard;

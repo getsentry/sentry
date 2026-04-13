@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const DetailsContainer = styled('div')`
+export const DetailsContainer = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.xl};
   grid-template-columns: 1fr 1fr;
@@ -16,5 +16,3 @@ const DetailsContainer = styled('div')`
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
-
-export default DetailsContainer;

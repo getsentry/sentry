@@ -1,20 +1,22 @@
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
+import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {FormContext} from 'sentry/components/forms/formContext';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {LoadingError} from 'sentry/components/loadingError';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
@@ -34,7 +36,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       <Container>
-        <Section title={t('Detect')}>
+        <FormSection step={1} title={t('Detect')}>
           <Text as="p">
             {tct(
               'An error issue will be created when a new issue group is detected. [link:Manage Grouping Rules]',
@@ -47,10 +49,10 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <Container>
-        <Section title={t('Assign')}>
+        <FormSection step={2} title={t('Assign')}>
           <Text as="p">
             {tct(
               'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -63,10 +65,10 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <Container>
-        <Section title={t('Prioritize')}>
+        <FormSection step={3} title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'New error issues are prioritized based on log level. [link:Learn more about Issue Priority]',
@@ -77,10 +79,10 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
       <Container>
-        <Section title={t('Prioritize')}>
+        <FormSection step={4} title={t('Resolve')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
@@ -93,22 +95,22 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               }
             )}
           </Text>
-        </Section>
+        </FormSection>
       </Container>
-      <AutomateSection />
+      <AutomateSection step={5} />
     </Stack>
   );
 }
 
 export function NewErrorDetectorForm() {
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <Layout.Body>
         <Layout.Main width="full">
           <LoadingError message={t('Error detectors cannot be created')} />
         </Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 
@@ -139,6 +141,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
     <EditLayout
       formProps={{
         initialData: {
+          projectId: detector.projectId,
           workflowIds: detector.workflowIds,
         },
         onSubmit: handleFormSubmit,
@@ -158,21 +161,30 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
         <ErrorDetectorForm detector={detector} />
       </EditLayout.Body>
 
-      <EditLayout.Footer maxWidth={maxWidth}>
-        <Button
-          type="submit"
-          priority="primary"
-          size="sm"
-          disabled={!canEditWorkflowConnections}
-          tooltipProps={{
-            title: canEditWorkflowConnections
-              ? undefined
-              : getNoPermissionToEditMonitorTooltip(),
-          }}
-        >
-          {t('Save')}
-        </Button>
-      </EditLayout.Footer>
+      <FormContext.Consumer>
+        {({form}) => (
+          <EditLayout.Footer maxWidth={maxWidth}>
+            <Observer>
+              {() => (
+                <Button
+                  type="submit"
+                  priority="primary"
+                  size="sm"
+                  busy={form?.isSaving}
+                  disabled={!canEditWorkflowConnections}
+                  tooltipProps={{
+                    title: canEditWorkflowConnections
+                      ? undefined
+                      : getNoPermissionToEditMonitorTooltip(),
+                  }}
+                >
+                  {t('Save')}
+                </Button>
+              )}
+            </Observer>
+          </EditLayout.Footer>
+        )}
+      </FormContext.Consumer>
     </EditLayout>
   );
 }

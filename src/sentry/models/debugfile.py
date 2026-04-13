@@ -15,7 +15,7 @@ from collections.abc import Container, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.utils import timezone
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
@@ -28,7 +28,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -115,11 +115,11 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
         return rv
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectDebugFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    file = FlexibleForeignKey("sentry.File")
+    file = FlexibleForeignKey("sentry.File", on_delete=models.PROTECT)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
@@ -195,7 +195,16 @@ class ProjectDebugFile(Model):
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
-        self.file.delete()
+
+        # If another debug file row still references this File, keep the File.
+        # Concurrent last-reference deletes can still leave an unreferenced File
+        # row behind, but no surviving ProjectDebugFile should point to a deleted
+        # File.
+        try:
+            self.file.delete()
+        except ProtectedError:
+            pass
+
         return ret
 
 
@@ -239,6 +248,22 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 dif.delete()
             else:
                 all_features.update(dif.features)
+
+
+def create_dif_from_file(
+    project: Project,
+    file: File,
+    path: str,
+    name: str | None = None,
+    debug_id: str | None = None,
+) -> tuple[ProjectDebugFile, bool]:
+    """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
+    result = detect_dif_from_path(path, name=name, debug_id=debug_id)
+
+    if len(result) != 1:
+        raise BadDif("Object contains %s architectures (1 expected)" % len(result))
+
+    return create_dif_from_id(project, result[0], file=file)
 
 
 def create_dif_from_id(
@@ -361,7 +386,34 @@ def _analyze_progard_filename(filename: str | None) -> str | None:
         return None
 
 
-@region_silo_model
+def get_debug_id_from_dif_request(name: str | None, debug_id: str | None) -> str | None:
+    """Returns the effective debug ID from assemble request metadata.
+
+    Most DIF uploads provide an explicit ``debug_id``. ProGuard mappings instead
+    encode it in the request ``name`` such as ``/proguard/mapping-<uuid>.txt``.
+    """
+    try:
+        normalized_id = normalize_debug_id(debug_id)
+    except SymbolicError:
+        normalized_id = None
+
+    return normalized_id or _analyze_progard_filename(name)
+
+
+def build_proguard_reupload_dif_meta(source_dif: ProjectDebugFile, debug_id: str) -> DifMeta:
+    """Builds trusted ProGuard metadata for cloning a row with a new debug ID."""
+    return DifMeta(
+        file_format="proguard",
+        arch=source_dif.cpu_name,
+        debug_id=debug_id,
+        code_id=source_dif.code_id,
+        path=source_dif.object_name,
+        name=source_dif.object_name,
+        data=source_dif.data,
+    )
+
+
+@cell_silo_model
 class ProguardArtifactRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

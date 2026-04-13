@@ -5,7 +5,7 @@ import omitBy from 'lodash/omitBy';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
   getPreviousSeriesName,
@@ -263,7 +263,7 @@ const propNamesToIgnore = [
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState> {
+export class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState> {
   static defaultProps: DefaultProps = {
     period: undefined,
     start: null,
@@ -658,7 +658,6 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     });
   }
 }
-export default EventsRequest;
 
 /**
  * Transforms query response into timeseries data to be used in a chart

@@ -8,11 +8,11 @@ from sentry.issues.related.trace_connected import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class TestEAPTraceConnectedIssues(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def _query_both(self, trace_id: str, exclude_group_id: int) -> tuple[set[int], set[int]]:
         organization = Organization.objects.get(id=self.organization.id)

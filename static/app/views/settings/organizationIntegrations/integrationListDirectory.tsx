@@ -10,12 +10,12 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {
   AppOrProviderOrPlugin,
@@ -27,7 +27,7 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   getAlertText,
@@ -44,12 +44,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
-import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
-import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
+import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -86,7 +86,7 @@ function useIntegrationList() {
     providers: IntegrationProvider[];
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -98,7 +98,7 @@ function useIntegrationList() {
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {includeConfig: 0}},
@@ -111,7 +111,7 @@ function useIntegrationList() {
     isError: isOrgOwnedAppsError,
   } = useApiQuery<SentryApp[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -131,7 +131,7 @@ function useIntegrationList() {
     isError: isAppInstallsError,
   } = useApiQuery<SentryAppInstallation[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -143,7 +143,7 @@ function useIntegrationList() {
     isError: isPluginsError,
   } = useApiQuery<PluginWithProjectList[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/plugins/configs/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

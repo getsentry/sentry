@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -22,7 +22,7 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -33,7 +33,7 @@ import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
-import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
+import {IssueTagsPreview} from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
@@ -251,24 +251,30 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
-  const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+
   const theme = useTheme();
   const style = {
     padding: `${theme.space.md} ${theme.space.lg}`,
   };
 
-  return isFixedEnvironment ? (
-    <EnvironmentPageFilter
-      disabled
-      triggerProps={{
-        label: eventEnvironment ?? t('All Envs'),
-        title: t('This issue only occurs in a single environment'),
-        style,
-      }}
-    />
-  ) : (
-    <EnvironmentPageFilter triggerProps={{style}} />
-  );
+  if (isFixedEnvironment) {
+    const detectorEnvironment =
+      event?.occurrence?.evidenceData?.dataSources?.[0]?.queryObj?.snubaQuery
+        ?.environment;
+    const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+    return (
+      <EnvironmentPageFilter
+        disabled
+        triggerProps={{
+          label: eventEnvironment ?? detectorEnvironment ?? t('All Envs'),
+          title: t('This issue only occurs in a single environment'),
+          style,
+        }}
+      />
+    );
+  }
+
+  return <EnvironmentPageFilter triggerProps={{style}} />;
 }
 
 const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`

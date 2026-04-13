@@ -228,6 +228,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="sentryWrapped",
                 ),
+                # The fetch instrumentation wraps globalThis.fetch as a pass-through.
+                # When a user's fetch call fails (e.g., "Failed to fetch" network errors),
+                # the SDK wrapper frame appears in the stack but is not the cause.
+                # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    function_pattern="fetch",
+                ),
             },
         )
         configs.append(react_native_config)

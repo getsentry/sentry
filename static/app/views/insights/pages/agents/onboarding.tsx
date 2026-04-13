@@ -9,7 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
@@ -31,24 +31,23 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
 import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
@@ -69,7 +68,7 @@ import {
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
+  DENO_AGENT_INTEGRATIONS,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from './utils/agentIntegrations';
@@ -242,10 +241,13 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isDenoPlatform = project?.platform === 'deno';
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
-    : NODE_AGENT_INTEGRATIONS;
+    : isDenoPlatform
+      ? DENO_AGENT_INTEGRATIONS
+      : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
@@ -261,8 +263,6 @@ export function Onboarding() {
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
-  const isManualIntegration =
-    selectedPlatformOptions.integration === AgentIntegration.MANUAL;
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -354,20 +354,12 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
-                  postamble={
-                    isManualIntegration
-                      ? `${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`
-                      : undefined
-                  }
-                  onCopy={
-                    isManualIntegration
-                      ? () => {
-                          trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-                            organization,
-                          });
-                        }
-                      : undefined
-                  }
+                  postamble={`${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`}
+                  onCopy={() => {
+                    trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+                      organization,
+                    });
+                  }}
                 />
               ) : undefined
             }
@@ -578,15 +570,13 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const CONTENT_SPACING = space(1);
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -600,7 +590,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

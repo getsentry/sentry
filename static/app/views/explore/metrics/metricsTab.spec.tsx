@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -130,6 +131,11 @@ describe('MetricsTabContent', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
@@ -234,7 +240,7 @@ describe('MetricsTabContent', () => {
           table_result_sort: ['-timestamp'],
           user_queries: '',
           user_queries_count: 0,
-          aggregate_function: 'per_second',
+          aggregate_function: 'sum',
           confidences: ['null'],
           dataScanned: 'full',
           dataset: 'metrics',
@@ -269,7 +275,7 @@ describe('MetricsTabContent', () => {
         table_result_sort: ['-timestamp'],
         user_queries: '',
         user_queries_count: 0,
-        aggregate_function: 'per_second',
+        aggregate_function: 'sum',
         confidences: ['null'],
         dataScanned: 'full',
         dataset: 'metrics',
@@ -308,7 +314,7 @@ describe('MetricsTabContent', () => {
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
-          aggregate_function: 'per_second',
+          aggregate_function: 'sum',
           group_bys: [],
           metric_name: 'foo',
           metric_type: 'distribution',
@@ -576,5 +582,34 @@ describe('MetricsTabContent', () => {
       expect(parsedQuery.mode).toBe('aggregate');
     });
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
+  });
+
+  it('does not show the Add Equation button when the feature flag is disabled', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization,
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
+  });
+
+  it('shows the Add Equation button when the feature flag is enabled', async () => {
+    const orgWithFeature = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeature,
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.getByText('Add Equation')).toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -262,7 +262,7 @@ class ProjectDetailsTest(APITestCase):
             resp = self.get_success_response(self.project.organization.slug, self.project.slug)
             assert resp.data["isDynamicallySampled"]
 
-    def test_filter_options(self):
+    def test_filter_options(self) -> None:
         self.project.update_option("sentry:releases", ["1.*", "2.1.*"])
         self.project.update_option(
             "sentry:error_messages", ["TypeError*", "*: integer division by modulo or zero"]
@@ -795,20 +795,12 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
 
-        self.project.update_option(
-            "relay.cardinality-limiter.limits",
-            [
-                {
-                    "limit": {
-                        "id": "project-override-custom",
-                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                        "limit": 1000,
-                        "namespace": "custom",
-                        "scope": "name",
-                    }
-                }
-            ],
+    def test_preprod_snapshot_pr_comments_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsEnabled=False
         )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -836,6 +828,20 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
+
+    def test_security_token_header_max_length(self) -> None:
+        # exactly 64 characters should succeed
+        value = "X-" + "A" * 62
+        assert len(value) == 64
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
+        assert self.project.get_option("sentry:token_header") == value
+        assert resp.data["securityTokenHeader"] == value
+
+        # 65 characters should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, securityTokenHeader="X-" + "A" * 63, status_code=400
+        )
+        assert b"securityTokenHeader" in resp.content
 
     def test_verify_ssl(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)
@@ -1591,7 +1597,7 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=204
             )
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1626,12 +1632,12 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=403
             )
 
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
+        "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records
@@ -1654,7 +1660,7 @@ class ProjectDeleteTest(APITestCase):
                 )
 
         # Should go ahead with deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 
@@ -1673,7 +1679,7 @@ class ProjectDeleteTest(APITestCase):
 
         # Should raise sudo-required and not schedule deletion
         assert resp.data["detail"]["code"] == "sudo-required"
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Project", object_id=self.project.id
         ).exists()
 

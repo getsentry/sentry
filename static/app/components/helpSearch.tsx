@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Search} from 'sentry/components/search';
-import SearchResult from 'sentry/components/search/searchResult';
-import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
-import HelpSource from 'sentry/components/search/sources/helpSource';
+import {SearchResult} from 'sentry/components/search/searchResult';
+import {SearchResultWrapper} from 'sentry/components/search/searchResultWrapper';
+import {HelpSource} from 'sentry/components/search/sources/helpSource';
 import {IconWindow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
@@ -45,7 +45,7 @@ type Props = Omit<
 >;
 
 // TODO(ts): Type based on Search props once that has types
-function HelpSearch(props: Props) {
+export function HelpSearch(props: Props) {
   return (
     <Search
       {...props}
@@ -83,5 +83,3 @@ const Empty = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
-
-export default HelpSearch;

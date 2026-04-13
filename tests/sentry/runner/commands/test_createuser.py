@@ -18,7 +18,7 @@ class CreateUserTest(CliTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             create_default_projects()
         manage_default_super_admin_role()
 
@@ -60,7 +60,7 @@ class CreateUserTest(CliTestCase):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
             assert rv.exit_code == 0, rv.output
             assert "you@somewhereawesome.com" in rv.output
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 assert OrganizationMember.objects.count() == 1
                 member = OrganizationMember.objects.order_by("id")[0]
             assert member.user_id is not None
@@ -75,7 +75,7 @@ class CreateUserTest(CliTestCase):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password", "--superuser")
             assert rv.exit_code == 0, rv.output
             assert "you@somewhereawesome.com" in rv.output
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 assert OrganizationMember.objects.count() == 1
                 member = OrganizationMember.objects.order_by("id")[0]
             assert member.user_id is not None
@@ -86,7 +86,7 @@ class CreateUserTest(CliTestCase):
             assert member.role == roles.get_top_dog().id
 
     def test_single_org_with_specified_id(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             sentry_org = Organization.objects.get(slug="sentry")
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             rv = self.invoke(
@@ -99,7 +99,7 @@ class CreateUserTest(CliTestCase):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
             assert rv.exit_code == 0, rv.output
             assert "you@somewhereawesome.com" in rv.output
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 member_count = OrganizationMember.objects.count()
             assert member_count == 0
 

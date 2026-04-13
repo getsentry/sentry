@@ -16,6 +16,9 @@ from sentry.search.eap.ourlogs.attributes import (
     OURLOG_ATTRIBUTE_DEFINITIONS,
 )
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.preprod_size.attributes import (
+    PREPROD_SIZE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+)
 from sentry.search.eap.profile_functions.attributes import (
     PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS,
     PROFILE_FUNCTIONS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
@@ -69,6 +72,7 @@ INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SupportedTraceItemType.PREPROD: PREPROD_SIZE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
 }
 
 PUBLIC_ALIAS_TO_INTERNAL_MAPPING: dict[SupportedTraceItemType, dict[str, ResolvedAttribute]] = {

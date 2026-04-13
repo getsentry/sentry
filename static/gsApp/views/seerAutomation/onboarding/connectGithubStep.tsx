@@ -5,7 +5,7 @@ import connectGithubImg from 'sentry-images/spot/seer-config-connect-1.svg';
 
 import {Text} from '@sentry/scraps/text';
 
-import PanelBody from 'sentry/components/panels/panelBody';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 
 import {ActionSection, MaxWidthPanel, StepContent} from './common';

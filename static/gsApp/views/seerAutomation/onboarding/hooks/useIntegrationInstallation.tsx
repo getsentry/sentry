@@ -1,7 +1,7 @@
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Fetches integration installations for an organization, given a provider key (e.g. "github")
@@ -13,7 +13,7 @@ export function useIntegrationInstallation(provider_key: string) {
   const organization = useOrganization();
   const {data, isPending} = useApiQuery<OrganizationIntegration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

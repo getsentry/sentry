@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
@@ -51,7 +51,7 @@ class ExtrapolationMode(Enum):
         return None
 
 
-@region_silo_model
+@cell_silo_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization
     __relocation_dependencies__ = {"sentry.Organization", "sentry.Project"}
@@ -111,7 +111,7 @@ class SnubaQuery(Model):
         return q & models.Q(pk__in=set(from_alert_rule).union(set(from_query_subscription)))
 
 
-@region_silo_model
+@cell_silo_model
 class SnubaQueryEventType(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -136,7 +136,7 @@ class SnubaQueryEventType(Model):
         return self.EventType(self.type)
 
 
-@region_silo_model
+@cell_silo_model
 class QuerySubscription(Model):
     __relocation_scope__ = RelocationScope.Organization
 

@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TeamRoleSelect from 'sentry/components/teamRoleSelect';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -43,7 +43,7 @@ type Props = TeamSelectProps & {
   selectedTeamRoles: Member['teamRoles'];
 };
 
-function TeamSelect({
+export function TeamSelect({
   disabled,
   loadingTeams,
   member,
@@ -195,5 +195,3 @@ const TeamPanelItem = styled(PanelItem)`
   ${GRID_TEMPLATE}
   padding: ${p => p.theme.space.xl};
 `;
-
-export default TeamSelect;

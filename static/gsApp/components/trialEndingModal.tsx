@@ -11,10 +11,10 @@ import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, getTrialDaysLeft, isTrialPlan} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = Pick<ModalRenderProps, 'closeModal'> & {
   organization: Organization;

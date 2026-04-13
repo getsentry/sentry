@@ -1,9 +1,10 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {allDetectorListsQueryKey} from 'sentry/views/detectors/hooks';
 
 /** Bulk delete detectors */
 export function useDeleteDetectorsMutation() {
@@ -28,7 +29,7 @@ export function useDeleteDetectorsMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/detectors/`],
+        queryKey: allDetectorListsQueryKey(org),
       });
       addSuccessMessage(t('Monitors deleted'));
     },

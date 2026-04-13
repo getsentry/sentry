@@ -9,11 +9,11 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
+import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -22,9 +22,9 @@ import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
@@ -32,6 +32,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
@@ -54,7 +55,7 @@ export interface EventTagsTreeRowProps {
   spacerCount?: number;
 }
 
-export default function EventTagsTreeRow({
+export function EventTagsTreeRow({
   event,
   content,
   tagKey,
@@ -196,7 +197,7 @@ function EventTagsTreeRowDropdown({
       label: t('Search feedback with this tag value'),
       hidden: !isFeedback,
       to: {
-        pathname: `/organizations/${organization.slug}/feedback/`,
+        pathname: `/organizations/${organization.slug}/issues/feedback/`,
         query: {...globalSelectionParams, ...query},
       },
     },
@@ -240,14 +241,14 @@ function EventTagsTreeRowDropdown({
           {
             onError: () => {
               addErrorMessage(
-                tct(`Failed to update '[projectName]' project`, {
+                tct("Failed to update '[projectName]' project", {
                   projectName: project.name,
                 })
               );
             },
             onSuccess: () => {
               addSuccessMessage(
-                tct(`Successfully updated '[projectName]' project`, {
+                tct("Successfully updated '[projectName]' project", {
                   projectName: project.name,
                 })
               );
@@ -398,6 +399,21 @@ function EventTagsTreeValue({
       );
       break;
     }
+    case 'head.artifact_id':
+    case 'base.artifact_id': {
+      const buildPath = getSizeBuildPath({
+        organizationSlug: organization.slug,
+        baseArtifactId: content.value,
+      });
+      if (buildPath) {
+        tagValue = (
+          <TagLinkText>
+            <Link to={buildPath}>{content.value}</Link>
+          </TagLinkText>
+        );
+      }
+      break;
+    }
     default:
       tagValue = defaultValue;
   }
@@ -473,7 +489,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   display: grid;
   height: 100%;
   align-items: center;
-  grid-template-columns: ${p => (p.spacerCount > 0 ? `auto 1rem 1fr` : '1fr')};
+  grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
 `;
 
 const TreeValueTrunk = styled('div')`

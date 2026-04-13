@@ -5,13 +5,13 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
 
-import TrialBadge from './trial/badge';
+import {TrialBadge} from './trial/badge';
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function TrialAlert({organization, subscription}: Props) {
+export function TrialAlert({organization, subscription}: Props) {
   if (!subscription.isTrial) {
     return null;
   }
@@ -91,5 +91,3 @@ const StyledSubText = styled(TextBlock)`
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
-
-export default TrialAlert;

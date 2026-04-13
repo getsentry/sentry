@@ -33,7 +33,7 @@ function BaseRRWebReplayerComponent({events, className}: Props) {
   return <div ref={playerEl} className={className} />;
 }
 
-const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
+export const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .replayer-mouse {
     position: absolute;
     width: 32px;
@@ -324,5 +324,3 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     transform: translateX(16px);
   }
 `;
-
-export default BaseRRWebReplayer;

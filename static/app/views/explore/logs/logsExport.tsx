@@ -1,8 +1,6 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import useOrganization from 'sentry/utils/useOrganization';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ExploreExport} from 'sentry/views/explore/components/exploreExport';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
-import {isLogsExportEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {downloadLogsAsCsv} from 'sentry/views/explore/logs/logsExportCsv';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
@@ -31,17 +29,10 @@ interface LogsQueryInfo {
 }
 
 export function LogsExportButton(props: LogsExportButtonProps) {
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
-  const isEnabled = isLogsExportEnabled(organization);
-
-  if (!isEnabled) {
-    return <span />;
-  }
-
   const {start, end, period: statsPeriod} = selection.datetime;
   const {environments, projects} = selection;
 

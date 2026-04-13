@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
+import {OnboardingAdditionalFeatures} from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
   OnboardingCopyMarkdownButton,
@@ -16,10 +16,10 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration: string;

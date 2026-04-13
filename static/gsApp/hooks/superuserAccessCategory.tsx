@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
-import RadioField from 'sentry/components/forms/fields/radioField';
-import TextField from 'sentry/components/forms/fields/textField';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type SuperuserAccessCategories = [string, React.ReactNode];
 
@@ -34,7 +34,7 @@ const OtherCategory: SuperuserAccessCategories[] = [['other', 'Other']];
 
 const DOCUMENTATION_URL = 'https://www.notion.so/sentry/aae9a918b5814fe0918d8e7aecacf97a';
 
-function SuperuserAccessCategory() {
+export function SuperuserAccessCategory() {
   return (
     <Fragment>
       <Alert variant="muted" showIcon={false}>
@@ -99,5 +99,3 @@ const CategoryGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
 `;
-
-export default SuperuserAccessCategory;

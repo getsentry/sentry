@@ -7,10 +7,10 @@ from typing import Any
 from django.conf import settings
 
 from sentry.hybridcloud.rpc import ArgumentDict
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
-    RegionMappingNotFound,
-    RegionResolutionError,
+    CellMappingNotFound,
+    CellResolutionError,
     get_cell_by_name,
 )
 
@@ -30,24 +30,21 @@ class CellResolutionStrategy(ABC):
         try:
             mapping = OrganizationMapping.objects.get(**query)
         except OrganizationMapping.DoesNotExist as e:
-            raise RegionMappingNotFound from e
+            raise CellMappingNotFound from e
 
         return get_cell_by_name(mapping.cell_name)
 
 
 @dataclass(frozen=True)
 class ByCellName(CellResolutionStrategy):
-    """Resolve from a `str` parameter representing a cell's name.
-
-    Accepts either ``cell_name`` or ``region_name`` to ease the migration of
-    service method parameters from the old name to the new one.
+    """
+    Resolve from a `str` parameter representing a cell's name.
     """
 
     parameter_name: str = "cell_name"
 
     def resolve(self, arguments: ArgumentDict) -> Cell:
-        # TODO(cells): Temporary fall back to "region_name" while service methods are being migrated.
-        cell_name = arguments.get("region_name") or arguments[self.parameter_name]
+        cell_name = arguments[self.parameter_name]
         return get_cell_by_name(cell_name)
 
 
@@ -98,7 +95,7 @@ class RequireSingleOrganization(CellResolutionStrategy):
         from sentry.models.organizationmapping import OrganizationMapping
 
         if not settings.SENTRY_SINGLE_ORGANIZATION:
-            raise RegionResolutionError("Method is available only in single-org environment")
+            raise CellResolutionError("Method is available only in single-org environment")
 
         all_cell_names = list(
             OrganizationMapping.objects.all().values_list("cell_name", flat=True).distinct()[:2]
@@ -106,11 +103,7 @@ class RequireSingleOrganization(CellResolutionStrategy):
         if len(all_cell_names) == 0:
             return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         if len(all_cell_names) != 1:
-            raise RegionResolutionError("Expected single-org environment to have only one cell")
+            raise CellResolutionError("Expected single-org environment to have only one cell")
 
         (single_cell_name,) = all_cell_names
         return get_cell_by_name(single_cell_name)
-
-
-# TODO(cells): Remove once all callers have been migrated to new names
-ByRegionName = ByCellName

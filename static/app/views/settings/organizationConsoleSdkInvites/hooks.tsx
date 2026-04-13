@@ -5,14 +5,14 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface ConsoleSdkInviteUser {
   email: string;
@@ -36,7 +36,7 @@ interface UseRevokeConsoleSdkPlatformInviteParams {
 export function useConsoleSdkInvites(orgSlug: string) {
   return useApiQuery<ConsoleSdkInviteUser[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/console-sdk-invites/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],

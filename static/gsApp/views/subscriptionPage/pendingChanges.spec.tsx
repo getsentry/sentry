@@ -18,7 +18,7 @@ import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {ANNUAL, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
-import PendingChanges from 'getsentry/views/subscriptionPage/pendingChanges';
+import {PendingChanges} from 'getsentry/views/subscriptionPage/pendingChanges';
 
 function getItemWithText(text: string) {
   return screen.getByText(

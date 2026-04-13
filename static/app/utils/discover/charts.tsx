@@ -16,7 +16,7 @@ import {
   SizeUnit,
 } from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';

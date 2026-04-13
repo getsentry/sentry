@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
@@ -19,7 +19,7 @@ from sentry.search.utils import tokenize_query
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

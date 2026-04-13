@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useUser} from 'sentry/utils/useUser';
@@ -11,7 +11,7 @@ type Props = {
   feedbackItem: FeedbackIssue;
 };
 
-export default function FeedbackTimestampsTooltip({feedbackItem}: Props) {
+export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
   const user = useUser();
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';

@@ -8,11 +8,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDeleteDetectorsMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorsMutation';
 import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDetectorsMutation';
 
@@ -68,8 +68,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to enable this %s monitor?`,
-      `Are you sure you want to enable these %s monitors?`,
+      'Are you sure you want to enable this %s monitor?',
+      'Are you sure you want to enable these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -84,8 +84,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to disable this %s monitor?`,
-      `Are you sure you want to disable these %s monitors?`,
+      'Are you sure you want to disable this %s monitor?',
+      'Are you sure you want to disable these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -128,8 +128,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to delete this %s monitor?`,
-      `Are you sure you want to delete these %s monitors?`,
+      'Are you sure you want to delete this %s monitor?',
+      'Are you sure you want to delete these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);

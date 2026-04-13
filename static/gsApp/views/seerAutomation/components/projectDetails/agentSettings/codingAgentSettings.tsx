@@ -3,7 +3,7 @@ import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 
@@ -14,12 +14,7 @@ interface Props {
   project: Project;
 }
 
-export default function CodingAgentSettings({
-  integration,
-  canWrite,
-  preference,
-  project,
-}: Props) {
+export function CodingAgentSettings({integration, canWrite, preference, project}: Props) {
   const disabledReason = canWrite
     ? null
     : t('You do not have permission to update this setting.');

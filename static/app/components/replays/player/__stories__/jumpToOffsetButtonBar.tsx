@@ -1,6 +1,6 @@
 import {Button, ButtonBar} from '@sentry/scraps/button';
 
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useReplayUserAction} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 
@@ -8,7 +8,7 @@ interface Props {
   intervals: string[];
 }
 
-export default function JumpToOffsetButtonBar({intervals}: Props) {
+export function JumpToOffsetButtonBar({intervals}: Props) {
   const userAction = useReplayUserAction();
 
   return (

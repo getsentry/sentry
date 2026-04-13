@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
+import {useExpandedState} from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 

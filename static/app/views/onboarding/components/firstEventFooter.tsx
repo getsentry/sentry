@@ -9,18 +9,17 @@ import {Link} from '@sentry/scraps/link';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import GenericFooter from './genericFooter';
+import {GenericFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
   isLast: boolean;
@@ -29,7 +28,7 @@ interface FirstEventFooterProps {
   project: Project;
 }
 
-export default function FirstEventFooter({
+export function FirstEventFooter({
   organization,
   project,
   onClickSetupLater,
@@ -39,7 +38,7 @@ export default function FirstEventFooter({
 
   const {data: issues} = useApiQuery<Group[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],
@@ -122,10 +121,10 @@ export default function FirstEventFooter({
           animate: {
             opacity: 1,
             y: 0,
-            transition: testableTransition({
+            transition: {
               when: 'beforeChildren',
               staggerChildren: 0.35,
-            }),
+            },
           },
           exit: {opacity: 0, y: 10},
         }}
@@ -133,16 +132,9 @@ export default function FirstEventFooter({
         {project?.firstEvent ? (
           <IconCheckmark variant="success" />
         ) : (
-          <WaitingIndicator
-            variants={indicatorAnimation}
-            transition={testableTransition()}
-          />
+          <WaitingIndicator variants={indicatorAnimation} />
         )}
-        <AnimatedText
-          errorReceived={!!project?.firstEvent}
-          variants={indicatorAnimation}
-          transition={testableTransition()}
-        >
+        <AnimatedText errorReceived={!!project?.firstEvent} variants={indicatorAnimation}>
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>

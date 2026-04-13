@@ -5,7 +5,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -13,7 +13,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
+import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', () => {
   const org = OrganizationFixture({features: ['integrations-codeowners']});

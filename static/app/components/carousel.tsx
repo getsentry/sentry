@@ -23,7 +23,7 @@ interface CarouselProps {
   visibleRatio?: number;
 }
 
-function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
+export function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     children,
@@ -97,7 +97,7 @@ const CarouselItems = styled('div')`
 
 const StyledArrowButton = styled(Button)<{direction: string}>`
   position: absolute;
-  ${p => (p.direction === 'left' ? `left: 0;` : `right: 0;`)}
+  ${p => (p.direction === 'left' ? 'left: 0;' : 'right: 0;')}
   top: 0;
   bottom: 0;
   height: 36px;
@@ -108,5 +108,3 @@ const StyledArrowButton = styled(Button)<{direction: string}>`
   margin: auto;
   background-color: ${p => p.theme.tokens.background.primary};
 `;
-
-export default Carousel;

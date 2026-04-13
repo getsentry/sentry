@@ -2,6 +2,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import {
@@ -11,6 +12,7 @@ import {
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsMode,
@@ -26,25 +28,29 @@ interface MetricInfoTabsProps {
   isMetricOptionsEmpty?: boolean;
 }
 
-export default function MetricInfoTabs({
+export function MetricInfoTabs({
   traceMetric,
   additionalActions,
   contentsHidden,
   orientation,
   isMetricOptionsEmpty,
 }: MetricInfoTabsProps) {
+  const organization = useOrganization();
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
+
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
+
   return (
     <TabStateProvider<Mode>
       value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
-      size="xs"
+      size={hasMetricsUIRefresh ? 'md' : 'xs'}
     >
-      {(orientation === 'right' || visualize.visible) && (
+      {orientation === 'right' || visualize.visible ? (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
             <TabList variant="floating">
@@ -58,8 +64,8 @@ export default function MetricInfoTabs({
           </TabListWrapper>
           {additionalActions}
         </Flex>
-      )}
-      {visualize.visible && !contentsHidden && (
+      ) : null}
+      {visualize.visible && !contentsHidden ? (
         <BodyContainer>
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
@@ -76,7 +82,7 @@ export default function MetricInfoTabs({
             </TabPanels.Item>
           </StyledTabPanels>
         </BodyContainer>
-      )}
+      ) : null}
     </TabStateProvider>
   );
 }

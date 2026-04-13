@@ -3,7 +3,7 @@ import upperFirst from 'lodash/upperFirst';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -246,7 +246,11 @@ export function isContinuousProfiling(category: DataCategory | string) {
 }
 
 export function isByteCategory(category: DataCategory | string) {
-  return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
+  return (
+    category === DataCategory.ATTACHMENTS ||
+    category === DataCategory.LOG_BYTE ||
+    category === DataCategory.TRACE_METRIC_BYTE
+  );
 }
 
 /**

@@ -1,16 +1,16 @@
 import {lazy} from 'react';
 import styled from '@emotion/styled';
 
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingError from 'sentry/components/loadingError';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 

@@ -12,7 +12,7 @@ let replayRef: ReturnType<typeof replayIntegration> | null;
 /**
  * Load the Sentry Replay integration based on the feature flag.
  */
-export default function useReplayInit() {
+export function useReplayInit() {
   const user = useUser();
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function useReplayInit() {
             'x-served-by',
           ],
           maskFn: (text: string) =>
-            isStaticString(text) ? text : text.replace(/[\S]/g, '*'),
+            isStaticString(text) ? text : text.replace(/\S/g, '*'),
 
           slowClickIgnoreSelectors: [
             '[aria-label*="download" i]',

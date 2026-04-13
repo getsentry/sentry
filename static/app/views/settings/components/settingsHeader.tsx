@@ -1,4 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 // This is required to offer components that sit between this settings header
 // and i.e. dropdowns, some zIndex layer room
@@ -6,13 +11,20 @@ import styled from '@emotion/styled';
 // e.g. app/views/settings/metric/triggers/chart/
 const HEADER_Z_INDEX_OFFSET = 5;
 
-const SettingsHeader = styled('div')`
-  position: sticky;
-  top: 0;
-  z-index: ${p => p.theme.zIndex.header + HEADER_Z_INDEX_OFFSET};
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.primary};
-`;
+export const SettingsHeader = styled((props: ContainerProps<'div'>) => {
+  const theme = useTheme();
+  const hasPageFrame = useHasPageFrameFeature();
 
-export default SettingsHeader;
+  return (
+    <Container
+      top="0"
+      position="sticky"
+      borderBottom="primary"
+      background="primary"
+      style={{zIndex: theme.zIndex.header + HEADER_Z_INDEX_OFFSET}}
+      padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'xl 3xl'}
+      radius={hasPageFrame ? 'lg 0 0 0' : undefined}
+      {...props}
+    />
+  );
+})``;

@@ -1,11 +1,10 @@
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconArrow} from 'sentry/icons';
-import {tn} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {t, tn} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Counts = {
   counts: {
@@ -21,7 +20,7 @@ export function MonitorsDropdown() {
 
   const {data: cronsData, isPending: cronsIsPending} = useApiQuery<Counts>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/monitors-count/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/monitors-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -40,7 +39,7 @@ export function MonitorsDropdown() {
 
   const {data: uptimeData, isPending: uptimeIsPending} = useApiQuery<Counts>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/uptime-count/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/uptime-count/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -66,39 +65,29 @@ export function MonitorsDropdown() {
       items={[
         {
           key: 'crons',
-          label: tn(
-            '%s Active Cron Monitor',
-            '%s Active Cron Monitors',
-            cronsData?.counts.active
-          ),
+          label: t('View Active Cron Monitors (%s)', cronsData.counts.active),
           to: `/organizations/${organization.slug}/insights/crons/`,
           details:
-            cronsData?.counts.disabled > 0
+            cronsData.counts.disabled > 0
               ? tn(
                   '%s disabled monitor',
                   '%s disabled monitors',
-                  cronsData?.counts.disabled
+                  cronsData.counts.disabled
                 )
               : undefined,
-          trailingItems: <IconArrow direction="right" />,
         },
         {
           key: 'uptime',
-          label: tn(
-            '%s Active Uptime Monitor',
-            '%s Active Uptime Monitors',
-            uptimeData?.counts.active
-          ),
+          label: t('View Active Uptime Monitors (%s)', uptimeData.counts.active),
           to: `/organizations/${organization.slug}/insights/uptime/`,
           details:
-            uptimeData?.counts.disabled > 0
+            uptimeData.counts.disabled > 0
               ? tn(
                   '%s disabled monitor',
                   '%s disabled monitors',
-                  uptimeData?.counts.disabled
+                  uptimeData.counts.disabled
                 )
               : undefined,
-          trailingItems: <IconArrow direction="right" />,
         },
       ]}
       trigger={(props, isOpen) => (

@@ -5,7 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   projectId: string;

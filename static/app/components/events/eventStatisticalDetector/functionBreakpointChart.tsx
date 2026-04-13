@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import {type BreakpointEvidenceData} from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import Chart from 'sentry/components/events/eventStatisticalDetector/lineChart';
+import {LineChart as Chart} from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';

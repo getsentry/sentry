@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
@@ -29,7 +29,7 @@ class GroupHashesResult(TypedDict):
     mergedBySeer: bool
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,

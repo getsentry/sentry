@@ -12,4 +12,4 @@ export {Stack, type StackProps, type StackPropsWithRenderFunction} from './stack
  * @TODO: these should probably be private to scraps
  */
 export {rc, type Responsive} from './styles';
-export {getBorder, getMargin, getSpacing} from './styles';
+export {getBorder, getMargin, getRadius, getSpacing} from './styles';

@@ -9,7 +9,7 @@ import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Invoice, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';

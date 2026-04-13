@@ -37,7 +37,7 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-function IssueListSortOptions({
+export function IssueListSortOptions({
   className,
   onSelect,
   sort,
@@ -77,5 +77,3 @@ function IssueListSortOptions({
     />
   );
 }
-
-export default IssueListSortOptions;

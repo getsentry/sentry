@@ -5,14 +5,14 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
@@ -125,7 +125,7 @@ export default function DataDownload() {
       case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgSlug}/issues/`;
       case ExportQueryType.DISCOVER:
-        return `/organizations/${orgSlug}/discover/queries/`;
+        return `/organizations/${orgSlug}/explore/discover/queries/`;
       case ExportQueryType.EXPLORE:
         if (traceItemDataset === TraceItemDataset.LOGS) {
           return `/organizations/${orgSlug}/explore/logs/`;
@@ -210,7 +210,7 @@ export default function DataDownload() {
     } = download;
 
     const to = {
-      pathname: `/organizations/${orgSlug}/discover/results/`,
+      pathname: `/organizations/${orgSlug}/explore/discover/results/`,
       query: info,
     };
 

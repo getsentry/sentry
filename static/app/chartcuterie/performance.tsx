@@ -1,9 +1,10 @@
 import type {Theme} from '@emotion/react';
 
-import Grid from 'sentry/components/charts/components/grid';
+import {Grid} from 'sentry/components/charts/components/grid';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
-import getBreakpointChartOptionsFromData, {
+import {
+  getBreakpointChartOptionsFromData,
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';

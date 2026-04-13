@@ -10,9 +10,8 @@ import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
-import FallingError from 'sentry/views/onboarding/components/fallingError';
-import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
+import {FallingError} from 'sentry/views/onboarding/components/fallingError';
+import {WelcomeBackground} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -25,7 +24,7 @@ const fadeAway: MotionProps = {
     animate: {opacity: 1, filter: 'blur(0px)'},
     exit: {opacity: 0, filter: 'blur(1px)'},
   },
-  transition: testableTransition({duration: 0.8}),
+  transition: {duration: 0.8},
 };
 
 type TextWrapperProps = {
@@ -48,7 +47,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome(props: StepProps) {
+export function TargetedOnboardingWelcome(props: StepProps) {
   const theme = useTheme();
   useWelcomeAnalyticsEffect();
 
@@ -100,8 +99,6 @@ function TargetedOnboardingWelcome(props: StepProps) {
     </FallingError>
   );
 }
-
-export default TargetedOnboardingWelcome;
 
 const PositionedFallingError = styled('span')`
   display: block;

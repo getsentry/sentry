@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InputGroup} from '@sentry/scraps/input';
@@ -9,9 +10,9 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import TimeSince from 'sentry/components/timeSince';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCalendar,
   IconCode,
@@ -24,22 +25,22 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import parseApiError from 'sentry/utils/parseApiError';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {
   getCompareApiUrl,
   getCompareBuildPath,
@@ -75,29 +76,34 @@ export function SizeCompareSelectionContent({
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const queryParams: Record<string, any> = {
-    per_page: 25,
-    state: BuildDetailsState.PROCESSED,
-    app_id: headBuildDetails.app_info?.app_id,
-    build_configuration: headBuildDetails.app_info?.build_configuration,
-    project: headBuildDetails.project_id,
-    ...(cursor && {cursor}),
-    ...(searchQuery && {query: searchQuery}),
-  };
+  const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];
+  if (headBuildDetails.app_info?.app_id) {
+    searchFilters.push(`app_id:"${headBuildDetails.app_info.app_id}"`);
+  }
+  if (headBuildDetails.app_info?.build_configuration) {
+    searchFilters.push(
+      `build_configuration_name:"${headBuildDetails.app_info.build_configuration}"`
+    );
+  }
+  if (searchQuery) {
+    searchFilters.push(searchQuery);
+  }
+  const fullQuery = searchFilters.join(' ');
 
-  const buildsQuery = useApiQuery<ListBuildsApiResponse>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  const buildsQuery = useQuery({
+    ...buildDetailsApiOptions({
+      organization,
+      queryParams: {
+        per_page: 25,
+        project: headBuildDetails.project_id,
+        query: fullQuery,
+        ...(cursor && {cursor}),
+      },
+    }),
+    select: selectJsonWithHeaders,
+  });
 
-  const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
+  const pageLinks = buildsQuery.data?.headers.Link || null;
 
   const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
   const hasPagination =
@@ -184,9 +190,9 @@ export function SizeCompareSelectionContent({
       {buildsQuery.isError && (
         <Alert variant="danger">{buildsQuery.error?.message}</Alert>
       )}
-      {buildsQuery.data && (
+      {buildsQuery.data?.json && (
         <Stack gap="md">
-          {buildsQuery.data.builds.map(build => {
+          {buildsQuery.data.json.map(build => {
             if (build.id === headBuildDetails.id) {
               return null;
             }

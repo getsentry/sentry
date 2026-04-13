@@ -7,7 +7,7 @@ type Props = {
   className?: string;
 };
 
-function BufferingOverlay({className}: Props) {
+export function BufferingOverlay({className}: Props) {
   return (
     <Overlay className={className}>
       <Message>
@@ -38,5 +38,3 @@ const Message = styled('div')`
   color: ${p => p.theme.colors.white};
   z-index: ${p => p.theme.zIndex.initial};
 `;
-
-export default BufferingOverlay;

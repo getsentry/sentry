@@ -4,7 +4,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types/event';
 
-import GroupingVariant from './groupingVariant';
+import {GroupingVariant} from './groupingVariant';
 
 describe('Grouping Variant', () => {
   const event = EventFixture({

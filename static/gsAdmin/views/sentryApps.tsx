@@ -3,7 +3,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
@@ -36,7 +36,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-export default function SentryApps() {
+export function SentryApps() {
   return (
     <div>
       <PageHeader title="Integration Platform Apps" />

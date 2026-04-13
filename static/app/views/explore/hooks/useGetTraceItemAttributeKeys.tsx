@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -100,7 +100,7 @@ export function useGetTraceItemAttributeKeys({
   return getTraceItemAttributeKeys;
 }
 
-export function getTraceItemTagCollection(
+function getTraceItemTagCollection(
   result: Tag[],
   type: UseGetTraceItemAttributeKeysProps['type']
 ): TagCollection {
@@ -114,8 +114,8 @@ export function getTraceItemTagCollection(
     // EAP spans contain tags with illegal characters
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
-      !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
-      !/^tags\[[a-zA-Z0-9_.:-]+,(number|boolean)\]$/.test(attribute.key)
+      !/^[\w.:-]+$/.test(attribute.key) &&
+      !/^tags\[[\w.:-]+,(number|boolean)\]$/.test(attribute.key)
     ) {
       continue;
     }

@@ -1,21 +1,20 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
 import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
@@ -101,10 +100,7 @@ export default function OrganizationDataForwarding() {
       <Flex direction="column" gap="lg">
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
-            <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Data Forwarding')}</Heading>
-              <FeatureBadge type="new" />
-            </Flex>
+            <Heading as="h1">{t('Data Forwarding')}</Heading>
             <Text variant="muted">
               {tct(
                 'Pipe your Sentry error events into other business intelligence tools. Learn more about this feature in our [link:docs].',

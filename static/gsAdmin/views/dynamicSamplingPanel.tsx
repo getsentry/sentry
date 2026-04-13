@@ -13,17 +13,17 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow, IconOpen} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 import {SearchInput} from 'admin/components/resultGrid';
 
@@ -184,7 +184,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
 
   async function invalidateProjectConfig() {
     try {
-      await api.requestPromise(`/internal/project-config/`, {
+      await api.requestPromise('/internal/project-config/', {
         host: regionHost,
         method: 'POST',
         data: {projectId},
@@ -336,7 +336,7 @@ function DynamicSamplingRulesTable({
       return `${round(samplingValue.value * 100)}%`;
     }
     if (samplingValue.type === 'reservoir') {
-      return `100%`;
+      return '100%';
     }
     return `* ${round(samplingValue.value)}`;
   };

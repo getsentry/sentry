@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 
 const LabelHook = HookOrDefault({

@@ -1,4 +1,4 @@
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 
 export const InviteModalHook = HookOrDefault({
   hookName: 'member-invite-modal:customization',

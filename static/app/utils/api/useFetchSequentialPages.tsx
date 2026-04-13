@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {defined} from 'sentry/utils';
-import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader, type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchDataQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -89,7 +89,7 @@ interface State<Data> {
  * At t=1 the hook will return `data=Array(50)` and will has `isFetching=true`
  * Finally at t=2 all data will be fetched and combined: `data=Array(64)`
  */
-export default function useFetchSequentialPages<Data>({
+export function useFetchSequentialPages<Data>({
   enabled,
   getQueryKey,
   initialCursor,

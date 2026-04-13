@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {percent} from 'sentry/utils';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';

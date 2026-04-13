@@ -88,16 +88,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
         )
 
-        self.empty_field_widget_query = DashboardWidgetQuery.objects.create(
-            widget=self.empty_field_widget,
-            name="Test Empty Field Widget Query",
-            order=2,
-            conditions="",
-            aggregates=["failure_rate()", "count()"],
-            columns=["failure_rate()", "count()", "http.status_code"],
-            fields=["failure_rate()", "count()", "http.status_code"],
-        )
-
         self.non_existent_field_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             title="Test Non Existent Field Widget",
@@ -281,18 +271,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         )
         assert comparison_result["passed"]
         assert comparison_result["mismatches"] == []
-
-    def test_compare_empty_field_tables(self) -> None:
-        # testing with failure_rate() field, which is not supported in EAP
-        comparison_result = compare_tables_for_dashboard_widget_queries(
-            self.empty_field_widget_query
-        )
-        assert comparison_result["passed"] is False
-        assert comparison_result["reason"] == CompareTableResult.FIELD_NOT_FOUND
-        assert (
-            comparison_result["mismatches"] is not None
-            and "failure_rate()" in comparison_result["mismatches"]
-        )
 
     def test_compare_non_existent_field_tables(self) -> None:
         comparison_result = compare_tables_for_dashboard_widget_queries(

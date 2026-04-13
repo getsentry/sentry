@@ -20,8 +20,7 @@ BACKOFF_RATE = 1.4
 
 
 class DestinationType(TextChoices):
-    SENTRY_REGION = "sentry_region"
-    CODECOV = "codecov"
+    SENTRY_CELL = "sentry_region"
 
 
 @control_silo_model
@@ -34,7 +33,7 @@ class WebhookPayload(Model):
     # Destination attributes
     # Table is constantly being deleted from so let's make this non-nullable with a default value, since the table should be small at any given point in time.
     destination_type = models.CharField(
-        choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
+        choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_CELL
     )
     cell_name = models.CharField(null=True, db_column="region_name")
 
@@ -81,7 +80,7 @@ class WebhookPayload(Model):
 
         constraints = [
             models.CheckConstraint(
-                condition=~Q(destination_type=DestinationType.SENTRY_REGION)
+                condition=~Q(destination_type=DestinationType.SENTRY_CELL)
                 | Q(cell_name__isnull=False),
                 name="webhookpayload_region_name_not_null",
             ),
@@ -115,7 +114,7 @@ class WebhookPayload(Model):
         cls,
         *,
         destination_type: DestinationType,
-        region: str | None,
+        cell: str | None,
         provider: str,
         identifier: int | str,
         request: HttpRequest,
@@ -126,7 +125,7 @@ class WebhookPayload(Model):
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,
             destination_type=destination_type,
-            cell_name=region,
+            cell_name=cell,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )

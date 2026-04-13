@@ -1,12 +1,12 @@
 import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
@@ -34,7 +34,7 @@ function makeAutofixSetupQueryKey(
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
     {

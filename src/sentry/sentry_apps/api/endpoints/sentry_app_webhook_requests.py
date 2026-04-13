@@ -17,8 +17,8 @@ from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
 from sentry.sentry_apps.api.utils.webhook_requests import (
     BufferedRequest,
     DatetimeOrganizationFilterArgs,
+    get_buffer_requests_from_cells,
     get_buffer_requests_from_control,
-    get_buffer_requests_from_regions,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app_request import SentryAppRequestFilterArgs
@@ -90,8 +90,8 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
 
         requests: list[BufferedRequest] = []
         control_filter: SentryAppRequestFilterArgs = {}
-        region_filter: SentryAppRequestFilterArgs = {}
-        control_filter["errors_only"] = region_filter["errors_only"] = errors_only
+        cell_filter: SentryAppRequestFilterArgs = {}
+        control_filter["errors_only"] = cell_filter["errors_only"] = errors_only
         datetime_org_filter: DatetimeOrganizationFilterArgs = {
             "start_time": start_time,
             "end_time": end_time,
@@ -106,9 +106,9 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
             )
         # If event type has been specified, we only need to fetch requests from region buffers
         elif event_type:
-            region_filter["event"] = event_type
+            cell_filter["event"] = event_type
             requests.extend(
-                get_buffer_requests_from_regions(sentry_app.id, region_filter, datetime_org_filter)
+                get_buffer_requests_from_cells(sentry_app.id, cell_filter, datetime_org_filter)
             )
         else:
             control_filter["event"] = [
@@ -118,7 +118,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
             requests.extend(
                 get_buffer_requests_from_control(sentry_app, control_filter, datetime_org_filter)
             )
-            region_filter["event"] = list(
+            cell_filter["event"] = list(
                 set(EXTENDED_VALID_EVENTS)
                 - {
                     "installation.created",
@@ -126,7 +126,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
                 }
             )
             requests.extend(
-                get_buffer_requests_from_regions(sentry_app.id, region_filter, datetime_org_filter)
+                get_buffer_requests_from_cells(sentry_app.id, cell_filter, datetime_org_filter)
             )
 
         requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)

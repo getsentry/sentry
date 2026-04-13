@@ -2,16 +2,16 @@ import {useEffect, useState} from 'react';
 import type {PaymentIntentResult, Stripe, StripeElements} from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
+import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-function PaymentIntentForm(props: IntentFormProps) {
+export function PaymentIntentForm(props: IntentFormProps) {
   const {organization, referrer, onSuccess} = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,5 +91,3 @@ function PaymentIntentForm(props: IntentFormProps) {
     />
   );
 }
-
-export default PaymentIntentForm;

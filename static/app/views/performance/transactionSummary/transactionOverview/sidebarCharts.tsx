@@ -2,31 +2,31 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
@@ -136,7 +136,7 @@ function SidebarCharts({
   );
 }
 
-function SidebarChartsContainer({
+export function SidebarChartsContainer({
   eventView,
   organization,
   isLoading,
@@ -335,5 +335,3 @@ const ChartLabel = styled('div')<{top: string}>`
 const ChartValue = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
 `;
-
-export default SidebarChartsContainer;

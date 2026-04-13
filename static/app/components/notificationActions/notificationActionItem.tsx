@@ -11,12 +11,12 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
-import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
+import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
+import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -26,8 +26,8 @@ import type {
 } from 'sentry/types/notificationActions';
 import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type NotificationActionItemProps = {
   /**
@@ -72,7 +72,7 @@ type NotificationActionItemProps = {
   recipientRoles?: string[];
 };
 
-function NotificationActionItem({
+export function NotificationActionItem({
   action,
   index,
   availableActions,
@@ -376,5 +376,3 @@ const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.radius.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
-
-export default NotificationActionItem;

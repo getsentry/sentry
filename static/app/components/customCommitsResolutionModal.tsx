@@ -6,11 +6,10 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
-import type {Commit} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
@@ -19,15 +18,26 @@ interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   projectSlug: string;
 }
 
-// We use z.any() because the Commit type is complex and Zod's passthrough() adds index
-// signatures that don't match. The refine() ensures a commit is selected (non-null).
 const commitSchema = z.object({
   commit: z
-    .any()
-    .refine((val): val is Commit => val !== null, t('Please select a commit')),
+    .looseObject({
+      id: z.string(),
+      repository: z.looseObject({
+        name: z.string(),
+      }),
+      dateCreated: z.string(),
+    })
+    .nullable()
+    .refine(val => val !== null, t('Please select a commit')),
 });
 
-function CustomCommitsResolutionModal({
+const defaultValues: z.input<typeof commitSchema> = {
+  commit: null,
+};
+
+type Commit = z.output<typeof commitSchema>['commit'];
+
+export function CustomCommitsResolutionModal({
   onSelected,
   orgSlug,
   projectSlug,
@@ -38,9 +48,7 @@ function CustomCommitsResolutionModal({
 }: CustomCommitsResolutionModalProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      commit: null as Commit | null,
-    },
+    defaultValues,
     validators: {
       onDynamic: commitSchema,
     },
@@ -108,5 +116,3 @@ function CustomCommitsResolutionModal({
     </form.AppForm>
   );
 }
-
-export default CustomCommitsResolutionModal;

@@ -12,7 +12,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.types.region import get_global_directory
+from sentry.types.cell import get_global_directory
 from sentry.users.api.bases.user import UserEndpoint, UserPermission
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -40,6 +40,8 @@ class UserRegionEndpointPermissions(UserPermission):
         return False
 
 
+# TODO(cells): Deprecate once organization listing is moved to control and the frontend
+# no longer needs locality URLs for client-side fan-out.
 @control_silo_endpoint
 class UserRegionsEndpoint(UserEndpoint):
     owner = ApiOwner.HYBRID_CLOUD

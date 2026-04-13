@@ -51,7 +51,7 @@ const getVariantStyle = ({
   `;
 };
 
-const ProgressBar = styled(({className, value}: Props) => (
+export const ProgressBar = styled(({className, value}: Props) => (
   <div
     role="progressbar"
     aria-valuenow={value}
@@ -72,5 +72,3 @@ const ProgressBar = styled(({className, value}: Props) => (
 
   ${getVariantStyle};
 `;
-
-export default ProgressBar;

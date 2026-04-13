@@ -14,7 +14,7 @@ import {
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import GuideStore from 'sentry/stores/guideStore';
+import {GuideStore} from 'sentry/stores/guideStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
@@ -175,11 +175,9 @@ interface WrapperProps extends Props {
  * register with the GuideStore, which uses registrations from one or more
  * anchors on the page to determine which guides can be shown on the page.
  */
-function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
+export function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
   if (disabled) {
     return children;
   }
   return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
 }
-
-export default GuideAnchor;

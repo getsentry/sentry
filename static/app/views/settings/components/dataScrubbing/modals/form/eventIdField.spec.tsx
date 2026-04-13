@@ -2,7 +2,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
-import EventIdField from './eventIdField';
+import {EventIdField} from './eventIdField';
 
 const VALID_EVENT_ID = '887ab369df634e74aea708bcafe1a175';
 

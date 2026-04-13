@@ -1,10 +1,10 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import AM1_PLANS from 'getsentry-test/fixtures/am1Plans';
-import AM2_PLANS from 'getsentry-test/fixtures/am2Plans';
-import AM3_PLANS from 'getsentry-test/fixtures/am3Plans';
-import MM1_PLANS from 'getsentry-test/fixtures/mm1Plans';
-import MM2_PLANS from 'getsentry-test/fixtures/mm2Plans';
+import {AM1_PLANS} from 'getsentry-test/fixtures/am1Plans';
+import {AM2_PLANS} from 'getsentry-test/fixtures/am2Plans';
+import {AM3_PLANS} from 'getsentry-test/fixtures/am3Plans';
+import {MM1_PLANS} from 'getsentry-test/fixtures/mm1Plans';
+import {MM2_PLANS} from 'getsentry-test/fixtures/mm2Plans';
 
 import {PlanTier} from 'getsentry/types';
 

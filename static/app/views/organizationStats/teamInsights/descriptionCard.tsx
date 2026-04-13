@@ -6,7 +6,7 @@ type Props = {
   title: string;
 };
 
-function DescriptionCard({title, description, children}: Props) {
+export function DescriptionCard({title, description, children}: Props) {
   return (
     <Wrapper>
       <LeftPanel>
@@ -17,8 +17,6 @@ function DescriptionCard({title, description, children}: Props) {
     </Wrapper>
   );
 }
-
-export default DescriptionCard;
 
 const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};

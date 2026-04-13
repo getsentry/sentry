@@ -4,10 +4,11 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
   /**
@@ -24,7 +25,7 @@ type Props = {
   externalInstallText?: string;
 };
 
-function IntegrationButton({
+export function IntegrationButton({
   userHasAccess,
   onAddIntegration,
   onExternalClick,
@@ -43,6 +44,15 @@ function IntegrationButton({
     return (
       <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
+  }
+  if (metadata.aspects.directEnable) {
+    return provider.canAdd ? (
+      <DirectEnableButton
+        providerSlug={provider.slug}
+        buttonProps={buttonProps}
+        userHasAccess={userHasAccess}
+      />
+    ) : null;
   }
   if (provider.canAdd) {
     return (
@@ -74,5 +84,3 @@ function IntegrationButton({
   }
   return null;
 }
-
-export default IntegrationButton;

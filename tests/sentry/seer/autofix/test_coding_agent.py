@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-from sentry.integrations.claude_code.utils import ClaudeSessionEvent
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
+from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
@@ -10,7 +13,7 @@ from sentry.integrations.github_copilot.models import (
 )
 from sentry.seer.autofix.coding_agent import (
     _launch_agents_for_repos,
-    extract_result_url_from_events,
+    extract_result_from_events,
     poll_claude_code_agents,
     poll_github_copilot_agents,
 )
@@ -22,13 +25,21 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
 )
-from sentry.seer.models import SeerApiError, SeerRepoDefinition
+from sentry.seer.models import (
+    AutofixHandoffPoint,
+    PreferenceResponse,
+    SeerApiError,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+    SeerRepoDefinition,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class TestLaunchAgentsForRepos(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -210,8 +221,6 @@ class TestLaunchAgentsForRepos(TestCase):
         self, mock_get_preferences, mock_get_prompt, mock_store_states
     ):
         """Test that auto_create_pr defaults to False when automation_handoff is None."""
-        from sentry.seer.models import PreferenceResponse, SeerProjectPreference
-
         # Setup: Mock get_project_seer_preferences to return preference without automation_handoff
         preference = SeerProjectPreference(
             organization_id=self.organization.id,
@@ -253,6 +262,54 @@ class TestLaunchAgentsForRepos(TestCase):
         assert mock_installation.launch.called
         launch_request = mock_installation.launch.call_args[0][0]
         assert launch_request.auto_create_pr is False
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    def test_auto_create_pr_reads_from_sentry_db(
+        self, mock_get_preferences, mock_read_db, mock_get_prompt, mock_store_states
+    ):
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    provider="github", owner="getsentry", name="sentry", external_id="123"
+                )
+            ],
+            automation_handoff=SeerAutomationHandoffConfiguration(
+                handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
+                target="cursor_background_agent",
+                integration_id=123,
+                auto_create_pr=True,
+            ),
+        )
+
+        mock_get_prompt.return_value = "Test prompt"
+
+        mock_installation = MagicMock()
+        mock_installation.launch.return_value = {
+            "url": "https://example.com/agent",
+            "id": "agent-123",
+        }
+
+        _launch_agents_for_repos(
+            installation=mock_installation,
+            autofix_state=self.autofix_state,
+            run_id=self.run_id,
+            organization=self.organization,
+            trigger_source=AutofixTriggerSource.SOLUTION,
+        )
+
+        mock_get_preferences.assert_not_called()
+        assert mock_installation.launch.called
+        launch_request = mock_installation.launch.call_args[0][0]
+        assert launch_request.auto_create_pr is True
+        assert launch_request.repository.owner == "getsentry"
+        assert launch_request.repository.name == "sentry"
 
     @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
@@ -410,7 +467,7 @@ class TestLaunchAgentsForRepos(TestCase):
 
 
 class TestPollGithubCopilotAgents(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -441,14 +498,14 @@ class TestPollGithubCopilotAgents(TestCase):
             coding_agents=agents,
         )
 
-    def test_poll_skips_when_no_coding_agents(self):
+    def test_poll_skips_when_no_coding_agents(self) -> None:
         """Test that polling does nothing when there are no coding agents"""
         autofix_state = self._create_autofix_state_with_agents({})
 
         # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-    def test_poll_skips_non_github_copilot_agents(self):
+    def test_poll_skips_non_github_copilot_agents(self) -> None:
         """Test that polling skips agents that are not GitHub Copilot agents"""
         agents = {
             "cursor-agent-123": CodingAgentState(
@@ -464,7 +521,7 @@ class TestPollGithubCopilotAgents(TestCase):
         # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-    def test_poll_skips_completed_agents(self):
+    def test_poll_skips_completed_agents(self) -> None:
         """Test that polling skips agents that are already completed"""
         agents = {
             "getsentry:sentry:task-123": CodingAgentState(
@@ -513,7 +570,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_client = MagicMock()
         mock_client.get_task_status.return_value = GithubCopilotTask(
             id="task-123",
-            status="completed",
+            state="completed",
             artifacts=[
                 GithubCopilotArtifact(
                     provider="github",
@@ -572,7 +629,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_task_status = MagicMock(
             return_value=GithubCopilotTask(
                 id="task-123",
-                status="failed",
+                state="failed",
             )
         )
 
@@ -609,7 +666,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_task_status = MagicMock(
             return_value=GithubCopilotTask(
                 id="task-123",
-                status="running",
+                state="in_progress",
                 artifacts=[
                     GithubCopilotArtifact(
                         provider="github",
@@ -676,7 +733,7 @@ class TestPollGithubCopilotAgents(TestCase):
         # State should not be updated when there's an error
         mock_update_state.assert_not_called()
 
-    def test_poll_skips_invalid_agent_id(self):
+    def test_poll_skips_invalid_agent_id(self) -> None:
         """Test that polling skips agents with invalid IDs"""
         agents = {
             "invalid-agent-id": CodingAgentState(
@@ -700,71 +757,74 @@ MOCK_DJANGO_SETTINGS_PATH = "sentry.seer.autofix.coding_agent.django_settings"
 
 
 def _make_agent_event(text: str) -> ClaudeSessionEvent:
-    return ClaudeSessionEvent(type="agent", content=[{"type": "text", "text": text}])
+    return ClaudeSessionEvent(type="agent.message", content=[{"type": "text", "text": text}])
 
 
-class TestExtractResultUrlFromEvents(TestCase):
-    def test_extracts_pr_url(self):
-        events = [_make_agent_event("PR created: https://github.com/org/repo/pull/123")]
-        assert extract_result_url_from_events(events) == "https://github.com/org/repo/pull/123"
+class TestExtractResultFromEvents(TestCase):
+    def test_extracts_pr_url(self) -> None:
+        text = "PR created: https://github.com/org/repo/pull/123"
+        events = [_make_agent_event(text)]
+        url, block = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/pull/123"
+        assert block == text
 
-    def test_extracts_branch_url(self):
-        events = [_make_agent_event("Pushed to https://github.com/org/repo/tree/my-branch")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/my-branch"
-        )
+    def test_extracts_branch_url(self) -> None:
+        text = "Pushed to https://github.com/org/repo/tree/my-branch"
+        events = [_make_agent_event(text)]
+        url, block = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/my-branch"
+        assert block == text
 
-    def test_strips_trailing_period(self):
+    def test_strips_trailing_period(self) -> None:
         events = [_make_agent_event("See https://github.com/org/repo/tree/my-branch.")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/my-branch"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/my-branch"
 
-    def test_strips_trailing_comma(self):
+    def test_strips_trailing_comma(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/my-branch, ready")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/my-branch"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/my-branch"
 
-    def test_branch_with_slashes(self):
+    def test_branch_with_slashes(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/feat/sub/thing")]
-        assert (
-            extract_result_url_from_events(events)
-            == "https://github.com/org/repo/tree/feat/sub/thing"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/feat/sub/thing"
 
-    def test_branch_with_dots_in_name(self):
+    def test_branch_with_dots_in_name(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/v1.2.3-fix")]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/v1.2.3-fix"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/v1.2.3-fix"
 
-    def test_pr_preferred_over_branch(self):
+    def test_pr_preferred_over_branch(self) -> None:
         events = [
             _make_agent_event(
                 "Branch https://github.com/org/repo/tree/my-branch "
                 "and PR https://github.com/org/repo/pull/42"
             )
         ]
-        assert extract_result_url_from_events(events) == "https://github.com/org/repo/pull/42"
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/pull/42"
 
-    def test_returns_none_when_no_url(self):
+    def test_returns_none_when_no_url(self) -> None:
         events = [_make_agent_event("All done, no link.")]
-        assert extract_result_url_from_events(events) is None
+        url, block = extract_result_from_events(events)
+        assert url is None
+        assert block is None
 
-    def test_returns_none_for_empty_events(self):
-        assert extract_result_url_from_events([]) is None
+    def test_returns_none_for_empty_events(self) -> None:
+        url, block = extract_result_from_events([])
+        assert url is None
+        assert block is None
 
-    def test_searches_most_recent_event_first(self):
+    def test_searches_most_recent_event_first(self) -> None:
         events = [
             _make_agent_event("https://github.com/org/repo/tree/old-branch"),
             _make_agent_event("https://github.com/org/repo/tree/new-branch"),
         ]
-        assert (
-            extract_result_url_from_events(events) == "https://github.com/org/repo/tree/new-branch"
-        )
+        url, _ = extract_result_from_events(events)
+        assert url == "https://github.com/org/repo/tree/new-branch"
 
-    def test_skips_non_agent_events(self):
+    def test_skips_non_agent_events(self) -> None:
         events = [
             ClaudeSessionEvent(
                 type="tool_result",
@@ -772,11 +832,13 @@ class TestExtractResultUrlFromEvents(TestCase):
             ),
             _make_agent_event("No URL here"),
         ]
-        assert extract_result_url_from_events(events) is None
+        url, block = extract_result_from_events(events)
+        assert url is None
+        assert block is None
 
 
 class TestPollClaudeCodeAgents(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -883,7 +945,7 @@ class TestPollClaudeCodeAgents(TestCase):
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
             {
-                "type": "agent",
+                "type": "agent.message",
                 "content": [
                     {
                         "type": "text",
@@ -891,7 +953,7 @@ class TestPollClaudeCodeAgents(TestCase):
                     }
                 ],
             },
-            {"type": "status_idle"},
+            {"type": ClaudeSessionEventStatus.IDLE},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(
             pr_url="https://github.com/getsentry/sentry/pull/999"
@@ -917,8 +979,8 @@ class TestPollClaudeCodeAgents(TestCase):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
-            {"type": "agent", "content": [{"type": "text", "text": "Done, no PR."}]},
-            {"type": "status_idle"},
+            {"type": "agent.message", "content": [{"type": "text", "text": "Done, no PR."}]},
+            {"type": ClaudeSessionEventStatus.IDLE},
         ]
         mock_client.build_result_from_session.return_value = MagicMock(pr_url=None)
         mock_import_string.return_value = lambda **kwargs: mock_client
@@ -939,8 +1001,8 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        # Last event is status_running — agent is already RUNNING, no update needed
-        mock_client.list_session_events.return_value = [{"type": "status_running"}]
+        # Last event is session.status_running — agent is already RUNNING, no update needed
+        mock_client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent()}
@@ -974,7 +1036,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "agent", "content": []}]
+        mock_client.list_session_events.return_value = [{"type": "agent.message", "content": []}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
@@ -988,12 +1050,14 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_stays_pending_on_status_pending_event(
+    def test_stays_pending_on_status_rescheduling_event(
         self, mock_integration_service, mock_import_string, mock_update_state
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "status_pending"}]
+        mock_client.list_session_events.return_value = [
+            {"type": ClaudeSessionEventStatus.RESCHEDULING}
+        ]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.PENDING)}
@@ -1039,7 +1103,7 @@ class TestPollClaudeCodeAgents(TestCase):
 
         def make_client(**kwargs):
             client = MagicMock()
-            client.list_session_events.return_value = [{"type": "status_running"}]
+            client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
             clients[kwargs["api_key"]] = client
             return client
 
@@ -1079,7 +1143,7 @@ class TestPollClaudeCodeAgents(TestCase):
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [{"type": "status_running"}]
+        mock_client.list_session_events.return_value = [{"type": ClaudeSessionEventStatus.RUNNING}]
         mock_import_string.return_value = lambda **kwargs: mock_client
 
         agent_a = self._create_claude_agent(agent_id="session-a")
@@ -1091,3 +1155,17 @@ class TestPollClaudeCodeAgents(TestCase):
 
         mock_integration_service.get_integration.assert_called_once()
         assert mock_client.list_session_events.call_count == 2
+
+
+class TestLaunchCodingAgentsForRunCodingDisabled(TestCase):
+    def test_raises_permission_denied_when_coding_disabled(self):
+        from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            launch_coding_agents_for_run(
+                organization_id=self.organization.id,
+                run_id=123,
+                integration_id=1,
+            )

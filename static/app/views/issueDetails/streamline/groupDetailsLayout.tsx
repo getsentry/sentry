@@ -16,8 +16,8 @@ import {
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {StreamlinedGroupHeader} from 'sentry/views/issueDetails/streamline/header/header';
+import {StreamlinedSidebar} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {
   getGroupReprocessingStatus,
@@ -84,13 +84,14 @@ export function GroupDetailsLayout({
             {tourProps => (
               <div {...tourProps}>
                 <GroupContent>
-                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
-                    <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                      <IssueEventNavigation event={event} group={group} />
-                      {/* Since the event details header is disabled, display the sidebar toggle here */}
-                      {!hasFilterBar && <ToggleSidebar size="sm" />}
-                    </NavigationSidebarWrapper>
-                  )}
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                    issueTypeConfig.header.eventNavigation.enabled && (
+                      <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                        <IssueEventNavigation event={event} group={group} />
+                        {/* Since the event details header is disabled, display the sidebar toggle here */}
+                        {!hasFilterBar && <ToggleSidebar size="sm" />}
+                      </NavigationSidebarWrapper>
+                    )}
                   <ContentPadding>{children}</ContentPadding>
                 </GroupContent>
               </div>

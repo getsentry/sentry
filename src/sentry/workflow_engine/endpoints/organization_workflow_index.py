@@ -25,7 +25,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
@@ -45,7 +45,8 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
@@ -58,9 +59,6 @@ from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkWorkflowDetectorsValidator,
-)
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
@@ -132,7 +130,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         return args, kwargs
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -161,7 +159,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
         if raw_query := request.GET.get("query"):
-            for filter in parse_workflow_query(raw_query):
+            try:
+                parsed_query = parse_workflow_query(raw_query)
+            except InvalidSearchQuery as e:
+                raise serializers.ValidationError({"query": [str(e)]})
+            for filter in parsed_query:
                 assert isinstance(filter, SearchFilter)
                 match filter:
                     case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
@@ -311,24 +313,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             data=request.data,
             context={"organization": organization, "request": request},
         )
-
         validator.is_valid(raise_exception=True)
-
-        with transaction.atomic(router.db_for_write(Workflow)):
-            workflow = validator.create(validator.validated_data)
-
-            detector_ids = request.data.get("detectorIds", [])
-            if detector_ids:
-                bulk_validator = BulkWorkflowDetectorsValidator(
-                    data={
-                        "workflow_id": workflow.id,
-                        "detector_ids": detector_ids,
-                    },
-                    context={"organization": organization, "request": request},
-                )
-                bulk_validator.is_valid(raise_exception=True)
-                bulk_validator.save()
-
+        workflow = validator.create(validator.validated_data)
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
@@ -448,7 +434,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         for workflow in queryset:
             with transaction.atomic(router.db_for_write(Workflow)):
-                RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+                CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization=organization,

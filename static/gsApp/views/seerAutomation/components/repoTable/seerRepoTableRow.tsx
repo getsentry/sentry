@@ -11,7 +11,12 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
+import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {
+  getRepositoryWithSettingsQueryKey,
+  useRepositoryWithSettings,
+} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
@@ -23,13 +28,9 @@ import {
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
-import useRepositoryWithSettings, {
-  getRepositoryWithSettingsQueryKey,
-} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   gridColumns: string;
@@ -39,7 +40,7 @@ interface Props {
   style?: React.CSSProperties;
 }
 
-export default function SeerRepoTableRow({
+export function SeerRepoTableRow({
   gridColumns,
   mutateRepositorySettings,
   mutationData,

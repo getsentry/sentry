@@ -6,7 +6,7 @@ import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
@@ -86,7 +86,7 @@ describe('AddBillingInformation', () => {
     );
 
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
-    expect(screen.getByText('Business address')).toBeInTheDocument();
+    expect(await screen.findByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
     expect(
@@ -109,7 +109,7 @@ describe('AddBillingInformation', () => {
     );
 
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
-    expect(screen.getByText('Business address')).toBeInTheDocument();
+    expect(await screen.findByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
     expect(
@@ -139,7 +139,7 @@ describe('AddBillingInformation', () => {
 
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled(); // cannot checkout without billing info
-    expect(screen.getByTestId('credit-card-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('credit-card-panel')).toBeInTheDocument();
     expect(screen.getByTestId('billing-details-panel')).toBeInTheDocument();
     const inCardPanel = within(screen.getByTestId('credit-card-panel'));
     const inBillingDetailsPanel = within(screen.getByTestId('billing-details-panel'));

@@ -6,13 +6,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', () => {
   it('renders', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: AuditLogsFixture(),
@@ -41,7 +41,7 @@ describe('OrganizationAuditLog', () => {
     ProjectsStore.loadInitialData(projects);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: [
@@ -115,7 +115,7 @@ describe('OrganizationAuditLog', () => {
 
   it('Handles absolute date range', async () => {
     const absoluteDateMockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: AuditLogsFixture(),

@@ -5,12 +5,12 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withOrganization from 'sentry/utils/withOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 const BUTTON_SIZE: ButtonProps['size'] = 'sm';

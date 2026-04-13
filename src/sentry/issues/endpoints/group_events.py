@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
@@ -31,7 +31,7 @@ from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_query
@@ -52,7 +52,7 @@ class GroupEventsError(Exception):
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -99,10 +99,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
-        try:
-            start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_params(request.GET, optional=True)
 
         try:
             with handle_query_errors():

@@ -12,7 +12,7 @@ type Options = {
 /**
  * Automatically scrolls to the top of the page any time the location changes.
  */
-function useScrollToTop({location, disable}: Options) {
+export function useScrollToTop({location, disable}: Options) {
   const lastLocation = useRef(location);
 
   // Check if we should scroll to the top any time the location changes
@@ -27,5 +27,3 @@ function useScrollToTop({location, disable}: Options) {
     window.scrollTo(0, 0);
   }, [location, disable]);
 }
-
-export default useScrollToTop;

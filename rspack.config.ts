@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -17,16 +16,12 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import rehypeExpressiveCode from 'rehype-expressive-code';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
-import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
+import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -289,11 +284,19 @@ const appConfig: Configuration = {
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
-  // Disable lazy compilation for now to avoid crashes when new modules are loaded
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
-    imports: SHOULD_LAZY_COMPILATION,
+    imports: true,
     entries: false,
+    // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
+    test(module) {
+      if ('request' in module && typeof module.request === 'string') {
+        if (module.request.includes('type-loader')) {
+          return true;
+        }
+      }
+      return SHOULD_LAZY_COMPILATION;
+    },
   },
   module: {
     /**
@@ -321,36 +324,8 @@ const appConfig: Configuration = {
           {
             loader: '@mdx-js/loader',
             options: {
-              remarkPlugins: [
-                remarkUnwrapMdxParagraphs,
-                remarkFrontmatter,
-                remarkMdxFrontmatter,
-                remarkGfm,
-                [
-                  remarkCallout,
-                  {
-                    root: (callout: Callout) => {
-                      return {
-                        tagName: 'Callout',
-                        properties: {
-                          title: callout.title,
-                          type: callout.type.toLowerCase(),
-                          isFoldable: callout.isFoldable ?? false,
-                          defaultFolded: callout.defaultFolded ?? false,
-                        },
-                      };
-                    },
-                  },
-                ],
-              ],
-              rehypePlugins: [
-                [
-                  rehypeExpressiveCode,
-                  {
-                    useDarkModeMediaQuery: false,
-                  },
-                ],
-              ],
+              remarkPlugins,
+              rehypePlugins,
             },
           },
         ],
@@ -478,6 +453,7 @@ const appConfig: Configuration = {
                   'node_modules/**/*',
                   'tests/**/*',
                   '**/*.spec.*',
+                  '**/*.snapshots.*',
                   'static/eslint/**/*',
                   'scripts/**/*',
                 ],
@@ -748,8 +724,7 @@ if (IS_UI_DEV_ONLY) {
   // XXX: If you change this also change its sibiling in:
   // - static/index.ejs
   // - static/app/utils/extractSlug.tsx
-  const KNOWN_DOMAINS =
-    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
+  const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
   const extractSlug = (hostname: string) => {
     const match = hostname.match(KNOWN_DOMAINS);
@@ -871,15 +846,18 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
 }
 
 if (IS_PRODUCTION) {
-  // This compression-webpack-plugin generates pre-compressed files
-  // ending in .gz, to be picked up and served by our internal static media
-  // server as well as nginx when paired with the gzip_static module.
-  appConfig.plugins?.push(
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-    })
-  );
+  if (!IS_DEPLOY_PREVIEW) {
+    // This compression-webpack-plugin generates pre-compressed files
+    // ending in .gz, to be picked up and served by our internal static media
+    // server as well as nginx when paired with the gzip_static module.
+    // Skipped for deploy previews since Vercel handles compression itself.
+    appConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+  }
 
   // Enable sentry-webpack-plugin for production builds
   appConfig.plugins?.push(

@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import DetailedError from 'sentry/components/errors/detailedError';
+import {DetailedError} from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -47,7 +47,7 @@ function getExclamation() {
   return exclamation[Math.floor(Math.random() * exclamation.length)];
 }
 
-class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     mini: false,
   };
@@ -167,5 +167,3 @@ const StackTrace = styled('pre')`
   margin-left: 85px;
   margin-right: 18px;
 `;
-
-export default ErrorBoundary;

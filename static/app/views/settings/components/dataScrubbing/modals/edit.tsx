@@ -8,7 +8,7 @@ type Props = Omit<DataScrubFormModalProps, 'title' | 'initialState' | 'onGetNewR
   savedRules: Rule[];
 };
 
-function Edit({savedRules, rule, ...props}: Props) {
+export function Edit({savedRules, rule, ...props}: Props) {
   const handleGetNewRules = (
     values: Parameters<DataScrubFormModalProps['onGetNewRules']>[0]
   ) => {
@@ -33,5 +33,3 @@ function Edit({savedRules, rule, ...props}: Props) {
     />
   );
 }
-
-export default Edit;

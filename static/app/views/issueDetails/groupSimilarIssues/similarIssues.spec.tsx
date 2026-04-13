@@ -10,8 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -31,7 +31,7 @@ describe('Issues Similar View', () => {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/similar/`,
+    route: '/organizations/:orgId/issues/:groupId/similar/',
   };
 
   const scores = [
@@ -55,7 +55,7 @@ describe('Issues Similar View', () => {
       body: group,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       body: {features: ['similarity-view']},
     });
     MockApiClient.addMockResponse({
@@ -197,7 +197,7 @@ describe('Issues Similar Embeddings View', () => {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/similar/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/similar/`,
+    route: '/organizations/:orgId/issues/:groupId/similar/',
   };
 
   const similarEmbeddingsScores = [
@@ -216,7 +216,7 @@ describe('Issues Similar Embeddings View', () => {
 
   beforeEach(() => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true`,
+      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01`,
       body: mockData.similarEmbeddings,
     });
     MockApiClient.addMockResponse({
@@ -224,7 +224,7 @@ describe('Issues Similar Embeddings View', () => {
       body: group,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       body: {features: ['similarity-embeddings']},
     });
     MockApiClient.addMockResponse({
@@ -330,7 +330,7 @@ describe('Issues Similar Embeddings View', () => {
 
   it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true`,
+      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01`,
       body: [],
     });
 

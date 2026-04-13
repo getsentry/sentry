@@ -32,7 +32,7 @@ interface BreadcrumbItemContentProps {
   meta?: Record<string, any>;
 }
 
-export default function BreadcrumbItemContent({
+export function BreadcrumbItemContent({
   breadcrumb: bc,
   meta,
   fullyExpanded = true,

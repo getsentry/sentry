@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -11,13 +12,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Duration from 'sentry/components/duration/duration';
+import {Duration} from 'sentry/components/duration/duration';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
-import ReplayBadge from 'sentry/components/replays/replayBadge';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
-import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
-import ScoreBar from 'sentry/components/scoreBar';
+import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
+import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
+import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
+import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
@@ -27,15 +28,14 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
   ReplayListRecord,
@@ -500,8 +500,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay, to, className}) => {
-    const routes = useRoutes();
-    const referrer = getRouteStringFromRoutes(routes);
+    const matches = useMatches();
+    const referrer = getRouteStringFromRoutes({matches});
 
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});

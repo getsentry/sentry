@@ -55,7 +55,7 @@ function mapActionsToCompactSelect(
     .filter(Boolean) as Array<SelectOption<string>>;
 }
 
-function DropdownActions({actions, label}: Props) {
+export function DropdownActions({actions, label}: Props) {
   return (
     <CompactSelect
       search
@@ -93,8 +93,6 @@ function DropdownActions({actions, label}: Props) {
     />
   );
 }
-
-export default DropdownActions;
 
 const StyledIconNot = styled(IconNot)`
   color: ${p => p.theme.colors.red200};

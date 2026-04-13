@@ -12,7 +12,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import UptimeDetectorsList from 'sentry/views/detectors/list/uptime';
 
 describe('UptimeDetectorsList', () => {
@@ -31,6 +31,10 @@ describe('UptimeDetectorsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
     });
 
     // Ensure a project is selected for queries

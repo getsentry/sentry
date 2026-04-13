@@ -31,8 +31,6 @@ class EnhancedOrganizationStats extends OrganizationStatsInner {
 }
 
 // HACK: Typescript does not like the inheritance from OrganizationStats
-function ComponentWrapper(props: OrganizationStatsProps) {
+export function ComponentWrapper(props: OrganizationStatsProps) {
   return <EnhancedOrganizationStats {...props} />;
 }
-
-export default ComponentWrapper;

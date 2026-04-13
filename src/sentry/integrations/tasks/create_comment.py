@@ -1,3 +1,5 @@
+from taskbroker_client.retry import Retry
+
 from sentry import analytics
 from sentry.integrations.analytics import IntegrationIssueCommentsSyncedEvent
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -12,7 +14,6 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 
 
@@ -20,7 +21,7 @@ from sentry.types.activity import ActivityType
     name="sentry.integrations.tasks.create_comment",
     namespace=integrations_tasks,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:

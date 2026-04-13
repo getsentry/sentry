@@ -4,17 +4,19 @@ import {Link} from '@sentry/scraps/link';
 
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {Confirm} from 'sentry/components/confirm';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {StatusToggleButton} from './statusToggleButton';
 
@@ -24,11 +26,12 @@ type Props = {
   orgSlug: string;
 };
 
-function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
+export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const endpointOptions = {
     query: {
@@ -84,7 +87,13 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
 
   return (
     <Flex direction="row" align="center" gap="md" wrap="wrap">
-      <FeedbackButton />
+      {hasPageFrameFeature ? (
+        <TopBar.Slot name="feedback">
+          <FeedbackButton>{null}</FeedbackButton>
+        </TopBar.Slot>
+      ) : (
+        <FeedbackButton />
+      )}
       <Button
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
@@ -135,5 +144,3 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     </Flex>
   );
 }
-
-export default MonitorHeaderActions;

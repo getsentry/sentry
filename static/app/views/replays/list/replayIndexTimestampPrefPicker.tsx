@@ -6,9 +6,11 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-export default function ReplayIndexTimestampPrefPicker() {
+export function ReplayIndexTimestampPrefPicker() {
   const [prefs, setPrefs] = useReplayPrefs();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <CompactSelect
@@ -17,7 +19,7 @@ export default function ReplayIndexTimestampPrefPicker() {
           key: t('Timestamps'),
           label: t('Timestamps'),
           options: REPLAY_TIMESTAMP_OPTIONS.map(option => ({
-            label: `${toTitleCase(option)}`,
+            label: toTitleCase(option),
             value: option,
             key: option,
           })),
@@ -27,6 +29,7 @@ export default function ReplayIndexTimestampPrefPicker() {
         <OverlayTrigger.IconButton
           {...triggerProps}
           icon={<IconSettings />}
+          size={hasPageFrameFeature ? 'sm' : undefined}
           aria-label={t('Configure timestamp settings')}
         />
       )}

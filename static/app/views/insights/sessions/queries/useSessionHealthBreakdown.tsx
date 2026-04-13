@@ -1,14 +1,14 @@
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getSessionsInterval} from 'sentry/utils/sessions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useSessionHealthBreakdown({
+export function useSessionHealthBreakdown({
   type,
   pageFilters,
 }: {

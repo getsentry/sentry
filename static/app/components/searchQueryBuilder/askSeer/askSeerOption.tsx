@@ -6,6 +6,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   AskSeerLabel,
   AskSeerListItem,
@@ -14,13 +15,14 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
   const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilder();
+  const analyticsArea = useAnalyticsArea();
 
   const organization = useOrganization();
 
@@ -43,6 +45,11 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
     trackAnalytics('trace.explorer.ai_query_interface', {
       organization,
+      action: 'opened',
+    });
+    trackAnalytics('ai_query.interface', {
+      organization,
+      area: analyticsArea,
       action: 'opened',
     });
     setDisplayAskSeer(true);

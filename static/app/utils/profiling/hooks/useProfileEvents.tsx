@@ -1,9 +1,9 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {EventsResults, Sort} from './types';
 
@@ -35,11 +35,11 @@ export function useProfileEvents<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
+  query = `is_transaction:true (has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
 
   const endpointOptions = {
     query: {
-      dataset: 'discover',
+      dataset: 'spans',
       referrer,
       project: projects || selection.projects,
       environment: selection.environments,
@@ -69,7 +69,7 @@ export function useProfileEvents<F extends string>({
   );
 }
 
-export type ProfilingFieldType =
+type ProfilingFieldType =
   | 'id'
   | 'trace'
   | 'profile.id'
@@ -88,5 +88,4 @@ export type ProfilingFieldType =
   | 'p75()'
   | 'p95()'
   | 'p99()'
-  | 'count()'
-  | 'last_seen()';
+  | 'count()';

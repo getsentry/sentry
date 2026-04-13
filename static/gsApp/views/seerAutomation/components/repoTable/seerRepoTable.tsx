@@ -1,42 +1,49 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {openModal} from 'sentry/actionCreators/modal';
+import {
+  isSeerSupportedProvider,
+  useSeerSupportedProviderIds,
+} from 'sentry/components/events/autofix/utils';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
+import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
-import parseAsSort from 'sentry/utils/url/parseAsSort';
-import useOrganization from 'sentry/utils/useOrganization';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import SeerRepoTableHeader from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
-import SeerRepoTableRow from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
+import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
+import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
 
-const GRID_COLUMNS = '40px 1fr 76px 150px';
+const GRID_COLUMNS = '40px 1fr 118px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
 const estimateSize = () => 60;
 
-export default function SeerRepoTable() {
+export function SeerRepoTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const scrollBodyRef = useRef<HTMLDivElement>(null);
@@ -51,18 +58,13 @@ export default function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
-  const queryOptions = organizationRepositoriesInfiniteOptions({
+  const supportedProviderIds = useSeerSupportedProviderIds();
+
+  const queryOptions = organizationRepositoriesWithSettingsInfiniteOptions({
     organization,
     query: {per_page: 100, query: searchTerm, sort},
   });
-  const {
-    data: repositories,
-    hasNextPage,
-    isError,
-    isPending,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const result = useInfiniteQuery({
     ...queryOptions,
     select: ({pages}) =>
       uniqBy(
@@ -71,7 +73,8 @@ export default function SeerRepoTable() {
       )
         .filter(
           repository =>
-            repository.externalId && isSupportedAutofixProvider(repository.provider)
+            repository.externalId &&
+            isSeerSupportedProvider(repository.provider, supportedProviderIds)
         )
         .sort((a, b) => {
           if (sort.field === 'name') {
@@ -94,11 +97,15 @@ export default function SeerRepoTable() {
   });
 
   // Auto-fetch each page, one at a time
-  useEffect(() => {
-    if (!isError && !isFetchingNextPage && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, fetchNextPage, isError, isFetchingNextPage]);
+  useFetchAllPages({result});
+
+  const {
+    data: repositories,
+    hasNextPage,
+    isError,
+    isPending,
+    isFetchingNextPage,
+  } = result;
 
   const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
     {}
@@ -115,6 +122,9 @@ export default function SeerRepoTable() {
       });
     },
     onSettled: mutations => {
+      queryClient.invalidateQueries({
+        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+      });
       (mutations ?? []).forEach(mutation => {
         queryClient.invalidateQueries({
           queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
@@ -129,46 +139,56 @@ export default function SeerRepoTable() {
   );
 
   return (
-    <ListItemCheckboxProvider
-      hits={repositories?.length ?? 0}
-      knownIds={knownIds}
-      queryKey={queryOptions.queryKey}
-    >
-      <Stack gap="lg">
-        <Grid
-          minWidth="0"
-          gap="md"
-          columns={isFetchingNextPage ? '1fr max-content max-content' : '1fr max-content'}
-        >
-          <InputGroup>
-            <InputGroup.LeadingItems disablePointerEvents>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              size="md"
-              placeholder={t('Search')}
-              value={searchTerm ?? ''}
-              onChange={e =>
-                setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
+    <Fragment>
+      <Grid
+        minWidth="0"
+        gap="md"
+        columns={isFetchingNextPage ? '1fr max-content max-content' : '1fr max-content'}
+      >
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input
+            size="md"
+            placeholder={t('Search')}
+            value={searchTerm ?? ''}
+            onChange={e =>
+              setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
+            }
+          />
+        </InputGroup>
+
+        {isFetchingNextPage ? <LoadingIndicator mini /> : null}
+
+        <Button
+          priority="primary"
+          icon={<IconAdd />}
+          onClick={async () => {
+            const {ScmRepoTreeModal} =
+              await import('sentry/components/repositories/scmRepoTreeModal');
+
+            openModal(
+              deps => <ScmRepoTreeModal {...deps} title={t('Add Repository')} />,
+              {
+                modalCss: css`
+                  width: 700px;
+                `,
+                onClose: () => {
+                  queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
+                },
               }
-            />
-          </InputGroup>
-
-          {isFetchingNextPage ? <LoadingIndicator mini /> : null}
-
-          <LinkButton
-            priority="primary"
-            icon={<IconAdd />}
-            to={{
-              pathname: `/settings/${organization.slug}/integrations/`,
-              query: {
-                category: 'source code management',
-              },
-            }}
-          >
-            {t('Add Repository')}
-          </LinkButton>
-        </Grid>
+            );
+          }}
+        >
+          {t('Add Repository')}
+        </Button>
+      </Grid>
+      <ListItemCheckboxProvider
+        hits={repositories?.length ?? 0}
+        knownIds={knownIds}
+        queryKey={queryOptions.queryKey}
+      >
         <TablePanel>
           <SeerRepoTableHeader
             gridColumns={GRID_COLUMNS}
@@ -207,8 +227,8 @@ export default function SeerRepoTable() {
             />
           )}
         </TablePanel>
-      </Stack>
-    </ListItemCheckboxProvider>
+      </ListItemCheckboxProvider>
+    </Fragment>
   );
 }
 

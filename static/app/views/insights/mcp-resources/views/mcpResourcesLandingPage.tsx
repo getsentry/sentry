@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -19,12 +19,12 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
-import McpResourceDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceDurationWidget';
-import McpResourceErrorRateWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceErrorRateWidget';
+import {McpResourceDurationWidget} from 'sentry/views/insights/pages/mcp/components/mcpResourceDurationWidget';
+import {McpResourceErrorRateWidget} from 'sentry/views/insights/pages/mcp/components/mcpResourceErrorRateWidget';
 import {McpResourcesTable} from 'sentry/views/insights/pages/mcp/components/mcpResourcesTable';
-import McpResourceTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceTrafficWidget';
+import {McpResourceTrafficWidget} from 'sentry/views/insights/pages/mcp/components/mcpResourceTrafficWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
 import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
 import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
@@ -41,7 +41,7 @@ function McpResourcesLandingPage({datePageFilterProps}: McpResourcesLandingPageP
   const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   const {view} = useDomainViewFilters();
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  const hasPlatformized = useHasPlatformizedInsights();
   if (hasPlatformized) {
     return (
       <PrebuiltDashboardRenderer

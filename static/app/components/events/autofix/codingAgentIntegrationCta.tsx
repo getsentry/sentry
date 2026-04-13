@@ -9,14 +9,14 @@ import {useProjectSeerPreferences} from 'sentry/components/events/autofix/prefer
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 interface CodingAgentIntegrationCtaProps {

@@ -7,7 +7,7 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.rule_reenable import RuleReenableExplicit
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -19,7 +19,7 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
 )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRuleEnableEndpoint(ProjectEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.EXPERIMENTAL,

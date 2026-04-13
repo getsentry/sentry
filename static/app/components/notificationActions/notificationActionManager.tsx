@@ -2,10 +2,10 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
+import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -41,7 +41,7 @@ type NotificationActionManagerProps = {
   updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
-function NotificationActionManager({
+export function NotificationActionManager({
   actions,
   availableActions,
   recipientRoles,
@@ -252,5 +252,3 @@ function NotificationActionManager({
     </Fragment>
   );
 }
-
-export default NotificationActionManager;

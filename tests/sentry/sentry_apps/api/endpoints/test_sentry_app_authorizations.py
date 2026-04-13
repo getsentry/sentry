@@ -116,7 +116,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
         url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
         assert response.status_code == 200
@@ -329,7 +329,7 @@ class TestSentryAppAuthorizations(APITestCase):
         # Verify the new token works for API requests
         url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {new_token}")
 
         assert response.status_code == 200

@@ -4,10 +4,10 @@ from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.data_secrecy.service.service import data_access_grant_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import all_silo_test, create_test_regions
+from sentry.testutils.silo import all_silo_test, create_test_cells
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 @freeze_time("2025-07-08 00:00:00")
 class TestDataAccessGrantService(TestCase):
     def setUp(self) -> None:

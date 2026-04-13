@@ -8,22 +8,20 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -31,8 +29,9 @@ import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSett
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
@@ -118,7 +117,7 @@ type TransactionData = {
   threshold: number;
 };
 
-export default function Table({
+export function Table({
   columnTitles = COLUMN_TITLES_OPTIONAL_TOOLTIP,
   organization,
   location,
@@ -133,6 +132,7 @@ export default function Table({
   const [tableMetricSet, setTableMetricSet] = useState(false);
   const unparameterizedMetricProject = useRef<{project?: Project | undefined}>(undefined);
 
+  const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
   useEffect(() => {
@@ -238,7 +238,7 @@ export default function Table({
 
       updateQuery(searchConditions, action, column, value);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -337,7 +337,7 @@ export default function Table({
           <Link
             to={target}
             onClick={handleSummaryClick}
-            style={{display: `block`, width: `100%`}}
+            style={{display: 'block', width: '100%'}}
           >
             {rendered}
           </Link>

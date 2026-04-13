@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -22,11 +22,11 @@ import {
   escapeFilterValue,
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -51,8 +51,8 @@ import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/defini
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
-import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
-import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
+import {decodePanel} from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
+import {decodeResponseCodeClass} from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {
   ModuleName,
   SpanFields,
@@ -214,7 +214,7 @@ export function HTTPSamplesPanel() {
   } = useFetchSpanTimeSeries(
     {
       query: search,
-      yAxis: [`avg(span.self_time)`],
+      yAxis: ['avg(span.self_time)'],
       enabled: isPanelOpen && query.panel === 'duration',
     },
     Referrer.SAMPLES_PANEL_DURATION_CHART
@@ -390,21 +390,21 @@ export function HTTPSamplesPanel() {
 
               <MetricReadout
                 title={t('3XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
+                value={domainTransactionMetrics?.[0]?.['http_response_rate(3)']}
                 unit="percentage"
                 isLoading={areDomainTransactionMetricsFetching}
               />
 
               <MetricReadout
                 title={t('4XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
+                value={domainTransactionMetrics?.[0]?.['http_response_rate(4)']}
                 unit="percentage"
                 isLoading={areDomainTransactionMetricsFetching}
               />
 
               <MetricReadout
                 title={t('5XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
+                value={domainTransactionMetrics?.[0]?.['http_response_rate(5)']}
                 unit="percentage"
                 isLoading={areDomainTransactionMetricsFetching}
               />

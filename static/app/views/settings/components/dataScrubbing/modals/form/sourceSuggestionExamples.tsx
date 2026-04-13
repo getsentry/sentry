@@ -9,7 +9,7 @@ type Props = {
   sourceName: string;
 };
 
-function SourceSuggestionExamples({examples, sourceName}: Props) {
+export function SourceSuggestionExamples({examples, sourceName}: Props) {
   return (
     <Wrapper>
       <ExampleCard
@@ -26,8 +26,6 @@ function SourceSuggestionExamples({examples, sourceName}: Props) {
     </Wrapper>
   );
 }
-
-export default SourceSuggestionExamples;
 
 const ExampleCard = styled(Hovercard)`
   width: 400px;

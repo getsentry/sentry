@@ -8,6 +8,7 @@ import time
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -21,6 +22,7 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
+    InstallationRepositoriesEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
@@ -32,7 +34,7 @@ from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -103,6 +105,12 @@ class GitHubEnterpriseWebhook:
 
 
 class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    pass
+
+
+class GitHubEnterpriseInstallationRepositoriesEventWebhook(
+    GitHubEnterpriseWebhook, InstallationRepositoriesEventWebhook
+):
     pass
 
 
@@ -316,7 +324,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).
-        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
         produce_event_to_scm_stream(
             {
@@ -333,12 +341,13 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
             },
             silo="region",
+            is_dev=settings.IS_DEV,
         )
 
         return HttpResponse(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
@@ -348,6 +357,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         "push": GitHubEnterprisePushEventWebhook,
         "pull_request": GitHubEnterprisePullRequestEventWebhook,
         "installation": GitHubEnterpriseInstallationEventWebhook,
+        "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
     }
 

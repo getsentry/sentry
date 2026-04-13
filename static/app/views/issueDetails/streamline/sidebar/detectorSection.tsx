@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -11,7 +11,7 @@ import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -23,7 +23,11 @@ export interface DetectorDetails {
   detectorId?: string;
   detectorPath?: string;
   detectorSlug?: string;
-  detectorType?: 'metric_alert' | 'cron_monitor' | 'uptime_monitor';
+  detectorType?:
+    | 'metric_alert'
+    | 'cron_monitor'
+    | 'uptime_monitor'
+    | 'mobile_build_monitor';
 }
 
 export function getDetectorDetails({
@@ -69,6 +73,24 @@ export function getDetectorDetails({
         'This issue was created by a cron monitor. View the monitor details to learn more.'
       ),
     };
+  }
+
+  const isPreprodSizeAnalysis = event?.occurrence?.type === 11003;
+  if (isPreprodSizeAnalysis) {
+    const preprodDetectorId = event.occurrence?.evidenceData.detectorId;
+    if (preprodDetectorId) {
+      return {
+        detectorType: 'mobile_build_monitor',
+        detectorId: String(preprodDetectorId),
+        detectorPath: makeMonitorDetailsPathname(
+          organization.slug,
+          String(preprodDetectorId)
+        ),
+        description: t(
+          'This issue was created by a mobile build monitor. View the monitor details to learn more.'
+        ),
+      };
+    }
   }
 
   const detectorId: number | undefined = event.occurrence?.evidenceData.detectorId;

@@ -6,7 +6,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import plugins from 'sentry/plugins';
+import {plugins} from 'sentry/plugins';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

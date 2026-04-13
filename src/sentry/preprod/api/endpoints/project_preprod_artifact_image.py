@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
@@ -17,7 +17,7 @@ from sentry.objectstore import get_preprod_session
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

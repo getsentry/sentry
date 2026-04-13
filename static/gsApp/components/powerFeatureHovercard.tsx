@@ -7,15 +7,15 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface PowerFeatureHovercardProps {
   /**

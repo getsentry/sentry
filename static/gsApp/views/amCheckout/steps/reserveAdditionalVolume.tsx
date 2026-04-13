@@ -10,12 +10,12 @@ import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
 import {isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import VolumeSliders from 'getsentry/views/amCheckout/components/volumeSliders';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
-function ReserveAdditionalVolume({
+export function ReserveAdditionalVolume({
   organization,
   subscription,
   activePlan,
@@ -152,5 +152,3 @@ function ReserveAdditionalVolume({
     </Stack>
   );
 }
-
-export default ReserveAdditionalVolume;

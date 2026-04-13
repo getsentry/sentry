@@ -3,7 +3,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   /**
@@ -46,7 +46,7 @@ interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
  * which should include be a button. If the sandbox is hidden,
  * don't render the children
  */
-function DemoSandboxButton({
+export function DemoSandboxButton({
   scenario,
   projectSlug,
   errorType,
@@ -90,5 +90,3 @@ function DemoSandboxButton({
     />
   );
 }
-
-export default DemoSandboxButton;

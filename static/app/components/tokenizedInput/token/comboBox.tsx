@@ -29,7 +29,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {defined} from 'sentry/utils';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
   children: CollectionChildren<SelectOptionOrSectionWithKey<string>>;
@@ -60,14 +60,14 @@ interface ComboBoxProps {
   tabIndex?: number;
 }
 
-function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
+function useHiddenItems({
   items,
   filterValue,
   maxOptions,
   shouldFilterResults,
 }: {
   filterValue: string;
-  items: T[];
+  items: Array<SelectOptionOrSectionWithKey<string>>;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {

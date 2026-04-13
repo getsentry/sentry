@@ -5,9 +5,9 @@ import {
   useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
@@ -37,11 +37,11 @@ export const useUpdateGroupSearchViewStarred = (
           data: {starred},
         }
       ),
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
         variables.starred ? t('Failed to star view') : t('Failed to unstar view')
       );
-      options.onError?.(error, variables, context);
+      options.onError?.(error, variables, onMutateResult, context);
     },
     onSettled: (...args) => {
       queryClient.invalidateQueries({

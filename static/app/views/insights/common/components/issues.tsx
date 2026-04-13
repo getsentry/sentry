@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import {Count} from 'sentry/components/count';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconWrapper} from 'sentry/components/sidebarSection';
-import GroupChart from 'sentry/components/stream/groupChart';
+import {GroupChart} from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueSummary} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueSummary';
 
 const TABLE_WIDTH_BREAKPOINTS = {
@@ -34,7 +34,7 @@ function Issue({data}: {data: Group}) {
     <StyledPanelItem>
       <IssueSummaryWrapper>
         <IssueSummary data={data} organization={organization} />
-        <EventOrGroupExtraDetails data={data} />
+        <GroupMetaRow data={data} />
       </IssueSummaryWrapper>
       <ChartWrapper>
         <GroupChart
@@ -124,7 +124,7 @@ function useInsightIssues(
   return {isLoading: isPending, issues};
 }
 
-export default function InsightIssuesList({
+export function InsightIssuesList({
   issueTypes,
   message,
 }: {

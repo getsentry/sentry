@@ -20,7 +20,7 @@ type Props = {
   tree: TraceTree;
 };
 
-function Projects({projects, logs, tree}: Props) {
+export function Projects({projects, logs, tree}: Props) {
   const dispatch = useTraceStateDispatch();
 
   const onProjectClick = useCallback(
@@ -71,5 +71,3 @@ const ProjectsRendererWrapper = styled('div')`
     cursor: pointer;
   }
 `;
-
-export default Projects;

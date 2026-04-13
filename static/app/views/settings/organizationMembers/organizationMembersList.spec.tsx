@@ -13,11 +13,11 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
@@ -682,8 +682,7 @@ describe('OrganizationMembersList', () => {
       });
       renderGlobalModal();
 
-      expect(await screen.findByText('Members')).toBeInTheDocument();
-      expect(screen.getByText(member.name)).toBeInTheDocument();
+      expect(await screen.findByText(member.name)).toBeInTheDocument();
     });
 
     it('renders only current user in demo mode', async () => {
@@ -695,7 +694,7 @@ describe('OrganizationMembersList', () => {
       renderGlobalModal();
 
       expect(await screen.findByText('Members')).toBeInTheDocument();
-      expect(screen.getByText(currentUser.name)).toBeInTheDocument();
+      expect(await screen.findByText(currentUser.name)).toBeInTheDocument();
       expect(screen.queryByText(member.name)).not.toBeInTheDocument();
 
       (isDemoModeActive as jest.Mock).mockReset();
@@ -729,7 +728,7 @@ describe('OrganizationMembersList', () => {
       expect(await screen.findByText('Members')).toBeInTheDocument();
       expect(searchQuery).toHaveBeenCalled();
       expect(ownerQuery).toHaveBeenCalled();
-      const leaveButton = screen.getByRole('button', {name: 'Leave'});
+      const leaveButton = await screen.findByRole('button', {name: 'Leave'});
       expect(leaveButton).toBeEnabled();
     });
   });
@@ -778,7 +777,7 @@ describe('OrganizationMembersList', () => {
 
       // Current user should be able to leave since the deleted owner doesn't count
       // (they have null user, so filtered out of ownership check)
-      const leaveButton = screen.getByRole('button', {name: 'Leave'});
+      const leaveButton = await screen.findByRole('button', {name: 'Leave'});
       expect(leaveButton).toBeDisabled(); // Disabled because they're the only valid owner
     });
   });

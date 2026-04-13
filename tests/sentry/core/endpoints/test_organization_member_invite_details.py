@@ -254,7 +254,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
 class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.regular_user = self.create_user("member@email.com")
         self.curr_member = self.create_member(
@@ -269,7 +269,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
         self.placeholder_om = self.approved_invite.organization_member
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.approved_invite.id)
         assert not OrganizationMember.objects.filter(id=self.placeholder_om.id).exists()
@@ -279,7 +279,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             event=audit_log.get_event_id("INVITE_REMOVE"),
         )
 
-    def test_reject_invite_request(self):
+    def test_reject_invite_request(self) -> None:
         invite_request = self.create_member_invite(
             organization=self.organization,
             email="oolong@tea.com",
@@ -296,7 +296,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
-    def test_member_can_remove_invite(self):
+    def test_member_can_remove_invite(self) -> None:
         """
         Members can remove invites that they sent
         """
@@ -310,7 +310,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             event=audit_log.get_event_id("INVITE_REMOVE"),
         )
 
-    def test_member_can_remove_invite_request(self):
+    def test_member_can_remove_invite_request(self) -> None:
         """
         Members can remove invite requests that they sent
         """
@@ -331,7 +331,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
-    def test_member_cannot_remove_other_invite(self):
+    def test_member_cannot_remove_other_invite(self) -> None:
         """
         Members cannot remove invitations that they didn't send
         """
@@ -345,7 +345,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert response.data["detail"] == "You cannot modify invitations sent by someone else."
         assert OrganizationMemberInvite.objects.filter(id=invite.id).exists()
 
-    def test_cannot_remove_idp_provisioned_invite(self):
+    def test_cannot_remove_idp_provisioned_invite(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="oolong@tea.com",
@@ -359,7 +359,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
         assert OrganizationMemberInvite.objects.filter(id=invite.id).exists()
 
-    def test_cannot_remove_partnership_restricted_invite(self):
+    def test_cannot_remove_partnership_restricted_invite(self) -> None:
         invite = self.create_member_invite(
             organization=self.organization,
             email="oolong@tea.com",
@@ -375,7 +375,7 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_cannot_delete_as_superuser_read(self):
+    def test_cannot_delete_as_superuser_read(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
 
@@ -384,14 +384,14 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_can_delete_as_superuser_write(self):
+    def test_can_delete_as_superuser_write(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.add_user_permission(superuser, "superuser.write")
         self.login_as(superuser, superuser=True)
 
         self.get_success_response(self.organization.slug, self.approved_invite.id)
 
-    def test_non_member_user_cannot_hit_endpoint(self):
+    def test_non_member_user_cannot_hit_endpoint(self) -> None:
         other_user = self.create_user(email="other@email.com")
         self.login_as(other_user)
 

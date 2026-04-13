@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
@@ -41,7 +41,7 @@ def fetch_search_agent_state(
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
     Endpoint to poll for search agent state by run_id.
@@ -81,9 +81,12 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 }
             }
         """
-        if not features.has(
+        has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        ):
+        ) or features.has(
+            "organizations:gen-ai-explore-metrics-search", organization, actor=request.user
+        )
+        if not has_feature:
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,

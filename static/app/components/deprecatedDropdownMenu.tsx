@@ -112,7 +112,7 @@ export interface DeprecatedDropdownMenuProps {
  *
  * @deprecated
  */
-function DropdownMenu({
+export function DropdownMenu({
   closeOnEscape = true,
   children,
   alwaysRenderMenu,
@@ -405,5 +405,3 @@ function DropdownMenu({
     },
   });
 }
-
-export default DropdownMenu;

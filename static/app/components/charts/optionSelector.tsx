@@ -12,7 +12,7 @@ import type {
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Truncate from 'sentry/components/truncate';
+import {Truncate} from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
 type BaseProps = {
@@ -54,7 +54,7 @@ type MultipleProps = DistributedOmit<
     selected: string[];
   };
 
-function OptionSelector({
+export function OptionSelector({
   options,
   onChange,
   selected,
@@ -146,5 +146,3 @@ function OptionSelector({
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: 0px;
 `;
-
-export default OptionSelector;

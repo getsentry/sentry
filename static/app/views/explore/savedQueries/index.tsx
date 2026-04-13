@@ -1,24 +1,28 @@
+import {Fragment} from 'react';
 import {useNavigate} from 'react-router-dom';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
   const hasLogsFeature = isLogsEnabled(organization);
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const items = [
     {
@@ -41,54 +45,95 @@ export default function SavedQueriesView() {
 
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header unified>
           <Layout.HeaderContent>
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <FeedbackButton />
-              {hasLogsFeature ? (
-                <DropdownMenu
-                  items={items}
-                  trigger={triggerProps => (
-                    <Button
-                      {...triggerProps}
-                      priority="primary"
-                      icon={<IconAdd />}
-                      size="sm"
-                      aria-label={t('Save as')}
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="actions">
+                {hasLogsFeature ? (
+                  <DropdownMenu
+                    items={items}
+                    trigger={triggerProps => (
+                      <Button
+                        {...triggerProps}
+                        priority="primary"
+                        icon={<IconAdd />}
+                        size="sm"
+                        aria-label={t('Save as')}
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
 
-                        triggerProps.onClick?.(e);
-                      }}
-                    >
-                      {t('Create Query')}
-                    </Button>
-                  )}
-                />
-              ) : (
-                <LinkButton
-                  priority="primary"
-                  icon={<IconAdd />}
-                  size="sm"
-                  to={getExploreUrl({organization, visualize: []})}
-                >
-                  {t('Create Query')}
-                </LinkButton>
-              )}
-            </Grid>
-          </Layout.HeaderActions>
+                          triggerProps.onClick?.(e);
+                        }}
+                      >
+                        {t('Create Query')}
+                      </Button>
+                    )}
+                  />
+                ) : (
+                  <LinkButton
+                    priority="primary"
+                    icon={<IconAdd />}
+                    size="sm"
+                    to={getExploreUrl({organization, visualize: []})}
+                  >
+                    {t('Create Query')}
+                  </LinkButton>
+                )}
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <FeedbackButton />
+                {hasLogsFeature ? (
+                  <DropdownMenu
+                    items={items}
+                    trigger={triggerProps => (
+                      <Button
+                        {...triggerProps}
+                        priority="primary"
+                        icon={<IconAdd />}
+                        size="sm"
+                        aria-label={t('Save as')}
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
+
+                          triggerProps.onClick?.(e);
+                        }}
+                      >
+                        {t('Create Query')}
+                      </Button>
+                    )}
+                  />
+                ) : (
+                  <LinkButton
+                    priority="primary"
+                    icon={<IconAdd />}
+                    size="sm"
+                    to={getExploreUrl({organization, visualize: []})}
+                  >
+                    {t('Create Query')}
+                  </LinkButton>
+                )}
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
         <Layout.Body>
           <Layout.Main width="full">
             <SavedQueriesLandingContent />
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

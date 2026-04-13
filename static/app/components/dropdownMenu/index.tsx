@@ -7,14 +7,14 @@ import {Item, Section} from '@react-stately/collections';
 import type {LocationDescriptor} from 'history';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownButton from 'sentry/components/dropdownButton';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {DropdownButton} from 'sentry/components/dropdownButton';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 import type {MenuItemProps} from './item';
 import type {DropdownMenuListProps} from './list';
-import DropdownMenuList, {DropdownMenuContext} from './list';
+import {DropdownMenuContext, DropdownMenuList} from './list';
 
 export type {MenuItemProps};
 
@@ -313,7 +313,4 @@ export {DropdownMenu};
 const DropdownMenuWrap = styled('div')`
   display: contents;
   list-style-type: none;
-  > :first-child {
-    margin-left: -1px;
-  }
 `;

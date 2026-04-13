@@ -50,12 +50,17 @@ def get_instrumentation_types(project: Project) -> list[str]:
     flags = project.flags
     if flags.has_transactions:
         instrumentation.append("transactions")
+        instrumentation.append("spans")
     if flags.has_profiles:
         instrumentation.append("profiles")
     if flags.has_replays:
         instrumentation.append("replays")
     if flags.has_sessions:
         instrumentation.append("sessions")
+    if flags.has_logs:
+        instrumentation.append("logs")
+    if flags.has_trace_metrics:
+        instrumentation.append("trace_metrics")
     return instrumentation
 
 

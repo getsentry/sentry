@@ -87,7 +87,12 @@ export function DiffImageDisplay({
     };
   }, [diffImageUrl]);
 
-  const diffPercent = pair.diff === null ? null : `${(pair.diff * 100).toFixed(1)}%`;
+  // >= 1% shows 1 decimal (e.g. "93.5%"), < 1% shows up to 4 without trailing zeros (e.g. "0.0227%")
+  const diffPct = pair.diff === null ? null : pair.diff * 100;
+  const diffPercent =
+    diffPct === null
+      ? null
+      : `${diffPct >= 1 ? diffPct.toFixed(1) : parseFloat(diffPct.toFixed(4))}%`;
 
   return (
     <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
@@ -162,7 +167,8 @@ function SplitView({
             <Flex
               justify="center"
               align="center"
-              paddingTop="xl"
+              width="100%"
+              height="100%"
               style={zoomTransformStyle(zoom1.transform)}
             >
               <ZoomableImage src={baseImageUrl} alt={t('Base')} />
@@ -178,7 +184,8 @@ function SplitView({
             <Flex
               justify="center"
               align="center"
-              paddingTop="xl"
+              width="100%"
+              height="100%"
               style={zoomTransformStyle(zoom2.transform)}
             >
               <ImageWrapper>
@@ -238,7 +245,14 @@ function OnionView({
   opacity: number;
 }) {
   return (
-    <Flex direction="column" gap="md" flex="1" minHeight="0" align="center">
+    <Flex
+      direction="column"
+      gap="md"
+      flex="1"
+      minHeight="0"
+      align="center"
+      justify="center"
+    >
       <Flex
         justify="center"
         border="primary"

@@ -19,7 +19,7 @@ interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   shouldSort?: boolean;
 }
 
-function KeyValueList({
+export function KeyValueList({
   data,
   isContextData = false,
   shouldSort = true,
@@ -111,8 +111,6 @@ function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
     </Fragment>
   );
 }
-
-export default KeyValueList;
 
 const TableSubject = styled('td')<{wide?: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

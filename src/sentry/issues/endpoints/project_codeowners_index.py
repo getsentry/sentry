@@ -8,7 +8,7 @@ from sentry import analytics
 from sentry.analytics.events.codeowners_created import CodeOwnersCreated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.issues.endpoints.bases.codeowners import ProjectCodeOwnersBase
@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
     publish_status = {

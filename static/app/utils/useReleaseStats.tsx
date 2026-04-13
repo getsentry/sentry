@@ -1,9 +1,8 @@
-import {useEffect} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ReleaseMetaBasic {
   date: string;
@@ -35,18 +34,9 @@ export function useReleaseStats(
 ) {
   const organization = useOrganization();
 
-  const {
-    isLoading,
-    isFetching,
-    fetchNextPage,
-    hasNextPage,
-    isPending,
-    isError,
-    error,
-    data,
-  } = useInfiniteApiQuery<ReleaseMetaBasic[]>({
+  const result = useInfiniteApiQuery<ReleaseMetaBasic[]>({
     queryKey: [
-      'infinite' as const,
+      {infinite: true, version: 'v1'},
       getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
@@ -61,13 +51,11 @@ export function useReleaseStats(
     ...queryOptions,
   });
 
+  const {isLoading, isPending, isError, error, data} = result;
   const currentNumberPages = data?.pages.length ?? 0;
 
-  useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages + 1 < maxPages) {
-      fetchNextPage();
-    }
-  }, [isFetching, hasNextPage, fetchNextPage, maxPages, currentNumberPages]);
+  // Auto-fetch each page, one at a time
+  useFetchAllPages({result, enabled: currentNumberPages + 1 < maxPages});
 
   return {
     isLoading,

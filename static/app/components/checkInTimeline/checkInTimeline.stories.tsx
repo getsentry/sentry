@@ -5,8 +5,8 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {TimeRangeSelectTrigger} from 'sentry/components/timeRangeSelector';
 import * as Storybook from 'sentry/stories';
@@ -82,7 +82,7 @@ function generateMockTickData(
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
-    const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+    const {width: timelineWidth} = useDimensions({elementRef});
     const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
     const [secondsGap, setSecondsGap] = useState(60);

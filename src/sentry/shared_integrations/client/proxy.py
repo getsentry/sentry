@@ -133,10 +133,10 @@ class IntegrationProxyClient(ApiClient):
         self.org_integration_id = org_integration_id
         self.keyid = keyid
 
-        # The default timeout value for the APIClient and the RegionSiloClient is 30 seconds.
-        # If the request flow for processing a Webhook outbox message is between the RegionSiloClient and the
+        # The default timeout value for the APIClient and the CellSiloClient is 30 seconds.
+        # If the request flow for processing a Webhook outbox message is between the CellSiloClient and the
         # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
-        # Otherwise, the RegionSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
+        # Otherwise, the CellSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
         self.timeout = 10
 
         if self.determine_whether_should_proxy_to_control():
@@ -155,7 +155,7 @@ class IntegrationProxyClient(ApiClient):
         We only validate the IP address from within the Region Silo.
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
                 max_retries=Retry(
@@ -170,7 +170,7 @@ class IntegrationProxyClient(ApiClient):
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:
         return (
-            SiloMode.get_current_mode() == SiloMode.REGION
+            SiloMode.get_current_mode() == SiloMode.CELL
             and getattr(settings, "SENTRY_SUBNET_SECRET", None) is not None
             and getattr(settings, "SENTRY_CONTROL_ADDRESS", None) is not None
         )

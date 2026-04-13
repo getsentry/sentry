@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function hasOrganizationRole(organization: Organization, roleRequired: string): boolean {
   if (!Array.isArray(organization.orgRoleList)) {

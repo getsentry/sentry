@@ -59,10 +59,7 @@ function formatCategoryRowString(
     DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
-  if (
-    category === DataCategoryExact.ATTACHMENT ||
-    category === DataCategoryExact.LOG_BYTE
-  ) {
+  if (DATA_CATEGORY_INFO[category].formatting.unitType === 'bytes') {
     return reservedWithUnits;
   }
 
@@ -80,7 +77,7 @@ function formatCategoryRowString(
   return `${reservedWithUnits} ${quantity === 1 ? displayName : plural}`;
 }
 
-function PlanMigrationRow(props: Props) {
+export function PlanMigrationRow(props: Props) {
   let currentValue: React.ReactNode;
   let nextValue: React.ReactNode;
   let discountPrice: string | undefined;
@@ -168,5 +165,3 @@ const DiscountedPrice = styled('span')`
   text-decoration: line-through;
   font-weight: 400;
 `;
-
-export default PlanMigrationRow;

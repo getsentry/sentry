@@ -10,7 +10,7 @@ type Props = {
   className?: string;
 };
 
-function FastForwardBadge({speed, className}: Props) {
+export function FastForwardBadge({speed, className}: Props) {
   return (
     <Badge className={className}>
       <FastForwardTooltip title={t('Fast forwarding at %sx', speed)}>
@@ -42,5 +42,3 @@ const StyledIconArrow = styled(IconArrow)`
   margin-left: ${p => p.theme.space.sm};
   vertical-align: text-top;
 `;
-
-export default FastForwardBadge;

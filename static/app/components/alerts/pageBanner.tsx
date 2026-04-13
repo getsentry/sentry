@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -21,7 +21,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function PageBanner({
+export function PageBanner({
   button,
   className,
   description,

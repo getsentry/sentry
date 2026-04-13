@@ -9,7 +9,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -150,7 +150,9 @@ describe('CreateIssueViewModal', () => {
         jest.runAllTimers();
       });
 
-      expect(nameInput).toHaveValue('Generated View Title');
+      await waitFor(() => {
+        expect(nameInput).toHaveValue('Generated View Title');
+      });
     });
 
     it('does not override a pre-filled name', () => {

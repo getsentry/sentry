@@ -6,8 +6,6 @@ type Props = {
   organization: Organization;
 };
 
-const InviteMembersButtonCustomization = ({children, onTriggerModal}: Props) => {
+export const InviteMembersButtonCustomization = ({children, onTriggerModal}: Props) => {
   return children({disabled: false, onTriggerModal});
 };
-
-export default InviteMembersButtonCustomization;

@@ -1,7 +1,7 @@
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type PerformanceStatsGroup = {
@@ -27,7 +27,7 @@ export function usePerformanceUsageStats({
   projectIds: PageFilters['projects'];
 }) {
   const {start, end, period} = dateRange;
-  const pathname = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+  const pathname = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 

@@ -7,19 +7,19 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TimeSince from 'sentry/components/timeSince';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   fetchMutation,
@@ -28,10 +28,10 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const IsPrimaryUserContext = createContext<boolean>(false);
 
@@ -153,7 +153,7 @@ function MergeAccounts() {
         <SettingsPageHeader title={t('Merge Accounts')} />
         <div>
           {t(
-            `Only one account was found with your primary email address. You're all set.`
+            "Only one account was found with your primary email address. You're all set."
           )}
         </div>
       </Fragment>
@@ -166,7 +166,7 @@ function MergeAccounts() {
       <SettingsPageHeader title={t('Merge Accounts')} />
       <List symbol="colored-numeric">
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
-        <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
+        <div>{t("Check your email for your code. You'll need it in Step 3.")}</div>
         <ButtonSection>
           <Button
             priority="primary"
@@ -241,11 +241,11 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
           }
         )}
       </TextBlock>
-      <TextBlock>{t(`Your currently active account:`)}</TextBlock>
+      <TextBlock>{t('Your currently active account:')}</TextBlock>
       <IsPrimaryUserContext value>
         <Users users={currentAccount} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>
-      <TextBlock>{t(`Your other accounts:`)}</TextBlock>
+      <TextBlock>{t('Your other accounts:')}</TextBlock>
       <IsPrimaryUserContext value={false}>
         <Users users={otherAccounts} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>

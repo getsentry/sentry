@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {useUser} from 'sentry/utils/useUser';
@@ -32,7 +32,7 @@ type Props = {
   event: Event;
 };
 
-export default function EventCreatedTooltip({event}: Props) {
+export function EventCreatedTooltip({event}: Props) {
   const user = useUser();
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';

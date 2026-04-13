@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
-import ResourceTable from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {RenderBlockingSelector} from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
+import {ResourceTable} from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
@@ -38,7 +38,7 @@ type Option = {
   value: string;
 };
 
-function ResourceView() {
+export function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
 
@@ -121,5 +121,3 @@ const DropdownContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
   flex-wrap: wrap;
 `;
-
-export default ResourceView;

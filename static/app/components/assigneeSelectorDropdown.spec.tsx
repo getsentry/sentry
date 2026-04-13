@@ -7,14 +7,15 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import AssigneeSelectorDropdown, {
+import {
+  AssigneeSelectorDropdown,
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -241,7 +242,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: undefined,
     });
@@ -299,7 +300,7 @@ describe('AssigneeSelectorDropdown', () => {
         name: TEAM_1.slug,
         type: 'team',
       },
-      id: `${TEAM_1.id}`,
+      id: TEAM_1.id,
       type: 'team',
       suggestedAssignee: undefined,
     });
@@ -358,7 +359,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: undefined,
     });
@@ -389,7 +390,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: undefined,
     });
@@ -495,9 +496,9 @@ describe('AssigneeSelectorDropdown', () => {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
-    expect(await screen.findByText(`${USER_2.name}`)).toBeInTheDocument();
+    expect(await screen.findByText(USER_2.name)).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByText(`${USER_2.name}`));
+    await userEvent.click(await screen.findByText(USER_2.name));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
@@ -540,7 +541,7 @@ describe('AssigneeSelectorDropdown', () => {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
-    expect(await screen.findByText(`${USER_4.name}`)).toBeInTheDocument();
+    expect(await screen.findByText(USER_4.name)).toBeInTheDocument();
   });
 
   it('successfully shows suggested assignees and suggestion reason', async () => {
@@ -609,7 +610,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_2, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: expect.objectContaining({id: USER_1.id}),
     });

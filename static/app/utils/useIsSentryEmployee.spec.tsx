@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 describe('useIsSentryEmployee', () => {

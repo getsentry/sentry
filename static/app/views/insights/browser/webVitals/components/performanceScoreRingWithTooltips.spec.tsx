@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 
 describe('PerformanceScoreRingWithTooltips', () => {
   it('renders segment labels', async () => {

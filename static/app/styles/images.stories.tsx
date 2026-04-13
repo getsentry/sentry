@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import * as Storybook from 'sentry/stories';
 
 const toCamelCase = function camalize(str: any) {

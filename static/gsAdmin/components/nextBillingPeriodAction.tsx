@@ -5,7 +5,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
@@ -80,7 +80,5 @@ function EndPeriodEarlyModal({
 
 type Options = Omit<EndPeriodEarlyModalProps, keyof ModalRenderProps>;
 
-const triggerEndPeriodEarlyModal = (opts: Options) =>
+export const triggerEndPeriodEarlyModal = (opts: Options) =>
   openModal(deps => <EndPeriodEarlyModal {...deps} {...opts} />);
-
-export default triggerEndPeriodEarlyModal;

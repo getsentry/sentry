@@ -7,7 +7,7 @@ from .model import *  # noqa
 from .service import *  # noqa
 ```
 
-## `model.py` (REGION silo example)
+## `model.py` (CELL silo example)
 
 ```python
 # Please do not use
@@ -125,7 +125,7 @@ def serialize_my_thing(obj: MyThing) -> RpcMyThing:
     )
 ```
 
-## `service.py` (REGION silo)
+## `service.py` (CELL silo)
 
 ```python
 # Please do not use
@@ -135,14 +135,14 @@ def serialize_my_thing(obj: MyThing) -> RpcMyThing:
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.mydomain.services.mything.model import RpcMyThing, RpcMyThingUpdate
 from sentry.silo.base import SiloMode
 
 
 class MyThingService(RpcService):
     key = "my_thing"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -150,7 +150,7 @@ class MyThingService(RpcService):
 
         return DatabaseBackedMyThingService()
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_by_id(
         self,
@@ -160,7 +160,7 @@ class MyThingService(RpcService):
     ) -> RpcMyThing | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update(
         self,
@@ -223,7 +223,7 @@ class MyMappingService(RpcService):
 my_mapping_service = MyMappingService.create_delegation()
 ```
 
-## `impl.py` (REGION silo example)
+## `impl.py` (CELL silo example)
 
 ```python
 from __future__ import annotations

@@ -2,19 +2,19 @@ import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {
   getPlatform,
   getPlatformViewConfig,
 } from 'sentry/components/events/viewHierarchy/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import type getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 

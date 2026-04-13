@@ -17,10 +17,10 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   LOGS_AGGREGATE_FN_KEY,

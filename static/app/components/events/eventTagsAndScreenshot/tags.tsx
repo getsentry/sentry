@@ -5,7 +5,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,
@@ -77,7 +77,7 @@ export function EventTagsDataSection({
         onChange={handleTagFilterChange}
       >
         {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
-          <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
+          <SegmentedControl.Item key={v}>{v}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
     </Grid>

@@ -6,17 +6,17 @@ import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength} from 'getsentry/utils/billing';
 
@@ -36,7 +36,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
     isError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -79,7 +79,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
 
   const firstParagraph = disallowedIntegration
     ? t(
-        `Your %s organization is on the Developer plan and does not support the %s integration.`,
+        'Your %s organization is on the Developer plan and does not support the %s integration.',
         organization.slug,
         disallowedIntegration.provider.name
       )

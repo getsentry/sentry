@@ -7,14 +7,14 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getUserTimezone} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useAttributeBreakdownComparison from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
 

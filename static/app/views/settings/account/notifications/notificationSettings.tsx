@@ -1,24 +1,24 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import withOrganizations from 'sentry/utils/withOrganizations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {withOrganizations} from 'sentry/utils/withOrganizations';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
   NOTIFICATION_FEATURE_MAP,
@@ -26,8 +26,8 @@ import {
   NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const NOTIFICATIONS_ENDPOINT = getApiUrl('/users/$userId/notifications/', {
   path: {userId: 'me'},
@@ -45,6 +45,7 @@ interface NotificationSettingsProps {
 }
 
 function NotificationSettings({organizations}: NotificationSettingsProps) {
+  const queryClient = useQueryClient();
   const checkFeatureFlag = (flag: string) => {
     return organizations.some(org => org.features?.includes(flag));
   };
@@ -102,8 +103,13 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         data,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       addSuccessMessage(t('Notification preferences saved'));
+      setApiQueryData<NotificationFields>(
+        queryClient,
+        [NOTIFICATIONS_ENDPOINT],
+        existing => (existing ? {...existing, ...variables} : undefined)
+      );
     },
   });
 
@@ -128,7 +134,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         {isPending && <LoadingIndicator />}
         {initialData && (
           <FieldGroup title={t('My Activity')}>
-            <AutoSaveField
+            <AutoSaveForm
               name="personalActivityNotifications"
               schema={notificationSchema}
               initialValue={initialData.personalActivityNotifications}
@@ -145,8 +151,8 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="selfAssignOnResolve"
               schema={notificationSchema}
               initialValue={initialData.selfAssignOnResolve}
@@ -165,7 +171,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         )}
       </FormSearch>

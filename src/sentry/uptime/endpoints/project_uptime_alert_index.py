@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.bases.project import ProjectAlertRulePermission
 from sentry.api.serializers import serialize
@@ -20,7 +20,7 @@ from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.endpoints.validators import UptimeMonitorValidator
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Uptime Monitors"])
 class ProjectUptimeAlertIndexEndpoint(ProjectEndpoint):
     publish_status = {

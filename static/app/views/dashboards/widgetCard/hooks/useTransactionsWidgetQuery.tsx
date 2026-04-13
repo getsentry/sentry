@@ -9,7 +9,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -127,7 +127,7 @@ export function useTransactionsSeriesQuery(
 
       // Build the API query key for events-stats endpoint
       return [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {
@@ -381,7 +381,7 @@ export function useTransactionsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {

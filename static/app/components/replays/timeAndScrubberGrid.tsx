@@ -6,19 +6,19 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
-import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
-import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
+import {Duration} from 'sentry/components/duration/duration';
+import {ReplayTimeline} from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import {TimelineTooltip} from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
+import {ReplayCurrentTime} from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
+import {useTimelineMouseTracking} from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -77,7 +77,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   );
 }
 
-export default function TimeAndScrubberGrid({
+export function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
   isLoading,

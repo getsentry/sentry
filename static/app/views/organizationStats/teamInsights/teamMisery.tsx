@@ -8,16 +8,16 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import LoadingError from 'sentry/components/loadingError';
+import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -157,7 +157,7 @@ function TeamMisery({
                   <ScoreWrapper>
                     {trendValue === 0 ? (
                       <SubText>
-                        {`0\u0025 `}
+                        {'0\u0025 '}
                         {t('change')}
                       </SubText>
                     ) : (
@@ -194,7 +194,7 @@ type Props = {
   start?: string;
 } & DateTimeObject;
 
-function TeamMiseryWrapper({
+export function TeamMiseryWrapper({
   organization,
   teamId,
   projects,
@@ -276,8 +276,6 @@ function TeamMiseryWrapper({
     </DiscoverQuery>
   );
 }
-
-export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;

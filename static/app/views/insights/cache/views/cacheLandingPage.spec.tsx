@@ -9,8 +9,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -36,7 +36,7 @@ describe('CacheLandingPage', () => {
       pathname: `/organizations/${organization.slug}/insights/backend/caches/`,
       query: {statsPeriod: '10d', project: '1'},
     },
-    route: `/organizations/:orgId/insights/backend/caches/`,
+    route: '/organizations/:orgId/insights/backend/caches/',
   };
 
   ProjectsStore.loadInitialData([

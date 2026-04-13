@@ -177,10 +177,11 @@ class BaseDeriveCodeMappings(TestCase):
                     )
                     for expected_cm in expected_new_code_mappings:
                         code_mapping = current_code_mappings.get(
-                            project_id=self.project.id, stack_root=expected_cm["stack_root"]
+                            project_id=self.project.id,
+                            stack_root=expected_cm["stack_root"],
+                            source_root=expected_cm["source_root"],
                         )
                         assert code_mapping is not None
-                        assert code_mapping.source_root == expected_cm["source_root"]
                         assert code_mapping.repository.name == expected_cm["repo_name"]
                 else:
                     assert current_code_mappings.count() == starting_code_mappings_count
@@ -939,13 +940,26 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         self.project.update_option("sentry:grouping_enhancements", "stack.module:foo.bar.** +app")
         # Manually created code mapping
         self.create_repo_and_code_mapping(REPO1, "foo/bar/", "src/foo/")
-        # We do not expect code mappings or in-app rules to be created since
-        # the developer already created the code mapping and in-app rule
+        # We do not expect in-app rules to be created since the developer
+        # already created the in-app rule. A new code mapping is created
+        # because the source_root differs (src/foo/ vs src/foo/bar/).
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
             frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
             platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping(stack_root="foo/bar/", source_root="src/foo/bar/"),
+            ],
         )
+        # Both mappings should coexist: the manual one and the auto-created one
+        mappings = RepositoryProjectPathConfig.objects.filter(
+            project=self.project, stack_root="foo/bar/"
+        )
+        assert mappings.count() == 2
+        assert set(mappings.values_list("source_root", flat=True)) == {
+            "src/foo/",
+            "src/foo/bar/",
+        }
 
     def test_basic_case(self) -> None:
         repo_trees = {REPO1: ["src/com/example/foo/Bar.kt"]}

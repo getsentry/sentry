@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {Form} from 'sentry/components/forms/form';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const fieldProps = {
   stacked: true,
@@ -22,7 +22,7 @@ type Props = ModalRenderProps & {
   user: User;
 };
 
-function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
+export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
   const api = useApi({persistInFlight: true});
 
   const {
@@ -31,7 +31,7 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
     isError: availablePermissionsError,
   } = useApiQuery<string[]>(
     [
-      getApiUrl(`/users/$userId/permissions/config/`, {
+      getApiUrl('/users/$userId/permissions/config/', {
         path: {userId: user.id},
       }),
     ],
@@ -43,7 +43,7 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
     isError: permissionListError,
   } = useApiQuery<string[]>(
     [
-      getApiUrl(`/users/$userId/permissions/`, {
+      getApiUrl('/users/$userId/permissions/', {
         path: {userId: user.id},
       }),
     ],
@@ -145,5 +145,3 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
     </Fragment>
   );
 }
-
-export default UserPermissionsModal;

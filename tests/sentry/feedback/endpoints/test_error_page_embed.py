@@ -9,7 +9,7 @@ from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 
 
 class ErrorPageEmbedTest(TestCase):

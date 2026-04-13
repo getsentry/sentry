@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
@@ -39,7 +39,7 @@ export function AuthLayoutContent({children}: {children: React.ReactNode}) {
 /**
  * Route component version that renders children via Outlet.
  */
-export default function AuthLayoutRoute() {
+export function AuthLayoutRoute() {
   return (
     <AuthLayoutContent>
       <Outlet />

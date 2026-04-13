@@ -5,12 +5,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import SecretField from 'sentry/components/forms/fields/secretField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {SecretField} from 'sentry/components/forms/fields/secretField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -51,7 +51,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function LoginForm({authConfig}: Props) {
+export function LoginForm({authConfig}: Props) {
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
@@ -160,5 +160,3 @@ const LostPasswordLink = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default LoginForm;

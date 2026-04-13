@@ -12,10 +12,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
-import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
@@ -197,7 +197,7 @@ describe('GroupActions', () => {
         location: {
           pathname: `/organizations/${org.slug}/issues/${group.id}/`,
         },
-        route: `/organizations/:orgId/issues/:groupId/`,
+        route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
         <Fragment>
@@ -248,7 +248,7 @@ describe('GroupActions', () => {
         location: {
           pathname: `/organizations/${org.slug}/issues/${issuePlatformGroup.id}/`,
         },
-        route: `/organizations/:orgId/issues/:groupId/`,
+        route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
         <Fragment>
@@ -399,7 +399,7 @@ describe('GroupActions', () => {
       expect(groupFetchApi).toHaveBeenCalledTimes(1);
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,

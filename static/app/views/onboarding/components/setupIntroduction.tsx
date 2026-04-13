@@ -4,13 +4,13 @@ import {PlatformIcon} from 'platformicons';
 
 import type {PlatformKey} from 'sentry/types/project';
 
-import StepHeading from './stepHeading';
+import {StepHeading} from './stepHeading';
 
 type Props = {
   platform: PlatformKey;
   stepHeaderText: string;
 };
-export default function SetupIntroduction({stepHeaderText, platform}: Props) {
+export function SetupIntroduction({stepHeaderText, platform}: Props) {
   return (
     <TitleContainer>
       <StepHeading step={2}>{stepHeaderText}</StepHeading>

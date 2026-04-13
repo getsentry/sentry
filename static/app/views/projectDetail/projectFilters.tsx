@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -25,7 +25,12 @@ const SUPPORTED_TAGS = {
   },
 };
 
-function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: Props) {
+export function ProjectFilters({
+  query,
+  relativeDateOptions,
+  tagValueLoader,
+  onSearch,
+}: Props) {
   const getTagValues = useCallback<GetTagValues>(
     async (tag, currentQuery) => {
       const values = await tagValueLoader(tag.key, currentQuery);
@@ -61,5 +66,3 @@ const FiltersWrapper = styled('div')`
     grid-template-columns: minmax(0, 1fr);
   }
 `;
-
-export default ProjectFilters;

@@ -1,8 +1,8 @@
 import {z} from 'zod';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -71,7 +71,7 @@ function AutoSaveTestForm({
   label = 'Volume',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="volume"
       schema={testSchema}
       initialValue={initialValue}
@@ -87,7 +87,7 @@ function AutoSaveTestForm({
           />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -137,7 +137,7 @@ describe('RangeField auto-save', () => {
   // event system for calling props.onChange. The basic rendering and state indicator
   // tests below verify the auto-save integration works correctly.
 
-  it('renders within AutoSaveField context', () => {
+  it('renders within AutoSaveForm context', () => {
     const mutationFn = jest.fn((data: {volume: number}) => Promise.resolve(data));
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={50} />);
@@ -153,11 +153,11 @@ describe('RangeField auto-save', () => {
 
     const slider = screen.getByRole('slider');
     // Just focus and blur without changing the value
-    slider.focus();
+    act(() => slider.focus());
     await userEvent.tab();
 
     // Wait a bit to ensure no mutation is triggered
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await act(() => new Promise(resolve => setTimeout(resolve, 100)));
     expect(mutationFn).not.toHaveBeenCalled();
   });
 });

@@ -84,6 +84,8 @@ def is_installable_artifact(artifact: PreprodArtifact) -> bool:
         extras = artifact.extras or {}
         if extras.get("is_code_signature_valid") is not True:
             return False
+        if extras.get("codesigning_type") == "app-store":
+            return False
     return True
 
 

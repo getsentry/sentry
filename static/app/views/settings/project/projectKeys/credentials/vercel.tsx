@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
 interface VercelTabProps {
@@ -53,7 +53,7 @@ export function VercelTab({
           <FieldGroup
             label={t('Vercel Trace Drain Endpoint')}
             help={tct(
-              `Set this URL as your Vercel Trace Drain Endpoint (OTLP format). [link:Learn more]`,
+              'Set this URL as your Vercel Trace Drain Endpoint (OTLP format). [link:Learn more]',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#trace-drains" />
@@ -71,7 +71,7 @@ export function VercelTab({
           <FieldGroup
             label={t('Vercel Trace Drain Authentication Headers')}
             help={t(
-              `Set these security headers when configuring your Vercel Trace Drain.`
+              'Set these security headers when configuring your Vercel Trace Drain.'
             )}
             inline={false}
             flexibleControlStateSize

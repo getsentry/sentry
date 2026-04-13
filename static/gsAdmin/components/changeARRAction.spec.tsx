@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ChangeARRAction from 'admin/components/changeARRAction';
+import {ChangeARRAction} from 'admin/components/changeARRAction';
 
 describe('ChangeARRAction', () => {
   const onAction = jest.fn();

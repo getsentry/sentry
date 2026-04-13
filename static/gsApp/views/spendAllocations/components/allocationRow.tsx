@@ -21,7 +21,7 @@ type AllocationRowProps = {
   openForm: (e: React.MouseEvent) => void;
 };
 
-function AllocationRow({
+export function AllocationRow({
   allocation,
   deleteAction,
   metricUnit,
@@ -137,5 +137,3 @@ function AllocationRow({
     </tr>
   );
 }
-
-export default AllocationRow;

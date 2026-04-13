@@ -8,7 +8,7 @@ import type {
   PlatformOption,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
 /**
  * Hook that returns the currently selected platform option values from the URL

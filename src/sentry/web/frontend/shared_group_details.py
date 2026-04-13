@@ -18,8 +18,8 @@ class SharedGroupDetailsView(GenericReactPageView):
             group = issue_service.get_shared_for_org(slug=org_slug, share_id=share_id)
         else:
             # Backwards compatibility for Self-hosted and single tenants
-            group = issue_service.get_shared_for_region(
-                region_name=settings.SENTRY_MONOLITH_REGION, share_id=share_id
+            group = issue_service.get_shared_for_cell(
+                cell_name=settings.SENTRY_MONOLITH_REGION, share_id=share_id
             )
 
         if not group:

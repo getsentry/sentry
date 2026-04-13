@@ -11,13 +11,13 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
@@ -28,7 +28,7 @@ interface WidgetTemplatesListProps {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
 
-function WidgetTemplatesList({
+export function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
@@ -60,7 +60,7 @@ function WidgetTemplatesList({
       if (initialWidget) {
         dispatch({
           type: BuilderStateAction.SET_STATE,
-          payload: convertWidgetToBuilderStateParams(initialWidget),
+          payload: convertWidgetToBuilderState(initialWidget),
         });
       }
     }
@@ -103,7 +103,7 @@ function WidgetTemplatesList({
                 setSelectedWidget(index);
                 dispatch({
                   type: BuilderStateAction.SET_STATE,
-                  payload: convertWidgetToBuilderStateParams(widget),
+                  payload: convertWidgetToBuilderState(widget),
                 });
                 trackAnalytics('dashboards_views.widget_builder.templates.selected', {
                   title: widget.title,
@@ -167,8 +167,6 @@ function WidgetTemplatesList({
     </Fragment>
   );
 }
-
-export default WidgetTemplatesList;
 
 const TemplateContainer = styled('div')<{lastWidget: boolean}>`
   border-bottom: ${p =>

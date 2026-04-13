@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry.grouping.fingerprinting.utils import get_custom_fingerprint_type
+from sentry.grouping.fingerprinting.utils import get_custom_fingerprint_description
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.variants import BaseVariant, ComponentVariant, SaltedComponentVariant
 from sentry.models.project import Project
@@ -113,8 +113,10 @@ def _get_new_description(variant: BaseVariant) -> str:
         description_parts.append(stacktrace_descriptor)
 
     if isinstance(variant, SaltedComponentVariant):
-        custom_fingerprint_type = get_custom_fingerprint_type(variant.fingerprint_info)
-        description_parts.append(f"and {custom_fingerprint_type} fingerprint")
+        fingerprint_description = get_custom_fingerprint_description(
+            variant.fingerprint_info, pretty=True
+        )
+        description_parts.append(f"and {fingerprint_description}")
 
     return " ".join(description_parts)
 

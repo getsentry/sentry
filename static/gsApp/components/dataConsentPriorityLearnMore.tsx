@@ -9,13 +9,13 @@ import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import getOrganizationAge from 'sentry/utils/getOrganizationAge';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscription}) {
   const organization = useOrganization();

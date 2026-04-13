@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const Wrapper = styled('div')`
+export const Wrapper = styled('div')`
   max-width: 769px;
   margin-left: auto;
   margin-right: auto;
@@ -36,5 +36,3 @@ const Wrapper = styled('div')`
     padding-top: ${p => p.theme.space.md};
   }
 `;
-
-export default Wrapper;

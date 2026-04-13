@@ -4,8 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInput} from 'sentry/components/activity/note/input';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('NoteInput', () => {
   beforeEach(() => {

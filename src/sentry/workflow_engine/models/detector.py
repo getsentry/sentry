@@ -11,7 +11,7 @@ from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -65,7 +65,7 @@ class DetectorManager(BaseManager["Detector"]):
         return self.get_queryset().filter(grouptype.registry.get_detector_type_filters())
 
 
-@region_silo_model
+@cell_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 

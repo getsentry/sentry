@@ -6,8 +6,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import EventView from 'sentry/utils/discover/eventView';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
@@ -101,7 +101,7 @@ describe('FieldRenderer tests', () => {
       expect(screen.getByText('spanId')).toBeInTheDocument();
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        `/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+        '/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900'
       );
     });
   });
@@ -159,7 +159,7 @@ describe('FieldRenderer tests', () => {
       expect(screen.getByText('transactionId')).toBeInTheDocument();
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+        '/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900'
       );
     });
   });
@@ -217,7 +217,7 @@ describe('FieldRenderer tests', () => {
       expect(screen.getByText('traceId')).toBeInTheDocument();
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
+        '/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900'
       );
     });
   });

@@ -1,20 +1,22 @@
 import {Fragment, useContext} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
@@ -25,11 +27,11 @@ import {
   getQuery,
   getReposToRender,
 } from 'sentry/views/releases/detail/utils';
-import {useReleaseCommitFiles} from 'sentry/views/releases/utils/useReleaseCommitFiles';
+import {releaseCommitFilesApiOptions} from 'sentry/views/releases/utils/releaseCommitFilesApiOptions';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
-import FileChange from './fileChange';
-import RepositorySwitcher from './repositorySwitcher';
+import {FileChange} from './fileChange';
+import {RepositorySwitcher} from './repositorySwitcher';
 
 interface FilesChangedProps {
   organization: Organization;
@@ -45,20 +47,24 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
 
   const query = getQuery({location});
   const {
-    data: fileList = [],
+    data,
     isPending: isLoadingFileList,
     error: fileListError,
     refetch,
-    getResponseHeader,
-  } = useReleaseCommitFiles({
-    release: params.release,
-    activeRepository: activeReleaseRepo,
-    ...query,
+  } = useQuery({
+    ...releaseCommitFilesApiOptions({
+      organization,
+      release: params.release,
+      activeRepository: activeReleaseRepo,
+      ...query,
+    }),
+    select: selectJsonWithHeaders,
   });
+  const fileList = data?.json ?? [];
 
   const filesByRepository = getFilesByRepository(fileList);
   const reposToRender = getReposToRender(Object.keys(filesByRepository));
-  const fileListPageLinks = getResponseHeader?.('Link');
+  const fileListPageLinks = data?.headers.Link;
 
   return (
     <Fragment>

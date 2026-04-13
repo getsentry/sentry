@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 
 type Props = {title?: string};
 
-export default function ModalTask({title}: Props) {
+export function ModalTask({title}: Props) {
   return (
     <TaskCard>
       <Title>

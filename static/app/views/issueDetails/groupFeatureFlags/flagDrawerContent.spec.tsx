@@ -5,8 +5,8 @@ import {FeatureFlagTagsFixture} from 'sentry-fixture/tags';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrderBy} from 'sentry/components/events/featureFlags/utils';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 
 describe('GroupFeatureFlagsDrawerContent', () => {
   function getEmptyState() {
@@ -16,7 +16,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: [],
     });
 
@@ -28,7 +28,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
   it('calls flags backend and renders distribution cards', async () => {
     const mockTagsEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: FeatureFlagTagsFixture(),
     });
 
@@ -58,7 +58,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
   it('renders error state', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       statusCode: 400,
       body: {
         detail: 'Bad request',
@@ -81,7 +81,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
   it('renders empty state when no flags match the search', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: FeatureFlagTagsFixture(),
     });
 

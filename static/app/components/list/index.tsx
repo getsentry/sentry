@@ -14,7 +14,7 @@ type Props = {
   symbol?: keyof typeof listSymbol | React.ReactElement;
 };
 
-const List = styled(
+export const List = styled(
   ({
     children,
     className,
@@ -56,5 +56,3 @@ const List = styled(
     listSymbol[p.symbol] &&
     getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)}
 `;
-
-export default List;

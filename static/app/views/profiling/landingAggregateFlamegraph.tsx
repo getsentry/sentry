@@ -7,7 +7,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSidePanel';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
@@ -28,7 +28,7 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -159,8 +159,8 @@ const CollapseExpandButton = styled(Button)`
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
     <Flex>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+      <IconChevron style={{marginRight: '-3px'}} {...props} />
+      <IconChevron style={{marginLeft: '-3px'}} {...props} />
     </Flex>
   );
 }

@@ -886,7 +886,7 @@ export class TokenConverter {
   /**
    * Checks a filter against some non-grammar validation rules
    */
-  checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
+  checkFilterWarning = (key: FilterMap[FilterType]['key']) => {
     if (
       ![
         Token.KEY_SIMPLE,
@@ -1513,12 +1513,9 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-function tryParseSearch<T extends {config: SearchConfig}>(
-  query: string,
-  config: T
-): ParseResult | null {
+function tryParseSearch(...args: Parameters<typeof parse>): ParseResult | null {
   try {
-    return parse(query, config);
+    return parse(...args);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

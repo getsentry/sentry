@@ -11,7 +11,7 @@ import {t, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
   users: User[];
@@ -19,11 +19,7 @@ interface DropdownListProps {
   teams?: Team[];
 }
 
-export default function ParticipantList({
-  users,
-  teams,
-  hideTimestamp,
-}: DropdownListProps) {
+export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
     shouldCloseOnBlur: true,

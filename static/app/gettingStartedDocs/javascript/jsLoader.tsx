@@ -13,7 +13,7 @@ import {
   getReplayJsLoaderSdkSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 type Params = DocsParams;
 
@@ -86,7 +86,7 @@ window.sentryOnLoad = function () {
         {
           type: 'text',
           text: tct(
-            `For a full list of User Feedback configuration options, [link:read the docs].`,
+            'For a full list of User Feedback configuration options, [link:read the docs].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/configuration/" />

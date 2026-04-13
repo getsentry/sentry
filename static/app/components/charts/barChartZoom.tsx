@@ -1,14 +1,14 @@
 import type {Location} from 'history';
 
-import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import ToolBox from 'sentry/components/charts/components/toolBox';
+import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   ECharts,
 } from 'sentry/types/echarts';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
@@ -68,7 +68,7 @@ type Props = {
   onHistoryPush?: (start: number, end: number) => void;
 };
 
-function BarChartZoom({
+export function BarChartZoom({
   buckets,
   children,
   location,
@@ -81,6 +81,8 @@ function BarChartZoom({
   paramStart,
   xAxisIndex,
 }: Props) {
+  const navigate = useNavigate();
+
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
@@ -127,7 +129,7 @@ function BarChartZoom({
         if (onHistoryPush) {
           onHistoryPush(start, end);
         } else {
-          browserHistory.push(target);
+          navigate(target);
         }
       } else {
         // Dispatch the restore action here to stop ECharts from zooming
@@ -168,5 +170,3 @@ function BarChartZoom({
     onDataZoom: handleDataZoom,
   });
 }
-
-export default BarChartZoom;

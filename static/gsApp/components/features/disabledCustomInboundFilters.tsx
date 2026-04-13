@@ -2,14 +2,14 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
@@ -82,7 +82,7 @@ const Container = styled('div')`
 
 type HookProps = Parameters<Hooks['feature-disabled:custom-inbound-filters']>[0];
 
-function DisabledCustomInboundFilters(props: HookProps) {
+export function DisabledCustomInboundFilters(props: HookProps) {
   if (typeof props.children === 'function') {
     return props.children({
       ...props,
@@ -91,5 +91,3 @@ function DisabledCustomInboundFilters(props: HookProps) {
   }
   return props.children;
 }
-
-export default DisabledCustomInboundFilters;

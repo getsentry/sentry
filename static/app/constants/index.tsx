@@ -139,6 +139,15 @@ export type PermissionObj = {
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 
+export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'Distribution',
+  help: 'Pre-release app distribution for trusted testers.',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['project:distribution']},
+  },
+};
+
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
 // User-friendly way here.
@@ -171,14 +180,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       admin: {label: 'Admin', scopes: ['project:releases']},
     },
   },
-  {
-    resource: 'Distribution',
-    help: 'Pre-release app distribution for trusted testers.',
-    choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['project:distribution']},
-    },
-  },
+  DISTRIBUTION_SENTRY_APP_PERMISSION,
   {
     resource: 'Event',
     label: 'Issue & Event',
@@ -642,6 +644,22 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
     },
     formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.TRACE_METRIC_BYTE]: {
+    name: DataCategoryExact.TRACE_METRIC_BYTE,
+    plural: DataCategory.TRACE_METRIC_BYTE,
+    singular: 'traceMetricByte',
+    displayName: 'metric byte',
+    titleName: t('Metrics (Bytes)'),
+    productName: t('Metrics'),
+    uid: 37,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+      yAxisMinInterval: 1 * KILOBYTE,
+    },
+    formatting: BYTES_FORMATTING,
   },
   [DataCategoryExact.SEER_USER]: {
     name: DataCategoryExact.SEER_USER,

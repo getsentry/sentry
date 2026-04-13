@@ -3,7 +3,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
@@ -120,7 +120,7 @@ describe('useSpanSamples', () => {
           project: [],
           dataset: 'spans',
           sampling: 'NORMAL',
-          query: `span.group:221aa7ebd216 release:0.0.1`,
+          query: 'span.group:221aa7ebd216 release:0.0.1',
           referrer: 'api-spec',
           statsPeriod: '10d',
           environment: ['prod'],

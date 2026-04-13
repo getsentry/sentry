@@ -8,8 +8,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
@@ -19,15 +19,8 @@ jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockUseNavigate,
 }));
 
-jest.mock('sentry/views/issueDetails/utils', () => ({
-  ...jest.requireActual('sentry/views/issueDetails/utils'),
-  useHasStreamlinedUI: () => true,
-}));
-
 describe('EventDetailsHeader', () => {
-  const organization = OrganizationFixture({
-    features: ['search-query-builder-input-flow-changes'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture({
     environments: ['production', 'staging', 'development'],
   });
@@ -139,8 +132,7 @@ describe('EventDetailsHeader', () => {
 
     const search = await screen.findByPlaceholderText('Filter events\u2026');
     await userEvent.type(search, `${tagKey}:`, {delay: null});
-    await userEvent.click(screen.getByRole('option', {name: 'is'}));
-    await userEvent.keyboard(`${tagValue}{enter}`, {delay: null});
+    await userEvent.click(await screen.findByRole('option', {name: tagValue}));
     await waitFor(() => {
       expect(mockUseNavigate).toHaveBeenCalledWith(
         expect.objectContaining(locationQuery),

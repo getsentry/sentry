@@ -16,24 +16,24 @@ import * as qs from 'query-string';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -773,8 +773,8 @@ export const TraceGrid = styled('div')<{
       'drawer'
       `
       : p.layout === 'drawer left'
-        ? `'drawer trace'`
-        : `'trace drawer'`};
+        ? "'drawer trace'"
+        : "'trace drawer'"};
   grid-template-columns: ${p =>
     p.layout === 'drawer bottom'
       ? '1fr'

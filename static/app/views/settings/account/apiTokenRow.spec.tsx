@@ -7,7 +7,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
   it('renders', () => {

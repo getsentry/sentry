@@ -19,7 +19,7 @@ import {
   makeCallTreeTableSortFunction,
   syncCallTreeTableScroll,
 } from 'sentry/components/profiling/flamegraph/callTreeTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {

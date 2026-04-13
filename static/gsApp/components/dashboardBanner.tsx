@@ -4,17 +4,17 @@ import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import Banner from 'sentry/components/banner';
+import {Banner} from 'sentry/components/banner';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import UpsellButton from 'getsentry/components/upsellButton';
+import {UpsellButton} from 'getsentry/components/upsellButton';
 
 type Props = {
   organization: Organization;
 };
 
-function DashboardBanner({organization}: Props) {
+export function DashboardBanner({organization}: Props) {
   // No upsell if the user can edit dashboards
   if (organization.features.includes('organizations:dashboards-edit')) {
     return null;
@@ -54,5 +54,3 @@ const DashboardBackground = styled('div')`
     width: 95%;
   }
 `;
-
-export default DashboardBanner;

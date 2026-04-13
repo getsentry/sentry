@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -21,7 +21,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -83,7 +83,6 @@ export function OurlogsDrawer({
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const additionalData = useMemo(
     () => ({
@@ -156,12 +155,12 @@ export function OurlogsDrawer({
             )}
           </Flex>
         </EventNavigator>
-        <EventDrawerBody ref={containerRef}>
-          <Stack gap="xl">
+        <EventDrawerBody>
+          <Stack position="relative">
             <LogsInfiniteTable
               embedded
-              scrollContainer={containerRef}
               embeddedOptions={embeddedOptions}
+              expanded
               additionalData={additionalData}
             />
           </Stack>

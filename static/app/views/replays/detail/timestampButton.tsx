@@ -5,12 +5,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
+import {Duration} from 'sentry/components/duration/duration';
+import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {IconPlay} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   startTimestampMs: number;
@@ -20,7 +20,7 @@ type Props = {
   precision?: 'sec' | 'ms';
 };
 
-export default function TimestampButton({
+export function TimestampButton({
   className,
   precision = 'sec',
   onClick,

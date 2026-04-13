@@ -1,15 +1,17 @@
 import {Outlet} from 'react-router-dom';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import Redirect from 'sentry/components/redirect';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
+import {Stack} from '@sentry/scraps/layout';
+
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {Redirect} from 'sentry/components/redirect';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
 export default function FeedbackContainer() {
   const organization = useOrganization();
 
-  const redirectPath = useRedirectNavV2Routes({
+  const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/feedback/',
     newPathPrefix: '/issues/feedback/',
   });
@@ -20,9 +22,11 @@ export default function FeedbackContainer() {
 
   return (
     <AnalyticsArea name="feedback">
-      <NoProjectMessage organization={organization}>
-        <Outlet />
-      </NoProjectMessage>
+      <Stack flex={1}>
+        <NoProjectMessage organization={organization}>
+          <Outlet />
+        </NoProjectMessage>
+      </Stack>
     </AnalyticsArea>
   );
 }

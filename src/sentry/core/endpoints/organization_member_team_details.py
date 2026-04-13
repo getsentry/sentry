@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -110,7 +110,7 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 
 
 @extend_schema(tags=["Teams"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     def convert_args(
         self,

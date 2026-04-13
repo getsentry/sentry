@@ -1,24 +1,23 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
+import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupUserFeedback} from 'sentry/views/issueDetails/useGroupUserFeedback';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const params = useParams<{groupId: string}>();
 
@@ -31,17 +30,14 @@ function GroupUserFeedback() {
     groupId: params.groupId,
   });
 
-  const {
-    data: reportList,
-    isPending,
-    isError,
-    refetch,
-    getResponseHeader,
-  } = useGroupUserFeedback({
-    groupId: params.groupId,
-    query: {
-      cursor: location.query.cursor as string | undefined,
-    },
+  const {data, isPending, isError, refetch} = useQuery({
+    ...groupUserFeedbackApiOptions(organization, {
+      groupId: params.groupId,
+      query: {
+        cursor: location.query.cursor,
+      },
+    }),
+    select: selectJsonWithHeaders,
   });
 
   if (isError || isErrorGroup) {
@@ -57,7 +53,7 @@ function GroupUserFeedback() {
 
   if (isPending || isPendingGroup) {
     return (
-      <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutBody>
         <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
@@ -65,13 +61,14 @@ function GroupUserFeedback() {
     );
   }
 
-  const pageLinks = getResponseHeader?.('Link');
+  const reportList = data?.json ?? [];
+  const pageLinks = data?.headers.Link;
   const hasUserFeedback = group.project.hasUserReports;
 
   return (
-    <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+    <StyledLayoutBody>
       <Layout.Main width="full">
-        {hasStreamlinedUI && hasUserFeedback && (
+        {hasUserFeedback && (
           <FilterMessage>
             {t('The feedback shown below is not subject to search filters.')}
             <StyledBreak />
@@ -101,18 +98,14 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
-  ${p =>
-    p.hasStreamlinedUI &&
-    css`
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: ${p.theme.radius.md};
-      padding: ${p.theme.space.lg} 0;
+const StyledLayoutBody = styled(Layout.Body)`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.lg} 0;
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        padding: ${p.theme.space.lg};
-      }
-    `}
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${p => p.theme.space.lg};
+  }
 `;
 
 const FilterMessage = styled('div')`

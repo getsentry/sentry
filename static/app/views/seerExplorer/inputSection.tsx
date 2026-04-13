@@ -7,10 +7,10 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PRWidget from 'sentry/views/seerExplorer/prWidget';
+import {PRWidget} from 'sentry/views/seerExplorer/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {
@@ -54,7 +54,7 @@ interface InputSectionProps {
   wasJustInterrupted?: boolean;
 }
 
-function InputSection({
+export function InputSection({
   blocks,
   enabled,
   inputValue,
@@ -328,8 +328,6 @@ function InputSection({
     </InputBlock>
   );
 }
-
-export default InputSection;
 
 // Styled components
 const InputBlock = styled('div')`

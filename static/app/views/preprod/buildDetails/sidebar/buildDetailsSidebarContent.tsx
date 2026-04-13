@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';

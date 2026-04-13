@@ -16,7 +16,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
@@ -69,7 +69,7 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
@@ -144,7 +144,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not features.has(

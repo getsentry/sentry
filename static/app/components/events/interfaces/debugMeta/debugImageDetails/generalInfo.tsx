@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Processings from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
+import {Processings} from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
 import {getImageAddress} from 'sentry/components/events/interfaces/debugMeta/utils';
-import NotAvailable from 'sentry/components/notAvailable';
+import {NotAvailable} from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
 
@@ -10,7 +10,7 @@ type Props = {
   image?: Image;
 };
 
-function GeneralInfo({image}: Props) {
+export function GeneralInfo({image}: Props) {
   const {debug_id, debug_file, code_id, code_file, arch, unwind_status, debug_status} =
     image ?? {};
 
@@ -47,8 +47,6 @@ function GeneralInfo({image}: Props) {
     </Wrapper>
   );
 }
-
-export default GeneralInfo;
 
 const Wrapper = styled('div')`
   display: grid;

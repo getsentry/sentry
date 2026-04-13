@@ -125,10 +125,10 @@ class AccessService(abc.ABC):
         pass
 
 
-def impl_by_region_resources() -> AccessService:
-    from sentry.auth.services.access.impl import RegionAccessService
+def impl_by_cell_resources() -> AccessService:
+    from sentry.auth.services.access.impl import CellAccessService
 
-    return RegionAccessService()
+    return CellAccessService()
 
 
 def impl_by_control_resources() -> AccessService:
@@ -139,7 +139,7 @@ def impl_by_control_resources() -> AccessService:
 
 access_service: AccessService = silo_mode_delegation(
     {
-        SiloMode.REGION: impl_by_region_resources,
+        SiloMode.CELL: impl_by_cell_resources,
         SiloMode.CONTROL: impl_by_control_resources,
         SiloMode.MONOLITH: impl_by_control_resources,
     }

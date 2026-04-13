@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 

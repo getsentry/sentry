@@ -4,25 +4,25 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-import InvoiceDetailsActions from './actions';
+import {InvoiceDetailsActions} from './actions';
 
 function InvoiceDetails() {
   const {invoiceGuid} = useParams<{invoiceGuid: string}>();
@@ -35,7 +35,7 @@ function InvoiceDetails() {
     refetch: billingDetailsRefetch,
   } = useApiQuery<BillingDetails>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -51,7 +51,7 @@ function InvoiceDetails() {
     refetch: invoiceRefetch,
   } = useApiQuery<Invoice>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/invoices/$invoiceId/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
         path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
       }),
     ],

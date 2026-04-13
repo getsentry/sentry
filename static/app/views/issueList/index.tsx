@@ -1,23 +1,24 @@
 import {useEffect} from 'react';
 import * as qs from 'query-string';
 
-import NotFound from 'sentry/components/errors/notFound';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 
 type Props = {
   children: React.ReactNode;
@@ -108,14 +109,14 @@ function IssueViewWrapper({children}: Props) {
   return <StreamWrapper>{children}</StreamWrapper>;
 }
 
-function IssueListContainer({children, title = t('Issues')}: Props) {
+export function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <IssueViewWrapper>{children}</IssueViewWrapper>
+      <AnalyticsArea name="issue_list">
+        <IssueViewWrapper>{children}</IssueViewWrapper>
+      </AnalyticsArea>
     </SentryDocumentTitle>
   );
 }
-
-export default IssueListContainer;

@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
     def test_simple(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -59,9 +59,9 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "exception_type": "FailedToFetchError",
                 "k": 1,
                 "referrer": "ingest",
-                "use_reranking": True,
                 "model": GroupingVersion.V1,
                 "training_mode": False,
+                "platform": "python",
             },
             {
                 "platform": "python",
@@ -141,7 +141,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
 
             mock_get_similar_issues.assert_not_called()
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
     def test_bypassed_platform_calls_seer_regardless_of_length(
         self, mock_get_similarity_data: MagicMock
     ) -> None:
@@ -197,9 +197,9 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                     "exception_type": "FailedToFetchError",
                     "k": 1,
                     "referrer": "ingest",
-                    "use_reranking": True,
                     "model": GroupingVersion.V1,
                     "training_mode": False,
+                    "platform": "python",
                 },
                 {
                     "platform": "python",

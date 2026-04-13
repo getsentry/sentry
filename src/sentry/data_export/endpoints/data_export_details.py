@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
@@ -15,7 +15,7 @@ from sentry.utils import metrics
 from ..models import ExportedData
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class DataExportDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -53,8 +53,9 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         file = data_export._get_file()
         assert file is not None
         raw_file = file.getfile()
+        content_type = file.headers.get("Content-Type", "text/csv")
         response = StreamingHttpResponse(
-            iter(lambda: raw_file.read(4096), b""), content_type="text/csv"
+            iter(lambda: raw_file.read(4096), b""), content_type=content_type
         )
         response["Content-Length"] = file.size
         response["Content-Disposition"] = f'attachment; filename="{file.name}"'

@@ -7,15 +7,15 @@ import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   issueTab?: boolean;
@@ -101,7 +101,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       <h3>{t('What do users think?')}</h3>
       <p>
         {t(
-          `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
+          "You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
         )}
       </p>
       <ButtonList>

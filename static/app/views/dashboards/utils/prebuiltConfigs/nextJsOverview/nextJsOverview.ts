@@ -4,7 +4,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
 import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
@@ -51,7 +54,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `count(${SpanFields.SPAN_DURATION})`,
             `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
           ],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -111,7 +113,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
       legendType: 'breakdown',
       interval: '5m',
-      limit: 4,
+      limit: 3,
       queries: [
         {
           name: '',
@@ -136,7 +138,7 @@ const CLIENT_TRANSACTIONS_TABLE_FIELDS = [
   'failure_rate()',
   `avg(${SpanFields.SPAN_DURATION})`,
   `p95(${SpanFields.SPAN_DURATION})`,
-  `performance_score(${SpanFields.TOTAL_SCORE})`,
+  `equation|performance_score(${SpanFields.TOTAL_SCORE})`,
 ];
 
 const CLIENT_TRANSACTIONS_TABLE: Widget = {
@@ -155,7 +157,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
         'failure_rate()',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
-        `performance_score(${SpanFields.TOTAL_SCORE})`,
+        `equation|performance_score(${SpanFields.TOTAL_SCORE})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
       fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
@@ -165,8 +167,8 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
         t('Operation'),
         t('Views'),
         t('Error Rate'),
-        t('Avg Duration'),
-        t('P95 Duration'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
         t('Perf Score'),
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
@@ -216,9 +218,9 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
         '',
         t('Views'),
         t('Error Rate'),
-        t('Avg Duration'),
-        t('P95 Duration'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
@@ -267,4 +269,9 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     SERVER_TRANSACTIONS_TABLE,
     SERVER_TREE_WIDGET,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with Next.js tracing',
+  },
 };

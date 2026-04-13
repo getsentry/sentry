@@ -21,16 +21,16 @@ import {
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import GuideStore from 'sentry/stores/guideStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {
   openForcedTrialModal,
@@ -39,13 +39,13 @@ import {
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
-import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
+import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
   type Promotion,
@@ -65,9 +65,9 @@ import {
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
-import withPromotions from 'getsentry/utils/withPromotions';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
+import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   USAGE_EXCEEDED = 'usage-exceeded',
@@ -202,7 +202,7 @@ function NoticeModal({
     case ModalType.USAGE_EXCEEDED:
       title = t('Usage exceeded');
       body = t(
-        `Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.`
+        'Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.'
       );
       link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
       primaryButtonMessage = t('Continue');
@@ -211,10 +211,10 @@ function NoticeModal({
       title = t('Unable to bill your account');
       body = billingPermissions
         ? t(
-            `There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.`
+            'There was an issue with your payment. Update your payment information to ensure uninterrupted access to Sentry.'
           )
         : t(
-            `There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.`
+            'There was an issue with your payment. Please have the Org Owner or Billing Member update your payment information to ensure continued access to Sentry.'
           );
       link = billingPermissions
         ? normalizeUrl(
@@ -249,7 +249,7 @@ function NoticeModal({
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
       subText = tct(
-        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        'To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.',
         {
           budgetTerm: subscription.planDetails.budgetTerm,
         }
@@ -1042,7 +1042,7 @@ class GSBanner extends Component<Props, State> {
               }
             >
               {tct(
-                `[firstSentence] [middleSentence] Upgrade your plan to increase your limit.`,
+                '[firstSentence] [middleSentence] Upgrade your plan to increase your limit.',
                 {
                   firstSentence:
                     subscription.totalLicenses === 1

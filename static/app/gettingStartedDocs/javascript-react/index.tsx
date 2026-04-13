@@ -12,7 +12,7 @@ import {performance} from './performance';
 import {replay} from './replay';
 import {installSnippetBlock} from './utils';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedback,
   replayOnboarding: replay,
@@ -38,5 +38,3 @@ const docs: Docs = {
     packageName: '@sentry/react',
   }),
 };
-
-export default docs;

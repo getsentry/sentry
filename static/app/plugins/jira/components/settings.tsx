@@ -4,11 +4,11 @@ import isEqual from 'lodash/isEqual';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import DefaultSettings from 'sentry/plugins/components/settings';
+import {PluginSettings as DefaultSettings} from 'sentry/plugins/components/settings';
 
 type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
 
@@ -29,7 +29,7 @@ const PAGE_FIELD_LIST = {
   2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
 };
 
-class Settings extends DefaultSettings<Props, State> {
+export class Settings extends DefaultSettings<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -211,5 +211,3 @@ class Settings extends DefaultSettings<Props, State> {
 const FloatLeftButton = styled(Button)`
   float: left;
 `;
-
-export default Settings;

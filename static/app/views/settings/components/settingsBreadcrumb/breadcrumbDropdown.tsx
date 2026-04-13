@@ -13,7 +13,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import Divider from './divider';
+import {Divider} from './divider';
 import type {RouteWithName} from './types';
 
 interface BreadcrumbDropdownProps extends Omit<
@@ -27,7 +27,7 @@ interface BreadcrumbDropdownProps extends Omit<
   isLast?: boolean;
 }
 
-function BreadcrumbDropdown({
+export function BreadcrumbDropdown({
   hasMenu,
   route,
   isLast,
@@ -145,5 +145,3 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
     </Flex>
   );
 }
-
-export default BreadcrumbDropdown;

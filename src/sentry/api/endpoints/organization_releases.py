@@ -15,7 +15,7 @@ from rest_framework.serializers import ListField
 from sentry import analytics, features, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -276,7 +276,7 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
     cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -893,7 +893,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         return Response(serializer.errors, status=400)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

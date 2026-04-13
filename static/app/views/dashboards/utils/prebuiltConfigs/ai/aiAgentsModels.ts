@@ -2,12 +2,12 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {AI_AGENTS_MODELS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const AI_GENERATIONS_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
-// input_tokens includes cached, output_tokens includes reasoning, so total is just the sum of both
-const SUM_ALL_TOKENS = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS}) + sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -23,11 +23,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_GENERATIONS_FILTER,
           fields: [
-            SpanFields.GEN_AI_REQUEST_MODEL,
+            SpanFields.GEN_AI_RESPONSE_MODEL,
             `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Total Cost')],
           orderby: `-sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         },
@@ -46,11 +46,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_GENERATIONS_FILTER,
           fields: [
-            SpanFields.GEN_AI_REQUEST_MODEL,
+            SpanFields.GEN_AI_RESPONSE_MODEL,
             `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
           ],
           aggregates: [`sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`],
-          columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+          columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
         },
@@ -69,16 +69,16 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_GENERATIONS_FILTER,
           fields: [
-            `equation|(sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})) / (${SUM_ALL_TOKENS})`,
-            `equation|sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED}) / (${SUM_ALL_TOKENS})`,
-            `equation|(sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})) / (${SUM_ALL_TOKENS})`,
-            `equation|sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING}) / (${SUM_ALL_TOKENS})`,
+            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
+            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
+            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
           ],
           aggregates: [
-            `equation|(sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})) / (${SUM_ALL_TOKENS})`,
-            `equation|sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED}) / (${SUM_ALL_TOKENS})`,
-            `equation|(sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})) / (${SUM_ALL_TOKENS})`,
-            `equation|sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING}) / (${SUM_ALL_TOKENS})`,
+            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
+            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
+            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
           ],
           columns: [],
           fieldAliases: [
@@ -90,6 +90,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: '',
         },
       ],
+      limit: 3,
     },
   ],
   0,
@@ -107,9 +108,9 @@ const MODELS_TABLE = {
       name: '',
       conditions: AI_GENERATIONS_FILTER,
       fields: [
-        SpanFields.GEN_AI_REQUEST_MODEL,
+        SpanFields.GEN_AI_RESPONSE_MODEL,
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -120,7 +121,7 @@ const MODELS_TABLE = {
       ],
       aggregates: [
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -129,13 +130,13 @@ const MODELS_TABLE = {
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
       ],
-      columns: [SpanFields.GEN_AI_REQUEST_MODEL],
+      columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
       fieldAliases: [
         t('Model'),
         t('Requests'),
         t('Errors'),
-        t('Avg'),
-        t('P95'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
         t('Cost'),
         t('Input Tokens'),
         t('Cached Tokens'),
@@ -157,14 +158,14 @@ const MODELS_TABLE = {
 export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Model Details',
+  title: AI_AGENTS_MODELS_DASHBOARD_TITLE,
   filters: {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'gen_ai.request.model',
-          name: 'gen_ai.request.model',
+          key: SpanFields.GEN_AI_RESPONSE_MODEL,
+          name: SpanFields.GEN_AI_RESPONSE_MODEL,
           kind: FieldKind.TAG,
         },
         value: '',
@@ -172,4 +173,9 @@ export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, MODELS_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

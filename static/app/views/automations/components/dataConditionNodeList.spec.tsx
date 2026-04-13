@@ -2,7 +2,13 @@ import {DataConditionFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IssueType} from 'sentry/types/group';
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
@@ -16,7 +22,7 @@ import {MatchType} from 'sentry/views/automations/components/actionFilters/const
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {AutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
+import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
 
 const dataConditionHandlers: DataConditionHandler[] = [
   DataConditionHandlerFixture({type: DataConditionType.AGE_COMPARISON}),
@@ -165,11 +171,16 @@ describe('DataConditionNodeList', () => {
       {organization}
     );
 
-    // Wait until the request for tags is completed
+    // Wait until the request for tags is completed and the select is no longer disabled
     const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    await waitFor(() => {
+      expect(tagInput).toBeEnabled();
+    });
     await userEvent.type(tagInput, 'names{enter}');
-    expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
-      comparison: {key: 'names', match: MatchType.CONTAINS, value: 'moo deng'},
+    await waitFor(() => {
+      expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
+        comparison: {key: 'names', match: MatchType.CONTAINS, value: 'moo deng'},
+      });
     });
   });
 

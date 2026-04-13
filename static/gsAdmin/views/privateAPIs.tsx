@@ -4,9 +4,9 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 import {SearchContainer} from './debuggingTools';
 
@@ -75,7 +75,7 @@ function ForceAutoAssignment() {
   );
 }
 
-function PrivateAPIs() {
+export function PrivateAPIs() {
   return (
     <div>
       <PageHeader title="Private APIs" />
@@ -84,5 +84,3 @@ function PrivateAPIs() {
     </div>
   );
 }
-
-export default PrivateAPIs;

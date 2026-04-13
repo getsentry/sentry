@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import AssigneeSelectorDropdown, {
+import {
+  AssigneeSelectorDropdown,
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
@@ -34,7 +35,7 @@ interface AssigneeSelectorProps {
   showLabel?: boolean;
 }
 
-export type OnAssignCallback = (
+type OnAssignCallback = (
   type: Actor['type'],
   assignee: User | Actor,
   suggestedAssignee?: SuggestedAssignee

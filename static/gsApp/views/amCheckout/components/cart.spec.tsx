@@ -17,7 +17,7 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   AddOnCategory,
   OnDemandBudgetMode,
@@ -25,7 +25,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import Cart from 'getsentry/views/amCheckout/components/cart';
+import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 // Jun 06 2022 - with milliseconds
@@ -114,7 +114,7 @@ describe('Cart', () => {
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');
-    expect(cart).toHaveTextContent('Plan Total$89/mo');
+    await waitFor(() => expect(cart).toHaveTextContent('Plan Total$89/mo'));
     expect(cart).toHaveTextContent('Default Amount');
   });
 

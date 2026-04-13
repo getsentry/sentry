@@ -16,7 +16,7 @@ from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
@@ -156,7 +156,7 @@ class SpansPerformanceSerializer(serializers.Serializer[Never]):
         return span_groups
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -240,7 +240,7 @@ class _Example(TypedDict):
     examples: list[ExampleTransaction]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -324,7 +324,7 @@ class SpanExamplesPaginator:
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

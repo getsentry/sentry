@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
-import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
+import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-function LogFileViewer(props: ViewerProps) {
+export function LogFileViewer(props: ViewerProps) {
   const {data, isPending, isError} = useApiQuery<string>(
     [
       getAttachmentUrl(props),
@@ -36,8 +36,6 @@ function LogFileViewer(props: ViewerProps) {
     </PreviewPanelItem>
   ) : null;
 }
-
-export default LogFileViewer;
 
 /**
  * Maps ANSI color names -> theme.tsx color names

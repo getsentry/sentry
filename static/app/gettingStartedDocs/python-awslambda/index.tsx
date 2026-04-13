@@ -7,7 +7,7 @@ import {metrics} from 'sentry/gettingStartedDocs/python/metrics';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
@@ -15,5 +15,3 @@ const docs: Docs = {
   logsOnboarding: logs(),
   metricsOnboarding: metrics(),
 };
-
-export default docs;

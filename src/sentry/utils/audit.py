@@ -19,7 +19,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.model import RpcAuditLogEntryActor
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -144,7 +144,7 @@ def get_org_auth_token_for_audit_log(request: HttpRequest) -> OrgAuthToken | Non
     )
 
 
-@region_silo_function
+@cell_silo_function
 def create_org_delete_log(organization_id: int, audit_log_actor: RpcAuditLogEntryActor) -> None:
     delete_log = DeletedOrganization()
     organization = Organization.objects.get(id=organization_id)
@@ -156,7 +156,7 @@ def create_org_delete_log(organization_id: int, audit_log_actor: RpcAuditLogEntr
     _complete_delete_log(delete_log=delete_log, audit_log_actor=audit_log_actor)
 
 
-@region_silo_function
+@cell_silo_function
 def _create_project_delete_log(
     entry: AuditLogEntry, audit_log_actor: RpcAuditLogEntryActor
 ) -> None:
@@ -176,7 +176,7 @@ def _create_project_delete_log(
     _complete_delete_log(delete_log=delete_log, audit_log_actor=audit_log_actor)
 
 
-@region_silo_function
+@cell_silo_function
 def _create_team_delete_log(entry: AuditLogEntry, audit_log_actor: RpcAuditLogEntryActor) -> None:
     delete_log = DeletedTeam()
 
@@ -193,7 +193,7 @@ def _create_team_delete_log(entry: AuditLogEntry, audit_log_actor: RpcAuditLogEn
     _complete_delete_log(delete_log=delete_log, audit_log_actor=audit_log_actor)
 
 
-@region_silo_function
+@cell_silo_function
 def _complete_delete_log(delete_log: DeletedEntry, audit_log_actor: RpcAuditLogEntryActor) -> None:
     """
     Adds common information on a delete log from an audit entry and

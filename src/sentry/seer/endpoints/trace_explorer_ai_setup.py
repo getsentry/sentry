@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
@@ -45,7 +45,7 @@ def fire_setup_request(
         raise SeerApiError("Seer request failed", response.status)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TraceExplorerAISetup(OrganizationEndpoint):
     """
     This endpoint is called when a user visits the trace explorer with the correct flags enabled.

@@ -4,14 +4,14 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {
   ErrorSelectOption,
   FilterFields,
 } from 'sentry/views/replays/detail/errorList/useErrorFilters';
-import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
+import {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
@@ -40,7 +40,7 @@ const {
       id: 'ac43b19f1886bb41ddab96415ecb5c85',
       'issue.id': 22,
       issue: 'NEXTJS-TYPE',
-      title: `undefined is not an object (evaluating 'e.apply').`,
+      title: "undefined is not an object (evaluating 'e.apply').",
       level: 'error',
       'project.name': 'next-js',
     }),
@@ -50,7 +50,7 @@ const {
       id: '9f1886bb41ddab96415ecb5c85ac43b1',
       'issue.id': 22,
       issue: 'JAVASCRIPT-UNDEF',
-      title: `Maximum update depth exceeded`,
+      title: 'Maximum update depth exceeded',
       level: 'error',
       'project.name': 'javascript',
     }),

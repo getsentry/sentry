@@ -19,7 +19,7 @@ interface Props {
   rule: CombinedMetricIssueAlerts;
 }
 
-export default function AlertRuleStatus({rule}: Props) {
+export function AlertRuleStatus({rule}: Props) {
   const activeIncident = hasActiveIncident(rule);
 
   function renderSnoozeStatus(): React.ReactNode {

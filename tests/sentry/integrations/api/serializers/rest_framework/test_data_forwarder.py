@@ -10,10 +10,10 @@ from sentry.integrations.models.data_forwarder_project import DataForwarderProje
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwarderSerializerTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()
@@ -493,7 +493,7 @@ class DataForwarderSerializerTest(TestCase):
         assert serializer.is_valid()
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwarderProjectSerializerTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()

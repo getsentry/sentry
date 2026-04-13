@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.explore.models import ExploreSavedQueryStarred
 from sentry.models.organization import Organization
@@ -29,7 +29,7 @@ class ExploreSavedQueryStarredOrderSerializer(serializers.Serializer):
         return query_ids
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.EXPLORE

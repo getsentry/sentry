@@ -11,7 +11,7 @@ type Props = {
   onRestore?: () => void;
 };
 
-function ReleaseArchivedNotice({onRestore, multi}: Props) {
+export function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (
     <Alert.Container>
       <Alert variant="warning" showIcon={false}>
@@ -42,5 +42,3 @@ const UnarchiveButton = styled(Button)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default ReleaseArchivedNotice;

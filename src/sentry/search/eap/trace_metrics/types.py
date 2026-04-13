@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     ComparisonFilter,
     ExistsFilter,
     NotFilter,
+    OrFilter,
     TraceItemFilter,
 )
 
@@ -45,12 +46,34 @@ class TraceMetric:
 
         if self.metric_unit == NONE_UNIT:
             unit_key = AttributeKey(name="sentry.metric_unit", type=AttributeKey.Type.TYPE_STRING)
-            filters.append(
-                TraceItemFilter(
-                    not_filter=NotFilter(
-                        filters=[TraceItemFilter(exists_filter=ExistsFilter(key=unit_key))]
+
+            # In the case of NONE_UNIT, we want to select all items that do not have a unit, or
+            # have a unit explicitly set to "none"
+            filters.extend(
+                [
+                    TraceItemFilter(
+                        or_filter=OrFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    not_filter=NotFilter(
+                                        filters=[
+                                            TraceItemFilter(
+                                                exists_filter=ExistsFilter(key=unit_key)
+                                            )
+                                        ]
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=unit_key,
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str=self.metric_unit),
+                                    )
+                                ),
+                            ]
+                        )
                     )
-                )
+                ]
             )
         elif self.metric_unit is not None and self.metric_unit != ANY_UNIT:
             filters.append(

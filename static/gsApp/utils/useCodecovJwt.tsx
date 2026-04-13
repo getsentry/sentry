@@ -1,4 +1,4 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -12,7 +12,7 @@ export function useCodecovJwt(
 ) {
   return useApiQuery<CodecovJWTResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/codecov-jwt/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/codecov-jwt/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],

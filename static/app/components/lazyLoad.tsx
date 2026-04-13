@@ -3,8 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
 
@@ -52,7 +52,7 @@ function DeferredLoader({
  *
  * <LazyLoad LazyComponent={LazyComponent} someComponentProps={...} />
  */
-function LazyLoad<C extends React.LazyExoticComponent<any>>({
+export function LazyLoad<C extends React.LazyExoticComponent<any>>({
   LazyComponent,
   loadingFallback,
   ...props
@@ -158,5 +158,3 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     return this.props.children;
   }
 }
-
-export default LazyLoad;

@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
+import {ProjectIssues} from 'sentry/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', () => {
   let mockFetchIssues: ReturnType<typeof MockApiClient.addMockResponse>;

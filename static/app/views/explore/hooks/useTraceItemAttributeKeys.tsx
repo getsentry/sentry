@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   makeTraceItemAttributeKeysQueryOptions,
   useGetTraceItemAttributeKeys,
@@ -55,7 +55,8 @@ export function useTraceItemAttributeKeys({
     query,
   });
 
-  const {data, isFetching, error} = useQuery<TagCollection>({
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data, isFetching, error} = useQuery({
     enabled,
     queryKey: [...queryKey, search],
     queryFn: () => getTraceItemAttributeKeys(search),

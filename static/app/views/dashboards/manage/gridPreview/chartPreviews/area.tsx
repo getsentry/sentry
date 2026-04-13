@@ -1,10 +1,14 @@
-function AreaPreview() {
+interface AreaPreviewProps {
+  color: string;
+}
+
+export function AreaPreview({color}: AreaPreviewProps) {
   return (
     <svg
       viewBox="0 0 141 54"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"
-      fill="#7A5088"
+      fill={color}
       height="100%"
       width="100%"
     >
@@ -12,5 +16,3 @@ function AreaPreview() {
     </svg>
   );
 }
-
-export default AreaPreview;

@@ -7,7 +7,10 @@ import {
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
@@ -58,12 +61,12 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`epm()`],
-          aggregates: [`epm()`],
+          fields: ['epm()'],
+          aggregates: ['epm()'],
           columns: [],
           fieldAliases: [],
           conditions: BASE_QUERY.formatString(),
-          orderby: `-epm()`,
+          orderby: '-epm()',
         },
       ],
       widgetType: WidgetType.SPANS,
@@ -133,7 +136,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: ['p75(span.duration)'],
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          orderby: `-sum(span.duration)`,
+          orderby: '-sum(span.duration)',
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -159,7 +162,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: ['p75(span.duration)'],
           aggregates: ['p75(span.duration)'],
           columns: [SpanFields.SPAN_DOMAIN],
-          orderby: `-sum(span.duration)`,
+          orderby: '-sum(span.duration)',
           linkedDashboards: [
             {dashboardId: '-1', field: SpanFields.SPAN_DOMAIN, staticDashboardId: 5},
           ],
@@ -182,7 +185,7 @@ const TABLE_FIELDS = [
   `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
   `count_unique(${SpanFields.USER})`,
   `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-  `equation|performance_score(measurements.score.total)`,
+  'equation|performance_score(measurements.score.total)',
 ];
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -204,20 +207,20 @@ const TRANSACTIONS_TABLE: Widget = {
         `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
         `count_unique(${SpanFields.USER})`,
         `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `equation|performance_score(measurements.score.total)`,
+        'equation|performance_score(measurements.score.total)',
       ],
       fields: TABLE_FIELDS,
       fieldAliases: [
-        t('Starred'),
+        '',
         t('Transaction'),
         t('Project'),
         t('TPM'),
-        t('p50()'),
-        t('p75()'),
-        t('p95()'),
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p75,
+        WIDGET_COLUMN_LABELS.p95,
         t('Failure Rate'),
         t('Users'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Performance Score'),
       ],
       columns: [
@@ -255,4 +258,9 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with frontend tracing',
+  },
 };

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
@@ -13,10 +13,10 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -24,9 +24,9 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
-import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {DurationChart} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import {SampleTable} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   SpanFields,

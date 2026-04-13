@@ -20,7 +20,7 @@ type State = {
   focused: boolean;
 };
 
-const TimePicker = styled(
+export const TimePicker = styled(
   class TimePicker extends Component<Props, State> {
     state: State = {
       focused: false,
@@ -133,5 +133,3 @@ const Input = styled('input')`
     }
   }
 `;
-
-export default TimePicker;

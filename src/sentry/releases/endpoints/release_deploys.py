@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -122,11 +122,11 @@ def create_deploy(
     )
 
     for project in projects:
-        ReleaseProjectEnvironment.objects.create_or_update(
+        ReleaseProjectEnvironment.objects.update_or_create(
             release=release,
             environment=env,
             project=project,
-            values={"last_deploy_id": deploy.id},
+            defaults={"last_deploy_id": deploy.id},
         )
 
     Deploy.notify_if_ready(deploy.id)
@@ -135,7 +135,7 @@ def create_deploy(
 
 
 @extend_schema(tags=["Releases"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
@@ -207,9 +207,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             )
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
-            # Logic here copied from `has_release_permission` (lightly edited for results to be more
-            # human-readable)
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             if request.user.is_authenticated:
                 auth = f"user.id: {request.user.id}"
             elif request.auth is not None:

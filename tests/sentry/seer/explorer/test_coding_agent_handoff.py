@@ -23,7 +23,7 @@ def _repo(owner: str, name: str) -> SeerRepoDefinition:
 class TestLaunchCodingAgents(TestCase):
     """Tests for launch_coding_agents function."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.run_id = 12345
@@ -209,7 +209,7 @@ MOCK_HANDOFF_PATH = "sentry.seer.explorer.coding_agent_handoff"
 
 
 class TestResolveClient(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
 
@@ -229,21 +229,18 @@ class TestResolveClient(TestCase):
         mock_validate.assert_called_once_with(self.organization, 1)
 
     @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
-    def test_returns_client_for_claude_code(self, mock_validate):
+    def test_returns_installation_for_claude_code(self, mock_validate):
         mock_integration = MagicMock()
         mock_integration.provider = "claude_code"
         mock_installation = MagicMock()
-        mock_client = MagicMock()
-        mock_installation.get_client.return_value = mock_client
         mock_validate.return_value = (mock_integration, mock_installation)
 
         client, installation = _resolve_client(
             self.organization, integration_id=1, provider=None, user_id=None
         )
 
-        assert client is mock_client
-        assert installation is None
-        mock_installation.get_client.assert_called_once()
+        assert client is None
+        assert installation is mock_installation
 
     @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
     @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
@@ -284,6 +281,6 @@ class TestResolveClient(TestCase):
                 self.organization, integration_id=None, provider="github_copilot", user_id=None
             )
 
-    def test_raises_validation_error_when_no_integration_or_provider(self):
+    def test_raises_validation_error_when_no_integration_or_provider(self) -> None:
         with pytest.raises(ValidationError):
             _resolve_client(self.organization, integration_id=None, provider=None, user_id=None)

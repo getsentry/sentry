@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
@@ -12,25 +12,26 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import Duration from 'sentry/components/duration/duration';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Duration} from 'sentry/components/duration/duration';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
-import useDeleteReplays, {
+import {
+  useDeleteReplays,
   type ReplayBulkDeletePayload,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -41,7 +42,7 @@ interface Props {
   selectedIds: 'all' | string[];
 }
 
-export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
   const organization = useOrganization();
@@ -74,13 +75,14 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
 
   const settingsPath = `/settings/${organization.slug}/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
-  const queryKey = useReplayBulkDeleteAuditLogQueryKey({
-    projectSlug: project?.slug ?? '',
-    query: {referrer: analyticsArea},
-  });
-  const refetchAuditLog = useCallback(() => {
-    queryClient.invalidateQueries({queryKey});
-  }, [queryClient, queryKey]);
+  const refetchAuditLog = () => {
+    queryClient.invalidateQueries({
+      queryKey: replayBulkDeleteAuditLogApiOptions(organization, {
+        projectSlug: project?.slug ?? '',
+        query: {referrer: analyticsArea},
+      }).queryKey,
+    });
+  };
 
   return (
     <Tooltip

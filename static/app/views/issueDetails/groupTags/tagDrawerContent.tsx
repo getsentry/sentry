@@ -1,19 +1,19 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
+import {TagDetailsLink} from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export default function TagDrawerContent({
+export function TagDrawerContent({
   group,
   organization,
   project,

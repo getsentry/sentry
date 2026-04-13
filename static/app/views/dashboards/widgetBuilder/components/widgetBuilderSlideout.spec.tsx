@@ -10,10 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   useSpanItemAttributes,
@@ -646,6 +646,107 @@ describe('WidgetBuilderSlideout', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
     });
+  });
+
+  it('should show the markdown content field for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              displayType: DisplayType.TEXT,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Write your markdown here...')
+    ).toBeInTheDocument();
+  });
+
+  it('should not show the dataset selector for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              displayType: DisplayType.TEXT,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Write your markdown here...')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Errors'})).not.toBeInTheDocument();
+  });
+
+  it('should not show the sort by step for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/dashboards/',
+            query: {
+              displayType: DisplayType.TEXT,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Write your markdown here...')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
   });
 
   it('should not show the group by selector if the widget is an issue and a chart display type', async () => {

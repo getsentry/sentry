@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 
 export type BeaconData = {
   email: string;
@@ -21,7 +21,7 @@ type Props = {
   data: BeaconData;
 };
 
-function BeaconOverview({data}: Props) {
+export function BeaconOverview({data}: Props) {
   return (
     <DetailsContainer>
       <DetailList>
@@ -54,5 +54,3 @@ function BeaconOverview({data}: Props) {
     </DetailsContainer>
   );
 }
-
-export default BeaconOverview;

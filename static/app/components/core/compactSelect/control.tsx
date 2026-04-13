@@ -23,14 +23,14 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import useOverlay from 'sentry/utils/useOverlay';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOverlay} from 'sentry/utils/useOverlay';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
 import type {
@@ -590,6 +590,7 @@ export const TriggerLabel = styled('span')`
 `;
 
 const StyledBadge = styled(Badge)`
+  margin-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
   top: auto;
 `;
@@ -642,7 +643,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   }
 `;
 
-const ClearButton = styled(Button)`
+export const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
@@ -682,7 +683,7 @@ const StyledOverlay = styled(Overlay, {
   ${p => p.width && `width: ${withUnits(p.width)};`}
   ${p => p.height && `height: ${withUnits(p.height)};`}
   ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
-  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
   max-height: ${p =>
     p.maxHeight
       ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`

@@ -5,8 +5,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', () => {

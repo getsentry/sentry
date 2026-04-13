@@ -28,8 +28,8 @@ import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
@@ -49,24 +49,28 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {
   DEFAULT_WIDGET_NAME,
+  DisplayType,
   MAX_WIDGETS,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
-  getDashboardFiltersFromURL,
+  getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
   isWidgetEditable,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  addWidgetBuilderSessionStorageParams,
+  NEW_DASHBOARD_ID,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -139,8 +143,7 @@ function AddToDashboardModal({
   const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
   const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
   const shouldOpenWidgetLibrary =
-    !isWidgetEditable(widget.displayType) ||
-    (widgetTemplate && widgetTemplate.isCustomizable === false);
+    !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
@@ -212,7 +215,11 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    const widgetAsQueryParams = convertWidgetToQueryParams(widget);
+
+    if (page === 'builder') {
+      addWidgetBuilderSessionStorageParams(widget);
+    }
 
     navigate(
       normalizeUrl({
@@ -242,6 +249,13 @@ function AddToDashboardModal({
 
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
+      if (w.displayType === DisplayType.TEXT) {
+        return {
+          ...w,
+          title: hasMultipleWidgets ? (w.title ?? DEFAULT_WIDGET_NAME) : newWidgetTitle,
+        };
+      }
+
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
       if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
@@ -361,7 +375,7 @@ function AddToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -432,7 +446,7 @@ function AddToDashboardModal({
                 placeholder={t('Select Dashboard')}
                 value={selectedDashboardId}
                 options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                onChange={(option: SelectValue<string>) => {
+                onChange={option => {
                   if (option.disabled) {
                     return;
                   }
@@ -469,7 +483,16 @@ function AddToDashboardModal({
               organization={organization}
               eventView={eventViewFromWidget(
                 newWidgetTitle,
-                widget.queries[0]!,
+                widget.displayType === DisplayType.TEXT
+                  ? {
+                      name: '',
+                      fields: [],
+                      aggregates: [],
+                      columns: [],
+                      orderby: '',
+                      conditions: '',
+                    }
+                  : widget.queries[0]!,
                 selection
               )}
               location={location}
@@ -492,10 +515,10 @@ function AddToDashboardModal({
                             ? getSavedFiltersAsPageFilters(selectedDashboard)
                             : selection
                         }
-                        dashboardFilters={
-                          getDashboardFiltersFromURL(location) ??
-                          selectedDashboard?.filters
-                        }
+                        dashboardFilters={getMergedDashboardFilters(
+                          selectedDashboard?.filters,
+                          location
+                        )}
                         widget={{
                           ...widget,
                           title: newWidgetTitle,

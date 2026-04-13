@@ -195,8 +195,11 @@ def safe_urlencode(query, **kwargs):
     """
     django.utils.http.urlencode wrapper that replaces query parameter values
     of None with empty string so that urlencode doesn't raise TypeError
-    "Cannot encode None in a query string".
+    "Cannot encode None in a query string". Returns empty string if query
+    itself is None.
     """
+    if query is None:
+        return ""
     # sequence of 2-element tuples
     if isinstance(query, (list, tuple)):
         query_seq = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)

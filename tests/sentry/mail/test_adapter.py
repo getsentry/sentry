@@ -912,7 +912,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event.group.substatus = GroupSubStatus.REGRESSED
         event.group.save()
 
-        features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
+        features = ["organizations:session-replay"]
         with self.feature(features):
             with self.tasks():
                 notification = Notification(event=event)
@@ -1526,7 +1526,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
         )
 
-        features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
+        features = ["organizations:session-replay"]
         with self.feature(features), self.tasks():
             self.adapter.notify_digest(
                 project,

@@ -14,7 +14,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.release_thresholds.constants import CRASH_SESSIONS_DISPLAY
@@ -98,7 +98,7 @@ class ReleaseThresholdStatusIndexSerializer(
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Releases"])
 class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE

@@ -160,7 +160,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -197,7 +197,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_check_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -238,7 +238,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -263,7 +263,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_check_no_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -292,7 +292,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_get_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -321,7 +321,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     def test_get_stacktrace_link(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -364,7 +364,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
     ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -527,7 +527,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = VstsProxyApiTestClient(**client_kwargs)
             client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 

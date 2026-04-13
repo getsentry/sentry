@@ -104,7 +104,13 @@ export function getTargetWithReadableQueryParams(
   updateNullableLocation(target, LOGS_QUERY_KEY, writableQueryParams.query);
 
   updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
-  updateNullableLocation(target, LOGS_FIELDS_KEY, writableQueryParams.fields);
+  updateNullableLocation(
+    target,
+    LOGS_FIELDS_KEY,
+    writableQueryParams.fields === null
+      ? null
+      : writableQueryParams.fields?.filter(Boolean)
+  );
   updateNullableLocation(
     target,
     LOGS_SORT_BYS_KEY,

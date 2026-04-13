@@ -14,13 +14,13 @@ type Props = React.PropsWithChildren<{
   organization: Organization;
 }>;
 
-function PerformanceNewProjectPrompt({organization}: Props) {
+export function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
       <StyledAlert variant="info">
         <Container>
           {t(
-            `Performance is available for your platform, but your organization's plan does not include performance monitoring.`
+            "Performance is available for your platform, but your organization's plan does not include performance monitoring."
           )}
           <StyledButton
             size="sm"
@@ -75,5 +75,3 @@ const StyledAlert = styled(Alert)`
     align-items: flex-start;
   }
 `;
-
-export default PerformanceNewProjectPrompt;

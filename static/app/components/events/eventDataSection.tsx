@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {DataSection} from 'sentry/components/events/styles';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 
 export interface EventDataSectionProps {

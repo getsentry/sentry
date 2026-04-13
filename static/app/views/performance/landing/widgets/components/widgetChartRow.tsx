@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getChartSetting} from 'sentry/views/performance/landing/widgets/utils';
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-import WidgetContainer from './widgetContainer';
+import {WidgetContainer} from './widgetContainer';
 
 export interface ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];

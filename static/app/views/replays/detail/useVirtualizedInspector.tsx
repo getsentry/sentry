@@ -11,7 +11,7 @@ export type OnExpandCallback = (
   expandedState: Record<string, boolean>
 ) => void;
 
-export default function useVirtualizedInspector({expandPathsRef, onMeasure}: Opts) {
+export function useVirtualizedInspector({expandPathsRef, onMeasure}: Opts) {
   return {
     expandPaths: expandPathsRef.current,
     handleDimensionChange: useCallback(

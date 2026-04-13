@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.db import router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
 from sentry.incidents.models.incident import (
@@ -20,7 +21,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import alerts_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def handle_snuba_query_update(
     namespace=alerts_tasks,
     retry=Retry(times=5, delay=60),
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def handle_trigger_action(
     action_id: int,
@@ -106,7 +106,7 @@ def handle_trigger_action(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     namespace=alerts_tasks,
     retry=Retry(times=2, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status

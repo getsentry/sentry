@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback, useMemo} from 'react';
+import {Component, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -7,6 +7,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
@@ -14,22 +15,22 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {
   normalizeDateTimeParams,
   normalizeDateTimeString,
 } from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tctCode} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -37,11 +38,11 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverDatasets,
@@ -49,25 +50,25 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DEFAULT_EVENT_VIEW,
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
-import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
-import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
+import {ResultsHeaderWrapper as ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
+import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
 import {
@@ -115,7 +116,7 @@ const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 function readShowTagsState() {
-  const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
+  const value = localStorageWrapper.getItem(SHOW_TAGS_STORAGE_KEY);
   return value === '1';
 }
 
@@ -428,7 +429,7 @@ export class Results extends Component<Props, State> {
     });
     this.setState(state => {
       const newValue = !state.showTags;
-      localStorage.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
+      localStorageWrapper.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
       return {...state, showTags: newValue};
     });
   };
@@ -836,7 +837,7 @@ export class Results extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <Fragment>
+        <Stack flex={1}>
           <ResultsHeader
             setSavedQuery={setSavedQuery}
             errorCode={errorCode}
@@ -941,7 +942,7 @@ export class Results extends Component<Props, State> {
               </Confirm>
             </CustomMeasurementsProvider>
           </Layout.Body>
-        </Fragment>
+        </Stack>
       </SentryDocumentTitle>
     );
   }

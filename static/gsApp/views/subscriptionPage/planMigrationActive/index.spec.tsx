@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId} from 'getsentry/types';
-import PlanMigrationActive from 'getsentry/views/subscriptionPage/planMigrationActive/index';
+import {PlanMigrationActive} from 'getsentry/views/subscriptionPage/planMigrationActive/index';
 
 describe('PlanMigrationActive cohort 2', () => {
   const organization = OrganizationFixture();

@@ -12,7 +12,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import PendingChanges from 'admin/components/customers/pendingChanges';
+import {PendingChanges} from 'admin/components/customers/pendingChanges';
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {ANNUAL, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';

@@ -3,12 +3,9 @@ import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 
-import {IconGrabbable} from 'sentry/icons';
-import {t} from 'sentry/locale';
-
-function SortableVisualizeFieldWrapper({
+export function SortableVisualizeFieldWrapper({
   dragId,
   canDrag,
   children,
@@ -47,25 +44,16 @@ function SortableVisualizeFieldWrapper({
   return (
     <div ref={setNodeRef} style={style}>
       {canDrag && (
-        <DragAndReorderButton
-          {...listeners}
-          {...attributes}
-          aria-label={t('Drag to reorder')}
-          icon={<IconGrabbable size="xs" />}
-          size="zero"
-          priority="transparent"
-          isDragging={isDragging}
-        />
+        <StyledDragReorderButton {...listeners} {...attributes} isDragging={isDragging} />
       )}
       {children}
     </div>
   );
 }
 
-export default SortableVisualizeFieldWrapper;
-
-const DragAndReorderButton = styled(Button)<{isDragging: boolean}>`
+const StyledDragReorderButton = styled(DragReorderButton)<{isDragging: boolean}>`
   height: ${p => p.theme.form.md.height};
+  cursor: grab;
 
   ${p => p.isDragging && p.theme.visuallyHidden}
 `;

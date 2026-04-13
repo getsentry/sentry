@@ -52,7 +52,7 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
   ];
 };
 
-function PolicyRevisions({policy, onUpdate}: Props) {
+export function PolicyRevisions({policy, onUpdate}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -84,5 +84,3 @@ const FileName = styled('div')`
   margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default PolicyRevisions;

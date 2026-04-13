@@ -13,7 +13,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function TrialBadge({subscription, organization}: Props) {
+export function TrialBadge({subscription, organization}: Props) {
   if (subscription.isTrial) {
     return (
       <Tag variant="promotion">
@@ -37,5 +37,3 @@ function TrialBadge({subscription, organization}: Props) {
 const TrialText = styled('span')`
   font-weight: 400;
 `;
-
-export default TrialBadge;

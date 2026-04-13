@@ -1,7 +1,0 @@
----
-globs:
-  - 'static/**/*.{ts,tsx,js,jsx}'
-  - 'static/**/*.{css,scss}'
----
-
-@file:static/AGENTS.md

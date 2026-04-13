@@ -7,12 +7,12 @@ from sentry.models.group import Group
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import get_unique_active_actions
 
 
-@region_silo_test
+@cell_silo_test
 class TestActionDeduplication(TestCase):
     """
     Tests that we correctly deduplicate actions

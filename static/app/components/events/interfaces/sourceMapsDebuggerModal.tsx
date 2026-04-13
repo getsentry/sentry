@@ -18,7 +18,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {
   IconCheckmark,
   IconCircle,
@@ -29,15 +29,15 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -210,11 +210,13 @@ function getPlatform({
 export function getSourceMapsDocLinks(platform: string) {
   if (platform === 'react-native') {
     return {
-      sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
-      legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
-      sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
-      bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
-      debugIds: `https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/`,
+      sourcemaps: 'https://docs.sentry.io/platforms/react-native/sourcemaps/',
+      legacyUploadingMethods:
+        'https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/',
+      sentryCli: 'https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/',
+      bundlerPluginRepoLink:
+        'https://docs.sentry.io/platforms/react-native/manual-setup/metro/',
+      debugIds: 'https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/',
     };
   }
 
@@ -228,7 +230,8 @@ export function getSourceMapsDocLinks(platform: string) {
     // Although we have a few specific sourcemap pages (see: https://github.com/getsentry/sentry-docs/tree/master/platform-includes/sourcemaps/primer),
     // they don't include the Sentry bundler section. All the others just render content for JavaScript.
     // Therefore, we have a static link here.
-    sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
+    sentryBundleSupport:
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support',
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
     debugIds: ['cordova', 'capacitor'].includes(platform)
       ? undefined
@@ -266,7 +269,8 @@ export function getSourceMapsDocLinks(platform: string) {
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
-    bundlerPluginRepoLink: `https://github.com/getsentry/sentry-javascript-bundler-plugins`,
+    bundlerPluginRepoLink:
+      'https://github.com/getsentry/sentry-javascript-bundler-plugins',
   };
 }
 

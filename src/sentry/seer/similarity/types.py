@@ -38,9 +38,9 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     read_only: NotRequired[bool]
     event_id: NotRequired[str]
     referrer: NotRequired[str]
-    use_reranking: NotRequired[bool]
     model: NotRequired[GroupingVersion]  # Model version, defaults to V1 for backward compatibility
     training_mode: NotRequired[bool]  # whether to just insert embedding without querying
+    platform: NotRequired[str]
 
 
 class RawSeerSimilarIssueData(TypedDict):
@@ -51,6 +51,7 @@ class RawSeerSimilarIssueData(TypedDict):
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
     responses: list[RawSeerSimilarIssueData]
+    model_used: NotRequired[str]
 
 
 # Like the data that comes back from seer, but guaranteed to have an existing parent hash

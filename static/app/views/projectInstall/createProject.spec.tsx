@@ -11,11 +11,11 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
@@ -90,7 +90,7 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/`,
+      url: '/organizations/org-slug/integrations/',
       body: [integration],
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
@@ -781,7 +781,9 @@ describe('CreateProject', () => {
       expect(await screen.findByText('Channel not found')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
-      expect(await screen.findByText('Channel not found')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getAllByText('Channel not found')).toHaveLength(2)
+      );
       await userEvent.click(screen.getByLabelText('Clear choices'));
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
       expect(

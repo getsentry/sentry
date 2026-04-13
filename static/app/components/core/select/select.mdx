@@ -19,9 +19,7 @@ import {Select} from '@sentry/scraps/select';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/select';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/select');
 
 `<Select>` is a dropdown component for choosing one or multiple items from a list of options. It supports searching, clearing selections, custom option rendering with icons, and both single and multi-select modes.
 
@@ -580,12 +578,6 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 - **Enter/Space**: Select option or open dropdown
 - **Escape**: Close dropdown
 - **Type to search**: When `isSearchable` is enabled
-
-**Required Fields**
-
-- Use the `required` prop for required fields
-- Indicate visually in the label (e.g., with an asterisk)
-- Provide clear validation feedback
 
 **Error Handling**
 

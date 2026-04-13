@@ -95,7 +95,7 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
         self.integration_id = integration_id
 
         integration: Integration | RpcIntegration | None
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             """
             # In order to send requests, SlackClient needs to fetch the integration
             # to get access tokens which trips up rpc method/transaction

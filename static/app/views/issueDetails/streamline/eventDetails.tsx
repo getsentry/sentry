@@ -2,12 +2,13 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {
   EventDetailsContent,
   type EventDetailsContentProps,
@@ -15,7 +16,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
@@ -28,10 +29,14 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
     );
   }
 
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event content')}>
       <GroupContent role="main">
-        <StickyEventNav event={event} group={group} />
+        {issueTypeConfig.header.eventNavigation.enabled && (
+          <StickyEventNav event={event} group={group} />
+        )}
         <ContentPadding>
           <EventDetailsContent group={group} event={event} project={project} />
         </ContentPadding>
@@ -46,7 +51,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {dispatch} = useIssueDetails();
-  const sidebarHeight = isScreenMedium ? NAV_MOBILE_TOPBAR_HEIGHT : 0;
+  const sidebarHeight = isScreenMedium ? NAVIGATION_MOBILE_TOPBAR_HEIGHT : 0;
 
   useLayoutEffect(() => {
     if (!nav) {

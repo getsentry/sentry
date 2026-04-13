@@ -1,4 +1,4 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 export function extraQueryParameter(): URLSearchParams {

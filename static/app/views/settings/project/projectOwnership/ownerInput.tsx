@@ -7,10 +7,10 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import TimeSince from 'sentry/components/timeSince';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -46,7 +46,7 @@ function parseError(error: InputError | null) {
   return <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />;
 }
 
-function OwnerInput({
+export function OwnerInput({
   dateUpdated,
   disabled = false,
   initialText,
@@ -226,5 +226,3 @@ const SyncDate = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
-
-export default OwnerInput;

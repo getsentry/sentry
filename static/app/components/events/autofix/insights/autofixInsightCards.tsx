@@ -123,7 +123,7 @@ function AutofixInsightCardsDisplay({
   );
 }
 
-export default function AutofixInsightCards(props: AutofixInsightCardsProps) {
+export function AutofixInsightCards(props: AutofixInsightCardsProps) {
   return <AutofixInsightCardsDisplay {...props} />;
 }
 

@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -64,7 +64,7 @@ describe('FullSpanDescription', () => {
           {
             project: project.slug,
             span_id: spanId,
-            'span.description': `{"insert": "my_cool_collection😎", "a": {}}`,
+            'span.description': '{"insert": "my_cool_collection😎", "a": {}}',
             'db.system': 'mongodb',
           },
         ],
@@ -92,7 +92,8 @@ describe('FullSpanDescription', () => {
           {
             project: project.slug,
             span_id: spanId,
-            'span.description': `{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*`,
+            'span.description':
+              '{"insert": "my_cool_collection😎", "a": {}, "uh_oh":"the_query_is_truncated", "ohno*',
             'db.system': 'mongodb',
           },
         ],

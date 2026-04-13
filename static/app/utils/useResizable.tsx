@@ -45,7 +45,7 @@ interface UseResizableOptions {
  *
  * Currently only supports resizing width and not height.
  */
-const useResizable = ({
+export const useResizable = ({
   ref,
   initialSize = RESIZABLE_DEFAULT_WIDTH,
   maxWidth = RESIZABLE_MAX_WIDTH,
@@ -146,5 +146,3 @@ const useResizable = ({
     onMouseDown: handleMouseDown,
   };
 };
-
-export default useResizable;

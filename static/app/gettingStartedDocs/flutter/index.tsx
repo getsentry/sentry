@@ -6,7 +6,7 @@ import {onboarding} from 'sentry/gettingStartedDocs/flutter/onboarding';
 import {sessionReplay} from 'sentry/gettingStartedDocs/flutter/sessionReplay';
 import {userFeedback} from 'sentry/gettingStartedDocs/flutter/userFeedback';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: userFeedback,
   crashReportOnboarding: crashReport,
@@ -14,5 +14,3 @@ const docs: Docs = {
   logsOnboarding: logs,
   metricsOnboarding: metrics,
 };
-
-export default docs;

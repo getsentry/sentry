@@ -17,7 +17,7 @@ interface Props {
   collapsible?: boolean;
 }
 
-export default function Accordion({
+export function Accordion({
   expandedIndex,
   setExpandedIndex,
   items,

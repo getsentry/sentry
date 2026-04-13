@@ -405,3 +405,16 @@ export interface ProjectSeerPreferences {
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;
+
+export function getCodingAgentName(provider: string | undefined): string {
+  switch (provider) {
+    case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
+      return t('Cursor Cloud Agent');
+    case CodingAgentProvider.CLAUDE_CODE_AGENT:
+      return t('Claude Agent');
+    case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+      return t('GitHub Copilot');
+    default:
+      return t('Coding Agent');
+  }
+}

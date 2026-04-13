@@ -8,7 +8,7 @@ import {
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -35,6 +35,8 @@ import {
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
+import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 
 enum CustomOperator {
   BETWEEN = 'between',
@@ -205,7 +207,7 @@ function useBetweenOperatorFilter(
   };
 }
 
-function NumericFilterSelector({
+export function NumericFilterSelector({
   globalFilter,
   onRemoveFilter,
   onUpdateFilter,
@@ -328,9 +330,11 @@ function NumericFilterSelector({
         </MenuBodyWrap>
       }
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>
-          {filter.renderSelectorTrigger()}
-        </OverlayTrigger.Button>
+        <Container maxWidth={FILTER_SELECTOR_TRIGGER_MAX_WIDTH}>
+          <OverlayTrigger.Button {...triggerProps}>
+            {filter.renderSelectorTrigger()}
+          </OverlayTrigger.Button>
+        </Container>
       )}
       menuFooter={
         hasStagedChanges
@@ -353,8 +357,6 @@ function NumericFilterSelector({
     />
   );
 }
-
-export default NumericFilterSelector;
 
 const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};

@@ -1,8 +1,9 @@
 import {t} from 'sentry/locale';
+import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const configurationIssuesConfig: IssueCategoryConfigMapping = {
+export const configurationIssuesConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -34,6 +35,7 @@ const configurationIssuesConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'discover-events'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
@@ -51,6 +53,14 @@ const configurationIssuesConfig: IssueCategoryConfigMapping = {
     discover: {enabled: false},
     groupingInfo: {enabled: false},
   },
+  [IssueType.SOURCEMAP_CONFIGURATION]: {
+    evidence: null,
+    header: {
+      filterBar: {enabled: false},
+      graph: {enabled: false},
+      eventNavigation: {enabled: false},
+      tagDistribution: {enabled: false},
+      occurrenceSummary: {enabled: false},
+    },
+  },
 };
-
-export default configurationIssuesConfig;

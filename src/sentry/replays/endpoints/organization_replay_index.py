@@ -6,9 +6,8 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import parse_search_query
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -26,10 +25,9 @@ from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

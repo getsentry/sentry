@@ -6,7 +6,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseContext} from 'sentry/views/releases/detail';

@@ -6,8 +6,8 @@ import type {Client, ResponseMeta} from 'sentry/api';
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
-import ConfigStore from './stores/configStore';
-import OrganizationStore from './stores/organizationStore';
+import {ConfigStore} from './stores/configStore';
+import {OrganizationStore} from './stores/organizationStore';
 
 jest.unmock('sentry/api');
 

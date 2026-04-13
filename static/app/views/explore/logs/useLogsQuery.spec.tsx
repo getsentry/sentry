@@ -6,7 +6,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {InfiniteData} from 'sentry/utils/queryClient';

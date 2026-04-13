@@ -5,7 +5,7 @@ import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 export function useMcpSpanSearchProps() {

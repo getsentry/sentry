@@ -8,7 +8,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -20,7 +20,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
@@ -45,7 +45,7 @@ const integrationReposOptions = (
     }
   );
 
-export default function RepositoryProjectPathConfigModal({
+export function RepositoryProjectPathConfigModal({
   Body,
   Footer,
   Header,
@@ -86,10 +86,10 @@ export default function RepositoryProjectPathConfigModal({
   const repoOptions = repos.map(({name, id}) => ({value: id, label: name}));
 
   const endpoint = existingConfig
-    ? getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/$configId/`, {
+    ? getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
         path: {organizationIdOrSlug: organization.slug, configId: existingConfig.id},
       })
-    : getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+    : getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
         path: {organizationIdOrSlug: organization.slug},
       });
 

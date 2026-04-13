@@ -104,5 +104,4 @@ const storeConfig: OrganizationsStoreDefinition = {
   },
 };
 
-const OrganizationsStore = createStore(storeConfig);
-export default OrganizationsStore;
+export const OrganizationsStore = createStore(storeConfig);

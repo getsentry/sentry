@@ -6,6 +6,7 @@ from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
@@ -313,3 +314,39 @@ class ApiTokensStaffTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert ApiToken.objects.filter(id=self.user_token.id).exists()
         assert ApiToken.objects.filter(id=self.staff_token.id).exists()
+
+
+@control_silo_test
+class ApiTokensImpersonationTest(APITestCase):
+    url = reverse("sentry-api-0-api-tokens")
+
+    def setUp(self) -> None:
+        self.impersonator = self.create_user(is_superuser=True)
+        self.target_user = self.create_user()
+
+    def test_impersonated_post_blocked(self) -> None:
+        self.login_as(self.target_user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.post(self.url, data={"scopes": ["event:read"]})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not ApiToken.objects.filter(user=self.target_user).exists()
+
+    def test_impersonated_delete_blocked(self) -> None:
+        token = ApiToken.objects.create(user=self.target_user)
+        self.login_as(self.target_user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.delete(self.url, data={"tokenId": token.id})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+    def test_impersonated_get_allowed(self) -> None:
+        ApiToken.objects.create(user=self.target_user)
+        self.login_as(self.target_user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.get(self.url)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_non_impersonated_post_allowed(self) -> None:
+        self.login_as(self.target_user)
+        response = self.client.post(self.url, data={"scopes": ["event:read"]})
+        assert response.status_code == status.HTTP_201_CREATED

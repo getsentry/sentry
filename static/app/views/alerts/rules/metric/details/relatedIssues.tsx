@@ -5,11 +5,11 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GroupList from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,7 +35,7 @@ interface Props {
   skipHeader?: boolean;
 }
 
-export default function RelatedIssues({
+export function RelatedIssues({
   rule,
   organization,
   projects,

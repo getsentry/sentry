@@ -44,6 +44,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -52,6 +53,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -916,12 +918,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -3373,8 +3377,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
         assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
             {
@@ -3444,7 +3447,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "id": str(widget_query.id),
                             "name": "Query with Links",
                             "fields": ["count()", "project", "environment"],
-                            "columns": ["project"],
+                            "columns": ["project", "environment"],
                             "aggregates": ["count()"],
                             "conditions": "event.type:error",
                             "linkedDashboards": [
@@ -3457,8 +3460,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(dashboard.id), data=data)
+        response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(dashboard.id)
@@ -3536,8 +3538,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(dashboard.id), data=data)
+        response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(dashboard.id)
@@ -3604,10 +3605,71 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(dashboard.id), data=data)
+        response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Field links are only supported for table widgets" in response.content
+        assert (
+            b"Field links are only supported for table widgets and breakdown charts"
+            in response.content
+        )
+
+    def test_create_breakdown_chart_with_field_links(self) -> None:
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        data: dict[str, Any] = {
+            "title": "Dashboard with Breakdown Links",
+            "widgets": [
+                {
+                    "title": "Breakdown Line Chart",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "limit": 5,
+                    "legendType": "breakdown",
+                    "widgetType": "error-events",
+                    "queries": [
+                        {
+                            "name": "Query with Links",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "orderby": "-count()",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id}
+                            ],
+                        }
+                    ],
+                    "datasetSource": "user",
+                }
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widget_response = response.data["widgets"][0]
+        assert widget_response["legendType"] == "breakdown"
+        assert widget_response["queries"][0]["linkedDashboards"] == [
+            {
+                "field": "project",
+                "dashboardId": linked_dashboard.id,
+            }
+        ]
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        widget = widgets[0]
+        assert widget.detail.get("legend_type") == "breakdown"
+
+        queries = widget.dashboardwidgetquery_set.all()
+        field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
+        assert len(field_links) == 1
+        assert field_links[0].field == "project"
+        assert field_links[0].dashboard_id == linked_dashboard.id
 
     def test_does_not_update_if_linked_dashboard_does_not_appear_in_fields(self) -> None:
         dashboard = self.create_dashboard(
@@ -3665,10 +3727,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 }
             ],
         }
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(dashboard.id), data=data)
+        response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Linked dashboard does not appear in the fields of the query" in response.content
+        assert (
+            b"Linked dashboard field does not appear in the columns of the widget query"
+            in response.content
+        )
 
     def test_rejects_cross_org_linked_dashboard(self) -> None:
         other_org = self.create_organization(name="other-org")
@@ -3702,8 +3766,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not exist" in response.content
 
@@ -3741,8 +3804,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
         assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
             {
@@ -3774,8 +3836,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
 
-        with self.feature("organizations:dashboards-drilldown-flow"):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Linked dashboard does not exist" in response.content
 

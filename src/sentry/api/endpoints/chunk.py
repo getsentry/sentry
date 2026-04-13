@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_locality_url
 from sentry.models.files.fileblob import FileBlob
@@ -85,7 +85,7 @@ class ChunkUploadPermission(OrganizationReleasePermission):
         return super().has_object_permission(request, view, organization)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

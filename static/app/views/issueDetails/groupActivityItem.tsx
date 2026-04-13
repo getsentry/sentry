@@ -4,11 +4,11 @@ import moment from 'moment-timezone';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import PullRequestLink from 'sentry/components/pullRequestLink';
-import Version from 'sentry/components/version';
+import {Duration} from 'sentry/components/duration';
+import {PullRequestLink} from 'sentry/components/pullRequestLink';
+import {Version} from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   Group,
@@ -96,7 +96,7 @@ interface GroupActivityItemProps {
   projectId: Project['id'];
 }
 
-function GroupActivityItem({
+export function GroupActivityItem({
   activity,
   organization,
   projectId,
@@ -612,8 +612,6 @@ function GroupActivityItem({
 
   return <Fragment>{renderContent()}</Fragment>;
 }
-
-export default GroupActivityItem;
 
 const Subtext = styled('div')`
   font-size: ${p => p.theme.font.size.sm};

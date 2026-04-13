@@ -11,7 +11,7 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Heading} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {
   IconClose,
   IconContract,
@@ -288,7 +288,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       type: 'treemap',
       animationEasing: 'quarticOut',
       animationDuration: 300,
-      height: `calc(100% - 22px)`,
+      height: 'calc(100% - 22px)',
       width: '100%',
       top: '22px',
       // Controls how many levels deep to render at once.

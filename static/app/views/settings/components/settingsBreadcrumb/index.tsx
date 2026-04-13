@@ -5,14 +5,14 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 
 import {useBreadcrumbsPathmap} from './context';
-import Divider from './divider';
+import {Divider} from './divider';
 import {OrganizationCrumb} from './organizationCrumb';
-import ProjectCrumb from './projectCrumb';
-import TeamCrumb from './teamCrumb';
+import {ProjectCrumb} from './projectCrumb';
+import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
@@ -27,7 +27,7 @@ type Props = {
   className?: string;
 };
 
-function SettingsBreadcrumb({className, routes, params}: Props) {
+export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
@@ -48,7 +48,8 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         if (!route.name) {
           return null;
         }
-        const pathTitle = pathMap[getRouteStringFromRoutes(routes.slice(0, i + 1))];
+        const pathTitle =
+          pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
         const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
@@ -91,5 +92,3 @@ export const CrumbLink = styled(RouterLink)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default SettingsBreadcrumb;

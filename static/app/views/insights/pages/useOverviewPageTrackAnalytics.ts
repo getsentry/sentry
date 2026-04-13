@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 export function useOverviewPageTrackPageload() {
@@ -33,7 +33,7 @@ export function useOverviewPageTrackPageload() {
   useEffect(() => {
     if (pageFilters.isReady && projects.initiallyLoaded) {
       const selectedPlatforms = JSON.parse(selectedPlatformsString);
-      trackAnalytics(`insights.page_loads.overview`, {
+      trackAnalytics('insights.page_loads.overview', {
         organization,
         platforms: selectedPlatforms,
         domain: view,

@@ -8,9 +8,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 
-import triggerChangeDatesModal from 'admin/components/changeDatesAction';
+import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 
 describe('ChangeDatesAction', () => {
   const organization = OrganizationFixture();

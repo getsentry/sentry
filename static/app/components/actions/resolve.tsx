@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
-import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
+import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
@@ -18,10 +18,10 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
-import useProjectLatestSemverRelease from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
+import {useProjectLatestSemverRelease} from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
 
 function SetupReleasesPrompt() {
   return (
@@ -69,7 +69,7 @@ interface ResolveActionsProps {
   size?: 'xs' | 'sm';
 }
 
-function ResolveActions({
+export function ResolveActions({
   size = 'xs',
   isResolved = false,
   isAutoResolved = false,
@@ -379,8 +379,6 @@ function ResolveActions({
     </Tooltip>
   );
 }
-
-export default ResolveActions;
 
 /**
  * Used to hide the list items when prompting to set up releases

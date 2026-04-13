@@ -12,26 +12,26 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Collapsible from 'sentry/components/collapsible';
+import {Collapsible} from 'sentry/components/collapsible';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {useUser} from 'sentry/utils/useUser';
-import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
+import {useFinalizeRelease} from 'sentry/views/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import ReleaseCardCommits from './releaseCardCommits';
-import ReleaseCardProjectRow from './releaseCardProjectRow';
+import {ReleaseCardCommits} from './releaseCardCommits';
+import {ReleaseCardProjectRow} from './releaseCardProjectRow';
 import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 
 function getReleaseProjectId(release: Release, selection: PageFilters) {
@@ -65,7 +65,7 @@ type Props = {
   showReleaseAdoptionStages: boolean;
 };
 
-function ReleaseCard({
+export function ReleaseCard({
   release,
   organization,
   activeDisplay,
@@ -503,5 +503,3 @@ const HiddenProjectsMessage = styled('div')`
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
-
-export default ReleaseCard;

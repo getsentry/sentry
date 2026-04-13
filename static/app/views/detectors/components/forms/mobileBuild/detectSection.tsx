@@ -1,18 +1,21 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import {t} from 'sentry/locale';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   PREPROD_DETECTOR_FORM_FIELDS,
   usePreprodDetectorFormField,
@@ -22,6 +25,7 @@ import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
+  isDiffThreshold,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from 'sentry/views/settings/project/preprod/types';
@@ -56,8 +60,7 @@ export function MobileBuildDetectSection() {
   return (
     <Fragment>
       <Container>
-        <Stack gap="md">
-          <Heading as="h3">{t('Choose Your Measurement')}</Heading>
+        <FormSection step={2} title={t('Choose Your Measurement')}>
           <MetricField
             name={PREPROD_DETECTOR_FORM_FIELDS.measurement}
             choices={metricOptions}
@@ -65,24 +68,35 @@ export function MobileBuildDetectSection() {
             flexibleControlStateSize
             preserveOnUnmount
           />
-        </Stack>
+        </FormSection>
       </Container>
 
       <Container>
-        <Stack gap="lg">
-          <section>
-            <Heading as="h3">{t('Issue Detection')}</Heading>
-            <MeasurementField
-              name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
-              choices={thresholdTypeOptions}
-              inline={false}
-              flexibleControlStateSize
-              preserveOnUnmount
-            />
-          </section>
-
+        <FormSection step={3} title={t('Issue Detection')}>
+          <MeasurementField
+            name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
+            choices={thresholdTypeOptions}
+            inline={false}
+            flexibleControlStateSize
+            preserveOnUnmount
+          />
+          {isDiffThreshold(thresholdType) && (
+            <Flex align="center" gap="sm">
+              <IconInfo size="xs" />
+              <Text variant="muted" size="sm">
+                {tct(
+                  "Compares against the previous build matching this monitor's filters, [platform], [packageName], and [buildConfiguration].",
+                  {
+                    platform: <InlineCode>platform</InlineCode>,
+                    packageName: <InlineCode>package_name</InlineCode>,
+                    buildConfiguration: <InlineCode>build_configuration</InlineCode>,
+                  }
+                )}
+              </Text>
+            </Flex>
+          )}
           <ThresholdSection thresholdType={thresholdType} />
-        </Stack>
+        </FormSection>
       </Container>
     </Fragment>
   );
@@ -116,6 +130,22 @@ type SupportedPriorityLevel = Extract<
   DetectorPriorityLevel.HIGH | DetectorPriorityLevel.LOW
 >;
 
+function validateAtLeastOneThreshold({
+  id,
+  form,
+}: {
+  form: Record<string, any>;
+  id: string;
+}): Array<[string, string]> {
+  const high = form[PREPROD_DETECTOR_FORM_FIELDS.highThreshold];
+  const low = form[PREPROD_DETECTOR_FORM_FIELDS.lowThreshold];
+
+  if (!high && !low) {
+    return [[id, t('At least one threshold is required')]];
+  }
+  return [];
+}
+
 function PriorityRow({
   priority,
   isPercentage,
@@ -123,19 +153,16 @@ function PriorityRow({
   isPercentage: boolean;
   priority: SupportedPriorityLevel;
 }) {
-  let required: boolean;
   let priorityLabel: string;
   let thresholdFieldName: string;
   switch (priority) {
     case DetectorPriorityLevel.HIGH:
       priorityLabel = t('High priority');
       thresholdFieldName = PREPROD_DETECTOR_FORM_FIELDS.highThreshold;
-      required = true;
       break;
     case DetectorPriorityLevel.LOW:
       priorityLabel = t('Low priority');
       thresholdFieldName = PREPROD_DETECTOR_FORM_FIELDS.lowThreshold;
-      required = false;
       break;
     default:
       return null;
@@ -144,17 +171,19 @@ function PriorityRow({
   return (
     <Flex align="center" gap="md">
       <PriorityDot priority={DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[priority]} />
-      <PriorityLabel>
-        {priorityLabel}
-        {required && <RequiredAsterisk>*</RequiredAsterisk>}
-      </PriorityLabel>
+      <PriorityLabel>{priorityLabel}</PriorityLabel>
       <Flex align="center" gap="md">
         <ThresholdField
           name={thresholdFieldName}
           placeholder="-"
           hideLabel
           inline
-          required={required}
+          required={false}
+          validate={
+            priority === DetectorPriorityLevel.HIGH
+              ? validateAtLeastOneThreshold
+              : undefined
+          }
           preserveOnUnmount
         />
         <ThresholdSuffix>{isPercentage ? '%' : 'MB'}</ThresholdSuffix>
@@ -198,11 +227,6 @@ const DefineThresholdParagraph = styled('div')`
 const PriorityLabel = styled('span')`
   min-width: 120px;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.tokens.content.danger};
-  margin-left: ${p => p.theme.space['2xs']};
 `;
 
 const ThresholdField = styled(NumberField)`

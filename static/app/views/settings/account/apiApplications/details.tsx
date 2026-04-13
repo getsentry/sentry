@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -7,38 +8,38 @@ import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
+import {Confirm} from 'sentry/components/confirm';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TextCopyInput from 'sentry/components/textCopyInput';
-import apiApplication from 'sentry/data/forms/apiApplication';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {forms as apiApplication} from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const PAGE_TITLE = t('Application Details');
 
 function getAppQueryKey(appId: string): ApiQueryKey {
   return [
-    getApiUrl(`/api-applications/$appId/`, {
+    getApiUrl('/api-applications/$appId/', {
       path: {appId},
     }),
   ];
@@ -54,6 +55,7 @@ function ApiApplicationsDetails() {
   const queryClient = useQueryClient();
 
   const urlPrefix = ConfigStore.get('urlPrefix');
+  const oauthBaseUrl = `${trimEnd(urlPrefix, '/')}/oauth`;
 
   const {
     data: app,
@@ -173,12 +175,27 @@ function ApiApplicationsDetails() {
             )}
 
             <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
-              <TextCopyInput>{`${urlPrefix}/oauth/authorize/`}</TextCopyInput>
+              <TextCopyInput>{`${oauthBaseUrl}/authorize/`}</TextCopyInput>
             </FieldGroup>
 
             <FieldGroup label={t('Token URL')} flexibleControlStateSize>
-              <TextCopyInput>{`${urlPrefix}/oauth/token/`}</TextCopyInput>
+              <TextCopyInput>{`${oauthBaseUrl}/token/`}</TextCopyInput>
             </FieldGroup>
+
+            {app.isPublic && (
+              <Fragment>
+                <FieldGroup
+                  label={t('Device Authorization URL')}
+                  flexibleControlStateSize
+                >
+                  <TextCopyInput>{`${oauthBaseUrl}/device/code/`}</TextCopyInput>
+                </FieldGroup>
+
+                <FieldGroup label={t('Device Verification URL')} flexibleControlStateSize>
+                  <TextCopyInput>{`${oauthBaseUrl}/device/`}</TextCopyInput>
+                </FieldGroup>
+              </Fragment>
+            )}
           </PanelBody>
         </Panel>
       </Form>

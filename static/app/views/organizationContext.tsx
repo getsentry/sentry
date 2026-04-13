@@ -8,16 +8,17 @@ import {
   useBootstrapProjectsQuery,
   useBootstrapTeamsQuery,
 } from 'sentry/bootstrap/bootstrapRequests';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {shutdownIntercom} from 'sentry/utils/intercom';
 import {useParams} from 'sentry/utils/useParams';
 
 interface Props {
@@ -147,6 +148,8 @@ export function OrganizationContextProvider({children}: Props) {
       // Also avoid: org1 -> undefined -> org1
       if (lastOrgId.current) {
         switchOrganization();
+        // Shutdown Intercom so it re-initializes with new org context on next use
+        shutdownIntercom();
       }
 
       lastOrgId.current = orgSlug;

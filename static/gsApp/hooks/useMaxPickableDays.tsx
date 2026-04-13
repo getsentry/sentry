@@ -11,11 +11,11 @@ import {
   type MaxPickableDaysOptions,
   type UseMaxPickableDaysProps,
 } from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {Subscription} from 'getsentry/types';
 
-import useSubscription from './useSubscription';
+import {useSubscription} from './useSubscription';
 
 export function useDefaultMaxPickableDays() {
   const subscription = useSubscription();

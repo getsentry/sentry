@@ -10,25 +10,25 @@ import {Button} from '@sentry/scraps/button';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {
   useCreateProjectAndRulesError,
   useIsCreatingProjectAndRules,
 } from 'sentry/components/onboarding/useCreateProjectAndRules';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {categoryList, createablePlatforms} from 'sentry/data/platformPickerCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tn} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',

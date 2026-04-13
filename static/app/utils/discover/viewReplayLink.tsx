@@ -4,9 +4,9 @@ import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
 
-function ViewReplayLink({
+export function ViewReplayLink({
   children,
   replayId,
   to,
@@ -48,5 +48,3 @@ const StyledLink = styled(Link)`
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ViewReplayLink;

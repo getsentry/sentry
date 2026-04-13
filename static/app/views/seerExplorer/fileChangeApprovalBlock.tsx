@@ -27,7 +27,7 @@ interface FileChangeApprovalBlockProps {
   onMouseLeave?: () => void;
 }
 
-function FileChangeApprovalBlock({
+export function FileChangeApprovalBlock({
   currentIndex,
   isFocused,
   isLast,
@@ -90,8 +90,6 @@ function FileChangeApprovalBlock({
     </Block>
   );
 }
-
-export default FileChangeApprovalBlock;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;

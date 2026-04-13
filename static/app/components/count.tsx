@@ -5,12 +5,10 @@ type Props = {
   className?: string;
 };
 
-function Count({value, className}: Props) {
+export function Count({value, className}: Props) {
   return (
     <span className={className} title={value?.toLocaleString()}>
       {formatAbbreviatedNumber(value)}
     </span>
   );
 }
-
-export default Count;
