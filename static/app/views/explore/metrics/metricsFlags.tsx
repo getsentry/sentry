@@ -41,3 +41,10 @@ export const canUseMetricsEquations = (organization: Organization) => {
     organization.features.includes('tracemetrics-equations-in-explore')
   );
 };
+
+export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-pii-scrubbing-ui')
+  );
+};

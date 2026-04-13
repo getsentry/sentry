@@ -424,11 +424,13 @@ export function createMockAttributeResults(empty = false): AttributeResults {
     return {
       [AllowedDataScrubbingDatasets.DEFAULT]: null,
       [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysEmptyResult,
+      [AllowedDataScrubbingDatasets.METRICS]: mockTraceItemAttributeKeysEmptyResult,
     };
   }
 
   return {
     [AllowedDataScrubbingDatasets.DEFAULT]: null,
     [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysResult,
+    [AllowedDataScrubbingDatasets.METRICS]: mockTraceItemAttributeKeysResult,
   };
 }

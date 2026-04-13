@@ -21,6 +21,20 @@ import {
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {TraceItemFieldSelector} from 'sentry/views/settings/components/dataScrubbing/utils';
 
+const datasetToTraceItemType: Record<
+  Exclude<AllowedDataScrubbingDatasets, AllowedDataScrubbingDatasets.DEFAULT>,
+  TraceItemDataset
+> = {
+  [AllowedDataScrubbingDatasets.LOGS]: TraceItemDataset.LOGS,
+  [AllowedDataScrubbingDatasets.METRICS]: TraceItemDataset.TRACEMETRICS,
+};
+
+const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
+  Record<AllowedDataScrubbingDatasets, Set<string>>
+> = {
+  [AllowedDataScrubbingDatasets.METRICS]: new Set(['metric.name']),
+};
+
 type FieldProps = {
   'aria-describedby': string;
   'aria-invalid': boolean;
@@ -52,10 +66,14 @@ export function AttributeField({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
 
+  const traceItemType =
+    dataset === AllowedDataScrubbingDatasets.DEFAULT
+      ? TraceItemDataset.LOGS
+      : datasetToTraceItemType[dataset];
   const traceItemAttributeStringsResult = useTraceItemAttributeKeys({
     enabled: true,
     type: 'string',
-    traceItemType: TraceItemDataset.LOGS,
+    traceItemType,
     projects: project ? [project] : undefined,
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
@@ -100,16 +118,21 @@ export function AttributeField({
       return [];
     }
 
+    const hidden = HIDDEN_SCRUBBING_ATTRIBUTES[dataset];
+
     return [
       ...TraceItemFieldSelector.getAllStaticFields(dataset).map(staticField => ({
         value: staticField.fieldName,
         label: staticField.fieldName,
       })),
-      ...traceItemFields.map(field => ({
-        value: field.label,
-        label:
-          TraceItemFieldSelector.fromField(dataset, field.key)?.toLabel() ?? field.label,
-      })),
+      ...traceItemFields
+        .filter(field => !hidden?.has(field.key))
+        .map(field => ({
+          value: field.label,
+          label:
+            TraceItemFieldSelector.fromField(dataset, field.key)?.toLabel() ??
+            field.label,
+        })),
     ];
   }, [dataset, suggestedAttributeValues]);
 
