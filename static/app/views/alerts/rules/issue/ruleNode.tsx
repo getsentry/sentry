@@ -71,7 +71,7 @@ function NumberField({
       isNaN(value) &&
       !isNaN(Number(placeholder))
     ) {
-      onPropertyChange(index, name, `${placeholder}`);
+      onPropertyChange(index, name, String(placeholder));
     }
     // Value omitted on purpose to avoid overwriting user changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,7 +86,7 @@ function NumberField({
       min={0}
       name={name}
       value={value}
-      placeholder={`${placeholder}`}
+      placeholder={String(placeholder)}
       disabled={disabled}
       onChange={newVal => onPropertyChange(index, name, String(newVal))}
       aria-label={t('Value')}
@@ -282,7 +282,7 @@ function TextField({
       type="text"
       name={name}
       value={value}
-      placeholder={`${fieldConfig.placeholder}`}
+      placeholder={fieldConfig.placeholder}
       disabled={disabled}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
         onPropertyChange(index, name, e.target.value)
