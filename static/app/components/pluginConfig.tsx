@@ -346,6 +346,7 @@ export function PluginConfig({
             onSubmit={handleSubmit}
             submitLabel={t('Save Changes')}
             submitDisabled={!hasWriteAccess}
+            singleSelectClearable
             footer={({SubmitButton, disabled}) => (
               <Flex
                 justify="end"

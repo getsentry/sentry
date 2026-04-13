@@ -72,6 +72,11 @@ interface BackendJsonSubmitFormProps {
    */
   onFieldChange?: (fieldName: string, value: unknown) => void;
   /**
+   * Enables clearing for single-select fields.
+   * Defaults to false to preserve existing behavior for non-plugin forms.
+   */
+  singleSelectClearable?: boolean;
+  /**
    * Whether the submit button should be disabled (e.g., form has errors).
    */
   submitDisabled?: boolean;
@@ -156,6 +161,7 @@ export function BackendJsonSubmitForm({
   onAsyncOptionsFetched,
   onFieldChange,
   footer,
+  singleSelectClearable = false,
 }: BackendJsonSubmitFormProps) {
   // Ref to avoid including the callback in queryKey (would cause refetches)
   const onAsyncOptionsFetchedRef = useRef(onAsyncOptionsFetched);
@@ -333,7 +339,7 @@ export function BackendJsonSubmitForm({
                             required={field.required}
                           >
                             <fieldApi.SelectAsync
-                              clearable
+                              clearable={singleSelectClearable}
                               value={fieldApi.state.value as string | null}
                               onChange={handleChange}
                               disabled={field.disabled}
@@ -366,7 +372,7 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.Select
-                            clearable
+                            clearable={singleSelectClearable}
                             value={fieldApi.state.value as string | null}
                             onChange={handleChange}
                             options={transformChoices(field.choices)}
