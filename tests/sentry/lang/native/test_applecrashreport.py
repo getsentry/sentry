@@ -139,6 +139,7 @@ def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
                             "image_addr": "0x2c8000",
                             "instruction_addr": "0x31c3e8",
                             "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
                         },
                     ]
                 },
@@ -155,6 +156,7 @@ def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
                             "image_addr": "0x2c8000",
                             "instruction_addr": "0x31c3e8",
                             "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
                         },
                     ]
                 },
@@ -169,6 +171,7 @@ def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
                             "image_addr": "0xf0000",
                             "instruction_addr": "0xf6c78",
                             "symbol_addr": "0xf6c04",
+                            "package": "/path/to/BackgroundLib.framework/BackgroundLib",
                         },
                     ]
                 },
@@ -184,9 +187,9 @@ def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
     assert (
         threads
         == "Thread 1 name: com.apple.main-thread Crashed:\n\
-0   0x2c8000                        0x31c3e8            0x2c8000 + 2544\n\n\
+0   MainApp                         0x31c3e8            0x2c8000 + 2544\n\n\
 Thread 2 name: background\n\
-0   0xf0000                         0xf6c78             0xf0000 + 116"
+0   BackgroundLib                   0xf6c78             0xf0000 + 116"
     )
 
 
@@ -214,6 +217,7 @@ def test_get_threads_apple_string_exception_without_stacktrace() -> None:
                             "image_addr": "0x2c8000",
                             "instruction_addr": "0x31c3e8",
                             "symbol_addr": "0x31b9f8",
+                            "package": "/path/to/MainApp.framework/MainApp",
                         },
                     ]
                 },
@@ -224,6 +228,11 @@ def test_get_threads_apple_string_exception_without_stacktrace() -> None:
     # Thread should still appear since exception produced no output
     assert threads.count("Thread 1") == 1
     assert "com.apple.main-thread" in threads
+    assert (
+        threads
+        == "Thread 1 name: com.apple.main-thread Crashed:\n\
+0   MainApp                         0x31c3e8            0x2c8000 + 2544"
+    )
 
 
 def test_get_threads_apple_string_symbolicated() -> None:
