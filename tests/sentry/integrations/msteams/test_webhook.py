@@ -15,6 +15,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils import jwt
@@ -608,3 +609,50 @@ class MsTeamsWebhookTest(APITestCase):
                 HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
             )
             assert response.status_code == 400
+
+    @responses.activate
+    @override_options({"viewer-context.enabled": True})
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_member_removed_sets_viewer_context(
+        self, mock_time: MagicMock, mock_decode: MagicMock
+    ) -> None:
+        """ViewerContext is set with org_id and actor_type=INTEGRATION during member removal."""
+        from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
+            self.create_organization_integration(
+                organization_id=self.organization.id, integration=integration
+            )
+
+        captured_contexts: list[ViewerContext | None] = []
+
+        original_create_audit_entry = __import__(
+            "sentry.utils.audit", fromlist=["create_audit_entry"]
+        ).create_audit_entry
+
+        def capturing_create_audit_entry(*args: object, **kwargs: object) -> object:
+            captured_contexts.append(get_viewer_context())
+            return original_create_audit_entry(*args, **kwargs)
+
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+
+        with mock.patch(
+            "sentry.integrations.msteams.webhook.create_audit_entry",
+            side_effect=capturing_create_audit_entry,
+        ):
+            resp = self.client.post(
+                path=webhook_url,
+                data=EXAMPLE_TEAM_MEMBER_REMOVED,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            )
+
+        assert resp.status_code == 204
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None
+        assert ctx.organization_id == self.organization.id
+        assert ctx.actor_type == ActorType.INTEGRATION

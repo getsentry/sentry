@@ -315,6 +315,7 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         try:
             repos = self.get_client().get_repos()
@@ -325,8 +326,12 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             data.append(
                 {
                     "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
+                    "repo_name": repo["name"],
                     "identifier": str(repo["id"]),
                     "external_id": self.get_repo_external_id(repo),
+                    "url": repo["_links"]["web"]["href"],
+                    "instance": self.instance,
+                    "project": repo["project"]["name"],
                 }
             )
         return data

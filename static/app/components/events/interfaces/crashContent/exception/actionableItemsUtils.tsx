@@ -28,26 +28,12 @@ import {semverCompare} from 'sentry/utils/versions/semverCompare';
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w$]\.[\w$]{1,2})|([\w$]{2}\.[\w$]\.[\w$]))(\.|$)/g;
 
-export type ActionableItemTypes =
+type ActionableItemTypes =
   | JavascriptProcessingErrors
   | HttpProcessingErrors
   | GenericSchemaErrors
   | ProguardProcessingErrors
   | NativeProcessingErrors;
-
-export const ActionableItemWarning = [
-  ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
-  NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
-  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
-  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
-  GenericSchemaErrors.FUTURE_TIMESTAMP,
-  GenericSchemaErrors.CLOCK_DRIFT,
-  GenericSchemaErrors.PAST_TIMESTAMP,
-  GenericSchemaErrors.VALUE_TOO_LONG,
-  GenericSchemaErrors.INVALID_DATA,
-  GenericSchemaErrors.INVALID_ATTRIBUTE,
-  GenericSchemaErrors.MISSING_ATTRIBUTE,
-];
 
 interface BaseActionableItem {
   data: any;

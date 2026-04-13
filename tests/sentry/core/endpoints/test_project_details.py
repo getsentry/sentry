@@ -795,21 +795,6 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
 
-        self.project.update_option(
-            "relay.cardinality-limiter.limits",
-            [
-                {
-                    "limit": {
-                        "id": "project-override-custom",
-                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
-                        "limit": 1000,
-                        "namespace": "custom",
-                        "scope": "name",
-                    }
-                }
-            ],
-        )
-
     def test_preprod_snapshot_pr_comments_option(self) -> None:
         self.get_success_response(
             self.org_slug, self.proj_slug, preprodSnapshotPrCommentsEnabled=False
@@ -843,6 +828,20 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
+
+    def test_security_token_header_max_length(self) -> None:
+        # exactly 64 characters should succeed
+        value = "X-" + "A" * 62
+        assert len(value) == 64
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
+        assert self.project.get_option("sentry:token_header") == value
+        assert resp.data["securityTokenHeader"] == value
+
+        # 65 characters should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, securityTokenHeader="X-" + "A" * 63, status_code=400
+        )
+        assert b"securityTokenHeader" in resp.content
 
     def test_verify_ssl(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)

@@ -470,10 +470,16 @@ function flattenActions(
     const results: CMDKFlatItem[] = [];
     for (const node of nodes) {
       const isGroup = node.children.length > 0;
-      // Skip groups that have no children and no executable action — they are
-      // empty section headers (e.g. a CMDKGroup whose children didn't render).
+      // Skip non-group nodes that have no executable action — they are
+      // empty placeholders (e.g. a CMDKGroup whose children didn't render).
+      // Prompt/resource nodes are actionable leaf items even though they lack
+      // `to` or `onAction`, so only skip when none of the four action types apply.
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
-        continue;
+        const hasPromptOrResource =
+          ('prompt' in node && !!node.prompt) || ('resource' in node && !!node.resource);
+        if (!hasPromptOrResource) {
+          continue;
+        }
       }
 
       results.push({...node, listItemType: isGroup ? 'section' : 'action'});
