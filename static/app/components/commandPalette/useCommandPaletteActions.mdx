@@ -39,7 +39,6 @@ import {useCallback} from 'react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   CMDKAction,
-  CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -81,19 +80,20 @@ function YourComponent() {
         />
       </CMDKAction>
 
-      {/* The command palette UI — also accepts inline actions via children */}
-      <CommandPalette onAction={handleAction}>
-        <CMDKAction display={{label: 'Issues List'}}>
-          <CMDKAction
-            display={{label: 'Select all'}}
-            onAction={() => addSuccessMessage('Select all')}
-          />
-          <CMDKAction
-            display={{label: 'Deselect all'}}
-            onAction={() => addSuccessMessage('Deselect all')}
-          />
-        </CMDKAction>
-      </CommandPalette>
+      {/* Inline actions declared as siblings to the palette */}
+      <CMDKAction display={{label: 'Issues List'}}>
+        <CMDKAction
+          display={{label: 'Select all'}}
+          onAction={() => addSuccessMessage('Select all')}
+        />
+        <CMDKAction
+          display={{label: 'Deselect all'}}
+          onAction={() => addSuccessMessage('Deselect all')}
+        />
+      </CMDKAction>
+
+      {/* The command palette UI */}
+      <CommandPalette onAction={handleAction} />
     </CommandPaletteProvider>
   );
 }
@@ -113,7 +113,10 @@ import type {CommandPaletteAsyncResult} from 'sentry/components/commandPalette/t
     queryFn: () => fetchProjects(query),
     // transform response into CommandPaletteAsyncResult[]
     select: (data): CommandPaletteAsyncResult[] =>
-      data.map(p => ({display: {label: p.name}, to: `/projects/${p.slug}/`})),
+      data.map(p => ({
+        display: {label: p.name},
+        to: `/projects/${p.slug}/`,
+      })),
   })}
 >
   {(results: CommandPaletteAsyncResult[]) =>

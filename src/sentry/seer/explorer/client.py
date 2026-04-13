@@ -20,6 +20,7 @@ from sentry.seer.explorer.client_utils import (
     ExplorerRunsRequest,
     ExplorerUpdateRequest,
     collect_user_org_context,
+    create_explorer_api_token,
     fetch_run_status,
     make_explorer_chat_request,
     make_explorer_runs_request,
@@ -196,6 +197,7 @@ class SeerExplorerClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
         enable_coding: bool = False,
+        enable_code_mode_tools: bool = False,
         max_iterations: int | None = None,
     ):
         self.organization = organization
@@ -207,6 +209,7 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.enable_code_mode_tools = enable_code_mode_tools
         self.max_iterations = max_iterations
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
@@ -266,6 +269,15 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
+        user_org_context = collect_user_org_context(self.user, self.organization, request=request)
+        user_auth_token = (
+            create_explorer_api_token(self.user, self.organization)
+            if self.enable_code_mode_tools
+            and self.user
+            and not isinstance(self.user, AnonymousUser)
+            else None
+        )
+
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -273,12 +285,12 @@ class SeerExplorerClient:
             insert_index=None,
             on_page_context=on_page_context,
             page_name=page_name,
-            user_org_context=collect_user_org_context(
-                self.user, self.organization, request=request
-            ),
+            user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
+            enable_code_mode_tools=self.enable_code_mode_tools,
+            user_auth_token=user_auth_token,
         )
 
         if self.max_iterations is not None:
@@ -344,6 +356,7 @@ class SeerExplorerClient:
         page_name: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        request: Request | None = None,
     ) -> int:
         """
         Continue an existing Seer Explorer session. This allows you to add follow-up queries to an ongoing conversation.
@@ -366,6 +379,14 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
+        user_auth_token = (
+            create_explorer_api_token(self.user, self.organization)
+            if self.enable_code_mode_tools
+            and self.user
+            and not isinstance(self.user, AnonymousUser)
+            else None
+        )
+
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -375,6 +396,8 @@ class SeerExplorerClient:
             page_name=page_name,
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
+            enable_code_mode_tools=self.enable_code_mode_tools,
+            user_auth_token=user_auth_token,
         )
 
         if prompt_metadata:

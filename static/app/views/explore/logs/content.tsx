@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -129,20 +131,25 @@ function LogsHeader() {
 
         <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="feedback">
-              <FeedbackButton feedbackOptions={logsFeedbackOptions}>
-                {null}
-              </FeedbackButton>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          {defined(onboardingProject) && (
+            <TopBar.Slot name="actions">
+              <SetupLogsButton />
             </TopBar.Slot>
-          ) : (
-            <FeedbackButton feedbackOptions={logsFeedbackOptions} />
           )}
-          {defined(onboardingProject) && <SetupLogsButton />}
-        </Grid>
-      </Layout.HeaderActions>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton feedbackOptions={logsFeedbackOptions}>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <FeedbackButton feedbackOptions={logsFeedbackOptions} />
+            {defined(onboardingProject) && <SetupLogsButton />}
+          </Grid>
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }
@@ -151,6 +158,7 @@ function SetupLogsButton() {
   const organization = useOrganization();
   const projects = useProjects();
   const pageFilters = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   let project = projects.projects?.[0];
 
   const filtered = projects.projects?.filter(p =>
@@ -174,7 +182,7 @@ function SetupLogsButton() {
       priority="primary"
       href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
-      size="xs"
+      size={hasPageFrameFeature ? undefined : 'xs'}
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {
           organization,

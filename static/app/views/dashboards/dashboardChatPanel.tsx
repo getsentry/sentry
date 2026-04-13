@@ -11,7 +11,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useLocation} from 'sentry/utils/useLocation';
 import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
@@ -41,14 +40,10 @@ export function DashboardChatPanel({
   widgetErrors,
 }: DashboardChatPanelProps) {
   const theme = useTheme();
-  const location = useLocation();
   const [inputValue, setInputValue] = useState('');
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const seerRunId = location.query?.seerRunId
-    ? Number(location.query.seerRunId)
-    : undefined;
 
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
@@ -136,7 +131,6 @@ export function DashboardChatPanel({
           ref={chatContainerRef}
           blocks={blocks}
           pendingUserInput={pendingUserInput}
-          seerRunId={seerRunId}
           isError={isError}
           widgetErrors={widgetErrors}
         />
@@ -167,7 +161,6 @@ const ChatHistory = memo(function ChatHistoryInner({
   ref,
   blocks,
   pendingUserInput,
-  seerRunId,
   isError,
   widgetErrors,
 }: {
@@ -175,7 +168,6 @@ const ChatHistory = memo(function ChatHistoryInner({
   ref: React.Ref<HTMLDivElement>;
   isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
-  seerRunId?: number;
   widgetErrors?: WidgetError[];
 }) {
   return (
@@ -188,12 +180,7 @@ const ChatHistory = memo(function ChatHistoryInner({
     >
       <Stack>
         {blocks.map((block, index) => (
-          <BlockComponent
-            key={block.id}
-            block={block}
-            blockIndex={index}
-            runId={seerRunId}
-          />
+          <BlockComponent key={block.id} block={block} blockIndex={index} />
         ))}
         {pendingUserInput && pendingUserInput.data.questions?.length > 0 && (
           <ChatMessageContainer padding="xl">

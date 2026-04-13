@@ -377,7 +377,6 @@ from sentry.issues.endpoints.organization_issues_resolved_in_release import (
 )
 from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
-from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.issues.endpoints.project_issues_resolved_in_release import (
     ProjectIssuesResolvedInReleaseEndpoint,
 )
@@ -3277,12 +3276,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",
         ProjectRepoPathParsingEndpoint.as_view(),
         name="sentry-api-0-project-repo-path-parsing",
-    ),
-    # Grouping configs
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/grouping-configs/$",
-        ProjectGroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-project-grouping-configs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

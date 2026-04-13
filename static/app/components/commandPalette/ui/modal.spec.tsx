@@ -52,6 +52,25 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
+// Outlets live in the navigation in production; tests that exercise slot
+// behaviour must render them explicitly so slot consumers have a target to
+// portal into.
+function SlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
 describe('CommandPaletteModal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
@@ -67,6 +86,7 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Leaf Action'}} onAction={onActionSpy} />
         </CommandPaletteSlot>
@@ -84,13 +104,45 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call closeModal when an action with children is selected', async () => {
+  it('keeps the modal open when a prompt action is selected', async () => {
+    const closeModalSpy = jest.fn();
+
+    render(
+      <CommandPaletteProvider>
+        <CMDKAction display={{label: 'DSN Tools'}}>
+          <CMDKAction
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+            resource={() => ({
+              queryKey: ['prompt-modal-test'],
+              queryFn: () => null,
+              enabled: false,
+            })}
+          />
+        </CMDKAction>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+    );
+
+    expect(closeModalSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Paste a DSN...'
+    );
+  });
+
+  it('invokes an expandable action callback once and keeps the modal open', async () => {
     // Actions with children push into secondary actions — the modal stays open.
     const closeModalSpy = jest.fn();
     const onActionSpy = jest.fn();
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Outer Group'}}>
             <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy}>

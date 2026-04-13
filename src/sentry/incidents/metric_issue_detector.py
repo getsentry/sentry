@@ -118,7 +118,9 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
 
         return type
 
-    def validate_comparison(self, value: dict | float | int | str) -> float | dict:
+    def validate_comparison(
+        self, value: dict[str, Any] | float | int | str
+    ) -> float | dict[str, Any]:
         if isinstance(value, (float, int)):
             try:
                 value = float(value)
@@ -147,7 +149,7 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
 class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
-    def validate_conditions(self, value):
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
@@ -160,10 +162,12 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         return value
 
 
-def is_invalid_extrapolation_mode(new_extrapolation_mode) -> bool:
-    if type(new_extrapolation_mode) is int:
+def is_invalid_extrapolation_mode(
+    new_extrapolation_mode: int | str | ExtrapolationMode | None,
+) -> bool:
+    if isinstance(new_extrapolation_mode, int):
         new_extrapolation_mode = ExtrapolationMode(new_extrapolation_mode).name.lower()
-    if type(new_extrapolation_mode) is ExtrapolationMode:
+    if isinstance(new_extrapolation_mode, ExtrapolationMode):
         new_extrapolation_mode = new_extrapolation_mode.name.lower()
     if (
         new_extrapolation_mode is not None
@@ -179,12 +183,14 @@ def is_invalid_extrapolation_mode(new_extrapolation_mode) -> bool:
     return False
 
 
-def format_extrapolation_mode(extrapolation_mode) -> ExtrapolationMode | None:
+def format_extrapolation_mode(
+    extrapolation_mode: int | str | ExtrapolationMode | None,
+) -> ExtrapolationMode | None:
     if extrapolation_mode is None:
         return None
-    if type(extrapolation_mode) is int:
+    if isinstance(extrapolation_mode, int):
         return ExtrapolationMode(extrapolation_mode)
-    if type(extrapolation_mode) is ExtrapolationMode:
+    if isinstance(extrapolation_mode, ExtrapolationMode):
         return extrapolation_mode
     return ExtrapolationMode.from_str(extrapolation_mode)
 
@@ -195,7 +201,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     )
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
-    def validate_eap_rule(self, attrs):
+    def validate_eap_rule(self, attrs: dict[str, Any]) -> None:
         """
         Validate EAP rule data.
         """
@@ -209,7 +215,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 aggregate = data_source.get("aggregate")
                 validate_trace_metrics_aggregate(aggregate)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
 
         if "condition_group" in attrs:
@@ -290,7 +296,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def update_data_source(
         self, instance: Detector, data_source: SnubaQueryDataSourceType, seer_updated: bool = False
-    ):
+    ) -> None:
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -382,7 +388,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return seer_updated
 
-    def update(self, instance: Detector, validated_data: dict[str, Any]):
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         # Handle anomaly detection changes first in case we need to exit before saving so that the instance values do not get updated
         seer_updated = self.update_anomaly_detection(instance, validated_data)
 
@@ -413,7 +419,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         schedule_update_project_config(instance)
         return instance
 
-    def create(self, validated_data: dict[str, Any]):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
@@ -434,7 +440,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         schedule_update_project_config(detector)
         return detector
 
-    def delete(self):
+    def delete(self) -> None:
         # Let Seer know we're deleting a dynamic detector so the data can be deleted there too
         assert self.instance is not None
         detector: Detector = self.instance
@@ -442,7 +448,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         super().delete()
 
-    def _mark_query_as_user_updated(self, snuba_query: SnubaQuery):
+    def _mark_query_as_user_updated(self, snuba_query: SnubaQuery) -> None:
         """
         Mark the snuba query as user-updated in the query_snapshot field.
         This is used to skip automatic migrations for queries that users have already modified.

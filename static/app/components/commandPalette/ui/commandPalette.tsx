@@ -22,7 +22,6 @@ import {Text} from '@sentry/scraps/text';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
@@ -66,7 +65,6 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 
 interface CommandPaletteProps {
   onAction: (action: CollectionTreeNode<CMDKActionData>) => void;
-  children?: React.ReactNode;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -213,11 +211,21 @@ export function CommandPalette(props: CommandPaletteProps) {
       if (action.children.length > 0) {
         analytics.recordGroupAction(action, resultIndex);
         if ('onAction' in action) {
-          // Invoke the callback but keep the modal open so users can select
-          // secondary actions from the children that follow.
-          props.onAction(action);
+          // Run the primary callback before drilling into the secondary actions.
+          // The modal only owns navigation and close behavior for leaf actions.
+          action.onAction();
         }
         dispatch({type: 'push action', key: action.key, label: action.display.label});
+        return;
+      }
+
+      if ('prompt' in action && action.prompt) {
+        dispatch({
+          type: 'push action',
+          key: action.key,
+          label: action.display.label,
+          prompt: action.prompt,
+        });
         return;
       }
 
@@ -286,9 +294,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                   value={state.query}
                   aria-label={t('Search commands')}
                   placeholder={
-                    state.action?.value.label
+                    state.action?.value.prompt ??
+                    (state.action?.value.label
                       ? t('Search inside %s...', state.action.value.label)
-                      : t('Search for commands...')
+                      : t('Search for commands...'))
                   }
                   {...mergeProps(collectionProps, {
                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,19 +359,6 @@ export function CommandPalette(props: CommandPaletteProps) {
         </Flex>
       </Flex>
 
-      <CommandPaletteSlot.Outlet name="task">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="page">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="global">
-        {p => (
-          <div {...p} style={{display: 'contents'}}>
-            {props.children}
-          </div>
-        )}
-      </CommandPaletteSlot.Outlet>
       {treeState.collection.size === 0 ? (
         <CommandPaletteNoResults />
       ) : (
@@ -393,8 +389,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
 /**
  * Pre-sorts the root-level nodes by DOM position of their slot outlet element.
- * Outlets are declared in priority order inside CommandPalette (task → page → global),
- * so compareDocumentPosition gives the correct ordering for free.
+ * Outlets are rendered in task → page → global order inside CommandPaletteProvider,
+ * so compareDocumentPosition gives the correct priority ordering for free.
  * Nodes sharing the same outlet (same slot) retain their existing relative order.
  * Nodes without a slot ref are not reordered relative to each other.
  */
@@ -471,10 +467,16 @@ function flattenActions(
     const results: CMDKFlatItem[] = [];
     for (const node of nodes) {
       const isGroup = node.children.length > 0;
-      // Skip groups that have no children and no executable action — they are
-      // empty section headers (e.g. a CMDKGroup whose children didn't render).
+      // Skip non-group nodes that have no executable action — they are
+      // empty placeholders (e.g. a CMDKGroup whose children didn't render).
+      // Prompt/resource nodes are actionable leaf items even though they lack
+      // `to` or `onAction`, so only skip when none of the four action types apply.
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
-        continue;
+        const hasPromptOrResource =
+          ('prompt' in node && !!node.prompt) || ('resource' in node && !!node.resource);
+        if (!hasPromptOrResource) {
+          continue;
+        }
       }
 
       results.push({...node, listItemType: isGroup ? 'section' : 'action'});

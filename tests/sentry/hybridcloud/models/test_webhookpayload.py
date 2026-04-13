@@ -41,31 +41,6 @@ class WebhookPayloadTest(TestCase):
         )
         assert hook.request_body == '{"installation": {"id": "github:1"}}'
 
-    def test_create_from_request_for_codecov(self) -> None:
-        factory = RequestFactory()
-        request = factory.post(
-            "/extensions/github/webhook/",
-            data={"installation": {"id": "github:1"}},
-            content_type="application/json",
-        )
-        hook = WebhookPayload.create_from_request(
-            destination_type=DestinationType.CODECOV,
-            cell=None,
-            provider="github",
-            identifier="installation",
-            request=request,
-            integration_id=None,
-        )
-        assert hook.mailbox_name == "github:installation"
-        assert hook.provider == "github"
-        assert hook.request_method == request.method
-        assert hook.request_path == request.get_full_path()
-        assert (
-            hook.request_headers
-            == '{"Cookie":"","Content-Length":"36","Content-Type":"application/json"}'
-        )
-        assert hook.request_body == '{"installation": {"id": "github:1"}}'
-
     def test_schedule_next_attempt_moves_forward(self) -> None:
         hook = self.create_webhook_payload("jira:123", "us")
         start = timezone.now()

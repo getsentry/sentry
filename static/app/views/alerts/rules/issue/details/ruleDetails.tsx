@@ -45,6 +45,8 @@ import {APIUsageWarningBanner} from 'sentry/views/alerts/rules/APIUsageWarningBa
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {IssueAlertDetailsChart} from './alertChart';
 import {AlertRuleIssuesList} from './issuesList';
@@ -78,6 +80,7 @@ const getIssueAlertDetailsQueryKey = ({
 ];
 
 export default function AlertRuleDetails() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const api = useApi();
@@ -422,8 +425,8 @@ export default function AlertRuleDetails() {
               {rule.name}
             </Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="actions">
               <Access access={['alerts:write']}>
                 {({hasAccess}) => (
                   <SnoozeAlert
@@ -438,7 +441,6 @@ export default function AlertRuleDetails() {
                 )}
               </Access>
               <LinkButton
-                size="sm"
                 icon={<IconCopy />}
                 to={duplicateLink}
                 disabled={rule.status === 'disabled'}
@@ -446,7 +448,6 @@ export default function AlertRuleDetails() {
                 {t('Duplicate')}
               </LinkButton>
               <LinkButton
-                size="sm"
                 icon={<IconEdit />}
                 to={makeAlertsPathname({
                   path: `/rules/${projectSlug}/${ruleId}/`,
@@ -461,8 +462,50 @@ export default function AlertRuleDetails() {
               >
                 {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
               </LinkButton>
-            </Grid>
-          </Layout.HeaderActions>
+            </TopBar.Slot>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <Access access={['alerts:write']}>
+                  {({hasAccess}) => (
+                    <SnoozeAlert
+                      isSnoozed={rule.snoozeForEveryone ?? false}
+                      onSnooze={onSnooze}
+                      ruleId={rule.id}
+                      projectSlug={projectSlug}
+                      hasAccess={hasAccess}
+                      type="issue"
+                      disabled={rule.status === 'disabled'}
+                    />
+                  )}
+                </Access>
+                <LinkButton
+                  size="sm"
+                  icon={<IconCopy />}
+                  to={duplicateLink}
+                  disabled={rule.status === 'disabled'}
+                >
+                  {t('Duplicate')}
+                </LinkButton>
+                <LinkButton
+                  size="sm"
+                  icon={<IconEdit />}
+                  to={makeAlertsPathname({
+                    path: `/rules/${projectSlug}/${ruleId}/`,
+                    organization,
+                  })}
+                  onClick={() =>
+                    trackAnalytics('issue_alert_rule_details.edit_clicked', {
+                      organization,
+                      rule_id: parseInt(ruleId, 10),
+                    })
+                  }
+                >
+                  {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
+                </LinkButton>
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>

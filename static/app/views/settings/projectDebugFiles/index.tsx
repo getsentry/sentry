@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
@@ -16,13 +17,8 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -37,38 +33,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import {DebugFileRow} from './debugFileRow';
 import {Sources} from './sources';
 
-function makeDebugFilesQueryKey({
-  orgSlug,
-  projectSlug,
-  query,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-  query: {cursor: string | undefined; query: string | undefined};
-}): ApiQueryKey {
-  return [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-    }),
-    {query},
-  ];
-}
-
-function makeSymbolSourcesQueryKey({
-  orgSlug,
-  platform,
-}: {
-  orgSlug: string;
-  platform?: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/builtin-symbol-sources/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-    {query: {platform}},
-  ];
-}
-
 export default function ProjectDebugSymbols() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
@@ -82,21 +46,34 @@ export default function ProjectDebugSymbols() {
   const cursor = location.query.cursor as string | undefined;
   const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
 
+  const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      query: {query, cursor},
+      staleTime: 0,
+    }
+  );
+
   const {
-    data: debugFiles,
-    getResponseHeader: getDebugFilesResponseHeader,
+    data: debugFilesResponse,
     isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
-  } = useApiQuery<DebugFile[] | null>(
-    makeDebugFilesQueryKey({
-      projectSlug: project.slug,
-      orgSlug: organization.slug,
-      query: {query, cursor},
-    }),
+  } = useQuery({
+    ...debugFilesApiOptions,
+    select: selectJsonWithHeaders,
+    retry: false,
+  });
+
+  const debugFiles = debugFilesResponse?.json;
+
+  const symbolSourcesOptions = apiOptions.as<BuiltinSymbolSource[] | null>()(
+    '/organizations/$organizationIdOrSlug/builtin-symbol-sources/',
     {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {platform: project.platform},
       staleTime: 0,
-      retry: false,
     }
   );
 
@@ -105,17 +82,11 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
-  } = useApiQuery<BuiltinSymbolSource[] | null>(
-    makeSymbolSourcesQueryKey({
-      orgSlug: organization.slug,
-      platform: project.platform,
-    }),
-    {
-      staleTime: 0,
-      enabled: hasSymbolSourcesFeatureFlag,
-      retry: 0,
-    }
-  );
+  } = useQuery({
+    ...symbolSourcesOptions,
+    enabled: hasSymbolSourcesFeatureFlag,
+    retry: 0,
+  });
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -144,19 +115,12 @@ export default function ProjectDebugSymbols() {
 
       // invalidate debug files query
       queryClient.invalidateQueries({
-        queryKey: makeDebugFilesQueryKey({
-          projectSlug: project.slug,
-          orgSlug: organization.slug,
-          query: {query, cursor},
-        }),
+        queryKey: debugFilesApiOptions.queryKey,
       });
 
       // invalidate symbol sources query
       queryClient.invalidateQueries({
-        queryKey: makeSymbolSourcesQueryKey({
-          orgSlug: organization.slug,
-          platform: project.platform,
-        }),
+        queryKey: symbolSourcesOptions.queryKey,
       });
     },
     onError: () => {
@@ -267,7 +231,7 @@ export default function ProjectDebugSymbols() {
                 })
               : null}
           </StyledPanelTable>
-          <Pagination pageLinks={getDebugFilesResponseHeader?.('Link')} />
+          <Pagination pageLinks={debugFilesResponse?.headers.Link} />
         </Fragment>
       )}
     </SentryDocumentTitle>

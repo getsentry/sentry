@@ -63,10 +63,10 @@ const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
-    return <CMDKAction key={index} display={item.display} to={item.to} />;
+    return <CMDKAction key={index} {...item} />;
   }
   if ('onAction' in item) {
-    return <CMDKAction key={index} display={item.display} onAction={item.onAction} />;
+    return <CMDKAction key={index} {...item} />;
   }
   return null;
 }
@@ -309,6 +309,7 @@ export function GlobalCommandPaletteActions() {
               ),
               icon: <IconSearch />,
             }}
+            prompt={t('Paste a DSN...')}
             resource={(query: string): CMDKQueryOptions => {
               return queryOptions({
                 ...apiOptions.as<DsnLookupResponse>()(
@@ -333,7 +334,9 @@ export function GlobalCommandPaletteActions() {
               });
             }}
           >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
+            {data => {
+              return data.map((item, i) => renderAsyncResult(item, i));
+            }}
           </CMDKAction>
         )}
       </CMDKAction>

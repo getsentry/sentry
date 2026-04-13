@@ -778,6 +778,7 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
+    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"

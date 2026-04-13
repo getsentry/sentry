@@ -36,6 +36,10 @@ describe('DetectorsList', () => {
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
@@ -272,6 +276,10 @@ describe('DetectorsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       // Set up multiple detectors with different states
       MockApiClient.addMockResponse({

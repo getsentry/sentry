@@ -276,6 +276,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
 src/sentry/api/endpoints/organization_attribute_mappings.py                 @getsentry/data-browsing
 
+/src/sentry/integrations/slack/unfurl/explore.py                           @getsentry/data-browsing
+
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
@@ -439,6 +441,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/loading/                @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
+/static/app/components/featureShowcase.mdx     @getsentry/app-frontend
+/static/app/components/featureShowcase.spec.tsx @getsentry/app-frontend
+/static/app/components/featureShowcase.tsx     @getsentry/app-frontend
 /static/app/components/markdownTextArea.tsx    @getsentry/app-frontend
 /static/app/locale.tsx                         @getsentry/app-frontend
 ## End of Frontend

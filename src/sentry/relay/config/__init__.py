@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from sentry_sdk import capture_exception
@@ -46,7 +46,6 @@ from sentry.relay.config.metric_extraction import (
 from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -216,103 +215,6 @@ def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> li
     else:
         metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
-
-
-class SlidingWindow(TypedDict):
-    windowSeconds: int
-    granularitySeconds: int
-
-
-class CardinalityLimit(TypedDict):
-    id: str
-    passive: NotRequired[bool]
-    window: SlidingWindow
-    limit: int
-    scope: Literal["organization", "project"]
-    namespace: str | None
-
-
-class CardinalityLimitOption(TypedDict):
-    rollout_rate: NotRequired[float]
-    limit: CardinalityLimit
-    projects: NotRequired[list[int]]
-
-
-def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
-    metrics_config = {}
-
-    if cardinality_limits := get_cardinality_limits(timeout, project):
-        metrics_config["cardinalityLimits"] = cardinality_limits
-
-    return metrics_config or None
-
-
-def get_cardinality_limits(timeout: TimeChecker, project: Project) -> list[CardinalityLimit] | None:
-    if options.get("relay.cardinality-limiter.mode") == "disabled":
-        return None
-
-    passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-        str(project.organization.id), []
-    )
-
-    existing_ids: set[str] = set()
-    cardinality_limits: list[CardinalityLimit] = []
-    for namespace in CARDINALITY_LIMIT_USE_CASES:
-        timeout.check()
-        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
-        if not option or not len(option) == 1:
-            # Multiple quotas are not supported
-            continue
-
-        quota = option[0]
-        id = namespace.value
-
-        limit: CardinalityLimit = {
-            "id": id,
-            "window": {
-                "windowSeconds": quota["window_seconds"],
-                "granularitySeconds": quota["granularity_seconds"],
-            },
-            "limit": quota["limit"],
-            "scope": "organization",
-            "namespace": namespace.value,
-        }
-        if id in passive_limits:
-            limit["passive"] = True
-        cardinality_limits.append(limit)
-        existing_ids.add(id)
-
-    project_limit_options: list[CardinalityLimitOption] = project.get_option(
-        "relay.cardinality-limiter.limits", []
-    )
-    organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
-        "relay.cardinality-limiter.limits", []
-    )
-    option_limit_options: list[CardinalityLimitOption] = options.get(
-        "relay.cardinality-limiter.limits"
-    )
-
-    for clo in project_limit_options + organization_limit_options + option_limit_options:
-        rollout_rate = clo.get("rollout_rate", 1.0)
-        if (project.organization.id % 100000) / 100000 >= rollout_rate:
-            continue
-
-        projects = clo.get("projects")
-        if projects is not None and project.id not in projects:
-            # projects list is defined but the current project is not in the list
-            continue
-
-        try:
-            limit = clo["limit"]
-            if clo["limit"]["id"] in existing_ids:
-                # skip if a limit with the same id already exists
-                continue
-            cardinality_limits.append(limit)
-            existing_ids.add(clo["limit"]["id"])
-        except KeyError:
-            pass
-
-    return cardinality_limits
 
 
 def get_project_config(
@@ -1045,8 +947,6 @@ def _get_project_config(
         config["txNameReady"] = True
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
-
-    add_experimental_config(config, "metrics", get_metrics_config, project)
 
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
