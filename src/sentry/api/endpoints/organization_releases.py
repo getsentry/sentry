@@ -184,29 +184,13 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
         if search_filter.key.name == ENVIRONMENT_KEY:
             negated = search_filter.operator in ("!=", "NOT IN")
             kind, value_o = search_filter.value.classify_and_format_wildcard()
-            project_ids = filter_params["project_id"]
-            if kind == "infix":
-                env_q = Q(
-                    releaseprojectenvironment__environment__name__icontains=value_o,
-                    releaseprojectenvironment__project_id__in=project_ids,
-                )
-            elif kind == "prefix":
-                env_q = Q(
-                    releaseprojectenvironment__environment__name__istartswith=value_o,
-                    releaseprojectenvironment__project_id__in=project_ids,
-                )
-            elif kind == "suffix":
-                env_q = Q(
-                    releaseprojectenvironment__environment__name__iendswith=value_o,
-                    releaseprojectenvironment__project_id__in=project_ids,
-                )
-            else:
-                env_names = value_o if isinstance(value_o, list) else [value_o]
-                env_q = Q(
-                    releaseprojectenvironment__environment__name__in=env_names,
-                    releaseprojectenvironment__project_id__in=project_ids,
-                )
-            queryset = queryset.exclude(env_q) if negated else queryset.filter(env_q)
+            lookup_map = {"infix": "icontains", "prefix": "istartswith", "suffix": "iendswith"}
+            queryset = queryset.filter_by_environment(
+                value_o,
+                filter_params["project_id"],
+                lookup=lookup_map.get(kind, "in"),
+                negated=negated,
+            )
 
     return queryset
 
@@ -418,7 +402,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-        queryset = queryset.distinct()
         queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
 
         if sort == "date":
