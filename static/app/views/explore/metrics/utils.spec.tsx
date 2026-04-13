@@ -37,7 +37,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     return decodeMetricsQueryParams(metricParam!);
   }
 
-  it('decodes orderby into sortBys', () => {
+  it('decodes orderby into sortBys for new-format queries', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
       savedQuery: new SavedQuery({
@@ -57,6 +57,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '-value',
+            aggregateOrderby: '-sum(value,test_metric,counter,-)',
             aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
@@ -132,6 +133,78 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
 
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+    expect(decoded?.queryParams.aggregateSortBys).toEqual([
+      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+    ]);
+  });
+
+  it('does not reuse legacy aggregate timestamp orderby as sample sort', () => {
+    const url = getMetricsUrlFromSavedQueryUrl({
+      organization,
+      savedQuery: new SavedQuery({
+        id: 1,
+        interval: '5m',
+        name: 'test query',
+        projects: [],
+        dataset: 'metrics',
+        dateAdded: '2025-01-01T00:00:00.000000Z',
+        dateUpdated: '2025-01-01T00:00:00.000000Z',
+        lastVisited: '2025-01-01T00:00:00.000000Z',
+        starred: false,
+        position: null,
+        query: [
+          {
+            mode: Mode.SAMPLES,
+            query: '',
+            fields: ['id', 'timestamp'],
+            orderby: 'timestamp',
+            aggregateField: [
+              {yAxes: ['sum(value,test_metric,counter,-)']},
+              {groupBy: 'timestamp'},
+            ],
+            metric: {name: 'test_metric', type: 'counter'},
+          },
+        ],
+      }),
+    });
+
+    const decoded = decodeMetricFromUrl(url);
+    expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+    expect(decoded?.queryParams.aggregateSortBys).toEqual([
+      {field: 'timestamp', kind: 'asc'},
+    ]);
+  });
+
+  it('treats empty aggregateOrderby as new-format and preserves sample sort', () => {
+    const url = getMetricsUrlFromSavedQueryUrl({
+      organization,
+      savedQuery: new SavedQuery({
+        id: 1,
+        interval: '5m',
+        name: 'test query',
+        projects: [],
+        dataset: 'metrics',
+        dateAdded: '2025-01-01T00:00:00.000000Z',
+        dateUpdated: '2025-01-01T00:00:00.000000Z',
+        lastVisited: '2025-01-01T00:00:00.000000Z',
+        starred: false,
+        position: null,
+        query: [
+          {
+            mode: Mode.SAMPLES,
+            query: '',
+            fields: ['id', 'timestamp'],
+            orderby: '-value',
+            aggregateOrderby: '',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            metric: {name: 'test_metric', type: 'counter'},
+          },
+        ],
+      }),
+    });
+
+    const decoded = decodeMetricFromUrl(url);
+    expect(decoded?.queryParams.sortBys).toEqual([{field: 'value', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
       {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
     ]);
