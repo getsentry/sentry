@@ -918,7 +918,7 @@ def get_autofix_repos_from_project_code_mappings(
         repo_name_sections = repo.name.split("/")
 
         if (
-            # Repository name must be in "owner/name" format.
+            # We expect a repository name to be in the format of "owner/name" for now.
             len(repo_name_sections) > 1
             # Only include active repos with a supported provider, active integration, and external ID.
             and repo.status == ObjectStatus.ACTIVE
