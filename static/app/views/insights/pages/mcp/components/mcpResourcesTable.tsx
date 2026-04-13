@@ -49,7 +49,9 @@ const rightAlignColumns = new Set([
 export function McpResourcesTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = useCombinedQuery(`span.name:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`);
+  const query = useCombinedQuery(
+    `span.name:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`
+  );
   const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
