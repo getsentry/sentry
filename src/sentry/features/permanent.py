@@ -114,6 +114,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
+        # Show Seer run ID in Slack notification footers
+        "organizations:seer-run-id-in-slack": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
         # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.

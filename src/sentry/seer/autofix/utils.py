@@ -920,16 +920,17 @@ def get_autofix_repos_from_project_code_mappings(
         if (
             # We expect a repository name to be in the format of "owner/name" for now.
             len(repo_name_sections) > 1
-            # Filter out code mappings with unsupported providers.
+            # Only include active repos with a supported provider, active integration, and external ID.
+            and repo.status == ObjectStatus.ACTIVE
+            and repo.integration_id is not None
+            and repo.external_id
             and repo.provider
             and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
         ):
             repo_dict = {
                 "repository_id": repo.id,
                 "organization_id": repo.organization_id,
-                "integration_id": (
-                    str(repo.integration_id) if repo.integration_id is not None else None
-                ),
+                "integration_id": str(repo.integration_id),
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),

@@ -41,6 +41,8 @@ class CodeMapping(NamedTuple):
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
+CodeMappingKey = tuple[str, str]
+
 
 def derive_code_mappings(
     organization: Organization,
@@ -67,7 +69,8 @@ class CodeMappingTreesHelper:
 
     def __init__(self, trees: Mapping[str, RepoTree]):
         self.trees = trees
-        self.code_mappings: dict[str, CodeMapping] = {}
+        # Multiple source roots may legitimately share the same stack root in one monorepo.
+        self.code_mappings: dict[CodeMappingKey, CodeMapping] = {}
 
     def generate_code_mappings(
         self, frames: Sequence[Mapping[str, Any]], platform: str | None = None
@@ -111,7 +114,9 @@ class CodeMappingTreesHelper:
                 extra = {"stack_path": stack_path, "source_path": source_path}
 
                 try:
-                    stack_root, source_root = find_roots(frame_filename, source_path)
+                    stack_root, source_root = find_roots(
+                        frame_filename, source_path, repo_tree.files
+                    )
                 except UnexpectedPathException:
                     logger.warning("Unexpected format for stack_path or source_path", extra=extra)
                     continue
@@ -160,19 +165,19 @@ class CodeMappingTreesHelper:
     def _process_stackframes(self, buckets: Mapping[str, Sequence[FrameInfo]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
-        for stackframe_root, stackframes in buckets.items():
-            if not self.code_mappings.get(stackframe_root):
-                for frame_filename in stackframes:
-                    code_mapping = self._find_code_mapping(frame_filename)
-                    if code_mapping:
+        for stackframes in buckets.values():
+            for frame_filename in stackframes:
+                for code_mapping in self._find_code_mappings(frame_filename):
+                    mapping_key = (code_mapping.stacktrace_root, code_mapping.source_path)
+                    if mapping_key not in self.code_mappings:
                         # This allows processing some stack frames that
                         # were matching more than one file
                         reprocess = True
-                        self.code_mappings[stackframe_root] = code_mapping
+                        self.code_mappings[mapping_key] = code_mapping
         return reprocess
 
-    def _find_code_mapping(self, frame_filename: FrameInfo) -> CodeMapping | None:
-        """Look for the file path through all the trees and a generate code mapping for it if a match is found"""
+    def _find_code_mappings(self, frame_filename: FrameInfo) -> list[CodeMapping]:
+        """Look for the file path through all the trees and generate code mappings for it."""
         code_mappings: list[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
@@ -191,13 +196,17 @@ class CodeMappingTreesHelper:
 
         if len(code_mappings) == 0:
             logger.warning("No files matched for %s", frame_filename.raw_path)
-            return None
-        # This means that the file has been found in more than one repo
-        elif len(code_mappings) > 1:
-            logger.warning("More than one repo matched %s", frame_filename.raw_path)
-            return None
+            return []
 
-        return code_mappings[0]
+        unique_code_mappings = {
+            (code_mapping.stacktrace_root, code_mapping.source_path): code_mapping
+            for code_mapping in code_mappings
+        }
+        if len({code_mapping.repo.name for code_mapping in unique_code_mappings.values()}) > 1:
+            logger.warning("More than one repo matched %s", frame_filename.raw_path)
+            return []
+
+        return list(unique_code_mappings.values())
 
     def _generate_code_mapping_from_tree(
         self,
@@ -214,34 +223,44 @@ class CodeMappingTreesHelper:
             if self._is_potential_match(src_path, frame_filename)
         ]
 
-        if len(matched_files) != 1:
+        if len(matched_files) == 0:
             return []
 
-        stack_path = frame_filename.raw_path
-        source_path = matched_files[0]
-
-        extra = {"stack_path": stack_path, "source_path": source_path}
-        try:
-            stack_root, source_root = find_roots(frame_filename, source_path)
-        except UnexpectedPathException:
-            logger.warning("Unexpected format for stack_path or source_path", extra=extra)
+        if len(matched_files) > 1 and not all(
+            frame_filename.has_source_roots_override(source_path, repo_tree.files)
+            for source_path in matched_files
+        ):
             return []
 
-        extra.update({"stack_root": stack_root, "source_root": source_root})
-        if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
-            logger.warning(
-                "Unexpected stack_path/source_path found. A code mapping was not generated.",
-                extra=extra,
-            )
-            return []
+        code_mappings: dict[tuple[str, str], CodeMapping] = {}
+        for source_path in matched_files:
+            stack_path = frame_filename.raw_path
+            extra = {"stack_path": stack_path, "source_path": source_path}
+            try:
+                stack_root, source_root = find_roots(frame_filename, source_path, repo_tree.files)
+            except UnexpectedPathException:
+                logger.warning("Unexpected format for stack_path or source_path", extra=extra)
+                continue
 
-        return [
-            CodeMapping(
+            extra.update({"stack_root": stack_root, "source_root": source_root})
+            if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
+                logger.warning(
+                    "Unexpected stack_path/source_path found. A code mapping was not generated.",
+                    extra=extra,
+                )
+                continue
+
+            code_mapping = CodeMapping(
                 repo=repo_tree.repo,
                 stacktrace_root=stack_root,
                 source_path=source_root,
             )
-        ]
+            code_mappings[(code_mapping.stacktrace_root, code_mapping.source_path)] = code_mapping
+
+        if len(matched_files) > 1 and len(code_mappings) != len(matched_files):
+            return []
+
+        return list(code_mappings.values())
 
     def _is_potential_match(self, src_file: str, frame_filename: FrameInfo) -> bool:
         """
@@ -419,7 +438,9 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     return sorted_configs
 
 
-def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
+def find_roots(
+    frame_filename: FrameInfo, source_path: str, repo_files: Sequence[str] | None = None
+) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
@@ -444,9 +465,11 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
             # "Packaged" logic
             # e.g. stack_path: some_package/src/foo.py -> source_path: src/foo.py
             source_prefix = source_path.rpartition(stack_path)[0]
-            return (
-                f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
-                f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
+            return frame_filename.resolve_source_roots(
+                source_path=source_path,
+                source_prefix=source_prefix,
+                stack_root_prefix=stack_root,
+                repo_files=repo_files,
             )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]

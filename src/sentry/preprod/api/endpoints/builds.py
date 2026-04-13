@@ -77,8 +77,16 @@ class BuildsEndpoint(OrganizationEndpoint):
         try:
             queryset = queryset_for_query(query, organization)
             queryset = queryset.select_related(
-                "project", "build_configuration", "commit_comparison", "mobile_app_info"
-            ).prefetch_related("preprodartifactsizemetrics_set")
+                "project",
+                "build_configuration",
+                "commit_comparison",
+                "mobile_app_info",
+                "preprodsnapshotmetrics",
+            ).prefetch_related(
+                "preprodartifactsizemetrics_set",
+                "preprodsnapshotmetrics__snapshot_comparisons_head_metrics",
+                "preprodcomparisonapproval_set",
+            )
             queryset = queryset.filter(date_added__gte=cutoff)
             if start:
                 queryset = queryset.filter(date_added__gte=start)

@@ -559,75 +559,49 @@ describe('ReleasesList', () => {
     );
   });
 
-  it('toggles display mode in the mobile-builds tab', async () => {
-    const organizationWithDistribution = OrganizationFixture({
-      slug: organization.slug,
-      features: [...organization.features],
-    });
+  function renderMobileBuildsTab(queryOverrides: Record<string, string> = {}) {
     const mobileProject = ProjectFixture({
       id: '15',
       slug: 'mobile-project-4',
       platform: 'android',
       features: ['releases'],
     });
-
     ProjectsStore.loadInitialData([mobileProject]);
     PageFiltersStore.updateProjects([Number(mobileProject.id)], null);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/builds/`,
-      body: [
-        {
-          id: 'build-id',
-          project_id: 15,
-          project_slug: 'mobile-project-4',
-          state: 1,
-          app_info: {
-            app_id: 'com.example.app',
-            name: 'Example App',
-            platform: 'android',
-            build_number: '1',
-            version: '1.0.0',
-            date_added: '2024-01-01T00:00:00Z',
-          },
-          distribution_info: {
-            is_installable: true,
-            download_count: 12,
-            release_notes: null,
-          },
-          size_info: {},
-          vcs_info: {
-            head_sha: 'abcdef1',
-            pr_number: 123,
-            head_ref: 'main',
-          },
-        },
-      ],
+      body: [],
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
-
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
 
-    const {router} = render(<ReleasesList />, {
-      organization: organizationWithDistribution,
+    return render(<ReleasesList />, {
+      organization,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {tab: 'mobile-builds', cursor: '123', display: 'users'},
+          query: {tab: 'mobile-builds', ...queryOverrides},
         },
       },
     });
+  }
 
-    expect(await screen.findByText('Example App')).toBeInTheDocument();
+  it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {
+    const {router} = renderMobileBuildsTab();
 
-    const displayTrigger = screen.getByRole('button', {name: 'Display Size'});
+    const displayTrigger = await screen.findByRole('button', {name: 'Display Size'});
     await userEvent.click(displayTrigger);
 
     const distributionOption = screen.getByRole('option', {name: 'Distribution'});
@@ -635,6 +609,25 @@ describe('ReleasesList', () => {
 
     expect(router.location.query.display).toBe(PreprodBuildsDisplay.DISTRIBUTION);
     expect(router.location.query.cursor).toBeUndefined();
+    expect(router.location.query.query).toBe('installable:true');
+  });
+
+  it('strips installable:true when switching from Distribution to Size', async () => {
+    const {router} = renderMobileBuildsTab({
+      display: 'distribution',
+      query: 'installable:true',
+    });
+
+    const displayTrigger = await screen.findByRole('button', {
+      name: 'Display Distribution',
+    });
+    await userEvent.click(displayTrigger);
+
+    const sizeOption = screen.getByRole('option', {name: 'Size'});
+    await userEvent.click(sizeOption);
+
+    expect(router.location.query.display).toBe(PreprodBuildsDisplay.SIZE);
+    expect(router.location.query.query).toBeFalsy();
   });
 
   it('allows searching within the mobile-builds tab', async () => {

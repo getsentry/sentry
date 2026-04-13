@@ -106,7 +106,6 @@ type State = {
   savedQuery?: SavedQuery;
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
-  showMetricsAlert?: boolean;
   showQueryIncompatibleWithDataset?: boolean;
   showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
@@ -179,16 +178,6 @@ export class Results extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
-    if (location.query.fromMetric) {
-      this.setState({showMetricsAlert: true});
-      navigate(
-        {
-          ...location,
-          query: {...location.query, fromMetric: undefined},
-        },
-        {replace: true}
-      );
-    }
     if (location.query[SHOW_UNPARAM_BANNER]) {
       this.setState({showUnparameterizedBanner: true});
       navigate(
@@ -603,21 +592,6 @@ export class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    const {organization} = this.props;
-    if (
-      !organization.features.includes('performance-mep-bannerless-ui') &&
-      this.state.showMetricsAlert
-    ) {
-      return (
-        <Alert.Container>
-          <Alert variant="info">
-            {t(
-              "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>

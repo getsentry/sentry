@@ -114,7 +114,7 @@ function PipelineModal<
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
             >
-              {pipeline.error.message}
+              {pipeline.error}
             </Alert>
           )}
           {pipeline.view}
