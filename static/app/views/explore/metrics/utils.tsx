@@ -138,6 +138,13 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     const aggregateFields = [...visualizes, ...groupBys];
 
+    let aggregateSortBys = undefined;
+    if (queryItem.aggregateOrderby) {
+      aggregateSortBys = decodeSorts(queryItem.aggregateOrderby);
+    } else if (queryItem.orderby) {
+      aggregateSortBys = decodeSorts(queryItem.orderby);
+    }
+
     return {
       ...defaultQuery,
       metric: queryItem.metric ?? defaultQuery.metric,
@@ -145,9 +152,7 @@ export function getMetricsUrlFromSavedQueryUrl({
         mode: queryItem.mode,
         query: queryItem.query,
         aggregateFields,
-        aggregateSortBys: queryItem.aggregateOrderby
-          ? decodeSorts(queryItem.aggregateOrderby)
-          : undefined,
+        aggregateSortBys,
         sortBys: queryItem.orderby ? decodeSorts(queryItem.orderby) : undefined,
       }),
     };

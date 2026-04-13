@@ -103,7 +103,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     ]);
   });
 
-  it('falls back to defaults when aggregateOrderby is missing (backwards compat)', () => {
+  it('falls back to legacy orderby when aggregateOrderby is missing (backwards compat)', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
       savedQuery: new SavedQuery({
@@ -122,7 +122,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             mode: Mode.SAMPLES,
             query: '',
             fields: ['id', 'timestamp'],
-            orderby: '-timestamp',
+            orderby: '-sum(value,test_metric,counter,-)',
             aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
