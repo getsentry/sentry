@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Any
 import jwt as pyjwt
 from django.conf import settings
 
-from sentry.utils import jwt as jwt_utils
-
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
 
@@ -156,7 +154,7 @@ def encode_viewer_context(
         "iss": "sentry",
     }
 
-    return jwt_utils.encode(payload, secret, headers={"kid": _key_id(secret)})
+    return pyjwt.encode(payload, secret, algorithm="HS256", headers={"kid": _key_id(secret)})
 
 
 def decode_viewer_context(
