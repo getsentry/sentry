@@ -10,6 +10,9 @@ import {
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
+/**
+ * Takes an expression and map of references and returns the internal string representation that uses the references.
+ */
 function unresolveExpression(
   expression: string,
   referenceMap: Record<string, string> = {}
@@ -30,6 +33,9 @@ function unresolveExpression(
     .join(' ');
 }
 
+/**
+ * Resolves the expression using references into a format that is compatible with our querying endpoints.
+ */
 function resolveExpression(
   expression: Expression,
   referenceMap: Record<string, string> = {}
