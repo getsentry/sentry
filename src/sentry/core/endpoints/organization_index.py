@@ -208,6 +208,7 @@ class OrganizationIndexEndpoint(Endpoint):
             order_by = "-member_count"
             paginator_cls = OffsetPaginator
         elif sort_by == "projects":
+            sentry_sdk.capture_message("organization_index.sort_by_projects_used")
             queryset = queryset.annotate(project_count=Count("project"))
             order_by = "-project_count"
             paginator_cls = OffsetPaginator
