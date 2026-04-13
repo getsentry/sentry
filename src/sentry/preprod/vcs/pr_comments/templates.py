@@ -36,16 +36,10 @@ def format_pr_comment(artifacts: list[PreprodArtifact], project: Project) -> str
     separator = "|----------|--------|---------|---------------|--------------|"
 
     if ios_rows:
-        if android_rows:
-            sections.append(f"### iOS\n\n{header}\n{separator}\n" + "\n".join(ios_rows))
-        else:
-            sections.append(f"{header}\n{separator}\n" + "\n".join(ios_rows))
+        sections.append(f"### iOS\n\n{header}\n{separator}\n" + "\n".join(ios_rows))
 
     if android_rows:
-        if ios_rows:
-            sections.append(f"### Android\n\n{header}\n{separator}\n" + "\n".join(android_rows))
-        else:
-            sections.append(f"{header}\n{separator}\n" + "\n".join(android_rows))
+        sections.append(f"### Android\n\n{header}\n{separator}\n" + "\n".join(android_rows))
 
     settings_url = project.organization.absolute_url(
         f"/settings/projects/{project.slug}/mobile-builds/", query="tab=distribution"
