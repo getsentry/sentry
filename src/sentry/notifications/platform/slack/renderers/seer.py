@@ -210,8 +210,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.models.organization import Organization
 
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
-        organization = Organization.objects.get_from_cache(id=data.organization_id)
-        if features.has("organizations:seer-run-id-in-slack", organization):
+        try:
+            organization = Organization.objects.get_from_cache(id=data.organization_id)
+        except Organization.DoesNotExist:
+            organization = None
+        if organization and features.has("organizations:seer-run-id-in-slack", organization):
             blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
 
         return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
