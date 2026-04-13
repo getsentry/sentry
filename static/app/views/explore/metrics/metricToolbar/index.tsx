@@ -105,9 +105,11 @@ export function MetricToolbar({
                   <GroupBySelector traceMetric={traceMetric} />
                 </Flex>
               </Flex>
-              <Flex minWidth={0}>
-                <Filter traceMetric={traceMetric} />
-              </Flex>
+              {!isNarrow && (
+                <Flex minWidth={0}>
+                  <Filter traceMetric={traceMetric} />
+                </Flex>
+              )}
             </Fragment>
           ) : isVisualizeEquation(visualize) ? (
             <EquationBuilder
