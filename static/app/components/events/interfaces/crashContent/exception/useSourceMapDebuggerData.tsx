@@ -2,7 +2,8 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SourceMapDebugBlueThunderResponseFrame {
@@ -33,7 +34,7 @@ interface SourceMapDebugBlueThunderResponseFrame {
   };
 }
 
-interface SourceMapDebugBlueThunderResponse {
+export interface SourceMapDebugBlueThunderResponse {
   dist: string | null;
   exceptions: Array<{
     frames: SourceMapDebugBlueThunderResponseFrame[];
@@ -49,11 +50,20 @@ interface SourceMapDebugBlueThunderResponse {
   min_debug_id_sdk_version?: string | null;
 }
 
-export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
-  const isSdkThatShouldShowSourceMapsDebugger =
-    !!event.sdk?.name?.startsWith('sentry.javascript.');
+export type SourceMapDebugQueryResult = UseApiQueryResult<
+  SourceMapDebugBlueThunderResponse,
+  RequestError
+>;
+
+export function useSourceMapDebugQuery(
+  projectSlug: string,
+  eventId: string,
+  sdkName: string | null = null
+): SourceMapDebugQueryResult {
   const organization = useOrganization({allowNull: true});
-  const {data: sourceMapDebuggerData} = useApiQuery<SourceMapDebugBlueThunderResponse>(
+  const isSdkThatShouldShowSourceMapsDebugger =
+    sdkName?.startsWith('sentry.javascript.') ?? false;
+  return useApiQuery<SourceMapDebugBlueThunderResponse>(
     [
       getApiUrl(
         '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug-blue-thunder-edition/',
@@ -61,19 +71,22 @@ export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
           path: {
             organizationIdOrSlug: organization!.slug,
             projectIdOrSlug: projectSlug,
-            eventId: event.id,
+            eventId,
           },
         }
       ),
     ],
     {
-      enabled: isSdkThatShouldShowSourceMapsDebugger && organization !== null,
+      enabled:
+        isSdkThatShouldShowSourceMapsDebugger &&
+        !!organization &&
+        !!projectSlug &&
+        !!eventId,
       staleTime: Infinity,
       retry: false,
       refetchOnWindowFocus: false,
     }
   );
-  return sourceMapDebuggerData;
 }
 
 function getDebugIdProgress(

@@ -42,6 +42,8 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TeamFilter} from 'sentry/views/alerts/list/rules/teamFilter';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectCard} from './projectCard';
@@ -138,6 +140,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   useEffect(() => {
     return function cleanup() {
@@ -239,10 +242,9 @@ function Dashboard() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="actions">
             <LinkButton
-              size="sm"
               icon={<IconUser />}
               tooltipProps={{
                 title: canJoinTeam
@@ -256,7 +258,6 @@ function Dashboard() {
               {t('Join a Team')}
             </LinkButton>
             <LinkButton
-              size="sm"
               priority="primary"
               disabled={!canUserCreateProject}
               tooltipProps={{
@@ -273,8 +274,45 @@ function Dashboard() {
             >
               {t('Create Project')}
             </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+          </TopBar.Slot>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <LinkButton
+                size="sm"
+                icon={<IconUser />}
+                tooltipProps={{
+                  title: canJoinTeam
+                    ? undefined
+                    : t('You do not have permission to join a team.'),
+                }}
+                disabled={!canJoinTeam}
+                to={`/settings/${organization.slug}/teams/`}
+                data-test-id="join-team"
+              >
+                {t('Join a Team')}
+              </LinkButton>
+              <LinkButton
+                size="sm"
+                priority="primary"
+                disabled={!canUserCreateProject}
+                tooltipProps={{
+                  title: canUserCreateProject
+                    ? undefined
+                    : t('You do not have permission to create projects'),
+                }}
+                to={makeProjectsPathname({
+                  path: '/new/',
+                  organization,
+                })}
+                icon={<IconAdd />}
+                data-test-id="create-project"
+              >
+                {t('Create Project')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">

@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {AnimatedSentryLogo} from 'sentry/components/animatedSentryLogo';
 import Hook from 'sentry/components/hook';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
@@ -25,6 +24,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -101,16 +101,6 @@ const scmOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
-/**
- * The SCM steps that display the animated logo progress indicator.
- * Order determines the progress level (first = 0, last = 1).
- */
-const SCM_LOGO_STEPS = [
-  OnboardingStepId.SCM_CONNECT,
-  OnboardingStepId.SCM_PLATFORM_FEATURES,
-  OnboardingStepId.SCM_PROJECT_DETAILS,
-];
-
 function WelcomeVariable(props: StepProps) {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
 
@@ -176,7 +166,10 @@ export function OnboardingWithoutContext() {
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
-  const hasScmOnboarding = organization.features.includes('onboarding-scm');
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+  });
+
   const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
@@ -314,12 +307,6 @@ export function OnboardingWithoutContext() {
     );
   };
 
-  const scmLogoIndex = stepObj ? SCM_LOGO_STEPS.indexOf(stepObj.id) : -1;
-  const scmLogoProgress =
-    scmLogoIndex >= 0 && SCM_LOGO_STEPS.length > 1
-      ? scmLogoIndex / (SCM_LOGO_STEPS.length - 1)
-      : null;
-
   // Redirect to the first step if we end up in an invalid state
   const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
   if (!stepObj || stepIndex === -1 || isInvalidDocsStep) {
@@ -388,11 +375,6 @@ export function OnboardingWithoutContext() {
               {t('Back')}
             </Button>
           </BackMotionDiv>
-        )}
-        {scmLogoProgress !== null && (
-          <Container alignSelf="center">
-            <AnimatedSentryLogo progress={scmLogoProgress} />
-          </Container>
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>

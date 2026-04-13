@@ -41,6 +41,10 @@ describe('AutomationsList', () => {
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
     });
@@ -192,6 +196,10 @@ describe('AutomationsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       // Set up multiple automations with different states
       MockApiClient.addMockResponse({
@@ -477,6 +485,10 @@ describe('AutomationsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',

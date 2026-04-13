@@ -102,16 +102,13 @@ def assert_webhook_payloads_for_mailbox(
             if destination_types[destination_type] == 0:
                 del destination_types[destination_type]
 
-        if message.destination_type == DestinationType.CODECOV:
-            assert message.cell_name is None
-        else:
-            assert message.cell_name is not None
-            try:
-                cell_names_set.remove(message.cell_name)
-            except KeyError:
-                raise Exception(
-                    f"Found ControlOutbox for '{message.cell_name}', which was not in cell_names: {str(cell_names_set)}"
-                )
+        assert message.cell_name is not None
+        try:
+            cell_names_set.remove(message.cell_name)
+        except KeyError:
+            raise Exception(
+                f"Found ControlOutbox for '{message.cell_name}', which was not in cell_names: {str(cell_names_set)}"
+            )
     if len(cell_names_set) != 0:
         raise Exception(f"WebhookPayload not found for some cell_names: {str(cell_names_set)}")
 

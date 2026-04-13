@@ -12,7 +12,6 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
-    _get_github_username_for_user,
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
@@ -26,6 +25,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import SeerApiError, SeerProjectPreference, SeerRawPreferenceResponse
+from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1176,25 +1176,25 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_raises_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
+    def test_returns_none_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
         mock_get_prefs.side_effect = SeerApiError("test error", 500)
 
-        with pytest.raises(SeerApiError):
-            _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
+        assert result is None
         mock_set_pref.assert_not_called()
         mock_write_sentry.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_raises_on_set_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
+    def test_returns_none_on_set_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
         mock_set_pref.side_effect = SeerApiError("test error", 500)
 
-        with pytest.raises(SeerApiError):
-            _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
 
+        assert result is None
         mock_write_sentry.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
@@ -1237,9 +1237,35 @@ class TestResolveProjectPreference(TestCase):
         mock_set_pref.assert_not_called()
         mock_write_sentry.assert_not_called()
 
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
+    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
+    @patch("sentry.seer.autofix.autofix.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
+    def test_reads_from_sentry_db(
+        self, mock_get_prefs, mock_read_db, mock_set_pref, mock_write_sentry
+    ):
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        existing_repos = [self._mock_repo("seer", "999")]
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=existing_repos,
+            automated_run_stopping_point="root_cause",
+        )
+
+        result = _resolve_project_preference(
+            self.organization, self.project, [self._mock_repo("sentry", "123")]
+        )
+
+        assert result is not None
+        assert result.repositories[0].name == "seer"
+        mock_get_prefs.assert_not_called()
+        mock_set_pref.assert_not_called()
+
 
 class TestCallAutofix(TestCase):
-    @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
+    @patch("sentry.seer.autofix.autofix.get_github_username_for_user")
     @patch("sentry.seer.autofix.autofix.make_autofix_start_request")
     def test_call_autofix(self, mock_request, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
@@ -1340,7 +1366,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=1,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "testuser"
 
     def test_get_github_username_for_user_with_github_enterprise(self) -> None:
@@ -1361,7 +1387,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=2,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "gheuser"
 
     def test_get_github_username_for_user_without_at_prefix(self) -> None:
@@ -1382,7 +1408,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=3,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "noprefixuser"
 
     def test_get_github_username_for_user_no_mapping(self) -> None:
@@ -1390,7 +1416,7 @@ class TestGetGithubUsernameForUser(TestCase):
         user = self.create_user()
         organization = self.create_organization()
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_non_github_provider(self) -> None:
@@ -1411,7 +1437,7 @@ class TestGetGithubUsernameForUser(TestCase):
             integration_id=4,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_multiple_mappings(self) -> None:
@@ -1444,7 +1470,7 @@ class TestGetGithubUsernameForUser(TestCase):
             date_added=before_now(days=1),
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "newuser"
 
     def test_get_github_username_for_user_from_commit_author(self) -> None:
@@ -1463,7 +1489,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id="github:githubuser",
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "githubuser"
 
     def test_get_github_username_for_user_from_commit_author_github_enterprise(self) -> None:
@@ -1482,7 +1508,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id="github_enterprise:ghuser",
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "ghuser"
 
     def test_get_github_username_for_user_external_actor_priority(self) -> None:
@@ -1513,7 +1539,7 @@ class TestGetGithubUsernameForUser(TestCase):
         )
 
         # Should use ExternalActor (higher priority)
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "externaluser"
 
     def test_get_github_username_for_user_commit_author_no_external_id(self) -> None:
@@ -1532,7 +1558,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id=None,
         )
 
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_wrong_organization(self) -> None:
@@ -1552,7 +1578,7 @@ class TestGetGithubUsernameForUser(TestCase):
             external_id="github:wrongorguser",
         )
 
-        username = _get_github_username_for_user(user, organization1.id)
+        username = get_github_username_for_user(user, organization1.id)
         assert username is None
 
     def test_get_github_username_for_user_unverified_email_not_matched(self) -> None:
@@ -1575,7 +1601,7 @@ class TestGetGithubUsernameForUser(TestCase):
         )
 
         # Should NOT match the unverified email (security fix)
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username is None
 
     def test_get_github_username_for_user_verified_secondary_email_matched(self) -> None:
@@ -1598,7 +1624,7 @@ class TestGetGithubUsernameForUser(TestCase):
         )
 
         # Should match the verified secondary email
-        username = _get_github_username_for_user(user, organization.id)
+        username = get_github_username_for_user(user, organization.id)
         assert username == "developeruser"
 
 

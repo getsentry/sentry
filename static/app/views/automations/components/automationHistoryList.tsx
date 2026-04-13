@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -11,11 +12,12 @@ import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAutomationFireHistoryQuery} from 'sentry/views/automations/hooks';
+import {automationFireHistoryApiOptions} from 'sentry/views/automations/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 const DEFAULT_HISTORY_PER_PAGE = 10;
@@ -63,36 +65,37 @@ export function AutomationHistoryList({
   const cursor =
     typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
 
-  const {
-    data: fireHistory = [],
-    isLoading,
-    isError,
-    getResponseHeader,
-  } = useAutomationFireHistoryQuery(
-    {automationId, limit, cursor, query},
-    {enabled: !!automationId}
-  );
+  const {data, isLoading, isError} = useQuery({
+    ...automationFireHistoryApiOptions({
+      organization: org,
+      automationId,
+      cursor,
+      limit,
+      query,
+    }),
+    select: selectJsonWithHeaders,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const fireHistory = data?.json ?? [];
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
   const paginationCaption = useMemo(() => {
-    if (isLoading || !fireHistory || fireHistory?.length === 0 || limit === null) {
+    if (isLoading || !data?.json || data.json.length === 0 || limit === null) {
       return undefined;
     }
 
     const currentCursor = parseCursor(cursor);
     const offset = currentCursor?.offset ?? 0;
     const startCount = offset * limit + 1;
-    const endCount = startCount + fireHistory.length - 1;
+    const endCount = startCount + data.json.length - 1;
 
     return tct('[start]-[end] of [total]', {
       start: startCount.toLocaleString(),
       end: endCount.toLocaleString(),
       total: totalCountInt.toLocaleString(),
     });
-  }, [fireHistory, isLoading, cursor, limit, totalCountInt]);
+  }, [data?.json, isLoading, cursor, limit, totalCountInt]);
 
   return (
     <Fragment>

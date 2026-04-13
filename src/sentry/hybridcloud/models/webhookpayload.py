@@ -21,7 +21,6 @@ BACKOFF_RATE = 1.4
 
 class DestinationType(TextChoices):
     SENTRY_CELL = "sentry_region"
-    CODECOV = "codecov"
 
 
 @control_silo_model

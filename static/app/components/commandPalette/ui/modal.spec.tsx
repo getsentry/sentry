@@ -18,13 +18,9 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
-// Avoid pulling in the full global actions tree (needs org context, feature flags, etc.)
-jest.mock('sentry/components/commandPalette/ui/commandPaletteGlobalActions', () => ({
-  GlobalCommandPaletteActions: () => null,
-}));
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -52,6 +48,25 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
+// Outlets live in the navigation in production; tests that exercise slot
+// behaviour must render them explicitly so slot consumers have a target to
+// portal into.
+function SlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
 describe('CommandPaletteModal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
@@ -67,6 +82,7 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Leaf Action'}} onAction={onActionSpy} />
         </CommandPaletteSlot>
@@ -84,13 +100,47 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call closeModal when an action with children is selected', async () => {
+  it('keeps the modal open when a prompt action is selected', async () => {
+    const closeModalSpy = jest.fn();
+
+    render(
+      <CommandPaletteProvider>
+        <CMDKAction display={{label: 'DSN Tools'}}>
+          <CMDKAction
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['prompt-modal-test'],
+                queryFn: () => null,
+                enabled: false,
+              })
+            }
+          />
+        </CMDKAction>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Reverse DSN lookup'})
+    );
+
+    expect(closeModalSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Paste a DSN...'
+    );
+  });
+
+  it('invokes an expandable action callback once and keeps the modal open', async () => {
     // Actions with children push into secondary actions — the modal stays open.
     const closeModalSpy = jest.fn();
     const onActionSpy = jest.fn();
 
     render(
       <CommandPaletteProvider>
+        <SlotOutlets />
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Outer Group'}}>
             <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy}>
@@ -109,5 +159,52 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).not.toHaveBeenCalled();
     // Secondary action is now visible
     expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+  });
+
+  it('opens external links in a new tab', async () => {
+    const closeModalSpy = jest.fn();
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <CommandPaletteProvider>
+        <SlotOutlets />
+        <CommandPaletteSlot name="task">
+          <CMDKAction to="https://docs.sentry.io" display={{label: 'External Link'}} />
+        </CommandPaletteSlot>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'External Link'}));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://docs.sentry.io',
+      '_blank',
+      'noreferrer'
+    );
+    expect(closeModalSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+  });
+
+  it('opens internal links in a new tab when shift-enter is used', async () => {
+    const closeModalSpy = jest.fn();
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <CommandPaletteProvider>
+        <SlotOutlets />
+        <CommandPaletteSlot name="task">
+          <CMDKAction to="/target/" display={{label: 'Internal Link'}} />
+        </CommandPaletteSlot>
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+
+    expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');
+    expect(closeModalSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
   });
 });

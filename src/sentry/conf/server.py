@@ -880,6 +880,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
+    "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -991,7 +992,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
-    "sentry.tasks.seer.night_shift",
+    "sentry.tasks.seer.night_shift.cron",
+    "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1258,8 +1260,8 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    "github-repo-sync-beat": {
-        "task": "integrations.control:sentry.integrations.github.tasks.sync_repos.github_repo_sync_beat",
+    "scm-repo-sync-beat": {
+        "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
         "schedule": timedelta(minutes=1),
     },
 }
@@ -2691,7 +2693,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
@@ -3025,8 +3026,6 @@ SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
-
-SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT: int | None = (

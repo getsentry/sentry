@@ -7,7 +7,6 @@ import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import type {NoteType} from 'sentry/types/alerts';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
@@ -61,7 +60,6 @@ function NoteInputWithStorage({
   source,
   ...props
 }: Props) {
-  const hasStreamlinedUi = useHasStreamlinedUI();
   const value = useMemo(() => {
     if (text) {
       return text;
@@ -137,7 +135,7 @@ function NoteInputWithStorage({
   );
 
   // Make sure `this.props` does not override `onChange` and `onCreate`
-  if (hasStreamlinedUi && source === 'issue-details') {
+  if (source === 'issue-details') {
     return (
       <StreamlinedNoteInput
         text={value}

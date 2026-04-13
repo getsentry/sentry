@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -22,17 +22,18 @@ import {Text} from '@sentry/scraps/text';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {isExternalLocation} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconClose, IconSearch} from 'sentry/icons';
+import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
+import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -65,8 +66,10 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 };
 
 interface CommandPaletteProps {
-  onAction: (action: CollectionTreeNode<CMDKActionData>) => void;
-  children?: React.ReactNode;
+  onAction: (
+    action: CollectionTreeNode<CMDKActionData>,
+    options?: {modifierKeys?: {shiftKey: boolean}}
+  ) => void;
 }
 
 export function CommandPalette(props: CommandPaletteProps) {
@@ -202,7 +205,12 @@ export function CommandPalette(props: CommandPaletteProps) {
   });
 
   const onActionSelection = useCallback(
-    (key: string | number | null) => {
+    (
+      key: string | number | null,
+      options?: {
+        modifierKeys?: {shiftKey: boolean};
+      }
+    ) => {
       const action = actions.find(a => a.key === key);
       if (!action) {
         return;
@@ -213,26 +221,59 @@ export function CommandPalette(props: CommandPaletteProps) {
       if (action.children.length > 0) {
         analytics.recordGroupAction(action, resultIndex);
         if ('onAction' in action) {
-          // Invoke the callback but keep the modal open so users can select
-          // secondary actions from the children that follow.
-          props.onAction(action);
+          // Run the primary callback before drilling into the secondary actions.
+          // Modifier keys are irrelevant here — this is not a link navigation.
+          action.onAction();
         }
         dispatch({type: 'push action', key: action.key, label: action.display.label});
         return;
       }
 
+      if ('prompt' in action && action.prompt) {
+        dispatch({
+          type: 'push action',
+          key: action.key,
+          label: action.display.label,
+          prompt: action.prompt,
+        });
+        return;
+      }
+
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
-      props.onAction(action);
+      props.onAction(action, options);
     },
     [actions, analytics, dispatch, props]
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
+  const modifierKeysRef = useRef({shiftKey: false});
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      modifierKeysRef.current = {shiftKey: event.shiftKey};
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      modifierKeysRef.current = {shiftKey: event.shiftKey};
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const debouncedQuery = useDebouncedValue(state.query, 300);
+  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
 
-  const isLoading = state.query.length > 0 && debouncedQuery !== state.query;
+  const isLoading =
+    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
+  const isEmptyPromptQuery =
+    state.action?.value.prompt !== undefined && state.query.length === 0;
 
   return (
     <Fragment>
@@ -286,9 +327,10 @@ export function CommandPalette(props: CommandPaletteProps) {
                   value={state.query}
                   aria-label={t('Search commands')}
                   placeholder={
-                    state.action?.value.label
+                    state.action?.value.prompt ??
+                    (state.action?.value.label
                       ? t('Search inside %s...', state.action.value.label)
-                      : t('Search for commands...')
+                      : t('Search for commands...'))
                   }
                   {...mergeProps(collectionProps, {
                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -319,7 +361,11 @@ export function CommandPalette(props: CommandPaletteProps) {
                       }
 
                       if (e.key === 'Enter' || e.key === 'Tab') {
-                        onActionSelection(treeState.selectionManager.focusedKey);
+                        // Only forward shiftKey for Enter — Shift+Tab is reverse tab
+                        // navigation, not an "open in new tab" gesture.
+                        onActionSelection(treeState.selectionManager.focusedKey, {
+                          modifierKeys: {shiftKey: e.key === 'Enter' && e.shiftKey},
+                        });
                         return;
                       }
                     },
@@ -350,21 +396,10 @@ export function CommandPalette(props: CommandPaletteProps) {
         </Flex>
       </Flex>
 
-      <CommandPaletteSlot.Outlet name="task">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="page">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="global">
-        {p => (
-          <div {...p} style={{display: 'contents'}}>
-            {props.children}
-          </div>
-        )}
-      </CommandPaletteSlot.Outlet>
       {treeState.collection.size === 0 ? (
-        <CommandPaletteNoResults />
+        isEmptyPromptQuery ? null : (
+          <CommandPaletteNoResults />
+        )
       ) : (
         <ResultsList
           direction="column"
@@ -383,7 +418,11 @@ export function CommandPalette(props: CommandPaletteProps) {
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
-            onAction={onActionSelection}
+            onAction={key => {
+              onActionSelection(key, {
+                modifierKeys: modifierKeysRef.current,
+              });
+            }}
           />
         </ResultsList>
       )}
@@ -393,8 +432,8 @@ export function CommandPalette(props: CommandPaletteProps) {
 
 /**
  * Pre-sorts the root-level nodes by DOM position of their slot outlet element.
- * Outlets are declared in priority order inside CommandPalette (task → page → global),
- * so compareDocumentPosition gives the correct ordering for free.
+ * Outlets are rendered in task → page → global order inside CommandPaletteProvider,
+ * so compareDocumentPosition gives the correct priority ordering for free.
  * Nodes sharing the same outlet (same slot) retain their existing relative order.
  * Nodes without a slot ref are not reordered relative to each other.
  */
@@ -481,19 +520,31 @@ function flattenActions(
     const results: CMDKFlatItem[] = [];
     for (const node of nodes) {
       const isGroup = node.children.length > 0;
-      // Skip groups that have no children and no executable action — they are
-      // empty section headers (e.g. a CMDKGroup whose children didn't render).
+      // Skip non-group nodes that have no executable action — they are
+      // empty placeholders (e.g. a CMDKGroup whose children didn't render).
+      // Prompt/resource nodes are actionable leaf items even though they lack
+      // `to` or `onAction`, so only skip when none of the four action types apply.
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
-        continue;
+        const hasPromptOrResource =
+          ('prompt' in node && !!node.prompt) || ('resource' in node && !!node.resource);
+        if (!hasPromptOrResource || isEmptyResourceNode(node)) {
+          continue;
+        }
       }
 
-      results.push({...node, listItemType: isGroup ? 'section' : 'action'});
       if (isGroup) {
-        const visibleChildren =
-          node.limit === undefined ? node.children : node.children.slice(0, node.limit);
-        for (const child of visibleChildren) {
-          results.push({...child, listItemType: 'action'});
+        const children = node.children
+          .filter(child => !isEmptyResourceNode(child))
+          .map(child => ({...child, listItemType: 'action' as const}));
+        if (!children.length) {
+          continue;
         }
+        results.push({...node, listItemType: 'section'});
+        const visibleChildren =
+          node.limit === undefined ? children : children.slice(0, node.limit);
+        results.push(...visibleChildren);
+      } else {
+        results.push({...node, listItemType: 'action'});
       }
     }
     return results;
@@ -525,8 +576,8 @@ function flattenActions(
     return maxScore(b) - maxScore(a);
   });
 
-  // Track processed keys inline so children beyond a group's limit cannot
-  // resurface as standalone flat items later in the traversal.
+  // Track processed keys so children beyond a group's limit cannot resurface as
+  // standalone flat items later in the traversal.
   const seen = new Set<string>();
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
@@ -534,7 +585,9 @@ function flattenActions(
     seen.add(item.key);
 
     if (item.children.length > 0) {
-      const matched = item.children.filter(c => scores.get(c.key)?.score.matched);
+      const matched = item.children.filter(
+        c => scores.get(c.key)?.score.matched && !isEmptyResourceNode(c)
+      );
       if (!matched.length) return [];
       const sortedMatches = matched.sort(
         (a, b) =>
@@ -555,13 +608,43 @@ function flattenActions(
         ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
       ];
     }
+
+    // Skip resource nodes with no children — they are async group containers that
+    // returned 0 results and have no executable action of their own.
+    if (isEmptyResourceNode(item)) {
+      return [];
+    }
     return scores.get(item.key)?.score.matched ? [{...item, listItemType: 'action'}] : [];
   });
 
   return flattened;
 }
 
+function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean {
+  return (
+    node.children.length === 0 &&
+    'resource' in node &&
+    !('to' in node) &&
+    !('onAction' in node) &&
+    !('prompt' in node && node.prompt)
+  );
+}
+
 function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {
+  const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
+  const trailingItems =
+    'to' in action ? (
+      <Flex
+        align="center"
+        data-link-type={isExternal ? 'external' : 'internal'}
+        data-test-id="command-palette-link-indicator"
+      >
+        <IconDefaultsProvider size="xs" variant="muted">
+          {isExternal ? <IconOpen /> : <IconLink />}
+        </IconDefaultsProvider>
+      </Flex>
+    ) : undefined;
+
   return {
     key: action.key,
     label: action.display.label,
@@ -579,6 +662,7 @@ function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuI
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
     ),
+    trailingItems,
     children: [],
     hideCheck: true,
   };

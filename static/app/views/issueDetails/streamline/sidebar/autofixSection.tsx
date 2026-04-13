@@ -1,5 +1,6 @@
 import {useCallback, useMemo, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -39,11 +40,11 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -125,7 +126,9 @@ export interface AutofixContentProps {
 export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
   const organization = useOrganization();
   const autofix = useExplorerAutofix(group.id);
-  const {data: setupCheck, isPending} = useSeerOnboardingCheck();
+  const {data: setupCheck, isPending} = useQuery(
+    getSeerOnboardingCheckQueryOptions({organization})
+  );
 
   useAutoTriggerAutofix({autofix, group});
 

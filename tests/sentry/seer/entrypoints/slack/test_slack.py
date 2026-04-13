@@ -544,9 +544,9 @@ class SlackExplorerEntrypointTest(TestCase):
             "organizations:gen-ai-features": True,
             "organizations:seer-explorer": True,
         }
-        with self.feature({"organizations:seer-slack-workflows": False, **explorer_flags}):
+        with self.feature({"organizations:seer-slack-explorer": False, **explorer_flags}):
             assert not SlackExplorerEntrypoint.has_access(self.organization)
-        with self.feature({"organizations:seer-slack-workflows": True, **explorer_flags}):
+        with self.feature({"organizations:seer-slack-explorer": True, **explorer_flags}):
             assert SlackExplorerEntrypoint.has_access(self.organization)
             self.organization.update_option("sentry:hide_ai_features", True)
             assert not SlackExplorerEntrypoint.has_access(self.organization)
