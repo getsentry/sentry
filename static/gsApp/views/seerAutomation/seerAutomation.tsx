@@ -24,7 +24,9 @@ export default function SeerAutomation() {
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const showNoActiveSeerSubscriptionBanner =
-    !hasSeatBasedSeer && (hasLegacySeer || hasCodeReviewBeta) && !subscription?.isManaged;
+    !hasSeatBasedSeer &&
+    (hasLegacySeer || hasCodeReviewBeta) &&
+    !subscription?.canSelfServe;
 
   if (showNewSeer(organization)) {
     return <SeerAutomationSettings />;

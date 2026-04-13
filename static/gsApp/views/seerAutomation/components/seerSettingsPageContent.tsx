@@ -22,7 +22,9 @@ export function SeerSettingsPageContent({children}: Props) {
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const showNoActiveSeerSubscriptionBanner =
-    !hasSeatBasedSeer && (hasLegacySeer || hasCodeReviewBeta) && !subscription?.isManaged;
+    !hasSeatBasedSeer &&
+    (hasLegacySeer || hasCodeReviewBeta) &&
+    !subscription?.canSelfServe;
 
   return (
     <Stack gap="lg">
