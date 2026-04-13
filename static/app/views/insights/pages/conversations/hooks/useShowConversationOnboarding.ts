@@ -1,12 +1,18 @@
 import {useEffect, useMemo} from 'react';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+
+/**
+ * Whether the current project selection represents "all projects" (-1 or empty).
+ */
+function isAllProjectsSelection(projects: number[]): boolean {
+  return projects.length === 0 || projects[0] === ALL_ACCESS_PROJECTS;
+}
 
 export function useShowConversationOnboarding(): {
   isLoading: boolean;
@@ -14,12 +20,17 @@ export function useShowConversationOnboarding(): {
   showOnboarding: boolean;
 } {
   const {selection} = usePageFilters();
-  const {projects} = useProjects();
   const organization = useOrganization();
 
-  const selectedProjectIds = useMemo(
-    () => getSelectedProjectList(selection.projects, projects).map(p => Number(p.id)),
-    [selection.projects, projects]
+  // Store the raw selection values — either specific IDs like [1, 5]
+  // or [-1] for "all projects". We intentionally do NOT expand "all projects"
+  // into individual IDs to avoid incorrectly marking every project as having data.
+  const rawSelectedProjectIds = useMemo(
+    () =>
+      isAllProjectsSelection(selection.projects)
+        ? [ALL_ACCESS_PROJECTS]
+        : selection.projects,
+    [selection.projects]
   );
 
   const [projectsWithConversations, setProjectsWithConversations] = useLocalStorageState<
@@ -41,16 +52,16 @@ export function useShowConversationOnboarding(): {
   useEffect(() => {
     if (hasData) {
       setProjectsWithConversations(prev => {
-        const combined = new Set([...prev, ...selectedProjectIds]);
+        const combined = new Set([...prev, ...rawSelectedProjectIds]);
         if (combined.size === prev.length) {
           return prev;
         }
         return Array.from(combined);
       });
     }
-  }, [hasData, selectedProjectIds, setProjectsWithConversations]);
+  }, [hasData, rawSelectedProjectIds, setProjectsWithConversations]);
 
-  const selectedProjectsHaveKnownConversations = selectedProjectIds.some(id =>
+  const selectedProjectsHaveKnownConversations = rawSelectedProjectIds.some(id =>
     projectsWithConversations.includes(id)
   );
 
