@@ -130,6 +130,47 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url, {"project": self.project1.id})
         assert response.status_code == 200
 
+    def test_project_from_another_org_is_rejected(self) -> None:
+        """Supplying a project_id belonging to a different organization must not
+        leak session health data (IDOR check)."""
+        other_org = self.create_organization(owner=self.create_user())
+        other_project = self.create_project(organization=other_org)
+
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
+        )
+
+        response = self.client.get(url, {"project": other_project.id})
+        assert response.status_code in (403, 404)
+
+    def test_project_user_has_no_access_to_is_rejected(self) -> None:
+        """Supplying a project_id the user does not have access to within the
+        same org must be rejected."""
+        team2 = self.create_team(organization=self.organization)
+        no_access_project = self.create_project(teams=[team2], organization=self.organization)
+
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
+        release.add_project(no_access_project)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
+        )
+
+        response = self.client.get(url, {"project": no_access_project.id})
+        assert response.status_code in (403, 404)
+
     def test_correct_project_contains_current_project_meta(self) -> None:
         """
         Test that shows when correct project id is passed to the request, `sessionsLowerBound`,
