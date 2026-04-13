@@ -53,7 +53,7 @@ class BitbucketInstalledEndpoint(Endpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        data = BitbucketIntegrationProvider().build_integration(state)
-        ensure_integration(IntegrationProviderSlug.BITBUCKET.value, data)
+            data = BitbucketIntegrationProvider().build_integration(state)
+            ensure_integration(IntegrationProviderSlug.BITBUCKET.value, data)
 
-        return self.respond()
+            return self.respond()
