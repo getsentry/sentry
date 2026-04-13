@@ -36,6 +36,8 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
+    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)
@@ -341,22 +343,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         )
 
 
-@dataclass(frozen=True)
-class MetricIssue(GroupType):
-    type_id = 8001
-    slug = "metric_issue"
-    description = "Metric issue triggered"
-    category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.METRIC.value
-    creation_quota = Quota(3600, 60, 100)
-    default_priority = PriorityLevel.HIGH
-    released = True
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
-    enable_workflow_notifications = False
-    enable_user_status_and_priority_changes = False
-    detector_settings = DetectorSettings(
+detector_settings_registry.register(
+    DetectorType.METRIC_ISSUE,
+    DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,
         config_schema={
@@ -375,4 +364,23 @@ class MetricIssue(GroupType):
                 },
             },
         },
-    )
+    ),
+)
+
+
+@dataclass(frozen=True)
+class MetricIssue(GroupType):
+    type_id = 8001
+    slug = "metric_issue"
+    description = "Metric issue triggered"
+    category = GroupCategory.METRIC_ALERT.value
+    category_v2 = GroupCategory.METRIC.value
+    creation_quota = Quota(3600, 60, 100)
+    default_priority = PriorityLevel.HIGH
+    released = True
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
+    enable_user_status_and_priority_changes = False
+    detector_type = DetectorType.METRIC_ISSUE

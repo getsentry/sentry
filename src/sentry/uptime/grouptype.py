@@ -31,6 +31,8 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
+    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)
@@ -260,19 +262,9 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         return (occurrence, event_data)
 
 
-@dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
-    description = "Uptime Domain Monitor Failure"
-    released = True
-    category = GroupCategory.UPTIME.value
-    category_v2 = GroupCategory.OUTAGE.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    detector_settings = DetectorSettings(
+detector_settings_registry.register(
+    DetectorType.UPTIME_DOMAIN_CHECK_FAILURE,
+    DetectorSettings(
         handler=UptimeDetectorHandler,
         validator=UptimeDomainCheckFailureValidator,
         config_schema={
@@ -300,4 +292,20 @@ class UptimeDomainCheckFailure(GroupType):
             "additionalProperties": False,
         },
         filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
-    )
+    ),
+)
+
+
+@dataclass(frozen=True)
+class UptimeDomainCheckFailure(GroupType):
+    type_id = 7001
+    slug = GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+    description = "Uptime Domain Monitor Failure"
+    released = True
+    category = GroupCategory.UPTIME.value
+    category_v2 = GroupCategory.OUTAGE.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    detector_type = DetectorType.UPTIME_DOMAIN_CHECK_FAILURE

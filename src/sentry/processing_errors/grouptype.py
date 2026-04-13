@@ -32,6 +32,8 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
+    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)
@@ -247,6 +249,16 @@ class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
     issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
 
 
+detector_settings_registry.register(
+    DetectorType.SOURCEMAP_CONFIGURATION,
+    DetectorSettings(
+        handler=SourcemapDetectorHandler,
+        validator=None,
+        config_schema={},
+    ),
+)
+
+
 @dataclass(frozen=True)
 class SourcemapConfigurationType(GroupType):
     type_id = 13001
@@ -260,11 +272,7 @@ class SourcemapConfigurationType(GroupType):
     enable_escalation_detection = False
     creation_quota = Quota(3600, 60, 100)
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
+    detector_type = DetectorType.SOURCEMAP_CONFIGURATION
     enable_user_status_and_priority_changes = False
     # For the moment, we only want to show these issue types in the ui
     enable_status_change_workflow_notifications = False

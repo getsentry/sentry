@@ -405,6 +405,25 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
+class DetectorType(StrEnum):
+    """
+    Identifies which GroupTypes have an associated Detector. This enum is the
+    join point between GroupType (which carries a lightweight DetectorType tag)
+    and DetectorSettings (which references handler/validator implementation
+    types). Keeping this as the indirection layer means importing a GroupType
+    for an id or slug check never pulls in detector implementation code.
+
+    Values are the corresponding GroupType slugs.
+    """
+
+    ERROR = "error"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_check_failure"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+
+
 @dataclass(frozen=True)
 class DetectorSettings:
     handler: type[DetectorHandler[Any]] | None = None
@@ -413,10 +432,45 @@ class DetectorSettings:
     filter: Q | None = None
 
 
+class DetectorSettingsRegistry:
+    """
+    Registry mapping DetectorType to DetectorSettings. DetectorSettings are
+    registered at import time by the modules that define the associated
+    handlers and validators.
+    """
+
+    def __init__(self) -> None:
+        self._registry: dict[DetectorType, DetectorSettings] = {}
+
+    def register(self, detector_type: DetectorType, settings: DetectorSettings) -> None:
+        if detector_type in self._registry:
+            raise ValueError(f"DetectorSettings already registered for {detector_type!r}")
+        self._registry[detector_type] = settings
+
+    def get(self, detector_type: DetectorType) -> DetectorSettings | None:
+        return self._registry.get(detector_type)
+
+
+detector_settings_registry = DetectorSettingsRegistry()
+
+
 def get_detector_settings(group_type: type[GroupType]) -> DetectorSettings | None:
     """
-    Look up DetectorSettings for a GroupType. Use this instead of accessing
-    group_type.detector_settings directly so that callers don't need to
-    depend on the implementation types referenced by DetectorSettings.
+    Look up DetectorSettings for a GroupType via its detector_type and the
+    DetectorSettingsRegistry. Use this instead of depending directly on
+    DetectorSettings from GroupType code.
+
+    Falls back to the deprecated group_type.detector_settings field for
+    test GroupTypes that haven't migrated to the registry yet.
     """
+    if group_type.detector_type is not None:
+        settings = detector_settings_registry.get(group_type.detector_type)
+        if settings is None:
+            raise ValueError(
+                f"DetectorType {group_type.detector_type!r} on {group_type.__name__} "
+                f"has no registered DetectorSettings. This usually means the module "
+                f"that registers settings for this DetectorType was not imported."
+            )
+        return settings
+    # Deprecated fallback for tests that set detector_settings directly.
     return group_type.detector_settings

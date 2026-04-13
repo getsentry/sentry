@@ -28,6 +28,8 @@ from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
+    detector_settings_registry,
 )
 
 if TYPE_CHECKING:
@@ -398,22 +400,9 @@ class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
     data_source_required = False
 
 
-@dataclass(frozen=True)
-class PreprodSizeAnalysisGroupType(GroupType):
-    type_id = 11003
-    slug = "preprod_size_analysis"
-    description = "Size Analysis"
-    category = GroupCategory.PREPROD.value
-    category_v2 = GroupCategory.PREPROD.value
-    default_priority = PriorityLevel.LOW
-    released = False
-    enable_auto_resolve = True
-    enable_escalation_detection = False
-    notification_config = NotificationConfig(
-        context=[],
-        text_code_formatted=False,
-    )
-    detector_settings = DetectorSettings(
+detector_settings_registry.register(
+    DetectorType.PREPROD_SIZE_ANALYSIS,
+    DetectorSettings(
         handler=PreprodSizeAnalysisDetectorHandler,
         validator=PreprodSizeAnalysisDetectorValidator,
         config_schema={
@@ -439,4 +428,23 @@ class PreprodSizeAnalysisGroupType(GroupType):
             "required": ["threshold_type", "measurement"],
             "additionalProperties": False,
         },
+    ),
+)
+
+
+@dataclass(frozen=True)
+class PreprodSizeAnalysisGroupType(GroupType):
+    type_id = 11003
+    slug = "preprod_size_analysis"
+    description = "Size Analysis"
+    category = GroupCategory.PREPROD.value
+    category_v2 = GroupCategory.PREPROD.value
+    default_priority = PriorityLevel.LOW
+    released = False
+    enable_auto_resolve = True
+    enable_escalation_detection = False
+    notification_config = NotificationConfig(
+        context=[],
+        text_code_formatted=False,
     )
+    detector_type = DetectorType.PREPROD_SIZE_ANALYSIS
