@@ -1,10 +1,14 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProblemSection} from './problemSection';
 
 describe('ProblemSection', () => {
+  const project = ProjectFixture();
+
   it('renders title, description, and docs link', () => {
-    render(<ProblemSection />);
+    render(<ProblemSection project={project} />);
 
     expect(screen.getByText('Problem')).toBeInTheDocument();
     expect(
