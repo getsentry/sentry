@@ -1631,7 +1631,7 @@ class TestSeerRpcMethods(APITestCase):
         )
         assert result == {}
 
-    @patch("sentry.seer.endpoints.seer_rpc.bulk_get_preferences_from_seer_api")
+    @patch("sentry.seer.endpoints.seer_rpc.bulk_get_project_seer_preferences")
     def test_bulk_get_project_preferences_seer_api(self, mock_seer: Any) -> None:
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)

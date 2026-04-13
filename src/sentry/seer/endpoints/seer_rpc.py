@@ -89,7 +89,7 @@ from sentry.seer.autofix.utils import (
     write_preference_to_sentry_db,
 )
 from sentry.seer.autofix.utils import (
-    bulk_get_project_preferences as bulk_get_preferences_from_seer_api,
+    bulk_get_project_preferences as bulk_get_project_seer_preferences,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -910,7 +910,7 @@ def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]
             for project_id, preference in preferences.items()
         }
     else:
-        return bulk_get_preferences_from_seer_api(organization_id, project_ids)
+        return bulk_get_project_seer_preferences(organization_id, project_ids)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
