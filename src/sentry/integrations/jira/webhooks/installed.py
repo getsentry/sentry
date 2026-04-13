@@ -55,8 +55,11 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             try:
                 AtlassianConnectTokenValidator(request, method="POST").get_token()
             except AtlassianConnectValidationError as e:
-                lifecycle.record_halt(halt_reason=e.message)
-                return self.respond({"detail": e.message}, status=status.HTTP_400_BAD_REQUEST)
+                lifecycle.record_halt(halt_reason=str(e))
+                return self.respond(
+                    {"detail": "Request Token Validation Failed"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             data = JiraIntegrationProvider().build_integration(state)
             integration = ensure_integration(self.provider, data)

@@ -293,7 +293,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
     def test_missing_token(self, mock_record_event: MagicMock) -> None:
         response = self.client.post(self.path, data=self.team_data_from_bitbucket)
         assert response.status_code == 400
-        assert response.data["detail"] == "Failed to retrieve token from request headers"
+        assert response.data["detail"] == "Request Token Validation Failed"
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
@@ -307,7 +307,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             HTTP_AUTHORIZATION="invalid",
         )
         assert response.status_code == 400
-        assert response.data["detail"] == "Failed to retrieve token from request headers"
+        assert response.data["detail"] == "Request Token Validation Failed"
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)

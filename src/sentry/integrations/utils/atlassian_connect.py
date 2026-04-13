@@ -16,9 +16,7 @@ from sentry.utils.http import absolute_uri, percent_encode
 
 
 class AtlassianConnectValidationError(Exception):
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__(message)
+    pass
 
 
 def get_query_hash(
