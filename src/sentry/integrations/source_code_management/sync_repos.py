@@ -189,6 +189,9 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                     "new": len(new_ids),
                     "removed": len(removed_ids),
                     "restored": len(restored_ids),
+                    "new_ids": list(new_ids),
+                    "removed_ids": list(removed_ids),
+                    "restored_ids": list(restored_ids),
                 },
             )
 
