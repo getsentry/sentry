@@ -55,6 +55,26 @@ interface PluginWithConfig extends Plugin {
   config_error?: string;
 }
 
+function toBooleanOrUndefined(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function toNumberOrUndefined(value: unknown): number | undefined {
+  return typeof value === 'number' ? value : undefined;
+}
+
+function getDetailMessage(response: unknown): string {
+  if (
+    typeof response === 'object' &&
+    response !== null &&
+    'detail' in response &&
+    typeof response.detail === 'string'
+  ) {
+    return response.detail;
+  }
+  return '';
+}
+
 /**
  * Maps a backend plugin field to the JsonFormAdapterFieldConfig shape
  * expected by BackendJsonSubmitForm.
@@ -76,7 +96,7 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
 
   switch (type) {
     case 'boolean':
-      return {...base, type: 'boolean', default: defaultValue as boolean | undefined};
+      return {...base, type: 'boolean', default: toBooleanOrUndefined(defaultValue)};
     case 'select':
     case 'choice': {
       const emptyChoiceLabel = field.choices?.find(([value]) => value === '')?.[1];
@@ -105,7 +125,7 @@ function mapPluginField(field: BackendPluginField): JsonFormAdapterFieldConfig {
     case 'textarea':
       return {...base, type: 'textarea', default: defaultValue};
     case 'number':
-      return {...base, type: 'number', default: defaultValue as number | undefined};
+      return {...base, type: 'number', default: toNumberOrUndefined(defaultValue)};
     case 'email':
       return {...base, type: 'email', default: defaultValue};
     case 'url':
@@ -175,13 +195,13 @@ export function PluginConfig({
     addLoadingMessage(t('Sending test...'));
 
     try {
-      const response = await fetchMutation<{detail: string}>({
+      const response = await fetchMutation({
         method: 'POST',
         url: pluginEndpoint,
         data: {test: true},
       });
-
-      setTestResults(JSON.stringify(response.detail));
+      const detail = getDetailMessage(response);
+      setTestResults(JSON.stringify(detail));
       addSuccessMessage(t('Test Complete!'));
     } catch (_err) {
       addErrorMessage(
