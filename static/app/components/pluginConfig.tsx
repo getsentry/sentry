@@ -199,7 +199,7 @@ export function PluginConfig({
       const detail = getDetailMessage(response);
       setTestResults(JSON.stringify(detail));
       addSuccessMessage(t('Test Complete!'));
-    } catch (_err) {
+    } catch {
       addErrorMessage(
         t('An unexpected error occurred while testing your plugin. Please try again.')
       );
@@ -247,7 +247,7 @@ export function PluginConfig({
       }
 
       refetch();
-    } catch (_err) {
+    } catch {
       addErrorMessage(t('Unable to save changes. Please try again.'));
     }
   };

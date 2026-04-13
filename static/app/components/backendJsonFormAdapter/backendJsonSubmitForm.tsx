@@ -276,7 +276,7 @@ export function BackendJsonSubmitForm({
                         </fieldApi.Layout.Stack>
                       );
                     case 'select':
-                    case 'choice':
+                    case 'choice': {
                       if (field.url) {
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
@@ -316,6 +316,11 @@ export function BackendJsonSubmitForm({
                             },
                           });
                         if (field.multiple) {
+                          const handleMultipleSelectChange = (
+                            value: Array<string | number>
+                          ) => {
+                            handleChange(value);
+                          };
                           return (
                             <fieldApi.Layout.Stack
                               label={field.label}
@@ -324,31 +329,59 @@ export function BackendJsonSubmitForm({
                             >
                               <fieldApi.SelectAsync
                                 multiple
-                                value={(fieldApi.state.value as string[]) ?? []}
-                                onChange={handleChange}
+                                value={
+                                  (fieldApi.state.value as Array<string | number>) ?? []
+                                }
+                                onChange={handleMultipleSelectChange}
                                 disabled={field.disabled}
                                 queryOptions={asyncQueryOptions}
                               />
                             </fieldApi.Layout.Stack>
                           );
                         }
+                        const singleSelectValue = (fieldApi.state.value ?? null) as
+                          | string
+                          | number
+                          | null;
+                        const handleSingleClearableSelectChange = (
+                          value: string | number | null
+                        ) => {
+                          handleChange(value);
+                        };
+                        const handleSingleSelectChange = (value: string | number) => {
+                          handleChange(value);
+                        };
                         return (
                           <fieldApi.Layout.Stack
                             label={field.label}
                             hintText={field.help}
                             required={field.required}
                           >
-                            <fieldApi.SelectAsync
-                              clearable={isClearable}
-                              value={fieldApi.state.value as string | null}
-                              onChange={handleChange}
-                              disabled={field.disabled}
-                              queryOptions={asyncQueryOptions}
-                            />
+                            {isClearable ? (
+                              <fieldApi.SelectAsync
+                                clearable
+                                value={singleSelectValue}
+                                onChange={handleSingleClearableSelectChange}
+                                disabled={field.disabled}
+                                queryOptions={asyncQueryOptions}
+                              />
+                            ) : (
+                              <fieldApi.SelectAsync
+                                value={singleSelectValue}
+                                onChange={handleSingleSelectChange}
+                                disabled={field.disabled}
+                                queryOptions={asyncQueryOptions}
+                              />
+                            )}
                           </fieldApi.Layout.Stack>
                         );
                       }
                       if (field.multiple) {
+                        const handleMultipleSelectChange = (
+                          value: Array<string | number>
+                        ) => {
+                          handleChange(value);
+                        };
                         return (
                           <fieldApi.Layout.Stack
                             label={field.label}
@@ -357,29 +390,53 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={(fieldApi.state.value as string[]) ?? []}
-                              onChange={handleChange}
+                              value={
+                                (fieldApi.state.value as Array<string | number>) ?? []
+                              }
+                              onChange={handleMultipleSelectChange}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />
                           </fieldApi.Layout.Stack>
                         );
                       }
+                      const singleSelectValue = (fieldApi.state.value ?? null) as
+                        | string
+                        | number
+                        | null;
+                      const handleSingleClearableSelectChange = (
+                        value: string | number | null
+                      ) => {
+                        handleChange(value);
+                      };
+                      const handleSingleSelectChange = (value: string | number) => {
+                        handleChange(value);
+                      };
                       return (
                         <fieldApi.Layout.Stack
                           label={field.label}
                           hintText={field.help}
                           required={field.required}
                         >
-                          <fieldApi.Select
-                            clearable={isClearable}
-                            value={fieldApi.state.value as string | null}
-                            onChange={handleChange}
-                            options={transformChoices(field.choices)}
-                            disabled={field.disabled}
-                          />
+                          {isClearable ? (
+                            <fieldApi.Select
+                              clearable
+                              value={singleSelectValue}
+                              onChange={handleSingleClearableSelectChange}
+                              options={transformChoices(field.choices)}
+                              disabled={field.disabled}
+                            />
+                          ) : (
+                            <fieldApi.Select
+                              value={singleSelectValue}
+                              onChange={handleSingleSelectChange}
+                              options={transformChoices(field.choices)}
+                              disabled={field.disabled}
+                            />
+                          )}
                         </fieldApi.Layout.Stack>
                       );
+                    }
                     case 'secret':
                       return (
                         <fieldApi.Layout.Stack
