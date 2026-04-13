@@ -546,7 +546,7 @@ importers:
         specifier: ^5.2.0
         version: 5.2.0
       zod:
-        specifier: ^4.3.5
+        specifier: 4.3.5
         version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
       zrender:
         specifier: 6.0.0
