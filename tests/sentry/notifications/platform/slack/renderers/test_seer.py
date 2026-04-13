@@ -7,6 +7,7 @@ from slack_sdk.models.blocks import (
     ContextBlock,
     LinkButtonElement,
     MarkdownBlock,
+    MarkdownTextObject,
     PlainTextObject,
     SectionBlock,
 )
@@ -265,7 +266,9 @@ class SeerSlackRendererExplorerTest(TestCase):
         last_block = blocks[-1]
         assert last_block.type == "context"
         assert isinstance(last_block, ContextBlock)
-        footer_text = last_block.elements[0].text
+        first_element = last_block.elements[0]
+        assert isinstance(first_element, MarkdownTextObject)
+        footer_text = first_element.text
         assert "Reinstall" in footer_text
         assert "Thread context is unavailable" in footer_text
 
