@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any, override
 
+import sentry_sdk
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -430,24 +431,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         return time_window_seconds
 
     def _validate_performance_dataset(self, dataset: Dataset) -> Dataset:
-        if dataset != Dataset.Transactions:
-            return dataset
-
-        has_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling", self.context["organization"]
-        )
-        has_performance_metrics = has_dynamic_sampling
-
-        has_on_demand_metrics = features.has(
-            "organizations:on-demand-metrics-extraction",
-            self.context["organization"],
-        )
-
-        if has_performance_metrics or has_on_demand_metrics:
-            raise serializers.ValidationError(
-                "Performance alerts must use the `generic_metrics` dataset"
-            )
-
+        # all generic metrics platform support is being deprecated, so we only allow transactions dataset
+        if dataset == Dataset.PerformanceMetrics:
+            sentry_sdk.capture_message("We no longer support generic metrics alerts.")
+            return Dataset.Transactions
         return dataset
 
     def _validate_group_by(self, value: Sequence[str] | None) -> Sequence[str] | None:

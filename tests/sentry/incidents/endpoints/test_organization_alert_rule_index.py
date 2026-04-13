@@ -1091,61 +1091,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.snuba_query.query == "is:unresolved"
 
-    def test_spm_function(self) -> None:
-        with (
-            outbox_runner(),
-            self.feature(
-                [
-                    "organizations:incidents",
-                    "organizations:performance-view",
-                    "organizations:dynamic-sampling",
-                ]
-            ),
-        ):
-            data = {
-                "dataset": "generic_metrics",
-                "eventTypes": ["transaction"],
-                "aggregate": "spm()",
-                "query": "span.module:db has:span.description",
-                "timeWindow": 60,
-                "thresholdPeriod": 1,
-                "triggers": [
-                    {
-                        "label": "critical",
-                        "alertThreshold": 7000000,
-                        "actions": [
-                            {
-                                "type": "email",
-                                "targetType": "team",
-                                "targetIdentifier": self.team.id,
-                            }
-                        ],
-                    }
-                ],
-                "projects": [self.project.slug],
-                "environment": None,
-                "resolveThreshold": None,
-                "thresholdType": 1,
-                "owner": self.user.id,
-                "name": "Insights Queries SPM Alert",
-                "projectId": "1",
-                "alertType": "insights_metrics",
-                "monitorType": 0,
-                "activationCondition": 0,
-                "comparisonDelta": None,
-                "queryType": 1,
-            }
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query.query == "span.module:db has:span.description"
-        assert alert_rule.snuba_query.aggregate == "spm()"
-
     def test_performance_score_function(self) -> None:
         with (
             outbox_runner(),
@@ -1902,16 +1847,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
             test_params = {**self.alert_rule_dict, "dataset": "transactions"}
 
-            resp = self.get_error_response(
+            resp = self.get_success_response(
                 self.organization.slug,
-                status_code=400,
+                status_code=201,
                 **test_params,
             )
 
-            assert (
-                resp.data["dataset"][0]
-                == "Performance alerts must use the `generic_metrics` dataset"
-            )
+            assert resp.data["dataset"] == "transactions"
 
     def test_alert_with_metrics_layer(self) -> None:
         with self.feature(
@@ -2112,6 +2054,19 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.data[0]
             == "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
+
+    def test_am1_org_transactions_dataset_allowed(self) -> None:
+        """AM1 orgs (no dynamic-sampling or on-demand-metrics) cannot create generic_metrics alerts."""
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert "id" in resp.data
+        assert resp.data["dataset"] == "transactions"
 
     def test_invalid_extrapolation_mode(self) -> None:
         data = deepcopy(self.alert_rule_dict)
