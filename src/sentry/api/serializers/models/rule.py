@@ -528,12 +528,12 @@ class WorkflowEngineRuleSerializer(Serializer):
                 all_filters.extend([update_condition_name(f) for f in filters])
 
         trigger_conditions = (
-            list(workflow.when_condition_group.conditions.all())
+            list(workflow.when_condition_group.conditions.order_by("id"))
             if workflow.when_condition_group
             else []
         )
         generate_condition_filters(trigger_conditions, is_filter=False)
-        filter_conditions = list(workflow_dcg.condition_group.conditions.all())
+        filter_conditions = list(workflow_dcg.condition_group.conditions.order_by("id"))
         generate_condition_filters(filter_conditions, is_filter=True)
 
         return all_conditions, all_filters
