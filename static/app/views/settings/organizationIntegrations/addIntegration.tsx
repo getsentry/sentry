@@ -213,6 +213,7 @@ export function useAddIntegration(params: AddIntegrationParams) {
       openPipelineModal({
         type: 'integration',
         provider: pipelineProvider,
+        initialData: urlParams,
         onComplete: (data: IntegrationWithConfig) => {
           trackIntegrationAnalytics('integrations.installation_complete', {
             integration: provider.key,
