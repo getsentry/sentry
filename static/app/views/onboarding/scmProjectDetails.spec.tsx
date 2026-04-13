@@ -63,7 +63,7 @@ describe('ScmProjectDetails', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders step header with step counter and heading', async () => {
+  it('renders step header with heading', async () => {
     render(
       <ScmProjectDetails
         onComplete={jest.fn()}
@@ -78,8 +78,7 @@ describe('ScmProjectDetails', () => {
       }
     );
 
-    expect(await screen.findByText('Step 3 of 3')).toBeInTheDocument();
-    expect(screen.getByText('Project details')).toBeInTheDocument();
+    expect(await screen.findByText('Project details')).toBeInTheDocument();
   });
 
   it('renders section headers with icons', async () => {

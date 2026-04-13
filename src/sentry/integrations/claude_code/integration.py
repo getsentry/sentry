@@ -15,7 +15,7 @@ from typing import Any, Literal
 from django import forms
 from django.conf import settings as django_settings
 from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -76,7 +76,16 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     environment_id: str | None = None
     workspace_name: str | None = "default"
     agent_id: str | None = None
-    agent_version: str | None = None
+    agent_version: int | None = None
+    model: str | None = None
+
+    @validator("agent_version", pre=True)
+    def coerce_agent_version(cls, v: object) -> int | None:
+        # Old SDK stored version as a timestamp string — drop it so the agent is recreated.
+        # New versions come from the API as integers, so any string value is stale.
+        if isinstance(v, str):
+            return None
+        return v  # type: ignore[return-value]
 
 
 metadata = IntegrationMetadata(
@@ -173,15 +182,20 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 raise IntegrationConfigurationError(
                     "Invalid Anthropic API key. Please check your credentials."
                 )
+        except IntegrationConfigurationError:
+            raise
+        except ValueError as e:
+            # e.g. valid key but GET /v1/models lists no model we support (getsentry client).
+            self.get_logger().warning(
+                "claude_code.build_integration.no_supported_model",
+                extra={"error": str(e)},
+            )
+            raise IntegrationConfigurationError(str(e)) from e
         except Exception as e:
-            if isinstance(e, IntegrationConfigurationError):
-                raise
             self.get_logger().exception(
                 "claude_code.build_integration.validation_failed",
             )
-            raise IntegrationConfigurationError(
-                "Unable to validate Anthropic API key. Please check your credentials."
-            ) from e
+            raise IntegrationConfigurationError("Unable to validate Anthropic API key.") from e
 
         environment_id = None
         workspace_name = "default"
@@ -191,6 +205,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
             api_key=api_key,
             environment_id=environment_id,
             workspace_name=workspace_name,
+            model=getattr(client, "model", None),
         )
 
         return {
@@ -289,6 +304,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             workspace_name=metadata.workspace_name,
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
+            model=metadata.model,
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:

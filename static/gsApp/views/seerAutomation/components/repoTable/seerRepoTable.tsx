@@ -11,7 +11,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {
   isSeerSupportedProvider,
   useSeerSupportedProviderIds,
@@ -26,11 +25,13 @@ import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -40,7 +41,7 @@ import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTa
 const GRID_COLUMNS = '40px 1fr 118px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
-const estimateSize = () => 60;
+const estimateSize = () => 68;
 
 export function SeerRepoTable() {
   const queryClient = useQueryClient();
@@ -59,7 +60,7 @@ export function SeerRepoTable() {
 
   const supportedProviderIds = useSeerSupportedProviderIds();
 
-  const queryOptions = organizationRepositoriesInfiniteOptions({
+  const queryOptions = organizationRepositoriesWithSettingsInfiniteOptions({
     organization,
     query: {per_page: 100, query: searchTerm, sort},
   });
@@ -121,6 +122,9 @@ export function SeerRepoTable() {
       });
     },
     onSettled: mutations => {
+      queryClient.invalidateQueries({
+        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+      });
       (mutations ?? []).forEach(mutation => {
         queryClient.invalidateQueries({
           queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
@@ -276,7 +280,7 @@ function VirtualizedRepoTable({
     <ScrollableBody
       ref={setScrollBodyRef}
       style={{
-        minHeight: 0,
+        minHeight: Math.min(10, repositories.length) * estimateSize(),
         maxHeight: maxHeight ? `calc(100vh - ${Math.round(maxHeight)}px)` : undefined,
       }}
     >

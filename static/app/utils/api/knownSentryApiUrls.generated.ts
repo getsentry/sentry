@@ -9,7 +9,6 @@
 
 export type KnownSentryApiUrls =
   | '/'
-  | '/accept-invite/$memberId/$token/'
   | '/accept-invite/$organizationIdOrSlug/$memberId/$token/'
   | '/accept-transfer/'
   | '/api-applications/'
@@ -121,6 +120,7 @@ export type KnownSentryApiUrls =
   | '/internal/rpc/$serviceName/$methodName/'
   | '/internal/scm-rpc/$methodName/'
   | '/internal/seer-rpc/$methodName/'
+  | '/internal/seer/night-shift/trigger/'
   | '/internal/warnings/'
   | '/issues/$issueId/'
   | '/issues/$issueId/activities/'
@@ -655,7 +655,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/grouping-configs/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/groups/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/groups/stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/'

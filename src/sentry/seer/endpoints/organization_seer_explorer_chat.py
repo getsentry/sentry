@@ -172,11 +172,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+            enable_code_mode_tools = features.has(
+                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
+            )
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
                 enable_coding=enable_coding,
+                enable_code_mode_tools=enable_code_mode_tools,
             )
             if run_id:
                 # Continue existing conversation
@@ -186,6 +190,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     insert_index=insert_index,
                     on_page_context=on_page_context,
                     page_name=page_name,
+                    request=request,
                 )
             else:
                 # Start new conversation
@@ -194,6 +199,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     on_page_context=on_page_context,
                     page_name=page_name,
                     override_ce_enable=override_ce_enable,
+                    request=request,
                 )
 
             return Response({"run_id": result_run_id})

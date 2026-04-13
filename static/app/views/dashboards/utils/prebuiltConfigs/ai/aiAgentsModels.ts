@@ -164,8 +164,8 @@ export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'gen_ai.response.model',
-          name: 'gen_ai.response.model',
+          key: SpanFields.GEN_AI_RESPONSE_MODEL,
+          name: SpanFields.GEN_AI_RESPONSE_MODEL,
           kind: FieldKind.TAG,
         },
         value: '',

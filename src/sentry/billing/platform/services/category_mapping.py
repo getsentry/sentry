@@ -13,6 +13,7 @@ SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
     int(DataCategory.REPLAY): ProtoDataCategory.DATA_CATEGORY_REPLAY,
     int(DataCategory.MONITOR): ProtoDataCategory.DATA_CATEGORY_MONITOR,
     int(DataCategory.SPAN): ProtoDataCategory.DATA_CATEGORY_SPAN,
+    int(DataCategory.SPAN_INDEXED): ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED,
     int(DataCategory.USER_REPORT_V2): ProtoDataCategory.DATA_CATEGORY_USER_REPORT_V2,
     int(DataCategory.PROFILE_DURATION): ProtoDataCategory.DATA_CATEGORY_PROFILE_DURATION,
     int(DataCategory.LOG_BYTE): ProtoDataCategory.DATA_CATEGORY_LOG_BYTE,

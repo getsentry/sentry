@@ -87,7 +87,12 @@ export function DiffImageDisplay({
     };
   }, [diffImageUrl]);
 
-  const diffPercent = pair.diff === null ? null : `${(pair.diff * 100).toFixed(1)}%`;
+  // >= 1% shows 1 decimal (e.g. "93.5%"), < 1% shows up to 4 without trailing zeros (e.g. "0.0227%")
+  const diffPct = pair.diff === null ? null : pair.diff * 100;
+  const diffPercent =
+    diffPct === null
+      ? null
+      : `${diffPct >= 1 ? diffPct.toFixed(1) : parseFloat(diffPct.toFixed(4))}%`;
 
   return (
     <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">

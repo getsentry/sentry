@@ -908,33 +908,6 @@ describe('Results', () => {
       });
     });
 
-    it('renders metric fallback alert', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic'],
-      });
-
-      ProjectsStore.loadInitialData([ProjectFixture()]);
-
-      renderMockRequests();
-
-      render(<Results />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-            query: {fromMetric: 'true', id: '1'},
-          },
-          route: '/organizations/:orgId/explore/discover/results/',
-        },
-        organization,
-      });
-
-      expect(
-        await screen.findByText(
-          /You've navigated to this page from a performance metric widget generated from processed events/
-        )
-      ).toBeInTheDocument();
-    });
-
     it('renders unparameterized data banner', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],

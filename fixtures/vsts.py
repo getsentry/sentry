@@ -137,6 +137,11 @@ class VstsIntegrationTestCase(IntegrationTestCase):
                         "id": self.repo_id,
                         "name": self.repo_name,
                         "project": {"name": self.project_a["name"]},
+                        "_links": {
+                            "web": {
+                                "href": f"https://{self.vsts_account_name.lower()}.visualstudio.com/_git/{self.repo_name}"
+                            }
+                        },
                     }
                 ]
             },

@@ -1,5 +1,5 @@
+import {Fragment, useMemo} from 'react';
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -45,6 +45,8 @@ import {
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
   defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
@@ -151,6 +153,7 @@ function SpansTabHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -178,13 +181,25 @@ function SpansTabHeader() {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <StarSavedQueryButton />
-          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          <FeedbackButton />
-        </Grid>
-      </Layout.HeaderActions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+            <FeedbackButton />
+          </Grid>
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }

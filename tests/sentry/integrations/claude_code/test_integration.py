@@ -25,6 +25,7 @@ MOCK_GET_CLIENT_CLASS = "sentry.integrations.claude_code.integration._get_client
 def _mock_client_class(validate_return=True, validate_side_effect=None, **client_attrs):
     """Create a mock client class whose instances have validate_api_key and optional attributes."""
     mock_client = MagicMock()
+    mock_client.model = "claude-opus-4-6"
     if validate_side_effect:
         mock_client.validate_api_key.side_effect = validate_side_effect
     else:
@@ -88,6 +89,36 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert metadata["workspace_name"] == "default"
         assert metadata["agent_id"] is None
         assert metadata["agent_version"] is None
+        assert metadata["model"] == "claude-opus-4-6"
+
+    def test_build_integration_persists_selected_model(self) -> None:
+        mock_cls, mock_client = _mock_client_class()
+        mock_client.model = "claude-sonnet-4-6"
+        state: Mapping[str, Any] = {"api_key": "sk-ant-test-api-key-123"}
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            result = self.provider().build_integration(state)
+
+        assert result["metadata"]["model"] == "claude-sonnet-4-6"
+
+    def test_build_integration_omits_model_when_client_has_no_model_attr(self) -> None:
+        mock_client = MagicMock(spec=["validate_api_key"])
+        mock_client.validate_api_key.return_value = True
+        mock_cls = MagicMock(return_value=mock_client)
+        state: Mapping[str, Any] = {"api_key": "sk-ant-test-api-key-123"}
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            result = self.provider().build_integration(state)
+
+        assert result["metadata"]["model"] is None
+
+    def test_build_integration_no_supported_model_raises(self) -> None:
+        msg = "This API key does not have access to any supported Claude models"
+        mock_cls, _ = _mock_client_class(validate_side_effect=ValueError(msg))
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            with pytest.raises(IntegrationConfigurationError, match=msg):
+                self.provider().build_integration({"api_key": "sk-ant-key"})
 
     def test_build_integration_creates_unique_external_ids(self) -> None:
         mock_cls, _ = _mock_client_class()
@@ -145,6 +176,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             workspace_name="default",
             agent_id=None,
             agent_version=None,
+            model=None,
         )
 
     def test_get_client_with_environment_and_workspace(self) -> None:
@@ -157,7 +189,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
                 environment_id="env-456",
                 workspace_name="my-ws",
                 agent_id="agent-123",
-                agent_version="v1",
+                agent_version=1,
             ),
         )
         installation = integration.get_installation(organization_id=self.organization.id)
@@ -171,7 +203,52 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             environment_id="env-456",
             workspace_name="my-ws",
             agent_id="agent-123",
-            agent_version="v1",
+            agent_version=1,
+            model=None,
+        )
+
+    def test_get_client_passes_model_from_metadata(self) -> None:
+        mock_cls, mock_client = _mock_client_class()
+        integration = self.create_provider_integration(
+            provider="claude_code",
+            name="Claude Code Agent",
+            external_id="claude-code-ext-123",
+            metadata=self._make_metadata(model="claude-sonnet-4-6"),
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.get_client()
+
+        mock_cls.assert_called_once_with(
+            api_key="sk-ant-test-api-key-123",
+            environment_id=None,
+            workspace_name="default",
+            agent_id=None,
+            agent_version=None,
+            model="claude-sonnet-4-6",
+        )
+
+    def test_get_client_passes_none_model_when_metadata_has_none(self) -> None:
+        mock_cls, _ = _mock_client_class()
+        integration = self.create_provider_integration(
+            provider="claude_code",
+            name="Claude Code Agent",
+            external_id="claude-code-ext-123",
+            metadata=self._make_metadata(),
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.get_client()
+
+        mock_cls.assert_called_once_with(
+            api_key="sk-ant-test-api-key-123",
+            environment_id=None,
+            workspace_name="default",
+            agent_id=None,
+            agent_version=None,
+            model=None,
         )
 
     def test_get_client_class_not_configured(self) -> None:
@@ -180,6 +257,27 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         with self.settings(CLAUDE_CODE_CLIENT_CLASS=None):
             with pytest.raises(IntegrationConfigurationError, match="not configured"):
                 installation.get_client()
+
+    # ── agent_version coercion ───────────────────────────────────────
+
+    def test_agent_version_int_is_preserved(self) -> None:
+        installation = self._create_installation(agent_id="agent-123", agent_version=3)
+        metadata = installation._get_metadata()
+        assert metadata.agent_version == 3
+
+    def test_agent_version_old_timestamp_string_is_dropped(self) -> None:
+        # Old SDK stored version as a large timestamp string — should be coerced to None.
+        installation = self._create_installation(
+            agent_id="agent-123", agent_version="1772585501101368014"
+        )
+        metadata = installation._get_metadata()
+        assert metadata.agent_version is None
+        assert metadata.agent_id == "agent-123"
+
+    def test_agent_version_none_stays_none(self) -> None:
+        installation = self._create_installation()
+        metadata = installation._get_metadata()
+        assert metadata.agent_version is None
 
     # ── Property getters ─────────────────────────────────────────────
 
@@ -337,9 +435,9 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             environment_id="env-same",
             client_environment_id="env-same",
             agent_id="agent-same",
-            agent_version="v-same",
+            agent_version=1,
             client_agent_id="agent-same",
-            client_agent_version="v-same",
+            client_agent_version=1,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -354,7 +452,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             environment_id="env-existing",
             client_environment_id=None,
             agent_id="agent-existing",
-            agent_version="v-existing",
+            agent_version=1,
             client_agent_id=None,
             client_agent_version=None,
         )
@@ -370,14 +468,14 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         installation, mock_client, mock_cls, request = self._setup_launch(
             agent_id=None,
             client_agent_id="agent-new-123",
-            client_agent_version="v-new",
+            client_agent_version=2,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
             installation.launch(request=request)
 
         assert installation.model.metadata["agent_id"] == "agent-new-123"
-        assert installation.model.metadata["agent_version"] == "v-new"
+        assert installation.model.metadata["agent_version"] == 2
 
     def test_launch_updates_both_environment_and_agent_when_changed(self) -> None:
         """When both IDs change, both should be persisted in a single update."""
@@ -386,7 +484,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             client_environment_id="env-new",
             agent_id=None,
             client_agent_id="agent-new",
-            client_agent_version="v-new",
+            client_agent_version=2,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
@@ -394,4 +492,4 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert installation.model.metadata["environment_id"] == "env-new"
         assert installation.model.metadata["agent_id"] == "agent-new"
-        assert installation.model.metadata["agent_version"] == "v-new"
+        assert installation.model.metadata["agent_version"] == 2

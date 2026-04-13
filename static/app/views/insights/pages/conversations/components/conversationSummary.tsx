@@ -1,15 +1,22 @@
-import {useMemo} from 'react';
+import type React from 'react';
+import {useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
@@ -29,12 +36,14 @@ interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
+  nodeTraceMap?: Map<string, string>;
 }
 
 interface ConversationAggregates {
   errorCount: number;
   llmCalls: number;
   toolCalls: number;
+  toolNames: string[];
   totalCost: number;
   totalTokens: number;
 }
@@ -49,6 +58,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let errorCount = 0;
   let totalTokens = 0;
   let totalCost = 0;
+  const toolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
@@ -59,6 +69,10 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
+      const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      if (toolName) {
+        toolNameSet.add(toolName);
+      }
     }
 
     if (hasError(node)) {
@@ -66,60 +80,94 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     }
   }
 
-  return {llmCalls, toolCalls, errorCount, totalTokens, totalCost};
+  return {
+    llmCalls,
+    toolCalls,
+    errorCount,
+    totalTokens,
+    totalCost,
+    toolNames: Array.from(toolNameSet).sort(),
+  };
 }
 
 export function ConversationSummary({
   nodes,
   conversationId,
   isLoading,
+  nodeTraceMap,
 }: ConversationSummaryProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
 
-  const baseQuery = `gen_ai.conversation.id:${conversationId}`;
+  const handleCopyConversationId = useCallback(() => {
+    copyToClipboard(conversationId, {
+      successMessage: t('Copied conversation ID to clipboard'),
+    });
+  }, [conversationId]);
 
-  const llmCallsUrl = getExploreUrl({
-    organization,
-    selection,
-    query: `${baseQuery} gen_ai.operation.type:ai_client`,
-  });
-
-  const toolCallsUrl = getExploreUrl({
-    organization,
-    selection,
-    query: `${baseQuery} gen_ai.operation.type:tool`,
-  });
+  const traces = useMemo(() => {
+    if (!nodeTraceMap) {
+      return [];
+    }
+    const seen = new Map<string, string>();
+    for (const [spanId, traceId] of nodeTraceMap) {
+      if (!seen.has(traceId)) {
+        seen.set(traceId, spanId);
+      }
+    }
+    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
+  }, [nodeTraceMap]);
 
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `${baseQuery} span.status:internal_error`,
+    query: `gen_ai.conversation.id:${conversationId} span.status:internal_error`,
   });
 
   return (
-    <Flex align="center" gap="lg" flex={1}>
-      <Flex align="center" gap="sm" flexShrink={0}>
-        <Text size="sm" bold>
-          {t('Conversation')}
-        </Text>
-        <ConversationId size="sm" variant="muted" monospace>
-          {conversationId.slice(0, 8)}
-        </ConversationId>
+    <Flex direction="column" gap="md" flex={1}>
+      <Flex align="center" gap="sm">
+        <Heading as="h2">{t('Conversation #%s', conversationId.slice(0, 8))}</Heading>
+        <Tooltip title={t('Copy conversation ID')}>
+          <Button
+            size="zero"
+            priority="transparent"
+            aria-label={t('Copy conversation ID')}
+            icon={<IconCopy size="xs" />}
+            onClick={handleCopyConversationId}
+          />
+        </Tooltip>
+        {traces.length > 0 && (
+          <Flex align="baseline" gap="xs">
+            <Text size="sm" variant="muted">
+              {traces.length === 1 ? t('Trace') : t('Traces')}
+            </Text>
+            {traces.map((trace, i) => (
+              <Flex key={trace.traceId} align="baseline" gap="xs">
+                {i > 0 && (
+                  <Text size="sm" variant="muted">
+                    {','}
+                  </Text>
+                )}
+                <StyledLink
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/explore/traces/trace/${trace.traceId}/?node=span-${trace.spanId}`
+                  )}
+                >
+                  <Text size="sm" monospace>
+                    {trace.traceId.slice(0, 8)}
+                  </Text>
+                </StyledLink>
+              </Flex>
+            ))}
+          </Flex>
+        )}
       </Flex>
-      <Divider />
-      <Flex align="center" gap="sm" wrap="wrap">
+      <Flex align="center" gap="lg" minWidth={0}>
         <AggregateItem
           label={t('LLM Calls')}
           value={<Count value={aggregates.llmCalls} />}
-          to={aggregates.llmCalls > 0 ? llmCallsUrl : undefined}
-          isLoading={isLoading}
-        />
-        <AggregateItem
-          label={t('Tool Calls')}
-          value={<Count value={aggregates.toolCalls} />}
-          to={aggregates.toolCalls > 0 ? toolCallsUrl : undefined}
           isLoading={isLoading}
         />
         <AggregateItem
@@ -138,6 +186,27 @@ export function ConversationSummary({
           value={formatLLMCosts(aggregates.totalCost)}
           isLoading={isLoading}
         />
+        {isLoading ? (
+          <Flex align="center" gap="xs" flexShrink={0}>
+            <Text size="sm" bold variant="muted">
+              {t('Used Tools')}
+            </Text>
+            <Placeholder width="60px" height="14px" />
+          </Flex>
+        ) : (
+          aggregates.toolNames.length > 0 && (
+            <ToolTagsRow>
+              <Text size="sm" bold variant="muted" style={{whiteSpace: 'nowrap'}}>
+                {t('Used Tools')}
+              </Text>
+              {aggregates.toolNames.map(name => (
+                <Tag key={name} variant="info">
+                  {name}
+                </Tag>
+              ))}
+            </ToolTagsRow>
+          )
+        )}
       </Flex>
     </Flex>
   );
@@ -157,18 +226,18 @@ function AggregateItem({
   const isInteractive = !!to && !isLoading;
 
   const content = (
-    <AggregateItemContainer align="center" gap="xs" isInteractive={isInteractive}>
-      <Text bold size="sm">
+    <Flex align="center" gap="xs" flexShrink={0}>
+      <Text size="sm" variant="muted">
         {label}
       </Text>
       {isLoading ? (
-        <Placeholder width="20px" height="16px" />
+        <Placeholder width="28px" height="14px" />
       ) : (
-        <AggregateValue size="sm" isInteractive={isInteractive}>
+        <AggregateValue size="sm" bold isInteractive={isInteractive}>
           {value}
         </AggregateValue>
       )}
-    </AggregateItemContainer>
+    </Flex>
   );
 
   if (isInteractive) {
@@ -177,37 +246,6 @@ function AggregateItem({
 
   return content;
 }
-
-// Monospace font has different baseline metrics, nudge up to visually align
-const ConversationId = styled(Text)`
-  position: relative;
-  top: -1px;
-`;
-
-const Divider = styled('div')`
-  width: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background-color: ${p => p.theme.tokens.border.primary};
-  align-self: stretch;
-`;
-
-const AggregateItemContainer = styled(Flex)<{isInteractive?: boolean}>`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.radius.md};
-  transition: background 50ms ease-in-out;
-
-  ${p =>
-    p.isInteractive &&
-    css`
-      cursor: pointer;
-      &:hover {
-        background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
-      }
-      &:active {
-        background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
-      }
-    `}
-`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>
@@ -220,3 +258,18 @@ const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
 const StyledLink = styled(Link)`
   text-decoration: none;
 `;
+
+function ToolTagsRow({children}: {children: React.ReactNode}) {
+  return (
+    <Flex
+      align="center"
+      gap="xs"
+      minWidth={0}
+      overflow="hidden"
+      flexShrink={1}
+      wrap="nowrap"
+    >
+      {children}
+    </Flex>
+  );
+}

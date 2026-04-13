@@ -9,6 +9,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -143,6 +144,53 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
                 "automationHandoff": None,
                 "reposCount": 0,
             },
+        ]
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_read_preferences_from_sentry_db"
+    )
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
+    )
+    def test_get_reads_from_sentry_db(self, mock_bulk_get_preferences, mock_bulk_read_db):
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
+
+        project = self.create_project(organization=self.organization, name="DB Read Project")
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM.value
+        )
+
+        mock_bulk_read_db.return_value = {
+            project.id: SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        owner="test-org",
+                        name="test-repo",
+                        external_id="12345",
+                    )
+                ],
+                automated_run_stopping_point=AutofixStoppingPoint.OPEN_PR.value,
+            )
+        }
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        mock_bulk_read_db.assert_called_once()
+        mock_bulk_get_preferences.assert_not_called()
+        assert response.data == [
+            {
+                "projectId": project.id,
+                "autofixAutomationTuning": AutofixAutomationTuningSettings.MEDIUM.value,
+                "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                "automationHandoff": None,
+                "reposCount": 1,
+            }
         ]
 
     @patch(
@@ -911,18 +959,22 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid repository"
         mock_bulk_set_preferences.assert_not_called()
 
+    @with_feature("organizations:seer-project-settings-dual-write")
+    @patch(
+        "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_write_preferences_to_sentry_db"
+    )
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"
     )
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_get_project_preferences"
     )
-    def test_post_creates_seer_project_repository(
-        self, mock_bulk_get_preferences, mock_bulk_set_preferences
+    def test_post_writes_to_sentry_db(
+        self, mock_bulk_get_preferences, mock_bulk_set_preferences, mock_bulk_write_db
     ):
-        """Test that POST creates SeerProjectRepository when feature flag is enabled."""
+        """When feature flag enabled, writes to Sentry DB instead of Seer API."""
         project = self.create_project(organization=self.organization)
-        repo = Repository.objects.create(
+        Repository.objects.create(
             organization_id=self.organization.id,
             name="test-org/test-repo",
             provider="github",
@@ -939,23 +991,25 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
             "organizationId": self.organization.id,
         }
 
-        with self.feature("organizations:seer-project-settings-dual-write"):
-            response = self.client.post(
-                self.url,
-                {
-                    "projectIds": [project.id],
-                    "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
-                    "projectRepoMappings": {
-                        str(project.id): [repo_data],
-                    },
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "automatedRunStoppingPoint": AutofixStoppingPoint.OPEN_PR.value,
+                "projectRepoMappings": {
+                    str(project.id): [repo_data],
                 },
-            )
+            },
+        )
 
         assert response.status_code == 204
 
-        seer_repo = SeerProjectRepository.objects.get(project=project)
-        assert seer_repo.repository_id == repo.id
-        assert project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        mock_bulk_write_db.assert_called_once()
+        preferences = mock_bulk_write_db.call_args[0][1]
+        assert len(preferences) == 1
+        assert preferences[0].project_id == project.id
+        assert preferences[0].repositories[0].owner == "test-org"
+        assert preferences[0].repositories[0].name == "test-repo"
 
     @patch(
         "sentry.seer.endpoints.organization_autofix_automation_settings.bulk_set_project_preferences"

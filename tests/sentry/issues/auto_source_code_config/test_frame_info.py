@@ -126,6 +126,49 @@ class TestFrameInfo:
         assert frame_info.stack_root == expected_stack_root
         assert frame_info.normalized_path == expected_normalized_path
 
+    def test_java_platform_resolves_source_roots(self) -> None:
+        frame_info = create_frame_info(
+            {"module": "io.sentry.android.core.SentryAndroid", "abs_path": "SentryAndroid.java"},
+            "java",
+        )
+
+        assert frame_info.has_source_roots_override(
+            "sentry-android-core/src/main/java/io/sentry/android/core/SentryAndroid.java",
+            [
+                "sentry-android-core/src/main/java/io/sentry/android/core/SentryAndroid.java",
+                "sentry-android-core/src/main/java/io/sentry/android/core/SentryFrameMetrics.java",
+            ],
+        )
+
+        assert frame_info.resolve_source_roots(
+            source_path="sentry-android-core/src/main/java/io/sentry/android/core/SentryAndroid.java",
+            source_prefix="sentry-android-core/src/main/java/",
+            repo_files=[
+                "sentry-android-core/src/main/java/io/sentry/android/core/SentryAndroid.java",
+                "sentry-android-core/src/main/java/io/sentry/android/core/SentryFrameMetrics.java",
+            ],
+        ) == (
+            "io/sentry/android/core/",
+            "sentry-android-core/src/main/java/io/sentry/android/core/",
+        )
+
+    def test_non_java_platform_resolves_source_roots_with_generic_fallback(self) -> None:
+        frame_info = create_frame_info({"filename": "foo/bar.py"}, "python")
+
+        assert not frame_info.has_source_roots_override(
+            "pkg/src/main/java/foo/bar.py",
+            ["pkg/src/main/java/foo/bar.py"],
+        )
+
+        assert frame_info.resolve_source_roots(
+            source_path="pkg/src/main/java/foo/bar.py",
+            source_prefix="pkg/src/main/java/",
+            repo_files=["pkg/src/main/java/foo/bar.py"],
+        ) == (
+            "foo/",
+            "pkg/src/main/java/foo/",
+        )
+
     @pytest.mark.parametrize(
         "frame_filename, stack_root, normalized_path",
         [

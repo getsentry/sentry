@@ -2,18 +2,12 @@ from datetime import timedelta
 from io import BytesIO
 from unittest.mock import patch
 
-from django.test import override_settings
 from django.utils import timezone
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import APITestCase
 
 
-@override_settings(
-    SENTRY_FEATURES={
-        "organizations:preprod-frontend-routes": True,
-    }
-)
 class ProjectPreprodArtifactSizeAnalysisDownloadEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-preprod-artifact-size-analysis-download"
 

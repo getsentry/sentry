@@ -1,17 +1,40 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   MultiMetricsQueryParamsProvider,
+  useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
+
+function TestableMetricComponent() {
+  const metricQueries = useMultiMetricsQueryParams();
+
+  return (
+    <div>
+      {metricQueries.map((metricQuery, index) => (
+        <div key={index}>{metricQuery.label}</div>
+      ))}
+    </div>
+  );
+}
 
 function Wrapper({children}: {children: ReactNode}) {
-  return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
+  return (
+    <MultiMetricsQueryParamsProvider>
+      <TestableMetricComponent />
+      {children}
+    </MultiMetricsQueryParamsProvider>
+  );
 }
 
 describe('MultiMetricsQueryParamsProvider', () => {
@@ -22,6 +45,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     expect(result.current).toEqual([
       {
+        label: 'A',
         metric: {name: '', type: ''},
         queryParams: new ReadableQueryParams({
           extrapolate: true,
@@ -258,5 +282,363 @@ describe('MultiMetricsQueryParamsProvider', () => {
     expect(result.current[0]!.queryParams.aggregateFields).toEqual([
       new VisualizeFunction('p50(value,bar,distribution,-)'),
     ]);
+  });
+
+  describe('stable labels', () => {
+    it('preserves label B when A is deleted from [A, B]', () => {
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: 'bar', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      expect(result.current).toHaveLength(2);
+      expect(result.current[0]).toEqual(expect.objectContaining({label: 'A'}));
+      expect(result.current[1]).toEqual(expect.objectContaining({label: 'B'}));
+
+      // Delete A
+      act(() => result.current[0]!.removeMetric());
+
+      expect(result.current).toHaveLength(1);
+      expect(result.current[0]).toEqual(expect.objectContaining({label: 'B'}));
+    });
+
+    it('assigns correct labels for metrics and equations', () => {
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      expect(result.current).toHaveLength(2);
+      expect(result.current[0]).toEqual(expect.objectContaining({label: 'A'}));
+      expect(result.current[1]).toEqual(expect.objectContaining({label: 'ƒ1'}));
+    });
+  });
+
+  describe('useAddMetricQuery', () => {
+    it('adds new metric at the end of the list when adding without equations', () => {
+      const {result, router} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      act(() => result.current());
+
+      expect(router.location.query.metric).toHaveLength(2);
+
+      expect(JSON.parse(router.location.query.metric![0]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The last field was copied
+      expect(JSON.parse(router.location.query.metric![1]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+    });
+
+    it('duplicates the last metric when adding with equations', () => {
+      const {result, router} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      act(() => result.current());
+
+      expect(router.location.query.metric).toHaveLength(3);
+
+      expect(JSON.parse(router.location.query.metric![0]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The last metric query before the equation was duplicated
+      expect(JSON.parse(router.location.query.metric![1]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The equation remains
+      expect(JSON.parse(router.location.query.metric![2]!)).toEqual(
+        expect.objectContaining({
+          query: '',
+          aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+        })
+      );
+    });
+
+    it('adds equations to the end of the list', () => {
+      const {result, router} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeEquation(
+                      `${EQUATION_PREFIX}p50(value,foo,distribution,-)`
+                    ).serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+        initialProps: {
+          type: 'equation',
+        },
+      });
+
+      act(() => result.current());
+
+      expect(router.location.query.metric).toHaveLength(3);
+
+      expect(JSON.parse(router.location.query.metric![0]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: 'foo', type: 'distribution'},
+          query: '',
+          aggregateFields: [
+            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+          ],
+        })
+      );
+
+      // The old equation remains
+      expect(JSON.parse(router.location.query.metric![1]!)).toEqual(
+        expect.objectContaining({
+          metric: {name: '', type: ''},
+          query: '',
+          aggregateFields: [
+            new VisualizeEquation(
+              `${EQUATION_PREFIX}p50(value,foo,distribution,-)`
+            ).serialize(),
+          ],
+        })
+      );
+
+      // The new equation is added to the end of the list
+      expect(JSON.parse(router.location.query.metric![2]!)).toEqual(
+        expect.objectContaining({
+          query: '',
+          aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+        })
+      );
+    });
+
+    it('adds metric before equation with independent label sequences', () => {
+      const {result} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      // Add a new metric — should be inserted before the equation
+      act(() => result.current());
+
+      expect(screen.getByText('A')).toBeInTheDocument();
+      expect(screen.getByText('B')).toBeInTheDocument();
+      expect(screen.getByText('ƒ1')).toBeInTheDocument();
+    });
+
+    it('increments the equation label from the last equation label counter', () => {
+      const {result} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+        initialProps: {
+          type: 'equation',
+        },
+      });
+
+      act(() => result.current());
+
+      expect(screen.getByText('A')).toBeInTheDocument();
+      expect(screen.getByText('ƒ1')).toBeInTheDocument();
+      expect(screen.getByText('ƒ2')).toBeInTheDocument();
+    });
   });
 });

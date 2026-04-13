@@ -8,12 +8,19 @@ from pathlib import Path
 
 from PIL import Image
 
-from .odiff import OdiffServer
+from .odiff import OdiffServer, compare_cli
 from .types import DiffResult
 
 logger = logging.getLogger(__name__)
 
-DIFF_THRESHOLD = 0
+# odiff color-distance sensitivity: pixels within this threshold are treated
+# as identical. 0.01 tolerates sub-pixel rendering variance (anti-aliasing,
+# font smoothing) while still catching meaningful visual changes.
+#
+# This is NOT a minimum % changed value, but
+# rather adjusts the sensitivity of pixel change detection.
+ODIFF_SENSITIVITY_DIFF_THRESHOLD = 0.01
+DIFF_ALGORITHM_VERSION = 1
 
 
 def _as_image(source: bytes | Image.Image) -> Image.Image:
@@ -26,6 +33,14 @@ def _as_image(source: bytes | Image.Image) -> Image.Image:
             raise
         return img
     return source
+
+
+def _pad_to(img: Image.Image, width: int, height: int) -> Image.Image:
+    if img.size == (width, height):
+        return img
+    padded = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    padded.paste(img, (0, 0))
+    return padded
 
 
 def _mask_from_diff_output(output_path: Path) -> Image.Image:
@@ -64,13 +79,17 @@ def compare_images_batch(
         tmpdir_path = Path(tmpdir)
         if server is not None:
             return _compare_pairs(pairs, server, tmpdir_path)
-        with OdiffServer() as new_server:
-            return _compare_pairs(pairs, new_server, tmpdir_path)
+        # Temporarily skip creating OdiffServer due to server-mode stdin
+        # buffer reuse bug (https://github.com/dmtrKovalenko/odiff/pull/170).
+        # Revert once the fix is released in odiff-bin.
+        # with OdiffServer() as new_server:
+        #     return _compare_pairs(pairs, new_server, tmpdir_path)
+        return _compare_pairs(pairs, None, tmpdir_path)
 
 
 def _compare_pairs(
     pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
-    server: OdiffServer,
+    server: OdiffServer | None,
     tmpdir_path: Path,
 ) -> list[DiffResult | None]:
     return [
@@ -83,11 +102,13 @@ def _compare_single_pair(
     idx: int,
     before: bytes | Image.Image,
     after: bytes | Image.Image,
-    server: OdiffServer,
+    server: OdiffServer | None,
     tmpdir_path: Path,
 ) -> DiffResult | None:
     before_img: Image.Image | None = None
     after_img: Image.Image | None = None
+    before_padded: Image.Image | None = None
+    after_padded: Image.Image | None = None
     diff_mask: Image.Image | None = None
     try:
         before_img = _as_image(before)
@@ -97,34 +118,44 @@ def _compare_single_pair(
         max_w = max(bw, aw)
         max_h = max(bh, ah)
 
+        before_padded = _pad_to(before_img, max_w, max_h)
+        after_padded = _pad_to(after_img, max_w, max_h)
+
         before_path = tmpdir_path / f"before_{idx}.png"
         after_path = tmpdir_path / f"after_{idx}.png"
-        before_img.save(before_path, "PNG")
-        after_img.save(after_path, "PNG")
+        before_padded.save(before_path, "PNG")
+        after_padded.save(after_path, "PNG")
 
         output_path = tmpdir_path / f"diff_{idx}.png"
-        resp = server.compare(
+        # Use CLI mode instead of server mode to work around stdin buffer
+        # reuse bug (https://github.com/dmtrKovalenko/odiff/pull/170).
+        # Revert to server.compare() once the fix is released in odiff-bin.
+        # resp = server.compare(
+        #     before_path,
+        #     after_path,
+        #     output_path,
+        #     threshold=ODIFF_SENSITIVITY_DIFF_THRESHOLD,
+        #     antialiasing=True,
+        #     outputDiffMask=True,
+        # )
+        resp = compare_cli(
             before_path,
             after_path,
             output_path,
-            threshold=DIFF_THRESHOLD,
+            threshold=ODIFF_SENSITIVITY_DIFF_THRESHOLD,
             antialiasing=True,
             outputDiffMask=True,
-            failOnLayoutDiff=False,
         )
-        changed_pixels = resp.diffCount or 0
         total_pixels = max_w * max_h
 
-        if changed_pixels == 0:
+        if resp.match:
+            changed_pixels = 0
             diff_mask = Image.new("L", (max_w, max_h), 0)
         elif not output_path.exists():
             raise RuntimeError(f"odiff did not produce output file: {output_path}")
         else:
             diff_mask = _mask_from_diff_output(output_path)
-            if diff_mask.size != (max_w, max_h):
-                old_mask = diff_mask
-                diff_mask = diff_mask.resize((max_w, max_h), Image.NEAREST)
-                old_mask.close()
+            changed_pixels = sum(diff_mask.histogram()[1:])
 
         diff_mask_png = _encode_mask_png(diff_mask)
 
@@ -142,6 +173,10 @@ def _compare_single_pair(
         logger.exception("Failed to compare image pair %d", idx)
         return None
     finally:
+        if before_padded is not None and before_padded is not before_img:
+            before_padded.close()
+        if after_padded is not None and after_padded is not after_img:
+            after_padded.close()
         if before_img is not None and isinstance(before, bytes):
             before_img.close()
         if after_img is not None and isinstance(after, bytes):

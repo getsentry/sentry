@@ -1,16 +1,15 @@
 import type {QueryClient} from '@tanstack/react-query';
 
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
-import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 export async function fetchIssueStreamDetectorIdsForProjects({
   queryClient,
-  orgSlug,
+  organization,
   projectIds,
 }: {
-  orgSlug: string;
+  organization: Organization;
   projectIds: string[];
   queryClient: QueryClient;
 }): Promise<string[]> {
@@ -18,16 +17,13 @@ export async function fetchIssueStreamDetectorIdsForProjects({
     return [];
   }
 
-  const [detectors] = await queryClient.fetchQuery({
-    queryKey: makeDetectorListQueryKey({
-      orgSlug,
+  const {json: detectors} = await queryClient.fetchQuery(
+    detectorListApiOptions(organization, {
       query: 'type:issue_stream',
       includeIssueStreamDetectors: true,
       projects: projectIds.map(Number),
-    }),
-    queryFn: fetchDataQuery<Detector[]>,
-    staleTime: 0,
-  });
+    })
+  );
 
   return projectIds
     .map(projectId => detectors.find(detector => detector.projectId === projectId)?.id)

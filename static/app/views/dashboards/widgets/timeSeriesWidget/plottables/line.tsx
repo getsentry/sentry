@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
 
 import {LineSeries} from 'sentry/components/charts/series/lineSeries';
@@ -13,8 +12,6 @@ import {
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
-
-const {error} = Sentry.logger;
 
 export class Line extends ContinuousTimeSeries implements Plottable {
   #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
@@ -38,9 +35,6 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     const datum = mergedData.at(seriesDataIndex);
 
     if (!datum) {
-      error('`Line` plottable `onHighlight` out-of-range error', {
-        seriesDataIndex,
-      });
       return;
     }
 

@@ -1,6 +1,5 @@
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
@@ -150,26 +149,6 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -
     subconfig = cfg.to_dict()["config"]
     assert "dynamicSampling" not in subconfig and "sampling" not in subconfig
     assert mock_logger.exception.call_args == mock.call(ANY)
-
-
-@django_db_all
-@cell_silo_test
-@mock.patch("sentry.relay.config.capture_exception")
-def test_get_experimental_config_transaction_metrics_exception(
-    mock_capture_exception, default_project
-):
-    keys = ProjectKey.objects.filter(project=default_project)
-    default_project.update_option("sentry:breakdowns", {"invalid_breakdowns": "test"})
-    # wrong type
-    default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
-
-    with Feature({"organizations:transaction-metrics-extraction": True}):
-        cfg = get_project_config(default_project, project_keys=keys)
-
-    config = cfg.to_dict()["config"]
-
-    assert config["transactionMetrics"]["extractCustomTags"] == []
-    assert mock_capture_exception.call_count == 2
 
 
 @django_db_all
@@ -539,7 +518,6 @@ def test_project_config_with_breakdown(
     insta_snapshot(
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
-            "transactionMetrics": cfg["config"].get("transactionMetrics"),
             "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
         }
     )
@@ -604,52 +582,6 @@ def test_project_config_satisfaction_thresholds(
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
-
-
-@django_db_all
-@cell_silo_test
-@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-@pytest.mark.parametrize(
-    "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
-)
-def test_has_metric_extraction(default_project, feature_flag, killswitch) -> None:
-    options = override_options(
-        {
-            "relay.drop-transaction-metrics": (
-                [{"project_id": default_project.id}] if killswitch else []
-            )
-        }
-    )
-    feature = Feature(
-        {
-            "organizations:transaction-metrics-extraction": feature_flag,
-        }
-    )
-    with feature, options:
-        project_config = get_project_config(default_project)
-        config = project_config.to_dict()["config"]
-        _validate_project_config(config)
-        if killswitch or not feature_flag:
-            assert "transactionMetrics" not in config
-        else:
-            config = config["transactionMetrics"]
-            assert config["customMeasurements"]["limit"] > 0
-
-
-@django_db_all
-def test_accept_transaction_names(default_project) -> None:
-    feature = Feature(
-        {
-            "organizations:transaction-metrics-extraction": True,
-        }
-    )
-    with feature:
-        config = get_project_config(default_project).to_dict()["config"]
-
-        _validate_project_config(config)
-        transaction_metrics_config = config["transactionMetrics"]
-
-        assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
 
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
@@ -1351,229 +1283,6 @@ def test_mobile_performance_calculate_score(default_project) -> None:
         },
         "version": "1",
     }
-
-
-@django_db_all
-@cell_silo_test
-@pytest.mark.parametrize("passive", [False, True])
-def test_project_config_cardinality_limits(
-    default_project: Project, insta_snapshot: InstaSnapshotter, passive: bool
-) -> None:
-    options: dict[Any, Any] = {
-        "relay.cardinality-limiter.mode": "enabled",
-        "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
-            {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
-        ],
-        "sentry-metrics.cardinality-limiter.limits.sessions.per-org": [
-            {"window_seconds": 2000, "granularity_seconds": 200, "limit": 20}
-        ],
-        "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
-            {"window_seconds": 3000, "granularity_seconds": 300, "limit": 30}
-        ],
-        "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
-            {"window_seconds": 4000, "granularity_seconds": 400, "limit": 40}
-        ],
-        "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
-            {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
-        ],
-        "sentry-metrics.cardinality-limiter.limits.profiles.per-org": [
-            {"window_seconds": 3600, "granularity_seconds": 600, "limit": 60}
-        ],
-    }
-
-    if passive:
-        options["relay.cardinality-limiter.passive-limits-by-org"] = {
-            str(default_project.organization.id): [
-                "sessions",
-                "transactions",
-                "spans",
-                "profiles",
-            ]
-        }
-
-    options["relay.cardinality-limiter.limits"] = [
-        {
-            "rollout_rate": 0,
-            "limit": {
-                "id": "test1",
-                "window": {"windowSeconds": 7000, "granularitySeconds": 700},
-                "limit": 70,
-                "scope": "name",
-            },
-        },
-        {
-            "rollout_rate": 1,
-            "limit": {
-                "id": "test2",
-                "window": {"windowSeconds": 8000, "granularitySeconds": 800},
-                "limit": 80,
-                "scope": "name",
-                "report": True,
-            },
-        },
-    ]
-
-    default_project.update_option(
-        "relay.cardinality-limiter.limits",
-        [
-            {
-                "limit": {
-                    "id": "test3",
-                    "window": {"windowSeconds": 9000, "granularitySeconds": 900},
-                    "limit": 90,
-                    "scope": "name",
-                }
-            }
-        ],
-    )
-
-    default_project.organization.update_option(
-        "relay.cardinality-limiter.limits",
-        [
-            {
-                "limit": {
-                    "id": "test4",
-                    "window": {"windowSeconds": 10000, "granularitySeconds": 1000},
-                    "limit": 100,
-                    "scope": "name",
-                }
-            }
-        ],
-    )
-
-    with override_options(options):
-        project_cfg = get_project_config(default_project)
-
-        cfg = project_cfg.to_dict()
-        _validate_project_config(cfg["config"])
-
-        insta_snapshot(cfg["config"]["metrics"])
-
-
-@django_db_all
-@cell_silo_test
-def test_project_config_cardinality_limits_project_options_override_other_options(
-    default_project,
-) -> None:
-    options: dict[Any, Any] = {
-        "relay.cardinality-limiter.mode": "enabled",
-        "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.custom.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.profiles.per-org": None,
-    }
-
-    options["relay.cardinality-limiter.limits"] = [
-        {
-            "limit": {
-                "id": "test1",
-                "window": {"windowSeconds": 1000, "granularitySeconds": 100},
-                "limit": 10,
-                "scope": "name",
-            },
-        },
-    ]
-
-    default_project.organization.update_option(
-        "relay.cardinality-limiter.limits",
-        [
-            {
-                "limit": {
-                    "id": "test1",
-                    "window": {"windowSeconds": 2000, "granularitySeconds": 200},
-                    "limit": 20,
-                    "scope": "name",
-                }
-            }
-        ],
-    )
-
-    default_project.update_option(
-        "relay.cardinality-limiter.limits",
-        [
-            {
-                "limit": {
-                    "id": "test1",
-                    "window": {"windowSeconds": 3000, "granularitySeconds": 300},
-                    "limit": 30,
-                    "scope": "project",
-                }
-            }
-        ],
-    )
-
-    with override_options(options):
-        project_cfg = get_project_config(default_project)
-
-        cfg = project_cfg.to_dict()
-        _validate_project_config(cfg["config"])
-
-        assert cfg["config"]["metrics"]["cardinalityLimits"] == [
-            {
-                "id": "test1",
-                "window": {"windowSeconds": 3000, "granularitySeconds": 300},
-                "limit": 30,
-                "scope": "project",
-            }
-        ]
-
-
-@django_db_all
-@cell_silo_test
-def test_project_config_cardinality_limits_organization_options_override_options(
-    default_project,
-) -> None:
-    options: dict[Any, Any] = {
-        "relay.cardinality-limiter.mode": "enabled",
-        "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.custom.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": None,
-        "sentry-metrics.cardinality-limiter.limits.profiles.per-org": None,
-    }
-
-    options["relay.cardinality-limiter.limits"] = [
-        {
-            "limit": {
-                "id": "test1",
-                "window": {"windowSeconds": 1000, "granularitySeconds": 100},
-                "limit": 10,
-                "scope": "name",
-            },
-        },
-    ]
-
-    default_project.organization.update_option(
-        "relay.cardinality-limiter.limits",
-        [
-            {
-                "limit": {
-                    "id": "test1",
-                    "window": {"windowSeconds": 2000, "granularitySeconds": 200},
-                    "limit": 20,
-                    "scope": "project",
-                }
-            }
-        ],
-    )
-
-    with override_options(options):
-        project_cfg = get_project_config(default_project)
-
-        cfg = project_cfg.to_dict()
-        _validate_project_config(cfg["config"])
-
-        assert cfg["config"]["metrics"]["cardinalityLimits"] == [
-            {
-                "id": "test1",
-                "window": {"windowSeconds": 2000, "granularitySeconds": 200},
-                "limit": 20,
-                "scope": "project",
-            }
-        ]
 
 
 @django_db_all

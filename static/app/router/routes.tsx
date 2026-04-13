@@ -158,10 +158,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: '/accept/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
@@ -2084,13 +2080,6 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
-    // Redirect old conversations links to the new explore location
-    {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/*`,
-      component: make(
-        () => import('sentry/views/insights/pages/conversations/conversationsRedirect')
-      ),
-    },
     // Redirect old links to the new agents landing page
     {
       path: 'ai/*',
@@ -2324,9 +2313,14 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/conversations/overview')
+          ),
+        },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
           ),
         },
         transactionSummaryRoute,

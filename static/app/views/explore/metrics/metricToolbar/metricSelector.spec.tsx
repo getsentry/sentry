@@ -50,6 +50,15 @@ describe('MetricSelector', () => {
         {key: 'release', type: 'string'},
       ],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'device.name', type: 'string'},
+        {key: 'release', type: 'string'},
+      ],
+    });
   });
 
   afterEach(() => {
@@ -138,6 +147,25 @@ describe('MetricSelector', () => {
       });
     });
 
+    it('dismisses outside click without committing the current keyboard focus', async () => {
+      const onChange = jest.fn();
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
     it('closes after selecting an option and calls onChange', async () => {
       const onChange = jest.fn();
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
@@ -188,7 +216,9 @@ describe('MetricSelector', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
 
-      expect(searchInput).toHaveFocus();
+      await waitFor(() => {
+        expect(searchInput).toHaveFocus();
+      });
     });
 
     it('shows search input in open dropdown', async () => {
@@ -251,16 +281,16 @@ describe('MetricSelector', () => {
       expect(onChange).toHaveBeenCalledTimes(1);
     });
 
-    it('ArrowDown from search moves focus to first option', async () => {
+    it('ArrowDown from search keeps focus in input', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
       });
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
       await userEvent.keyboard('{ArrowDown}');
 
-      expect(
-        await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!})
-      ).toHaveFocus();
+      // DOM focus stays on search input; virtual focus moves to first option
+      expect(searchInput).toHaveFocus();
     });
 
     it('ArrowDown twice selects second option with Enter', async () => {
@@ -296,6 +326,14 @@ describe('MetricSelector', () => {
 
       // Simulate search that narrows the list by re-mocking with fewer results
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {key: 'device.name', type: 'string'},
+          {key: 'release', type: 'string'},
+        ],
+      });
       setupEventsMock(
         createTraceMetricFixtures(organization, project, new Date()).baseFixtures.slice(
           0,
@@ -441,26 +479,9 @@ describe('MetricSelector', () => {
       expect(within(requestCountOption).queryByText('none')).not.toBeInTheDocument();
     });
 
-    it('does not show side panel without tracemetrics-attributes-dropdown-side-panel feature', async () => {
+    it('renders side panel', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: 'bar'});
-
-      expect(screen.queryByText('Type')).not.toBeInTheDocument();
-    });
-
-    it('renders side panel with tracemetrics-attributes-dropdown-side-panel feature', async () => {
-      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -473,13 +494,7 @@ describe('MetricSelector', () => {
 
     it('side panel defaults to current metric when no option is hovered', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -491,13 +506,7 @@ describe('MetricSelector', () => {
 
     it('shows attributes section in side panel', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -509,13 +518,7 @@ describe('MetricSelector', () => {
 
     it('side panel updates when hovering over a different metric option', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [
-            ...organization.features,
-            'tracemetrics-attributes-dropdown-side-panel',
-          ],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));

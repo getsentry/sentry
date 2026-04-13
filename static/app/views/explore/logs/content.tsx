@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -33,6 +35,8 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function LogsContent() {
   const organization = useOrganization();
@@ -93,12 +97,21 @@ export default function LogsContent() {
   );
 }
 
+const logsFeedbackOptions = {
+  messagePlaceholder: t('How can we make logs work better for you?'),
+  tags: {
+    ['feedback.source']: 'logs-listing',
+    ['feedback.owner']: 'performance',
+  },
+};
+
 function LogsHeader() {
   const pageId = useQueryParamsId();
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
@@ -118,20 +131,25 @@ function LogsHeader() {
 
         <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <FeedbackButton
-            feedbackOptions={{
-              messagePlaceholder: t('How can we make logs work better for you?'),
-              tags: {
-                ['feedback.source']: 'logs-listing',
-                ['feedback.owner']: 'performance',
-              },
-            }}
-          />
-          {defined(onboardingProject) && <SetupLogsButton />}
-        </Grid>
-      </Layout.HeaderActions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          {defined(onboardingProject) && (
+            <TopBar.Slot name="actions">
+              <SetupLogsButton />
+            </TopBar.Slot>
+          )}
+          <TopBar.Slot name="feedback">
+            <FeedbackButton feedbackOptions={logsFeedbackOptions}>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <FeedbackButton feedbackOptions={logsFeedbackOptions} />
+            {defined(onboardingProject) && <SetupLogsButton />}
+          </Grid>
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }
@@ -140,6 +158,7 @@ function SetupLogsButton() {
   const organization = useOrganization();
   const projects = useProjects();
   const pageFilters = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   let project = projects.projects?.[0];
 
   const filtered = projects.projects?.filter(p =>
@@ -163,7 +182,7 @@ function SetupLogsButton() {
       priority="primary"
       href="https://docs.sentry.io/product/explore/logs/getting-started/"
       external
-      size="xs"
+      size={hasPageFrameFeature ? undefined : 'xs'}
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {
           organization,

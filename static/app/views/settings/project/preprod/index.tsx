@@ -12,11 +12,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {FeatureFilter} from './featureFilter';
 import {PrCommentsToggle} from './prCommentsToggle';
+import {SnapshotPrCommentsToggle} from './snapshotPrCommentsToggle';
 import {SnapshotStatusChecks} from './snapshotStatusChecks';
 import {StatusCheckRules} from './statusCheckRules';
 
@@ -38,6 +41,7 @@ export default function PreprodSettings() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasSnapshots = organization.features.includes('preprod-snapshots');
 
@@ -54,7 +58,7 @@ export default function PreprodSettings() {
   };
 
   return (
-    <Feature features="organizations:preprod-frontend-routes" renderDisabled>
+    <Fragment>
       <SentryDocumentTitle title={t('Mobile Builds')} />
       <SettingsPageHeader
         title={t('Mobile Builds')}
@@ -63,7 +67,13 @@ export default function PreprodSettings() {
         )}
         action={
           <Grid flow="column" align="center" gap="lg">
-            <FeedbackButton />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton />
+            )}
           </Grid>
         }
       />
@@ -111,8 +121,15 @@ export default function PreprodSettings() {
             </Feature>
           </Fragment>
         )}
-        {tab === 'snapshots' && <SnapshotStatusChecks />}
+        {tab === 'snapshots' && (
+          <Fragment>
+            <SnapshotStatusChecks />
+            <Feature features="organizations:preprod-snapshot-pr-comments">
+              <SnapshotPrCommentsToggle />
+            </Feature>
+          </Fragment>
+        )}
       </Stack>
-    </Feature>
+    </Fragment>
   );
 }

@@ -36,6 +36,7 @@ export const slackIntegrationPipeline = {
   provider: 'slack',
   actionTitle: t('Installing Slack Integration'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
   steps: [
     {
       stepId: 'oauth_login',

@@ -76,6 +76,8 @@ class SiloRouter:
         "sentry_alertruleactivations": SiloMode.CELL,
         "sentry_alertruleactivationcondition": SiloMode.CELL,
         "sentry_code_review_event": SiloMode.CELL,
+        "sentry_customdynamicsamplingrule": SiloMode.CELL,
+        "sentry_customdynamicsamplingruleproject": SiloMode.CELL,
         "sentry_dashboardwidgetsnapshot": SiloMode.CELL,
         "sentry_datasecrecywaiver": SiloMode.CELL,
         "sentry_incidentseen": SiloMode.CELL,

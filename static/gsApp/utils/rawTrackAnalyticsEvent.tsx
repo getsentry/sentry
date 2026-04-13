@@ -74,7 +74,7 @@ const getCustomReferrer = () => {
     // pull the referrer from the query parameter of the page
     const {referrer} = qs.parse(window.location.search) || {};
     // pull the referrer from session storage.
-    const storedReferrer = readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null);
+    const storedReferrer = readStorageValue(CUSTOM_REFERRER_KEY, null) as string | null;
     // ?referrer takes precedence, but still unset session stored referrer.
     if (storedReferrer) {
       sessionStorageWrapper.removeItem(CUSTOM_REFERRER_KEY);

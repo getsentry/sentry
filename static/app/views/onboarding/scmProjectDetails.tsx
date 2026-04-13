@@ -133,7 +133,6 @@ export function ScmProjectDetails({onComplete}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
-        stepNumber={3}
         heading={t('Project details')}
         subtitle={t(
           'Set the project name, assign a team, and configure\nhow you want to receive issue alerts'
