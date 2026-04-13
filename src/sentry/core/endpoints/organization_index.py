@@ -177,6 +177,7 @@ class OrganizationIndexEndpoint(Endpoint):
                     # Note: platform filtering is kept here but is not present in the control version
                     # of this endpoint, since the data is not in control and our UI isn't
                     # passing this anymore.
+                    sentry_sdk.capture_message("organization_index.platform_filter_used")
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(platform__in=value).values(
                             "project_id"
