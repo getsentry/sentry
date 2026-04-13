@@ -43,7 +43,6 @@ describe('AutofixSection', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: true,
-        autofixEnabled: true,
       }),
     });
 
@@ -528,7 +527,6 @@ describe('AutofixSection', () => {
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: false,
-        autofixEnabled: true,
       }),
     });
 
