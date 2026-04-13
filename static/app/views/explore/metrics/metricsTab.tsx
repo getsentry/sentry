@@ -146,7 +146,7 @@ function MetricsQueryBuilderSection() {
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
-  const references = useMetricReferences();
+  const referenceMap = useMetricReferences();
 
   if (canUseMetricsUIRefresh(organization)) {
     return null;
@@ -173,7 +173,7 @@ function MetricsQueryBuilderSection() {
               <MetricToolbar
                 traceMetric={metricQuery.metric}
                 queryLabel={metricQuery.label ?? ''}
-                references={references}
+                referenceMap={referenceMap}
               />
             </MetricsQueryParamsProvider>
           );
@@ -213,7 +213,7 @@ function MetricsTabBodySection() {
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
-  const references = useMetricReferences();
+  const referenceMap = useMetricReferences();
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
@@ -239,7 +239,7 @@ function MetricsTabBodySection() {
                     traceMetric={metricQuery.metric}
                     queryIndex={index}
                     queryLabel={metricQuery.label ?? ''}
-                    references={references}
+                    referenceMap={referenceMap}
                   />
                 </MetricsQueryParamsProvider>
               );
@@ -285,7 +285,7 @@ function MetricsTabBodySection() {
                     traceMetric={metricQuery.metric}
                     queryIndex={index}
                     queryLabel={metricQuery.label ?? ''}
-                    references={references}
+                    referenceMap={referenceMap}
                   />
                 </MetricsQueryParamsProvider>
               );

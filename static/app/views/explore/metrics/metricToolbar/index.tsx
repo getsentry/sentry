@@ -2,10 +2,10 @@ import {Fragment, useCallback} from 'react';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
@@ -28,10 +28,14 @@ import {
 interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
-  references?: Set<string>;
+  referenceMap?: Record<string, string>;
 }
 
-export function MetricToolbar({traceMetric, queryLabel, references}: MetricToolbarProps) {
+export function MetricToolbar({
+  traceMetric,
+  queryLabel,
+  referenceMap,
+}: MetricToolbarProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
@@ -97,13 +101,10 @@ export function MetricToolbar({traceMetric, queryLabel, references}: MetricToolb
             </Flex>
           </Fragment>
         ) : isVisualizeEquation(visualize) ? (
-          <ArithmeticBuilder
-            aggregations={[]}
+          <EquationBuilder
             expression={visualize.expression.text}
-            functionArguments={[]}
-            getFieldDefinition={() => null}
-            references={references}
-            setExpression={handleExpressionChange}
+            referenceMap={referenceMap}
+            handleExpressionChange={handleExpressionChange}
           />
         ) : null}
         {canRemoveMetric && <DeleteMetricButton />}
@@ -146,13 +147,10 @@ export function MetricToolbar({traceMetric, queryLabel, references}: MetricToolb
           </Flex>
         </Fragment>
       ) : isVisualizeEquation(visualize) ? (
-        <ArithmeticBuilder
-          aggregations={[]}
+        <EquationBuilder
           expression={visualize.expression.text}
-          functionArguments={[]}
-          getFieldDefinition={() => null}
-          references={references}
-          setExpression={handleExpressionChange}
+          referenceMap={referenceMap}
+          handleExpressionChange={handleExpressionChange}
         />
       ) : null}
       {canRemoveMetric && <DeleteMetricButton />}

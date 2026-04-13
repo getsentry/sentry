@@ -36,14 +36,14 @@ interface MetricPanelProps {
   queryIndex: number;
   queryLabel: string;
   traceMetric: TraceMetric;
-  references?: Set<string>;
+  referenceMap?: Record<string, string>;
 }
 
 export function MetricPanel({
   traceMetric,
   queryIndex,
   queryLabel,
-  references,
+  referenceMap,
 }: MetricPanelProps) {
   const organization = useOrganization();
   const {
@@ -55,7 +55,7 @@ export function MetricPanel({
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
-    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
+    enabled: !isMetricOptionsEmpty,
   });
 
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
@@ -104,7 +104,7 @@ export function MetricPanel({
               <MetricToolbar
                 traceMetric={traceMetric}
                 queryLabel={queryLabel}
-                references={references}
+                referenceMap={referenceMap}
               />
             </Container>
             {visualize.visible ? (

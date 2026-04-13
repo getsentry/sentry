@@ -159,6 +159,7 @@ export function useMetricLabel(): string {
   const {metric} = useTraceMetricContext();
 
   if (isVisualizeEquation(visualize)) {
+    // TODO: This should show the unresolved expression from the equation builder
     return visualize.expression.text;
   }
   if (isVisualizeFunction(visualize) && visualize.parsedFunction) {
