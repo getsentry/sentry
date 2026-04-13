@@ -41,7 +41,6 @@ function UnstyledSettingsPageHeader({
   body,
   tabs,
   noTitleStyles = false,
-  className,
   ...props
 }: Props) {
   const hasPageFrame = useHasPageFrameFeature();
@@ -53,10 +52,7 @@ function UnstyledSettingsPageHeader({
   return (
     <Fragment>
       {hasPageFrame && action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
-      <div
-        {...props}
-        className={hasPageFrame ? `${className ?? ''} has-page-frame` : className}
-      >
+      <div {...props}>
         <TitleAndActions isNarrow={isNarrow}>
           <TitleWrapper>
             {icon && <Icon>{icon}</Icon>}
@@ -119,10 +115,6 @@ export const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
 >`
   font-size: 14px;
   margin-top: -${p => p.theme.space['3xl']};
-
-  &.has-page-frame {
-    margin-top: 0;
-  }
 `;
 
 const BodyWrapper = styled('div')`
