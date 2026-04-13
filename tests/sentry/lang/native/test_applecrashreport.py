@@ -122,6 +122,70 @@ Thread 2 name: com.apple.test\n\
     )
 
 
+def test_get_threads_apple_string_deduplicates_exception_thread() -> None:
+    """
+    When an exception's thread_id matches a thread's id, the thread should only
+    appear once (from the exception data), not duplicated.
+    """
+    acr = AppleCrashReport(
+        exceptions=[
+            {
+                "thread_id": 1,
+                "mechanism": {"type": "mach"},
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0x2c8000",
+                            "instruction_addr": "0x31c3e8",
+                            "symbol_addr": "0x31b9f8",
+                        },
+                    ]
+                },
+            }
+        ],
+        threads=[
+            {
+                "crashed": True,
+                "id": 1,
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0x2c8000",
+                            "instruction_addr": "0x31c3e8",
+                            "symbol_addr": "0x31b9f8",
+                        },
+                    ]
+                },
+            },
+            {
+                "crashed": False,
+                "id": 2,
+                "name": "background",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "image_addr": "0xf0000",
+                            "instruction_addr": "0xf6c78",
+                            "symbol_addr": "0xf6c04",
+                        },
+                    ]
+                },
+            },
+        ],
+    )
+    threads = acr.get_threads_apple_string()
+    # Thread 1 should appear only once (from exception), Thread 2 should appear
+    assert threads.count("Thread 1") == 1
+    assert threads.count("Thread 2") == 1
+    assert (
+        threads
+        == "Thread 1 Crashed:\n\
+0   0x2c8000                        0x31c3e8            0x2c8000 + 2544\n\n\
+Thread 2 name: background\n\
+0   0xf0000                         0xf6c78             0xf0000 + 116"
+    )
+
+
 def test_get_threads_apple_string_symbolicated() -> None:
     acr = AppleCrashReport(
         symbolicated=True,
