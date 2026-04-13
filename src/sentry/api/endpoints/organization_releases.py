@@ -418,6 +418,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
+        queryset = queryset.distinct()
         queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
 
         if sort == "date":

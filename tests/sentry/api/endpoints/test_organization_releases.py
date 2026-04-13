@@ -2566,6 +2566,22 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def test_invalid_environment(self) -> None:
         self.get_error_response(self.org.slug, environment="invalid_environment", status_code=404)
 
+    def test_environment_in_query_param_no_duplicates(self) -> None:
+        """A release in the same environment across multiple projects must appear only once."""
+        # Give project2 the prod environment and associate release5 with it,
+        # so release5 has two RPE rows both matching environment:prod.
+        self.env1.add_project(self.project2)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project2.id, release_id=self.release5.id, environment_id=self.env1.id
+        )
+        # Use the header that enables __get_new, which lacks the .distinct() that __get_old has.
+        response = self.get_success_response(
+            self.org.slug,
+            query=f"environment:{self.env1.name}",
+            extra_headers={"HTTP_X_PERFORMANCE_OPTIMIZATIONS": "enabled"},
+        )
+        self.assert_releases(response, [self.release1, self.release5])
+
     def test_environment_in_query_param(self) -> None:
         """environment: in the query string should filter the same as ?environment="""
         response = self.get_success_response(self.org.slug, query=f"environment:{self.env1.name}")
