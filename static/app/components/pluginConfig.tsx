@@ -172,7 +172,9 @@ export function PluginConfig({
   });
 
   const config = pluginData?.config ?? [];
-  const wasConfigured = config.some(field => field.value);
+  const wasConfigured = config.some(
+    field => field.value !== null && field.value !== undefined && field.value !== ''
+  );
 
   const fields = config.map(mapPluginField);
   const formKey = config
