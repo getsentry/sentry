@@ -774,3 +774,59 @@ class HmacSignatureAuthentication(StandardAuthentication):
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)
+
+
+class ViewerContextAuthentication(BaseAuthentication):
+    """Authenticate requests using signed X-Viewer-Context headers.
+
+    Used by trusted services (e.g., Seer) that echo back the viewer context
+    originally signed by Sentry. The signature is verified against
+    SEER_API_SHARED_SECRET. The user is resolved via user_service.get_user()
+    which works cross-silo (RPC-backed, cached).
+
+    Sets request.auth = None so that determine_access derives permissions
+    from the user's OrganizationMember role — identical to session auth.
+    """
+
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
+        viewer_context = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        viewer_signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
+
+        if not viewer_context or not viewer_signature:
+            return None
+
+        secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
+        if not secret:
+            return None
+
+        # Verify HMAC signature
+        context_bytes = viewer_context.encode("utf-8")
+        computed = hmac.new(
+            secret.encode("utf-8"),
+            context_bytes,
+            hashlib.sha256,
+        ).hexdigest()
+        if not constant_time_compare(computed, viewer_signature):
+            return None
+
+        # Parse viewer context and resolve user
+        try:
+            import orjson
+
+            data = orjson.loads(context_bytes)
+        except (ValueError, TypeError):
+            return None
+
+        user_id = data.get("user_id")
+        if not user_id:
+            return None
+
+        user = user_service.get_user(user_id=user_id)
+        if user is None:
+            return None
+
+        sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+
+        # Return None for auth to match session behavior —
+        # determine_access will derive scopes from org membership role.
+        return (user, None)
