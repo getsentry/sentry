@@ -414,8 +414,8 @@ function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): 
   const rows =
     cached?.pages?.reduce((n, page) => n + (page[0]?.data?.length ?? 0), 0) ?? 0;
   return rows < LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES
-    ? MAX_LOGS_INFINITE_QUERY_PAGES
-    : MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED;
+    ? MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED
+    : MAX_LOGS_INFINITE_QUERY_PAGES;
 }
 
 export function useInfiniteLogsQuery({
