@@ -300,7 +300,7 @@ class ViewerContextMiddlewareTest(TestCase):
 
         middleware(request)
 
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "viewer_context.jwt_request_mismatch",
             extra={
                 "jwt_org_id": 99,

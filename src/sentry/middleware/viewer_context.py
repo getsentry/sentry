@@ -22,18 +22,13 @@ logger = logging.getLogger(__name__)
 def ViewerContextMiddleware(
     get_response: Callable[[HttpRequest], HttpResponseBase],
 ) -> Callable[[HttpRequest], HttpResponseBase]:
-    """Set :class:`ViewerContext` for every request after authentication.
+    """Set :class:`ViewerContext` for every request.
 
-    Must be placed **after** ``AuthenticationMiddleware`` so that
-    ``request.user`` and ``request.auth`` are already populated.
+    Placed after ``AuthenticationMiddleware``. Authenticated user always
+    takes precedence; ``X-Viewer-Context`` JWT is only used for
+    unauthenticated service-to-service calls (e.g. Seer → Sentry).
 
-    If the request carries a valid ``X-Viewer-Context`` JWT header,
-    the context is restored from the token instead of the Django auth
-    user.  This is the path used by service-to-service calls (e.g.
-    Seer calling back into Sentry).
-
-    Gated by the ``viewer-context.enabled`` option (FLAG_NOSTORE).
-    Set via deploy config; requires restart to change.
+    Gated by ``viewer-context.enabled`` (FLAG_NOSTORE).
     """
     enabled = options.get("viewer-context.enabled")
 
@@ -57,7 +52,7 @@ def ViewerContextMiddleware(
                 and request_ctx.organization_id is not None
                 and jwt_ctx.organization_id != request_ctx.organization_id
             ):
-                logger.warning(
+                logger.error(
                     "viewer_context.jwt_request_mismatch",
                     extra={
                         "jwt_org_id": jwt_ctx.organization_id,
