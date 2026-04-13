@@ -321,9 +321,9 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             # determine if there's any issues with it
             except InvalidSearchQuery:
                 column_is_mri = False
-            if column_is_mri and dataset != Dataset.PerformanceMetrics:
+            if column_is_mri:
                 raise serializers.ValidationError(
-                    "You can use an MRI only on alerts on performance metrics"
+                    "You cannot use an MRI on alerts as the performance metrics dataset is being deprecated."
                 )
 
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
