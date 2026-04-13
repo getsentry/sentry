@@ -14,6 +14,7 @@ import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
 import {PreprodBuildsDistributionTable} from './preprodBuildsDistributionTable';
 import {PreprodBuildsSizeTable} from './preprodBuildsSizeTable';
+import {PreprodBuildsSnapshotTable} from './preprodBuildsSnapshotTable';
 
 interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
@@ -51,10 +52,10 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
-  const isDistributionDisplay = display === PreprodBuildsDisplay.DISTRIBUTION;
-  const emptyStateDocUrl = isDistributionDisplay
-    ? 'https://docs.sentry.io/product/build-distribution/'
-    : 'https://docs.sentry.io/product/size-analysis/';
+  const emptyStateDocUrl =
+    display === PreprodBuildsDisplay.DISTRIBUTION
+      ? 'https://docs.sentry.io/product/build-distribution/'
+      : 'https://docs.sentry.io/product/size-analysis/';
 
   const hasMultiplePlatforms = useMemo(() => {
     const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
@@ -92,7 +93,15 @@ export function PreprodBuildsTable({
 
   return (
     <Fragment>
-      {isDistributionDisplay ? (
+      {display === PreprodBuildsDisplay.SNAPSHOT ? (
+        <PreprodBuildsSnapshotTable
+          builds={builds}
+          content={tableContent}
+          onRowClick={onRowClick}
+          organizationSlug={organizationSlug}
+          showProjectColumn={showProjectColumn}
+        />
+      ) : display === PreprodBuildsDisplay.DISTRIBUTION ? (
         <PreprodBuildsDistributionTable
           builds={builds}
           content={tableContent}

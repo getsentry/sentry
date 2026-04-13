@@ -21,6 +21,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -56,7 +57,7 @@ import {ReleasesSortOptions} from './releasesSortOptions';
 import {ReleasesStatusOption, ReleasesStatusOptions} from './releasesStatusOptions';
 import {validateSummaryStatsPeriod} from './utils';
 
-type ReleaseTab = 'releases' | 'mobile-builds';
+type ReleaseTab = 'releases' | 'mobile-builds' | 'snapshots';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
@@ -244,6 +245,7 @@ export default function ReleasesList() {
   }, [selection.projects]);
 
   const hasPreprodFeature = organization.features?.includes('preprod-frontend-routes');
+  const hasSnapshotsFeature = organization.features?.includes('preprod-snapshots');
 
   const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
   const buildsProbeQuery = useQuery({
@@ -285,13 +287,27 @@ export default function ReleasesList() {
 
   const shouldShowMobileBuildsTab =
     hasPreprodFeature && (hasBuildsData || hasAnyStrictlyMobileProject);
+  const shouldShowSnapshotsTab = !!hasSnapshotsFeature;
+  const shouldShowTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
 
   const selectedTab = useMemo(() => {
-    if (!shouldShowMobileBuildsTab) {
+    if (!shouldShowTabs) {
       return 'releases';
     }
-    return (decodeScalar(location.query.tab) as ReleaseTab | undefined) || 'releases';
-  }, [shouldShowMobileBuildsTab, location.query.tab]);
+    const tab = decodeScalar(location.query.tab) as ReleaseTab | undefined;
+    if (tab === 'snapshots' && !shouldShowSnapshotsTab) {
+      return 'releases';
+    }
+    if (tab === 'mobile-builds' && !shouldShowMobileBuildsTab) {
+      return 'releases';
+    }
+    return tab || 'releases';
+  }, [
+    shouldShowTabs,
+    shouldShowMobileBuildsTab,
+    shouldShowSnapshotsTab,
+    location.query.tab,
+  ]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -473,7 +489,11 @@ export default function ReleasesList() {
                 shouldShowMobileBuildsTab={shouldShowMobileBuildsTab}
               >
                 <ProjectPageFilter />
-                <EnvironmentPageFilter disabled={selectedTab === 'mobile-builds'} />
+                <EnvironmentPageFilter
+                  disabled={
+                    selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
+                  }
+                />
                 <DatePageFilter
                   disallowArbitraryRelativeRanges
                   menuFooterMessage={t(
@@ -482,7 +502,7 @@ export default function ReleasesList() {
                 />
               </ReleasesPageFilterBar>
 
-              {shouldShowMobileBuildsTab && (
+              {shouldShowTabs && (
                 <Layout.HeaderTabs value={selectedTab} onChange={handleTabChange}>
                   <TabList aria-label={t('Releases tab selector')}>
                     <TabList.Item
@@ -495,23 +515,44 @@ export default function ReleasesList() {
                     >
                       {t('Releases')}
                     </TabList.Item>
-                    <TabList.Item
-                      key="mobile-builds"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'mobile-builds',
-                        },
-                      }}
-                      textValue={t('Mobile Builds')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Mobile Builds')}
-                        <FeatureBadge type="new" />
-                      </Flex>
-                    </TabList.Item>
+                    {shouldShowMobileBuildsTab && (
+                      <TabList.Item
+                        key="mobile-builds"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'mobile-builds',
+                          },
+                        }}
+                        textValue={t('Mobile Builds')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Mobile Builds')}
+                          <FeatureBadge type="new" />
+                        </Flex>
+                      </TabList.Item>
+                    )}
+                    {shouldShowSnapshotsTab && (
+                      <TabList.Item
+                        key="snapshots"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'snapshots',
+                          },
+                        }}
+                        textValue={t('Snapshots')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Snapshots')}
+                          <FeatureBadge type="alpha" />
+                        </Flex>
+                      </TabList.Item>
+                    )}
                   </TabList>
                 </Layout.HeaderTabs>
               )}
@@ -524,6 +565,15 @@ export default function ReleasesList() {
                   <MobileBuilds
                     organization={organization}
                     selectedProjectIds={selectedProjectIds}
+                  />
+                )}
+
+                {selectedTab === 'snapshots' && shouldShowSnapshotsTab && (
+                  <MobileBuilds
+                    organization={organization}
+                    selectedProjectIds={selectedProjectIds}
+                    defaultDisplay={PreprodBuildsDisplay.SNAPSHOT}
+                    hideDisplayToggle
                   />
                 )}
 
