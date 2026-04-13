@@ -104,8 +104,8 @@ export function CommandPalette(props: CommandPaletteProps) {
       {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
     >();
     scoreTree(currentNodes, scores, state.query.toLowerCase());
-    return flattenActions(currentNodes, scores);
-  }, [currentNodes, state.query]);
+    return flattenActions(currentNodes, scores, state.action !== null);
+  }, [currentNodes, state.action, state.query]);
 
   const analytics = useCommandPaletteAnalytics(actions.length);
 
@@ -537,7 +537,8 @@ function flattenActions(
   scores: Map<
     string,
     {node: CollectionTreeNode<CMDKActionData>; score: {matched: boolean; score: number}}
-  > | null
+  > | null,
+  sortLeafResults = false
 ): CMDKFlatItem[] {
   // Browse mode: show each top-level node and its direct children.
   if (!scores) {
@@ -593,13 +594,17 @@ function flattenActions(
     dfs(node);
   }
 
-  // Sort top-level groups to the front by their max-scoring child.
+  // Keep the existing top-level search ordering by default, but when we are
+  // inside an expanded group we also sort leaf actions by their own score so
+  // the full result list matches the limited preview ordering.
   collected.sort((a, b) => {
-    const maxScore = (n: CMDKFlatItem) =>
-      n.children.length > 0
-        ? Math.max(0, ...n.children.map(c => scores.get(c.key)?.score.score ?? 0))
-        : 0;
-    return maxScore(b) - maxScore(a);
+    const sortScore = (n: CMDKFlatItem) => {
+      if (n.children.length > 0) {
+        return Math.max(0, ...n.children.map(c => scores.get(c.key)?.score.score ?? 0));
+      }
+      return sortLeafResults ? (scores.get(n.key)?.score.score ?? 0) : 0;
+    };
+    return sortScore(b) - sortScore(a);
   });
 
   // Track processed keys so children beyond a group's limit cannot resurface as
@@ -660,7 +665,7 @@ function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
     key: `${node.key}:see-more`,
     listItemType: 'action',
     display: {
-      label: 'See more',
+      label: 'See all',
       icon: <IconArrow direction="right" />,
     },
   };
