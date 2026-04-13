@@ -98,11 +98,15 @@ def _get_missing_scope_settings_url(
     if install.has_history_scope(channel_id):
         return None
 
+    try:
+        org = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        return None
+
     cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
     if not cache.add(cache_key, True, timeout=MISSING_SCOPE_FOOTER_CACHE_TIMEOUT):
         return None
 
-    org = Organization.objects.get(id=organization_id)
     return org.absolute_url(f"/settings/{org.slug}/integrations/slack/")
 
 
