@@ -1,5 +1,4 @@
 import type {Theme} from '@emotion/react';
-import * as Sentry from '@sentry/react';
 import type {EChartsType, ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
@@ -21,8 +20,6 @@ import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/
 
 import {BaselineMarkLine} from './baselineMarkline';
 import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
-
-const {error, warn} = Sentry.logger;
 
 type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 
@@ -104,10 +101,7 @@ export class Samples implements Plottable {
 
     try {
       chart = this.chartRef?.getEchartsInstance();
-    } catch (e) {
-      warn(
-        '`Samples` could not dispatch action because the chart was removed from the DOM'
-      );
+    } catch {
       return undefined;
     }
 
@@ -206,17 +200,7 @@ export class Samples implements Plottable {
   #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
     const sample = this.sampleTableData.data.at(dataIndex);
 
-    if (!sample) {
-      error('`Samples` plottable data out-of-range error', {
-        dataIndex,
-      });
-      return undefined;
-    }
-
-    if (!isValidSampleRow(sample)) {
-      warn('`Samples` plottable `onHighlight` almost received an invalid row', {
-        dataIndex,
-      });
+    if (!sample || !isValidSampleRow(sample)) {
       return undefined;
     }
 

@@ -336,6 +336,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -495,6 +496,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -581,6 +583,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -653,6 +656,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 

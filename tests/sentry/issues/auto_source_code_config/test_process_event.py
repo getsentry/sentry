@@ -1067,3 +1067,31 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             ],
             expected_new_in_app_stack_trace_rules=[f"stack.module:{java_module_prefix}.** +app"],
         )
+
+    def test_same_package_in_multiple_gradle_subprojects(self) -> None:
+        with patch(f"{CODE_ROOT}.stacktraces._check_not_categorized", return_value=True):
+            self._process_and_assert_configuration_changes(
+                repo_trees={
+                    REPO1: [
+                        "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                        "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                    ]
+                },
+                frames=[
+                    self.frame_from_module(
+                        "io.sentry.graphql.GraphQLFetcher", "GraphQLFetcher.java"
+                    )
+                ],
+                platform=self.platform,
+                expected_new_code_mappings=[
+                    self.code_mapping(
+                        "io/sentry/graphql/",
+                        "sentry-graphql/src/main/java/io/sentry/graphql/",
+                    ),
+                    self.code_mapping(
+                        "io/sentry/graphql/",
+                        "sentry-graphql-core/src/main/java/io/sentry/graphql/",
+                    ),
+                ],
+                expected_new_in_app_stack_trace_rules=["stack.module:io.sentry.** +app"],
+            )

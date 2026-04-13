@@ -34,7 +34,10 @@ import {
   performanceScoreTooltip,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  widgetTypeSupportsExploreMultiQuery,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
@@ -238,17 +241,29 @@ export function getMenuOptions(
     organization.features.includes('visibility-explore-view') &&
     (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
   ) {
+    const multiQueryUnsupported =
+      widget.queries.length > 1 &&
+      !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
-      to: getWidgetExploreUrl(
-        widget,
-        dashboardFilters,
-        selection,
-        organization,
-        widget.queries.some(q => q.aggregates.length > 0) ? Mode.AGGREGATE : Mode.SAMPLES,
-        getReferrer(widget.displayType)
-      ),
+      disabled: multiQueryUnsupported,
+      tooltip: multiQueryUnsupported
+        ? t('Explore does not support multiple queries for this dataset')
+        : undefined,
+      to: multiQueryUnsupported
+        ? undefined
+        : (getWidgetExploreUrl(
+            widget,
+            dashboardFilters,
+            selection,
+            organization,
+            widget.queries.some(q => q.aggregates.length > 0)
+              ? Mode.AGGREGATE
+              : Mode.SAMPLES,
+            getReferrer(widget.displayType)
+          ) ?? undefined),
     });
   }
 
