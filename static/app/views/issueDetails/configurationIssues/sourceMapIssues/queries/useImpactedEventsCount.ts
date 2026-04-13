@@ -31,7 +31,7 @@ export function useImpactedEventsCount({project}: Options): ImpactedEventsCount 
           field: ['count_unique(event_id)'],
           statsPeriod: '30d',
           project: project.id,
-          referrer: 'api.issues.sourcemap-configuration.impact',
+          referrer: 'api.issues.sourcemap-configuration.impact-events-count',
         },
       },
     ],
