@@ -527,6 +527,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
+from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -3653,6 +3654,11 @@ INTERNAL_URLS = [
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
+    re_path(
+        r"^seer/night-shift/trigger/$",
+        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        name="sentry-admin-seer-night-shift-trigger",
+    ),
 ]
 
 urlpatterns = [
