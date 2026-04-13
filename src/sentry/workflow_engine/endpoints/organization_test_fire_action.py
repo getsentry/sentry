@@ -90,13 +90,11 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
             organization=organization,
             teams__organizationmember__user_id=request.user.id,
             status=ObjectStatus.ACTIVE,
-        )
+        ).order_by("slug")
 
         project_slug = data.get("project_slug")
         if project_slug:
             qs = qs.filter(slug=project_slug)
-        else:
-            qs = qs.order_by("name")
 
         project = qs.first()
 
