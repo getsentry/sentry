@@ -10,8 +10,8 @@ from django.utils import timezone
 
 from sentry import features, ratelimits
 from sentry.issues.grouptype import GroupType
+from sentry.processing_errors.detectorconfig import ProcessingErrorDetectorHandler
 from sentry.processing_errors.grouptype import (
-    ProcessingErrorDetectorHandler,
     ProcessingErrorPacketValue,
     SourcemapConfigurationType,
 )

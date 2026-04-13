@@ -19,12 +19,14 @@ from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
-from sentry.uptime.grouptype import (
+from sentry.uptime.detectorconfig import (
     UptimeDetectorHandler,
-    UptimeDomainCheckFailure,
-    UptimePacketValue,
     build_event_data,
     build_evidence_display,
+)
+from sentry.uptime.grouptype import (
+    UptimeDomainCheckFailure,
+    UptimePacketValue,
 )
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, get_uptime_subscription
 from sentry.uptime.subscriptions.subscriptions import resolve_uptime_issue

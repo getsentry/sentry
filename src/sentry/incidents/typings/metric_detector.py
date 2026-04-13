@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from sentry.incidents.grouptype import MetricIssueEvidenceData
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
+
 CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
     Condition.GREATER_OR_EQUAL: AlertRuleThresholdType.ABOVE,
     Condition.GREATER: AlertRuleThresholdType.ABOVE,

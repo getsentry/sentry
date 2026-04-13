@@ -7,9 +7,11 @@ import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.size_analysis.grouptype import (
+from sentry.preprod.size_analysis.detectorconfig import (
     PreprodSizeAnalysisDetectorHandler,
     PreprodSizeAnalysisDetectorValidator,
+)
+from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
     SizeAnalysisValue,
