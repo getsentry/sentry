@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -81,7 +80,7 @@ export function SeerAdminPage() {
         <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleNightShiftSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md">
+              <Flex direction="column" gap="md" alignItems="start">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
                 <Text as="p" variant="muted">
                   Dispatch a night shift run for a specific organization. This will select
@@ -90,7 +89,7 @@ export function SeerAdminPage() {
                 <label htmlFor="organizationId">
                   <Text bold>Organization ID:</Text>
                 </label>
-                <StyledInput
+                <Input
                   type="text"
                   name="organizationId"
                   value={organizationId}
@@ -101,7 +100,6 @@ export function SeerAdminPage() {
                   priority="primary"
                   type="submit"
                   disabled={!organizationId.trim() || !region || isNightShiftPending}
-                  style={{width: 'fit-content'}}
                 >
                   Trigger Night Shift
                 </Button>
@@ -113,8 +111,3 @@ export function SeerAdminPage() {
     </div>
   );
 }
-
-const StyledInput = styled(Input)`
-  width: 100%;
-  max-width: 300px;
-`;
