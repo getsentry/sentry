@@ -8,6 +8,7 @@ interface SortableMetricPanelProps {
   canDrag: boolean;
   isAnyDragging: boolean;
   queryIndex: number;
+  queryLabel: string;
   sortableId: number;
   traceMetric: TraceMetric;
   references?: Set<string>;
@@ -17,6 +18,7 @@ export function SortableMetricPanel({
   sortableId,
   traceMetric,
   queryIndex,
+  queryLabel,
   references,
   isAnyDragging,
   canDrag,
@@ -35,6 +37,7 @@ export function SortableMetricPanel({
       }}
       traceMetric={traceMetric}
       queryIndex={queryIndex}
+      queryLabel={queryLabel}
       references={references}
       dragListeners={canDrag ? listeners : undefined}
       isAnyDragging={isAnyDragging}

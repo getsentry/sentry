@@ -5,8 +5,9 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
+import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,12 +30,34 @@ import {
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
+/**
+ * Renders the CMDK slot outlet elements in task → page → global DOM order so
+ * that presortBySlotRef's compareDocumentPosition sorting works correctly.
+ * Keeping these in the navigation (rather than in CommandPaletteProvider)
+ * means they only exist when the full nav is mounted — tests that assert an
+ * empty container are unaffected.
+ */
+function CommandPaletteSlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
 function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
   const {view, setView} = useSecondaryNavigation();
 
-  useGlobalCommandPaletteActions();
   const hasPageFrame = useHasPageFrameFeature();
 
   useHotkeys(
@@ -51,6 +74,8 @@ function UserAndOrganizationNavigation() {
   return (
     <NavigationLayout>
       <CommandPaletteHotkeys />
+      <CommandPaletteSlotOutlets />
+      <GlobalCommandPaletteActions />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}

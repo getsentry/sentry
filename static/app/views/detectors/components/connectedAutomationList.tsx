@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -14,8 +15,10 @@ import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 
 const DEFAULT_AUTOMATIONS_PER_PAGE = 10;
@@ -72,29 +75,25 @@ export function ConnectedAutomationsList({
   openInNewTab,
   ...props
 }: Props) {
+  const organization = useOrganization();
   const canEdit = Boolean(
     connectedAutomationIds && typeof toggleConnected === 'function'
   );
 
-  const {
-    data: automations,
-    isLoading,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useAutomationsQuery(
-    {
+  const {data, isLoading, isError, isSuccess} = useQuery({
+    ...automationsApiOptions(organization, {
       ids: automationIds ?? undefined,
       limit: limit ?? undefined,
       cursor,
       query,
-    },
-    {enabled: automationIds === null || automationIds.length > 0}
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled: automationIds === null || automationIds.length > 0,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const automations = data?.json;
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
   const paginationCaption = useMemo(() => {
     if (!automations || automations.length === 0 || isLoading || limit === null) {
@@ -137,12 +136,12 @@ export function ConnectedAutomationsList({
           />
         )}
         {isError && <LoadingError />}
-        {((isSuccess && automations.length === 0) ||
+        {((isSuccess && automations?.length === 0) ||
           (automationIds !== null && automationIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
-          automations.map(automation => (
+          automations?.map(automation => (
             <SimpleTable.Row
               key={automation.id}
               variant={automation.enabled ? 'default' : 'faded'}

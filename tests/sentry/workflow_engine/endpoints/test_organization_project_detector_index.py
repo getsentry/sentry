@@ -155,10 +155,12 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 self.organization.slug,
                 self.project.slug,
                 **self.valid_data,
-                status_code=404,
+                status_code=400,
             )
         assert response.data == {
-            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+            "detail": ErrorDetail(
+                string="Unable to process request, confirm payment options.", code="error"
+            )
         }
 
     def test_project_not_found(self) -> None:

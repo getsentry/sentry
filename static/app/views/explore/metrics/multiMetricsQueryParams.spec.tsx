@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -16,8 +16,25 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
+function TestableMetricComponent() {
+  const metricQueries = useMultiMetricsQueryParams();
+
+  return (
+    <div>
+      {metricQueries.map((metricQuery, index) => (
+        <div key={index}>{metricQuery.label}</div>
+      ))}
+    </div>
+  );
+}
+
 function Wrapper({children}: {children: ReactNode}) {
-  return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
+  return (
+    <MultiMetricsQueryParamsProvider>
+      <TestableMetricComponent />
+      {children}
+    </MultiMetricsQueryParamsProvider>
+  );
 }
 
 describe('MultiMetricsQueryParamsProvider', () => {
@@ -28,6 +45,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     expect(result.current).toEqual([
       {
+        label: 'A',
         metric: {name: '', type: ''},
         queryParams: new ReadableQueryParams({
           extrapolate: true,
@@ -266,6 +284,86 @@ describe('MultiMetricsQueryParamsProvider', () => {
     ]);
   });
 
+  describe('stable labels', () => {
+    it('preserves label B when A is deleted from [A, B]', () => {
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: 'bar', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      expect(result.current).toHaveLength(2);
+      expect(result.current[0]).toEqual(expect.objectContaining({label: 'A'}));
+      expect(result.current[1]).toEqual(expect.objectContaining({label: 'B'}));
+
+      // Delete A
+      act(() => result.current[0]!.removeMetric());
+
+      expect(result.current).toHaveLength(1);
+      expect(result.current[0]).toEqual(expect.objectContaining({label: 'B'}));
+    });
+
+    it('assigns correct labels for metrics and equations', () => {
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      expect(result.current).toHaveLength(2);
+      expect(result.current[0]).toEqual(expect.objectContaining({label: 'A'}));
+      expect(result.current[1]).toEqual(expect.objectContaining({label: 'ƒ1'}));
+    });
+  });
+
   describe('useAddMetricQuery', () => {
     it('adds new metric at the end of the list when adding without equations', () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
@@ -457,6 +555,90 @@ describe('MultiMetricsQueryParamsProvider', () => {
           aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
         })
       );
+    });
+
+    it('adds metric before equation with independent label sequences', () => {
+      const {result} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+      });
+
+      // Add a new metric — should be inserted before the equation
+      act(() => result.current());
+
+      expect(screen.getByText('A')).toBeInTheDocument();
+      expect(screen.getByText('B')).toBeInTheDocument();
+      expect(screen.getByText('ƒ1')).toBeInTheDocument();
+    });
+
+    it('increments the equation label from the last equation label counter', () => {
+      const {result} = renderHookWithProviders(useAddMetricQuery, {
+        additionalWrapper: Wrapper,
+        organization: OrganizationFixture({
+          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'foo', type: 'counter'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+            },
+          },
+        },
+        initialProps: {
+          type: 'equation',
+        },
+      });
+
+      act(() => result.current());
+
+      expect(screen.getByText('A')).toBeInTheDocument();
+      expect(screen.getByText('ƒ1')).toBeInTheDocument();
+      expect(screen.getByText('ƒ2')).toBeInTheDocument();
     });
   });
 });

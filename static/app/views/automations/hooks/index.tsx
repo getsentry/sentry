@@ -15,11 +15,7 @@ import type {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {
-  ApiQueryKey,
-  UseApiQueryOptions,
-  UseMutationOptions,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseMutationOptions} from 'sentry/utils/queryClient';
 import {
   setApiQueryData,
   useApiQuery,
@@ -30,72 +26,47 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const makeAutomationsQueryKey = ({
-  orgSlug,
-  query,
-  sortBy,
-  priorityDetector,
-  ids,
-  limit,
-  cursor,
-  projects,
-  detector,
-}: {
-  orgSlug: string;
-  cursor?: string;
-  detector?: string[];
-  ids?: string[];
-  limit?: number;
-  priorityDetector?: string;
-  projects?: number[];
-  query?: string;
-  sortBy?: string;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-    path: {organizationIdOrSlug: orgSlug},
-  }),
-  {
-    query: {
+export const automationsApiOptions = (
+  organization: Organization,
+  options?: {
+    cursor?: string;
+    detector?: string[];
+    ids?: string[];
+    limit?: number;
+    priorityDetector?: string;
+    projects?: number[];
+    query?: string;
+    sortBy?: string;
+  }
+) => {
+  const query = options
+    ? {
+        query: options.query,
+        sortBy: options.sortBy,
+        priorityDetector: options.priorityDetector,
+        id: options.ids,
+        per_page: options.limit,
+        cursor: options.cursor,
+        project: options.projects,
+        detector: options.detector,
+      }
+    : undefined;
+
+  return queryOptions({
+    ...apiOptions.as<Automation[]>()('/organizations/$organizationIdOrSlug/workflows/', {
+      path: {organizationIdOrSlug: organization.slug},
       query,
-      sortBy,
-      priorityDetector,
-      id: ids,
-      per_page: limit,
-      cursor,
-      project: projects,
-      detector,
-    },
-  },
-];
+      staleTime: 0,
+    }),
+    retry: false,
+  });
+};
 
 const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
   getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
     path: {organizationIdOrSlug: orgSlug, workflowId: automationId},
   }),
 ];
-
-interface UseAutomationsQueryOptions {
-  cursor?: string;
-  detector?: string[];
-  ids?: string[];
-  limit?: number;
-  priorityDetector?: string;
-  projects?: number[];
-  query?: string;
-  sortBy?: string;
-}
-export function useAutomationsQuery(
-  options: UseAutomationsQueryOptions = {},
-  useApiQueryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
-) {
-  const {slug: orgSlug} = useOrganization();
-
-  return useApiQuery<Automation[]>(makeAutomationsQueryKey({orgSlug, ...options}), {
-    staleTime: 0,
-    retry: false,
-    ...useApiQueryOptions,
-  });
-}
 
 export function useAutomationQuery(automationId: string) {
   const {slug} = useOrganization();
@@ -186,11 +157,7 @@ export function useCreateAutomation() {
       ),
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
     },
     onError: _ => {
@@ -216,11 +183,7 @@ export function useDeleteAutomationMutation() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(t('Alert deleted'));
     },
@@ -258,11 +221,7 @@ export function useDeleteAutomationsMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(t('Alerts deleted'));
     },
@@ -305,11 +264,7 @@ export function useUpdateAutomation() {
       );
       // Invalidate list query
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
     },
     onError: _ => {
@@ -347,11 +302,7 @@ export function useUpdateAutomationsMutation() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
@@ -388,11 +339,7 @@ export function useSendTestNotification(
     ...options,
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(
         tn('Notification fired!', 'Notifications sent!', variables.length)

@@ -38,6 +38,7 @@ const TWO_MINUTE_DELAY = 120;
 
 interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
+  queryLabel: string;
   traceMetric: TraceMetric;
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
@@ -49,6 +50,7 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
 export function MetricPanel({
   traceMetric,
   queryIndex,
+  queryLabel,
   references,
   dragListeners,
   isAnyDragging,
@@ -117,7 +119,7 @@ export function MetricPanel({
             <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
               <MetricToolbar
                 traceMetric={traceMetric}
-                queryIndex={queryIndex}
+                queryLabel={queryLabel}
                 references={references}
                 dragListeners={dragListeners}
               />

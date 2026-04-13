@@ -36,8 +36,13 @@ class RepositoryInfo(TypedDict):
     identifier: str
     external_id: str
     default_branch: NotRequired[str | None]  # GitHub, GitHub Enterprise
-    project: NotRequired[str]  # Bitbucket Server
+    url: NotRequired[str]  # GitLab, VSTS
+    instance: NotRequired[str]  # GitLab, VSTS
+    project: NotRequired[str]  # Bitbucket Server, VSTS
+    path: NotRequired[str]  # GitLab (path_with_namespace)
+    project_id: NotRequired[int]  # GitLab
     repo: NotRequired[str]  # Bitbucket Server
+    repo_name: NotRequired[str]  # VSTS (bare repo name for API calls)
 
 
 class BaseRepositoryIntegration(ABC):
@@ -59,6 +64,7 @@ class BaseRepositoryIntegration(ABC):
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation

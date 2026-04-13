@@ -272,12 +272,20 @@ interface VisualizeLabelProps {
   visualize: Visualize;
 }
 
-export function getVisualizeLabel(index: number) {
+export function getFunctionLabel(index: number) {
   return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
+function getEquationLabel(index: number) {
+  return `ƒ${index}`;
+}
+
+export function getVisualizeLabel(labelIndex: number, isEquation: boolean): string {
+  return isEquation ? getEquationLabel(labelIndex) : getFunctionLabel(labelIndex);
+}
+
 function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
-  const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
+  const label = visualize.visible ? getFunctionLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
 }

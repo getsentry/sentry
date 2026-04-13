@@ -52,6 +52,8 @@ export interface SnapshotDetailsApiResponse {
 
   approval_info?: SnapshotApprovalInfo | null;
 
+  diff_threshold?: number | null;
+
   // Diff fields
   added: SnapshotImage[];
   added_count: number;

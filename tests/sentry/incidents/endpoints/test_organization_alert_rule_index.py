@@ -391,17 +391,9 @@ class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
         assert len(new_data) == len(old_data)
 
         for old_rule, new_rule in zip(old_data, new_data):
-            old_sorted = {
-                **old_rule,
-                "triggers": sorted(old_rule.get("triggers", []), key=lambda t: t.get("label", "")),
-            }
-            new_sorted = {
-                **new_rule,
-                "triggers": sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", "")),
-            }
             assert_serializer_parity(
-                old=old_sorted,
-                new=new_sorted,
+                old=old_rule,
+                new=new_rule,
                 known_differences={
                     # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
                     # but workflow engine always creates a resolve condition during migration.

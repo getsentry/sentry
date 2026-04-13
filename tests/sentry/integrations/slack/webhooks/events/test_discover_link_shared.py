@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qsl
 
@@ -8,33 +9,27 @@ import responses
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl.types import Handler, LinkType, make_type_coercer
-from sentry.silo.base import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.identity import Identity, IdentityStatus
 
 from . import LINK_SHARED_EVENT, BaseEventTest
 
-LINK_SHARED_EVENT_NO_CHANNEL_NAME = """{
+LINK_SHARED_EVENT_NO_CHANNEL_NAME: dict[str, Any] = {
     "type": "link_shared",
     "channel": "Cxxxxxx",
     "user": "Uxxxxxxx",
     "message_ts": "123456789.9875",
     "team_id": "TXXXXXXX1",
     "links": [
+        {"domain": "example.com", "url": "http://testserver/organizations/test-org/issues/foo/"},
         {
             "domain": "example.com",
-            "url": "http://testserver/organizations/test-org/issues/foo/"
+            "url": "http://testserver/organizations/test-org/issues/bar/baz/",
         },
         {
             "domain": "example.com",
-            "url": "http://testserver/organizations/test-org/issues/bar/baz/"
+            "url": "http://testserver/organizations/test-org/issues/bar/baz/",
         },
-        {
-            "domain": "example.com",
-            "url": "http://testserver/organizations/test-org/issues/bar/baz/"
-        }
-    ]
-}"""
+    ],
+}
 
 
 class DiscoverLinkSharedEvent(BaseEventTest):
@@ -96,7 +91,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         responses.add(responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True})
         responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
-        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 
         data = responses.calls[0].request.body
@@ -124,7 +119,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         },
     )
     def share_discover_links_sdk(self, mock_match_link, mock_):
-        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 
         return self.mock_unfurl.call_args[1]
@@ -151,14 +146,12 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         },
     )
     def share_discover_links_ephermeral_sdk(self, mock_match_link, mock_):
-        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 
         return self.mock_post.call_args[1]
 
     def test_share_discover_links_unlinked_user_sdk(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
             data = self.share_discover_links_ephermeral_sdk()
 
@@ -176,36 +169,24 @@ class DiscoverLinkSharedEvent(BaseEventTest):
 
     @responses.activate
     def test_share_discover_links_unlinked_user_no_channel(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
             responses.add(
                 responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True}
             )
             responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
-            resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT_NO_CHANNEL_NAME))
+            resp = self.post_webhook(event_data=LINK_SHARED_EVENT_NO_CHANNEL_NAME)
             assert resp.status_code == 200, resp.content
             assert len(responses.calls) == 0
 
     def test_share_discover_links_unlinked_user_no_channel_sdk(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
-            resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT_NO_CHANNEL_NAME))
+            resp = self.post_webhook(event_data=LINK_SHARED_EVENT_NO_CHANNEL_NAME)
             assert resp.status_code == 200, resp.content
             assert len(self.mock_post.mock_calls) == 0
 
     def test_share_discover_links_linked_user_sdk(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="Uxxxxxxx",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
+        self.link_identity(slack_user_id=LINK_SHARED_EVENT_NO_CHANNEL_NAME["user"])
         data = self.share_discover_links_sdk()
 
         unfurls = data["unfurls"]

@@ -83,6 +83,11 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Ref forwarded to the inner scroll container div (the element the virtualizer
+   * uses as its scroll element). Useful for callers that need to reset scrollTop.
+   */
+  scrollContainerRef?: React.Ref<HTMLDivElement>;
+  /**
    * Whether the select has a search input field.
    */
   searchable?: boolean;
@@ -139,6 +144,7 @@ export function ListBox<T extends ObjectLike>({
   showDetails = true,
   onAction,
   virtualized,
+  scrollContainerRef,
   className,
   ...props
 }: ListBoxProps<T>) {
@@ -188,15 +194,15 @@ export function ListBox<T extends ObjectLike>({
   const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
   const refs = useMemo(() => {
-    const scrollContainerRef = (scrollContainer: HTMLDivElement | null) => {
+    const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
       if (hasEverOverflowed || listItems.length === 0 || !scrollContainer) {
         return;
       }
 
       setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
     };
-    return mergeRefs(scrollContainerRef, virtualizer.scrollElementRef);
-  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems]);
+    return mergeRefs(overflowTracker, virtualizer.scrollElementRef, scrollContainerRef);
+  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (
     <Fragment>
