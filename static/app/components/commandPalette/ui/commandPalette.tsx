@@ -22,7 +22,6 @@ import {Text} from '@sentry/scraps/text';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
@@ -72,7 +71,6 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 };
 
 interface CommandPaletteProps {
-  children?: React.ReactNode;
   closeModal?: () => void;
 }
 
@@ -414,19 +412,6 @@ export function CommandPalette(props: CommandPaletteProps) {
         </Flex>
       </Flex>
 
-      <CommandPaletteSlot.Outlet name="task">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="page">
-        {p => <div {...p} style={{display: 'contents'}} />}
-      </CommandPaletteSlot.Outlet>
-      <CommandPaletteSlot.Outlet name="global">
-        {p => (
-          <div {...p} style={{display: 'contents'}}>
-            {props.children}
-          </div>
-        )}
-      </CommandPaletteSlot.Outlet>
       {treeState.collection.size === 0 ? (
         isEmptyPromptQuery ? null : (
           <CommandPaletteNoResults />

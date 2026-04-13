@@ -42,6 +42,28 @@ function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   );
 }
 
+/**
+ * Renders the slot outlets that live outside CommandPalette in the real app
+ * (they are mounted in navigation/index.tsx). Tests that use
+ * <CommandPaletteSlot name="…"> must include this component so slot consumers
+ * have a registered outlet element to portal into.
+ */
+function SlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
 const onChild = jest.fn();
 
 function AllActions() {
@@ -607,6 +629,7 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="task">
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
+          <SlotOutlets />
           <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
@@ -624,6 +647,7 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="task">
             <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
           </CommandPaletteSlot>
+          <SlotOutlets />
           <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
@@ -638,6 +662,7 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
+          <SlotOutlets />
           <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
@@ -655,6 +680,7 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
           </CommandPaletteSlot>
+          <SlotOutlets />
           <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
@@ -679,6 +705,7 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
+          <SlotOutlets />
           <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
@@ -701,6 +728,7 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="task">
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
+          <SlotOutlets />
           <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
@@ -712,12 +740,10 @@ describe('CommandPalette', () => {
       expect(options[2]).toHaveAccessibleName('Global Action');
     });
 
-    it('actions passed as children to CommandPalette via global slot are not duplicated', async () => {
-      // This mirrors the real app setup in modal.tsx where GlobalCommandPaletteActions
-      // is passed as children to CommandPalette. Those actions use
-      // <CommandPaletteSlot name="global"> internally, which creates a circular portal:
-      // the consumer is rendered inside the global outlet div and then portals back to it.
-      // Registration must be idempotent so the slot→portal transition never yields duplicates.
+    it('actions registered via a slot consumer are not duplicated', async () => {
+      // GlobalCommandPaletteActions uses <CommandPaletteSlot name="global"> internally.
+      // The slot consumer portals children into the outlet element. Registration must be
+      // idempotent so the slot→portal transition never yields duplicates.
       function ActionsViaGlobalSlot() {
         return (
           <CommandPaletteSlot name="global">
@@ -729,9 +755,9 @@ describe('CommandPalette', () => {
 
       render(
         <CommandPaletteProvider>
-          <CommandPalette closeModal={jest.fn()}>
-            <ActionsViaGlobalSlot />
-          </CommandPalette>
+          <ActionsViaGlobalSlot />
+          <SlotOutlets />
+          <CommandPalette closeModal={jest.fn()} />
         </CommandPaletteProvider>
       );
 

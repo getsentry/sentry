@@ -61,19 +61,20 @@ function YourComponent() {
         />
       </CMDKAction>
 
-      {/* The command palette UI — also accepts inline actions via children */}
-      <CommandPalette>
-        <CMDKAction display={{label: 'Issues List'}}>
-          <CMDKAction
-            display={{label: 'Select all'}}
-            onAction={() => addSuccessMessage('Select all')}
-          />
-          <CMDKAction
-            display={{label: 'Deselect all'}}
-            onAction={() => addSuccessMessage('Deselect all')}
-          />
-        </CMDKAction>
-      </CommandPalette>
+      {/* Inline actions — register them directly inside the provider */}
+      <CMDKAction display={{label: 'Issues List'}}>
+        <CMDKAction
+          display={{label: 'Select all'}}
+          onAction={() => addSuccessMessage('Select all')}
+        />
+        <CMDKAction
+          display={{label: 'Deselect all'}}
+          onAction={() => addSuccessMessage('Deselect all')}
+        />
+      </CMDKAction>
+
+      {/* The command palette UI */}
+      <CommandPalette />
     </CommandPaletteProvider>
   );
 }

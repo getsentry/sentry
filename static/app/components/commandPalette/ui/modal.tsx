@@ -2,15 +2,12 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import type {Theme} from 'sentry/utils/theme';
 
 export default function CommandPaletteModal({Body, closeModal}: ModalRenderProps) {
   return (
     <Body>
-      <CommandPalette closeModal={closeModal}>
-        <GlobalCommandPaletteActions />
-      </CommandPalette>
+      <CommandPalette closeModal={closeModal} />
     </Body>
   );
 }

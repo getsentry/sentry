@@ -19,18 +19,17 @@ export function CommandPaletteDemo() {
           onAction={() => addSuccessMessage('Child action executed')}
         />
       </CMDKAction>
-      <CommandPalette>
-        <CMDKAction display={{label: 'Issues List'}}>
-          <CMDKAction
-            display={{label: 'Select all'}}
-            onAction={() => addSuccessMessage('Select all')}
-          />
-          <CMDKAction
-            display={{label: 'Deselect all'}}
-            onAction={() => addSuccessMessage('Deselect all')}
-          />
-        </CMDKAction>
-      </CommandPalette>
+      <CMDKAction display={{label: 'Issues List'}}>
+        <CMDKAction
+          display={{label: 'Select all'}}
+          onAction={() => addSuccessMessage('Select all')}
+        />
+        <CMDKAction
+          display={{label: 'Deselect all'}}
+          onAction={() => addSuccessMessage('Deselect all')}
+        />
+      </CMDKAction>
+      <CommandPalette />
     </CommandPaletteProvider>
   );
 }
