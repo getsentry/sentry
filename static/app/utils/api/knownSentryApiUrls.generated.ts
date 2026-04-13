@@ -121,6 +121,7 @@ export type KnownSentryApiUrls =
   | '/internal/rpc/$serviceName/$methodName/'
   | '/internal/scm-rpc/$methodName/'
   | '/internal/seer-rpc/$methodName/'
+  | '/internal/seer/night-shift/trigger/'
   | '/internal/warnings/'
   | '/issues/$issueId/'
   | '/issues/$issueId/activities/'
