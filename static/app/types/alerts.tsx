@@ -59,8 +59,9 @@ export const enum IssueAlertFilterType {
 interface IssueAlertFormFieldChoice {
   type: 'choice';
   choices?: Array<[key: string | number, name: string]>;
-  initial?: string;
+  initial?: string | number;
   placeholder?: string;
+  resetsForm?: boolean;
 }
 
 interface IssueAlertFormFieldString {
@@ -75,13 +76,25 @@ interface IssueAlertFormFieldNumber {
   placeholder?: number | string;
 }
 
+interface IssueAlertFormFieldMailAction {
+  type: 'mailAction';
+  choices?: Array<[key: string | number, name: string]>;
+}
+
+interface IssueAlertFormFieldAssignee {
+  type: 'assignee';
+  choices?: Array<[key: string | number, name: string]>;
+}
+
 /**
  * The fields that are used to render the form for an action or condition.
  */
-type IssueAlertRuleFormField =
+export type IssueAlertRuleFormField =
   | IssueAlertFormFieldChoice
   | IssueAlertFormFieldString
-  | IssueAlertFormFieldNumber;
+  | IssueAlertFormFieldNumber
+  | IssueAlertFormFieldMailAction
+  | IssueAlertFormFieldAssignee;
 
 /**
  * All issue alert configuration objects have these properties.

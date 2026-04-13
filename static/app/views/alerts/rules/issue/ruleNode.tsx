@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
-import merge from 'lodash/merge';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -15,9 +14,10 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
-  IssueAlertConfiguration,
   IssueAlertRuleAction,
+  IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
+  IssueAlertRuleFormField,
   TicketActionData,
 } from 'sentry/types/alerts';
 import {
@@ -34,11 +34,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 interface FieldProps {
   data: Props['data'];
   disabled: boolean;
-  fieldConfig: FormField;
+  fieldConfig: IssueAlertRuleFormField;
   index: number;
   name: string;
   onMemberTeamChange: (data: Props['data']) => void;
@@ -56,6 +57,8 @@ function NumberField({
   fieldConfig,
   onPropertyChange,
 }: FieldProps) {
+  const placeholder = fieldConfig.type === 'number' ? fieldConfig.placeholder : undefined;
+
   const value =
     (data[name] && typeof data[name] !== 'boolean') || data[name] === 0
       ? Number(data[name])
@@ -66,20 +69,24 @@ function NumberField({
     if (
       data.id === IssueAlertFilterType.ISSUE_OCCURRENCES &&
       isNaN(value) &&
-      !isNaN(Number(fieldConfig.placeholder))
+      !isNaN(Number(placeholder))
     ) {
-      onPropertyChange(index, name, `${fieldConfig.placeholder}`);
+      onPropertyChange(index, name, `${placeholder}`);
     }
     // Value omitted on purpose to avoid overwriting user changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onPropertyChange, index, name, fieldConfig.placeholder, data.id]);
+  }, [onPropertyChange, index, name, placeholder, data.id]);
+
+  if (fieldConfig.type !== 'number') {
+    return null;
+  }
 
   return (
     <InlineNumberInput
       min={0}
       name={name}
       value={value}
-      placeholder={`${fieldConfig.placeholder}`}
+      placeholder={`${placeholder}`}
       disabled={disabled}
       onChange={newVal => onPropertyChange(index, name, String(newVal))}
       aria-label={t('Value')}
@@ -142,33 +149,49 @@ function MailActionFields({
   );
 }
 
-function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
-  const fieldConfig =
-    node?.formFields && 'value' in node.formFields
-      ? (node.formFields.value as FormField)
-      : undefined;
+/**
+ * Narrows node.formFields to a Record of form fields.
+ * For ticket/sentryapp actions, formFields is a SchemaFormConfig — not a Record.
+ */
+function getFormFieldsRecord(
+  node?: IssueAlertRuleActionTemplate | null
+): Record<string, IssueAlertRuleFormField> | undefined {
+  if (!node?.formFields || 'uri' in node.formFields) {
+    return undefined;
+  }
+  return node.formFields;
+}
 
-  return fieldConfig?.choices.find(
+function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
+  const formFields = getFormFieldsRecord(node);
+  const fieldConfig = formFields?.value;
+
+  if (!fieldConfig || fieldConfig.type !== 'choice') {
+    return undefined;
+  }
+
+  return fieldConfig.choices?.find(
     ([value]: [string | number, string]) => value === data.value
   )?.[1];
 }
 
 function getChoices({
   data,
-  fieldConfig,
+  choices,
   name,
   selectedValue,
-}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name'> & {
+}: Pick<FieldProps, 'data' | 'name'> & {
+  choices: Array<[key: string | number, name: string]>;
   selectedValue?: string;
 }) {
   if (data.id === IssueAlertFilterType.ISSUE_CATEGORY && name === 'value') {
-    return fieldConfig.choices.filter(
+    return choices.filter(
       ([value, label]: [string | number, string]) =>
         VALID_ISSUE_CATEGORIES.includes(label as IssueCategory) || value === selectedValue
     );
   }
 
-  return fieldConfig.choices;
+  return choices;
 }
 
 function ChoiceField({
@@ -180,13 +203,17 @@ function ChoiceField({
   name,
   fieldConfig,
 }: FieldProps) {
+  if (fieldConfig.type !== 'choice') {
+    return null;
+  }
+
+  const choices = fieldConfig.choices ?? [];
+
   // Select the first item on this list
   // If it's not yet defined, call onPropertyChange to make sure the value is set on state
   let initialVal: string | undefined;
-  if (data[name] === undefined && !!fieldConfig.choices.length) {
-    initialVal = fieldConfig.initial
-      ? `${fieldConfig.initial}`
-      : `${fieldConfig.choices[0][0]}`;
+  if (data[name] === undefined && choices.length > 0) {
+    initialVal = fieldConfig.initial ? `${fieldConfig.initial}` : `${choices[0]![0]}`;
   } else {
     initialVal = `${data[name]}`;
   }
@@ -196,7 +223,7 @@ function ChoiceField({
   // when the integration configuration gets saved, it gets saved and returned as a string
   const options = getChoices({
     data,
-    fieldConfig,
+    choices,
     name,
     selectedValue: initialVal,
   }).map(([value, label]: [string | number, string]) => ({
@@ -237,6 +264,10 @@ function TextField({
   name,
   fieldConfig,
 }: FieldProps) {
+  if (fieldConfig.type !== 'string') {
+    return null;
+  }
+
   const value =
     data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
 
@@ -254,13 +285,6 @@ function TextField({
   );
 }
 
-type FormField = {
-  // The rest is configuration for the form field
-  [key: string]: any;
-  // Type of form fields
-  type: string;
-};
-
 interface Props {
   data: IssueAlertRuleAction | IssueAlertRuleCondition;
   disabled: boolean;
@@ -272,7 +296,7 @@ interface Props {
   project: Project;
   incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
-  node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
+  node?: IssueAlertRuleActionTemplate | null;
 }
 
 export function RuleNode({
@@ -300,7 +324,9 @@ export function RuleNode({
     [index, onPropertyChange]
   );
 
-  function getField(name: string, fieldConfig: FormField) {
+  const formFields = getFormFieldsRecord(node);
+
+  function getField(name: string, fieldConfig: IssueAlertRuleFormField) {
     const fieldProps: FieldProps = {
       index,
       name,
@@ -315,13 +341,11 @@ export function RuleNode({
     };
 
     if (name === 'environment') {
-      return (
-        <ChoiceField
-          {...merge(fieldProps, {
-            fieldConfig: {choices: project.environments.map(env => [env, env])},
-          })}
-        />
-      );
+      const envFieldConfig: IssueAlertRuleFormField = {
+        type: 'choice',
+        choices: project.environments.map(env => [env, env]),
+      };
+      return <ChoiceField {...fieldProps} fieldConfig={envFieldConfig} />;
     }
 
     switch (fieldConfig.type) {
@@ -374,10 +398,7 @@ export function RuleNode({
       }
       return (
         <Separator key={key}>
-          {node.formFields?.hasOwnProperty(key)
-            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              getField(key, node.formFields[key])
-            : part}
+          {formFields?.[key] ? getField(key, formFields[key]) : part}
         </Separator>
       );
     });
@@ -397,7 +418,7 @@ export function RuleNode({
    * Displays a button to open a custom modal for sentry apps or ticket integrations
    */
   function renderIntegrationButton() {
-    if (!node || !('actionType' in node)) {
+    if (!node?.actionType) {
       return null;
     }
 
@@ -410,8 +431,8 @@ export function RuleNode({
             openModal(deps => (
               <TicketRuleModal
                 {...deps}
-                link={node.link}
-                ticketType={node.ticketType}
+                link={node.link ?? null}
+                ticketType={node.ticketType ?? t('an external issue')}
                 instance={data as unknown as TicketActionData}
                 onSubmitAction={updateParentFromTicketRule}
               />
@@ -423,7 +444,12 @@ export function RuleNode({
       );
     }
 
-    if (node.actionType === 'sentryapp' && node.sentryAppInstallationUuid) {
+    if (
+      node.actionType === 'sentryapp' &&
+      node.sentryAppInstallationUuid &&
+      node.formFields &&
+      'uri' in node.formFields
+    ) {
       return (
         <Button
           size="sm"
@@ -434,8 +460,8 @@ export function RuleNode({
               deps => (
                 <SentryAppRuleModal
                   {...deps}
-                  sentryAppInstallationUuid={node.sentryAppInstallationUuid}
-                  config={node.formFields}
+                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
+                  config={node.formFields as SchemaFormConfig}
                   appName={node.prompt ?? node.label}
                   onSubmitSuccess={updateParentFromSentryAppRule}
                   resetValues={data}
