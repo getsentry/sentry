@@ -551,36 +551,6 @@ describe('AutofixSection', () => {
     );
   });
 
-  it('shows project setup UI when autofix is not enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-        seerReposLinked: true,
-        autofixEnabled: false,
-      }),
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {
-      name: 'Set Up Seer for This Project',
-    });
-    expect(link).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
-    );
-  });
-
   it('shows empty state when there are no artifacts', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
