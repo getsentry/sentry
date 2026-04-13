@@ -67,6 +67,11 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - All `cluster-nochunk` and `cluster-chunk1` parametrized variants (via `_SKIP_CLUSTER` marker) — the Redis Cluster (ports 7000-7005) is shared across all xdist workers; stale keys from concurrent tests cause `assert_clean` failures
 
+## tests/sentry/release_health/test_tasks.py (class TestAdoptReleasesPath only)
+
+- `TestAdoptReleasesPath::test_simple` — ClickHouse session data from prior `TestMetricReleaseMonitor` tests is not rolled back between tests; accumulated Snuba state causes the adoption task to find no adopted releases
+- `TestAdoptReleasesPath::test_monitor_release_adoption` — same Snuba state accumulation; `monitor_release_adoption()` is sensitive to prior sessions in ClickHouse
+
 ## tests/sentry/tasks/test_reprocessing2.py
 
 - `test_basic` (parametrized, module-level) — Snuba event data from prior test contaminates query results, leaving `old_events` empty; 'not enough values to unpack' on group_id
@@ -91,11 +96,11 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 Each group of skipped tests shares a root cause pattern:
 
-| Pattern | Fix approach |
-|---|---|
-| Redis key pollution | Scope keys per-test or flush in setUp/tearDown |
-| Snuba/ClickHouse shared data | Use `optimize_snuba_table()` + per-test dataset scoping |
-| Outbox/tombstone rows | Ensure `reset_watermarks()` also clears pending outbox entries |
-| Kafka message ordering | Make tests assert on own producer's message IDs only |
-| Live server socket leaks | Join/stop live server thread before yielding |
-| Redis Cluster shared state | Per-worker cluster isolation (different ports per worker) |
+| Pattern                      | Fix approach                                                   |
+| ---------------------------- | -------------------------------------------------------------- |
+| Redis key pollution          | Scope keys per-test or flush in setUp/tearDown                 |
+| Snuba/ClickHouse shared data | Use `optimize_snuba_table()` + per-test dataset scoping        |
+| Outbox/tombstone rows        | Ensure `reset_watermarks()` also clears pending outbox entries |
+| Kafka message ordering       | Make tests assert on own producer's message IDs only           |
+| Live server socket leaks     | Join/stop live server thread before yielding                   |
+| Redis Cluster shared state   | Per-worker cluster isolation (different ports per worker)      |
