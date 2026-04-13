@@ -87,6 +87,13 @@ function ChangeCounts({
       </Tooltip>
     );
   }
+  if (added === 0 && removed === 0 && changed === 0) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('No changes')}
+      </Text>
+    );
+  }
   const parts: string[] = [];
   if (added > 0) {
     parts.push(t('%s added', added));
