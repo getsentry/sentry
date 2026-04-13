@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useTransition} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
@@ -66,6 +66,7 @@ export function EquationBuilder({
   handleExpressionChange: (expression: Expression) => void;
   referenceMap?: Record<string, string>;
 }) {
+  const [_, startTransition] = useTransition();
   const prevReferenceMap = usePrevious(referenceMap);
   const references = useMemo(
     () => new Set(Object.keys(referenceMap ?? {})),
@@ -75,7 +76,9 @@ export function EquationBuilder({
 
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
-      handleExpressionChange(resolveExpression(newExpression, referenceMap));
+      startTransition(() => {
+        handleExpressionChange(resolveExpression(newExpression, referenceMap));
+      });
     },
     [handleExpressionChange, referenceMap]
   );
