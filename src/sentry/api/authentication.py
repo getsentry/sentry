@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -811,10 +812,8 @@ class ViewerContextAuthentication(BaseAuthentication):
 
         # Parse viewer context and resolve user
         try:
-            import orjson
-
             data = orjson.loads(context_bytes)
-        except (ValueError, TypeError):
+        except (orjson.JSONDecodeError, ValueError, TypeError):
             return None
 
         user_id = data.get("user_id")
