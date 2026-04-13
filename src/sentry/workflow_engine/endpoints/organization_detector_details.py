@@ -103,10 +103,13 @@ def get_detector_validator(
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
         raise ValidationError({"type": [error_message]})
 
-    if type.detector_settings is None or type.detector_settings.validator is None:
+    from sentry.workflow_engine.types import get_detector_settings
+
+    ds = get_detector_settings(type)
+    if ds is None or ds.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    return type.detector_settings.validator(
+    return ds.validator(
         instance=instance,
         context={
             "project": project,

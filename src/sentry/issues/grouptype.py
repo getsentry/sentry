@@ -19,7 +19,7 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, get_detector_settings
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -184,10 +184,10 @@ class GroupTypeRegistry:
         filtered_type_conditions = Q()
 
         for group_type in self.all():
-            if group_type.detector_settings and group_type.detector_settings.filter is not None:
-                filter = group_type.detector_settings.filter
+            ds = get_detector_settings(group_type)
+            if ds and ds.filter is not None:
                 types_with_filters.append(group_type.slug)
-                filtered_type_conditions |= Q(type=group_type.slug) & filter
+                filtered_type_conditions |= Q(type=group_type.slug) & ds.filter
 
         # Include all types that don't have filters (type NOT IN types_with_filters)
         # OR match the specific filter conditions for types that do have filters

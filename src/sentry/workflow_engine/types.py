@@ -16,6 +16,7 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstream.base import GroupState
+    from sentry.issues.grouptype import GroupType
     from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.issues.status_change_message import StatusChangeMessage
     from sentry.models.activity import Activity
@@ -410,3 +411,12 @@ class DetectorSettings:
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None
+
+
+def get_detector_settings(group_type: type[GroupType]) -> DetectorSettings | None:
+    """
+    Look up DetectorSettings for a GroupType. Use this instead of accessing
+    group_type.detector_settings directly so that callers don't need to
+    depend on the implementation types referenced by DetectorSettings.
+    """
+    return group_type.detector_settings
