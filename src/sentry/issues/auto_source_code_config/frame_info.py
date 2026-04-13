@@ -65,13 +65,8 @@ class FrameInfo(ABC):
         """Process the frame and set the necessary attributes."""
         raise NotImplementedError("Subclasses must implement process_frame")
 
-    def _find_source_roots_override(
-        self, source_path: str, repo_files: Sequence[str] | None
-    ) -> tuple[str, str] | None:
-        return self._source_roots_resolver(source_path, repo_files)
-
     def has_source_roots_override(self, source_path: str, repo_files: Sequence[str] | None) -> bool:
-        return self._find_source_roots_override(source_path, repo_files) is not None
+        return self._source_roots_resolver(source_path, repo_files) is not None
 
     def resolve_source_roots(
         self,
@@ -80,7 +75,7 @@ class FrameInfo(ABC):
         stack_root_prefix: str = "",
         repo_files: Sequence[str] | None = None,
     ) -> tuple[str, str]:
-        if source_roots_override := self._find_source_roots_override(source_path, repo_files):
+        if source_roots_override := self._source_roots_resolver(source_path, repo_files):
             return source_roots_override
 
         return (
