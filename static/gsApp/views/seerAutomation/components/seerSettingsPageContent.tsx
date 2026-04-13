@@ -24,7 +24,7 @@ export function SeerSettingsPageContent({children}: Props) {
   const showNoActiveSeerSubscriptionBanner =
     !hasSeatBasedSeer &&
     (hasLegacySeer || hasCodeReviewBeta) &&
-    !subscription?.canSelfServe;
+    subscription?.canSelfServe;
 
   return (
     <Stack gap="lg">
