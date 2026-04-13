@@ -38,12 +38,8 @@ interface BackendPluginField {
   choices?: Array<[string, string]>;
   default?: unknown;
   defaultValue?: unknown;
-  hasSavedValue?: boolean;
   help?: null | string;
-  isDeprecated?: boolean;
-  isHidden?: boolean;
   placeholder?: null | string;
-  prefix?: string;
   readonly?: boolean;
   required?: boolean;
   value?: unknown;
