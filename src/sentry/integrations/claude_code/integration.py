@@ -182,15 +182,20 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 raise IntegrationConfigurationError(
                     "Invalid Anthropic API key. Please check your credentials."
                 )
+        except IntegrationConfigurationError:
+            raise
+        except ValueError as e:
+            # e.g. valid key but GET /v1/models lists no model we support (getsentry client).
+            self.get_logger().warning(
+                "claude_code.build_integration.no_supported_model",
+                extra={"error": str(e)},
+            )
+            raise IntegrationConfigurationError(str(e)) from e
         except Exception as e:
-            if isinstance(e, IntegrationConfigurationError):
-                raise
             self.get_logger().exception(
                 "claude_code.build_integration.validation_failed",
             )
-            raise IntegrationConfigurationError(
-                "Unable to validate Anthropic API key. Please check your credentials."
-            ) from e
+            raise IntegrationConfigurationError("Unable to validate Anthropic API key.") from e
 
         environment_id = None
         workspace_name = "default"

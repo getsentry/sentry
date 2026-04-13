@@ -113,17 +113,11 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert result["metadata"]["model"] is None
 
     def test_build_integration_no_supported_model_raises(self) -> None:
-        mock_cls, _ = _mock_client_class(
-            validate_side_effect=ValueError(
-                "This API key does not have access to any supported Claude models"
-            )
-        )
+        msg = "This API key does not have access to any supported Claude models"
+        mock_cls, _ = _mock_client_class(validate_side_effect=ValueError(msg))
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-            with pytest.raises(
-                IntegrationConfigurationError,
-                match="Unable to validate Anthropic API key",
-            ):
+            with pytest.raises(IntegrationConfigurationError, match=msg):
                 self.provider().build_integration({"api_key": "sk-ant-key"})
 
     def test_build_integration_creates_unique_external_ids(self) -> None:
