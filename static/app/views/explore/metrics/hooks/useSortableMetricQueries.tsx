@@ -72,7 +72,11 @@ export function useSortableMetricQueries() {
 
         if (oldIndex < 0 || newIndex < 0) return;
 
-        reorderMetricQueries(arrayMove([...metricQueries], oldIndex, newIndex));
+        reorderMetricQueries(
+          arrayMove([...metricQueries], oldIndex, newIndex),
+          oldIndex,
+          newIndex
+        );
       }
     },
     [sortableItems, metricQueries, reorderMetricQueries]
