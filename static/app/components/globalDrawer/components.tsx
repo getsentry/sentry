@@ -174,6 +174,7 @@ const Header = styled('header')<{
   z-index: ${p => p.theme.zIndex.drawer + 1};
   background: ${p => p.theme.tokens.background.primary};
   justify-content: flex-start;
+  align-items: center;
   display: flex;
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? p.theme.space.md : 0)};
