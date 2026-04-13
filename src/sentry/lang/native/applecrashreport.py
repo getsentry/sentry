@@ -221,11 +221,13 @@ class AppleCrashReport:
 
         for exception_info in exceptions:
             thread_id = exception_info.get("thread_id")
-            # Enrich exception with thread name if available
+            # Enrich exception with thread data if available
             if thread_id is not None and thread_id in threads_by_id:
                 matching_thread = threads_by_id[thread_id]
                 if matching_thread.get("name") and not exception_info.get("name"):
                     exception_info["name"] = matching_thread["name"]
+                if matching_thread.get("crashed") and not exception_info.get("crashed"):
+                    exception_info["crashed"] = matching_thread["crashed"]
 
             thread_string = self.get_thread_apple_string(exception_info)
             if thread_string is not None:
