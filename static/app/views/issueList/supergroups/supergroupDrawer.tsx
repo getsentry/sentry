@@ -535,15 +535,6 @@ const PanelContainer = styled(Panel)`
   container-type: inline-size;
 `;
 
-const IssueRow = styled('div')`
-  position: relative;
-
-  /* Hide the unread indicator — the filter icon replaces it in this context */
-  [data-test-id='unread-issue-indicator'] {
-    display: none;
-  }
-`;
-
 const MatchedIndicator = styled('div')`
   position: absolute;
   top: 14px;
@@ -551,6 +542,18 @@ const MatchedIndicator = styled('div')`
   z-index: 2;
   color: ${p => p.theme.tokens.graphics.accent.vibrant};
   pointer-events: none;
+`;
+
+const IssueRow = styled('div')`
+  position: relative;
+
+  /* On hover or when checkbox is checked, hide the filter icon so the checkbox shows through */
+  &:hover,
+  &:has(input:checked) {
+    ${MatchedIndicator} {
+      display: none;
+    }
+  }
 `;
 
 const StyledMarkedText = styled(MarkedText)`
