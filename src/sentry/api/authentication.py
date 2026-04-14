@@ -774,3 +774,38 @@ class HmacSignatureAuthentication(StandardAuthentication):
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)
+
+
+class ViewerContextAuthentication(BaseAuthentication):
+    """Authenticate requests using X-Viewer-Context headers.
+
+    Accepts both JWT (HS256) and legacy JSON + HMAC signature formats.
+    Used by trusted services (e.g., Seer) that echo back the viewer context
+    originally signed by Sentry.
+
+    The user is resolved via user_service.get_user() (RPC-backed, cached).
+    Sets request.auth = None so that determine_access derives permissions
+    from the user's OrganizationMember role — identical to session auth.
+    """
+
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
+        from sentry.viewer_context import viewer_context_from_header
+
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        if not header:
+            return None
+
+        signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
+        vc = viewer_context_from_header(header, signature)
+        if vc is None or vc.user_id is None:
+            return None
+
+        user = user_service.get_user(user_id=vc.user_id)
+        if user is None or not user.is_active:
+            return None
+
+        sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+
+        # Return None for auth to match session behavior —
+        # determine_access will derive scopes from org membership role.
+        return (user, None)

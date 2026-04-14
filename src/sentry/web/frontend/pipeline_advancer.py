@@ -106,7 +106,10 @@ class PipelineAdvancerView(BaseView):
         if (
             provider_id == IntegrationProviderSlug.GITHUB.value
             and request.GET.get("setup_action") == "install"
-            and pipeline is None
+            # There should be no pipeline. If there IS an active API pipeline
+            # we also redirect, since the trampoline would render with no
+            # opener window and leave the user stuck.
+            and (pipeline is None or pipeline.is_api_mode)
         ):
             installation_id = request.GET.get("installation_id")
             return self.redirect(
