@@ -55,14 +55,6 @@ def is_new_model_rolled_out(project: Project) -> bool:
     return get_grouping_model_version(project) != SEER_GROUPING_STABLE_VERSION
 
 
-def get_new_model_version() -> GroupingVersion | None:
-    """
-    Get the new model version being rolled out, if any.
-    Returns None if no rollout is in progress.
-    """
-    return SEER_GROUPING_NEW_VERSION
-
-
 def should_send_to_seer_for_training(
     project: Project,
     grouphash_seer_latest_training_model: str | None,
