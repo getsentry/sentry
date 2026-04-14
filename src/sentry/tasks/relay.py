@@ -312,7 +312,8 @@ def schedule_invalidate_project_config(
     if (
         trigger
         in [
-            "projectoption.post_deleteprojectoption.post_save",
+            "projectoption.post_delete",
+            "projectoption.post_save",
             "projectoption.set_value",
             "projectoption.unset_value",
         ]
