@@ -37,7 +37,9 @@ type ExploreChartData = {
   type?: DisplayType;
 };
 
-export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartType>> => {
+export const makeTimeseriesCharts = (
+  theme: Theme
+): Array<RenderDescriptor<ChartType>> => {
   const exploreXAxis = XAxis({
     theme,
     splitNumber: 3,
@@ -78,7 +80,7 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
   const exploreCharts: Array<RenderDescriptor<ChartType>> = [];
 
   exploreCharts.push({
-    key: ChartType.SLACK_EXPLORE_LINE,
+    key: ChartType.SLACK_TIMESERIES,
     getOption: (data: ExploreChartData) => {
       const {timeSeries, type: displayType = DisplayType.LINE} = data;
 
