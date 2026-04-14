@@ -42,7 +42,7 @@ export function SortableMetricPanel({
       dragListeners={canDrag ? listeners : undefined}
       isAnyDragging={isAnyDragging}
       isDragging={isDragging}
-      {...attributes}
+      dragAttributes={attributes}
     />
   );
 }

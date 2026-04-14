@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -31,6 +32,7 @@ import {
 interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
+  dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   referenceMap?: Record<string, string>;
 }
@@ -40,6 +42,7 @@ export function MetricToolbar({
   queryLabel,
   referenceMap,
   dragListeners,
+  dragAttributes,
 }: MetricToolbarProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
@@ -85,7 +88,9 @@ export function MetricToolbar({
         data-test-id="metric-toolbar"
       >
         <Grid align="center" gap="md" columns={columns}>
-          {dragListeners ? <DragReorderButton iconSize="sm" {...dragListeners} /> : null}
+          {dragListeners ? (
+            <DragReorderButton iconSize="sm" {...dragListeners} {...dragAttributes} />
+          ) : null}
           <VisualizeLabel
             label={queryLabel}
             visualize={visualize}
