@@ -9,7 +9,7 @@ interface SortableMetricPanelProps {
   isAnyDragging: boolean;
   queryIndex: number;
   queryLabel: string;
-  sortableId: number;
+  sortableId: string;
   traceMetric: TraceMetric;
   references?: Set<string>;
 }

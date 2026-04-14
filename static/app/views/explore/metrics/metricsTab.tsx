@@ -242,10 +242,10 @@ function MetricsTabBodySection() {
                 items={sortableItems}
                 strategy={verticalListSortingStrategy}
               >
-                {sortableItems.map(({id, uniqueId: uid, metricQuery}, index) => {
+                {sortableItems.map(({id, metricQuery}, index) => {
                   return (
                     <MetricsQueryParamsProvider
-                      key={uid}
+                      key={id}
                       queryParams={metricQuery.queryParams}
                       setQueryParams={metricQuery.setQueryParams}
                       traceMetric={metricQuery.metric}

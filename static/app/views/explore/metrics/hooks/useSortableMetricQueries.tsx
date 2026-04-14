@@ -1,10 +1,8 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import type {DragEndEvent} from '@dnd-kit/core';
 import {KeyboardSensor, PointerSensor, useSensor, useSensors} from '@dnd-kit/core';
 import {arrayMove, sortableKeyboardCoordinates} from '@dnd-kit/sortable';
 
-import {uniqueId} from 'sentry/utils/guid';
-import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMultiMetricsQueryParams,
   useReorderMetricQueries,
@@ -15,40 +13,11 @@ export function useSortableMetricQueries() {
   const reorderMetricQueries = useReorderMetricQueries();
   const [isDragging, setIsDragging] = useState(false);
 
-  // Map from encoded query identity -> stable unique ID. Uses occurrence
-  // count (not array index) to disambiguate duplicate queries, so keys
-  // remain stable across reorders.
-  const idMapRef = useRef<Map<string, string>>(new Map());
   const sortableItems = useMemo(() => {
-    const activeKeys = new Set<string>();
-    const occurrences = new Map<string, number>();
-
-    const items = metricQueries.map((metricQuery, i) => {
-      const encoded = encodeMetricQueryParams(metricQuery);
-
-      const occurrence = occurrences.get(encoded) ?? 0;
-      occurrences.set(encoded, occurrence + 1);
-
-      const key = `${encoded}#${occurrence}`;
-      activeKeys.add(key);
-
-      let uid = idMapRef.current.get(key);
-      if (!uid) {
-        uid = uniqueId();
-        idMapRef.current.set(key, uid);
-      }
-
-      return {id: i + 1, uniqueId: uid, metricQuery};
-    });
-
-    // Prune stale entries for queries that no longer exist.
-    for (const key of idMapRef.current.keys()) {
-      if (!activeKeys.has(key)) {
-        idMapRef.current.delete(key);
-      }
-    }
-
-    return items;
+    return metricQueries.map((metricQuery, index) => ({
+      id: metricQuery.label ?? String(index),
+      metricQuery,
+    }));
   }, [metricQueries]);
 
   const sensors = useSensors(
