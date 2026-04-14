@@ -31,12 +31,20 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         if rpc_user is None:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
+        project_id: int | None = None
+        project_id_raw = request.GET.get("projectId")
+        if project_id_raw:
+            try:
+                project_id = int(project_id_raw)
+            except (TypeError, ValueError):
+                return Response({"detail": "projectId must be an integer"}, status=400)
+
         result = sentry_app_cell_service.get_select_options(
             organization_id=installation.organization_id,
             installation=installation,
             uri=request.GET.get("uri"),
             user=rpc_user,
-            project_id=int(request.GET["projectId"]) if request.GET.get("projectId") else None,
+            project_id=project_id,
             query=request.GET.get("query"),
             dependent_data=request.GET.get("dependentData"),
         )

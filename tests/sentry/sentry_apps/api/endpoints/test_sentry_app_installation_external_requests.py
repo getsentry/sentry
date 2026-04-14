@@ -122,3 +122,10 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
 
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to access this project."
+
+    def test_invalid_project_id_returns_400(self) -> None:
+        self.login_as(user=self.user)
+        url = self.url + "?projectId=not-an-int&uri=/get-projects&query=proj"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert response.data["detail"] == "projectId must be an integer"
