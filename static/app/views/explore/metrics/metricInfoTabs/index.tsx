@@ -19,6 +19,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 interface MetricInfoTabsProps {
   orientation: TableOrientation;
@@ -52,7 +53,24 @@ export function MetricInfoTabs({
     >
       {orientation === 'right' || visualize.visible ? (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
-          <MetricInfoTabList orientation={orientation} contentsHidden={contentsHidden} />
+          <TabListWrapper orientation={orientation}>
+            <TabList variant="floating">
+              <TabList.Item
+                key={Mode.SAMPLES}
+                disabled={contentsHidden || isVisualizeEquation(visualize)}
+                tooltip={{
+                  title: isVisualizeEquation(visualize)
+                    ? t('Samples are not available for equations')
+                    : undefined,
+                }}
+              >
+                {t('Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
+                {t('Aggregates')}
+              </TabList.Item>
+            </TabList>
+          </TabListWrapper>
           {additionalActions}
         </Flex>
       ) : null}
@@ -75,26 +93,5 @@ export function MetricInfoTabs({
         </BodyContainer>
       ) : null}
     </TabStateProvider>
-  );
-}
-
-function MetricInfoTabList({
-  orientation,
-  contentsHidden,
-}: {
-  orientation: TableOrientation;
-  contentsHidden?: boolean;
-}) {
-  return (
-    <TabListWrapper orientation={orientation}>
-      <TabList variant="floating">
-        <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
-          {t('Samples')}
-        </TabList.Item>
-        <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-          {t('Aggregates')}
-        </TabList.Item>
-      </TabList>
-    </TabListWrapper>
   );
 }
