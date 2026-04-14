@@ -13,7 +13,7 @@ export default function SentryConfigurationPage() {
   const organization = useOrganization();
 
   return (
-    <Feature features={CONFIG.featureFlag!} renderDisabled>
+    <Feature features={CONFIG.featureFlag ?? []} renderDisabled>
       <IssueListContainer title={CONFIG.label}>
         <PageFiltersContainer>
           <NoProjectMessage organization={organization}>
