@@ -29,6 +29,9 @@ type TraceItemAttributeKeyOptions = Pick<
 };
 
 const QUERY_KEY = 'use-get-trace-item-attribute-keys';
+function normalizeSubstringMatch(search?: string) {
+  return search || undefined;
+}
 
 export function makeTraceItemAttributeKeysQueryOptions({
   traceItemType,
@@ -45,7 +48,7 @@ export function makeTraceItemAttributeKeysQueryOptions({
   query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
-  const substringMatch = search || undefined;
+  const substringMatch = normalizeSubstringMatch(search);
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
