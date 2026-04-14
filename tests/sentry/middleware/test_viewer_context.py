@@ -331,7 +331,7 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor_type == ActorType.USER
 
     @override_options({"viewer-context.enabled": True})
-    def test_raw_json_header_falls_back_to_request_user(self):
+    def test_raw_json_without_signature_falls_back(self):
         captured: list = []
 
         def get_response(request):
@@ -353,3 +353,64 @@ class ViewerContextMiddlewareTest(TestCase):
         ctx = captured[0]
         assert ctx.user_id == self.user.id
         assert ctx.actor_type == ActorType.USER
+
+    @override_options({"viewer-context.enabled": True})
+    @override_settings(SEER_API_SHARED_SECRET="test-secret")
+    def test_legacy_hmac_header_sets_viewer_context(self):
+        import hashlib
+        import hmac
+
+        import orjson
+
+        context_data = {"actor_type": "integration", "organization_id": 42}
+        context_bytes = orjson.dumps(context_data)
+        signature = hmac.new(b"test-secret", context_bytes, hashlib.sha256).hexdigest()
+
+        captured: list = []
+
+        def get_response(request):
+            captured.append(get_viewer_context())
+            return MagicMock(status_code=200)
+
+        middleware = ViewerContextMiddleware(get_response)
+
+        request = self.factory.get(
+            "/",
+            HTTP_X_VIEWER_CONTEXT=context_bytes.decode("utf-8"),
+            HTTP_X_VIEWER_CONTEXT_SIGNATURE=signature,
+        )
+        request.user = AnonymousUser()
+        request.auth = None
+
+        middleware(request)
+
+        assert len(captured) == 1
+        ctx = captured[0]
+        assert ctx.organization_id == 42
+        assert ctx.actor_type == ActorType.INTEGRATION
+
+    @override_options({"viewer-context.enabled": True})
+    @override_settings(SEER_API_SHARED_SECRET="test-secret")
+    def test_legacy_hmac_bad_signature_ignored(self):
+        captured: list = []
+
+        def get_response(request):
+            captured.append(get_viewer_context())
+            return MagicMock(status_code=200)
+
+        middleware = ViewerContextMiddleware(get_response)
+
+        request = self.factory.get(
+            "/",
+            HTTP_X_VIEWER_CONTEXT='{"actor_type": "integration", "organization_id": 42}',
+            HTTP_X_VIEWER_CONTEXT_SIGNATURE="bad-signature",
+        )
+        request.user = AnonymousUser()
+        request.auth = None
+
+        middleware(request)
+
+        assert len(captured) == 1
+        ctx = captured[0]
+        assert ctx.user_id is None
+        assert ctx.organization_id is None

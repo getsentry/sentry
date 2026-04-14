@@ -24,8 +24,10 @@ def ViewerContextMiddleware(
     """Set :class:`ViewerContext` for every request.
 
     Placed after ``AuthenticationMiddleware``. Authenticated user always
-    takes precedence; ``X-Viewer-Context`` JWT is only used for
-    unauthenticated service-to-service calls (e.g. Seer → Sentry).
+    takes precedence; ``X-Viewer-Context`` is only used when there is
+    no authenticated user (service-to-service calls, e.g. Seer → Sentry).
+
+    Accepts both JWT and legacy JSON + HMAC signature formats.
 
     Gated by ``viewer-context.enabled`` (FLAG_NOSTORE).
     """
@@ -74,7 +76,8 @@ def _viewer_context_from_jwt_header(request: HttpRequest) -> ViewerContext | Non
     header_value = request.META.get("HTTP_X_VIEWER_CONTEXT")
     if not header_value:
         return None
-    return viewer_context_from_header(header_value)
+    signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
+    return viewer_context_from_header(header_value, signature)
 
 
 def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
