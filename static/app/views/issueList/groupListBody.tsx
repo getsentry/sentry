@@ -1,11 +1,13 @@
-import {useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {SupergroupChildList} from 'sentry/components/stream/supergroups/supergroupChildList';
 import {SupergroupRow} from 'sentry/components/stream/supergroups/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
@@ -13,7 +15,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -182,10 +183,25 @@ function GroupList({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const [collapsedSupergroupIds, setCollapsedSupergroupIds] = useState<Set<number>>(
+    new Set()
+  );
   const topIssue = groupIds[0];
   const selectDisabled = useMedia(
     `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
+
+  const handleToggleExpand = useCallback((supergroupId: number) => {
+    setCollapsedSupergroupIds(prev => {
+      const next = new Set(prev);
+      if (next.has(supergroupId)) {
+        next.delete(supergroupId);
+      } else {
+        next.add(supergroupId);
+      }
+      return next;
+    });
+  }, []);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   const renderItems = useMemo(
@@ -228,20 +244,32 @@ function GroupList({
         }
 
         const {supergroup, matchingIds} = item;
-        const memberGroups = matchingIds
-          .map(id => GroupStore.get(id) as Group | undefined)
-          .filter((g): g is Group => g !== undefined);
-        const stats = aggregateSupergroupStats(memberGroups, groupStatsPeriod);
+        const expanded = !collapsedSupergroupIds.has(supergroup.id);
 
         return (
-          <SupergroupRow
-            key={`sg-${supergroup.id}`}
-            supergroup={supergroup}
-            aggregatedStats={stats}
-            memberList={memberList}
-          />
+          <Fragment key={`sg-${supergroup.id}`}>
+            <SupergroupRow
+              supergroup={supergroup}
+              expanded={expanded}
+              onToggle={() => handleToggleExpand(supergroup.id)}
+            />
+            {expanded && (
+              <ExpandedArea>
+                <SupergroupChildList
+                  supergroup={supergroup}
+                  memberList={memberList}
+                  query={query}
+                  knownMatchIds={matchingIds}
+                />
+              </ExpandedArea>
+            )}
+          </Fragment>
         );
       })}
     </PanelBody>
   );
 }
+
+const ExpandedArea = styled('div')`
+  background: ${p => p.theme.tokens.background.secondary};
+`;

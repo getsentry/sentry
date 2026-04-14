@@ -1,65 +1,26 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
-import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
-import {Count} from 'sentry/components/count';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {Placeholder} from 'sentry/components/placeholder';
-import {TimeSince} from 'sentry/components/timeSince';
-import {IconStack} from 'sentry/icons';
+import {IconChevron, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
-import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
-import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface SupergroupRowProps {
+  expanded: boolean;
+  onToggle: () => void;
   supergroup: SupergroupDetail;
-  aggregatedStats?: AggregatedSupergroupStats | null;
-  memberList?: IndexedMembersByProject;
 }
 
-export function SupergroupRow({
-  supergroup,
-  aggregatedStats,
-  memberList,
-}: SupergroupRowProps) {
-  const {openDrawer, isDrawerOpen} = useDrawer();
-  const [isActive, setIsActive] = useState(false);
-  const handleClick = () => {
-    setIsActive(true);
-    openDrawer(
-      () => (
-        <SupergroupDetailDrawer
-          supergroup={supergroup}
-          memberList={memberList}
-          filterWithCurrentSearch
-        />
-      ),
-      {
-        ariaLabel: t('Supergroup details'),
-        drawerKey: 'supergroup-drawer',
-        shouldCloseOnInteractOutside: el =>
-          !document.getElementById('modal-portal')?.contains(el) &&
-          !el.closest('[data-overlay]'),
-        onClose: () => setIsActive(false),
-      }
-    );
-  };
-
-  const highlighted = isActive && isDrawerOpen;
-
+export function SupergroupRow({supergroup, expanded, onToggle}: SupergroupRowProps) {
   return (
-    <Wrapper onClick={handleClick} highlighted={highlighted}>
+    <Wrapper onClick={onToggle}>
       <InteractionStateLayer />
       <IconArea>
         <AccentIcon size="md" />
+        <ExpandChevron direction={expanded ? 'down' : 'right'} size="sm" />
       </IconArea>
       <Summary>
         <Text size="md" bold ellipsis>
@@ -80,89 +41,15 @@ export function SupergroupRow({
           </Text>
         </MetaRow>
       </Summary>
-
-      <LastSeenColumn>
-        {aggregatedStats?.lastSeen ? (
-          <TimeSince
-            date={aggregatedStats.lastSeen}
-            suffix={t('ago')}
-            unitStyle="short"
-          />
-        ) : (
-          <Placeholder height="18px" width="70px" />
-        )}
-      </LastSeenColumn>
-
-      <FirstSeenColumn>
-        {aggregatedStats?.firstSeen ? (
-          <TimeSince date={aggregatedStats.firstSeen} unitStyle="short" suffix="" />
-        ) : (
-          <Placeholder height="18px" width="30px" />
-        )}
-      </FirstSeenColumn>
-
-      <ChartColumn>
-        {aggregatedStats?.mergedStats && aggregatedStats.mergedStats.length > 0 ? (
-          <GroupStatusChart
-            hideZeros
-            stats={aggregatedStats.mergedFilteredStats ?? aggregatedStats.mergedStats}
-            secondaryStats={
-              aggregatedStats.mergedFilteredStats
-                ? aggregatedStats.mergedStats
-                : undefined
-            }
-            showSecondaryPoints={aggregatedStats.mergedFilteredStats !== null}
-            showMarkLine
-          />
-        ) : (
-          <Placeholder height="36px" />
-        )}
-      </ChartColumn>
-
-      <EventsColumn>
-        {aggregatedStats ? (
-          <Stack position="relative">
-            <PrimaryCount
-              value={aggregatedStats.filteredEventCount ?? aggregatedStats.eventCount}
-            />
-            {aggregatedStats.filteredEventCount !== null && (
-              <SecondaryCount value={aggregatedStats.eventCount} />
-            )}
-          </Stack>
-        ) : (
-          <Placeholder height="18px" width="40px" />
-        )}
-      </EventsColumn>
-
-      <UsersColumn>
-        {aggregatedStats ? (
-          <Stack position="relative">
-            <PrimaryCount
-              value={aggregatedStats.filteredUserCount ?? aggregatedStats.userCount}
-            />
-            {aggregatedStats.filteredUserCount !== null && (
-              <SecondaryCount value={aggregatedStats.userCount} />
-            )}
-          </Stack>
-        ) : (
-          <Placeholder height="18px" width="40px" />
-        )}
-      </UsersColumn>
-
-      <PrioritySpacer />
-      <AssigneeSpacer />
     </Wrapper>
   );
 }
 
-const Wrapper = styled(PanelItem)<{highlighted: boolean}>`
+const Wrapper = styled(PanelItem)`
   position: relative;
   line-height: 1.1;
   padding: ${p => p.theme.space.md} 0;
   cursor: pointer;
-  min-height: 82px;
-  background: ${p =>
-    p.highlighted ? p.theme.tokens.background.secondary : 'transparent'};
 `;
 
 const Summary = styled('div')`
@@ -185,11 +72,16 @@ const IconArea = styled('div')`
   align-items: flex-end;
   flex-shrink: 0;
   padding-top: ${p => p.theme.space.sm};
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const AccentIcon = styled(IconStack)`
   color: ${p => p.theme.tokens.graphics.accent.vibrant};
+`;
+
+const ExpandChevron = styled(IconChevron)`
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const MetaRow = styled('div')`
@@ -211,100 +103,4 @@ const Dot = styled('div')`
   border-radius: 50%;
   background: currentcolor;
   flex-shrink: 0;
-`;
-
-const LastSeenColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 86px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.LAST_SEEN}) {
-    display: none;
-  }
-`;
-
-const FirstSeenColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 50px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.FIRST_SEEN}) {
-    display: none;
-  }
-`;
-
-const ChartColumn = styled('div')`
-  width: 175px;
-  align-self: center;
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.TREND}) {
-    display: none;
-  }
-`;
-
-const DataColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  align-self: center;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  width: 60px;
-`;
-
-const EventsColumn = styled(DataColumn)`
-  @container (width < ${COLUMN_BREAKPOINTS.EVENTS}) {
-    display: none;
-  }
-`;
-
-const UsersColumn = styled(DataColumn)`
-  @container (width < ${COLUMN_BREAKPOINTS.USERS}) {
-    display: none;
-  }
-`;
-
-const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.font.size.md};
-  display: flex;
-  justify-content: right;
-  margin-bottom: ${p => p.theme.space['2xs']};
-  font-variant-numeric: tabular-nums;
-`;
-
-const SecondaryCount = styled(Count)`
-  font-size: ${p => p.theme.font.size.sm};
-  display: flex;
-  justify-content: flex-end;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-variant-numeric: tabular-nums;
-`;
-
-// Empty spacers to match StreamGroup column widths and keep alignment
-const PrioritySpacer = styled('div')`
-  width: 64px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.PRIORITY}) {
-    display: none;
-  }
-`;
-
-const AssigneeSpacer = styled('div')`
-  width: 66px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.ASSIGNEE}) {
-    display: none;
-  }
 `;
