@@ -251,6 +251,8 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
                     y_axes.extend(agg_field["yAxes"])
                 if "groupBy" in agg_field and agg_field["groupBy"]:
                     group_bys.append(agg_field["groupBy"])
+                if chart_type is None and isinstance(agg_field.get("chartType"), int):
+                    chart_type = agg_field["chartType"]
             for sort_by in metric_parsed.get("aggregateSortBys", []):
                 field = sort_by.get("field", "")
                 kind = sort_by.get("kind", "desc")
