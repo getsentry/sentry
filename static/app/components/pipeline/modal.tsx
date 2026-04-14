@@ -26,19 +26,31 @@ interface PipelineModalProps<
 > extends ModalRenderProps {
   provider: P;
   type: T;
+  initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
 }
 
 function PipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
->({Header, Body, closeModal, type, provider, onComplete}: PipelineModalProps<T, P>) {
+>({
+  Header,
+  Body,
+  closeModal,
+  type,
+  provider,
+  initialData,
+  onComplete,
+}: PipelineModalProps<T, P>) {
   const handleComplete = (data: CompletionDataFor<T, P>) => {
     onComplete?.(data);
     closeModal();
   };
 
-  const pipeline = usePipeline(type, provider, {onComplete: handleComplete});
+  const pipeline = usePipeline(type, provider, {
+    onComplete: handleComplete,
+    initialData,
+  });
   const {stepDefinition} = pipeline;
 
   const stepText = (
@@ -130,6 +142,7 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
+  initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
 }
@@ -137,10 +150,16 @@ interface OpenPipelineModalOptions<
 export function openPipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
->({type, provider, onComplete, onClose}: OpenPipelineModalOptions<T, P>) {
+>({type, provider, initialData, onComplete, onClose}: OpenPipelineModalOptions<T, P>) {
   openModal(
     deps => (
-      <PipelineModal {...deps} type={type} provider={provider} onComplete={onComplete} />
+      <PipelineModal
+        {...deps}
+        type={type}
+        provider={provider}
+        initialData={initialData}
+        onComplete={onComplete}
+      />
     ),
     {onClose, closeEvents: 'none'}
   );

@@ -36,7 +36,7 @@ _logger = logging.getLogger(__name__)
 DEFAULT_PERIOD = "14d"
 TOP_N = 5
 
-EXPLORE_CHART_SIZE: ChartSize = {"width": 1600, "height": 1200}
+EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
 
 
 class ExploreDatasetDefaults(TypedDict):

@@ -16,6 +16,7 @@ interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps 
   projectIds?: Array<string | number>;
   query?: string;
   search?: string;
+  staleTime?: number;
 }
 
 export function useTraceItemAttributeKeys({
@@ -26,6 +27,7 @@ export function useTraceItemAttributeKeys({
   projectIds: explicitProjectIds,
   query,
   search,
+  staleTime,
 }: UseTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
 
@@ -60,6 +62,7 @@ export function useTraceItemAttributeKeys({
     enabled,
     queryKey: [...queryKey, search],
     queryFn: () => getTraceItemAttributeKeys(search),
+    staleTime,
   });
 
   const previous = usePrevious(data, isFetching);

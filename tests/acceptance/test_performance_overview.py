@@ -31,14 +31,6 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
         self.page = BasePage(self.browser)
 
     @patch("django.utils.timezone.now")
-    def test_onboarding(self, mock_now: MagicMock) -> None:
-        mock_now.return_value = before_now()
-
-        with self.feature(FEATURE_NAMES):
-            self.browser.get(self.path)
-            self.page.wait_until_loaded()
-
-    @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 

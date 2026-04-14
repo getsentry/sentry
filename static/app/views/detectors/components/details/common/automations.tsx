@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -11,7 +11,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
-import {Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
@@ -22,7 +22,6 @@ import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {parseCursor} from 'sentry/utils/cursor';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -116,22 +115,15 @@ function DetectorAutomationsTable({
   const pageLinks = data?.headers.Link;
   const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
-  const paginationCaption = useMemo(() => {
-    if (!automations || automations.length === 0 || isPending) {
-      return undefined;
-    }
-
-    const currentCursor = parseCursor(cursor);
-    const offset = currentCursor?.offset ?? 0;
-    const startCount = offset * AUTOMATIONS_PER_PAGE + 1;
-    const endCount = startCount + automations.length - 1;
-
-    return tct('[start]-[end] of [total]', {
-      start: startCount.toLocaleString(),
-      end: endCount.toLocaleString(),
-      total: totalCountInt.toLocaleString(),
-    });
-  }, [automations, isPending, cursor, totalCountInt]);
+  const paginationCaption =
+    isPending || !automations
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit: AUTOMATIONS_PER_PAGE,
+          pageLength: automations.length,
+          total: totalCountInt,
+        });
 
   return (
     <Container>
@@ -209,7 +201,7 @@ function DetectorAutomationsTable({
       <Pagination
         onCursor={setCursor}
         pageLinks={pageLinks}
-        caption={totalCountInt > AUTOMATIONS_PER_PAGE ? paginationCaption : null}
+        caption={paginationCaption}
       />
     </Container>
   );

@@ -23,7 +23,7 @@ export function openAlertsMonitorsShowcase({organization}: {organization: Organi
   trackAnalytics('monitors.onboarding_modal_viewed', {organization, step: 0});
   openModal(deps => <AlertsMonitorsShowcase {...deps} />, {
     modalCss: (theme: Theme) => css`
-      width: 490px;
+      width: 560px;
 
       [role='document'] {
         padding: ${theme.space['2xl']};

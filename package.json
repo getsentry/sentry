@@ -48,7 +48,7 @@
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
     "snapshots": "jest --config jest.config.snapshots.ts",
     "knip": "knip --treat-config-hints-as-errors",
-    "knip:prod": "pnpm run knip --production --exclude dependencies,unresolved"
+    "knip:prod": "pnpm run knip --production --exclude dependencies"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
@@ -279,7 +279,7 @@
     "jest-environment-jsdom": "30.3.0",
     "jest-fail-on-console": "3.3.4",
     "jest-junit": "16.0.0",
-    "knip": "6.3.1",
+    "knip": "6.4.1",
     "odiff-bin": "^4.3.2",
     "oxfmt": "^0.41.0",
     "playwright": "^1.58.2",

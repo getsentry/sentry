@@ -4,7 +4,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -71,11 +70,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
         including whether the artifact is installable, the install URL, download count,
         and iOS-specific code signing information.
         """
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.select_related(
