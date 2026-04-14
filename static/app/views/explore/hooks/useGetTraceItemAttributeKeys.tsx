@@ -119,7 +119,7 @@ export function useGetTraceItemAttributeKeys({
 
       const queryKey = [QUERY_KEY, options, organization.slug];
       queryClient.setQueryDefaults(queryKey, {
-        staleTime: 60 * 1000,
+        staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
       });
       queryClient.setQueryData(queryKey, data);
     },
