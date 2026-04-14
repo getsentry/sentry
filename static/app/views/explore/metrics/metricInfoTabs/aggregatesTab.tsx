@@ -122,11 +122,11 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [groupBys.length, fields, visualize]);
 
   const displayColumns = useMemo(() => {
-    if (groupBys.length === 0) {
+    if (groupBys.length === 0 && isVisualizeFunction(visualize)) {
       return [METRIC_NAME_COLUMN, ...columns];
     }
     return columns;
-  }, [groupBys.length, columns]);
+  }, [groupBys.length, columns, visualize]);
 
   // Include the virtual metric name column in the group-by count so grid/divider logic works
   const groupByFieldCount = groupBys.length === 0 ? 1 : groupBys.length;
@@ -261,7 +261,9 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
               key={i}
               divider={shouldShowDivider(i)}
               data-sticky-column={isLastColumn(i) ? 'true' : 'false'}
-              isAggregate={Boolean(func) || isEquation(field)}
+              isAggregate={
+                Boolean(func) || (isVisualizeFunction(visualize) && isEquation(field))
+              }
               isSticky={isLastColumn(i)}
               sort={direction}
               handleSortClick={canSort ? updateSort : undefined}
