@@ -81,10 +81,6 @@ const config: KnipConfig = {
     '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
-    '@babel/preset-env', // Still used in jest
-    '@babel/preset-react', // Still used in jest
-    '@babel/preset-typescript', // Still used in jest
-    '@emotion/babel-plugin', // Still used in jest
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
   ],
   rules: {

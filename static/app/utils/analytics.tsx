@@ -224,10 +224,6 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-// Re-export from makeAnalyticsFunction to preserve the public API.
-// The definition lives there to avoid a circular dependency.
-export {rawTrackAnalyticsEvent} from './analytics/makeAnalyticsFunction';
-
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {
     /**

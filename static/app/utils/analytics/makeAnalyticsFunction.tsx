@@ -10,10 +10,8 @@ import type {Organization} from 'sentry/types/organization';
  * analytics.tsx imports makeAnalyticsFunction, and makeAnalyticsFunction calls
  * rawTrackAnalyticsEvent.
  */
-export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
-  data,
-  options
-) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
+const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
+  HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
