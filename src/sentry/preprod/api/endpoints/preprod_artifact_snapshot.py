@@ -80,6 +80,11 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "maxProperties": 50000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
+        "all_image_names": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 50000,
+        },
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -89,6 +94,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
 SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
     "images": "The images field is required and must be an object mapping image names to image metadata.",
+    "all_image_names": "The all_image_names field must be an array of strings with at most 50000 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -434,6 +440,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
+                skipped=categorized.skipped,
+                skipped_count=len(categorized.skipped),
                 comparison_run_info=run_info,
                 approval_info=approval_info,
                 diff_threshold=manifest.diff_threshold,
@@ -480,6 +488,27 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         base_repo_name = data.get("base_repo_name")
         base_ref = data.get("base_ref")
         pr_number = data.get("pr_number")
+
+        all_image_names = data.get("all_image_names")
+
+        if all_image_names is not None:
+            if not all_image_names:
+                return Response(
+                    {"detail": "all_image_names must not be empty."},
+                    status=400,
+                )
+            if not base_sha:
+                return Response(
+                    {"detail": "all_image_names requires base_sha to be provided."},
+                    status=400,
+                )
+            all_image_names_set = set(all_image_names)
+            missing = set(images.keys()) - all_image_names_set
+            if missing:
+                return Response(
+                    {"detail": "Every image name must appear in all_image_names."},
+                    status=400,
+                )
 
         # has_vcs tag differentiates transactions that include a CommitComparison
         # lookup from those that skip it, so we can isolate their latency on dashboards.
@@ -528,7 +557,11 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(images=images, diff_threshold=diff_threshold)
+            manifest = SnapshotManifest(
+                images=images,
+                diff_threshold=diff_threshold,
+                all_image_names=all_image_names,
+            )
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 

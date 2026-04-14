@@ -21,6 +21,7 @@ class CategorizedComparison(BaseModel):
     unchanged: list[SnapshotImageResponse] = []
     renamed: list[SnapshotDiffPair] = []
     errored: list[SnapshotDiffPair] = []
+    skipped: list[SnapshotImageResponse] = []
 
 
 def _base_image_from_comparison(name: str, img: ComparisonImageResult) -> SnapshotImageResponse:
@@ -109,6 +110,8 @@ def categorize_comparison_images(
                     head_image=head,
                 )
             )
+        elif img.status == "skipped":
+            result.skipped.append(base_img or _base_image_from_comparison(name, img))
 
     result.changed.sort(key=lambda p: p.diff or 0, reverse=True)
     return result
