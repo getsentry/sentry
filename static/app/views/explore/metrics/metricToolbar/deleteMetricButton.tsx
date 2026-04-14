@@ -18,7 +18,9 @@ export function DeleteMetricButton({disabled}: {disabled?: boolean}) {
         size="zero"
         onClick={removeMetric}
         disabled={disabled}
-        title={disabled ? t('This metric is used in an equation') : undefined}
+        tooltipProps={{
+          title: disabled ? t('This metric is used in an equation') : undefined,
+        }}
         aria-label={t('Delete Metric')}
       />
     );
@@ -31,7 +33,9 @@ export function DeleteMetricButton({disabled}: {disabled?: boolean}) {
       aria-label={t('Delete metric')}
       onClick={removeMetric}
       disabled={disabled}
-      title={disabled ? t('This metric is used in an equation') : undefined}
+      tooltipProps={{
+        title: disabled ? t('This metric is used in an equation') : undefined,
+      }}
     />
   );
 }
