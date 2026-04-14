@@ -206,6 +206,19 @@ export function ConversationSummary({
           value={formatLLMCosts(aggregates.totalCost)}
           isLoading={isLoading}
         />
+        <AggregateItem
+          label={t('Last message')}
+          value={
+            lastMessageDate ? (
+              <TimeSince date={lastMessageDate} />
+            ) : (
+              <Text size="sm" variant="muted">
+                {'\u2014'}
+              </Text>
+            )
+          }
+          isLoading={isLoading}
+        />
         {isLoading ? (
           <Flex align="center" gap="xs" flexShrink={0}>
             <Text size="sm" bold variant="muted">
@@ -227,19 +240,6 @@ export function ConversationSummary({
             </ToolTagsRow>
           )
         )}
-        <AggregateItem
-          label={t('Last message')}
-          value={
-            lastMessageDate ? (
-              <TimeSince date={lastMessageDate} />
-            ) : (
-              <Text size="sm" variant="muted">
-                {'\u2014'}
-              </Text>
-            )
-          }
-          isLoading={isLoading}
-        />
       </Flex>
     </Flex>
   );
