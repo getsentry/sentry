@@ -401,6 +401,9 @@ function _enforceWidgetLimit(widget: Widget) {
   return widget;
 }
 
+// Chart types where `limit` controls the Top N grouping cap.
+// Other display types either fetch their own data (see `widgetFetchesOwnData`)
+// or don't use limits (TABLE, BIG_NUMBER, WHEEL, DETAILS).
 const DISPLAY_TYPES_WITH_LIMITS = new Set([
   DisplayType.AREA,
   DisplayType.BAR,
