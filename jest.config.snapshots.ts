@@ -67,7 +67,7 @@ const config: Config.InitialOptions = {
   },
 
   transform: {
-    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig as any],
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length

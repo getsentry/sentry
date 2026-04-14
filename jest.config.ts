@@ -328,7 +328,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig as any],
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
