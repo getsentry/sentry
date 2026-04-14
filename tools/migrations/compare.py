@@ -39,10 +39,6 @@ def norm(s: str) -> dict[str, str]:
             _, db = line.split()
         if line.startswith("--"):
             continue
-        # pg_dumpall (PostgreSQL 16+) emits \restrict / \unrestrict with
-        # random per-session tokens.  These are not part of the schema.
-        if line.startswith(r"\restrict ") or line.startswith(r"\unrestrict "):
-            continue
         if last == "\n" and line == "\n":
             continue
         else:

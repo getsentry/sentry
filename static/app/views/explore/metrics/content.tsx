@@ -102,7 +102,10 @@ function MetricsHeader() {
           />
         ) : null}
         {title && defined(pageId) ? (
-          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.TRACEMETRICS} />
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.TRACEMETRICS}
+            savedQueryName={savedQuery?.name}
+          />
         ) : null}
         <Layout.Title>
           {title ? title : METRICS_TITLE}

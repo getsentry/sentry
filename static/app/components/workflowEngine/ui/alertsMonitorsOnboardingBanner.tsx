@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {openAlertsMonitorsShowcase} from 'sentry/components/workflowEngine/ui/alertsMonitorsShowcase';
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -54,6 +54,7 @@ export function OnboardingBanner() {
         <Flex gap="md" align="center">
           <Button
             size="xs"
+            icon={<IconInfo />}
             onClick={() => openAlertsMonitorsShowcase({organization})}
             aria-label={t('Take a tour')}
           >

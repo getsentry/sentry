@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
@@ -13,7 +14,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
-import {getDetectorResponseErrorMessage} from 'sentry/views/detectors/components/forms/common/getDetectorResponseErrorMessage';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
@@ -90,7 +90,7 @@ export function useCreateDetectorFormSubmit<
 
         addErrorMessage(
           (error instanceof RequestError
-            ? getDetectorResponseErrorMessage(error.responseJSON)
+            ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
             : null) ?? t('Unable to create monitor')
         );
 

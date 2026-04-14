@@ -23,7 +23,6 @@ export type DashboardWidgetQuerySelectorModalOptions = {
   dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   widget: Widget;
-  isMetricsData?: boolean;
 };
 
 type Props = ModalRenderProps &
@@ -34,8 +33,7 @@ type Props = ModalRenderProps &
   };
 
 function DashboardWidgetQuerySelectorModal(props: Props) {
-  const {organization, widget, selection, isMetricsData, Body, Header, dashboardFilters} =
-    props;
+  const {organization, widget, selection, Body, Header, dashboardFilters} = props;
 
   const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
@@ -46,9 +44,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
         },
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       return (
         <Fragment key={index}>

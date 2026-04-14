@@ -10,8 +10,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -26,7 +25,6 @@ export function IntegrationExternalTeamMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const api = useApi({persistInFlight: true});
   const ORGANIZATION_TEAMS_ENDPOINT = getApiUrl(
     '/organizations/$organizationIdOrSlug/teams/',
     {
@@ -59,32 +57,32 @@ export function IntegrationExternalTeamMappings(props: Props) {
     return Promise.all([refetchTeams(), refetchInitialResults()]);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: (mapping: ExternalActorMapping) => {
+      const team = teams.find(item => item.id === mapping.teamId);
+      if (!team) {
+        throw new Error('Cannot find correct team slug.');
+      }
+      return fetchMutation({
+        url: `/teams/${organization.slug}/${team.slug}/external-teams/${mapping.id}/`,
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Deletion successful'));
+      fetchData();
+    },
+    onError: () => {
+      addErrorMessage(t('An error occurred'));
+    },
+  });
+
   if (isTeamsPending || isInitialResultsPending) {
     return <LoadingIndicator />;
   }
   if (isTeamsError || isInitialResultsError) {
     return <LoadingError onRetry={() => fetchData()} />;
   }
-
-  const handleDelete = async (mapping: ExternalActorMapping) => {
-    try {
-      const team = teams.find(item => item.id === mapping.teamId);
-      if (!team) {
-        throw new Error('Cannot find correct team slug.');
-      }
-      const endpoint = `/teams/${organization.slug}/${team.slug}/external-teams/${mapping.id}/`;
-
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
-      // remove config and update state
-      addSuccessMessage(t('Deletion successful'));
-      fetchData();
-    } catch {
-      // no 4xx errors should happen on delete
-      addErrorMessage(t('An error occurred'));
-    }
-  };
 
   const handleSubmitSuccess = () => {
     fetchData();
@@ -146,7 +144,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
       getBaseFormEndpoint={mapping => getBaseFormEndpoint(mapping)}
       defaultOptions={defaultTeamOptions()}
       onCreate={onCreate}
-      onDelete={handleDelete}
+      onDelete={deleteMutation.mutate}
       onSubmitSuccess={async () => {
         await fetchData();
       }}

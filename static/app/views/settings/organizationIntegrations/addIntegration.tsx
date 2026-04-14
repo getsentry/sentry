@@ -42,6 +42,7 @@ export interface AddIntegrationParams {
  * prefix.
  */
 const API_PIPELINE_FEATURE_FLAGS = {
+  aws_lambda: 'integration-api-pipeline-aws-lambda',
   bitbucket: 'integration-api-pipeline-bitbucket',
   github: 'integration-api-pipeline-github',
   gitlab: 'integration-api-pipeline-gitlab',
@@ -212,6 +213,7 @@ export function useAddIntegration(params: AddIntegrationParams) {
       openPipelineModal({
         type: 'integration',
         provider: pipelineProvider,
+        initialData: urlParams,
         onComplete: (data: IntegrationWithConfig) => {
           trackIntegrationAnalytics('integrations.installation_complete', {
             integration: provider.key,

@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
@@ -26,6 +26,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {PreprodOnboarding} from './preprodOnboarding';
@@ -53,12 +54,18 @@ export default function PreprodBuilds() {
 
   const [localSearchQuery, setLocalSearchQuery] = useState(urlSearchQuery || '');
   const debouncedLocalSearchQuery = useDebouncedValue(localSearchQuery);
+  const prevDebouncedRef = useRef(debouncedLocalSearchQuery);
 
   useEffect(() => {
     setLocalSearchQuery(urlSearchQuery || '');
   }, [urlSearchQuery]);
 
   useEffect(() => {
+    if (debouncedLocalSearchQuery === prevDebouncedRef.current) {
+      return;
+    }
+    prevDebouncedRef.current = debouncedLocalSearchQuery;
+
     if (debouncedLocalSearchQuery !== (urlSearchQuery || '')) {
       navigate({
         ...location,
@@ -129,10 +136,11 @@ export default function PreprodBuilds() {
           ...location.query,
           cursor: undefined,
           display,
+          query: getUpdatedQueryForDisplay(urlSearchQuery, display),
         },
       });
     },
-    [location, navigate]
+    [location, navigate, urlSearchQuery]
   );
 
   const builds = buildsResponse?.json ?? [];

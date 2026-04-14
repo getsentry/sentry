@@ -4,7 +4,6 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -21,8 +20,6 @@ from sentry.preprod.quotas import get_size_retention_cutoff
 
 logger = logging.getLogger(__name__)
 
-ERR_FEATURE_REQUIRED = "Feature {} is not enabled for the organization."
-
 
 @cell_silo_endpoint
 class BuildsEndpoint(OrganizationEndpoint):
@@ -32,14 +29,6 @@ class BuildsEndpoint(OrganizationEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": ERR_FEATURE_REQUIRED.format("organizations:preprod-frontend-routes")},
-                status=403,
-            )
-
         def on_results(artifacts: list[PreprodArtifact]) -> list[dict[str, Any]]:
             results = []
             for artifact in artifacts:
@@ -77,8 +66,16 @@ class BuildsEndpoint(OrganizationEndpoint):
         try:
             queryset = queryset_for_query(query, organization)
             queryset = queryset.select_related(
-                "project", "build_configuration", "commit_comparison", "mobile_app_info"
-            ).prefetch_related("preprodartifactsizemetrics_set")
+                "project",
+                "build_configuration",
+                "commit_comparison",
+                "mobile_app_info",
+                "preprodsnapshotmetrics",
+            ).prefetch_related(
+                "preprodartifactsizemetrics_set",
+                "preprodsnapshotmetrics__snapshot_comparisons_head_metrics",
+                "preprodcomparisonapproval_set",
+            )
             queryset = queryset.filter(date_added__gte=cutoff)
             if start:
                 queryset = queryset.filter(date_added__gte=start)
