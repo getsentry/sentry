@@ -490,6 +490,14 @@ describe('AutomationNewSettings', () => {
           targetDisplay: null,
         },
       },
+      slack_staging: {
+        type: 'slack_staging',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '',
+        },
+      },
     };
 
     await waitFor(() => expect(saveWorkflow).toHaveBeenCalled());
