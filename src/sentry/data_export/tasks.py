@@ -464,25 +464,26 @@ def get_processor(
                 organization=data_export.organization,
             )
         elif data_export.query_type == ExportQueryType.EXPLORE:
-            if _is_full_jsonl_trace_item_export(data_export, output_mode):
-                page_token: bytes | None = None
-                if page_token_b64:
-                    try:
-                        page_token = base64.b64decode(page_token_b64)
-                    except (ValueError, TypeError) as e:
-                        raise ExportError("Invalid export trace item pagination state.") from e
-                return TraceItemFullExportProcessor(
-                    explore_query=data_export.query_info,
-                    organization=data_export.organization,
-                    output_mode=output_mode,
-                    page_token=page_token,
-                    last_emitted_item_id_hex=last_emitted_item_id_hex,
-                )
             return ExploreProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
                 output_mode=output_mode,
             )
+        elif data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT:
+            page_token: bytes | None = None
+            if page_token_b64:
+                try:
+                    page_token = base64.b64decode(page_token_b64)
+                except (ValueError, TypeError) as e:
+                    raise ExportError("Invalid export trace item pagination state.") from e
+            return TraceItemFullExportProcessor(
+                explore_query=data_export.query_info,
+                organization=data_export.organization,
+                output_mode=output_mode,
+                page_token=page_token,
+                last_emitted_item_id_hex=last_emitted_item_id_hex,
+            )
+
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
     except ExportError as error:
@@ -502,7 +503,10 @@ def process_rows(
             rows = process_issues_by_tag(processor, batch_size, offset)
         elif data_export.query_type == ExportQueryType.DISCOVER:
             rows = process_discover(processor, batch_size, offset)
-        elif data_export.query_type == ExportQueryType.EXPLORE:
+        elif (
+            data_export.query_type == ExportQueryType.EXPLORE
+            or data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
+        ):
             rows = process_explore(processor, batch_size, offset)
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
