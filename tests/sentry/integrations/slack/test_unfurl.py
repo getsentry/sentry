@@ -248,7 +248,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d"),
                     "chart_type": None,
-                    "dataset": "tracemetrics",
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
                 },
             ),
         ),
@@ -260,7 +260,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                     "org_slug": "org1",
                     "query": QueryDict("yAxis=avg(value)&statsPeriod=24h"),
                     "chart_type": None,
-                    "dataset": "tracemetrics",
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
                 },
             ),
         ),
@@ -1950,7 +1950,7 @@ class UnfurlTest(TestCase):
             raise AssertionError("Missing link_type/args")
 
         assert link_type == LinkType.EXPLORE
-        assert args["dataset"] == "tracemetrics"
+        assert args["dataset"] == SupportedTraceItemType.TRACEMETRICS
 
         links = [
             UnfurlableUrl(url=url, args=args),

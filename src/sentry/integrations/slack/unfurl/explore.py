@@ -232,7 +232,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     explore_dataset = _get_explore_dataset(url)
 
     # Parse visualization params from the URL.
-    # Metrics uses a single "metric" JSON param with nested aggregateFields.
+    # Each metric uses a "metric" JSON param with nested aggregateFields.
     # Traces uses "visualize" and logs uses "aggregateField".
     y_axes: list[str] = []
     group_bys: list[str] = []
@@ -240,8 +240,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
 
     metric_query: str | None = None
     metric_sort_bys: list[str] = []
-    metric_json = raw_query.get("metric")
-    if metric_json:
+    for metric_json in raw_query.getlist("metric"):
         try:
             metric_parsed = json.loads(metric_json)
             for agg_field in metric_parsed.get("aggregateFields", []):
@@ -254,9 +253,10 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
                 kind = sort_by.get("kind", "desc")
                 if field:
                     metric_sort_bys.append(f"-{field}" if kind == "desc" else field)
-            metric_query = metric_parsed.get("query") or None
+            if metric_query is None:
+                metric_query = metric_parsed.get("query") or None
         except (json.JSONDecodeError, TypeError):
-            pass
+            continue
 
     visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     for field_json in visualize_fields:
