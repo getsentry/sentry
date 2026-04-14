@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -50,6 +51,7 @@ type SeerExplorerChatResponse = {
 };
 
 const POLL_INTERVAL = 500; // Poll every 500ms
+const POLLING_TIMEOUT_MS = 420_000; // 7 minutes
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
@@ -146,19 +148,33 @@ export const useSeerExplorer = () => {
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
   const [wasJustInterrupted, setWasJustInterrupted] = useState<boolean>(false);
+  const [isTimedOut, setIsTimedOut] = useState<boolean>(false);
+  const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
+    timeMs: POLLING_TIMEOUT_MS,
+    onTimeout: () => {
+      setIsTimedOut(true);
+      setWaitingForResponse(false);
+      setInterruptRequested(false);
+      setWasJustInterrupted(false);
+    },
+  });
 
   // Helpers for managing waiting and interrupt state.
   const _onNewRequest = useCallback(() => {
     setWaitingForResponse(true);
     setInterruptRequested(false);
     setWasJustInterrupted(false);
-  }, []);
+    setIsTimedOut(false);
+    startPollingTimeout();
+  }, [startPollingTimeout]);
 
   const _onRequestError = useCallback(() => {
     setWaitingForResponse(false);
     setInterruptRequested(false);
     setWasJustInterrupted(false);
-  }, []);
+    setIsTimedOut(false);
+    cancelPollingTimeout();
+  }, [cancelPollingTimeout]);
 
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<{
@@ -198,6 +214,8 @@ export const useSeerExplorer = () => {
       setWaitingForResponse(false);
       setInterruptRequested(false);
       setWasJustInterrupted(false);
+      setIsTimedOut(false);
+      cancelPollingTimeout();
 
       // Invalidate the query to force a fresh fetch
       if (orgSlug && newRunId !== null) {
@@ -206,7 +224,7 @@ export const useSeerExplorer = () => {
         });
       }
     },
-    [orgSlug, queryClient, setRunId]
+    [orgSlug, queryClient, setRunId, cancelPollingTimeout]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
@@ -567,8 +585,9 @@ export const useSeerExplorer = () => {
       if (waitingForResponse) {
         // Stop waiting once we see the response is no longer loading
         setWaitingForResponse(false);
-        // Clear deleted index once response is complete
         setDeletedFromIndex(null);
+        setIsTimedOut(false);
+        cancelPollingTimeout();
       }
 
       if (interruptRequested) {
@@ -576,12 +595,13 @@ export const useSeerExplorer = () => {
         setWasJustInterrupted(true); // set persistent UI flag until next request
       }
     }
-  }, [waitingForResponse, interruptRequested, isLoaded]);
+  }, [waitingForResponse, interruptRequested, isLoaded, cancelPollingTimeout]);
 
   return {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isError,
+    isTimedOut,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */

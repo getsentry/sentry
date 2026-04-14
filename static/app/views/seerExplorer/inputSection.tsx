@@ -37,6 +37,7 @@ interface InputSectionProps {
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
+  isTimedOut: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -61,6 +62,7 @@ export function InputSection({
   focusedBlockIndex,
   isMinimized = false,
   isPolling,
+  isTimedOut,
   interruptRequested,
   wasJustInterrupted = false,
   isVisible = false,
@@ -83,6 +85,9 @@ export function InputSection({
   const getPlaceholder = () => {
     if (wasJustInterrupted) {
       return 'Interrupted. What should Seer do instead?';
+    }
+    if (isTimedOut) {
+      return 'The request timed out. Please try again.';
     }
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
