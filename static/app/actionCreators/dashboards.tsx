@@ -399,7 +399,7 @@ function _enforceWidgetLimit(widget: Widget) {
     };
   }
 
-  if (defined(widget.limit) && widget.limit > maxLimit) {
+  if (hasColumns && defined(widget.limit) && widget.limit > maxLimit) {
     return {...widget, limit: maxLimit};
   }
 
