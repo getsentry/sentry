@@ -84,7 +84,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
 
   const hasErrorUpsampling = project.features.includes('error-upsampling');
 
-  const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType as IssueType);
+  const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
     group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
