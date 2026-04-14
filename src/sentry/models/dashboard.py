@@ -437,7 +437,7 @@ class DashboardRevision(DefaultFieldsModel):
     title = models.CharField(max_length=255)
     source = models.CharField(max_length=32, default="edit")
     snapshot: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
-    snapshot_schema_version = models.IntegerField(db_default=1)
+    snapshot_schema_version = models.IntegerField()
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     class Meta:

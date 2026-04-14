@@ -605,6 +605,7 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             created_by_id=owner_id,
             title=dashboard.title,
+            snapshot_schema_version=1,
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 

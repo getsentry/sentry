@@ -50,7 +50,7 @@ class Migration(CheckedMigration):
                 ("title", models.CharField(max_length=255)),
                 ("source", models.CharField(default="edit", max_length=32)),
                 ("snapshot", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
-                ("snapshot_schema_version", models.IntegerField(db_default=1)),
+                ("snapshot_schema_version", models.IntegerField()),
                 (
                     "dashboard",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
