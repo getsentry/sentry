@@ -61,9 +61,11 @@ export function useShowConversationOnboarding(): {
     }
   }, [hasData, rawSelectedProjectIds, setProjectsWithConversations]);
 
-  const selectedProjectsHaveKnownConversations = rawSelectedProjectIds.some(id =>
-    projectsWithConversations.includes(id)
-  );
+  const selectedProjectsHaveKnownConversations = isAllProjectsSelection(
+    rawSelectedProjectIds
+  )
+    ? projectsWithConversations.length > 0
+    : rawSelectedProjectIds.some(id => projectsWithConversations.includes(id));
 
   return {
     showOnboarding:

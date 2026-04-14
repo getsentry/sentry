@@ -280,6 +280,33 @@ describe('useShowConversationOnboarding', () => {
     expect(result.current.showOnboarding).toBe(false);
   });
 
+  it('does not show onboarding for all-projects when specific projects have data in localStorage', () => {
+    mockUsePageFilters.mockReturnValue({
+      isReady: true,
+      pinnedFilters: new Set(),
+      shouldPersist: true,
+      selection: {
+        projects: [],
+        environments: [],
+        datetime: {period: '1h', start: null, end: null, utc: false},
+      },
+    } as any);
+
+    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
+    mockUseSpans.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as any);
+
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    expect(result.current.showOnboarding).toBe(false);
+  });
+
   it('does not let all-projects sentinel suppress onboarding for a specific project', () => {
     mockUsePageFilters.mockReturnValue({
       isReady: true,
