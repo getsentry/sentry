@@ -1,3 +1,4 @@
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -46,6 +47,81 @@ import {
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
+/**
+ * Tracks which metric labels (A, B, etc.) are referenced by equations.
+ *
+ * On initial load, labels are precomputed by reverse-resolving each
+ * equation's stored expression against the referenceMap. When the user
+ * edits an equation, the EquationBuilder reports the exact labels that
+ * were typed, which override the precomputed values for that equation.
+ */
+function useEquationReferencedLabels() {
+  const metricQueries = useMultiMetricsQueryParams();
+  const referenceMap = useMetricReferences();
+
+  // User-reported labels from equation edits override precomputed values
+  const [userLabelsByEquation, setUserLabelsByEquation] = useState<
+    Map<string, readonly string[]>
+  >(() => new Map());
+
+  const onEquationLabelsChange = useCallback(
+    (equationLabel: string, labels: string[]) => {
+      setUserLabelsByEquation(prev => {
+        const current = prev.get(equationLabel);
+        if (
+          current?.length === labels.length &&
+          current.every((l, i) => l === labels[i])
+        ) {
+          return prev;
+        }
+        const next = new Map(prev);
+        next.set(equationLabel, labels);
+        return next;
+      });
+    },
+    []
+  );
+
+  const referencedMetricLabels = useMemo(() => {
+    // Build reverse map (function string → first label) for precomputation
+    const reversedReferenceMap: Record<string, string> = {};
+    for (const [label, functionString] of Object.entries(referenceMap)) {
+      if (!reversedReferenceMap[functionString]) {
+        reversedReferenceMap[functionString] = label;
+      }
+    }
+
+    const set = new Set<string>();
+    for (const q of metricQueries) {
+      const v = q.queryParams.visualizes[0];
+      if (!v || !isVisualizeEquation(v)) {
+        continue;
+      }
+
+      const eqLabel = q.label ?? '';
+      const userLabels = userLabelsByEquation.get(eqLabel);
+
+      if (userLabels) {
+        // Use user-reported labels (from explicit equation edits)
+        for (const label of userLabels) {
+          set.add(label);
+        }
+      } else {
+        // Precompute from stored expression via reverse-resolve
+        for (const token of v.expression.tokens) {
+          const referencedLabel = reversedReferenceMap[token.text];
+          if (referencedLabel) {
+            set.add(referencedLabel);
+          }
+        }
+      }
+    }
+    return set;
+  }, [metricQueries, referenceMap, userLabelsByEquation]);
+
+  return {referencedMetricLabels, onEquationLabelsChange};
+}
+
 type MetricsTabProps = {
   datePageFilterProps: DatePageFilterProps;
 };
@@ -53,12 +129,28 @@ type MetricsTabProps = {
 function MetricsTabContentRefreshLayout({datePageFilterProps}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
+      <MetricsTabContentRefreshInner datePageFilterProps={datePageFilterProps} />
+    </MultiMetricsQueryParamsProvider>
+  );
+}
+
+function MetricsTabContentRefreshInner({datePageFilterProps}: MetricsTabProps) {
+  const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
+
+  return (
+    <Fragment>
       <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
       <ExploreBodyContent>
-        <MetricsQueryBuilderSection />
-        <MetricsTabBodySection />
+        <MetricsQueryBuilderSection
+          referencedMetricLabels={referencedMetricLabels}
+          onEquationLabelsChange={onEquationLabelsChange}
+        />
+        <MetricsTabBodySection
+          referencedMetricLabels={referencedMetricLabels}
+          onEquationLabelsChange={onEquationLabelsChange}
+        />
       </ExploreBodyContent>
-    </MultiMetricsQueryParamsProvider>
+    </Fragment>
   );
 }
 
@@ -69,12 +161,32 @@ export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
     return <MetricsTabContentRefreshLayout datePageFilterProps={datePageFilterProps} />;
   }
 
+  return <MetricsTabContentDefaultLayout datePageFilterProps={datePageFilterProps} />;
+}
+
+function MetricsTabContentDefaultLayout({datePageFilterProps}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
-      <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
-      <MetricsQueryBuilderSection />
-      <MetricsTabBodySection />
+      <MetricsTabContentDefaultInner datePageFilterProps={datePageFilterProps} />
     </MultiMetricsQueryParamsProvider>
+  );
+}
+
+function MetricsTabContentDefaultInner({datePageFilterProps}: MetricsTabProps) {
+  const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
+
+  return (
+    <Fragment>
+      <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
+      <MetricsQueryBuilderSection
+        referencedMetricLabels={referencedMetricLabels}
+        onEquationLabelsChange={onEquationLabelsChange}
+      />
+      <MetricsTabBodySection
+        referencedMetricLabels={referencedMetricLabels}
+        onEquationLabelsChange={onEquationLabelsChange}
+      />
+    </Fragment>
   );
 }
 
@@ -146,7 +258,15 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   );
 }
 
-function MetricsQueryBuilderSection() {
+interface SectionProps {
+  onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
+  referencedMetricLabels: Set<string>;
+}
+
+function MetricsQueryBuilderSection({
+  referencedMetricLabels,
+  onEquationLabelsChange,
+}: SectionProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
@@ -180,6 +300,8 @@ function MetricsQueryBuilderSection() {
                 traceMetric={metricQuery.metric}
                 queryLabel={metricQuery.label ?? ''}
                 referenceMap={referenceMap}
+                referencedMetricLabels={referencedMetricLabels}
+                onEquationLabelsChange={onEquationLabelsChange}
               />
             </MetricsQueryParamsProvider>
           );
@@ -203,7 +325,10 @@ function MetricsQueryBuilderSection() {
   );
 }
 
-function MetricsTabBodySection() {
+function MetricsTabBodySection({
+  referencedMetricLabels,
+  onEquationLabelsChange,
+}: SectionProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
@@ -249,6 +374,8 @@ function MetricsTabBodySection() {
               sortableQueries={aggregateMetricQueries}
               referenceMap={referenceMap}
               isAnyDragging={isDragging}
+              referencedMetricLabels={referencedMetricLabels}
+              onEquationLabelsChange={onEquationLabelsChange}
             />
             {showSectionSeparator ? (
               <Container paddingBottom="xl">
@@ -264,6 +391,8 @@ function MetricsTabBodySection() {
               sortableQueries={equationMetricQueries}
               referenceMap={referenceMap}
               isAnyDragging={isDragging}
+              referencedMetricLabels={referencedMetricLabels}
+              onEquationLabelsChange={onEquationLabelsChange}
             />
             <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
@@ -307,6 +436,8 @@ function MetricsTabBodySection() {
                     queryIndex={index}
                     queryLabel={metricQuery.label ?? ''}
                     referenceMap={referenceMap}
+                    referencedMetricLabels={referencedMetricLabels}
+                    onEquationLabelsChange={onEquationLabelsChange}
                   />
                 </MetricsQueryParamsProvider>
               );
@@ -321,12 +452,16 @@ function MetricsTabBodySection() {
 interface SortableMetricPanelSectionProps {
   dataTestId: string;
   isAnyDragging: boolean;
+  onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
   referenceMap: Record<string, string>;
+  referencedMetricLabels: Set<string>;
   sortableQueries: ReturnType<typeof useSortableMetricQueries>;
 }
 
 function SortableMetricPanelSection({
   dataTestId,
+  referencedMetricLabels,
+  onEquationLabelsChange,
   sortableQueries,
   isAnyDragging,
   referenceMap,
@@ -358,6 +493,8 @@ function SortableMetricPanelSection({
                 removeMetric={metricQuery.removeMetric}
               >
                 <SortableMetricPanel
+                  referencedMetricLabels={referencedMetricLabels}
+                  onEquationLabelsChange={onEquationLabelsChange}
                   sortableId={id}
                   traceMetric={metricQuery.metric}
                   queryIndex={index}

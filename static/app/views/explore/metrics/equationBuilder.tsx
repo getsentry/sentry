@@ -10,6 +10,13 @@ import {
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 /**
+ * Extracts the set of reference labels (e.g. ["A", "B"]) from an Expression's tokens.
+ */
+function extractReferenceLabels(expression: Expression): string[] {
+  return expression.tokens.filter(isTokenReference).map(token => token.text);
+}
+
+/**
  * Takes an expression and map of references and returns the internal string representation that uses the references.
  */
 function unresolveExpression(
@@ -72,9 +79,11 @@ export function EquationBuilder({
   expression,
   referenceMap,
   handleExpressionChange,
+  onReferenceLabelsChange,
 }: {
   expression: string;
   handleExpressionChange: (expression: Expression) => void;
+  onReferenceLabelsChange?: (labels: string[]) => void;
   referenceMap?: Record<string, string>;
 }) {
   const [_, startTransition] = useTransition();
@@ -117,11 +126,14 @@ export function EquationBuilder({
     (newExpression: Expression) => {
       startTransition(() => {
         if (newExpression.isValid) {
+          // Report the labels from the pre-resolved expression so the
+          // caller knows exactly which labels (A, B, etc.) were typed.
+          onReferenceLabelsChange?.(extractReferenceLabels(newExpression));
           handleExpressionChange(resolveExpression(newExpression, referenceMap));
         }
       });
     },
-    [handleExpressionChange, referenceMap]
+    [handleExpressionChange, onReferenceLabelsChange, referenceMap]
   );
 
   return (

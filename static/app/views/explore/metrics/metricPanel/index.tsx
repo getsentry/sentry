@@ -44,8 +44,10 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
   isDragging?: boolean;
+  onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   ref?: React.Ref<HTMLDivElement>;
   referenceMap?: Record<string, string>;
+  referencedMetricLabels?: Set<string>;
 }
 
 export function MetricPanel({
@@ -58,6 +60,8 @@ export function MetricPanel({
   isDragging,
   style,
   ref,
+  referencedMetricLabels,
+  onEquationLabelsChange,
   ...rest
 }: MetricPanelProps) {
   const organization = useOrganization();
@@ -126,6 +130,8 @@ export function MetricPanel({
                 queryLabel={queryLabel}
                 referenceMap={referenceMap}
                 dragListeners={dragListeners}
+                referencedMetricLabels={referencedMetricLabels}
+                onEquationLabelsChange={onEquationLabelsChange}
               />
             </Container>
             {visualize.visible ? (

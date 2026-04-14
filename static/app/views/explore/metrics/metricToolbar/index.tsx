@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback} from 'react';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -32,7 +32,9 @@ interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
   dragListeners?: SyntheticListenerMap;
+  onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   referenceMap?: Record<string, string>;
+  referencedMetricLabels?: Set<string>;
 }
 
 export function MetricToolbar({
@@ -40,6 +42,8 @@ export function MetricToolbar({
   queryLabel,
   referenceMap,
   dragListeners,
+  referencedMetricLabels,
+  onEquationLabelsChange,
 }: MetricToolbarProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
@@ -58,24 +62,19 @@ export function MetricToolbar({
     metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)).length >
       1 || isVisualizeEquation(visualize);
 
-  // A metric function cannot be deleted if it is referenced by any equation
-  const isReferencedByEquation = useMemo(() => {
-    if (!referenceMap || !isVisualizeFunction(visualize)) {
-      return false;
-    }
-    const functionString = referenceMap[queryLabel];
-    if (!functionString) {
-      return false;
-    }
-    return metricQueries.some(q => {
-      const v = q.queryParams.visualizes[0];
-      return (
-        v &&
-        isVisualizeEquation(v) &&
-        v.expression.tokens.some(token => token.text === functionString)
-      );
-    });
-  }, [metricQueries, referenceMap, queryLabel, visualize]);
+  // A metric function cannot be deleted if it is referenced by any equation.
+  // referencedMetricLabels is precomputed from the stored equations and
+  // overridden with exact labels when the user edits an equation, so that
+  // duplicate metrics only block deletion of the specific label used.
+  const isReferencedByEquation =
+    isVisualizeFunction(visualize) && (referencedMetricLabels?.has(queryLabel) ?? false);
+
+  const handleReferenceLabelsChange = useCallback(
+    (labels: string[]) => {
+      onEquationLabelsChange?.(queryLabel, labels);
+    },
+    [onEquationLabelsChange, queryLabel]
+  );
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -134,6 +133,7 @@ export function MetricToolbar({
               expression={visualize.expression.text}
               referenceMap={referenceMap}
               handleExpressionChange={handleExpressionChange}
+              onReferenceLabelsChange={handleReferenceLabelsChange}
             />
           ) : null}
           {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
@@ -184,6 +184,7 @@ export function MetricToolbar({
           expression={visualize.expression.text}
           referenceMap={referenceMap}
           handleExpressionChange={handleExpressionChange}
+          onReferenceLabelsChange={handleReferenceLabelsChange}
         />
       ) : null}
       {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
