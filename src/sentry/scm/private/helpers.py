@@ -1,3 +1,5 @@
+from typing import cast
+
 import sentry_sdk
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
@@ -51,15 +53,21 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
     except RepositoryModel.DoesNotExist:
         return None
 
-    return {
-        "external_id": repo.external_id,
-        "id": repo.id,
-        "integration_id": repo.integration_id,
-        "is_active": repo.status == ObjectStatus.ACTIVE,
-        "name": repo.name,
-        "organization_id": repo.organization_id,
-        "provider_name": repo.provider.removeprefix("integrations:"),
-    }
+    provider = repo.provider
+    assert isinstance(provider, str)
+
+    return cast(
+        Repository,
+        {
+            "external_id": repo.external_id,
+            "id": repo.id,
+            "integration_id": repo.integration_id,
+            "is_active": repo.status == ObjectStatus.ACTIVE,
+            "name": repo.name,
+            "organization_id": repo.organization_id,
+            "provider_name": provider.removeprefix("integrations:"),
+        },
+    )
 
 
 def report_error_to_sentry(e: Exception) -> None:

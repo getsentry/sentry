@@ -14,6 +14,7 @@ from collections.abc import Callable
 from typing import assert_never, cast
 
 import msgspec
+from scm.types import CheckRunAction, CommentAction, CommentType, ProviderName, PullRequestAction
 
 from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
@@ -24,16 +25,11 @@ from sentry.scm.private.helpers import (
 )
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
-    CheckRunAction,
     CheckRunEvent,
-    CommentAction,
     CommentEvent,
-    CommentType,
     EventType,
     EventTypeHint,
     HybridCloudSilo,
-    ProviderName,
-    PullRequestAction,
     PullRequestEvent,
     SubscriptionEvent,
 )

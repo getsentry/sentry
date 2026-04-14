@@ -9,7 +9,7 @@ def new(organization_id: int, repository_id: RepositoryId, referrer: Referrer) -
     return SourceCodeManager.make_from_repository_id(
         organization_id,
         repository_id,
-        referrer,
+        referrer=referrer,
         fetch_repository=fetch_repository,
         fetch_provider=fetch_service_provider,
         record_count=record_count_metric,

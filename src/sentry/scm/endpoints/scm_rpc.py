@@ -15,7 +15,7 @@ from sentry.scm.private.helpers import (
 )
 
 server = RpcServer(
-    secrets=settings.SCM_RPC_SHARED_SECRET,
+    secrets=settings.SCM_RPC_SHARED_SECRET or [],
     fetch_repository=fetch_repository,
     fetch_provider=fetch_service_provider,
     record_count=record_count_metric,
@@ -38,10 +38,10 @@ class ScmRpcServiceEndpoint(Endpoint):
 
     @sentry_sdk.trace
     def get(self, request: Request) -> HttpResponse:
-        resp = server.get(headers=request.headers)
+        resp = server.get(headers={k: v for k, v in request.headers.items()})
         return HttpResponse(content=resp.content, status=resp.status_code, headers=resp.headers)
 
     @sentry_sdk.trace
     def post(self, request: Request) -> StreamingHttpResponse:
-        resp = server.post(data=request.body, headers=request.headers)
+        resp = server.post(request.body, headers={k: v for k, v in request.headers.items()})
         return StreamingHttpResponse(resp.content, status=resp.status_code, headers=resp.headers)
