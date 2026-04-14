@@ -13,9 +13,10 @@ RECOVERABLE_RETRY_MAX_SECONDS = 300
 
 
 class ExportError(Exception):
-    def __init__(self, message: str, recoverable: bool = False) -> None:
+    def __init__(self, message: str, recoverable: bool = False, delay_retry: bool = False) -> None:
         super().__init__(message)
         self.recoverable = recoverable
+        self.delay_retry = delay_retry
 
 
 class ExportStatus(str, Enum):

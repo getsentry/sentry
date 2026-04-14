@@ -222,6 +222,7 @@ def _schedule_retry(
     export_retries: int,
     page_token: str | None,
     last_emitted_item_id_hex: str | None,
+    delay_retry: bool = False,
 ) -> None:
     assemble_download.apply_async(
         args=[data_export_id],
@@ -235,7 +236,7 @@ def _schedule_retry(
             "page_token": page_token,
             "last_emitted_item_id_hex": last_emitted_item_id_hex,
         },
-        countdown=recoverable_retry_countdown(export_retries),
+        countdown=recoverable_retry_countdown(export_retries) if delay_retry else None,
     )
 
 
@@ -359,6 +360,7 @@ def assemble_download(
                     export_retries=export_retries,
                     page_token=page_token,
                     last_emitted_item_id_hex=last_emitted_item_id_hex,
+                    delay_retry=error.delay_retry,
                 )
             else:
                 metrics.incr(

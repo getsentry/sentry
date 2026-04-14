@@ -48,6 +48,7 @@ def handle_snuba_errors(
                 capture_exception(error)
                 message = "Internal error. Please try again."
                 recoverable = False
+                delay_retry = False
                 if isinstance(
                     error,
                     (
@@ -60,6 +61,16 @@ def handle_snuba_errors(
                 ):
                     message = TIMEOUT_ERROR_MESSAGE
                     recoverable = True
+
+                if isinstance(
+                    error,
+                    (
+                        snuba.RateLimitExceeded,
+                        snuba.QueryTooManySimultaneous,
+                        SnubaRPCRateLimitExceeded,
+                    ),
+                ):
+                    delay_retry = True
                 elif isinstance(
                     error,
                     (
@@ -72,7 +83,7 @@ def handle_snuba_errors(
                     ),
                 ):
                     message = "Internal error. Your query failed to run."
-                raise ExportError(message, recoverable=recoverable)
+                raise ExportError(message, recoverable=recoverable, delay_retry=delay_retry)
 
         return wrapped
 
