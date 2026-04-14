@@ -30,6 +30,10 @@ import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eve
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
+import {
+  AndroidNativeTombstonesBanner,
+  shouldShowTombstonesBanner,
+} from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {Exception} from 'sentry/components/events/interfaces/exception';
@@ -79,6 +83,7 @@ import {InstrumentationFixSection} from 'sentry/views/issueDetails/streamline/in
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/sizeAnalysisTriggeredSection';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -118,6 +123,7 @@ export function EventDetailsContent({
       : null;
   const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
+  const isSampleError = useIsSampleEvent();
 
   useCopyIssueDetails(group, event);
 
@@ -184,6 +190,14 @@ export function EventDetailsContent({
                 display: block !important;
               `}
             >
+              {shouldShowTombstonesBanner(event) && !isSampleError && (
+                <ErrorBoundary mini>
+                  <AndroidNativeTombstonesBanner
+                    event={event}
+                    projectId={group?.project.id ?? event.projectID ?? ''}
+                  />
+                </ErrorBoundary>
+              )}
               {defined(eventEntries[EntryType.EXCEPTION]) && (
                 <EntryErrorBoundary type={EntryType.EXCEPTION}>
                   {shouldUseNewStackTrace ? (

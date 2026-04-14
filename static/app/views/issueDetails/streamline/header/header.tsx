@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -192,6 +192,9 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
             >
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
+            {group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2 && (
+              <FeatureBadge type="beta" />
+            )}
           </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
@@ -411,7 +414,7 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, max-content);
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
 `;
