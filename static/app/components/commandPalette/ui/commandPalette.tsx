@@ -136,17 +136,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                     <IconDefaultsProvider size="sm">
                       {action.display.icon}
                     </IconDefaultsProvider>
-                    <Text
-                      size="sm"
-                      bold
-                      variant="primary"
-                      style={{
-                        minWidth: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                    <Text size="sm" bold variant="primary" ellipsis>
                       {action.display.label}
                     </Text>
                   </Flex>
