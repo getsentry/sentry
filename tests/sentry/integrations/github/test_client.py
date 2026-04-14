@@ -13,7 +13,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.github.client import GitHubApiClient, GitHubApiEndpoint, GitHubReaction
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
@@ -124,6 +124,18 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_check_file_tracks_check_file_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(self.github_client, "head_cached") as mock_head_cached:
+            self.github_client.check_file(self.repo, "README.md", "master")
+
+        mock_head_cached.assert_called_once_with(
+            path=f"/repos/{self.repo.name}/contents/README.md",
+            params={"ref": "master"},
+            endpoint=GitHubApiEndpoint.CHECK_FILE,
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_check_no_file(self, get_jwt) -> None:
         path = "src/santry/integrations/github/client.py"
         version = "master"
@@ -181,14 +193,14 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_last_commits_tracks_list_commits_endpoint(self, get_jwt) -> None:
+    def test_get_last_commits_tracks_get_commits_endpoint(self, get_jwt) -> None:
         with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
             self.github_client.get_last_commits(self.repo.name, "abc")
 
         mock_get_cached.assert_called_once_with(
             f"/repos/{self.repo.name}/commits",
             params={"sha": "abc"},
-            endpoint="list_commits",
+            endpoint=GitHubApiEndpoint.GET_COMMITS,
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

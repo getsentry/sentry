@@ -96,8 +96,9 @@ class GitHubReaction(StrEnum):
 
 class GitHubApiEndpoint(StrEnum):
     COMPARE_COMMITS = "compare_commits"
-    LIST_COMMITS = "list_commits"
+    GET_COMMITS = "get_commits"
     GET_COMMIT = "get_commit"
+    CHECK_FILE = "check_file"
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -351,7 +352,7 @@ class GitHubBaseClient(
         return self.get_cached(
             f"/repos/{repo}/commits",
             params={"sha": end_sha},
-            endpoint=GitHubApiEndpoint.LIST_COMMITS,
+            endpoint=GitHubApiEndpoint.GET_COMMITS,
         )
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
@@ -375,7 +376,7 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits", endpoint=GitHubApiEndpoint.LIST_COMMITS)
+        return self.get(f"/repos/{repo}/commits", endpoint=GitHubApiEndpoint.GET_COMMITS)
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
@@ -778,7 +779,11 @@ class GitHubBaseClient(
         return self._get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
+        return self.head_cached(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": version},
+            endpoint=GitHubApiEndpoint.CHECK_FILE,
+        )
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
