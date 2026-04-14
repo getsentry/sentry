@@ -50,7 +50,12 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerPanel() {
-  const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
+  const {
+    isOpen: isVisible,
+    openExplorerPanel,
+    isMinimized,
+    setIsMinimized,
+  } = useExplorerPanel();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -61,7 +66,6 @@ export function ExplorerPanel() {
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -132,7 +136,7 @@ export function ExplorerPanel() {
     switchToRun,
     sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
-    onUnminimize: useCallback(() => setIsMinimized(false), []),
+    onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]),
   });
 
   // Extract repo_pr_states from session
@@ -184,7 +188,20 @@ export function ExplorerPanel() {
         textareaRef.current?.focus();
       }, 100);
     }
-  }, [isVisible]);
+  }, [isVisible, setIsMinimized]);
+
+  // Focus textarea whenever the panel transitions from minimized → unminimized
+  const prevIsMinimizedRef = useRef(isMinimized);
+  useEffect(() => {
+    if (prevIsMinimizedRef.current && !isMinimized) {
+      allowHoverFocusChange.current = false;
+      setTimeout(() => {
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+      }, 100);
+    }
+    prevIsMinimizedRef.current = isMinimized;
+  }, [isMinimized]);
 
   // Detect clicks outside the panel to minimize it (but not when seer drawer is open)
   useEffect(() => {
@@ -202,7 +219,7 @@ export function ExplorerPanel() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen]);
+  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen, setIsMinimized]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -384,7 +401,7 @@ export function ExplorerPanel() {
   const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
     closeMenu();
-  }, [closeMenu]);
+  }, [closeMenu, setIsMinimized]);
 
   // Close menu when clicking outside of it
   useEffect(() => {
@@ -424,21 +441,8 @@ export function ExplorerPanel() {
 
   const handleUnminimize = useCallback(() => {
     setIsMinimized(false);
-    // Disable hover focus changes until mouse actually moves
-    allowHoverFocusChange.current = false;
-    // Restore focus to the previously focused block if it exists and is valid
-    if (focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
-      setTimeout(() => {
-        blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
-      }, 100);
-    } else {
-      // No valid block focus, focus input
-      setTimeout(() => {
-        setFocusedBlockIndex(-1);
-        textareaRef.current?.focus();
-      }, 100);
-    }
-  }, [focusedBlockIndex, blocks.length]);
+    // focus/scroll side-effects are handled by the prevIsMinimizedRef effect above
+  }, [setIsMinimized]);
 
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
@@ -527,6 +531,7 @@ export function ExplorerPanel() {
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,
+    setIsMinimized,
   ]);
 
   useBlockNavigation({
@@ -710,7 +715,6 @@ export function ExplorerPanel() {
       <InputSection
         blocks={blocks}
         enabled={!readOnly}
-        focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
         wasJustInterrupted={wasJustInterrupted}
