@@ -347,7 +347,7 @@ def stacktrace_exceeds_limits(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
-    model_version: GroupingVersion | None = None,
+    model_version: GroupingVersion,
 ) -> bool:
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.

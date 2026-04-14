@@ -886,7 +886,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should pass because string length (50 chars) < max_token_count (10000)
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_blocks_when_token_count_exceeds_limit(self) -> None:
         """
@@ -902,7 +907,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should be blocked because token count will exceed 100
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is True
+            )
 
     def test_passes_when_string_long_but_tokens_under_limit(self) -> None:
         """
@@ -922,7 +932,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should pass because token count is under the limit despite long string
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_uses_cached_stacktrace_string(self) -> None:
         """
@@ -937,7 +952,9 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             with patch("sentry.seer.similarity.utils.get_stacktrace_string") as mock_get_stacktrace:
-                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
                 # Should not call get_stacktrace_string since we have cached value
                 mock_get_stacktrace.assert_not_called()
 
@@ -955,7 +972,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # No cached stacktrace_string, so it should generate one
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
         """
@@ -973,7 +995,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             assert isinstance(contributing_variant, CustomFingerprintVariant)
 
             # Should return False because it's not grouped on stacktrace
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_bypassed_platforms_always_pass_for_v1(self) -> None:
         """
@@ -995,10 +1022,6 @@ class StacktraceExceedsLimitsTest(TestCase):
                         self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
                     )
                     is False
-                )
-                # Also passes when no model version is specified (backward compat)
-                assert (
-                    stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
                 )
 
     def _assert_bypassed_platforms_are_checked(self, model_version: GroupingVersion) -> None:
