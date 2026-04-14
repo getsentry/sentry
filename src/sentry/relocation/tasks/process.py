@@ -338,8 +338,8 @@ def fulfill_cross_region_export_request(
     logger_data = {
         "uuid": uuid_str,
         "task": "fulfill_cross_region_export_request",
-        "requesting_region_name": requesting_cell_name,
-        "replying_region_name": replying_cell_name,
+        "requesting_cell_name": requesting_cell_name,
+        "replying_cell_name": replying_cell_name,
         "org_slug": org_slug,
         "encrypted_public_key_size": len(encrypt_with_public_key_bytes),
         "scheduled_at": scheduled_at,
