@@ -240,7 +240,10 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
 
     metric_query: str | None = None
     metric_sort_bys: list[str] = []
-    for metric_json in raw_query.getlist("metric"):
+    # Each metric param is a self-contained chart config. We only render one
+    # chart per unfurl, so process only the first metric entry.
+    metric_json = raw_query.getlist("metric")[0] if raw_query.getlist("metric") else None
+    if metric_json:
         try:
             metric_parsed = json.loads(metric_json)
             for agg_field in metric_parsed.get("aggregateFields", []):
@@ -253,10 +256,9 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
                 kind = sort_by.get("kind", "desc")
                 if field:
                     metric_sort_bys.append(f"-{field}" if kind == "desc" else field)
-            if metric_query is None:
-                metric_query = metric_parsed.get("query") or None
+            metric_query = metric_parsed.get("query") or None
         except (json.JSONDecodeError, TypeError):
-            continue
+            pass
 
     visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     for field_json in visualize_fields:
