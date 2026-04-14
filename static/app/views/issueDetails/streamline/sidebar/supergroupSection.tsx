@@ -35,15 +35,10 @@ export function SupergroupSection({group}: SupergroupSectionProps) {
   const issueCount = supergroup.group_ids.length;
 
   const handleClick = () => {
-    openDrawer(
-      () => (
-        <SupergroupDetailDrawer supergroup={supergroup} matchedGroupIds={[group.id]} />
-      ),
-      {
-        ariaLabel: t('Supergroup details'),
-        drawerKey: 'supergroup-drawer',
-      }
-    );
+    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
+      ariaLabel: t('Supergroup details'),
+      drawerKey: 'supergroup-drawer',
+    });
   };
 
   return (

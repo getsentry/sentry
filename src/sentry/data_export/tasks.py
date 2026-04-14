@@ -56,6 +56,10 @@ class AssembleChunkResult(NamedTuple):
     bytes_written_after_chunk: int
 
 
+class ExportDataFileTooBig(Exception):
+    pass
+
+
 def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     dataset = data_export.query_info.get("dataset", "None")
     return {
@@ -131,17 +135,17 @@ def _should_stop_fetching_more_fragments(
     return False
 
 
-def _write_exported_chunk_to_blob(
+def export_chunk_to_stored_blobs(
     *,
     data_export: ExportedData,
     export_limit: int,
-    batch_size: int,
-    offset: int,
-    bytes_written: int,
     environment_id: int | None,
-    page_token: str | None,
-    last_emitted_item_id_hex: str | None,
-    first_page: bool,
+    last_emitted_item_id_hex: str | None = None,
+    first_page: bool = True,
+    page_token: str | None = None,
+    offset: int = 0,
+    bytes_written: int = 0,
+    batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
     output_mode = OutputMode.from_value(data_export.export_format)
@@ -298,7 +302,6 @@ def assemble_download(
     *,
     page_token: str | None = None,
     last_emitted_item_id_hex: str | None = None,
-    run_sync: bool = False,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -321,7 +324,7 @@ def assemble_download(
         export_limit = _normalize_export_limit(export_limit)
 
         try:
-            chunk = _write_exported_chunk_to_blob(
+            chunk = export_chunk_to_stored_blobs(
                 data_export=data_export,
                 export_limit=export_limit,
                 batch_size=batch_size,
@@ -383,6 +386,44 @@ def assemble_download(
                 environment_id=environment_id,
                 export_retries=export_retries,
             )
+
+
+def export_data_to_stored_blobs_sync(
+    data_export: ExportedData,
+    export_limit: int,
+    environment_id: int | None,
+) -> None:
+    extra: dict[str, Any] = {
+        "data_export_id": data_export.id,
+        "query": str(data_export.payload),
+        "organization_id": data_export.organization_id,
+        "download_type": "sync",
+    }
+    sentry_sdk.set_tag("download_type", "sync")
+    sentry_sdk.set_context("data_export", extra)
+
+    try:
+        export_chunk_to_stored_blobs(
+            data_export=data_export,
+            export_limit=export_limit,
+            environment_id=environment_id,
+        )
+        merge_export_blobs(data_export_id=data_export.id, email_notif=False)
+    except Exception as error:
+        metrics.incr(
+            "dataexport.error",
+            tags={
+                **_export_metric_tags(data_export),
+                "error": str(error),
+                "download_type": "sync",
+                "error_type": "ExportError"
+                if isinstance(error, ExportError)
+                else type(error).__name__,
+            },
+            sample_rate=1.0,
+        )
+        logger.exception("export_data_sync", extra=extra)
+        raise
 
 
 def get_processor(
@@ -480,10 +521,6 @@ def process_explore(
     return processor.run_query(offset, limit)
 
 
-class ExportDataFileTooBig(Exception):
-    pass
-
-
 def store_export_chunk_as_blob(
     data_export: ExportedData,
     bytes_written: int,
@@ -526,7 +563,7 @@ def store_export_chunk_as_blob(
     namespace=export_tasks,
     silo_mode=SiloMode.CELL,
 )
-def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
+def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwargs: Any) -> None:
     extra: dict[str, Any] = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="merge"):
         try:
@@ -585,7 +622,7 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                 # takes longer than the idle timeout, the connection to the primary
                 # database can timeout causing a failure.
                 with atomic_transaction(using=router.db_for_write(ExportedData)):
-                    data_export.finalize_upload(file=file)
+                    data_export.finalize_upload(file=file, email_notif=email_notif)
 
                 time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
                 metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)

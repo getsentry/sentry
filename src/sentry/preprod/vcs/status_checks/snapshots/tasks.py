@@ -12,6 +12,7 @@ from sentry.preprod.models import (
     PreprodComparisonApproval,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.tasks import (
     GITHUB_STATUS_CHECK_STATUS_MAPPING,
@@ -147,7 +148,7 @@ def create_preprod_snapshot_status_check_task(
     is_solo = not base_artifact_map
 
     if not is_solo:
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             all_artifacts,
             snapshot_metrics_map,
             comparisons_map,
@@ -313,40 +314,6 @@ def create_preprod_snapshot_status_check_task(
             "organization_slug": preprod_artifact.project.organization.slug,
         },
     )
-
-
-def _comparison_has_changes(
-    comparison: PreprodSnapshotComparison,
-    fail_on_added: bool = False,
-    fail_on_removed: bool = True,
-) -> bool:
-    return (
-        comparison.images_changed > 0
-        or comparison.images_renamed > 0
-        or (fail_on_added and comparison.images_added > 0)
-        or (fail_on_removed and comparison.images_removed > 0)
-    )
-
-
-def _build_changes_map(
-    artifacts: list[PreprodArtifact],
-    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
-    comparisons_map: dict[int, PreprodSnapshotComparison],
-    fail_on_added: bool = False,
-    fail_on_removed: bool = True,
-) -> dict[int, bool]:
-    changes_map: dict[int, bool] = {}
-    for artifact in artifacts:
-        metrics = snapshot_metrics_map.get(artifact.id)
-        if not metrics:
-            continue
-        comparison = comparisons_map.get(metrics.id)
-        if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
-            continue
-        changes_map[artifact.id] = _comparison_has_changes(
-            comparison, fail_on_added, fail_on_removed
-        )
-    return changes_map
 
 
 def _compute_snapshot_status(

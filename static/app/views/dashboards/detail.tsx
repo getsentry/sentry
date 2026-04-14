@@ -53,7 +53,6 @@ import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -61,12 +60,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRouter} from 'sentry/utils/useRouter';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {
   cloneDashboard,
   getCurrentPageFilters,
   getMergedDashboardFilters,
   hasUnsavedFilterChanges,
-  isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -83,8 +82,6 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
@@ -1176,10 +1173,6 @@ class DashboardDetail extends Component<Props, State> {
 
     const eventView = generatePerformanceEventView(location, projects, {});
 
-    const isDashboardUsingTransaction = dashboard.widgets.some(
-      isWidgetUsingTransactionName
-    );
-
     const pageContent = (
       <Stack flex={1}>
         <OnDemandControlProvider location={location}>
@@ -1263,15 +1256,6 @@ class DashboardDetail extends Component<Props, State> {
                           location={location}
                           forceTransactions={metricsDataSide.forceTransactionsOnly}
                         >
-                          {isDashboardUsingTransaction ? (
-                            <MetricsDataSwitcherAlert
-                              organization={organization}
-                              eventView={eventView}
-                              projects={projects}
-                              source={DiscoverQueryPageSource.DISCOVER}
-                              {...metricsDataSide}
-                            />
-                          ) : null}
                           <FiltersBar
                             dashboard={modifiedDashboard ?? dashboard}
                             filters={(modifiedDashboard ?? dashboard).filters}
@@ -1535,7 +1519,7 @@ export function DashboardDetailWithInjectedProps(
   const location = useLocation();
   const params = useParams<RouteParams>();
   const router = useRouter();
-  const [chartInterval] = useChartInterval();
+  const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const hasPageFrameFeature = useHasPageFrameFeature();
   // Always use the validated chart interval so the UI dropdown and widget

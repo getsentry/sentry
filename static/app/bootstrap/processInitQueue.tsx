@@ -4,7 +4,7 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
