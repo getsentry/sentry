@@ -2796,3 +2796,32 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         )
         assert resp.status_code == 400
         assert resp.data["status"] == "error"
+
+    @responses.activate
+    def test_initialize_with_installation_id_binds_to_state(self) -> None:
+        """When the GitHub app is installed from github.com the redirect
+        includes an installation_id. This verifies that passing it as
+        initialData during pipeline initialization binds it to pipeline
+        state so that subsequent steps can use it."""
+        resp = self.client.post(
+            self._get_pipeline_url(),
+            data={
+                "action": "initialize",
+                "provider": "github",
+                # The frontend sends installation_id as snake_case, which
+                # passes through CamelSnakeSerializer unchanged.
+                # TODO(epurkhiser): Change the frontend to send
+                # installationId (camelCase) once the API-driven github
+                # pipeline is fully rolled out and the legacy popup flow is
+                # removed.
+                "initialData": {"installation_id": self.installation_id},
+            },
+            format="json",
+        )
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+
+        # Verify installation_id was bound to the pipeline session
+        pipeline = IntegrationPipeline.get_for_request(resp.wsgi_request)
+        assert pipeline is not None
+        assert pipeline.fetch_state("installation_id") == self.installation_id
