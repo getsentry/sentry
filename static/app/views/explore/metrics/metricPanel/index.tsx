@@ -82,12 +82,12 @@ export function MetricPanel({
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
 
-  const areQueriesDisabled = isVisualizeFunction(visualize)
+  const areQueriesEnabled = isVisualizeFunction(visualize)
     ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
-    : isVisualizeEquation(visualize) && !visualize.expression.text;
+    : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
 
   const metricSamplesTableResult = useMetricSamplesTable({
-    disabled: areQueriesDisabled,
+    disabled: !areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
@@ -95,7 +95,7 @@ export function MetricPanel({
   });
 
   const metricAggregatesTableResult = useMetricAggregatesTable({
-    enabled: !areQueriesDisabled,
+    enabled: areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
   });
