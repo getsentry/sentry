@@ -129,7 +129,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [groupBys.length, columns, visualize]);
 
   // Include the virtual metric name column in the group-by count so grid/divider logic works
-  const groupByFieldCount = groupBys.length === 0 ? 1 : groupBys.length;
+  const groupByFieldCount =
+    groupBys.length === 0 && isVisualizeFunction(visualize) ? 1 : groupBys.length;
   const aggregateFieldCount = displayFields.length - groupByFieldCount;
 
   const tableStyle = useMemo(() => {

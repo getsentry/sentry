@@ -133,11 +133,13 @@ function useMetricAggregatesTableImp({
 
   const result = useSpansQuery({
     enabled:
-      enabled && fields.length > 0 && isEquation
+      enabled &&
+      fields.length > 0 &&
+      (isEquation
         ? visualizes.every(
             visualize => isVisualizeEquation(visualize) && visualize.expression.text
           )
-        : Boolean(traceMetric.name),
+        : Boolean(traceMetric.name)),
     eventView,
     initialData: [],
     limit,
