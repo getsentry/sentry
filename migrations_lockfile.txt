@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0006_add_night_shift_models
 
-sentry: 1067_add_dashboard_revision_model
+sentry: 1068_rename_relocationtransfer_region_to_cell
 
 social_auth: 0003_social_auth_json_field
 

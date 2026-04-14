@@ -403,8 +403,8 @@ def fulfill_cross_region_export_request(
     # Save a transfer record to move the export to control silo
     transfer = RegionRelocationTransfer.objects.create(
         relocation_uuid=uuid_str,
-        requesting_region=requesting_cell_name,
-        exporting_region=replying_cell_name,
+        requesting_cell=requesting_cell_name,
+        exporting_cell=replying_cell_name,
         org_slug=org_slug,
         state=RelocationTransferState.Reply,
         # Set next runtime in the future to reduce races with scheduled tasks

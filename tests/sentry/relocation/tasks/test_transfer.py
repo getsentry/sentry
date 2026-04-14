@@ -38,7 +38,7 @@ def create_control_relocation_transfer(organization: Organization, **kwargs):
         kwargs["state"] = RelocationTransferState.Request
 
     return ControlRelocationTransfer.objects.create(
-        org_slug=organization.slug, requesting_region="de", exporting_region="us", **kwargs
+        org_slug=organization.slug, requesting_cell="de", exporting_cell="us", **kwargs
     )
 
 
@@ -49,7 +49,7 @@ def create_cell_relocation_transfer(organization: Organization, **kwargs):
         kwargs["state"] = RelocationTransferState.Request
 
     return RegionRelocationTransfer.objects.create(
-        org_slug=organization.slug, requesting_region="de", exporting_region="us", **kwargs
+        org_slug=organization.slug, requesting_cell="de", exporting_cell="us", **kwargs
     )
 
 
@@ -224,6 +224,6 @@ class ProcessRelocationTransferRegionTest(TestCase):
             assert ControlRelocationTransfer.objects.filter(
                 state=RelocationTransferState.Reply,
                 org_slug=organization.slug,
-                exporting_region=transfer.exporting_region,
-                requesting_region=transfer.requesting_region,
+                exporting_cell=transfer.exporting_cell,
+                requesting_cell=transfer.requesting_cell,
             ).exists()
