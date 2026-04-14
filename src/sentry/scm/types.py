@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from scm.types import (
     CheckRunAction,
@@ -154,3 +154,5 @@ class PullRequestEvent:
 
 
 type EventType = CheckRunEvent | CommentEvent | PullRequestEvent
+type EventTypeHint = Literal["check_run", "comment", "pull_request"]
+type HybridCloudSilo = Literal["control", "region"]

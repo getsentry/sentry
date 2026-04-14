@@ -1,29 +1,29 @@
-from collections.abc import Callable
-
+import sentry_sdk
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
+from scm.rate_limit import RateLimitProvider
+from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError
-from sentry.scm.private.rate_limit import RateLimitProvider, RedisRateLimitProvider
-from sentry.scm.types import ExternalId, Provider, ProviderName, Repository
+from sentry.scm.private.rate_limit import RedisRateLimitProvider
+from sentry.utils import metrics
 
 
-def map_integration_to_provider(
+def fetch_service_provider(
     organization_id: int,
-    integration: Integration | RpcIntegration,
     repository: Repository,
-    get_installation: Callable[
-        [Integration | RpcIntegration, int], IntegrationInstallation
-    ] = lambda i, oid: i.get_installation(organization_id=oid),
     rate_limit_provider: RateLimitProvider | None = None,
-) -> Provider:
-    client = get_installation(integration, organization_id).get_client()
+) -> Provider | None:
+    integration = integration_service.get_integration(
+        integration_id=repository["integration_id"],
+        organization_id=organization_id,
+    )
+    if not integration:
+        return None
+
+    client = integration.get_installation(organization_id=organization_id).get_client()
 
     if integration.provider == "github":
         return GitHubProvider(
@@ -35,38 +35,10 @@ def map_integration_to_provider(
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     else:
-        raise SCMCodedError(integration.provider, code="unsupported_integration")
+        return None
 
 
-def map_repository_model_to_repository(repository: RepositoryModel) -> Repository:
-    return {
-        "external_id": repository.external_id,
-        "id": repository.id,
-        "integration_id": repository.integration_id,
-        "is_active": repository.status == ObjectStatus.ACTIVE,
-        "name": repository.name,
-        "organization_id": repository.organization_id,
-        "provider_name": repository.provider.removeprefix("integrations:"),
-    }
-
-
-def fetch_service_provider(
-    organization_id: int,
-    repository: Repository,
-    map_to_provider: Callable[[Integration | RpcIntegration, int, Repository], Provider] = lambda i,
-    oid,
-    r: map_integration_to_provider(oid, i, r),
-) -> Provider | None:
-    integration = integration_service.get_integration(
-        integration_id=repository["integration_id"],
-        organization_id=organization_id,
-    )
-    return map_to_provider(integration, organization_id, repository) if integration else None
-
-
-def fetch_repository(
-    organization_id: int, repository_id: int | tuple[ProviderName, ExternalId]
-) -> Repository | None:
+def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repository | None:
     try:
         if isinstance(repository_id, int):
             repo = RepositoryModel.objects.get(organization_id=organization_id, id=repository_id)
@@ -79,4 +51,32 @@ def fetch_repository(
     except RepositoryModel.DoesNotExist:
         return None
 
-    return map_repository_model_to_repository(repo)
+    return {
+        "external_id": repo.external_id,
+        "id": repo.id,
+        "integration_id": repo.integration_id,
+        "is_active": repo.status == ObjectStatus.ACTIVE,
+        "name": repo.name,
+        "organization_id": repo.organization_id,
+        "provider_name": repo.provider.removeprefix("integrations:"),
+    }
+
+
+def report_error_to_sentry(e: Exception) -> None:
+    """Typing wrapper around sentry_sdk.capture_exception."""
+    sentry_sdk.capture_exception(e)
+
+
+def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.incr."""
+    metrics.incr(key, amount, tags=tags)
+
+
+def record_distribution_metric(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags, unit=unit)
+
+
+def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
+    """Typing wrapper around metrics.distribution."""
+    metrics.distribution(key, amount, tags=tags)

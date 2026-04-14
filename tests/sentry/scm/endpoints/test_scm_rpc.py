@@ -53,7 +53,7 @@ class DjangoTestClientSessionAdapter:
     def get(self, url, headers=None):
         return self._convert(self._client.get(url, headers=headers))
 
-    def post(self, url, data=None, headers=None, stream=False):
+    def post(self, url, data=None, headers=None):
         h = dict(headers) if headers else {}
         content_type = h.pop("Content-Type", "application/octet-stream")
         return self._convert(
@@ -82,9 +82,9 @@ class TestScmRpc(APITestCase):
         self.rpc_client = SourceCodeManager.make_from_repository_id(
             self.organization.id,
             self.repo.id,
-            fetch_base_url=lambda: "",
-            fetch_signing_secret=lambda: "a-long-value-that-is-hard-to-guess",
-            session_override=DjangoTestClientSessionAdapter(self.client),
+            base_url="",
+            signing_secret="a-long-value-that-is-hard-to-guess",
+            session=lambda: DjangoTestClientSessionAdapter(self.client),
         )
 
         self.default_headers = {

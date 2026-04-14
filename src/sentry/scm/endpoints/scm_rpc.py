@@ -7,14 +7,19 @@ from scm.rpc.server import RpcServer
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
-from sentry.scm.private.helpers import fetch_repository, fetch_service_provider
-from sentry.scm.private.ipc import record_count_metric
+from sentry.scm.private.helpers import (
+    fetch_repository,
+    fetch_service_provider,
+    record_count_metric,
+    report_error_to_sentry,
+)
 
 server = RpcServer(
     secrets=settings.SCM_RPC_SHARED_SECRET,
     fetch_repository=fetch_repository,
     fetch_provider=fetch_service_provider,
     record_count=record_count_metric,
+    emit_error=report_error_to_sentry,
 )
 
 

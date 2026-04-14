@@ -2207,6 +2207,7 @@ dependencies = [
     { name = "sentry-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-redis-tools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-relay", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "sentry-scm", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-sdk", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-usage-accountant", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "setuptools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2375,6 +2376,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.8.10" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.25" },
+    { name = "sentry-scm", specifier = ">=0.1.7" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2579,6 +2581,18 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.25-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:bf24643f7979a73e0c906e9508c1abc3607c4fdea5466144a4aa5dc90d755f66" },
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.25-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:b82840f258aa0cfe819db585df26e0a7fb88f75a99d0786b752db4a6904d414b" },
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.25-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b2163d80ae6fea052e8e7444e16dfdd25a5e7ce02f8625a433cfe739da96a262" },
+]
+
+[[package]]
+name = "sentry-scm"
+version = "0.1.7"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "msgspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.1.7-py3-none-any.whl", hash = "sha256:afed9d4087b98ce29b1c6ea08266149bf68e0fe72806765889690ecae270c847" },
 ]
 
 [[package]]
