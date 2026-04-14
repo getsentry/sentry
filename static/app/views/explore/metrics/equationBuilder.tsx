@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useTransition} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useTransition} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
@@ -8,7 +8,6 @@ import {
   isTokenReference,
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
 /**
  * Takes an expression and map of references and returns the internal string representation that uses the references.
@@ -79,12 +78,33 @@ export function EquationBuilder({
   referenceMap?: Record<string, string>;
 }) {
   const [_, startTransition] = useTransition();
-  const prevReferenceMap = usePrevious(referenceMap);
   const references = useMemo(
     () => new Set(Object.keys(referenceMap ?? {})),
     [referenceMap]
   );
-  const internalExpression = unresolveExpression(expression, referenceMap);
+
+  // Tracks the reference map that `expression` was last resolved against.
+  // When referenceMap changes externally, expression still contains values
+  // resolved against the previous map until we re-resolve and the parent updates.
+  const expressionMapRef = useRef(referenceMap);
+  const mapChanged = !isEqual(expressionMapRef.current, referenceMap);
+
+  const internalExpression = unresolveExpression(
+    expression,
+    mapChanged ? expressionMapRef.current : referenceMap
+  );
+
+  // When the reference map changes, re-resolve the expression and notify the parent.
+  useEffect(() => {
+    if (!isEqual(expressionMapRef.current, referenceMap)) {
+      const expr = new Expression(
+        internalExpression,
+        new Set(Object.keys(expressionMapRef.current ?? {}))
+      );
+      handleExpressionChange(resolveExpression(expr, referenceMap));
+      expressionMapRef.current = referenceMap;
+    }
+  }, [referenceMap, internalExpression, handleExpressionChange]);
 
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -94,18 +114,6 @@ export function EquationBuilder({
     },
     [handleExpressionChange, referenceMap]
   );
-
-  // Trigger the expression change when the reference map changes to ensure the query is showing the correct data
-  useEffect(() => {
-    if (!isEqual(prevReferenceMap, referenceMap)) {
-      const internalRepresentation = unresolveExpression(expression, prevReferenceMap);
-      const expr = new Expression(
-        internalRepresentation,
-        new Set(Object.keys(prevReferenceMap ?? {}))
-      );
-      handleExpressionChange(resolveExpression(expr, referenceMap));
-    }
-  }, [prevReferenceMap, referenceMap, expression, handleExpressionChange]);
 
   return (
     <ArithmeticBuilder
