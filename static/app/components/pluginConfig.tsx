@@ -199,7 +199,7 @@ export function PluginConfig({
     initialValues[field.name] = isSelect && field.value === '' ? null : field.value;
   }
 
-  const testMutation = useMutation<PluginTestResponse>({
+  const testMutation = useMutation({
     mutationFn: () => {
       addLoadingMessage(t('Sending test...'));
       return fetchMutation<PluginTestResponse>({
