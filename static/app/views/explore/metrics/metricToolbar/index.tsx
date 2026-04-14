@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -57,6 +57,25 @@ export function MetricToolbar({
   const canRemoveMetric =
     metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)).length >
       1 || isVisualizeEquation(visualize);
+
+  // A metric function cannot be deleted if it is referenced by any equation
+  const isReferencedByEquation = useMemo(() => {
+    if (!referenceMap || !isVisualizeFunction(visualize)) {
+      return false;
+    }
+    const functionString = referenceMap[queryLabel];
+    if (!functionString) {
+      return false;
+    }
+    return metricQueries.some(q => {
+      const v = q.queryParams.visualizes[0];
+      return (
+        v &&
+        isVisualizeEquation(v) &&
+        v.expression.tokens.some(token => token.text === functionString)
+      );
+    });
+  }, [metricQueries, referenceMap, queryLabel, visualize]);
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -117,7 +136,7 @@ export function MetricToolbar({
               handleExpressionChange={handleExpressionChange}
             />
           ) : null}
-          {canRemoveMetric && <DeleteMetricButton />}
+          {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>
         {isNarrow && isVisualizeFunction(visualize) && (
           <Filter traceMetric={traceMetric} />
@@ -167,7 +186,7 @@ export function MetricToolbar({
           handleExpressionChange={handleExpressionChange}
         />
       ) : null}
-      {canRemoveMetric && <DeleteMetricButton />}
+      {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
     </Grid>
   );
 }
