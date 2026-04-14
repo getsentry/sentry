@@ -62,6 +62,9 @@ def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
 
 
+FILTERED = "[Filtered]"
+
+
 def _parse_messages(messages: str | list | None) -> list | None:
     if not messages:
         return None
@@ -93,6 +96,8 @@ def _extract_content_from_parts(msg: dict) -> str | None:
 
 def _extract_first_user_message(messages: str | list | None) -> str | None:
     """Extract first user message, handling both old (content) and new (parts) formats."""
+    if isinstance(messages, str) and messages == FILTERED:
+        return FILTERED
     parsed = _parse_messages(messages)
     if not parsed:
         return None
@@ -135,6 +140,8 @@ def _get_last_output(row: dict) -> str | None:
     # 1. Check new format first (gen_ai.output.messages)
     output_messages = row.get("gen_ai.output.messages")
     if output_messages:
+        if output_messages == FILTERED:
+            return FILTERED
         # Extract text from the last assistant message
         parsed = _parse_messages(output_messages)
         if parsed:

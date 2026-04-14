@@ -17,13 +17,16 @@ ACTION_TYPE_TO_STRING = {
 }
 
 
-def get_resolve_threshold(condition_group: DataConditionGroup) -> float:
+def get_resolve_threshold(condition_group: DataConditionGroup) -> float | None:
     """
-    Returns the resolution threshold for a static or percent-based metric issue
+    Returns the resolution threshold for a static or percent-based metric issue,
+    or None if no resolve condition exists.
     """
-    resolve_condition = DataCondition.objects.get(
+    resolve_condition = DataCondition.objects.filter(
         condition_result=DetectorPriorityLevel.OK, condition_group=condition_group
-    )
+    ).first()
+    if resolve_condition is None:
+        return None
     return resolve_condition.comparison
 
 

@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
@@ -29,17 +30,24 @@ import {MobileBuildsChart} from './mobileBuildsChart';
 type Props = {
   organization: Organization;
   selectedProjectIds: string[];
+  defaultDisplay?: PreprodBuildsDisplay;
+  hideDisplayToggle?: boolean;
 };
 
-export function MobileBuilds({organization, selectedProjectIds}: Props) {
+export function MobileBuilds({
+  organization,
+  selectedProjectIds,
+  defaultDisplay,
+  hideDisplayToggle,
+}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const [searchQuery] = useQueryState('query', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display),
-    [location.query.display]
+    () => defaultDisplay ?? getPreprodBuildsDisplay(location.query.display),
+    [defaultDisplay, location.query.display]
   );
 
   const buildsQueryParams = useMemo(() => {
@@ -110,9 +118,13 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
   const builds = buildsResponse?.json ?? [];
   const pageLinks = buildsResponse?.headers.Link ?? undefined;
   const hasSearchQuery = !!searchQuery?.trim();
-  const showProjectColumn = selectedProjectIds.length > 1;
+  const showProjectColumn =
+    selectedProjectIds.length > 1 ||
+    (selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`);
   const projectId = selectedProjectIds[0];
   const shouldShowOnboarding =
+    activeDisplay !== PreprodBuildsDisplay.SNAPSHOT &&
     builds.length === 0 &&
     !isLoadingBuilds &&
     !buildsError &&
@@ -129,7 +141,10 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
     enabled: selectedProjectIds.length > 0,
     error: !!buildsError,
     isLoading: isLoadingBuilds,
-    pageSource: 'releases_mobile_builds_tab',
+    pageSource:
+      activeDisplay === PreprodBuildsDisplay.SNAPSHOT
+        ? 'releases_snapshots_tab'
+        : 'releases_mobile_builds_tab',
     projectCount: selectedProjectIds.length,
     searchQuery,
   });
@@ -165,6 +180,7 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
         initialQuery={searchQuery ?? ''}
         display={activeDisplay}
         projects={selectedProjectIds.map(Number)}
+        hideDisplayToggle={hideDisplayToggle}
         onSearch={handleSearch}
         onDisplayChange={handleDisplayChange}
       />
