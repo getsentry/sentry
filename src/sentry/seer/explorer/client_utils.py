@@ -56,6 +56,7 @@ class ExplorerChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
+    reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
     enable_code_mode_tools: NotRequired[bool]
