@@ -59,16 +59,16 @@ def _triage_candidates(
     """
     groups_by_id = {c.group.id: c.group for c in candidates}
 
-    client = SeerExplorerClient(
-        organization,
-        user=None,
-        category_key="night_shift",
-        category_value=f"org-{organization.id}",
-        intelligence_level="high",
-        reasoning_effort="high",
-    )
-
     try:
+        client = SeerExplorerClient(
+            organization,
+            user=None,
+            category_key="night_shift",
+            category_value=f"org-{organization.id}",
+            intelligence_level="high",
+            reasoning_effort="high",
+        )
+
         run_id = client.start_run(
             prompt=_build_triage_prompt(candidates),
             artifact_key="triage_verdicts",
