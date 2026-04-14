@@ -6,14 +6,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.sentry_apps.api.bases.sentryapps import (
-    SentryAppInstallationBaseEndpoint,
-    rpc_user_from_request,
-)
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
@@ -43,6 +41,10 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         action = data.pop("action")
         uri = data.pop("uri")
 
+        rpc_user = serialize_generic_user(request.user)
+        if rpc_user is None:
+            return Response({"detail": "Authentication credentials were not provided."}, status=401)
+
         result = sentry_app_cell_service.create_issue_link(
             organization_id=installation.organization_id,
             installation=installation,
@@ -50,7 +52,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
             action=action,
             fields=data,
             uri=uri,
-            user=rpc_user_from_request(request),
+            user=rpc_user,
         )
 
         if result.error:

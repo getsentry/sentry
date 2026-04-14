@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from rest_framework.permissions import BasePermission
@@ -30,29 +30,12 @@ from sentry.sentry_apps.utils.errors import (
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import to_single_line_str
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 logger = logging.getLogger(__name__)
-
-
-def rpc_user_from_request(request: Request) -> RpcUser:
-    """
-    Unwrap LazyObject request.user and serialize Django User to RpcUser for cell RPC calls.
-    """
-    from django.utils.functional import empty
-
-    user: Any = request.user
-    if hasattr(user, "_wrapped"):
-        if user._wrapped is empty:
-            user._setup()
-        user = user._wrapped
-    if isinstance(user, User):
-        return serialize_rpc_user(user)
-    return cast(RpcUser, user)
 
 
 def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | None) -> bool:

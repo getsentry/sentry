@@ -9,14 +9,12 @@ from sentry.api.serializers import serialize
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
-from sentry.sentry_apps.api.bases.sentryapps import (
-    rpc_user_from_request,
-)
 from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -44,6 +42,10 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         except Exception:
             return Response({"detail": "issueId is required, and must be an integer"}, status=400)
 
+        rpc_user = serialize_generic_user(request.user)
+        if rpc_user is None:
+            return Response({"detail": "Authentication credentials were not provided."}, status=401)
+
         result = sentry_app_cell_service.create_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
@@ -51,7 +53,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
             web_url=data["webUrl"],
             project=data["project"],
             identifier=data["identifier"],
-            user=rpc_user_from_request(request),
+            user=rpc_user,
         )
 
         if result.error:
