@@ -46,18 +46,27 @@ export const makeExploreCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
   });
 
   const exploreDefaults = {
-    grid: Grid({left: 5, right: 5, bottom: 5, top: 60}),
+    grid: Grid({left: 10, right: 10, bottom: 10, top: 60}),
     backgroundColor: theme.tokens.background.primary,
     legend: Legend({
       theme,
+      icon: 'roundRect',
       itemHeight: 16,
-      top: 2,
-      right: 10,
+      itemWidth: 16,
+      itemGap: 16,
+      top: 6,
+      left: 10,
+      truncate: 40,
       textStyle: {
         fontSize: EXPLORE_FONT_SIZE,
         lineHeight: EXPLORE_FONT_SIZE * 1.4,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
+      pageTextStyle: {
+        fontSize: EXPLORE_FONT_SIZE,
+        fontFamily: DEFAULT_FONT_FAMILY,
+      },
+      pageIconSize: EXPLORE_FONT_SIZE * 0.6,
     }),
     yAxis: YAxis({
       theme,
