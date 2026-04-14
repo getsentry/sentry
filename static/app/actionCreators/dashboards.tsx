@@ -364,12 +364,7 @@ export function validateWidget(
  * reaches the backend, which will clear the stale DB value.
  */
 function _enforceWidgetLimit(widget: Widget) {
-  if (
-    widget.displayType === DisplayType.TABLE ||
-    widget.displayType === DisplayType.BIG_NUMBER ||
-    widget.displayType === DisplayType.TEXT ||
-    widget.displayType === DisplayType.AGENTS_TRACES_TABLE
-  ) {
+  if (!DISPLAY_TYPES_WITH_LIMITS.has(widget.displayType)) {
     return {...widget, limit: null};
   }
 
@@ -405,3 +400,11 @@ function _enforceWidgetLimit(widget: Widget) {
 
   return widget;
 }
+
+const DISPLAY_TYPES_WITH_LIMITS = new Set([
+  DisplayType.AREA,
+  DisplayType.BAR,
+  DisplayType.LINE,
+  DisplayType.TOP_N,
+  DisplayType.CATEGORICAL_BAR,
+]);
