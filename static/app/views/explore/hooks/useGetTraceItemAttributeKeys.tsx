@@ -28,9 +28,7 @@ type TraceItemAttributeKeyOptions = Pick<
   substringMatch?: string;
 };
 
-function normalizeSubstringMatch(search?: string) {
-  return search || undefined;
-}
+const QUERY_KEY = 'use-get-trace-item-attribute-keys';
 
 export function makeTraceItemAttributeKeysQueryOptions({
   traceItemType,
@@ -47,7 +45,7 @@ export function makeTraceItemAttributeKeysQueryOptions({
   query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
-  const substringMatch = normalizeSubstringMatch(search);
+  const substringMatch = search || undefined;
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
@@ -84,7 +82,7 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
-      const queryKey = ['use-trace-item-attribute-keys', options];
+      const queryKey = [QUERY_KEY, options];
       const cachedResult = queryClient.getQueryData(queryKey);
       if (cachedResult) {
         return cachedResult as TagCollection;
@@ -115,7 +113,7 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
-      const queryKey = ['use-trace-item-attribute-keys', options];
+      const queryKey = [QUERY_KEY, options];
       queryClient.setQueryDefaults(queryKey, {
         staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
       });
