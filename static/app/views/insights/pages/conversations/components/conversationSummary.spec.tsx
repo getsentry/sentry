@@ -1,6 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {ConversationSummary} from './conversationSummary';
@@ -30,36 +29,17 @@ function createMockNode(overrides: {
 }
 
 describe('ConversationSummary', () => {
-  it('shows when the conversation started and when the last message happened', () => {
-    const firstNode = createMockNode({
+  it('shows the last message timing in the aggregate row', () => {
+    const node = createMockNode({
       id: 'span-1',
       startTimestamp: 1476662480,
-      endTimestamp: 1476662540,
-    });
-    const secondNode = createMockNode({
-      id: 'span-2',
-      startTimestamp: 1476662600,
       endTimestamp: 1508208080,
     });
 
     render(
-      <TimezoneProvider timezone="America/Los_Angeles">
-        <ConversationSummary
-          conversationId="conversation-1234"
-          nodes={[firstNode, secondNode] as any}
-        />
-      </TimezoneProvider>
+      <ConversationSummary conversationId="conversation-1234" nodes={[node] as any} />
     );
 
-    expect(screen.getByText('Started')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        (_, element) =>
-          element?.tagName === 'TIME' &&
-          element.textContent?.includes('Oct 16, 2016') &&
-          element.textContent.includes('PDT')
-      )
-    ).toBeInTheDocument();
     expect(screen.getByText('Last message')).toBeInTheDocument();
     expect(screen.getByText(/ago$/)).toBeInTheDocument();
   });
