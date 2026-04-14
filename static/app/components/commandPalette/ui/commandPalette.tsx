@@ -132,11 +132,23 @@ export function CommandPalette(props: CommandPaletteProps) {
               leadingItems: null,
               label: (
                 <Text size="sm" bold variant="primary">
-                  <Flex align="center" gap="md">
+                  <Flex align="center" gap="md" width="100%" minWidth={0}>
                     <IconDefaultsProvider size="sm">
                       {action.display.icon}
                     </IconDefaultsProvider>
-                    {action.display.label}
+                    <Text
+                      size="sm"
+                      bold
+                      variant="primary"
+                      style={{
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {action.display.label}
+                    </Text>
                   </Flex>
                 </Text>
               ),

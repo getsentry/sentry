@@ -5,6 +5,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
+import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {PriorityLevel, type Group} from 'sentry/types/group';
@@ -18,12 +20,18 @@ type GroupDetailsPriorityProps = {
   onChange?: (priority: PriorityLevel) => void;
 };
 
+const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+  [PriorityLevel.HIGH]: 3,
+  [PriorityLevel.MEDIUM]: 2,
+  [PriorityLevel.LOW]: 1,
+};
+
 export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
-  const onChangePriority = (priority: PriorityLevel) => {
-    if (priority === group.priority) {
+  const onChangePriority = (nextPriority: PriorityLevel) => {
+    if (nextPriority === group.priority) {
       return;
     }
 
@@ -31,7 +39,7 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       organization,
       ...getAnalyticsDataForGroup(group),
       from_priority: group.priority,
-      to_priority: priority,
+      to_priority: nextPriority,
     });
 
     addLoadingMessage(t('Saving changes\u2026'));
@@ -42,7 +50,7 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       {
         orgId: organization.slug,
         itemIds: [group.id],
-        data: {priority},
+        data: {priority: nextPriority},
         failSilently: true,
         project: [group.project.id],
       },
@@ -71,5 +79,69 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       value={group.priority ?? PriorityLevel.MEDIUM}
       lastEditedBy={lastEditedBy}
     />
+  );
+}
+
+export function GroupPriorityCommandPaletteAction({
+  group,
+}: Pick<GroupDetailsPriorityProps, 'group'>) {
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const priority = group.priority ?? PriorityLevel.MEDIUM;
+
+  const onChangePriority = (nextPriority: PriorityLevel) => {
+    if (nextPriority === group.priority) {
+      return;
+    }
+
+    trackAnalytics('issue_details.set_priority', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      from_priority: group.priority,
+      to_priority: nextPriority,
+    });
+
+    addLoadingMessage(t('Saving changes\u2026'));
+    IssueListCacheStore.reset();
+
+    bulkUpdate(
+      api,
+      {
+        orgId: organization.slug,
+        itemIds: [group.id],
+        data: {priority: nextPriority},
+        failSilently: true,
+        project: [group.project.id],
+      },
+      {
+        success: clearIndicators,
+        error: () => {
+          clearIndicators();
+          addErrorMessage(t('Unable to update issue priority'));
+        },
+      }
+    );
+  };
+
+  return (
+    <CMDKAction
+      display={{
+        label: t('Set Priority'),
+        icon: <IconCellSignal bars={PRIORITY_BARS[priority]} />,
+      }}
+    >
+      <CMDKAction
+        display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+        onAction={() => onChangePriority(PriorityLevel.HIGH)}
+      />
+      <CMDKAction
+        display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}}
+        onAction={() => onChangePriority(PriorityLevel.MEDIUM)}
+      />
+      <CMDKAction
+        display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
+        onAction={() => onChangePriority(PriorityLevel.LOW)}
+      />
+    </CMDKAction>
   );
 }
