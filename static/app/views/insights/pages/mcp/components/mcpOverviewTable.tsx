@@ -33,8 +33,8 @@ const P95_DURATION = `p95(${SpanFields.SPAN_DURATION})`;
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {
-    key: SpanFields.NAME,
-    name: t('Span Name'),
+    key: SpanFields.SPAN_DESCRIPTION,
+    name: t('Span Description'),
     width: COL_WIDTH_UNDEFINED,
   },
   {key: 'count()', name: t('Requests'), width: 136},
@@ -58,7 +58,7 @@ export function McpOverviewTable() {
   const tableDataRequest = useSpanTableData({
     query,
     fields: [
-      SpanFields.NAME,
+      SpanFields.SPAN_DESCRIPTION,
       SpanFields.MCP_TOOL_NAME,
       SpanFields.MCP_PROMPT_NAME,
       SpanFields.PROJECT_ID,
@@ -90,7 +90,7 @@ export function McpOverviewTable() {
           sortKey={column.key}
           currentSort={tableSort}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-          forceCellGrow={column.key === SpanFields.NAME}
+          forceCellGrow={column.key === SpanFields.SPAN_DESCRIPTION}
           onClick={handleSort}
         >
           {column.name}
@@ -105,10 +105,10 @@ export function McpOverviewTable() {
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
-        case SpanFields.NAME:
+        case SpanFields.SPAN_DESCRIPTION:
           return (
-            <SpanNameCell
-              spanName={dataRow[SpanFields.NAME]}
+            <SpanDescriptionCell
+              spanDescription={dataRow[SpanFields.SPAN_DESCRIPTION]}
               toolName={dataRow[SpanFields.MCP_TOOL_NAME]}
               promptName={dataRow[SpanFields.MCP_PROMPT_NAME]}
             />
@@ -116,7 +116,10 @@ export function McpOverviewTable() {
         case 'failure_rate()': {
           const search = new MutableSearch(query);
           search.addFilterValue(SpanFields.SPAN_STATUS, 'internal_error');
-          search.addFilterValue(SpanFields.NAME, dataRow[SpanFields.NAME]);
+          search.addFilterValue(
+            SpanFields.SPAN_DESCRIPTION,
+            dataRow[SpanFields.SPAN_DESCRIPTION]
+          );
           return (
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
@@ -159,19 +162,19 @@ export function McpOverviewTable() {
   );
 }
 
-function SpanNameCell({
-  spanName,
+function SpanDescriptionCell({
+  spanDescription,
   toolName,
   promptName,
 }: {
-  spanName: string;
+  spanDescription: string;
   promptName?: string;
   toolName?: string;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const fields: string[] = [SpanFields.NAME];
+  const fields: string[] = [SpanFields.SPAN_DESCRIPTION];
 
   if (toolName) {
     fields.push('mcp.tool.result.content');
@@ -185,7 +188,8 @@ function SpanNameCell({
   fields.push('timestamp');
 
   const search = new MutableSearch('');
-  search.addFilterValue(SpanFields.NAME, spanName);
+  search.addFilterValue(SpanFields.NAME, 'mcp.server');
+  search.addFilterValue(SpanFields.SPAN_DESCRIPTION, spanDescription);
   const link = getExploreUrl({
     organization,
     selection,
@@ -200,5 +204,5 @@ function SpanNameCell({
     sort: '-count(span.duration)',
     field: fields,
   });
-  return <Link to={link}>{spanName}</Link>;
+  return <Link to={link}>{spanDescription}</Link>;
 }

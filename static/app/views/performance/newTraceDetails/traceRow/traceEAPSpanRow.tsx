@@ -36,7 +36,7 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
 
   const opType =
     (attrs[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
-    getGenAiOperationTypeFromSpanName(node.op);
+    getGenAiOperationTypeFromSpanName(node.value.name);
 
   if (!opType) {
     return undefined;
