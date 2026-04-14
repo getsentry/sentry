@@ -11,6 +11,7 @@ from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.utils.json import dumps_htmlsafe
 from sentry.web.frontend.base import BaseView, all_silo_view
@@ -120,7 +121,18 @@ class PipelineAdvancerView(BaseView):
         # that relays the callback params back to the opener window via
         # postMessage instead of processing the callback server-side.
         if pipeline.is_api_mode:
+            metrics.incr(
+                "integrations.pipeline_advancer.trampoline",
+                tags={"provider": provider_id},
+                sample_rate=1.0,
+            )
             return _render_trampoline(request, pipeline)
+
+        metrics.incr(
+            "integrations.pipeline_advancer.legacy",
+            tags={"provider": provider_id},
+            sample_rate=1.0,
+        )
 
         subdomain = pipeline.fetch_state("subdomain")
         if subdomain is not None and request.subdomain != subdomain:

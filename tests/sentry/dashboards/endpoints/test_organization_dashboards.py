@@ -878,6 +878,41 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data[0].get("environment") == ["alpha"]
         assert response.data[0].get("filters") == {"release": ["v1"]}
 
+    def test_get_last_visited_field_without_reordering_flag(self) -> None:
+        # Clean up existing dashboards setup for this test.
+        Dashboard.objects.all().delete()
+
+        one_hour_ago = before_now(hours=1)
+        Dashboard.objects.create(
+            title="Dashboard visited oldest",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=one_hour_ago,
+        )
+
+        now = before_now(minutes=0)
+        Dashboard.objects.create(
+            title="Dashboard visited most recently",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=now,
+        )
+
+        response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        titles = [row["title"] for row in response.data]
+        assert titles == [
+            "General",
+            "Dashboard visited most recently",
+            "Dashboard visited oldest",
+        ]
+
+        # Only "Dashboard with last visited" has a last visited timestamp.
+        visited_at = [row.get("lastVisited") for row in response.data]
+        assert visited_at == [None, now, one_hour_ago]
+
     def test_get_with_last_visited(self) -> None:
         # Clean up existing dashboards setup for this test.
         Dashboard.objects.all().delete()

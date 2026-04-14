@@ -6,7 +6,11 @@ from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerError
+from sentry.notifications.platform.templates.seer import (
+    SeerAutofixUpdate,
+    SeerExplorerError,
+    SeerExplorerResponse,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.slack.entrypoint import (
@@ -579,7 +583,11 @@ class SlackExplorerEntrypointTest(TestCase):
         assert payload["thread"]["channel_id"] == self.channel_id
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_explorer_update(self, mock_schedule_all_thread_updates):
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_explorer_update(self, mock_has_history_scope, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
         cache_payload = ep.create_explorer_cache_payload()
         run_id = 12345
@@ -638,3 +646,76 @@ class SlackExplorerEntrypointTest(TestCase):
 
         # Still schedules the thread update even without a fresh integration
         mock_schedule.assert_called_once()
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_on_explorer_update_sets_missing_scope_url(self, mock_has_history_scope, mock_schedule):
+        """When history scope is missing, on_explorer_update sets missing_scope_settings_url."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_explorer_cache_payload()
+
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
+            summary="Test summary",
+            run_id=12345,
+        )
+
+        call_data = mock_schedule.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerExplorerResponse)
+        assert call_data.missing_scope_settings_url is not None
+        assert "/integrations/slack/" in call_data.missing_scope_settings_url
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_explorer_update_no_missing_scope_url_when_has_scope(
+        self, mock_has_history_scope, mock_schedule
+    ):
+        """When history scope is present, missing_scope_settings_url should be None."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_explorer_cache_payload()
+
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
+            summary="Test summary",
+            run_id=12345,
+        )
+
+        call_data = mock_schedule.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerExplorerResponse)
+        assert call_data.missing_scope_settings_url is None
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_on_explorer_update_missing_scope_url_cached_per_thread(
+        self, mock_has_history_scope, mock_schedule
+    ):
+        """Second call for the same thread should not set the URL (cached)."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_explorer_cache_payload()
+
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
+            summary="First response",
+            run_id=12345,
+        )
+        first_data = mock_schedule.call_args.kwargs["data"]
+        assert first_data.missing_scope_settings_url is not None
+
+        mock_schedule.reset_mock()
+
+        SlackExplorerEntrypoint.on_explorer_update(
+            cache_payload=cache_payload,
+            summary="Second response",
+            run_id=12346,
+        )
+        second_data = mock_schedule.call_args.kwargs["data"]
+        assert second_data.missing_scope_settings_url is None

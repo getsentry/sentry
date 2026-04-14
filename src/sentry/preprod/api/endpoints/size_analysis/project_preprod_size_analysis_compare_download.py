@@ -6,7 +6,7 @@ from django.http.response import FileResponse, HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -54,11 +54,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 base_size_metric_id=str(base_size_metric_id),
             )
         )
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.download",

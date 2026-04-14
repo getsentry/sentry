@@ -25,7 +25,7 @@ function EventsCount({project}: {project: Project}) {
     return <LoadingIndicator mini />;
   }
   if (isError) {
-    return <LoadingError message={t('Unable to load impact data.')} />;
+    return <LoadingError message={t('Unable to load impacted events count.')} />;
   }
   if (!count) {
     return <Text>{t('No impacted events found in the last 30 days.')}</Text>;
@@ -94,12 +94,12 @@ function SampleEvents({project}: {project: Project}) {
     }
     return (
       <Stack gap="xs">
-        {events.map(({eventId, groupId, title, timestamp}) => (
-          <Flex key={eventId} align="center" gap="sm">
-            {groupId ? (
+        {events.map(({event_id, group_id, title, timestamp}) => (
+          <Flex key={event_id} align="center" gap="sm">
+            {group_id ? (
               <Link
                 to={normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
+                  `/organizations/${organization.slug}/issues/${group_id}/events/${event_id}/`
                 )}
               >
                 {title}

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import build_changes_map
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    _build_changes_map,
     _compute_snapshot_status,
 )
 from sentry.testutils.cases import TestCase
@@ -58,7 +58,7 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
         artifacts = [artifact]
         metrics_map = {artifact.id: metrics}
         comparisons_map = {metrics.id: _get_comparison(metrics)}
-        changes_map = _build_changes_map(artifacts, metrics_map, comparisons_map, **flags)
+        changes_map = build_changes_map(artifacts, metrics_map, comparisons_map, **flags)
         return _compute_snapshot_status(
             artifacts, metrics_map, comparisons_map, approvals or {}, changes_map
         )
@@ -102,14 +102,14 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
 class BuildChangesMapTest(SnapshotTasksTestBase):
     def test_added_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
         )
         assert not any(changes_map.values())
 
     def test_added_detected_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
@@ -119,7 +119,7 @@ class BuildChangesMapTest(SnapshotTasksTestBase):
 
     def test_removed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
@@ -129,14 +129,14 @@ class BuildChangesMapTest(SnapshotTasksTestBase):
 
     def test_removed_detected_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
         )
         assert changes_map[artifact.id] is True
 
     def test_changed_always_detected(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
-        changes_map = _build_changes_map(
+        changes_map = build_changes_map(
             [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
         )
         assert changes_map[artifact.id] is True

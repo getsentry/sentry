@@ -22,6 +22,11 @@ export function TroubleshootingSection({
   const organization = useOrganization();
   const settingsUrl = `/settings/${organization.slug}/projects/${project.slug}/source-maps/`;
 
+  const troubleShootingDocUrl =
+    project.platform === 'react-native'
+      ? `${sourcemapsDocsUrl}troubleshooting/`
+      : `${sourcemapsDocsUrl}troubleshooting_js/`;
+
   return (
     <Stack gap="md" padding="lg">
       <Heading as="h3">{t('Troubleshooting suggestions')}</Heading>
@@ -129,7 +134,7 @@ export function TroubleshootingSection({
         </Disclosure>
         <Flex paddingTop="sm" align="center" gap="sm">
           <Text variant="muted">{t('Not what you\u2019re looking for?')}</Text>
-          <ExternalLink href={`${sourcemapsDocsUrl}troubleshooting_js/`}>
+          <ExternalLink href={troubleShootingDocUrl}>
             <Flex align="center" gap="xs">
               <IconDocs size="xs" />
               {t('Read all documentation')}

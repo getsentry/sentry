@@ -7,7 +7,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
-import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import type {ApiResult, ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
@@ -118,34 +118,6 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   //      useQuery above. The react-query library's UseQueryResult is a union type and
   //      too complex to recreate here so casting the entire object is more appropriate.
   return queryResult as UseApiQueryResult<TResponseData, TError>;
-}
-
-export function useApiQueries<TResponseData, TError = RequestError>(
-  queryKeys: ApiQueryKey[],
-  options: UseApiQueryOptions<TResponseData, TError>
-): Array<UseApiQueryResult<TResponseData, TError>> {
-  const results = useQueries({
-    queries: queryKeys.map(queryKey => {
-      return {
-        queryKey,
-        queryFn: fetchDataQuery<TResponseData>,
-        ...options,
-      };
-    }),
-  });
-
-  return results.map(({data, ...rest}) => {
-    const queryResult = {
-      data: data?.[0],
-      getResponseHeader: data?.[2]?.getResponseHeader,
-      ...rest,
-    };
-
-    // XXX: We need to cast here because unwrapping `data` breaks the type returned by
-    //      useQuery above. The react-query library's UseQueryResult is a union type and
-    //      too complex to recreate here so casting the entire object is more appropriate.
-    return queryResult as UseApiQueryResult<TResponseData, TError>;
-  });
 }
 
 /**

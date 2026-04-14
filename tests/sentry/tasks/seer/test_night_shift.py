@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
@@ -143,6 +144,8 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             mock_logger.info.assert_called_once()
             assert mock_logger.info.call_args.args[0] == "night_shift.no_eligible_projects"
 
+        assert not SeerNightShiftRun.objects.filter(organization=org).exists()
+
     def test_selects_candidates_and_skips_triggered(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -177,6 +180,15 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             assert candidates[0]["group_id"] == high_fix.id
             assert candidates[1]["group_id"] == low_fix.id
 
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.triage_strategy == "agentic_triage"
+        assert run.error_message is None
+
+        issues = list(SeerNightShiftRunIssue.objects.filter(run=run))
+        assert len(issues) == 2
+        issue_group_ids = {i.group_id for i in issues}
+        assert issue_group_ids == {high_fix.id, low_fix.id}
+
     def test_global_ranking_across_projects(self) -> None:
         org = self.create_organization()
         project_a = self.create_project(organization=org)
@@ -203,6 +215,44 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             candidates = mock_logger.info.call_args.kwargs["extra"]["candidates"]
             assert candidates[0]["group_id"] == high_group.id
             assert candidates[1]["group_id"] == low_group.id
+
+    def test_triage_error_records_error_message(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+            side_effect=RuntimeError("boom"),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.error_message == "Night shift run failed"
+        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
+
+    def test_empty_candidates_creates_run_with_no_issues(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+            return_value=[],
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.error_message is None
+        assert not SeerNightShiftRunIssue.objects.filter(run=run).exists()
 
 
 @django_db_all

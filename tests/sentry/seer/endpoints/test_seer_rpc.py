@@ -31,6 +31,7 @@ from sentry.seer.endpoints.seer_rpc import (
 from sentry.seer.explorer.tools import get_trace_item_attributes
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
@@ -1531,6 +1532,7 @@ class TestSeerRpcMethods(APITestCase):
 
         assert result == {"error": "integration_not_found"}
 
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
     @patch("sentry.seer.endpoints.seer_rpc.read_preference_from_sentry_db")
     def test_get_project_preferences_returns_preference(self, mock_read: Any) -> None:
         project = self.create_project(organization=self.organization)
@@ -1544,6 +1546,7 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {"project_id": project.id, "repositories": []}
         mock_read.assert_called_once()
 
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
     @patch("sentry.seer.endpoints.seer_rpc.read_preference_from_sentry_db")
     def test_get_project_preferences_returns_none_when_no_preference(self, mock_read: Any) -> None:
         project = self.create_project(organization=self.organization)
@@ -1570,6 +1573,32 @@ class TestSeerRpcMethods(APITestCase):
                 project_id=project.id,
             )
 
+    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
+    def test_get_project_preferences_seer_api(self, mock_seer: Any) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_seer.return_value = MagicMock(
+            preference=MagicMock(
+                dict=MagicMock(return_value={"project_id": project.id, "repositories": []})
+            )
+        )
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+        assert result == {"project_id": project.id, "repositories": []}
+        mock_seer.assert_called_once_with(project.id)
+
+    @patch("sentry.seer.endpoints.seer_rpc.get_project_seer_preferences")
+    def test_get_project_preferences_seer_api_returns_none(self, mock_seer: Any) -> None:
+        project = self.create_project(organization=self.organization)
+        mock_seer.return_value = MagicMock(preference=None)
+        result = get_project_preferences(
+            organization_id=self.organization.id,
+            project_id=project.id,
+        )
+        assert result is None
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
     @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
     def test_bulk_get_project_preferences_returns_preferences(self, mock_bulk_read: Any) -> None:
         project1 = self.create_project(organization=self.organization)
@@ -1590,6 +1619,7 @@ class TestSeerRpcMethods(APITestCase):
         }
         mock_bulk_read.assert_called_once_with(self.organization.id, [project1.id, project2.id])
 
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
     @patch("sentry.seer.endpoints.seer_rpc.bulk_read_preferences_from_sentry_db")
     def test_bulk_get_project_preferences_returns_empty_for_no_projects(
         self, mock_bulk_read: Any
@@ -1600,6 +1630,24 @@ class TestSeerRpcMethods(APITestCase):
             project_ids=[],
         )
         assert result == {}
+
+    @patch("sentry.seer.endpoints.seer_rpc.bulk_get_project_seer_preferences")
+    def test_bulk_get_project_preferences_seer_api(self, mock_seer: Any) -> None:
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        mock_seer.return_value = {
+            str(project1.id): {"project_id": project1.id, "repositories": []},
+            str(project2.id): None,
+        }
+        result = bulk_get_project_preferences(
+            organization_id=self.organization.id,
+            project_ids=[project1.id, project2.id],
+        )
+        assert result == {
+            str(project1.id): {"project_id": project1.id, "repositories": []},
+            str(project2.id): None,
+        }
+        mock_seer.assert_called_once_with(self.organization.id, [project1.id, project2.id])
 
 
 class TestTriggerCodingAgentLaunch:

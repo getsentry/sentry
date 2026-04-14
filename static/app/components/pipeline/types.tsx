@@ -1,3 +1,5 @@
+import {RequestError} from 'sentry/utils/requestError/requestError';
+
 const PIPELINE_NAME_MAP = {
   integration: 'integration_pipeline',
   identity: 'identity_provider',
@@ -81,7 +83,7 @@ export interface PipelineStepProps<
   A = Record<string, unknown>,
 > {
   advance: (data?: A) => void;
-  advanceError: Error | null;
+  advanceError: RequestError | null;
   isAdvancing: boolean;
   stepData: D;
   stepIndex: number;
@@ -127,7 +129,7 @@ export interface PipelineAdvanceResponse {
 export interface ApiPipeline<C = Record<string, unknown>> {
   completionData: C | null;
   definition: PipelineDefinition;
-  error: Error | null;
+  error: string | null;
   isAdvancing: boolean;
   isComplete: boolean;
   isInitializing: boolean;

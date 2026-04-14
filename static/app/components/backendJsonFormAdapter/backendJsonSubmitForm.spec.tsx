@@ -315,6 +315,36 @@ describe('BackendJsonSubmitForm', () => {
       );
     });
 
+    it('preserves explicit null initialValues over field defaults', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'priority',
+              type: 'select',
+              label: 'Priority',
+              choices: [
+                ['high', 'High'],
+                ['medium', 'Medium'],
+                ['low', 'Low'],
+              ],
+              default: 'medium',
+            },
+          ]}
+          initialValues={{priority: null}}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({priority: null}));
+      });
+    });
+
     it('renders footer with SubmitButton when footer prop provided', () => {
       render(
         <BackendJsonSubmitForm

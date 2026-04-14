@@ -21,7 +21,10 @@ from sentry.data_export.processors.explore import (
     SUPPORTED_TRACE_ITEM_DATASETS,
     ExploreProcessor,
 )
-from sentry.data_export.tasks import assemble_download
+from sentry.data_export.tasks import (
+    assemble_download,
+    export_data_to_stored_blobs_sync,
+)
 from sentry.data_export.writers import OutputMode
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
@@ -47,6 +50,7 @@ SUPPORTED_DATASETS = {
 }
 
 logger = logging.getLogger(__name__)
+MAX_SYNC_LIMIT = 10_000
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
@@ -55,6 +59,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
     format = serializers.ChoiceField(
         choices=OutputMode.supported_values(), required=False, default=OutputMode.CSV.value
     )
+    limit = serializers.IntegerField(required=False, allow_null=True, min_value=1)
 
     def _validate_dataset(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
         dataset = query_info.get("dataset")
@@ -271,17 +276,21 @@ class DataExportEndpoint(OrganizationEndpoint):
             project_id = query_info["project"]
         return project_id
 
-    def _parse_limit(self, request: Request) -> int | None:
-        limit = None
-        if request.data and hasattr(request.data, "get"):
-            limit = request.data.get("limit")
+    def _parse_limit(self, data: dict[str, Any]) -> tuple[int | None, bool]:
+        limit = data.get("limit")
 
         if limit is not None:
             try:
                 limit = int(limit)
             except (TypeError, ValueError):
                 limit = None
-        return limit
+        run_sync = (
+            limit is not None
+            and limit <= MAX_SYNC_LIMIT
+            and data["query_type"] == ExportQueryType.EXPLORE_STR
+            and data["query_info"].get("dataset") == "logs"
+        )
+        return limit, run_sync
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -308,8 +317,6 @@ class DataExportEndpoint(OrganizationEndpoint):
         except Environment.DoesNotExist as error:
             return Response(error, status=400)
 
-        limit = self._parse_limit(request)
-
         # Validate the data export payload
         serializer = DataExportQuerySerializer(
             data=request.data,
@@ -327,6 +334,8 @@ class DataExportEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
         validated_data = serializer.validated_data
 
+        limit, run_sync = self._parse_limit(validated_data)
+
         try:
             # If this user has sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
@@ -341,12 +350,17 @@ class DataExportEndpoint(OrganizationEndpoint):
             )
             status = 200
             if created:
-                self._schedule_export_task(data_export, environment_id, limit, validated_data)
+                self._schedule_export_task(
+                    data_export, environment_id, limit, validated_data, run_sync=run_sync
+                )
                 status = 201
+            data_export.refresh_from_db()
             # This value can be used to find the schedule task in the GCP logs
             extra["data_export_id"] = data_export.id
             if status == 200:
                 extra["status"] = "done"
+            elif run_sync:
+                extra["status"] = "export_data_to_stored_blobs_sync"
             else:
                 extra["status"] = "assemble_download.task_scheduled"
         except ValidationError as e:
@@ -368,22 +382,29 @@ class DataExportEndpoint(OrganizationEndpoint):
         environment_id: int | None,
         limit: int | None,
         validated_data: dict[str, Any],
+        run_sync: bool = False,
     ) -> None:
         qi = validated_data["query_info"]
         export_format = validated_data["format"]
         dataset = qi.get("dataset")
-        metrics.incr(
-            "dataexport.enqueue",
-            tags={
-                "query_type": validated_data["query_type"],
-                "format": export_format,
-                "dataset": str(dataset) if dataset is not None else "none",
-            },
-            sample_rate=1.0,
-        )
-
-        assemble_download.delay(
-            data_export_id=data_export.id,
-            export_limit=limit,
-            environment_id=environment_id,
-        )
+        if run_sync:
+            export_data_to_stored_blobs_sync(
+                data_export=data_export,
+                export_limit=limit or MAX_SYNC_LIMIT,
+                environment_id=environment_id,
+            )
+        else:
+            metrics.incr(
+                "dataexport.enqueue",
+                tags={
+                    "query_type": validated_data["query_type"],
+                    "format": export_format,
+                    "dataset": str(dataset) if dataset is not None else "none",
+                },
+                sample_rate=1.0,
+            )
+            assemble_download.delay(
+                data_export_id=data_export.id,
+                export_limit=limit,
+                environment_id=environment_id,
+            )

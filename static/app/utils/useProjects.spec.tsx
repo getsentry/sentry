@@ -1,17 +1,12 @@
-import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useProjects} from 'sentry/utils/useProjects';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const org = OrganizationFixture();
-function TestContext({children}: {children?: ReactNode}) {
-  return <OrganizationContext value={org}>{children}</OrganizationContext>;
-}
 
 describe('useProjects', () => {
   const mockProjects = [ProjectFixture()];
@@ -19,7 +14,7 @@ describe('useProjects', () => {
   it('provides projects from the team store', () => {
     act(() => ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = renderHook(useProjects, {wrapper: TestContext});
+    const {result} = renderHookWithProviders(useProjects, {organization: org});
     const {projects} = result.current;
 
     expect(projects).toEqual(mockProjects);
@@ -37,9 +32,7 @@ describe('useProjects', () => {
       body: [newProject3, newProject4],
     });
 
-    const {result} = renderHook(useProjects, {
-      wrapper: TestContext,
-    });
+    const {result} = renderHookWithProviders(useProjects, {organization: org});
     const {onSearch} = result.current;
 
     // Works with append
@@ -72,9 +65,9 @@ describe('useProjects', () => {
       body: [projectFoo],
     });
 
-    const {result} = renderHook(useProjects, {
+    const {result} = renderHookWithProviders(useProjects, {
+      organization: org,
       initialProps: {slugs: ['foo']},
-      wrapper: TestContext,
     });
 
     expect(result.current.initiallyLoaded).toBe(false);
@@ -89,9 +82,9 @@ describe('useProjects', () => {
   it('only loads slugs when needed', () => {
     act(() => ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = renderHook(useProjects, {
+    const {result} = renderHookWithProviders(useProjects, {
+      organization: org,
       initialProps: {slugs: [mockProjects[0]!.slug]},
-      wrapper: TestContext,
     });
 
     const {projects, initiallyLoaded} = result.current;

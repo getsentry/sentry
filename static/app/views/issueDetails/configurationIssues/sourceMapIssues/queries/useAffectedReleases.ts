@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ReleaseRow = {release: string} & {'count_unique(event_id)': number};
@@ -27,33 +28,28 @@ interface Options {
 export function useAffectedReleases({project}: Options): AffectedReleasesResult {
   const organization = useOrganization();
 
-  const {data, isLoading, isError} = useApiQuery<ReleasesResult>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          dataset: 'processing_errors',
-          field: ['release', 'count_unique(event_id)'],
-          sort: '-count_unique(event_id)',
-          per_page: 5,
-          statsPeriod: '30d',
-          project: project.id,
-          referrer: 'api.issues.sourcemap-configuration.impact-releases',
-        },
+  const {data, isLoading, isError} = useQuery(
+    apiOptions.as<ReleasesResult>()('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        dataset: 'processing_errors',
+        field: ['release', 'count_unique(event_id)'],
+        query: 'has:release',
+        sort: '-count_unique(event_id)',
+        per_page: 5,
+        statsPeriod: '30d',
+        project: project.id,
+        referrer: 'api.issues.sourcemap-configuration.impact-releases',
       },
-    ],
-    {staleTime: 60_000}
+      staleTime: 60_000,
+    })
   );
 
   const rows = data?.data ?? [];
-  const releases = rows
-    .filter((row: ReleaseRow) => Boolean(row.release))
-    .map((row: ReleaseRow) => ({
-      release: row.release,
-      count: row['count_unique(event_id)'],
-    }));
+  const releases = rows.map((row: ReleaseRow) => ({
+    release: row.release,
+    count: row['count_unique(event_id)'],
+  }));
 
   return {releases, isLoading, isError};
 }
