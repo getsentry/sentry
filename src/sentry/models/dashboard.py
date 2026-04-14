@@ -428,13 +428,12 @@ class DashboardTombstone(Model):
 
 
 @cell_silo_model
-class DashboardRevision(Model):
+class DashboardRevision(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     created_by_id = HybridCloudForeignKey(
         "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
     )
-    date_added = models.DateTimeField(default=timezone.now)
     title = models.CharField(max_length=255)
     source = models.CharField(max_length=32, default="edit")
     snapshot: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
