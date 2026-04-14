@@ -22,7 +22,7 @@ from sentry.relocation.api.endpoints.index import (
 )
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks.process import uploading_start
-from sentry.types.cell import get_local_cell, get_locality_name_for_cell
+from sentry.types.cell import CellResolutionError, get_local_cell, get_locality_name_for_cell
 from sentry.utils.db import atomic_transaction
 
 ERR_DUPLICATE_ORGANIZATION_FORK = Template(
@@ -105,7 +105,13 @@ class OrganizationForkEndpoint(Endpoint):
 
         # Resolve the locality for the exporting cell. In environments without locality
         # config (e.g. monolith, tests), falls back to the cell name.
-        replying_locality_name = get_locality_name_for_cell(replying_cell_name)
+        try:
+            replying_locality_name = get_locality_name_for_cell(replying_cell_name)
+        except CellResolutionError:
+            return Response(
+                {"detail": "Could not resolve the locality for the target cell."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         if replying_locality_name in CANNOT_FORK_FROM_LOCALITY:
             return Response(
