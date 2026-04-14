@@ -2060,6 +2060,42 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         assert resp.data["dataset"] == "transactions"
 
+    @patch(
+        "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
+        wraps=create_subscription_in_snuba,
+    )
+    def test_am1_org_generic_metrics_creates_transactions_snuba_subscription(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
+        """AM1 orgs creating generic_metrics alerts should create a Snuba subscription against the
+        transactions dataset, not generic_metrics."""
+        data = deepcopy(self.alert_rule_dict)
+        data["dataset"] = "generic_metrics"
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+                resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+
+                (method, url) = urlopen.call_args[0]
+                assert method == "POST"
+                assert url.startswith("/transactions/")
+
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert alert_rule.snuba_query.dataset == "transactions"
+        assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data["aggregate"] == "count()"
+        assert resp.data["dataset"] == "transactions"
+        assert (
+            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
+            .order_by("id")[0]
+            .type
+            == SnubaQueryEventType.EventType.TRANSACTION.value
+        )
+
     def test_invalid_extrapolation_mode(self) -> None:
         data = deepcopy(self.alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
