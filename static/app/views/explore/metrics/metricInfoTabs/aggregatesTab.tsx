@@ -262,7 +262,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
               divider={shouldShowDivider(i)}
               data-sticky-column={isLastColumn(i) ? 'true' : 'false'}
               isAggregate={
-                Boolean(func) || (isVisualizeFunction(visualize) && isEquation(field))
+                Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
               }
               isSticky={isLastColumn(i)}
               sort={direction}
