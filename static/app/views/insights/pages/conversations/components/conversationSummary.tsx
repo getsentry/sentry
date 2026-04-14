@@ -11,8 +11,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DateTime} from 'sentry/components/dateTime';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -99,6 +101,32 @@ export function ConversationSummary({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const conversationWindow = useMemo(() => {
+    if (nodes.length === 0) {
+      return null;
+    }
+
+    let startTimestamp = Number.POSITIVE_INFINITY;
+    let endTimestamp = Number.NEGATIVE_INFINITY;
+
+    for (const node of nodes) {
+      if (typeof node.startTimestamp === 'number') {
+        startTimestamp = Math.min(startTimestamp, node.startTimestamp);
+      }
+      if (typeof node.endTimestamp === 'number') {
+        endTimestamp = Math.max(endTimestamp, node.endTimestamp);
+      }
+    }
+
+    if (!Number.isFinite(startTimestamp) || !Number.isFinite(endTimestamp)) {
+      return null;
+    }
+
+    return {
+      startDate: new Date(startTimestamp * 1e3),
+      endDate: new Date(endTimestamp * 1e3),
+    };
+  }, [nodes]);
 
   const handleCopyConversationId = useCallback(() => {
     copyToClipboard(conversationId, {
@@ -127,41 +155,66 @@ export function ConversationSummary({
 
   return (
     <Flex direction="column" gap="md" flex={1}>
-      <Flex align="center" gap="sm">
-        <Heading as="h2">{t('Conversation #%s', conversationId.slice(0, 8))}</Heading>
-        <Tooltip title={t('Copy conversation ID')}>
-          <Button
-            size="zero"
-            priority="transparent"
-            aria-label={t('Copy conversation ID')}
-            icon={<IconCopy size="xs" />}
-            onClick={handleCopyConversationId}
-          />
-        </Tooltip>
-        {traces.length > 0 && (
-          <Flex align="baseline" gap="xs">
-            <Text size="sm" variant="muted">
-              {traces.length === 1 ? t('Trace') : t('Traces')}
-            </Text>
-            {traces.map((trace, i) => (
-              <Flex key={trace.traceId} align="baseline" gap="xs">
-                {i > 0 && (
-                  <Text size="sm" variant="muted">
-                    {','}
-                  </Text>
-                )}
-                <StyledLink
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/explore/traces/trace/${trace.traceId}/?node=span-${trace.spanId}`
+      <Flex direction="column" gap="xs">
+        <Flex align="center" gap="sm">
+          <Heading as="h2">{t('Conversation #%s', conversationId.slice(0, 8))}</Heading>
+          <Tooltip title={t('Copy conversation ID')}>
+            <Button
+              size="zero"
+              priority="transparent"
+              aria-label={t('Copy conversation ID')}
+              icon={<IconCopy size="xs" />}
+              onClick={handleCopyConversationId}
+            />
+          </Tooltip>
+          {traces.length > 0 && (
+            <Flex align="baseline" gap="xs">
+              <Text size="sm" variant="muted">
+                {traces.length === 1 ? t('Trace') : t('Traces')}
+              </Text>
+              {traces.map((trace, i) => (
+                <Flex key={trace.traceId} align="baseline" gap="xs">
+                  {i > 0 && (
+                    <Text size="sm" variant="muted">
+                      {','}
+                    </Text>
                   )}
-                >
-                  <Text size="sm" monospace>
-                    {trace.traceId.slice(0, 8)}
-                  </Text>
-                </StyledLink>
-              </Flex>
-            ))}
-          </Flex>
+                  <StyledLink
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/explore/traces/trace/${trace.traceId}/?node=span-${trace.spanId}`
+                    )}
+                  >
+                    <Text size="sm" monospace>
+                      {trace.traceId.slice(0, 8)}
+                    </Text>
+                  </StyledLink>
+                </Flex>
+              ))}
+            </Flex>
+          )}
+        </Flex>
+        {isLoading ? (
+          <Placeholder width="320px" height="16px" />
+        ) : (
+          conversationWindow && (
+            <Flex align="center" gap="xs" wrap="wrap">
+              <Text size="sm" variant="muted">
+                {t('Started')}
+              </Text>
+              <Text size="sm">
+                <DateTime date={conversationWindow.startDate} year timeZone />
+              </Text>
+              <Text size="sm" variant="muted">
+                {'\u2022'}
+              </Text>
+              <Text size="sm" variant="muted">
+                {t('Last message')}
+              </Text>
+              <Text size="sm">
+                <TimeSince date={conversationWindow.endDate} />
+              </Text>
+            </Flex>
+          )
         )}
       </Flex>
       <Flex align="center" gap="lg" minWidth={0}>
