@@ -48,13 +48,6 @@ def get_grouping_model_version(project: Project) -> GroupingVersion:
     return SEER_GROUPING_STABLE_VERSION
 
 
-def is_new_model_rolled_out(project: Project) -> bool:
-    """
-    Check if any non-stable model version is rolled out for this project.
-    """
-    return get_grouping_model_version(project) != SEER_GROUPING_STABLE_VERSION
-
-
 def should_send_to_seer_for_training(
     project: Project,
     grouphash_seer_latest_training_model: str | None,

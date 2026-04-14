@@ -7,7 +7,6 @@ from sentry.seer.similarity.config import (
     SEER_GROUPING_NEXT_VERSION,
     SEER_GROUPING_STABLE_VERSION,
     get_grouping_model_version,
-    is_new_model_rolled_out,
     should_send_to_seer_for_training,
 )
 from sentry.testutils.cases import TestCase
@@ -47,26 +46,6 @@ class GetGroupingModelVersionTest(TestCase):
             ),
         ):
             assert get_grouping_model_version(self.project) == SEER_GROUPING_NEW_VERSION
-
-
-class IsNewModelRolledOutTest(TestCase):
-    def test_returns_false_when_no_flags(self) -> None:
-        assert is_new_model_rolled_out(self.project) is False
-
-    def test_returns_false_when_all_versions_none(self) -> None:
-        with (
-            patch("sentry.seer.similarity.config.SEER_GROUPING_NEW_VERSION", None),
-            patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None),
-        ):
-            assert is_new_model_rolled_out(self.project) is False
-
-    def test_returns_true_when_flag_enabled(self) -> None:
-        for feature_flag in [
-            SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE,
-            SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE,
-        ]:
-            with self.subTest(feature_flag=feature_flag), self.feature(feature_flag):
-                assert is_new_model_rolled_out(self.project) is True
 
 
 class ShouldSendToSeerForTrainingTest(TestCase):
