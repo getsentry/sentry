@@ -278,8 +278,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def render_missing_scope_footer(cls, settings_url: str) -> list[Block]:
         """Return a context block warning that optional history scopes are missing."""
         footer_text = (
-            f"_Thread context is unavailable because optional scopes are disabled. "
-            f"<{settings_url}|Reinstall Sentry's Slack app> to enable this feature._"
+            f"_I am only able to see the message with the mention. I can't read the whole thread. "
+            f"<{settings_url}|Reinstall me> to change that._"
         )
         return [ContextBlock(elements=[MarkdownTextObject(text=footer_text)])]
 
