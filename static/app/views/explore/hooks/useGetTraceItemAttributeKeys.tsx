@@ -82,10 +82,15 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
+      const queryKey = [QUERY_KEY, options, organization.slug];
+      const cachedResult = queryClient.getQueryData(queryKey);
+      if (cachedResult) {
+        return cachedResult as TagCollection;
+      }
       let result: Tag[];
       try {
         result = await queryClient.fetchQuery({
-          queryKey: [QUERY_KEY, options, organization.slug],
+          queryKey,
           queryFn: () =>
             api.requestPromise(
               `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -101,6 +106,22 @@ export function useGetTraceItemAttributeKeys({
       }
 
       return getTraceItemTagCollection(result, type);
+    },
+    onSuccess(data, variables) {
+      const options = makeTraceItemAttributeKeysQueryOptions({
+        traceItemType,
+        type,
+        datetime: selection.datetime,
+        projectIds: projectIds ?? selection.projects,
+        search: variables,
+        query,
+      });
+
+      const queryKey = [QUERY_KEY, options, organization.slug];
+      queryClient.setQueryDefaults(queryKey, {
+        staleTime: 60 * 1000,
+      });
+      queryClient.setQueryData(queryKey, data);
     },
   });
 

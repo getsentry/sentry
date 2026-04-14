@@ -118,6 +118,11 @@ export function useGetTraceItemAttributeValues({
         query: filterQuery,
       });
 
+      const cachedResult = queryClient.getQueryData(queryKey);
+      if (cachedResult) {
+        return cachedResult as string[];
+      }
+
       try {
         const {url, options} = parseQueryKey(queryKey);
         const result = await queryClient.fetchQuery({
@@ -135,6 +140,22 @@ export function useGetTraceItemAttributeValues({
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
+    },
+    onSuccess(data, variables) {
+      const queryKey = traceItemAttributeValuesQueryKey({
+        orgSlug: organization.slug,
+        attributeKey: variables.tag.key,
+        search: variables.searchQuery,
+        projectIds: projectIds ?? selection.projects,
+        datetime: datetime ?? selection.datetime,
+        traceItemType,
+        type,
+        query: filterQuery,
+      });
+      queryClient.setQueryDefaults(queryKey, {
+        staleTime: 60 * 1000,
+      });
+      queryClient.setQueryData(queryKey, data);
     },
   });
 
