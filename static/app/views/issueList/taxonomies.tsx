@@ -17,6 +17,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     description: ReactNode;
     key: string;
     label: string;
+    featureFlag?: string;
   }
 > = {
   [IssueTaxonomy.ERRORS_AND_OUTAGES]: {
@@ -55,5 +56,6 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     description: t(
       'Issues detected from SDK or tooling configuration problems that degrade your ability to debug telemetry using Sentry.'
     ),
+    featureFlag: 'issue-sourcemap-configuration-visible',
   },
 };
