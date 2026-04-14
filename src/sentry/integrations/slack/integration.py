@@ -285,7 +285,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         if is_im:
             return True
 
-        if is_channel and is_private:
+        if is_private:
             return SlackScope.GROUPS_HISTORY in installed_scope_set
         if is_channel:
             return SlackScope.CHANNELS_HISTORY in installed_scope_set
