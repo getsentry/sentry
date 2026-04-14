@@ -397,10 +397,6 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     return get_cell_by_name(name=mapping.cell_name)
 
 
-# TOOD(cells): Remove alias once getsentry import sites are updated
-get_region_for_organization = get_cell_for_organization
-
-
 def get_local_locality() -> Locality:
     """Get the locality for the cell this server instance is running in."""
     cell = get_local_cell()
