@@ -195,6 +195,7 @@ class SeerExplorerClient:
         custom_tools: list[type[ExplorerTool[Any]]] | None = None,
         on_completion_hook: type[ExplorerOnCompletionHook] | None = None,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
+        reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
         enable_coding: bool = False,
         enable_code_mode_tools: bool = False,
@@ -206,6 +207,7 @@ class SeerExplorerClient:
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
+        self.reasoning_effort = reasoning_effort
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
@@ -292,6 +294,9 @@ class SeerExplorerClient:
             enable_code_mode_tools=self.enable_code_mode_tools,
             user_auth_token=user_auth_token,
         )
+
+        if self.reasoning_effort is not None:
+            chat_body["reasoning_effort"] = self.reasoning_effort
 
         if self.max_iterations is not None:
             chat_body["max_iterations"] = self.max_iterations

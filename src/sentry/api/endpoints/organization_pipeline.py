@@ -121,4 +121,17 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
 
         pipeline.set_api_mode()
 
+        # If the provider defines an initial data serializer, validate the
+        # initialData dict from the request and bind it to pipeline state.
+        # This supports provider-initiated flows where the frontend already
+        # has data (e.g. installation_id from a GitHub redirect) that needs
+        # to be available to pipeline steps.
+        serializer_cls = pipeline.provider.get_initial_data_serializer_cls()
+        if serializer_cls is not None:
+            initial_data = request.data.get("initialData") or {}
+            serializer = serializer_cls(data=initial_data)
+            serializer.is_valid(raise_exception=True)
+            for key, value in serializer.validated_data.items():
+                pipeline.bind_state(key, value)
+
         return Response(pipeline.get_current_step_info())

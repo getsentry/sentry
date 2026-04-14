@@ -54,6 +54,7 @@ export type TraceItemAttributeConfig = {
   projects?: Project[] | Array<string | number>;
   query?: string;
   search?: string;
+  staleTime?: number;
 };
 
 type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
@@ -70,6 +71,7 @@ function useTraceItemAttributeConfig({
   projects: rawProjects,
   search,
   query,
+  staleTime,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
   const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
   const projectIds =
@@ -84,6 +86,7 @@ function useTraceItemAttributeConfig({
       projects,
       search,
       query,
+      staleTime,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -95,6 +98,7 @@ function useTraceItemAttributeConfig({
       projects,
       search,
       query,
+      staleTime,
     });
 
   const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
@@ -106,6 +110,7 @@ function useTraceItemAttributeConfig({
       projects,
       search,
       query,
+      staleTime,
     });
 
   const booleanBaseKeys = useMemo(() => {

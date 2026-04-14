@@ -1,9 +1,13 @@
-import {useState} from 'react';
+import {Activity, Fragment, useRef, useState} from 'react';
+import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -28,22 +32,33 @@ import {
   useQueryParamsMode,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
 
-interface MetricPanelProps {
+interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
   queryLabel: string;
   traceMetric: TraceMetric;
-  references?: Set<string>;
+  dragListeners?: SyntheticListenerMap;
+  isAnyDragging?: boolean;
+  isDragging?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
+  referenceMap?: Record<string, string>;
 }
 
 export function MetricPanel({
   traceMetric,
   queryIndex,
   queryLabel,
-  references,
+  referenceMap,
+  dragListeners,
+  isAnyDragging,
+  isDragging,
+  style,
+  ref,
+  ...rest
 }: MetricPanelProps) {
   const organization = useOrganization();
   const {
@@ -53,10 +68,6 @@ export function MetricPanel({
   } = useTableOrientationControl();
   const [infoContentHidden, setInfoContentHidden] = useState(false);
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
-  const {result: timeseriesResult} = useMetricTimeseries({
-    traceMetric,
-    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
-  });
 
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
@@ -82,6 +93,13 @@ export function MetricPanel({
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
 
+  const {result: timeseriesResult} = useMetricTimeseries({
+    traceMetric,
+    enabled:
+      !isMetricOptionsEmpty ||
+      (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
+  });
+
   useMetricsPanelAnalytics({
     interval,
     isTopN: !!topEvents,
@@ -95,28 +113,49 @@ export function MetricPanel({
     panelIndex: queryIndex,
   });
 
+  const contentHeightRef = useRef<number | null>(null);
+
   if (hasMetricsUIRefresh) {
     return (
-      <Panel data-test-id="metric-panel">
+      <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
         <PanelBody>
           <Stack gap="sm">
             <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
               <MetricToolbar
                 traceMetric={traceMetric}
                 queryLabel={queryLabel}
-                references={references}
+                referenceMap={referenceMap}
+                dragListeners={dragListeners}
               />
             </Container>
             {visualize.visible ? (
-              <SideBySideOrientation
-                timeseriesResult={timeseriesResult}
-                traceMetric={traceMetric}
-                setOrientation={setUserPreferenceOrientation}
-                orientation={orientation}
-                infoContentHidden={infoContentHidden}
-                setInfoContentHidden={setInfoContentHidden}
-                isMetricOptionsEmpty={isMetricOptionsEmpty}
-              />
+              <Fragment>
+                {isAnyDragging ? (
+                  <DnDPlaceholder
+                    isDragging={isDragging}
+                    contentHeight={contentHeightRef.current}
+                  />
+                ) : null}
+                <Activity mode={isAnyDragging ? 'hidden' : 'visible'}>
+                  <Container
+                    ref={containerRef => {
+                      if (!isAnyDragging && containerRef) {
+                        contentHeightRef.current = containerRef.offsetHeight ?? null;
+                      }
+                    }}
+                  >
+                    <SideBySideOrientation
+                      timeseriesResult={timeseriesResult}
+                      traceMetric={traceMetric}
+                      setOrientation={setUserPreferenceOrientation}
+                      orientation={orientation}
+                      infoContentHidden={infoContentHidden}
+                      setInfoContentHidden={setInfoContentHidden}
+                      isMetricOptionsEmpty={isMetricOptionsEmpty}
+                    />
+                  </Container>
+                </Activity>
+              </Fragment>
             ) : null}
           </Stack>
         </PanelBody>
@@ -151,5 +190,40 @@ export function MetricPanel({
         )}
       </PanelBody>
     </Panel>
+  );
+}
+
+function DnDPlaceholder({
+  contentHeight,
+  isDragging,
+}: {
+  contentHeight: number | null;
+  isDragging: boolean | undefined;
+}) {
+  return (
+    <Container height={contentHeight ? `${contentHeight}px` : undefined}>
+      <Grid columns="1fr 1fr" gap="sm" height="100%">
+        <Container padding="md">
+          <Placeholder height="100%">
+            {isDragging ? (
+              <Text>
+                {t(
+                  "Charts are hidden while reordering. They're too expensive to drag along for the ride."
+                )}
+              </Text>
+            ) : null}
+          </Placeholder>
+        </Container>
+        <Container padding="md" paddingLeft="0">
+          <Placeholder height="100%">
+            {isDragging ? (
+              <Text>
+                {t("We gotta hide the tables too, they're also pretty expensive.")}
+              </Text>
+            ) : null}
+          </Placeholder>
+        </Container>
+      </Grid>
+    </Container>
   );
 }
