@@ -95,7 +95,7 @@ function useMetricAggregatesTableImp({
   const query = useQueryParamsQuery();
   const sortBys = useQueryParamsAggregateSortBys();
 
-  const isEquation = visualizes.some(isVisualizeEquation);
+  const isEquation = visualizes.every(isVisualizeEquation);
 
   const fields = useMemo(() => {
     const allFields: string[] = [];
