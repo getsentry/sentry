@@ -57,7 +57,7 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       {
         success: () => {
           clearIndicators();
-          onChange?.(priority);
+          onChange?.(nextPriority);
         },
         error: () => {
           clearIndicators();

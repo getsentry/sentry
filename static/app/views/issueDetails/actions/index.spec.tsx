@@ -25,7 +25,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
@@ -536,7 +536,7 @@ describe('GroupActions', () => {
       const treeRef = renderWithCommandPalette(
         GroupFixture({
           ...group,
-          priority: 'high',
+          priority: PriorityLevel.HIGH,
           assignedTo: {
             id: '7',
             type: 'user',

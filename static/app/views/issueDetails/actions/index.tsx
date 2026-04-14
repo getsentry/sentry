@@ -112,7 +112,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-  const {title: issueTitle} = getTitle(group);
+  const {title: rawIssueTitle} = getTitle(group);
+  const issueTitle = rawIssueTitle ?? '';
   const issueMessage = getMessage(group);
   const issueCommandLabel =
     issueMessage && issueMessage !== issueTitle

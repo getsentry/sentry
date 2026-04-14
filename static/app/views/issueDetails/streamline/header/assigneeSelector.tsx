@@ -237,7 +237,6 @@ export function GroupHeaderAssigneeCommandPaletteAction({
               assignee: owner,
               id: owner.id,
               type: owner.type,
-              suggestedAssignee: owner,
             })
           }
         />
