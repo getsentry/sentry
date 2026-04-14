@@ -100,4 +100,26 @@ class BaseApiClientTest(TestCase):
         api_client.get("https://example.com/get")
 
         assert mock_track_response_data.call_count == 1
-        assert mock_track_response_data.mock_calls[0].kwargs["extra"]["integration_id"] == 123
+        assert mock_track_response_data.mock_calls[0].kwargs["extra"]["integration_id"] == "123"
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    @patch.object(Session, "send")
+    def test_request_and_response_metrics_include_endpoint(
+        self, mock_session_send, mock_metrics_incr
+    ) -> None:
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        self.api_client.get("https://example.com/get", endpoint="compare_commits")
+
+        mock_metrics_incr.assert_any_call(
+            "None.http_request",
+            sample_rate=1.0,
+            tags={"integration": "base", "endpoint": "compare_commits"},
+        )
+        mock_metrics_incr.assert_any_call(
+            "None.http_response",
+            sample_rate=1.0,
+            tags={"integration": "base", "status": 204, "endpoint": "compare_commits"},
+        )

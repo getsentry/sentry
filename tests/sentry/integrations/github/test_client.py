@@ -167,6 +167,43 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_compare_commits_tracks_compare_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(
+            self.github_client, "_get_with_pagination"
+        ) as mock_get_with_pagination:
+            self.github_client.compare_commits(self.repo.name, "abc", "xyz")
+
+        mock_get_with_pagination.assert_called_once_with(
+            f"/repos/{self.repo.name}/compare/abc...xyz",
+            response_key="commits",
+            endpoint="compare_commits",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_last_commits_tracks_list_commits_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
+            self.github_client.get_last_commits(self.repo.name, "abc")
+
+        mock_get_cached.assert_called_once_with(
+            f"/repos/{self.repo.name}/commits",
+            params={"sha": "abc"},
+            endpoint="list_commits",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_commit_tracks_get_commit_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
+            self.github_client.get_commit(self.repo.name, "abc")
+
+        mock_get_cached.assert_called_once_with(
+            f"/repos/{self.repo.name}/commits/abc",
+            endpoint="get_commit",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_with_pagination(self, get_jwt) -> None:
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
