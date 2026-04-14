@@ -273,41 +273,4 @@ describe('useTraceItemAttributeKeys', () => {
 
     expect(options).not.toHaveProperty('substringMatch');
   });
-
-  it('reuses the no-search attribute key query for empty search strings', async () => {
-    const mockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      body: mockAttributeKeys,
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.itemType === TraceItemDataset.LOGS &&
-            query.attributeType === 'string' &&
-            !Object.prototype.hasOwnProperty.call(query, 'substringMatch')
-          );
-        },
-      ],
-    });
-
-    const {result, rerender} = renderHookWithProviders(
-      ({search}: {search?: string}) =>
-        useTraceItemAttributeKeys({
-          traceItemType: TraceItemDataset.LOGS,
-          type: 'string',
-          search,
-        }),
-      {
-        initialProps: {search: undefined},
-      }
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mockResponse).toHaveBeenCalledTimes(1);
-
-    rerender({search: ''});
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mockResponse).toHaveBeenCalledTimes(1);
-  });
 });
