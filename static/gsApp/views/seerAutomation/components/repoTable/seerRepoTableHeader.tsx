@@ -28,7 +28,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
-  {title: t('Code Review'), key: 'code_review'},
+  {title: t('Code Review'), key: 'code_review', sortKey: 'enabled'},
   {
     title: (
       <Flex gap="sm" align="center">
@@ -43,6 +43,7 @@ const COLUMNS = [
       </Flex>
     ),
     key: 'trigger',
+    sortKey: 'triggers',
   },
 ];
 
