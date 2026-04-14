@@ -103,6 +103,18 @@ def backfill_supergroups_lightweight_for_org(
         )
         return
 
+    logger.info(
+        "supergroups_backfill_lightweight.batch_starting",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "last_group_id": last_group_id,
+            "batch_size": len(groups),
+            "first_group_id": groups[0].id,
+            "last_group_id_in_batch": groups[-1].id,
+        },
+    )
+
     # Phase 1: Batch fetch event data
     group_event_pairs = _batch_fetch_events(groups, organization_id)
 
@@ -169,6 +181,17 @@ def backfill_supergroups_lightweight_for_org(
     metrics.incr(
         "seer.supergroups_backfill_lightweight.groups_failed",
         amount=failure_count,
+    )
+
+    logger.info(
+        "supergroups_backfill_lightweight.batch_complete",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "success_count": success_count,
+            "failure_count": failure_count,
+            "last_group_id_in_batch": groups[-1].id,
+        },
     )
 
     if failure_count >= MAX_FAILURES_PER_BATCH:
