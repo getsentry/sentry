@@ -84,6 +84,8 @@ function traceItemAttributeValuesQueryKey({
   ];
 }
 
+const QUERY_KEY = 'use-get-trace-item-attribute-values';
+
 /**
  * Hook to fetch trace item attribute values for the Explore interface.
  * This is designed to be used with the organization_trace_item_attributes endpoint.
@@ -118,7 +120,7 @@ export function useGetTraceItemAttributeValues({
         query: filterQuery,
       });
 
-      const cachedResult = queryClient.getQueryData(queryKey);
+      const cachedResult = queryClient.getQueryData([QUERY_KEY, queryKey]);
       if (cachedResult) {
         return cachedResult as string[];
       }
@@ -152,10 +154,10 @@ export function useGetTraceItemAttributeValues({
         type,
         query: filterQuery,
       });
-      queryClient.setQueryDefaults(queryKey, {
+      queryClient.setQueryDefaults([QUERY_KEY, queryKey], {
         staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
       });
-      queryClient.setQueryData(queryKey, data);
+      queryClient.setQueryData([QUERY_KEY, queryKey], data);
     },
   });
 

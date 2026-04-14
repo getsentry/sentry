@@ -48,7 +48,7 @@ export function makeTraceItemAttributeKeysQueryOptions({
   query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
-  const substringMatch = normalizeSubstringMatch(search);
+  const substringMatch = search || undefined;
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
@@ -85,7 +85,7 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
-      const queryKey = [QUERY_KEY, options, organization.slug];
+      const queryKey = [QUERY_KEY, options];
       const cachedResult = queryClient.getQueryData(queryKey);
       if (cachedResult) {
         return cachedResult as TagCollection;
@@ -120,7 +120,7 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
-      const queryKey = [QUERY_KEY, options, organization.slug];
+      const queryKey = [QUERY_KEY, options];
       queryClient.setQueryDefaults(queryKey, {
         staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
       });
