@@ -449,7 +449,9 @@ describe('DetectorEdit', () => {
         await screen.findByRole('link', {name: detectorWithOkEqualsHigh.name})
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('radio', {name: 'Default'})).toBeChecked();
+      expect(screen.getByText('Default').closest('label')).toHaveClass(
+        'css-1aktlwe-RadioLineItem'
+      );
 
       // Switching to Custom should reveal prefilled resolution input with the current OK value
       await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));

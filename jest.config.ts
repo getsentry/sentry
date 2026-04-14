@@ -286,6 +286,7 @@ const ESM_NODE_MODULES = [
 
 const config: Config.InitialOptions = {
   verbose: false,
+  cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
