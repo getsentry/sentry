@@ -42,6 +42,7 @@ export function TraceAiConversations({
 
   const handleTabChange = useCallback((key: Key) => {
     setActiveSubTab(String(key));
+    setSelectedSpanId(null);
   }, []);
 
   const handleSelectSpan = useCallback((spanId: string) => {
@@ -79,7 +80,7 @@ export function TraceAiConversations({
 
   const conversationUrl = activeConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${activeConversationId}/${selectedSpanId ? `?spanId=${selectedSpanId}` : ''}`
+        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${activeConversationId}/${selectedSpanId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
       )
     : null;
 
@@ -212,6 +213,7 @@ function TraceConversationChat({
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
       <ConversationSplitLayout
+        sizeStorageKey="trace-conversation-split-size"
         left={
           <ConversationLeftPanel>
             <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">

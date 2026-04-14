@@ -13,7 +13,7 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 const LEFT_PANEL_MIN = 400;
 const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
-const STORAGE_KEY = 'conversation-split-size';
+const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 /**
  * Minimal resize divider matching the trace drawer style:
@@ -62,9 +62,11 @@ const BorderDivider = styled(
 export function ConversationSplitLayout({
   left,
   right,
+  sizeStorageKey = DEFAULT_STORAGE_KEY,
 }: {
   left: React.ReactNode;
   right: React.ReactNode;
+  sizeStorageKey?: string;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
@@ -81,7 +83,7 @@ export function ConversationSplitLayout({
       {hasSize ? (
         <SplitPanel
           availableSize={width}
-          sizeStorageKey={STORAGE_KEY}
+          sizeStorageKey={sizeStorageKey}
           SplitDivider={BorderDivider}
           left={{
             content: left,
