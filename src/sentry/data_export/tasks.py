@@ -71,14 +71,6 @@ def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     }
 
 
-def _is_full_jsonl_trace_item_export(data_export: ExportedData, output_mode: OutputMode) -> bool:
-    return (
-        data_export.query_type == ExportQueryType.EXPLORE
-        and output_mode == OutputMode.JSONL
-        and len(data_export.query_info.get("field", [])) == 0
-    )
-
-
 def _page_token_b64_from_processor(
     processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
 ) -> str | None:

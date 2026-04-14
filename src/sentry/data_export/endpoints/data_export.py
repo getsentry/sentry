@@ -67,7 +67,10 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             dataset = dataset or "discover"
             if dataset not in SUPPORTED_DATASETS:
                 raise serializers.ValidationError(f"{dataset} is not supported for exports")
-        elif query_type == ExportQueryType.EXPLORE_STR:
+        elif query_type in (
+            ExportQueryType.EXPLORE_STR,
+            ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+        ):
             if not dataset:
                 raise serializers.ValidationError(
                     f"Please specify dataset. Supported datasets for this query type are {str(SUPPORTED_TRACE_ITEM_DATASETS.keys())}."
@@ -311,7 +314,10 @@ class DataExportEndpoint(OrganizationEndpoint):
         # The data export feature is only available alongside `discover-query` (except for explore).
         # So to export issue tags, they must have have `discover-query`
         if not features.has("organizations:discover-query", organization):
-            if request.data.get("query_type") != ExportQueryType.EXPLORE_STR:
+            if request.data.get("query_type") not in {
+                ExportQueryType.EXPLORE_STR,
+                ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            }:
                 return Response(status=404)
 
         # Get environment_id and limit if available
