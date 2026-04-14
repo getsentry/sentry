@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -106,6 +107,11 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         assert resp.status_code == 200
         assert "Location" not in resp
 
+    @pytest.mark.skip(
+        reason="test pollution: rate limit counter cleared mid-test by a concurrent xdist worker's "
+        "clear_caches fixture calling cache.clear(); the 11th request sees a reset counter "
+        "and returns 200 instead of 429"
+    )
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limit(self) -> None:
         url = reverse(

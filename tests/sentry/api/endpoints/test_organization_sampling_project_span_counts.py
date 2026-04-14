@@ -139,6 +139,11 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         assert (data["end"] - data["start"]) == timedelta(days=30)
 
     @django_db_all
+    @pytest.mark.skip(
+        reason="test pollution: MaxSnowflakeRetryError from concurrent xdist workers saturating "
+        "the Redis snowflake sequence counter; creating 200 projects via time_machine.travel "
+        "with tick=True is not sufficient isolation when 3 workers run in parallel"
+    )
     def test_get_span_counts_with_many_projects(self) -> None:
         # Create 200 projects with incrementing span counts.
         # Use tick=True so the clock advances during create_project, giving each

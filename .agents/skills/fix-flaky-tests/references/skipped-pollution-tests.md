@@ -17,6 +17,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - `AssembleDownloadExploreTest::test_explore_logs_jsonl_format` — log messages from prior tests appear in the JSONL export results, causing set comparison to fail
 
+## tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py
+
+- `OrganizationSamplingProjectSpanCountsTest::test_get_span_counts_with_many_projects` — `MaxSnowflakeRetryError`: concurrent xdist workers saturate the Redis snowflake sequence counter when all 3 workers create projects simultaneously; `time_machine.travel(..., tick=True)` is insufficient isolation at 3-worker concurrency
+
 ## tests/sentry/deletions/tasks/test_hybrid_cloud.py
 
 - `test_no_work_is_no_op` (module-level) — prior test leaves tombstone/outbox rows that cause `schedule_hybrid_cloud_foreign_key_jobs` to find work and update the watermark tid
@@ -80,6 +84,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 ## tests/sentry/issues/endpoints/test_group_details.py
 
 - `GroupDetailsTest::test_ratelimit` — `group.first_seen` is set at real time (~2026) but the endpoint runs inside `freeze_time("2000-01-01")`; `snuba._prepare_start_end` computes the query window relative to frozen `now()` and raises `QueryOutsideGroupActivityError` on every request, so the rate limit counter never accumulates and the final request returns 500 instead of 429
+
+## tests/sentry/web/frontend/test_group_tag_export.py
+
+- `GroupTagExportTest::test_rate_limit` — rate limit counter reset mid-test by a concurrent xdist worker's `clear_caches` fixture calling `cache.clear()`; the 11th request sees counter=1 instead of 11 and returns 200 instead of 429
 
 ## tests/sentry/tasks/test_reprocessing2.py
 
