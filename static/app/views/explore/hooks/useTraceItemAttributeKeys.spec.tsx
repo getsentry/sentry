@@ -8,6 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {makeTraceItemAttributeKeysQueryOptions} from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -254,5 +255,59 @@ describe('useTraceItemAttributeKeys', () => {
     };
 
     expect(result.current.attributes).toEqual(expectedAttributes);
+  });
+
+  it('omits empty substringMatch from attribute key query options', () => {
+    const options = makeTraceItemAttributeKeysQueryOptions({
+      traceItemType: TraceItemDataset.LOGS,
+      type: 'string',
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+      projectIds: [1],
+      search: '',
+    });
+
+    expect(options).not.toHaveProperty('substringMatch');
+  });
+
+  it('reuses the no-search attribute key query for empty search strings', async () => {
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: mockAttributeKeys,
+      match: [
+        (_url, options) => {
+          const query = options?.query || {};
+          return (
+            query.itemType === TraceItemDataset.LOGS &&
+            query.attributeType === 'string' &&
+            !Object.prototype.hasOwnProperty.call(query, 'substringMatch')
+          );
+        },
+      ],
+    });
+
+    const {result, rerender} = renderHookWithProviders(
+      ({search}: {search?: string}) =>
+        useTraceItemAttributeKeys({
+          traceItemType: TraceItemDataset.LOGS,
+          type: 'string',
+          search,
+        }),
+      {
+        initialProps: {search: undefined},
+      }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockResponse).toHaveBeenCalledTimes(1);
+
+    rerender({search: ''});
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockResponse).toHaveBeenCalledTimes(1);
   });
 });

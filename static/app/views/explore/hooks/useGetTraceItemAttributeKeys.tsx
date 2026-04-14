@@ -28,6 +28,10 @@ type TraceItemAttributeKeyOptions = Pick<
   substringMatch?: string;
 };
 
+function normalizeSubstringMatch(search?: string) {
+  return search || undefined;
+}
+
 export function makeTraceItemAttributeKeysQueryOptions({
   traceItemType,
   type,
@@ -43,13 +47,14 @@ export function makeTraceItemAttributeKeysQueryOptions({
   query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
+  const substringMatch = normalizeSubstringMatch(search);
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
     project: projectIds?.map(String),
     query,
-    substringMatch: search,
     ...normalizeDateTimeParams(datetime),
+    ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 
   // environment left out intentionally as it's not supported

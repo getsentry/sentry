@@ -30,6 +30,7 @@ export function useTraceItemAttributeKeys({
   staleTime,
 }: UseTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
+  const normalizedSearch = search || undefined;
 
   const projectIds =
     explicitProjectIds ??
@@ -60,8 +61,8 @@ export function useTraceItemAttributeKeys({
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching, error} = useQuery({
     enabled,
-    queryKey: [...queryKey, search],
-    queryFn: () => getTraceItemAttributeKeys(search),
+    queryKey: [...queryKey, normalizedSearch],
+    queryFn: () => getTraceItemAttributeKeys(normalizedSearch),
     staleTime,
   });
 
