@@ -82,3 +82,22 @@ class BaseApiClientTest(TestCase):
         self.api_client.get("https://172.31.255.255")
         assert mock_session_send.call_count == 1
         assert mock_session_send.mock_calls[0].kwargs["timeout"] == 30
+
+    @patch.object(BaseApiClient, "track_response_data")
+    @patch.object(Session, "send")
+    def test_track_response_data_includes_integration_id(
+        self, mock_session_send, mock_track_response_data
+    ) -> None:
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        class Client(BaseApiClient):
+            integration_type = "integration"
+            integration_name = "base"
+
+        api_client = Client(integration_id=123)
+        api_client.get("https://example.com/get")
+
+        assert mock_track_response_data.call_count == 1
+        assert mock_track_response_data.mock_calls[0].kwargs["extra"]["integration_id"] == 123

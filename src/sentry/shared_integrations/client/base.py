@@ -246,6 +246,8 @@ class BaseApiClient:
         # It shouldn't be possible for integration_type to be null.
         if self.integration_type:
             extra[self.integration_type] = self.name
+        if self.integration_id is not None:
+            extra["integration_id"] = str(self.integration_id)
 
         try:
             with self.build_session() as session:
