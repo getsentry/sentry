@@ -94,15 +94,18 @@ export function EquationBuilder({
     mapChanged ? expressionMapRef.current : referenceMap
   );
 
-  // When the reference map changes, re-resolve the expression and notify the parent.
+  // When the reference map changes, re-resolve the expression and invoke the callback
   useEffect(() => {
     if (!isEqual(expressionMapRef.current, referenceMap)) {
       const expr = new Expression(
         internalExpression,
         new Set(Object.keys(expressionMapRef.current ?? {}))
       );
-      handleExpressionChange(resolveExpression(expr, referenceMap));
-      expressionMapRef.current = referenceMap;
+      const resolved = resolveExpression(expr, referenceMap);
+      if (resolved.isValid) {
+        handleExpressionChange(resolved);
+        expressionMapRef.current = referenceMap;
+      }
     }
   }, [referenceMap, internalExpression, handleExpressionChange]);
 
