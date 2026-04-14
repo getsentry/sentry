@@ -1179,27 +1179,45 @@ class DashboardDetail extends Component<Props, State> {
           <MetricsResultsMetaProvider>
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
-                <Layout.Header>
-                  <Layout.HeaderContent>
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          label: t('Dashboards'),
-                          to: `/organizations/${organization.slug}/dashboards/`,
-                        },
-                        {
-                          label: this.getBreadcrumbLabel(),
-                        },
-                      ]}
-                    />
-                    <Layout.Title>
+                <Layout.Header unified={this.props.hasPageFrameFeature}>
+                  {this.props.hasPageFrameFeature ? (
+                    <TopBar.Slot name="title">
+                      <Breadcrumbs
+                        crumbs={[
+                          {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
+                        ]}
+                      />
                       <DashboardTitle
                         dashboard={modifiedDashboard ?? dashboard}
                         onUpdate={this.setModifiedDashboard}
                         isEditingDashboard={this.isEditingDashboard}
                       />
-                    </Layout.Title>
-                  </Layout.HeaderContent>
+                    </TopBar.Slot>
+                  ) : (
+                    <Layout.HeaderContent>
+                      <Breadcrumbs
+                        crumbs={[
+                          {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
+                          {
+                            label: this.getBreadcrumbLabel(),
+                          },
+                        ]}
+                      />
+                      <Layout.Title>
+                        <DashboardTitle
+                          dashboard={modifiedDashboard ?? dashboard}
+                          onUpdate={this.setModifiedDashboard}
+                          isEditingDashboard={this.isEditingDashboard}
+                        />
+                      </Layout.Title>
+                    </Layout.HeaderContent>
+                  )}
                   {this.props.hasPageFrameFeature ? (
                     <TopBar.Slot name="actions">
                       <Controls

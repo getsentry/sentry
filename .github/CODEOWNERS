@@ -356,6 +356,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
 /static/app/components/charts/                                            @getsentry/data-browsing
+/static/app/chartcuterie/timeseries.tsx                                   @getsentry/data-browsing
 
 /static/app/views/insights/                                               @getsentry/dashboards
 

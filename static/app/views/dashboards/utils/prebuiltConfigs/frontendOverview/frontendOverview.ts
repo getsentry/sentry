@@ -185,7 +185,7 @@ const TABLE_FIELDS = [
   `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
   `count_unique(${SpanFields.USER})`,
   `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-  'equation|performance_score(measurements.score.total)',
+  'performance_score(measurements.score.total)',
 ];
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -207,7 +207,7 @@ const TRANSACTIONS_TABLE: Widget = {
         `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
         `count_unique(${SpanFields.USER})`,
         `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        'equation|performance_score(measurements.score.total)',
+        'performance_score(measurements.score.total)',
       ],
       fields: TABLE_FIELDS,
       fieldAliases: [

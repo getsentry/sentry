@@ -1,31 +1,19 @@
-import type {ReactNode} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/components/pageFilters/usePageFilters');
-
-function Wrapper({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext value={OrganizationFixture()}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
 
 describe('useDiscover', () => {
   describe('useSpans', () => {
@@ -46,10 +34,9 @@ describe('useDiscover', () => {
         body: {data: []},
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         ({fields, enabled}) => useSpans({fields, enabled}, 'span-metrics-series'),
         {
-          wrapper: Wrapper,
           initialProps: {
             fields: ['epm()'] as SpanProperty[],
             enabled: false,
@@ -76,7 +63,7 @@ describe('useDiscover', () => {
         },
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         ({filters, fields, sorts, limit, cursor, referrer}) =>
           useSpans(
             {
@@ -89,7 +76,6 @@ describe('useDiscover', () => {
             referrer
           ),
         {
-          wrapper: Wrapper,
           initialProps: {
             filters: {
               'span.group': '221aa7ebd216',
@@ -173,10 +159,9 @@ describe('useDiscover', () => {
         body: {data: []},
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         ({fields, enabled}) => useSpans({fields, enabled}, 'referrer'),
         {
-          wrapper: Wrapper,
           initialProps: {
             fields: [SpanFields.SPAN_DESCRIPTION] as SpanProperty[],
             enabled: false,
@@ -210,7 +195,7 @@ describe('useDiscover', () => {
         },
       });
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         ({filters, fields, sorts, limit, cursor, referrer}) =>
           useSpans(
             {
@@ -223,7 +208,6 @@ describe('useDiscover', () => {
             referrer
           ),
         {
-          wrapper: Wrapper,
           initialProps: {
             filters: {
               'span.group': '221aa7ebd216',

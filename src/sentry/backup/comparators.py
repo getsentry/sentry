@@ -859,6 +859,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated"),
             ],
+            "sentry.dashboardrevision": [
+                DateUpdatedComparator("date_added", "date_updated"),
+            ],
             "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.dataforwarderproject": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],

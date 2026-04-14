@@ -1,30 +1,25 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useScmRepoSearch} from './useScmRepoSearch';
+import {useScmRepos} from './useScmRepos';
 
-describe('useScmRepoSearch', () => {
+describe('useScmRepos', () => {
   const organization = OrganizationFixture();
   const integrationId = '1';
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.useRealTimers();
   });
 
-  function renderHook(selectedRepo?: Parameters<typeof useScmRepoSearch>[1]) {
-    return renderHookWithProviders(() => useScmRepoSearch(integrationId, selectedRepo), {
+  function renderHook(selectedRepo?: Parameters<typeof useScmRepos>[1]) {
+    return renderHookWithProviders(() => useScmRepos(integrationId, selectedRepo), {
       organization,
     });
   }
 
-  it('does not fetch when search is empty', () => {
+  it('fetches repos on mount', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integrationId}/repos/`,
       body: {repos: []},
@@ -32,46 +27,7 @@ describe('useScmRepoSearch', () => {
 
     renderHook();
 
-    expect(request).not.toHaveBeenCalled();
-  });
-
-  it('fetches repos after search is set', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${integrationId}/repos/`,
-      body: {repos: []},
-    });
-
-    const {result} = renderHook();
-
-    act(() => {
-      result.current.setSearch('sentry');
-      jest.advanceTimersByTime(200);
-    });
-
     await waitFor(() => expect(request).toHaveBeenCalled());
-  });
-
-  it('passes search query param to the API', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${integrationId}/repos/`,
-      body: {repos: []},
-    });
-
-    const {result} = renderHook();
-
-    act(() => {
-      result.current.setSearch('sentry');
-      jest.advanceTimersByTime(200);
-    });
-
-    await waitFor(() => expect(request).toHaveBeenCalled());
-
-    expect(request).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({search: 'sentry', accessibleOnly: true}),
-      })
-    );
   });
 
   it('transforms API response into reposByIdentifier and dropdownItems', async () => {
@@ -86,11 +42,6 @@ describe('useScmRepoSearch', () => {
     });
 
     const {result} = renderHook();
-
-    act(() => {
-      result.current.setSearch('get');
-      jest.advanceTimersByTime(200);
-    });
 
     await waitFor(() => expect(result.current.reposByIdentifier.size).toBe(2));
 
@@ -120,11 +71,6 @@ describe('useScmRepoSearch', () => {
     const selectedRepo = RepositoryFixture({externalSlug: 'getsentry/sentry'});
     const {result} = renderHook(selectedRepo);
 
-    act(() => {
-      result.current.setSearch('get');
-      jest.advanceTimersByTime(200);
-    });
-
     await waitFor(() => expect(result.current.dropdownItems).toHaveLength(2));
 
     expect(result.current.dropdownItems[0]).toEqual(
@@ -144,40 +90,6 @@ describe('useScmRepoSearch', () => {
 
     const {result} = renderHook();
 
-    act(() => {
-      result.current.setSearch('sentry');
-      jest.advanceTimersByTime(200);
-    });
-
     await waitFor(() => expect(result.current.isError).toBe(true));
-  });
-
-  it('returns empty results when search is cleared after searching', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${integrationId}/repos/`,
-      body: {
-        repos: [{identifier: 'getsentry/sentry', name: 'sentry', isInstalled: false}],
-      },
-    });
-
-    const {result} = renderHook();
-
-    // Search and get results
-    act(() => {
-      result.current.setSearch('sentry');
-      jest.advanceTimersByTime(200);
-    });
-
-    await waitFor(() => expect(result.current.reposByIdentifier.size).toBe(1));
-
-    // Clear search
-    act(() => {
-      result.current.setSearch('');
-      jest.advanceTimersByTime(200);
-    });
-
-    // placeholderData returns undefined when debouncedSearch is empty
-    await waitFor(() => expect(result.current.reposByIdentifier.size).toBe(0));
-    expect(result.current.dropdownItems).toEqual([]);
   });
 });

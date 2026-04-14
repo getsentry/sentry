@@ -10,6 +10,7 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
@@ -26,6 +27,7 @@ function TopBarContent() {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
+  const topOffset = useTopOffset();
 
   const {openExplorerPanel} = useExplorerPanel();
 
@@ -45,7 +47,7 @@ function TopBarContent() {
       padding={{sm: 'sm lg', md: 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
+      top={topOffset}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
