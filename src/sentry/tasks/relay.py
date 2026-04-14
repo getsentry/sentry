@@ -309,7 +309,15 @@ def schedule_invalidate_project_config(
 
     from sentry.models.project import Project
 
-    if trigger_details in NON_INVALIDATING_PROJECT_OPTIONS:
+    if (
+        trigger
+        in [
+            "projectoption.post_deleteprojectoption.post_save",
+            "projectoption.set_value",
+            "projectoption.unset_value",
+        ]
+        and trigger_details in NON_INVALIDATING_PROJECT_OPTIONS
+    ):
         return
 
     if transaction_db is None:
