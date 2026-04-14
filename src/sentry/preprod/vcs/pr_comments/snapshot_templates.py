@@ -22,7 +22,8 @@ def format_snapshot_pr_comment(
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
-    project: Project | None = None,
+    *,
+    project: Project,
 ) -> str:
     """Format a PR comment for snapshot comparisons."""
     if not artifacts:
@@ -88,15 +89,14 @@ def format_snapshot_pr_comment(
                 f" | {status} |"
             )
 
-    sections = [f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)]
+    settings_url = project.organization.absolute_url(
+        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
+    )
 
-    if project is not None:
-        settings_url = project.organization.absolute_url(
-            f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
-        )
-        sections.append(f"[⚙️ {project.name} Snapshot Settings]({settings_url})")
+    table = f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)
+    settings_link = f"[⚙️ {project.name} Snapshot Settings]({settings_url})"
 
-    return "\n\n".join(sections)
+    return f"{table}\n\n{settings_link}"
 
 
 def _name_cell(
