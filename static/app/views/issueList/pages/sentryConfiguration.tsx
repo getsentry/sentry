@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -12,16 +13,18 @@ export default function SentryConfigurationPage() {
   const organization = useOrganization();
 
   return (
-    <IssueListContainer title={CONFIG.label}>
-      <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <IssueListOverview
-            initialQuery={QUERY}
-            title={CONFIG.label}
-            titleDescription={CONFIG.description}
-          />
-        </NoProjectMessage>
-      </PageFiltersContainer>
-    </IssueListContainer>
+    <Feature features={CONFIG.featureFlag!} renderDisabled>
+      <IssueListContainer title={CONFIG.label}>
+        <PageFiltersContainer>
+          <NoProjectMessage organization={organization}>
+            <IssueListOverview
+              initialQuery={QUERY}
+              title={CONFIG.label}
+              titleDescription={CONFIG.description}
+            />
+          </NoProjectMessage>
+        </PageFiltersContainer>
+      </IssueListContainer>
+    </Feature>
   );
 }
