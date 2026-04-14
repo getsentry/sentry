@@ -440,7 +440,6 @@ class DashboardRevision(Model):
     snapshot: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     snapshot_schema_version = models.IntegerField(db_default=1)
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"

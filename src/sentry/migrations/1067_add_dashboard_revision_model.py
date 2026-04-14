@@ -57,12 +57,6 @@ class Migration(CheckedMigration):
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.dashboard"
                     ),
                 ),
-                (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.organization"
-                    ),
-                ),
             ],
             options={
                 "db_table": "sentry_dashboardrevision",
