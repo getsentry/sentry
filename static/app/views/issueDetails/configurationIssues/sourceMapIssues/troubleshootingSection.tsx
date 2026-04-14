@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -5,6 +7,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconDocs, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -17,11 +21,31 @@ interface TroubleshootingSectionProps {
 export function TroubleshootingSection({project}: TroubleshootingSectionProps) {
   const organization = useOrganization();
   const settingsUrl = `/settings/${organization.slug}/projects/${project.slug}/source-maps/`;
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const getMarkdown = () => {
+    if (!contentRef.current) {
+      return '';
+    }
+    try {
+      return simpleHtmlToMarkdown(contentRef.current.innerHTML);
+    } catch {
+      return '';
+    }
+  };
 
   return (
     <Stack gap="md" padding="lg">
-      <Heading as="h3">{t('Troubleshooting suggestions')}</Heading>
-      <Stack gap="sm">
+      <Flex align="center" justify="between">
+        <Heading as="h3">{t('Troubleshooting suggestions')}</Heading>
+        <CopyMarkdownButton
+          getMarkdown={getMarkdown}
+          title={t('Copies suggestions as Markdown, optimized for use with an LLM.')}
+          label={t('Copy')}
+          source="sourcemap_configuration_troubleshooting"
+        />
+      </Flex>
+      <Stack gap="sm" ref={contentRef}>
         <Disclosure size="md" defaultExpanded>
           <Disclosure.Title>{t('Verify Artifacts Are Uploaded')}</Disclosure.Title>
           <Disclosure.Content>
