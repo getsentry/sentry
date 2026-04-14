@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -15,8 +16,7 @@ import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -34,31 +34,24 @@ export function IntegrationRepos(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
 
   const {
-    data: fetchedItemList,
+    data: reposResponse,
     isPending,
     isError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<Repository[]>(
-    [
-      ENDPOINT,
-      {
-        query: {
-          status: 'active',
-          integration_id: integration.id,
-          cursor: location.query.cursor,
-        },
+  } = useQuery({
+    ...apiOptions.as<Repository[]>()('/organizations/$organizationIdOrSlug/repos/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        status: 'active',
+        integration_id: integration.id,
+        cursor: location.query.cursor,
       },
-    ],
-    {
       staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
   const [itemListState, setItemList] = useState<Repository[]>([]);
 
   if (isPending) {
@@ -69,6 +62,7 @@ export function IntegrationRepos(props: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
+  const fetchedItemList = reposResponse?.json ?? [];
   const itemList = itemListState.length ? itemListState : fetchedItemList;
 
   // Called by row to signal repository change.
@@ -91,7 +85,7 @@ export function IntegrationRepos(props: Props) {
     setItemList([...itemList, repo]);
   };
 
-  const itemListPageLinks = getResponseHeader?.('Link') ?? undefined;
+  const itemListPageLinks = reposResponse?.headers.Link;
 
   return (
     <Fragment>
