@@ -828,6 +828,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             GithubOrganizationSelectionApiStep(),
         ]
 
+    def get_initial_data_serializer_cls(self) -> type[InitialDataSerializer]:
+        return InitialDataSerializer
+
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         resp: Mapping[str, Any] = self.client.get_installation_info(installation_id=installation_id)
         return resp
@@ -1130,6 +1133,17 @@ def validate_github_installation(
         raise GitHubPipelineError(GitHubInstallationError.USER_MISMATCH)
 
     return installation_id
+
+
+class InitialDataSerializer(CamelSnakeSerializer):
+    """Validates initial data for provider-initiated GitHub installs.
+
+    When a user installs the GitHub App directly from GitHub, the redirect
+    includes an installation_id. This serializer validates that value when
+    it is forwarded as initial pipeline data.
+    """
+
+    installation_id = CharField(required=False)
 
 
 class OAuthLoginStepData(TypedDict):

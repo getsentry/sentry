@@ -9,7 +9,6 @@
 
 export type KnownSentryApiUrls =
   | '/'
-  | '/accept-invite/$memberId/$token/'
   | '/accept-invite/$organizationIdOrSlug/$memberId/$token/'
   | '/accept-transfer/'
   | '/api-applications/'

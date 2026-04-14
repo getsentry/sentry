@@ -36,6 +36,10 @@ interface PreprodBuildsSearchControlsProps {
    */
   allowedKeys?: string[];
   /**
+   * Hide the display mode toggle
+   */
+  hideDisplayToggle?: boolean;
+  /**
    * Called on every keystroke (for controlled input with debounce)
    */
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
@@ -54,6 +58,7 @@ export function PreprodBuildsSearchControls({
   display,
   projects,
   allowedKeys = MOBILE_BUILDS_ALLOWED_KEYS,
+  hideDisplayToggle,
   onChange,
   onSearch,
   onDisplayChange,
@@ -74,20 +79,22 @@ export function PreprodBuildsSearchControls({
           projects={projects}
         />
       </Container>
-      <Container maxWidth="200px">
-        <CompactSelect
-          options={displaySelectOptions}
-          value={display}
-          onChange={option => onDisplayChange(option.value)}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              prefix={t('Display')}
-              style={{width: '100%', zIndex: 1}}
-            />
-          )}
-        />
-      </Container>
+      {!hideDisplayToggle && (
+        <Container maxWidth="200px">
+          <CompactSelect
+            options={displaySelectOptions}
+            value={display}
+            onChange={option => onDisplayChange(option.value)}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                prefix={t('Display')}
+                style={{width: '100%', zIndex: 1}}
+              />
+            )}
+          />
+        </Container>
+      )}
     </Flex>
   );
 }

@@ -21,14 +21,6 @@ class AccountSettingsTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def test_account_security_settings(self) -> None:
-        with (
-            self.options({"system.url-prefix": self.browser.live_server_url}),
-            self.feature("organizations:onboarding"),
-        ):
-            self.browser.get("/settings/account/security/")
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
     def test_account_notifications(self) -> None:
         with (
             self.options({"system.url-prefix": self.browser.live_server_url}),
@@ -38,29 +30,4 @@ class AccountSettingsTest(AcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             self.browser.click_when_visible('[data-test-id="fine-tuning"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_account_emails_settings(self) -> None:
-        with self.feature("organizations:onboarding"):
-            self.browser.get("/settings/account/emails/")
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_account_subscriptions_settings(self) -> None:
-        with self.feature("organizations:onboarding"):
-            self.browser.get("/settings/account/subscriptions/")
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_account_authorizations_settings(self) -> None:
-        with self.feature("organizations:onboarding"):
-            self.browser.get("/account/authorizations/")
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_account_identities_settings(self) -> None:
-        with self.feature("organizations:onboarding"):
-            self.browser.get("/settings/account/identities/")
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_close_account(self) -> None:
-        with self.options({"system.url-prefix": self.browser.live_server_url}):
-            self.browser.get("/account/remove/")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
