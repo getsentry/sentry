@@ -93,10 +93,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
             results[open_period] = {"projects": [open_period.project.slug]}
             results[open_period]["alert_rule"] = alert_rules.get(str(alert_rule_id))
 
-        igops = IncidentGroupOpenPeriod.objects.filter(group_open_period__in=item_list)
+        igops = IncidentGroupOpenPeriod.objects.filter(group_open_period__in=results.keys())
         igop_by_open_period_id = {igop.group_open_period_id: igop for igop in igops}
 
-        for open_period in item_list:
+        for open_period in results:
             if igop := igop_by_open_period_id.get(open_period.id):
                 results[open_period]["incident_id"] = igop.incident_id
                 results[open_period]["incident_identifier"] = igop.incident_identifier
