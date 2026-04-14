@@ -626,7 +626,7 @@ describe('Dashboards > Detail', () => {
     });
 
     it('hides add widget option', async () => {
-      jest.spyOn(types, 'MAX_WIDGETS', 'get').mockReturnValue(1);
+      jest.spyOn(types, 'MAX_WIDGETS', 'get').mockReturnValue(1 as 30);
 
       render(
         <OrganizationContext value={initialData.organization}>
