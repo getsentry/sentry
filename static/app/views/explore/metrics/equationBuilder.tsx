@@ -122,18 +122,25 @@ export function EquationBuilder({
     }
   }, [referenceMap, internalExpression, handleExpressionChange]);
 
+  // Report which labels this equation references after unresolving.
+  // Cleans up on unmount so deleted equations don't block metric deletion.
+  useEffect(() => {
+    const expr = new Expression(internalExpression, references);
+    onReferenceLabelsChange?.(extractReferenceLabels(expr));
+    return () => {
+      onReferenceLabelsChange?.([]);
+    };
+  }, [internalExpression, references, onReferenceLabelsChange]);
+
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
       startTransition(() => {
         if (newExpression.isValid) {
-          // Report the labels from the pre-resolved expression so the
-          // caller knows exactly which labels (A, B, etc.) were typed.
-          onReferenceLabelsChange?.(extractReferenceLabels(newExpression));
           handleExpressionChange(resolveExpression(newExpression, referenceMap));
         }
       });
     },
-    [handleExpressionChange, onReferenceLabelsChange, referenceMap]
+    [handleExpressionChange, referenceMap]
   );
 
   return (

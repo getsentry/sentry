@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment} from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -23,6 +23,7 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
@@ -46,81 +47,6 @@ import {
 } from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
-
-/**
- * Tracks which metric labels (A, B, etc.) are referenced by equations.
- *
- * On initial load, labels are precomputed by reverse-resolving each
- * equation's stored expression against the referenceMap. When the user
- * edits an equation, the EquationBuilder reports the exact labels that
- * were typed, which override the precomputed values for that equation.
- */
-function useEquationReferencedLabels() {
-  const metricQueries = useMultiMetricsQueryParams();
-  const referenceMap = useMetricReferences();
-
-  // User-reported labels from equation edits override precomputed values
-  const [userLabelsByEquation, setUserLabelsByEquation] = useState<
-    Map<string, readonly string[]>
-  >(() => new Map());
-
-  const onEquationLabelsChange = useCallback(
-    (equationLabel: string, labels: string[]) => {
-      setUserLabelsByEquation(prev => {
-        const current = prev.get(equationLabel);
-        if (
-          current?.length === labels.length &&
-          current.every((l, i) => l === labels[i])
-        ) {
-          return prev;
-        }
-        const next = new Map(prev);
-        next.set(equationLabel, labels);
-        return next;
-      });
-    },
-    []
-  );
-
-  const referencedMetricLabels = useMemo(() => {
-    // Build reverse map (function string → first label) for precomputation
-    const reversedReferenceMap: Record<string, string> = {};
-    for (const [label, functionString] of Object.entries(referenceMap)) {
-      if (!reversedReferenceMap[functionString]) {
-        reversedReferenceMap[functionString] = label;
-      }
-    }
-
-    const set = new Set<string>();
-    for (const q of metricQueries) {
-      const v = q.queryParams.visualizes[0];
-      if (!v || !isVisualizeEquation(v)) {
-        continue;
-      }
-
-      const eqLabel = q.label ?? '';
-      const userLabels = userLabelsByEquation.get(eqLabel);
-
-      if (userLabels) {
-        // Use user-reported labels (from explicit equation edits)
-        for (const label of userLabels) {
-          set.add(label);
-        }
-      } else {
-        // Precompute from stored expression via reverse-resolve
-        for (const token of v.expression.tokens) {
-          const referencedLabel = reversedReferenceMap[token.text];
-          if (referencedLabel) {
-            set.add(referencedLabel);
-          }
-        }
-      }
-    }
-    return set;
-  }, [metricQueries, referenceMap, userLabelsByEquation]);
-
-  return {referencedMetricLabels, onEquationLabelsChange};
-}
 
 type MetricsTabProps = {
   datePageFilterProps: DatePageFilterProps;
