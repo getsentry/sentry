@@ -23,6 +23,8 @@ export function TroubleshootingSection({project}: TroubleshootingSectionProps) {
   const settingsUrl = `/settings/${organization.slug}/projects/${project.slug}/source-maps/`;
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // TODO: Migrate troubleshooting steps to the content block system so we can use
+  // structured stepsToMarkdown() instead of innerHTML scraping.
   const getMarkdown = () => {
     if (!contentRef.current) {
       return '';
