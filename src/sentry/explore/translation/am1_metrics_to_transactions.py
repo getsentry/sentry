@@ -60,8 +60,14 @@ def translate_am1_metrics_detector_and_update_subscription_in_snuba(snuba_query:
     snapshot_snuba_query(snuba_query)
 
     snapshot = snuba_query.query_snapshot
-    if not snapshot:
+    if not snapshot and snuba_query.dataset == Dataset.PerformanceMetrics.value:
         logger.info("No snapshot created for snuba query %s", snuba_query.id)
+        return
+
+    if snapshot.get("user_updated"):
+        logger.info(
+            "Skipping migration for user-updated query", extra={"snuba_query_id": snuba_query.id}
+        )
         return
 
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
@@ -123,9 +129,28 @@ def rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_q
         return
 
     snapshot = snuba_query.query_snapshot
+    is_snapshot_am1_metrics = (
+        snapshot is not None and snapshot.get("metrics_to_transactions", False) is True
+    )
 
-    if not snapshot:
+    if not is_snapshot_am1_metrics:
         logger.info("No snapshot found for snuba query %s", snuba_query.id)
+        return
+
+    if snapshot.get("user_updated"):
+        logger.info(
+            "Skipping rollback for user-updated query", extra={"snuba_query_id": snuba_query.id}
+        )
+        return
+
+    if snuba_query.dataset == Dataset.PerformanceMetrics.value:
+        logger.info("Query already migrated to metrics", extra={"snuba_query_id": snuba_query.id})
+        return
+
+    if snuba_query.dataset != Dataset.Transactions.value:
+        logger.info(
+            "Query is not the correct dataset to rollback", extra={"snuba_query_id": snuba_query.id}
+        )
         return
 
     old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)

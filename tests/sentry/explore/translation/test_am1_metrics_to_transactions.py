@@ -161,6 +161,18 @@ class TranslateAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
         assert snuba_query.dataset == Dataset.PerformanceMetrics.value
         assert snuba_query.query_snapshot is None
 
+    @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
+    def test_translate_skips_migration_for_user_updated_query(self) -> None:
+        snuba_query = self._create_snuba_query()
+        snuba_query.query_snapshot = {"metrics_to_transactions": True, "user_updated": True}
+        snuba_query.save()
+        self._setup_detector(snuba_query)
+
+        translate_am1_metrics_detector_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.PerformanceMetrics.value
+
 
 class RollbackAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
     @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
@@ -218,3 +230,54 @@ class RollbackAM1MetricsDetectorTest(AM1MetricsToTransactionsTestCase):
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.Transactions.value
+
+    @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
+    def test_rollback_returns_early_if_snapshot_has_no_am1_metrics_flag(self) -> None:
+        snuba_query = self._create_snuba_query(dataset=Dataset.Transactions)
+        # Snapshot exists but lacks the metrics_to_transactions marker
+        snuba_query.query_snapshot = {"some_other_migration": True}
+        snuba_query.save()
+        self._setup_detector(snuba_query)
+
+        rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.Transactions.value
+
+    @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
+    def test_rollback_skips_for_user_updated_query(self) -> None:
+        snuba_query = self._create_snuba_query(dataset=Dataset.Transactions)
+        snuba_query.query_snapshot = {"metrics_to_transactions": True, "user_updated": True}
+        snuba_query.save()
+        self._setup_detector(snuba_query)
+
+        rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.Transactions.value
+
+    @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
+    def test_rollback_returns_early_if_already_on_performance_metrics(self) -> None:
+        snuba_query = self._create_snuba_query(dataset=Dataset.PerformanceMetrics)
+        snuba_query.query_snapshot = {"metrics_to_transactions": True}
+        snuba_query.save()
+        self._setup_detector(snuba_query)
+
+        rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.PerformanceMetrics.value
+
+    @with_feature("organizations:migrate-am1-metrics-alerts-to-transactions")
+    def test_rollback_returns_early_if_dataset_is_not_transactions(self) -> None:
+        # Create with Transactions then manually switch to a third dataset to simulate
+        # a query in an unexpected state
+        snuba_query = self._create_snuba_query(dataset=Dataset.EventsAnalyticsPlatform)
+        snuba_query.query_snapshot = {"metrics_to_transactions": True}
+        snuba_query.save()
+        self._setup_detector(snuba_query)
+
+        rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_query)
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
