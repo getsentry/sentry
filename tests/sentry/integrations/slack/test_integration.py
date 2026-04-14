@@ -717,6 +717,16 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         )
         assert self.installation.has_history_scope("G1234567890") is False
 
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_has_history_scope_api_error_defaults_to_true(
+        self, mock_conversations_info: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.side_effect = SlackApiError(
+            message="error", response=MagicMock(status_code=500)
+        )
+        assert self.installation.has_history_scope("C1234567890") is True
+
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
     def test_get_thread_history_error_returns_empty_list(
