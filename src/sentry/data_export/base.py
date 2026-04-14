@@ -33,7 +33,7 @@ class ExportQueryType:
     ISSUES_BY_TAG_STR = "Issues-by-Tag"
     DISCOVER_STR = "Discover"
     EXPLORE_STR = "Explore"
-    TRACE_ITEM_FULL_EXPORT_STR = "Trace Item Full Export"
+    TRACE_ITEM_FULL_EXPORT_STR = "trace_item_full_export"
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
