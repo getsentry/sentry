@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
@@ -15,16 +16,31 @@ from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strateg
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
-def _mock_llm_response(group_ids: list[int], action: str = "autofix") -> MagicMock:
+def _mock_explorer_client(group_ids: list[int], action: str = "autofix") -> MagicMock:
+    """Create a mock SeerExplorerClient that returns triage verdicts."""
     verdicts = [{"group_id": gid, "action": action, "reason": "test"} for gid in group_ids]
-    content = json.dumps({"verdicts": verdicts})
-    response = MagicMock()
-    response.status = 200
-    response.data = json.dumps({"content": content}).encode()
-    return response
+    artifact = Artifact(key="triage_verdicts", data={"verdicts": verdicts}, reason="test")
+
+    state = SeerRunState(
+        run_id=1,
+        blocks=[
+            MemoryBlock(
+                id="test-block",
+                message=Message(role="assistant"),
+                timestamp="2025-01-01T00:00:00",
+                artifacts=[artifact],
+            ),
+        ],
+        status="completed",
+        updated_at="2025-01-01T00:00:00",
+    )
+
+    client = MagicMock()
+    client.start_run.return_value = 1
+    client.get_run.return_value = state
+    return client
 
 
 @django_db_all
@@ -165,10 +181,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             seer_autofix_last_triggered=timezone.now(),
         )
 
+        mock_client = _mock_explorer_client([high_fix.id, low_fix.id])
         with (
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.make_llm_generate_request",
-                return_value=_mock_llm_response([high_fix.id, low_fix.id]),
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                return_value=mock_client,
             ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
@@ -203,10 +220,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project_b, "high-group", seer_fixability_score=0.95
         )
 
+        mock_client = _mock_explorer_client([high_group.id, low_group.id])
         with (
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.make_llm_generate_request",
-                return_value=_mock_llm_response([high_group.id, low_group.id]),
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                return_value=mock_client,
             ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
