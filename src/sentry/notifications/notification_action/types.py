@@ -202,7 +202,8 @@ class BaseIssueAlertHandler(ABC):
         rule_id = None
 
         label = None
-        if workflow_id is not None:
+        # Attempt to query the workflow name for non-test notifications.
+        if workflow_id is not None and workflow_id != TEST_NOTIFICATION_ID:
             try:
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name

@@ -25,7 +25,7 @@ from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
     TicketingIssueAlertHandler,
 )
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import TEST_NOTIFICATION_ID, ActionTargetType, FallthroughChoiceType
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -205,6 +205,27 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "workflow_id": workflow_id,
                 }
             ]
+        }
+
+    def test_create_rule_instance_from_action_with_test_notification_id(self) -> None:
+        """Test that Workflow lookup is skipped for test notifications, falling back to detector name"""
+        self.action.workflow_id = TEST_NOTIFICATION_ID
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
+
+        assert isinstance(rule, Rule)
+        assert rule.label == self.detector.name
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "legacy_rule_id": TEST_NOTIFICATION_ID,
+                }
+            ],
         }
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
