@@ -64,7 +64,7 @@ def translate_am1_metrics_detector_and_update_subscription_in_snuba(snuba_query:
         logger.info("No snapshot created for snuba query %s", snuba_query.id)
         return
 
-    if snapshot.get("user_updated"):
+    if snapshot and snapshot.get("user_updated"):
         logger.info(
             "Skipping migration for user-updated query", extra={"snuba_query_id": snuba_query.id}
         )
@@ -137,7 +137,7 @@ def rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_q
         logger.info("No snapshot found for snuba query %s", snuba_query.id)
         return
 
-    if snapshot.get("user_updated"):
+    if snapshot and snapshot.get("user_updated"):
         logger.info(
             "Skipping rollback for user-updated query", extra={"snuba_query_id": snuba_query.id}
         )
