@@ -62,15 +62,15 @@ def handle_snuba_errors(
                     message = TIMEOUT_ERROR_MESSAGE
                     recoverable = True
 
-                if isinstance(
-                    error,
-                    (
-                        snuba.RateLimitExceeded,
-                        snuba.QueryTooManySimultaneous,
-                        SnubaRPCRateLimitExceeded,
-                    ),
-                ):
-                    delay_retry = True
+                    if isinstance(
+                        error,
+                        (
+                            snuba.RateLimitExceeded,
+                            snuba.QueryTooManySimultaneous,
+                            SnubaRPCRateLimitExceeded,
+                        ),
+                    ):
+                        delay_retry = True
                 elif isinstance(
                     error,
                     (
