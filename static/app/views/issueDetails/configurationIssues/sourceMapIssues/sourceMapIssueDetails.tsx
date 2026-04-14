@@ -5,6 +5,7 @@ import type {Project} from 'sentry/types/project';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 import {DiagnosisSection} from './diagnosisSection';
+import {ImpactSection} from './impactSection';
 import {ProblemSection} from './problemSection';
 import {TroubleshootingSection} from './troubleshootingSection';
 
@@ -28,6 +29,8 @@ export function SourceMapIssueDetails({event, project}: SourceMapIssueDetailsPro
       <DiagnosisSection sourceMapQuery={sourceMapQuery} />
       <SectionDivider orientation="horizontal" />
       <TroubleshootingSection project={project} />
+      <SectionDivider orientation="horizontal" />
+      <ImpactSection project={project} />
     </div>
   );
 }

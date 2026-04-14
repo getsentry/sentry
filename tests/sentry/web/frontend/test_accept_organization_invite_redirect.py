@@ -37,11 +37,9 @@ class AcceptOrganizationInviteRedirectViewTest(TestCase):
             reverse("sentry-accept-invite", args=[member.id, "invalidtoken"])
         )
 
-        assert response.status_code == 200
-        self.assertTemplateUsed(response, "sentry/base-react.html")
+        assert response.status_code == 404
 
-    def test_unresolved_legacy_invite_falls_back_to_react_page(self) -> None:
+    def test_unresolved_legacy_invite_returns_404(self) -> None:
         response = self.client.get(reverse("sentry-accept-invite", args=[123456, "invalidtoken"]))
 
-        assert response.status_code == 200
-        self.assertTemplateUsed(response, "sentry/base-react.html")
+        assert response.status_code == 404

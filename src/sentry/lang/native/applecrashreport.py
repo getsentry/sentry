@@ -210,12 +210,29 @@ class AppleCrashReport:
     @sentry_sdk.trace
     def get_threads_apple_string(self):
         rv = []
-        exception = self.exceptions or []
+        exceptions = self.exceptions or []
         threads = self.threads or []
-        for thread_info in exception + threads:
+
+        # Process threads first, tracking which ones produced output.
+        # When an exception's thread_id matches a thread that produced
+        # output, we skip the exception to avoid duplication (the thread
+        # carries richer metadata like name/crashed state).
+        output_thread_ids = set()
+        for thread_info in threads:
             thread_string = self.get_thread_apple_string(thread_info)
             if thread_string is not None:
                 rv.append(thread_string)
+                thread_id = thread_info.get("id")
+                if thread_id is not None:
+                    output_thread_ids.add(thread_id)
+
+        for exception_info in exceptions:
+            if exception_info.get("thread_id") in output_thread_ids:
+                continue
+            thread_string = self.get_thread_apple_string(exception_info)
+            if thread_string is not None:
+                rv.append(thread_string)
+
         return "\n\n".join(rv)
 
     def get_thread_apple_string(self, thread_info):

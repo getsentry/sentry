@@ -126,7 +126,9 @@ function FrameLocation({
 }) {
   const {event} = useStackTraceFrameContext();
   const frameDisplayPath = getFrameDisplayPath(frame, platform, event);
-  const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
+  const frameLocationSuffix = frame.inApp
+    ? formatFrameLocation('', frame.lineNo, frame.colNo)
+    : '';
 
   return (
     <LocationWrapper>

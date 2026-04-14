@@ -185,11 +185,16 @@ class GitlabIntegration(
             # Note: gitlab projects are the same things as repos everywhere else
             group = self.get_group_id()
             resp = self.get_client().search_projects(group, query)
+            instance = self.model.metadata["instance"]
             return [
                 {
                     "identifier": str(repo["id"]),
                     "name": repo["name_with_namespace"],
                     "external_id": self.get_repo_external_id(repo),
+                    "url": repo["web_url"],
+                    "instance": instance,
+                    "path": repo["path_with_namespace"],
+                    "project_id": repo["id"],
                 }
                 for repo in resp
             ]

@@ -223,6 +223,56 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             "detail": "No projects found for this organization that the user has access to"
         }
 
+    @mock.patch("sentry.workflow_engine.endpoints.organization_test_fire_action.test_fire_actions")
+    def test_uses_specified_project_slug(
+        self,
+        mock_test_fire_actions: mock.MagicMock,
+    ) -> None:
+        """Test that providing project_slug uses the specified project"""
+        mock_test_fire_actions.return_value = (None, None)
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        target_project = self.create_project(
+            organization=self.organization, name="zzz-target-project", teams=[team]
+        )
+
+        action_data = [
+            {
+                "type": Action.Type.PLUGIN.value,
+                "data": {},
+                "config": {},
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            actions=action_data,
+            project_slug=target_project.slug,
+        )
+        assert response.status_code == 200
+
+        # Verify test_fire_actions was called with the specified project
+        mock_test_fire_actions.assert_called_once()
+        _, project_arg = mock_test_fire_actions.call_args[0]
+        assert project_arg == target_project
+
+    def test_invalid_project_slug(self) -> None:
+        """Test that an invalid project_slug returns with a 400 error"""
+        action_data = [
+            {
+                "type": Action.Type.PLUGIN.value,
+                "data": {},
+                "config": {},
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            actions=action_data,
+            project_slug="nonexistent-project",
+        )
+        assert response.status_code == 400
+
     @mock.patch(
         "sentry.notifications.notification_action.types.BaseIssueAlertHandler.send_test_notification"
     )

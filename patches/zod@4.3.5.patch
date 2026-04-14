@@ -1,0 +1,52 @@
+diff --git a/v4/core/util.cjs b/v4/core/util.cjs
+index c6bc2a7c6af354944eebd0821c629783c788781d..f33d6d29a839f09892588d7c93777dbb6b3fb105 100644
+--- a/v4/core/util.cjs
++++ b/v4/core/util.cjs
+@@ -204,20 +204,7 @@ exports.captureStackTrace = ("captureStackTrace" in Error ? Error.captureStackTr
+ function isObject(data) {
+     return typeof data === "object" && data !== null && !Array.isArray(data);
+ }
+-exports.allowsEval = cached(() => {
+-    // @ts-ignore
+-    if (typeof navigator !== "undefined" && navigator?.userAgent?.includes("Cloudflare")) {
+-        return false;
+-    }
+-    try {
+-        const F = Function;
+-        new F("");
+-        return true;
+-    }
+-    catch (_) {
+-        return false;
+-    }
+-});
++exports.allowsEval = cached(() => false);
+ function isPlainObject(o) {
+     if (isObject(o) === false)
+         return false;
+diff --git a/v4/core/util.js b/v4/core/util.js
+index 3fc99ca9de705ba563a3221f0032f1372b8f8a53..f68bae7a286560e7ace335c93d02f05aaeeac766 100644
+--- a/v4/core/util.js
++++ b/v4/core/util.js
+@@ -147,20 +147,7 @@ export const captureStackTrace = ("captureStackTrace" in Error ? Error.captureSt
+ export function isObject(data) {
+     return typeof data === "object" && data !== null && !Array.isArray(data);
+ }
+-export const allowsEval = cached(() => {
+-    // @ts-ignore
+-    if (typeof navigator !== "undefined" && navigator?.userAgent?.includes("Cloudflare")) {
+-        return false;
+-    }
+-    try {
+-        const F = Function;
+-        new F("");
+-        return true;
+-    }
+-    catch (_) {
+-        return false;
+-    }
+-});
++export const allowsEval = cached(() => false);
+ export function isPlainObject(o) {
+     if (isObject(o) === false)
+         return false;

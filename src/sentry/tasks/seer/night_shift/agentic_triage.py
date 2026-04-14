@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 import orjson
 import pydantic
+import sentry_sdk
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -72,7 +73,13 @@ def _triage_candidates(
 
     try:
         response = make_llm_generate_request(body, timeout=60)
+
         if response.status >= 400:
+            sentry_sdk.metrics.count(
+                "night_shift.triage_error",
+                1,
+                attributes={"error_type": "request_failed"},
+            )
             logger.error(
                 "night_shift.triage_request_failed",
                 extra={
@@ -85,6 +92,11 @@ def _triage_candidates(
         data = orjson.loads(response.data)
         content = data.get("content")
         if not content:
+            sentry_sdk.metrics.count(
+                "night_shift.triage_error",
+                1,
+                attributes={"error_type": "empty_response"},
+            )
             logger.error(
                 "night_shift.triage_empty_response",
                 extra={"organization_id": organization.id},
@@ -93,6 +105,11 @@ def _triage_candidates(
 
         triage_response = _TriageResponse.parse_raw(content)
     except Exception:
+        sentry_sdk.metrics.count(
+            "night_shift.triage_error",
+            1,
+            attributes={"error_type": "request_error"},
+        )
         logger.exception(
             "night_shift.triage_request_error",
             extra={"organization_id": organization.id},

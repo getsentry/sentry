@@ -12,7 +12,7 @@ from django.http.request import QueryDict
 from sentry import analytics, features
 from sentry.api import client
 from sentry.charts import backend as charts
-from sentry.charts.types import ChartType
+from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -36,6 +36,8 @@ _logger = logging.getLogger(__name__)
 DEFAULT_PERIOD = "14d"
 TOP_N = 5
 
+EXPLORE_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
+
 
 class ExploreDatasetDefaults(TypedDict):
     title: str
@@ -51,6 +53,10 @@ EXPLORE_DATASET_DEFAULTS: dict[SupportedTraceItemType, ExploreDatasetDefaults] =
         "title": "Explore Logs",
         "y_axis": "count(message)",
     },
+    SupportedTraceItemType.TRACEMETRICS: {
+        "title": "Explore Metrics",
+        "y_axis": "sum(value)",
+    },
 }
 
 
@@ -65,6 +71,10 @@ def _get_explore_dataset(url: str) -> SupportedTraceItemType:
     """Returns the dataset based on the explore URL."""
     if explore_logs_link_regex.match(url) or customer_domain_explore_logs_link_regex.match(url):
         return SupportedTraceItemType.LOGS
+    if explore_metrics_link_regex.match(url) or customer_domain_explore_metrics_link_regex.match(
+        url
+    ):
+        return SupportedTraceItemType.TRACEMETRICS
     return SupportedTraceItemType.SPANS
 
 
@@ -124,9 +134,13 @@ def _unfurl_explore(
 
         group_bys = params.getlist("groupBy")
 
-        style = ChartType.SLACK_EXPLORE_LINE
+        style = ChartType.SLACK_TIMESERIES
         if group_bys:
             params.setlist("topEvents", [str(TOP_N)])
+            if not params.getlist("sort"):
+                # Default to descending by the first yAxis, matching Explore's
+                # defaultAggregateSortBys behavior
+                params.setlist("sort", [f"-{y_axes[0]}"])
 
         if not params.get("statsPeriod") and not params.get("start"):
             params["statsPeriod"] = DEFAULT_PERIOD
@@ -147,18 +161,19 @@ def _unfurl_explore(
 
         chart_data: dict[str, Any] = {
             "timeSeries": resp.data.get("timeSeries", []),
+            "type": _resolve_display_type(chart_type, y_axes),
         }
-        if chart_type is not None:
-            chart_data["type"] = chart_type
 
         try:
-            url = charts.generate_chart(style, chart_data)
+            url = charts.generate_chart(style, chart_data, size=EXPLORE_CHART_SIZE)
         except RuntimeError:
             _logger.warning("Failed to generate chart for explore unfurl")
             continue
 
+        # Only one chart/y-axis is supported at a time in Explore
+        title = f"{defaults['title']} - {y_axes[0]}"
         unfurls[link.url] = SlackDiscoverMessageBuilder(
-            title=defaults["title"],
+            title=title,
             chart_url=url,
         ).build()
 
@@ -181,11 +196,33 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     2: "area",
 }
 
+# Aggregates that default to bar charts in Explore's determineDefaultChartType.
+# All other aggregates default to line.
+_BAR_AGGREGATES = {"count", "count_unique", "sum"}
+
+
+def _resolve_display_type(chart_type: int | None, y_axes: list[str]) -> str:
+    """Return the display type string for the chart.
+
+    Uses the explicit chartType from the URL when present, otherwise
+    mirrors the frontend's ``determineDefaultChartType`` logic which
+    maps count/count_unique/sum aggregates to bar and everything else
+    to line.
+    """
+    if chart_type is not None:
+        return CHART_TYPE_TO_DISPLAY_TYPE.get(chart_type, "line")
+
+    for y_axis in y_axes:
+        func_name = y_axis.split("(")[0] if "(" in y_axis else ""
+        if func_name in _BAR_AGGREGATES:
+            return "bar"
+    return "line"
+
 
 def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
     """
     Extracts explore arguments from the explore link's query string.
-    Parses visualize/aggregateField JSON params to extract yAxes, groupBy, and chartType.
+    Parses visualize, aggregateField, or metric JSON params to extract yAxes, groupBy, and chartType.
     """
     # Slack uses HTML escaped ampersands in its Event Links
     url = html.unescape(url)
@@ -194,11 +231,38 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
 
     explore_dataset = _get_explore_dataset(url)
 
-    # Parse visualize (spans explore) or aggregateField (logs explore) JSON params
-    visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
+    # Parse visualization params from the URL.
+    # Each metric uses a "metric" JSON param with nested aggregateFields.
+    # Traces uses "visualize" and logs uses "aggregateField".
     y_axes: list[str] = []
     group_bys: list[str] = []
-    chart_type: str | None = None
+    chart_type: int | None = None
+
+    metric_query: str | None = None
+    metric_sort_bys: list[str] = []
+    # Each metric param is a self-contained chart config. We only render one
+    # chart per unfurl, so process only the first metric entry.
+    metric_json = raw_query.getlist("metric")[0] if raw_query.getlist("metric") else None
+    if metric_json:
+        try:
+            metric_parsed = json.loads(metric_json)
+            for agg_field in metric_parsed.get("aggregateFields", []):
+                if "yAxes" in agg_field and isinstance(agg_field["yAxes"], list):
+                    y_axes.extend(agg_field["yAxes"])
+                if "groupBy" in agg_field and agg_field["groupBy"]:
+                    group_bys.append(agg_field["groupBy"])
+                if chart_type is None and isinstance(agg_field.get("chartType"), int):
+                    chart_type = agg_field["chartType"]
+            for sort_by in metric_parsed.get("aggregateSortBys", []):
+                field = sort_by.get("field", "")
+                kind = sort_by.get("kind", "desc")
+                if field:
+                    metric_sort_bys.append(f"-{field}" if kind == "desc" else field)
+            metric_query = metric_parsed.get("query") or None
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            pass
+
+    visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     for field_json in visualize_fields:
         try:
             parsed = json.loads(field_json)
@@ -206,8 +270,8 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
                 y_axes.extend(parsed["yAxes"])
             if "groupBy" in parsed and parsed["groupBy"]:
                 group_bys.append(parsed["groupBy"])
-            if chart_type is None and "chartType" in parsed:
-                chart_type = CHART_TYPE_TO_DISPLAY_TYPE.get(parsed["chartType"])
+            if chart_type is None and isinstance(parsed.get("chartType"), int):
+                chart_type = parsed["chartType"]
         except (json.JSONDecodeError, TypeError):
             continue
 
@@ -226,6 +290,18 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         values = raw_query.getlist(param)
         if values:
             query.setlist(param, values)
+
+    # Explore stores the aggregate sort as "aggregateSort" in the URL;
+    # the events-timeseries endpoint expects it as "sort".
+    aggregate_sort = raw_query.getlist("aggregateSort")
+    if aggregate_sort:
+        query.setlist("sort", aggregate_sort)
+
+    # Metrics stores query and sort inside the metric JSON param
+    if metric_query:
+        query["query"] = metric_query
+    if metric_sort_bys:
+        query.setlist("sort", metric_sort_bys)
 
     return dict(**args, query=query, chart_type=chart_type, dataset=explore_dataset)
 
@@ -246,6 +322,14 @@ customer_domain_explore_logs_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/logs/"
 )
 
+explore_metrics_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/metrics/"
+)
+
+customer_domain_explore_metrics_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/metrics/"
+)
+
 explore_handler = Handler(
     fn=unfurl_explore,
     matcher=[
@@ -253,6 +337,8 @@ explore_handler = Handler(
         customer_domain_explore_traces_link_regex,
         explore_logs_link_regex,
         customer_domain_explore_logs_link_regex,
+        explore_metrics_link_regex,
+        customer_domain_explore_metrics_link_regex,
     ],
     arg_mapper=map_explore_query_args,
 )

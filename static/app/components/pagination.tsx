@@ -6,8 +6,9 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {parseCursor} from 'sentry/utils/cursor';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -99,6 +100,36 @@ export function Pagination({
       </ButtonBar>
     </Flex>
   );
+}
+
+/**
+ * Returns a formatted pagination caption like "1-25 of 100"
+ */
+export function getPaginationCaption({
+  cursor,
+  limit,
+  pageLength,
+  total,
+}: {
+  cursor: string | string[] | undefined | null;
+  limit: number;
+  pageLength: number;
+  total: number;
+}): React.ReactNode {
+  if (pageLength === 0) {
+    return '';
+  }
+
+  const currentCursor = parseCursor(cursor);
+  const offset = currentCursor?.offset ?? 0;
+  const start = offset * limit + 1;
+  const end = start + pageLength - 1;
+
+  return tct('[start]-[end] of [total]', {
+    start: start.toLocaleString(),
+    end: end.toLocaleString(),
+    total: total.toLocaleString(),
+  });
 }
 
 const PaginationCaption = styled('span')`

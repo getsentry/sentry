@@ -10,7 +10,9 @@ from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
+from rest_framework.serializers import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline.base import Pipeline
@@ -41,6 +43,23 @@ class DummyApiStep:
         self, validated_data: Any, pipeline: DummyPipeline, request: HttpRequest
     ) -> PipelineStepResult:
         pipeline.bind_state("thing", validated_data.get("thing", "a"))
+        return PipelineStepResult.advance()
+
+
+class InitialDataApiStep:
+    """A step that reads initial data from pipeline state."""
+
+    step_name = "check_initial"
+
+    def get_step_data(self, pipeline: InitialDataPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {"external_id": pipeline.fetch_state("external_id")}
+
+    def get_serializer_cls(self) -> type | None:
+        return None
+
+    def handle_post(
+        self, validated_data: Any, pipeline: InitialDataPipeline, request: HttpRequest
+    ) -> PipelineStepResult:
         return PipelineStepResult.advance()
 
 
@@ -105,6 +124,53 @@ class NonApiPipeline(Pipeline[Never, PipelineSessionStore]):
 
     def finish_pipeline(self) -> HttpResponseBase:
         return HttpResponse("done")
+
+
+class InitialDataSerializer(CamelSnakeSerializer):
+    external_id = CharField(required=False)
+
+
+class InitialDataProvider(PipelineProvider["InitialDataPipeline"]):
+    key = "initial_data"
+    name = "Initial Data"
+
+    def get_pipeline_views(self) -> Sequence[DummyStep]:
+        return [DummyStep()]
+
+    def get_pipeline_api_steps(
+        self,
+    ) -> Sequence[ApiPipelineEndpoint[InitialDataPipeline]]:
+        return [InitialDataApiStep()]
+
+    def get_initial_data_serializer_cls(self) -> type:
+        return InitialDataSerializer
+
+
+class InitialDataPipeline(Pipeline[Never, PipelineSessionStore]):
+    """A pipeline whose provider accepts initial data via a serializer."""
+
+    pipeline_name = "test_initial_data_pipeline"
+
+    @cached_property
+    def provider(self) -> InitialDataProvider:
+        ret = InitialDataProvider()
+        ret.set_pipeline(self)
+        ret.update_config(self.config)
+        return ret
+
+    def get_pipeline_views(self) -> Sequence[DummyStep]:
+        return self.provider.get_pipeline_views()
+
+    def get_pipeline_api_steps(
+        self,
+    ) -> Sequence[ApiPipelineEndpoint[InitialDataPipeline]] | None:
+        return self.provider.get_pipeline_api_steps()
+
+    def finish_pipeline(self) -> HttpResponseBase:
+        return HttpResponse("done")
+
+    def api_finish_pipeline(self) -> PipelineStepResult:
+        return PipelineStepResult.complete(data={"external_id": self.fetch_state("external_id")})
 
 
 @control_silo_test
@@ -265,3 +331,105 @@ class OrganizationPipelineEndpointTest(APITestCase):
         assert resp.status_code == 400
         assert resp.data["status"] == "error"
         assert resp.data["data"]["detail"] == "Something went wrong"
+
+    @responses.activate
+    @patch(
+        "sentry.api.endpoints.organization_pipeline.initialize_integration_pipeline",
+    )
+    def test_initialize_binds_initial_data_via_serializer(self, mock_init: Any) -> None:
+        """When the provider defines an initial data serializer, validated
+        fields from the request are bound to pipeline state."""
+        pipeline = self._init_pipeline_in_session(InitialDataPipeline, provider_key="initial_data")
+        assert isinstance(pipeline, InitialDataPipeline)
+        pipeline.set_api_mode()
+        mock_init.return_value = pipeline
+
+        url = self._get_pipeline_url()
+
+        resp = self.client.post(
+            url,
+            data={
+                "action": "initialize",
+                "provider": "initial_data",
+                "initialData": {"external_id": "12345"},
+            },
+            format="json",
+        )
+        assert resp.status_code == 200
+        assert resp.data["step"] == "check_initial"
+        assert resp.data["data"]["external_id"] == "12345"
+
+    @responses.activate
+    @patch(
+        "sentry.api.endpoints.organization_pipeline.initialize_integration_pipeline",
+    )
+    def test_initialize_ignores_extra_fields_not_in_serializer(self, mock_init: Any) -> None:
+        """Fields not declared in the serializer are not bound to state."""
+        pipeline = self._init_pipeline_in_session(InitialDataPipeline, provider_key="initial_data")
+        assert isinstance(pipeline, InitialDataPipeline)
+        pipeline.set_api_mode()
+        mock_init.return_value = pipeline
+
+        url = self._get_pipeline_url()
+
+        resp = self.client.post(
+            url,
+            data={
+                "action": "initialize",
+                "provider": "initial_data",
+                "initialData": {
+                    "external_id": "12345",
+                    "evil_key": "should_be_ignored",
+                },
+            },
+            format="json",
+        )
+        assert resp.status_code == 200
+        assert pipeline.fetch_state("external_id") == "12345"
+        assert pipeline.fetch_state("evil_key") is None
+
+    @responses.activate
+    @patch(
+        "sentry.api.endpoints.organization_pipeline.initialize_integration_pipeline",
+    )
+    def test_initialize_without_initial_data_still_works(self, mock_init: Any) -> None:
+        """Providers with an initial data serializer work even when no extra data is sent."""
+        pipeline = self._init_pipeline_in_session(InitialDataPipeline, provider_key="initial_data")
+        assert isinstance(pipeline, InitialDataPipeline)
+        pipeline.set_api_mode()
+        mock_init.return_value = pipeline
+
+        url = self._get_pipeline_url()
+
+        resp = self.client.post(
+            url,
+            data={"action": "initialize", "provider": "initial_data"},
+            format="json",
+        )
+        assert resp.status_code == 200
+        assert pipeline.fetch_state("external_id") is None
+
+    @responses.activate
+    @patch(
+        "sentry.api.endpoints.organization_pipeline.initialize_integration_pipeline",
+    )
+    def test_initialize_no_serializer_skips_binding(self, mock_init: Any) -> None:
+        """Providers without an initial data serializer ignore extra request fields."""
+        pipeline = self._init_pipeline_in_session(DummyPipeline)
+        assert isinstance(pipeline, DummyPipeline)
+        pipeline.set_api_mode()
+        mock_init.return_value = pipeline
+
+        url = self._get_pipeline_url()
+
+        resp = self.client.post(
+            url,
+            data={
+                "action": "initialize",
+                "provider": "dummy",
+                "initialData": {"external_id": "12345"},
+            },
+            format="json",
+        )
+        assert resp.status_code == 200
+        assert pipeline.fetch_state("external_id") is None

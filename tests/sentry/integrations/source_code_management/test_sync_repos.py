@@ -266,3 +266,200 @@ class SyncReposForOrgGHETestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:github_enterprise"
+
+
+@control_silo_test
+class SyncReposForOrgGitLabTestCase(TestCase):
+    @responses.activate
+    def test_creates_new_repos_for_gitlab(self) -> None:
+        from sentry.users.models.identity import Identity
+
+        integration = self.create_provider_integration(
+            provider="gitlab",
+            name="Example Gitlab",
+            external_id="example.gitlab.com:group-x",
+            metadata={
+                "instance": "example.gitlab.com",
+                "base_url": "https://example.gitlab.com",
+                "domain_name": "example.gitlab.com/group-x",
+                "verify_ssl": False,
+                "group_id": 1,
+                "webhook_secret": "secret123",
+            },
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="gitlab", config={}),
+            user=self.user,
+            external_id="gitlab123",
+            data={"access_token": "123456789"},
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/groups/1/projects?search=&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
+            json=[
+                {
+                    "id": 10,
+                    "name_with_namespace": "getsentry / sentry",
+                    "path_with_namespace": "getsentry/sentry",
+                    "web_url": "https://example.gitlab.com/getsentry/sentry",
+                },
+                {
+                    "id": 20,
+                    "name_with_namespace": "getsentry / snuba",
+                    "path_with_namespace": "getsentry/snuba",
+                    "web_url": "https://example.gitlab.com/getsentry/snuba",
+                },
+            ],
+        )
+
+        # Webhook creation for each new repo
+        responses.add(
+            responses.POST,
+            "https://example.gitlab.com/api/v4/projects/10/hooks",
+            json={"id": 99},
+        )
+        responses.add(
+            responses.POST,
+            "https://example.gitlab.com/api/v4/projects/20/hooks",
+            json={"id": 100},
+        )
+
+        with self.feature(
+            ["organizations:gitlab-repo-auto-sync", "organizations:gitlab-repo-auto-sync-apply"]
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].provider == "integrations:gitlab"
+
+
+@control_silo_test
+class SyncReposForOrgBitbucketTestCase(TestCase):
+    @responses.activate
+    def test_creates_new_repos_for_bitbucket(self) -> None:
+        integration = self.create_provider_integration(
+            provider="bitbucket",
+            external_id="connect:1234567",
+            name="sentryuser",
+            metadata={
+                "base_url": "https://api.bitbucket.org",
+                "domain_name": "bitbucket.org/sentryuser",
+                "shared_secret": "secret123",
+                "subject": "connect:1234567",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser",
+            json={
+                "values": [
+                    {"full_name": "sentryuser/repo1", "uuid": "{uuid-001}"},
+                    {"full_name": "sentryuser/repo2", "uuid": "{uuid-002}"},
+                ]
+            },
+        )
+
+        # Webhook creation for each new repo
+        responses.add(
+            responses.POST,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/repo1/hooks",
+            json={"uuid": "{hook-001}"},
+        )
+        responses.add(
+            responses.POST,
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/repo2/hooks",
+            json={"uuid": "{hook-002}"},
+        )
+
+        with self.feature(
+            [
+                "organizations:bitbucket-repo-auto-sync",
+                "organizations:bitbucket-repo-auto-sync-apply",
+            ]
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].provider == "integrations:bitbucket"
+
+
+@control_silo_test
+class SyncReposForOrgVstsTestCase(TestCase):
+    @patch("sentry.integrations.vsts.integration.VstsIntegration.get_client")
+    def test_creates_new_repos_for_vsts(self, mock_get_client: MagicMock) -> None:
+        from sentry.users.models.identity import Identity
+
+        integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts-account-id",
+            name="MyVSTSAccount",
+            metadata={"domain_name": "https://myvstsaccount.visualstudio.com/"},
+        )
+        identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts123",
+            data={
+                "access_token": "123456789",
+                "expires": 9999999999,
+                "refresh_token": "rxxx",
+                "token_type": "jwt-bearer",
+            },
+        )
+        integration.add_organization(self.organization, self.user, identity.id)
+
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        mock_client = MagicMock()
+        mock_client.get_repos.return_value = {
+            "value": [
+                {
+                    "id": "repo-uuid-1",
+                    "name": "cool-service",
+                    "project": {"name": "ProjectA"},
+                    "_links": {
+                        "web": {"href": "https://myvstsaccount.visualstudio.com/_git/cool-service"}
+                    },
+                },
+                {
+                    "id": "repo-uuid-2",
+                    "name": "other-service",
+                    "project": {"name": "ProjectA"},
+                    "_links": {
+                        "web": {"href": "https://myvstsaccount.visualstudio.com/_git/other-service"}
+                    },
+                },
+            ]
+        }
+        mock_get_client.return_value = mock_client
+
+        with self.feature(
+            ["organizations:vsts-repo-auto-sync", "organizations:vsts-repo-auto-sync-apply"]
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
+
+        assert len(repos) == 2
+        assert repos[0].provider == "integrations:vsts"
