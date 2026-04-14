@@ -334,7 +334,6 @@ describe('BackendJsonSubmitForm', () => {
           initialValues={{priority: null}}
           onSubmit={onSubmit}
           submitLabel="Create"
-          isClearable
         />,
         {organization: org}
       );

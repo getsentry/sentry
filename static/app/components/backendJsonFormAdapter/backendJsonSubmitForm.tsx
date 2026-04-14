@@ -56,11 +56,6 @@ interface BackendJsonSubmitFormProps {
    */
   initialValues?: Record<string, unknown>;
   /**
-   * Enables clearing for single-select fields.
-   * Defaults to false to preserve existing behavior.
-   */
-  isClearable?: boolean;
-  /**
    * Whether the form is in a loading state (e.g., dynamic field refetch in progress).
    */
   isLoading?: boolean;
@@ -164,7 +159,6 @@ export function BackendJsonSubmitForm({
   onAsyncOptionsFetched,
   onFieldChange,
   footer,
-  isClearable = false,
 }: BackendJsonSubmitFormProps) {
   // Ref to avoid including the callback in queryKey (would cause refetches)
   const onAsyncOptionsFetchedRef = useRef(onAsyncOptionsFetched);
@@ -345,7 +339,16 @@ export function BackendJsonSubmitForm({
                             hintText={field.help}
                             required={field.required}
                           >
-                            {isClearable ? (
+                            {field.required ? (
+                              <fieldApi.SelectAsync
+                                value={
+                                  (fieldApi.state.value ?? null) as string | number | null
+                                }
+                                onChange={(value: string | number) => handleChange(value)}
+                                disabled={field.disabled}
+                                queryOptions={asyncQueryOptions}
+                              />
+                            ) : (
                               <fieldApi.SelectAsync
                                 clearable
                                 value={
@@ -354,15 +357,6 @@ export function BackendJsonSubmitForm({
                                 onChange={(value: string | number | null) =>
                                   handleChange(value)
                                 }
-                                disabled={field.disabled}
-                                queryOptions={asyncQueryOptions}
-                              />
-                            ) : (
-                              <fieldApi.SelectAsync
-                                value={
-                                  (fieldApi.state.value ?? null) as string | number | null
-                                }
-                                onChange={(value: string | number) => handleChange(value)}
                                 disabled={field.disabled}
                                 queryOptions={asyncQueryOptions}
                               />
@@ -393,18 +387,18 @@ export function BackendJsonSubmitForm({
                           hintText={field.help}
                           required={field.required}
                         >
-                          {isClearable ? (
+                          {field.required ? (
                             <fieldApi.Select
-                              clearable
                               value={(fieldApi.state.value ?? null) as string | null}
-                              onChange={(value: string | null) => handleChange(value)}
+                              onChange={(value: string) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />
                           ) : (
                             <fieldApi.Select
+                              clearable
                               value={(fieldApi.state.value ?? null) as string | null}
-                              onChange={(value: string) => handleChange(value)}
+                              onChange={(value: string | null) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />
