@@ -129,12 +129,19 @@ export function MetricToolbar({
               )}
             </Fragment>
           ) : isVisualizeEquation(visualize) ? (
-            <EquationBuilder
-              expression={visualize.expression.text}
-              referenceMap={referenceMap}
-              handleExpressionChange={handleExpressionChange}
-              onReferenceLabelsChange={handleReferenceLabelsChange}
-            />
+            <Flex minWidth={0} gap="md">
+              <Flex flex="4 1 0" minWidth={0}>
+                <EquationBuilder
+                  expression={visualize.expression.text}
+                  referenceMap={referenceMap}
+                  handleExpressionChange={handleExpressionChange}
+                  onReferenceLabelsChange={handleReferenceLabelsChange}
+                />
+              </Flex>
+              <Flex flex="1 1 0" minWidth={0}>
+                <GroupBySelector traceMetric={traceMetric} skipTraceMetricFilter />
+              </Flex>
+            </Flex>
           ) : null}
           {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>
