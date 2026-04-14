@@ -65,7 +65,13 @@ def produce_preprod_size_metric_to_eap(
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
         "sub_item_type": "size_metric",
-        "metrics_artifact_type": size_metric.metrics_artifact_type,
+        "metrics_artifact_type": (
+            PreprodArtifactSizeMetrics.MetricsArtifactType(
+                size_metric.metrics_artifact_type
+            ).to_choice_label()
+            if size_metric.metrics_artifact_type is not None
+            else None
+        ),
         "identifier": size_metric.identifier,
         "min_install_size": size_metric.min_install_size,
         "max_install_size": size_metric.max_install_size,
