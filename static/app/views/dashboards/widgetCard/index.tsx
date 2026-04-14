@@ -50,7 +50,10 @@ import {
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  LegendSelection,
+  TabularColumn,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -356,6 +359,19 @@ function WidgetCard(props: Props) {
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
+    // Only pass legend selection when there's explicit URL state.
+    // getWidgetSelectionState returns a default that hides Releases for
+    // LINE/AREA widgets, which was appropriate for the old overlay-line
+    // rendering but not for the new bubble markers.
+    const legendSelectionForWidget = location.query.unselectedSeries
+      ? widgetLegendState.getWidgetSelectionState(widget)
+      : undefined;
+
+    const handleLegendSelectionChange = (legendState: LegendSelection) => {
+      widgetLegendState.setWidgetSelectionState(legendState, widget);
+      onLegendSelectChanged?.();
+    };
+
     return (
       <ErrorBoundary customComponent={errorBoundaryHandler}>
         <VisuallyCompleteWithData
@@ -390,6 +406,8 @@ function WidgetCard(props: Props) {
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
               showConfidenceWarning={showConfidenceWarning}
+              legendSelection={legendSelectionForWidget}
+              onLegendSelectionChange={handleLegendSelectionChange}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

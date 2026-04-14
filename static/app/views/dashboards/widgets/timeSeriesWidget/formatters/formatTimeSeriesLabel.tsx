@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import {maybeEquationAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
@@ -33,9 +32,6 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
   }
 
   let {yAxis: seriesName} = timeSeries;
-
-  // Decode from series name disambiguation
-  seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)!;
 
   // Attempt to parse the `seriesName` as a version. A correct `TimeSeries`
   // would have a `yAxis` like `p50(span.duration)` with a `groupBy` like
