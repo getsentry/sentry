@@ -226,33 +226,35 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </NavigationTourElement>
       </Feature>
 
-      <Feature features={['performance-view']}>
-        <NavigationTourElement
-          id={NavigationTour.INSIGHTS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/insights/`}
-                analyticsKey="insights"
-                label={t('Insights')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'insights',
-                    `/${prefix}/insights/`,
-                    `/${prefix}/insights`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconGraph type="area" />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
-      </Feature>
+      {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
+        <Feature features={['performance-view']}>
+          <NavigationTourElement
+            id={NavigationTour.INSIGHTS}
+            title={null}
+            description={null}
+          >
+            {tourProps => (
+              <PrimaryNavigation.ListItem>
+                <PrimaryNavigation.Link
+                  to={`/${prefix}/insights/`}
+                  analyticsKey="insights"
+                  label={t('Insights')}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'insights',
+                      `/${prefix}/insights/`,
+                      `/${prefix}/insights`
+                    ),
+                    tourProps
+                  )}
+                >
+                  <IconGraph type="area" />
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.ListItem>
+            )}
+          </NavigationTourElement>
+        </Feature>
+      )}
 
       {hasPageFrame ? null : (
         <PrimaryNavigation.ListItem padding="0 md">

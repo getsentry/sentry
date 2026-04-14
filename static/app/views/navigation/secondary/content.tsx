@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {AdminSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
@@ -13,10 +14,14 @@ import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sec
 
 export function SecondaryNavigationContent(): ReactNode {
   const {activeGroup} = usePrimaryNavigation();
+  const organization = useOrganization();
   switch (activeGroup) {
     case 'issues':
       return <IssuesSecondaryNavigation />;
     case 'insights':
+      if (organization.features.includes('insights-to-dashboards-ui-rollout')) {
+        return null;
+      }
       return <InsightsSecondaryNavigation />;
     case 'dashboards':
       return <DashboardsSecondaryNavigation />;

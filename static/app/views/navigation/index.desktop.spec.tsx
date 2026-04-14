@@ -211,6 +211,27 @@ describe('desktop navigation', () => {
       expect(links[5]).toHaveAttribute('href', '/settings/org-slug/');
     });
 
+    it('hides Insights nav item when insights-to-dashboards-ui-rollout is enabled', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {
+            features: [...ALL_AVAILABLE_FEATURES, 'insights-to-dashboards-ui-rollout'],
+          },
+        })
+      );
+
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      const links = within(primaryNav).getAllByRole('link');
+      const linkNames = links.map(
+        link => link.getAttribute('aria-label') ?? link.textContent
+      );
+
+      expect(linkNames).not.toContain('Insights');
+    });
+
     it('primary navigation marks exactly one link as active for the current route', () => {
       render(
         <PrimaryNavigationContextProvider>
