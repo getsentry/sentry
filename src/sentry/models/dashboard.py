@@ -428,6 +428,32 @@ class DashboardTombstone(Model):
 
 
 @cell_silo_model
+class DashboardRevision(Model):
+    __relocation_scope__ = RelocationScope.Organization
+
+    created_by_id = HybridCloudForeignKey(
+        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+    )
+    date_added = models.DateTimeField(default=timezone.now)
+    title = models.CharField(max_length=255)
+    source = models.CharField(max_length=32, default="edit")
+    snapshot: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
+    snapshot_schema_version = models.IntegerField(db_default=1)
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardrevision"
+        indexes = [
+            models.Index(
+                fields=["dashboard", "-date_added"],
+                name="sentry_dashrev_dash_date_idx",
+            )
+        ]
+
+
+@cell_silo_model
 class DashboardLastVisited(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
