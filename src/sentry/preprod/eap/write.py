@@ -36,7 +36,7 @@ def _metrics_artifact_type_label(value: int | None) -> str | None:
         return None
     try:
         return PreprodArtifactSizeMetrics.MetricsArtifactType(value).to_choice_label()
-    except ValueError:
+    except (ValueError, KeyError):
         logger.warning("preprod.eap.unknown_metrics_artifact_type", extra={"value": value})
         return None
 
