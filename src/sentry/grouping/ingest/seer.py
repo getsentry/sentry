@@ -623,10 +623,10 @@ def maybe_send_seer_for_new_model_training(
     variants: dict[str, BaseVariant],
 ) -> None:
     """
-    Send a training_mode=true request to Seer for the new model version if the existing
-    grouphash hasn't been sent to the new version yet.
+    Send a training_mode=true request to Seer for the project's current non-stable model
+    version if the existing grouphash hasn't been sent to that version yet.
 
-    This only happens for projects that have the new model rolled out. It helps
+    This only happens for projects on a non-stable model (via feature flags). It helps
     build data for existing groups without affecting production grouping decisions.
 
     Args:

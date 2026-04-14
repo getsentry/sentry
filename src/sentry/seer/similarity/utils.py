@@ -353,7 +353,7 @@ def stacktrace_exceeds_limits(
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
     For V1, platforms that bypass length checks (to maintain consistency with backfilled data)
-    have all stacktraces pass through. For V2, all platforms are subject to length checks.
+    have all stacktraces pass through. For non-V1 models, all platforms are subject to length checks.
 
     If we dont bypass length checks, we use a two-step approach:
     1. First check raw string length - if shorter than token limit, pass immediately

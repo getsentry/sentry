@@ -33,6 +33,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         """Should not send request when no new version is being rolled out"""
         with (
             patch("sentry.seer.similarity.config.SEER_GROUPING_NEW_VERSION", None),
+            patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None),
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer"
             ) as mock_get_similarity_data,
