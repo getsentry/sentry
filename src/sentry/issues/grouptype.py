@@ -737,7 +737,7 @@ class AIDetectedSecurityGroupType(GroupType):
     description = "AI Detected Security Issue"
     category = GroupCategory.AI_DETECTED.value
     category_v2 = GroupCategory.AI_DETECTED.value
-    default_priority = PriorityLevel.HIGH
+    default_priority = PriorityLevel.MEDIUM
     released = False
     enable_auto_resolve = False
     enable_escalation_detection = False
@@ -750,7 +750,7 @@ class AIDetectedCodeHealthGroupType(GroupType):
     description = "AI Detected Code Health Issue"
     category = GroupCategory.AI_DETECTED.value
     category_v2 = GroupCategory.CONFIGURATION.value
-    default_priority = PriorityLevel.LOW
+    default_priority = PriorityLevel.MEDIUM
     released = False
     enable_auto_resolve = False
     enable_escalation_detection = False
