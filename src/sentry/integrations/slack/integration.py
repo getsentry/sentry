@@ -295,13 +295,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             return SlackScope.CHANNELS_HISTORY in installed_scope_set
 
         # Shouldn't reach here unless channel_info is empty (most likely
-        # an API error or an unrecognized conversation type). Default to
-        # True to avoid showing a misleading "reinstall" prompt.
+        # an API error or an unrecognized conversation type).
         _logger.warning(
             "slack.has_history_scope.unrecognized_channel_type",
             extra={"channel_id": channel_id, "channel_info": channel_info},
         )
-        return True
+        return False
 
     def get_conversations_info(
         self,
