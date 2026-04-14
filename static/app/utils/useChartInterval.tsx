@@ -4,12 +4,13 @@ import type {Location} from 'history';
 import {
   FIVE_MINUTES,
   FORTY_EIGHT_HOURS,
+  FOUR_DAYS,
   getDiffInMinutes,
   GranularityLadder,
   ONE_HOUR,
-  ONE_WEEK,
   SIX_HOURS,
   THIRTY_DAYS,
+  TWELVE_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -20,7 +21,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-enum ChartIntervalUnspecifiedStrategy {
+export enum ChartIntervalUnspecifiedStrategy {
   /** Use the second biggest possible interval (e.g., pretty big buckets) */
   USE_SECOND_BIGGEST = 'use_second_biggest',
   /** Use the smallest possible interval (e.g., the smallest possible buckets) */
@@ -104,12 +105,12 @@ function useChartIntervalImpl({
 const ALL_INTERVAL_OPTIONS = [
   {value: '1m', label: t('1 minute')},
   {value: '5m', label: t('5 minutes')},
-  {value: '15m', label: t('15 minutes')},
+  {value: '10m', label: t('10 minutes')},
   {value: '30m', label: t('30 minutes')},
   {value: '1h', label: t('1 hour')},
   {value: '3h', label: t('3 hours')},
+  {value: '6h', label: t('6 hours')},
   {value: '12h', label: t('12 hours')},
-  {value: '1d', label: t('1 day')},
 ];
 
 /**
@@ -119,19 +120,21 @@ const ALL_INTERVAL_OPTIONS = [
 const MINIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '3h'],
   [TWO_WEEKS, '1h'],
-  [ONE_WEEK, '30m'],
-  [FORTY_EIGHT_HOURS, '15m'],
-  [SIX_HOURS, '5m'],
+  [FOUR_DAYS, '30m'],
+  [FORTY_EIGHT_HOURS, '10m'],
+  [TWELVE_HOURS, '5m'],
+  [SIX_HOURS, '1m'],
   [0, '1m'],
 ]);
 
 const MAXIMUM_INTERVAL = new GranularityLadder([
-  [THIRTY_DAYS, '1d'],
-  [TWO_WEEKS, '1d'],
-  [ONE_WEEK, '12h'],
-  [FORTY_EIGHT_HOURS, '4h'],
-  [SIX_HOURS, '1h'],
-  [ONE_HOUR, '15m'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '6h'],
+  [FOUR_DAYS, '3h'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWELVE_HOURS, '30m'],
+  [SIX_HOURS, '10m'],
+  [ONE_HOUR, '5m'],
   [FIVE_MINUTES, '5m'],
   [0, '1m'],
 ]);

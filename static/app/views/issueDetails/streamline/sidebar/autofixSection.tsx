@@ -153,9 +153,7 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
 
   const needProjSetup =
     // scm integration not linked to project
-    !aiConfig.seerReposLinked ||
-    // autofix setting not enabled
-    !aiConfig.autofixEnabled;
+    !aiConfig.seerReposLinked;
 
   if (needOrgSetup || needProjSetup) {
     return (

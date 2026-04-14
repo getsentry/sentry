@@ -452,7 +452,6 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
-  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='type'],
   [data-column-name='last-issue'],

@@ -18,7 +18,7 @@ function TestHarness({onComplete}: {onComplete?: (data: any) => void} = {}) {
       <div data-test-id="is-initializing">{String(pipeline.isInitializing)}</div>
       <div data-test-id="is-advancing">{String(pipeline.isAdvancing)}</div>
       <div data-test-id="is-complete">{String(pipeline.isComplete)}</div>
-      <div data-test-id="error">{pipeline.error?.message ?? 'none'}</div>
+      <div data-test-id="error">{pipeline.error ?? 'none'}</div>
       <div data-test-id="completion-data">
         {pipeline.completionData ? JSON.stringify(pipeline.completionData) : 'none'}
       </div>
@@ -332,5 +332,43 @@ describe('usePipeline', () => {
     // Give it a tick to potentially fire
     expect(await screen.findByText('none')).toBeInTheDocument();
     expect(initRequest).not.toHaveBeenCalled();
+  });
+
+  it('includes initialData in the initialize request', async () => {
+    const initRequest = MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 2,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [
+        MockApiClient.matchData({
+          action: 'initialize',
+          provider: 'dummy',
+          initialData: {installation_id: '12345'},
+        }),
+      ],
+    });
+
+    function InitialDataHarness() {
+      const pipeline = usePipeline('integration', 'dummy', {
+        initialData: {installation_id: '12345'},
+      });
+      return (
+        <div>
+          <div data-test-id="step">{pipeline.stepDefinition?.stepId ?? 'none'}</div>
+          <div data-test-id="view">{pipeline.view}</div>
+        </div>
+      );
+    }
+
+    render(<InitialDataHarness />, {organization});
+
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+    expect(initRequest).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,4 @@
-import {act, type ReactNode} from 'react';
+import {act} from 'react';
 import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayNavigateEventFixture} from 'sentry-fixture/replay/helpers';
@@ -6,27 +6,20 @@ import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const {organization, project} = initializeOrg({
   organization: OrganizationFixture({}),
 });
-
-function wrapper({children}: {children?: ReactNode}) {
-  const queryClient = makeTestQueryClient();
-  return (
-    <QueryClientProvider client={queryClient}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   return ReplayRecordFixture({
@@ -80,8 +73,8 @@ describe('replayDetailsUserBadge', () => {
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
 
-    const {result} = renderHook(useLoadReplayReader, {
-      wrapper,
+    const {result} = renderHookWithProviders(useLoadReplayReader, {
+      organization,
       initialProps: {
         orgSlug: organization.slug,
         replaySlug: `${project.slug}:${replayRecord.id}`,
@@ -142,8 +135,8 @@ describe('replayDetailsUserBadge', () => {
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
 
-    const {result} = renderHook(useLoadReplayReader, {
-      wrapper,
+    const {result} = renderHookWithProviders(useLoadReplayReader, {
+      organization,
       initialProps: {
         orgSlug: organization.slug,
         replaySlug: `${project.slug}:${replayRecord.id}`,

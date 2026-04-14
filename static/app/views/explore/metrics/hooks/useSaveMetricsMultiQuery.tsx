@@ -75,6 +75,9 @@ export function useSaveMetricsMultiQuery() {
             orderby: metricQuery.queryParams.sortBys[0]
               ? encodeSort(metricQuery.queryParams.sortBys[0])
               : undefined,
+            aggregateOrderby: metricQuery.queryParams.aggregateSortBys[0]
+              ? encodeSort(metricQuery.queryParams.aggregateSortBys[0])
+              : undefined,
             query: metricQuery.queryParams.query ?? '',
             mode: metricQuery.queryParams.mode,
           };

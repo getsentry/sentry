@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -11,21 +11,15 @@ import {Count} from 'sentry/components/count';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  CheckboxLabel,
-  SupergroupCheckbox,
-} from 'sentry/components/stream/supergroups/supergroupCheckbox';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
-import {useOptionalIssueSelectionSummary} from 'sentry/views/issueList/issueSelectionContext';
 import type {AggregatedSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface SupergroupRowProps {
-  matchedGroupIds: string[];
   supergroup: SupergroupDetail;
   aggregatedStats?: AggregatedSupergroupStats | null;
   memberList?: IndexedMembersByProject;
@@ -33,11 +27,9 @@ interface SupergroupRowProps {
 
 export function SupergroupRow({
   supergroup,
-  matchedGroupIds,
   aggregatedStats,
   memberList,
 }: SupergroupRowProps) {
-  const matchedCount = matchedGroupIds.length;
   const {openDrawer, isDrawerOpen} = useDrawer();
   const [isActive, setIsActive] = useState(false);
   const handleClick = () => {
@@ -46,8 +38,8 @@ export function SupergroupRow({
       () => (
         <SupergroupDetailDrawer
           supergroup={supergroup}
-          matchedGroupIds={matchedGroupIds}
           memberList={memberList}
+          filterWithCurrentSearch
         />
       ),
       {
@@ -58,20 +50,6 @@ export function SupergroupRow({
     );
   };
 
-  const summary = useOptionalIssueSelectionSummary();
-  const selectedCount = useMemo(() => {
-    if (!summary) {
-      return 0;
-    }
-    let count = 0;
-    for (const id of matchedGroupIds) {
-      if (summary.records.get(id)) {
-        count++;
-      }
-    }
-    return count;
-  }, [summary, matchedGroupIds]);
-
   const highlighted = isActive && isDrawerOpen;
 
   return (
@@ -79,19 +57,13 @@ export function SupergroupRow({
       <InteractionStateLayer />
       <IconArea>
         <AccentIcon size="md" />
-        <SupergroupCheckbox
-          matchedGroupIds={matchedGroupIds}
-          selectedCount={selectedCount}
-        />
       </IconArea>
       <Summary>
-        {supergroup.error_type ? (
-          <Text size="md" bold ellipsis>
-            {supergroup.error_type}
-          </Text>
-        ) : null}
-        <Text size="sm" variant="muted" ellipsis>
+        <Text size="md" bold ellipsis>
           {supergroup.title}
+        </Text>
+        <Text size="sm" variant="muted" ellipsis>
+          {supergroup.error_type}
         </Text>
         <MetaRow>
           {supergroup.code_area ? (
@@ -99,18 +71,10 @@ export function SupergroupRow({
               {supergroup.code_area}
             </Text>
           ) : null}
-          {supergroup.code_area && matchedCount > 0 ? <Dot /> : null}
-          {matchedCount > 0 ? (
-            <Text
-              size="sm"
-              variant={selectedCount > 0 ? 'primary' : 'muted'}
-              bold={selectedCount > 0}
-            >
-              {selectedCount > 0
-                ? `${selectedCount} / ${supergroup.group_ids.length} ${t('issues selected')}`
-                : `${matchedCount} / ${supergroup.group_ids.length} ${t('issues matched')}`}
-            </Text>
-          ) : null}
+          {supergroup.code_area ? <Dot /> : null}
+          <Text size="sm" variant="muted">
+            {`${supergroup.group_ids.length} ${t('issues')}`}
+          </Text>
         </MetaRow>
       </Summary>
 
@@ -196,12 +160,6 @@ const Wrapper = styled(PanelItem)<{highlighted: boolean}>`
   min-height: 82px;
   background: ${p =>
     p.highlighted ? p.theme.tokens.background.secondary : 'transparent'};
-
-  &:not(:hover):not(:has(input:checked)):not(:has(input:indeterminate)) {
-    ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
 `;
 
 const Summary = styled('div')`

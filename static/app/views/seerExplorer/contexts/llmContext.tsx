@@ -18,9 +18,7 @@ import type {
   LLMContextState,
 } from './llmContextTypes';
 
-// ---------------------------------------------------------------------------
 // Internal context — holds the registry operations (registerNode, etc.)
-// ---------------------------------------------------------------------------
 
 const [_LLMContextProvider, _useLLMContextValue] =
   createDefinedContext<LLMContextInternalValue>({
@@ -35,21 +33,18 @@ const [_LLMContextProvider, _useLLMContextValue] =
  */
 export const useLLMContextRegistry = _useLLMContextValue;
 
-// ---------------------------------------------------------------------------
-// LLMNodeContext — carries the current component's nodeId down the tree
-// so child registerLLMContext wrappers can declare their parentId immediately
-// during render (before any effects have fired).
-// Default undefined = no parent (root level).
-// ---------------------------------------------------------------------------
-
+/**
+ * LLMNodeContext — carries the current component's nodeId down the tree
+ * so child registerLLMContext wrappers can declare their parentId immediately
+ * during render (before any effects have fired).
+ * Default undefined = no parent (root level).
+ */
 export const LLMNodeContext = createContext<string | undefined>(undefined);
 
-// ---------------------------------------------------------------------------
 // Tree assembly helpers — convert the flat node map to a nested snapshot.
 // Data is read from nodeData (imperative ref) rather than the reducer state
 // so that writes from useLLMContext(data) are visible immediately even
 // before the HOC's registerNode effect has fired.
-// ---------------------------------------------------------------------------
 
 function collectDescendantIds(
   nodes: Map<string, LLMContextNode>,
@@ -110,9 +105,7 @@ function serializeState(
   };
 }
 
-// ---------------------------------------------------------------------------
 // LLMContextProvider — root of the entire context tree
-// ---------------------------------------------------------------------------
 
 interface LLMContextProviderProps {
   children: ReactNode;
@@ -172,30 +165,28 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
   return <_LLMContextProvider value={value}>{children}</_LLMContextProvider>;
 }
 
-// ---------------------------------------------------------------------------
-// useLLMContext — write overload
-//
-// Call inside a registerLLMContext-wrapped component (or any descendant)
-// to push structured data into the nearest registered context node.
-// Accepts any value type — objects, arrays, strings, numbers, etc.
-//
-//   useLLMContext({ title: 'Error Rate', threshold: 5 });
-//   useLLMContext(someComputedValue);
-// ---------------------------------------------------------------------------
-
+/**
+ * useLLMContext — write overload
+ *
+ * Call inside a registerLLMContext-wrapped component (or any descendant)
+ * to push structured data into the nearest registered context node.
+ * Accepts any value type — objects, arrays, strings, numbers, etc.
+ *
+ *   useLLMContext({ title: 'Error Rate', threshold: 5 });
+ *   useLLMContext(someComputedValue);
+ */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- {} here means "any non-undefined value" to distinguish from the no-arg read overload
 export function useLLMContext(data: {} | null): void;
 
-// ---------------------------------------------------------------------------
-// useLLMContext — read overload
-//
-// Call with no arguments to get getLLMContext.
-//
-//   const { getLLMContext } = useLLMContext();
-//   getLLMContext()      // full tree from root
-//   getLLMContext(true)  // current component's subtree only
-// ---------------------------------------------------------------------------
-
+/**
+ * useLLMContext — read overload
+ *
+ * Call with no arguments to get getLLMContext.
+ *
+ *   const { getLLMContext } = useLLMContext();
+ *   getLLMContext()      // full tree from root
+ *   getLLMContext(true)  // current component's subtree only
+ */
 export function useLLMContext(): {
   getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
 };

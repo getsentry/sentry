@@ -21,6 +21,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -56,7 +57,7 @@ import {ReleasesSortOptions} from './releasesSortOptions';
 import {ReleasesStatusOption, ReleasesStatusOptions} from './releasesStatusOptions';
 import {validateSummaryStatsPeriod} from './utils';
 
-type ReleaseTab = 'releases' | 'mobile-builds';
+type ReleaseTab = 'releases' | 'mobile-builds' | 'snapshots';
 
 const RELEASE_FILTER_KEYS = [
   ...Object.values(SEMVER_TAGS),
@@ -243,7 +244,7 @@ export default function ReleasesList() {
       : selectedIds.map(id => `${id}`);
   }, [selection.projects]);
 
-  const hasPreprodFeature = organization.features?.includes('preprod-frontend-routes');
+  const hasSnapshotsFeature = organization.features?.includes('preprod-snapshots');
 
   const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
   const buildsProbeQuery = useQuery({
@@ -259,12 +260,9 @@ export default function ReleasesList() {
       },
     }),
     staleTime: 60_000,
-    enabled: !!hasPreprodFeature,
     placeholderData: keepPreviousData,
   });
 
-  // When "All Projects" is selected (represented by [-1]), check all accessible projects
-  // When specific projects are selected, check only those projects
   const hasAnyStrictlyMobileProject = useMemo(() => {
     const isAllProjects =
       selectedProjectIds.length === 1 &&
@@ -273,7 +271,6 @@ export default function ReleasesList() {
       ? projects.map(p => p.id)
       : selectedProjectIds;
 
-    // Check if at least one project has a mobile platform
     return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
@@ -283,15 +280,28 @@ export default function ReleasesList() {
   const hasBuildsData =
     !buildsProbeQuery.isPending && (buildsProbeQuery.data?.length ?? 0) > 0;
 
-  const shouldShowMobileBuildsTab =
-    hasPreprodFeature && (hasBuildsData || hasAnyStrictlyMobileProject);
+  const shouldShowMobileBuildsTab = hasBuildsData || hasAnyStrictlyMobileProject;
+  const shouldShowSnapshotsTab = !!hasSnapshotsFeature;
+  const shouldShowPreprodTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
 
   const selectedTab = useMemo(() => {
-    if (!shouldShowMobileBuildsTab) {
+    if (!shouldShowPreprodTabs) {
       return 'releases';
     }
-    return (decodeScalar(location.query.tab) as ReleaseTab | undefined) || 'releases';
-  }, [shouldShowMobileBuildsTab, location.query.tab]);
+    const tab = decodeScalar(location.query.tab) as ReleaseTab | undefined;
+    if (tab === 'snapshots' && !shouldShowSnapshotsTab) {
+      return 'releases';
+    }
+    if (tab === 'mobile-builds' && !shouldShowMobileBuildsTab) {
+      return 'releases';
+    }
+    return tab || 'releases';
+  }, [
+    shouldShowPreprodTabs,
+    shouldShowMobileBuildsTab,
+    shouldShowSnapshotsTab,
+    location.query.tab,
+  ]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -470,10 +480,14 @@ export default function ReleasesList() {
 
               <ReleasesPageFilterBar
                 condensed
-                shouldShowMobileBuildsTab={shouldShowMobileBuildsTab}
+                shouldShowPreprodTabs={shouldShowPreprodTabs}
               >
                 <ProjectPageFilter />
-                <EnvironmentPageFilter disabled={selectedTab === 'mobile-builds'} />
+                <EnvironmentPageFilter
+                  disabled={
+                    selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
+                  }
+                />
                 <DatePageFilter
                   disallowArbitraryRelativeRanges
                   menuFooterMessage={t(
@@ -482,14 +496,18 @@ export default function ReleasesList() {
                 />
               </ReleasesPageFilterBar>
 
-              {shouldShowMobileBuildsTab && (
+              {shouldShowPreprodTabs && (
                 <Layout.HeaderTabs value={selectedTab} onChange={handleTabChange}>
                   <TabList aria-label={t('Releases tab selector')}>
                     <TabList.Item
                       key="releases"
                       to={{
                         pathname: location.pathname,
-                        query: {...location.query, query: undefined, tab: undefined},
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: undefined,
+                        },
                       }}
                       textValue={t('Releases')}
                     >
@@ -497,6 +515,7 @@ export default function ReleasesList() {
                     </TabList.Item>
                     <TabList.Item
                       key="mobile-builds"
+                      hidden={!shouldShowMobileBuildsTab}
                       to={{
                         pathname: location.pathname,
                         query: {
@@ -512,6 +531,24 @@ export default function ReleasesList() {
                         <FeatureBadge type="new" />
                       </Flex>
                     </TabList.Item>
+                    <TabList.Item
+                      key="snapshots"
+                      hidden={!shouldShowSnapshotsTab}
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'snapshots',
+                        },
+                      }}
+                      textValue={t('Snapshots')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Snapshots')}
+                        <FeatureBadge type="alpha" />
+                      </Flex>
+                    </TabList.Item>
                   </TabList>
                 </Layout.HeaderTabs>
               )}
@@ -524,6 +561,15 @@ export default function ReleasesList() {
                   <MobileBuilds
                     organization={organization}
                     selectedProjectIds={selectedProjectIds}
+                  />
+                )}
+
+                {selectedTab === 'snapshots' && shouldShowSnapshotsTab && (
+                  <MobileBuilds
+                    organization={organization}
+                    selectedProjectIds={selectedProjectIds}
+                    defaultDisplay={PreprodBuildsDisplay.SNAPSHOT}
+                    hideDisplayToggle
                   />
                 )}
 
@@ -606,8 +652,10 @@ export default function ReleasesList() {
   );
 }
 
-const ReleasesPageFilterBar = styled(PageFilterBar)<{shouldShowMobileBuildsTab: boolean}>`
-  ${p => !p.shouldShowMobileBuildsTab && `margin-bottom: ${p.theme.space.xl};`}
+const ReleasesPageFilterBar = styled(PageFilterBar)<{
+  shouldShowPreprodTabs: boolean;
+}>`
+  ${p => !p.shouldShowPreprodTabs && `margin-bottom: ${p.theme.space.xl};`}
 `;
 
 const SortAndFilterWrapper = styled('div')`
