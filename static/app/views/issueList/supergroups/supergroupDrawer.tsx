@@ -185,7 +185,7 @@ function SupergroupIssueList({
   );
 
   // Search with the stream query to find which ones match
-  const {data: matchedGroups, isPending: matchPending} = useQuery({
+  const {data: matchedGroups} = useQuery({
     ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
@@ -203,17 +203,27 @@ function SupergroupIssueList({
 
   if (allPending) {
     return (
-      <PanelContainer>
-        <LoadingHeader>
-          <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
-          <DrawerColumnHeaders />
-        </LoadingHeader>
-        <PanelBody>
-          {pageGroupIds.map(id => (
-            <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
-          ))}
-        </PanelBody>
-      </PanelContainer>
+      <Fragment>
+        {filterWithCurrentSearch && (
+          <Flex align="center" gap="xs" padding="0 0 md 0">
+            <IconFilter size="xs" variant="accent" />
+            <Text size="sm" variant="muted">
+              {t('Matches current filters')}
+            </Text>
+          </Flex>
+        )}
+        <PanelContainer>
+          <LoadingHeader>
+            <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
+            <DrawerColumnHeaders />
+          </LoadingHeader>
+          <PanelBody>
+            {pageGroupIds.map(id => (
+              <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
+            ))}
+          </PanelBody>
+        </PanelContainer>
+      </Fragment>
     );
   }
 
@@ -230,7 +240,7 @@ function SupergroupIssueList({
 
   return (
     <Fragment>
-      {filterWithCurrentSearch && (matchPending || matchedIds.size > 0) && (
+      {filterWithCurrentSearch && (
         <Flex align="center" gap="xs" padding="0 0 md 0">
           <IconFilter size="xs" variant="accent" />
           <Text size="sm" variant="muted">
