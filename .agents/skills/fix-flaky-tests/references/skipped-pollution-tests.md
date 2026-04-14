@@ -7,6 +7,7 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 ## tests/sentry/api/endpoints/test_project_alert_rule_task_details.py
 
 - `ProjectAlertRuleTaskDetailsTest::test_status_success` — Redis rule status key cleared by concurrent flushdb() or set to wrong state by prior test
+- `ProjectAlertRuleTaskDetailsTest::test_workflow_engine_serializer` — same Redis flush race; `set_value()` immediately before the request still loses the race when another xdist worker flushes Redis between set and GET
 - `ProjectAlertRuleTaskDetailsDeltaTest::test_workflow_engine_serializer_matches_old_serializer` — alert rule / serializer state from prior tests causes response mismatch in shuffled ordering
 
 ## tests/sentry/dynamic_sampling/tasks/test_tasks.py

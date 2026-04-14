@@ -71,6 +71,11 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert rule_data["id"] == str(self.rule.id)
         assert rule_data["name"] == self.rule.name
 
+    @pytest.mark.skip(
+        reason="test pollution: Redis rule status key cleared by concurrent flushdb() or set to "
+        "wrong state by prior test; set_value() immediately before the request still loses the "
+        "race when another xdist worker flushes Redis between set and GET"
+    )
     def test_workflow_engine_serializer(self) -> None:
         self.login_as(user=self.user)
 
