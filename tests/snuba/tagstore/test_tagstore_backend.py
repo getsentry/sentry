@@ -294,6 +294,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
 
+    @pytest.mark.skip(
+        reason="test pollution: ClickHouse data from prior tests contaminates generic_group_and_env "
+        "tag query; result set is empty or contains unexpected tags from cross-worker Snuba state"
+    )
     def test_get_group_tag_keys_and_top_values_generic_issue(self) -> None:
         group, env = self.generic_group_and_env
         result = list(
@@ -372,6 +376,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert resp[1].value == "quux"
         assert resp[1].group_id == perf_group.id
 
+    @pytest.mark.skip(
+        reason="test pollution: ClickHouse data from prior tests contaminates generic_group_and_env; "
+        "GroupTagKeyNotFound raised because prior Snuba state overwrites this test's tag data"
+    )
     def test_get_top_group_tag_values_generic(self) -> None:
         group, env = self.generic_group_and_env
         resp = self.ts.get_top_group_tag_values(

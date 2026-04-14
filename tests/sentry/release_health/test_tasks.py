@@ -523,6 +523,12 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             environment__name="",
         ).exists()
 
+    @pytest.mark.skip(
+        reason="test pollution: ClickHouse session data from prior TestMetricReleaseMonitor tests "
+        "is not rolled back between tests; accumulated Snuba state causes "
+        "process_projects_with_sessions to find no sessions for the new project, leaving "
+        "flags.has_releases=False"
+    )
     def test_has_releases_is_set(self) -> None:
         no_release_project = self.create_project()
         assert not no_release_project.flags.has_releases

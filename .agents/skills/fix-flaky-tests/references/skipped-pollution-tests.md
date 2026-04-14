@@ -9,6 +9,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 - `ProjectAlertRuleTaskDetailsTest::test_status_success` — Redis rule status key cleared by concurrent flushdb() or set to wrong state by prior test
 - `ProjectAlertRuleTaskDetailsDeltaTest::test_workflow_engine_serializer_matches_old_serializer` — alert rule / serializer state from prior tests causes response mismatch in shuffled ordering
 
+## tests/sentry/dynamic_sampling/tasks/test_tasks.py
+
+- `TestRecalibrateOrgsTasks::test_recalibrate_orgs_with_custom_ds` — Snuba performance metrics from prior tests contaminate the recalibration factor query; observed sample rate for orgs[0] appears as ~20% instead of 10%, so `recalibrate_orgs()` writes no key to Redis
+
 ## tests/sentry/data_export/test_tasks.py
 
 - `AssembleDownloadExploreTest::test_explore_logs_jsonl_format` — log messages from prior tests appear in the JSONL export results, causing set comparison to fail
@@ -67,10 +71,11 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - All `cluster-nochunk` and `cluster-chunk1` parametrized variants (via `_SKIP_CLUSTER` marker) — the Redis Cluster (ports 7000-7005) is shared across all xdist workers; stale keys from concurrent tests cause `assert_clean` failures
 
-## tests/sentry/release_health/test_tasks.py (class TestAdoptReleasesPath only)
+## tests/sentry/release_health/test_tasks.py
 
 - `TestAdoptReleasesPath::test_simple` — ClickHouse session data from prior `TestMetricReleaseMonitor` tests is not rolled back between tests; accumulated Snuba state causes the adoption task to find no adopted releases
 - `TestAdoptReleasesPath::test_monitor_release_adoption` — same Snuba state accumulation; `monitor_release_adoption()` is sensitive to prior sessions in ClickHouse
+- `TestMetricReleaseMonitor::test_has_releases_is_set` — accumulated ClickHouse session state from prior tests causes `process_projects_with_sessions` to find no sessions for the new project, leaving `flags.has_releases=False`
 
 ## tests/sentry/issues/endpoints/test_group_details.py
 
@@ -93,6 +98,8 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - `TagStorageTest::test_get_group_tag_value_count_generic` — ClickHouse data from prior tests visible via shared Snuba; environment ID or tag count contaminated by cross-worker data
 - `TagStorageTest::test_get_group_tag_key_generic` — `GroupTagKeyNotFound` raised because group/tag data from prior tests is not visible in the expected Snuba DB
+- `TagStorageTest::test_get_group_tag_keys_and_top_values_generic_issue` — result set is empty or contains unexpected tags from cross-worker Snuba state contaminating `generic_group_and_env` tag query
+- `TagStorageTest::test_get_top_group_tag_values_generic` — `GroupTagKeyNotFound` raised because prior Snuba state overwrites this test's tag data for `generic_group_and_env`
 
 ---
 

@@ -810,6 +810,12 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @with_feature("organizations:dynamic-sampling-custom")
+    @pytest.mark.skip(
+        reason="test pollution: Snuba performance metrics from prior tests contaminate the "
+        "recalibration factor query; the observed sample rate for self.orgs[0] appears as ~20% "
+        "instead of 10% due to cross-worker ClickHouse state, so recalibrate_orgs() writes no "
+        "key to Redis and the assertion fails"
+    )
     def test_recalibrate_orgs_with_custom_ds(self) -> None:
         """
         Test several organizations with mixed sampling mode.
