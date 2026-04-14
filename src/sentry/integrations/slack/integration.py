@@ -373,7 +373,6 @@ class SlackIntegrationProvider(IntegrationProvider):
     # Used by SlackStagingIntegrationProvider
     extended_oauth_scopes = frozenset(
         [
-            SlackScope.REACTIONS_WRITE,
             SlackScope.CHANNELS_HISTORY,
             SlackScope.GROUPS_HISTORY,
             SlackScope.APP_MENTIONS_READ,
