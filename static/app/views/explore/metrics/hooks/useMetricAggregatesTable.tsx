@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
@@ -95,7 +95,7 @@ function useMetricAggregatesTableImp({
   const query = useQueryParamsQuery();
   const sortBys = useQueryParamsAggregateSortBys();
 
-  const isEquation = useRef(false);
+  const isEquation = visualizes.some(isVisualizeEquation);
 
   const fields = useMemo(() => {
     const allFields: string[] = [];
@@ -112,9 +112,6 @@ function useMetricAggregatesTableImp({
       if (visualize.yAxis && !allFields.includes(visualize.yAxis)) {
         allFields.push(visualize.yAxis);
       }
-      if (isVisualizeEquation(visualize)) {
-        isEquation.current = true;
-      }
     }
 
     return allFields.filter(Boolean);
@@ -124,10 +121,7 @@ function useMetricAggregatesTableImp({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Metric Aggregates',
-      fields: [
-        ...fields,
-        ...(isEquation.current ? [] : [makeCountAggregate(traceMetric)]),
-      ],
+      fields: [...fields, ...(isEquation ? [] : [makeCountAggregate(traceMetric)])],
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
@@ -135,15 +129,16 @@ function useMetricAggregatesTableImp({
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [fields, query, selection, sortBys, traceMetric]);
+  }, [fields, query, selection, sortBys, traceMetric, isEquation]);
 
   const result = useSpansQuery({
     enabled:
-      enabled && fields.length > 0 && isEquation.current
+      enabled &&
+      (fields.length > 0 && isEquation
         ? visualizes.every(
             visualize => isVisualizeEquation(visualize) && visualize.expression.text
           )
-        : Boolean(traceMetric.name),
+        : Boolean(traceMetric.name)),
     eventView,
     initialData: [],
     limit,
