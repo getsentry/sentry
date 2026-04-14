@@ -1,10 +1,9 @@
-import {useCallback} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
@@ -64,11 +63,12 @@ export function useGetTraceItemAttributeKeys({
   query,
 }: UseGetTraceItemAttributeKeysProps) {
   const api = useApi();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-  const getTraceItemAttributeKeys = useCallback(
-    async (queryString?: string): Promise<TagCollection> => {
+  const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
+    mutationFn: async (queryString?: string): Promise<TagCollection> => {
       const options = makeTraceItemAttributeKeysQueryOptions({
         traceItemType,
         type,
@@ -78,8 +78,13 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
-      let result: Tag[];
+      const queryKey = ['use-trace-item-attribute-keys', options];
+      const cachedResult = queryClient.getQueryData(queryKey);
+      if (cachedResult) {
+        return cachedResult as TagCollection;
+      }
 
+      let result: Tag[];
       try {
         result = await api.requestPromise(
           `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -94,8 +99,23 @@ export function useGetTraceItemAttributeKeys({
 
       return getTraceItemTagCollection(result, type);
     },
-    [api, organization, selection, traceItemType, projectIds, type, query]
-  );
+    onSuccess(data, variables) {
+      const options = makeTraceItemAttributeKeysQueryOptions({
+        traceItemType,
+        type,
+        datetime: selection.datetime,
+        projectIds: projectIds ?? selection.projects,
+        search: variables,
+        query,
+      });
+
+      const queryKey = ['use-trace-item-attribute-keys', options];
+      queryClient.setQueryDefaults(queryKey, {
+        staleTime: 60 * 1000,
+      });
+      queryClient.setQueryData(queryKey, data);
+    },
+  });
 
   return getTraceItemAttributeKeys;
 }

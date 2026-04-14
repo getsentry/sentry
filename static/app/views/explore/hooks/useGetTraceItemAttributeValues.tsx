@@ -1,14 +1,12 @@
-import {useCallback} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValuesParams} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {FieldKind} from 'sentry/utils/fields';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
@@ -91,10 +89,10 @@ export function useGetTraceItemAttributeValues({
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const queryClient = useQueryClient();
 
-  // Create a function that can be used as getTagValues
-  const getTraceItemAttributeValues = useCallback<GetTagValues>(
-    async (tag, queryString) => {
+  const {mutateAsync: getTraceItemAttributeValues} = useMutation({
+    mutationFn: async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
       if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
         // We can't really auto suggest values for aggregate functions, numbers, or booleans
         return Promise.resolve([]);
@@ -103,12 +101,17 @@ export function useGetTraceItemAttributeValues({
       const queryKey = traceItemAttributeValuesQueryKey({
         orgSlug: organization.slug,
         attributeKey: tag.key,
-        search: queryString,
+        search: searchQuery,
         projectIds: projectIds ?? selection.projects,
         datetime: datetime ?? selection.datetime,
         traceItemType,
         type,
       });
+
+      const cachedResult = queryClient.getQueryData(queryKey);
+      if (cachedResult) {
+        return cachedResult as string[];
+      }
 
       try {
         const {url, options} = parseQueryKey(queryKey);
@@ -123,17 +126,22 @@ export function useGetTraceItemAttributeValues({
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
     },
-    [
-      api,
-      type,
-      organization.slug,
-      projectIds,
-      selection.projects,
-      selection.datetime,
-      datetime,
-      traceItemType,
-    ]
-  );
+    onSuccess(data, variables) {
+      const queryKey = traceItemAttributeValuesQueryKey({
+        orgSlug: organization.slug,
+        attributeKey: variables.tag.key,
+        search: variables.searchQuery,
+        projectIds: projectIds ?? selection.projects,
+        datetime: datetime ?? selection.datetime,
+        traceItemType,
+        type,
+      });
+      queryClient.setQueryDefaults(queryKey, {
+        staleTime: 60 * 1000,
+      });
+      queryClient.setQueryData(queryKey, data);
+    },
+  });
 
   return getTraceItemAttributeValues;
 }
