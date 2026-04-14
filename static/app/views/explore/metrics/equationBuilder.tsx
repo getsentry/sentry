@@ -102,7 +102,11 @@ export function EquationBuilder({
         new Set(Object.keys(expressionMapRef.current ?? {}))
       );
       const resolved = resolveExpression(expr, referenceMap);
-      if (resolved.isValid) {
+
+      // Check the validity of the internal expression, not the resolved one because
+      // there are issues with validating it with the new _if aggregation format and
+      // this check just needs to ensure the structure is valid.
+      if (expr.isValid) {
         handleExpressionChange(resolved);
         expressionMapRef.current = referenceMap;
       }
@@ -112,7 +116,9 @@ export function EquationBuilder({
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
       startTransition(() => {
-        handleExpressionChange(resolveExpression(newExpression, referenceMap));
+        if (newExpression.isValid) {
+          handleExpressionChange(resolveExpression(newExpression, referenceMap));
+        }
       });
     },
     [handleExpressionChange, referenceMap]

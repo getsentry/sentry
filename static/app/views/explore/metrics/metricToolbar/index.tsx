@@ -60,10 +60,6 @@ export function MetricToolbar({
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
-      const isValid = newExpression.isValid;
-      if (!isValid) {
-        return;
-      }
       setVisualize(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
     },
     [setVisualize, visualize]
