@@ -14,7 +14,11 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  SearchQueryBuilder,
+  type GetTagValues,
+  type GetTagValuesParams,
+} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -82,7 +86,7 @@ type Props = {
 interface ErrorsSearchBarProps {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
-  getTagValues: (tag: any, query: any) => Promise<string[]>;
+  getTagValues: GetTagValues;
   initialQuery: string;
   placeholderText: string;
   recentSearches: SavedSearchType;
@@ -356,7 +360,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
   const getEventFieldValues = useCallback(
-    async (tag: any, query: any): Promise<string[]> => {
+    async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
       if (getTagList[tag.key]?.kind === FieldKind.FEATURE_FLAG) {
         if (dataset && dataset !== DiscoverDatasets.ERRORS) {
           return Promise.resolve([]);
@@ -365,7 +369,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
         const results = await fetchFeatureFlagValues({
           api,
           tagKey: tag.key,
-          search: query,
+          search: searchQuery,
           projectIds: projectIdStrings,
           endpointParams: dateTimeParams,
           sort: '-count' as const,
@@ -390,7 +394,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
         endpointParams: dateTimeParams,
         orgSlug: organization.slug,
         tagKey: tag.key,
-        search: query,
+        search: searchQuery,
         projectIds: projectIdStrings,
         // allows searching for tags on transactions as well
         includeTransactions,
