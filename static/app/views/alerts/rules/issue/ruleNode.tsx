@@ -366,6 +366,7 @@ export function RuleNode({
     if (name === 'environment') {
       adapterField = {
         ...adapterField,
+        type: 'select',
         choices: project.environments.map(env => [env, env]),
       };
     }
