@@ -273,9 +273,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         if all(installed_history_scopes):
             return True
 
-        if not any(installed_history_scopes):
-            return False
-
         conversation_data = self.get_conversations_info(channel_id=channel_id)
 
         channel_info = conversation_data.get("channel", {})
