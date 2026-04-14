@@ -583,7 +583,11 @@ class SlackExplorerEntrypointTest(TestCase):
         assert payload["thread"]["channel_id"] == self.channel_id
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_explorer_update(self, mock_schedule_all_thread_updates):
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_explorer_update(self, mock_has_history_scope, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
         cache_payload = ep.create_explorer_cache_payload()
         run_id = 12345

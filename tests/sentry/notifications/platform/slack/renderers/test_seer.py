@@ -288,7 +288,7 @@ class SeerSlackRendererExplorerTest(TestCase):
         assert isinstance(first_element, MarkdownTextObject)
         footer_text = first_element.text
         assert "Reinstall" in footer_text
-        assert "Thread context is unavailable" in footer_text
+        assert "I can't read the whole thread" in footer_text
 
     def test_render_explorer_response_no_footer_when_url_not_set(self) -> None:
         data = self._create_explorer_response(summary="Some analysis")
