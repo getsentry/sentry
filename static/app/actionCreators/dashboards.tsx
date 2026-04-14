@@ -367,9 +367,14 @@ function _enforceWidgetLimit(widget: Widget) {
   if (
     widget.displayType === DisplayType.TABLE ||
     widget.displayType === DisplayType.BIG_NUMBER ||
-    widget.displayType === DisplayType.TEXT
+    widget.displayType === DisplayType.TEXT ||
+    widget.displayType === DisplayType.AGENTS_TRACES_TABLE
   ) {
     return {...widget, limit: null};
+  }
+
+  if (widget.queries.length === 0) {
+    return widget;
   }
 
   let maxLimit: number;
