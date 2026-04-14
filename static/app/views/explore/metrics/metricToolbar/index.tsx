@@ -1,8 +1,10 @@
 import {Fragment, useCallback} from 'react';
+import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,6 +31,7 @@ import {
 interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
+  dragListeners?: SyntheticListenerMap;
   referenceMap?: Record<string, string>;
 }
 
@@ -36,6 +39,7 @@ export function MetricToolbar({
   traceMetric,
   queryLabel,
   referenceMap,
+  dragListeners,
 }: MetricToolbarProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
@@ -49,7 +53,7 @@ export function MetricToolbar({
   const setTraceMetric = useSetTraceMetric();
 
   // We need at least one metric visualized, but equations should always
-  // be removable
+  // be removable.
   const canRemoveMetric =
     metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)).length >
       1 || isVisualizeEquation(visualize);
@@ -65,6 +69,14 @@ export function MetricToolbar({
     [setVisualize, visualize]
   );
 
+  const dndGrid = dragListeners ? 'auto ' : '';
+  const removeMetric = canRemoveMetric ? '24px' : '0';
+  const columns = isVisualizeFunction(visualize)
+    ? isNarrow
+      ? `${dndGrid}auto 1fr 1fr ${removeMetric}`
+      : `${dndGrid}auto 2fr 3fr 6fr ${removeMetric}`
+    : `${dndGrid}auto 1fr ${removeMetric}`;
+
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <Flex
@@ -76,17 +88,8 @@ export function MetricToolbar({
         paddingTop="md"
         data-test-id="metric-toolbar"
       >
-        <Grid
-          align="center"
-          gap="md"
-          columns={
-            isVisualizeFunction(visualize)
-              ? isNarrow
-                ? `auto 1fr 1fr ${canRemoveMetric ? '24px' : '0'}`
-                : `auto 2fr 3fr 6fr ${canRemoveMetric ? '24px' : '0'}`
-              : `auto 1fr ${canRemoveMetric ? '24px' : '0'}`
-          }
-        >
+        <Grid align="center" gap="md" columns={columns}>
+          {dragListeners ? <DragReorderButton iconSize="sm" {...dragListeners} /> : null}
           <VisualizeLabel
             label={queryLabel}
             visualize={visualize}

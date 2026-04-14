@@ -77,6 +77,7 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     workspace_name: str | None = "default"
     agent_id: str | None = None
     agent_version: int | None = None
+    model: str | None = None
 
     @validator("agent_version", pre=True)
     def coerce_agent_version(cls, v: object) -> int | None:
@@ -181,15 +182,20 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 raise IntegrationConfigurationError(
                     "Invalid Anthropic API key. Please check your credentials."
                 )
+        except IntegrationConfigurationError:
+            raise
+        except ValueError as e:
+            # e.g. valid key but GET /v1/models lists no model we support (getsentry client).
+            self.get_logger().warning(
+                "claude_code.build_integration.no_supported_model",
+                extra={"error": str(e)},
+            )
+            raise IntegrationConfigurationError(str(e)) from e
         except Exception as e:
-            if isinstance(e, IntegrationConfigurationError):
-                raise
             self.get_logger().exception(
                 "claude_code.build_integration.validation_failed",
             )
-            raise IntegrationConfigurationError(
-                "Unable to validate Anthropic API key. Please check your credentials."
-            ) from e
+            raise IntegrationConfigurationError("Unable to validate Anthropic API key.") from e
 
         environment_id = None
         workspace_name = "default"
@@ -199,6 +205,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
             api_key=api_key,
             environment_id=environment_id,
             workspace_name=workspace_name,
+            model=getattr(client, "model", None),
         )
 
         return {
@@ -297,6 +304,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             workspace_name=metadata.workspace_name,
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
+            model=metadata.model,
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:

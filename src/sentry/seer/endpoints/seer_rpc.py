@@ -88,6 +88,9 @@ from sentry.seer.autofix.utils import (
     resolve_repository_ids,
     write_preference_to_sentry_db,
 )
+from sentry.seer.autofix.utils import (
+    bulk_get_project_preferences as bulk_get_project_seer_preferences,
+)
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.custom_tool_utils import call_custom_tool
@@ -873,7 +876,7 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
 
 def get_project_preferences(*, organization_id: int, project_id: int) -> dict | None:
-    """Get Seer project preferences for a single project from Sentry DB.
+    """Get Seer project preferences for a single project.
 
     Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
     Returns None if the project has no configured preferences.
@@ -882,24 +885,32 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
     if project.organization_id != organization_id:
         raise Project.DoesNotExist
 
-    preference = read_preference_from_sentry_db(project)
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preference = read_preference_from_sentry_db(project)
+    else:
+        preference = get_project_seer_preferences(project_id).preference
+
     if preference is None:
         return None
     return preference.dict()
 
 
 def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
-    """Bulk get Seer project preferences from Sentry DB.
+    """Bulk get Seer project preferences.
 
     Returns a dict keyed by stringified project ID. Values are preference dicts or None
-    for projects with no configured preferences. Projects that don't belong to the
-    given organization are silently excluded from the result.
+    for projects with no configured preferences.
     """
-    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-    return {
-        str(project_id): preference.dict() if preference else None
-        for project_id, preference in preferences.items()
-    }
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+        return {
+            str(project_id): preference.dict() if preference else None
+            for project_id, preference in preferences.items()
+        }
+    else:
+        return bulk_get_project_seer_preferences(organization_id, project_ids)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized

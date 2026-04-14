@@ -266,8 +266,33 @@ describe('useAddIntegration', () => {
       expect(openPipelineModalSpy).toHaveBeenCalledWith({
         type: 'integration',
         provider: 'github',
+        initialData: undefined,
         onComplete: expect.any(Function),
       });
+    });
+
+    it('passes urlParams as initialData to the pipeline modal', () => {
+      const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
+
+      const organization = OrganizationFixture({
+        features: ['integration-api-pipeline-github'],
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useAddIntegration({
+          provider,
+          organization,
+          onInstall: jest.fn(),
+        })
+      );
+
+      act(() => result.current.startFlow({installation_id: '12345'}));
+
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialData: {installation_id: '12345'},
+        })
+      );
     });
 
     it('does not open a popup window when the pipeline modal is used', () => {

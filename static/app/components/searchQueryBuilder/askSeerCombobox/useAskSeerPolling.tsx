@@ -60,6 +60,7 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
   strategy: string;
   onError?: (error: Error) => void;
   onSuccess?: (result: T) => void;
+  options?: Record<string, unknown>;
 }
 
 /**
@@ -117,6 +118,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              ...(options.options ? {options: options.options} : {}),
             },
           }
         )) as AskSeerStartResponse;

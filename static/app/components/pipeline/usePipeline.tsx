@@ -36,6 +36,7 @@ interface UsePipelineOptions<
   P extends ProvidersByType[T],
 > {
   enabled?: boolean;
+  initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
 }
 
@@ -97,7 +98,7 @@ export function usePipeline<
   onCompleteRef.current = options.onComplete;
   const generationRef = useRef(0);
 
-  const {enabled = true} = options;
+  const {enabled = true, initialData} = options;
 
   const pipelineName = getBackendPipelineType(type);
   const apiUrl = `/organizations/${organization.slug}/pipeline/${pipelineName}/`;
@@ -117,7 +118,7 @@ export function usePipeline<
       fetchMutation<PipelineStepResponse>({
         method: 'POST',
         url: apiUrl,
-        data: {action: 'initialize', provider},
+        data: {action: 'initialize', provider, initialData},
       }),
     onMutate: () => ({generation: generationRef.current}),
     onSuccess: (data: PipelineStepResponse, _variables, context) => {

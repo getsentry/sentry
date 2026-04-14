@@ -205,7 +205,7 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
 
 def get_autofix_explorer_client(
     group: Group,
-    intelligence_level: Literal["low", "medium", "high"] = "low",
+    intelligence_level: Literal["low", "medium", "high"] = "medium",
     enable_coding: bool = False,
 ) -> SeerExplorerClient:
     from sentry.seer.autofix.on_completion_hook import (
@@ -230,7 +230,7 @@ def trigger_autofix_explorer(
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "low",
+    intelligence_level: Literal["low", "medium", "high"] = "medium",
     user_context: str | None = None,
     insert_index: int | None = None,
 ) -> int:

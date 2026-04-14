@@ -244,7 +244,6 @@ export default function ReleasesList() {
       : selectedIds.map(id => `${id}`);
   }, [selection.projects]);
 
-  const hasPreprodFeature = organization.features?.includes('preprod-frontend-routes');
   const hasSnapshotsFeature = organization.features?.includes('preprod-snapshots');
 
   const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
@@ -261,12 +260,9 @@ export default function ReleasesList() {
       },
     }),
     staleTime: 60_000,
-    enabled: !!hasPreprodFeature,
     placeholderData: keepPreviousData,
   });
 
-  // When "All Projects" is selected (represented by [-1]), check all accessible projects
-  // When specific projects are selected, check only those projects
   const hasAnyStrictlyMobileProject = useMemo(() => {
     const isAllProjects =
       selectedProjectIds.length === 1 &&
@@ -275,7 +271,6 @@ export default function ReleasesList() {
       ? projects.map(p => p.id)
       : selectedProjectIds;
 
-    // Check if at least one project has a mobile platform
     return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
@@ -285,8 +280,7 @@ export default function ReleasesList() {
   const hasBuildsData =
     !buildsProbeQuery.isPending && (buildsProbeQuery.data?.length ?? 0) > 0;
 
-  const shouldShowMobileBuildsTab =
-    hasPreprodFeature && (hasBuildsData || hasAnyStrictlyMobileProject);
+  const shouldShowMobileBuildsTab = hasBuildsData || hasAnyStrictlyMobileProject;
   const shouldShowSnapshotsTab = !!hasSnapshotsFeature;
   const shouldShowPreprodTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
 
@@ -509,7 +503,11 @@ export default function ReleasesList() {
                       key="releases"
                       to={{
                         pathname: location.pathname,
-                        query: {...location.query, query: undefined, tab: undefined},
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: undefined,
+                        },
                       }}
                       textValue={t('Releases')}
                     >
@@ -654,7 +652,9 @@ export default function ReleasesList() {
   );
 }
 
-const ReleasesPageFilterBar = styled(PageFilterBar)<{shouldShowPreprodTabs: boolean}>`
+const ReleasesPageFilterBar = styled(PageFilterBar)<{
+  shouldShowPreprodTabs: boolean;
+}>`
   ${p => !p.shouldShowPreprodTabs && `margin-bottom: ${p.theme.space.xl};`}
 `;
 

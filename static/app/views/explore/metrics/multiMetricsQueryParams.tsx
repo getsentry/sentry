@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {useCallback, useMemo, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -37,6 +37,7 @@ export const MAX_METRICS_ALLOWED = 8;
 interface MultiMetricsQueryParamsContextValue {
   insertLabelAtIndex: (position: number, label: string) => void;
   metricQueries: MetricQuery[];
+  reorderLabels: (from: number, to: number) => void;
 }
 
 const [
@@ -173,6 +174,7 @@ export function MultiMetricsQueryParamsProvider({
 
     return {
       insertLabelAtIndex: labels.insert,
+      reorderLabels: labels.move,
       metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
         return {
           ...metric,
@@ -252,4 +254,27 @@ export function useAddMetricQuery({
 
     navigate(target);
   };
+}
+
+export function useReorderMetricQueries() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {reorderLabels}: MultiMetricsQueryParamsContextValue =
+    useMultiMetricsQueryParamsContext();
+
+  return useCallback(
+    (reorderedQueries: BaseMetricQuery[], oldIndex: number, newIndex: number) => {
+      // Keep labels attached to query identity during drag reorder.
+      reorderLabels(oldIndex, newIndex);
+
+      const target = {...location, query: {...location.query}};
+      target.query.metric = reorderedQueries
+        .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+        .filter(defined)
+        .filter(Boolean);
+
+      navigate(target);
+    },
+    [location, navigate, reorderLabels]
+  );
 }

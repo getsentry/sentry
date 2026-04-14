@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
@@ -8,12 +8,11 @@ import {Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
-import {Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {parseCursor} from 'sentry/utils/cursor';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -80,22 +79,15 @@ export function AutomationHistoryList({
   const pageLinks = data?.headers.Link;
   const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
-  const paginationCaption = useMemo(() => {
-    if (isLoading || !data?.json || data.json.length === 0 || limit === null) {
-      return undefined;
-    }
-
-    const currentCursor = parseCursor(cursor);
-    const offset = currentCursor?.offset ?? 0;
-    const startCount = offset * limit + 1;
-    const endCount = startCount + data.json.length - 1;
-
-    return tct('[start]-[end] of [total]', {
-      start: startCount.toLocaleString(),
-      end: endCount.toLocaleString(),
-      total: totalCountInt.toLocaleString(),
-    });
-  }, [data?.json, isLoading, cursor, limit, totalCountInt]);
+  const paginationCaption =
+    isLoading || !data?.json
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit,
+          pageLength: data.json.length,
+          total: totalCountInt,
+        });
 
   return (
     <Fragment>
@@ -155,7 +147,7 @@ export function AutomationHistoryList({
           });
         }}
         pageLinks={pageLinks}
-        caption={totalCountInt > limit ? paginationCaption : null}
+        caption={paginationCaption}
       />
     </Fragment>
   );
