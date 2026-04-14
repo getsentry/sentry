@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -25,7 +24,7 @@ import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -51,20 +50,18 @@ interface PluginWithConfig extends Plugin {
   config_error?: string;
 }
 
-function getDetailMessage(response: unknown): string {
-  if (
-    typeof response === 'object' &&
-    response !== null &&
-    'detail' in response &&
-    response.detail !== undefined &&
-    response.detail !== null
-  ) {
-    if (typeof response.detail === 'string') {
-      return response.detail;
-    }
-    return JSON.stringify(response.detail);
+interface PluginTestResponse {
+  detail?: string | unknown;
+}
+
+function getDetailMessage(response: PluginTestResponse): string {
+  if (response.detail === null || response.detail === undefined) {
+    return '';
   }
-  return '';
+  if (typeof response.detail === 'string') {
+    return response.detail;
+  }
+  return JSON.stringify(response.detail);
 }
 
 /**
@@ -153,7 +150,6 @@ export function PluginConfig({
   const organization = useOrganization();
   const isEnabled = enabled ?? plugin.enabled;
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-  const [testResults, setTestResults] = useState('');
 
   const pluginEndpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/',
@@ -203,25 +199,21 @@ export function PluginConfig({
     initialValues[field.name] = isSelect && field.value === '' ? null : field.value;
   }
 
-  const handleTestPlugin = async () => {
-    setTestResults('');
-    addLoadingMessage(t('Sending test...'));
-
-    try {
-      const response = await fetchMutation({
+  const testMutation = useMutation<PluginTestResponse>({
+    mutationFn: () => {
+      addLoadingMessage(t('Sending test...'));
+      return fetchMutation<PluginTestResponse>({
         method: 'POST',
         url: pluginEndpoint,
         data: {test: true},
       });
-      const detail = getDetailMessage(response);
-      setTestResults(detail);
-      addSuccessMessage(t('Test Complete!'));
-    } catch {
+    },
+    onSuccess: () => addSuccessMessage(t('Test Complete!')),
+    onError: () =>
       addErrorMessage(
         t('An unexpected error occurred while testing your plugin. Please try again.')
-      );
-    }
-  };
+      ),
+  });
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!wasConfigured) {
@@ -317,7 +309,7 @@ export function PluginConfig({
         {plugin.canDisable && isEnabled && (
           <Grid flow="column" align="center" gap="md">
             {plugin.isTestable && (
-              <Button onClick={handleTestPlugin} size="xs">
+              <Button onClick={() => testMutation.mutate()} size="xs">
                 {t('Test Plugin')}
               </Button>
             )}
@@ -338,10 +330,10 @@ export function PluginConfig({
         </PanelAlert>
       )}
 
-      {testResults !== '' && (
+      {testMutation.data && (
         <PanelAlert variant="info">
           <strong>Test Results</strong>
-          <div>{testResults}</div>
+          <div>{getDetailMessage(testMutation.data)}</div>
         </PanelAlert>
       )}
 
