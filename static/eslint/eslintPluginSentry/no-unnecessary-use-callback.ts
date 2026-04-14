@@ -20,10 +20,7 @@ function formatUsages(usages: UsageInfo[]): string {
     .join(' and ');
 }
 
-export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs<
-  readonly unknown[],
-  'unnecessaryUseCallback' | 'removeUseCallback'
->({
+export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'suggestion',
     docs: {
@@ -51,7 +48,7 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs<
     // Local names imported from @sentry/scraps (these components are never memoized)
     const scrapsImports = new Set<string>();
 
-    function addFlaggedUsage(name: string, usage: UsageInfo, refCount: number) {
+    function addFlaggedUsage(name: string, usage: UsageInfo) {
       let usages = flaggedUsages.get(name);
       if (!usages) {
         usages = [];
@@ -100,17 +97,10 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs<
       return null;
     }
 
-    function getJSXElementName(nameNode: TSESTree.JSXTagNameExpression): string | null {
-      if (nameNode.type === AST_NODE_TYPES.JSXIdentifier) {
-        return nameNode.name;
-      }
-      if (
-        nameNode.type === AST_NODE_TYPES.JSXMemberExpression &&
-        nameNode.object.type === AST_NODE_TYPES.JSXIdentifier
-      ) {
-        return nameNode.object.name;
-      }
-      return null;
+    function getJSXElementName(nameNode: TSESTree.JSXTagNameExpression) {
+      return nameNode.type === AST_NODE_TYPES.JSXIdentifier
+        ? nameNode.name
+        : getStaticValue(nameNode)?.value?.toString();
     }
 
     // Scraps components that use memoized callbacks internally
