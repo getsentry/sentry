@@ -347,10 +347,7 @@ def get_new_org_cell_for_locality(name: str) -> Cell:
     For the provided locality name, get the Cell
     that new organizations should be created in.
     """
-    global_directory = get_global_directory()
-    locality = global_directory.get_locality_by_name(name)
-    if not locality:
-        raise CellResolutionError(f"No locality with name: {name}")
+    locality = get_locality_by_name(name)
     return get_cell_by_name(locality.new_org_cell)
 
 
