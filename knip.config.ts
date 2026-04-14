@@ -82,7 +82,7 @@ const config: KnipConfig = {
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
-    'swc-contrib/mut-cjs-exports', // used in jest config
+    '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {
     binaries: 'off',
