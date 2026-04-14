@@ -213,7 +213,7 @@ const DrawerContainer = styled('div')`
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
-  box-shadow: 0 0 0 1px ${p => p.theme.dropShadowHeavy};
+  box-shadow: 0 0 0 1px ${p => p.theme.shadow.high};
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;

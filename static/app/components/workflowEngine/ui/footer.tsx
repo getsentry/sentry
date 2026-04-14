@@ -18,7 +18,7 @@ const StickyFooterBase = styled('div')`
   z-index: ${p => p.theme.zIndex.initial};
 
   &[data-stuck] {
-    box-shadow: ${p => p.theme.dropShadowHeavyTop};
+    box-shadow: ${p => p.theme.shadow.high};
   }
 `;
 

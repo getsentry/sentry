@@ -22,5 +22,5 @@ export const GenericFooter = styled((props: React.ComponentProps<typeof motion.d
   display: flex;
   background-color: ${p => p.theme.tokens.background.primary};
   justify-content: space-between;
-  box-shadow: ${p => p.theme.dropShadowHeavyTop};
+  box-shadow: ${p => p.theme.shadow.high};
 `;
