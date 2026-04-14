@@ -6,7 +6,7 @@ import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
 
 const swcConfig: SwcOptions = {
-  isModule: 'unknown',
+  isModule: true,
   module: {
     type: 'commonjs',
   },
@@ -25,16 +25,7 @@ const swcConfig: SwcOptions = {
       },
     },
     experimental: {
-      plugins: [
-        ['@swc-contrib/mut-cjs-exports', {}],
-        [
-          '@swc/plugin-emotion',
-          {
-            sourceMap: false,
-            autoLabel: 'never',
-          },
-        ],
-      ],
+      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
     },
   },
 };
