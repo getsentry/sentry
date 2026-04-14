@@ -224,14 +224,9 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-/**
- * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
- * an analytics function.
- */
-export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
-  data,
-  options
-) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
+// Re-export from makeAnalyticsFunction to preserve the public API.
+// The definition lives there to avoid a circular dependency.
+export {rawTrackAnalyticsEvent} from './analytics/makeAnalyticsFunction';
 
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {
