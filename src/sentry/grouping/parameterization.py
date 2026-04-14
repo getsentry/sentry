@@ -238,8 +238,13 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # 5 characters on either side, but those are presumably pretty rare.
             (?<![\w:]) # Negative lookbehind
             (
+                (?!:::) # Negative lookahead to prevent starting with three colons
+                (?!:[^:]) # Negative lookahead to prevent starting with a single colon
                 ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
                 [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (?<![^:]:) # Negative lookbehind to prevent ending with a single colon
+                (?<!:::) # Negative lookbehind to prevent ending with three colons
+
                 (%\S+)? # Optional zone ID
                 (/\d{1,3})? # Optional CIDR suffix
             )
