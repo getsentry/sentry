@@ -35,6 +35,7 @@ import {
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
 import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
@@ -111,6 +112,11 @@ export default function AutomationNewSettings() {
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
+      if (!data.detectorIds?.length && !data.projectIds?.length) {
+        errors[CONNECTED_MONITORS_ERROR_ID] = t(
+          'Select at least one project or monitor to create an alert.'
+        );
+      }
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length > 0) {

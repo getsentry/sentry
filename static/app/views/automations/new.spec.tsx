@@ -201,7 +201,12 @@ describe('AutomationNewSettings', () => {
       body: created,
     });
 
-    const {router} = render(<AutomationNewSettings />, {organization});
+    const {router} = render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
 
     // Add an action filter (tagged event)
     await selectEvent.select(
@@ -283,7 +288,7 @@ describe('AutomationNewSettings', () => {
               },
             ],
             config: {frequency: 0},
-            detectorIds: [],
+            detectorIds: ['123'],
             enabled: true,
           },
         })
@@ -321,7 +326,12 @@ describe('AutomationNewSettings', () => {
       body: created,
     });
 
-    render(<AutomationNewSettings />, {organization});
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
 
     const addAction = async (label: string) => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
@@ -503,6 +513,33 @@ describe('AutomationNewSettings', () => {
       expect(action).toEqual(expect.objectContaining(expectedAction));
     });
   }, 10000);
+
+  it('shows validation error when submitting with no projects or monitors selected', async () => {
+    const post = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture(),
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    // Add an action so the builder validation passes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    // Submit with no projects or monitors selected
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    // Should show validation error
+    expect(
+      await screen.findByText(
+        'Select at least one project or monitor to create an alert.'
+      )
+    ).toBeInTheDocument();
+
+    // Should not have submitted
+    expect(post).not.toHaveBeenCalled();
+  });
 
   it('surfaces error details when test notification fails', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
