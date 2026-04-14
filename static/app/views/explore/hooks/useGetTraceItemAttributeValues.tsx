@@ -9,6 +9,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useMutation, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -76,8 +77,6 @@ function traceItemAttributeValuesQueryKey({
   ];
 }
 
-const QUERY_KEY = 'use-get-trace-item-attribute-values';
-
 /**
  * Hook to fetch trace item attribute values for the Explore interface.
  * This is designed to be used with the organization_trace_item_attributes endpoint.
@@ -110,16 +109,16 @@ export function useGetTraceItemAttributeValues({
         type,
       });
 
-      const cachedResult = queryClient.getQueryData([QUERY_KEY, queryKey]);
-      if (cachedResult) {
-        return cachedResult as string[];
-      }
-
       try {
         const {url, options} = parseQueryKey(queryKey);
-        const result = await api.requestPromise(url, {
-          method: 'GET',
-          query: {...options?.query},
+        const result = await queryClient.fetchQuery({
+          queryKey,
+          queryFn: () =>
+            api.requestPromise(url, {
+              method: 'GET',
+              query: {...options?.query},
+            }),
+          staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
         });
         return result
           .filter((item: TraceItemAttributeValue) => defined(item.value))
@@ -127,18 +126,6 @@ export function useGetTraceItemAttributeValues({
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
-    },
-    onSuccess(data, variables) {
-      const queryKey = traceItemAttributeValuesQueryKey({
-        orgSlug: organization.slug,
-        attributeKey: variables.tag.key,
-        search: variables.searchQuery,
-        projectIds: projectIds ?? selection.projects,
-        datetime: datetime ?? selection.datetime,
-        traceItemType,
-        type,
-      });
-      queryClient.setQueryData([QUERY_KEY, queryKey], data);
     },
   });
 

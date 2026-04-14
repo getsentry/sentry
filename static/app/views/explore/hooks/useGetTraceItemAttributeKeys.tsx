@@ -6,6 +6,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -81,39 +82,25 @@ export function useGetTraceItemAttributeKeys({
         query,
       });
 
-      const queryKey = [QUERY_KEY, options];
-      const cachedResult = queryClient.getQueryData(queryKey);
-      if (cachedResult) {
-        return cachedResult as TagCollection;
-      }
-
       let result: Tag[];
       try {
-        result = await api.requestPromise(
-          `/organizations/${organization.slug}/trace-items/attributes/`,
-          {
-            method: 'GET',
-            query: options,
-          }
-        );
+        result = await queryClient.fetchQuery({
+          queryKey: [QUERY_KEY, options, organization.slug],
+          queryFn: () =>
+            api.requestPromise(
+              `/organizations/${organization.slug}/trace-items/attributes/`,
+              {
+                method: 'GET',
+                query: options,
+              }
+            ),
+          staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+        });
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
 
       return getTraceItemTagCollection(result, type);
-    },
-    onSuccess(data, variables) {
-      const options = makeTraceItemAttributeKeysQueryOptions({
-        traceItemType,
-        type,
-        datetime: selection.datetime,
-        projectIds: projectIds ?? selection.projects,
-        search: variables,
-        query,
-      });
-
-      const queryKey = [QUERY_KEY, options];
-      queryClient.setQueryData(queryKey, data);
     },
   });
 
