@@ -201,9 +201,7 @@ function SupergroupIssueList({
     enabled: !!filterWithCurrentSearch,
   });
 
-  const isPending = allPending || (!!filterWithCurrentSearch && matchPending);
-
-  if (isPending) {
+  if (allPending) {
     return (
       <PanelContainer>
         <LoadingHeader>
@@ -222,11 +220,14 @@ function SupergroupIssueList({
   const matchedIds = new Set(matchedGroups?.map(g => g.id));
   const groupMap = new Map(allGroups?.map(g => [g.id, g]));
 
-  // Sort: matched first, then the rest
+  // Sort: matched first, then the rest (skip sorting while match query is loading)
   const sortedGroups = [...pageGroupIds]
     .map(id => groupMap.get(String(id)))
     .filter((g): g is Group => g !== undefined)
     .sort((a, b) => {
+      if (matchPending) {
+        return 0;
+      }
       const aMatched = matchedIds.has(a.id);
       const bMatched = matchedIds.has(b.id);
       if (aMatched !== bMatched) {
@@ -239,7 +240,7 @@ function SupergroupIssueList({
 
   return (
     <Fragment>
-      {matchedIds.size > 0 && (
+      {filterWithCurrentSearch && (matchPending || matchedIds.size > 0) && (
         <Flex align="center" gap="xs" padding="0 0 md 0">
           <IconFilter size="xs" variant="accent" />
           <Text size="sm" variant="muted">
@@ -537,7 +538,7 @@ const PanelContainer = styled(Panel)`
 
 const MatchedIndicator = styled('div')`
   position: absolute;
-  top: 14px;
+  top: 32px;
   left: 18px;
   z-index: 2;
   color: ${p => p.theme.tokens.graphics.accent.vibrant};
