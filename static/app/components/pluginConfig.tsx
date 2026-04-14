@@ -265,10 +265,7 @@ export function PluginConfig({
       authUrl += '?next=' + encodeURIComponent(document.location.pathname);
     }
     return (
-      <Panel
-        className={`plugin-config ref-plugin-config-${plugin.id}`}
-        data-test-id="plugin-config"
-      >
+      <Panel>
         <PanelHeader hasButtons>
           <Flex align="center" flex="1">
             <StyledPluginIcon pluginId={plugin.id} />
@@ -291,10 +288,7 @@ export function PluginConfig({
   }
 
   return (
-    <Panel
-      className={`plugin-config ref-plugin-config-${plugin.id}`}
-      data-test-id="plugin-config"
-    >
+    <Panel>
       <PanelHeader hasButtons>
         <Flex align="center" flex="1">
           <StyledPluginIcon pluginId={plugin.id} />
