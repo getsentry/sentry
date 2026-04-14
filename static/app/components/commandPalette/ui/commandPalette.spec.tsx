@@ -477,9 +477,10 @@ describe('CommandPalette', () => {
       const actionOptions = screen
         .getAllByRole('option')
         .filter(el => !el.hasAttribute('aria-disabled'));
-      expect(actionOptions).toHaveLength(4);
+      expect(actionOptions).toHaveLength(5);
       expect(screen.queryByRole('option', {name: 'Action 5'})).not.toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Action 6'})).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'See all'})).toBeInTheDocument();
     });
 
     it('limits static children when limit prop is set', async () => {
@@ -498,9 +499,10 @@ describe('CommandPalette', () => {
       const actionOptions = screen
         .getAllByRole('option')
         .filter(el => !el.hasAttribute('aria-disabled'));
-      expect(actionOptions).toHaveLength(2);
+      expect(actionOptions).toHaveLength(3);
       expect(screen.queryByRole('option', {name: 'Item 3'})).not.toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Item 4'})).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'See all'})).toBeInTheDocument();
     });
 
     it('does not limit static children when limit prop is not set', async () => {
@@ -568,6 +570,7 @@ describe('CommandPalette', () => {
       expect(screen.getByRole('option', {name: 'Item 2'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Item 3'})).not.toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Item 4'})).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'See all'})).toBeInTheDocument();
     });
 
     it('grandchildren do not resurface individually when their parent nested group matches the search query', async () => {
@@ -648,6 +651,7 @@ describe('CommandPalette', () => {
       expect(await screen.findByRole('option', {name: 'Action 1'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Action 2'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Action 3'})).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'See all'})).toBeInTheDocument();
     });
 
     it('respects a custom limit prop', async () => {
@@ -684,7 +688,147 @@ describe('CommandPalette', () => {
       const actionOptions = screen
         .getAllByRole('option')
         .filter(el => !el.hasAttribute('aria-disabled'));
-      expect(actionOptions).toHaveLength(2);
+      expect(actionOptions).toHaveLength(3);
+      expect(screen.getByRole('option', {name: 'See all'})).toBeInTheDocument();
+    });
+
+    it('clicking see more drills into the full limited group in browse mode', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
+
+      expect(await screen.findByRole('option', {name: 'Item 3'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Item 4'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'See all'})).not.toBeInTheDocument();
+    });
+
+    it('clicking see more drills into the full limited group in search mode', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'Item');
+      await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
+
+      expect(await screen.findByRole('option', {name: 'Item 3'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Item 4'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'See all'})).not.toBeInTheDocument();
+    });
+
+    it('clicking see more preserves the active query in the expanded group', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'Item');
+      await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
+
+      await waitFor(() => expect(input).toHaveValue('Item'));
+      expect(await screen.findByRole('option', {name: 'Item 3'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Item 4'})).toBeInTheDocument();
+    });
+
+    it('clicking see more does not inherit the parent callback', async () => {
+      const parentCallback = jest.fn();
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            display={{label: 'Static Group'}}
+            limit={2}
+            onAction={parentCallback}
+          >
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
+
+      expect(parentCallback).not.toHaveBeenCalled();
+      expect(await screen.findByRole('option', {name: 'Item 3'})).toBeInTheDocument();
+    });
+
+    it('clicking see more does not inherit the parent link indicator', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Static Group'}} limit={2} to="/group/">
+            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const seeMore = await screen.findByRole('option', {name: 'See all'});
+      expect(
+        seeMore.querySelector('[data-test-id="command-palette-link-indicator"]')
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps expanded search results sorted by match quality after clicking see more', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'SDKs'}} limit={2}>
+            <CMDKAction display={{label: 'gkojavascript-nextjs'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'gkojavascript-astro'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'java-spring-boot'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'java-spring-boot-test'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'java');
+
+      const previewOptions = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'));
+      expect(previewOptions.map(option => option.textContent)).toEqual([
+        'java-spring-boot',
+        'java-spring-boot-test',
+        'See all',
+      ]);
+
+      await userEvent.click(screen.getByRole('option', {name: 'See all'}));
+
+      const expandedOptions = (await screen.findAllByRole('option'))
+        .filter(el => !el.hasAttribute('aria-disabled'))
+        .map(option => option.textContent);
+
+      expect(expandedOptions.slice(0, 4)).toEqual([
+        'java-spring-boot',
+        'java-spring-boot-test',
+        'gkojavascript-nextjs',
+        'gkojavascript-astro',
+      ]);
     });
   });
 

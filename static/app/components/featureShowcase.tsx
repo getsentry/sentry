@@ -44,7 +44,7 @@ function Step({children}: {children: ReactNode}) {
 }
 
 function StepImage(props: ImageProps) {
-  return <Image height="200px" objectFit="contain" {...props} />;
+  return <Image objectFit="contain" {...props} />;
 }
 
 function StepTitle({children}: {children: ReactNode}) {

@@ -483,7 +483,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             query=validated_data["query"],
             aggregate=validated_data["aggregate"],
             time_window=timedelta(seconds=validated_data["time_window"]),
-            resolution=timedelta(minutes=1),
+            resolution=validated_data.get("resolution", timedelta(minutes=1)),
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
             group_by=validated_data.get("group_by"),

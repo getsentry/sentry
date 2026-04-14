@@ -10,6 +10,7 @@ import {
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
@@ -502,4 +503,27 @@ describe('AutomationNewSettings', () => {
       expect(action).toEqual(expect.objectContaining(expectedAction));
     });
   }, 10000);
+
+  it('surfaces error details when test notification fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/test-fire-actions/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        actions: [{repo: 'Repository is required'}],
+      },
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+    });
+  });
 });

@@ -1,6 +1,7 @@
 import {queryOptions, skipToken} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
@@ -347,11 +348,9 @@ export function useSendTestNotification(
       options?.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
-      const detail = error.responseJSON?.detail;
-      const message = typeof detail === 'string' ? detail : detail?.message;
-
       addErrorMessage(
-        message || tn('Notification failed', 'Notifications failed', variables.length)
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ||
+          tn('Notification failed', 'Notifications failed', variables.length)
       );
       options?.onError?.(error, variables, onMutateResult, context);
     },
