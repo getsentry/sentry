@@ -249,7 +249,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
-          const canSort = displayColumns[i]?.isSortable !== false;
+          const canSort = displayColumns.find(column => column.key === field)?.isSortable;
 
           function updateSort() {
             const kind = direction === 'desc' ? 'asc' : 'desc';
