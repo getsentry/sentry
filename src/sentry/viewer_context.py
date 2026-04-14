@@ -108,6 +108,8 @@ def get_viewer_context() -> ViewerContext | None:
 # ---------------------------------------------------------------------------
 
 _JWT_STANDARD_CLAIMS = frozenset({"iat", "exp", "iss", "aud", "nbf", "jti", "sub"})
+# JWT header field identifying which key was used for signing (RFC 7515 §4.1.4).
+_JWT_KEY_ID_HEADER = "kid"
 
 
 def _key_id(key: str) -> str:
@@ -171,7 +173,9 @@ def encode_viewer_context(
         "iss": "sentry",
     }
 
-    return pyjwt.encode(payload, secret, algorithm="HS256", headers={"kid": _key_id(secret)})
+    return pyjwt.encode(
+        payload, secret, algorithm="HS256", headers={_JWT_KEY_ID_HEADER: _key_id(secret)}
+    )
 
 
 def decode_viewer_context(
@@ -192,7 +196,7 @@ def decode_viewer_context(
         if not keys_by_kid:
             raise ValueError("No verification keys available.")
 
-        kid = pyjwt.get_unverified_header(token).get("kid")
+        kid = pyjwt.get_unverified_header(token).get(_JWT_KEY_ID_HEADER)
         secret = keys_by_kid.get(kid, "") if kid else ""
         if not secret:
             raise pyjwt.exceptions.InvalidKeyError(f"No verification key matches kid={kid!r}")

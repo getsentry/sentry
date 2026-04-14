@@ -24,8 +24,9 @@ def ViewerContextMiddleware(
     """Set :class:`ViewerContext` for every request.
 
     Placed after ``AuthenticationMiddleware``. Authenticated user always
-    takes precedence; ``X-Viewer-Context`` is only used when there is
-    no authenticated user (service-to-service calls, e.g. Seer → Sentry).
+    takes precedence; ``X-Viewer-Context`` header is only used when
+    there is no authenticated *user* (service-to-service calls that
+    authenticate via HMAC but have no user session, e.g. Seer → Sentry).
 
     Accepts both JWT and legacy JSON + HMAC signature formats.
 
