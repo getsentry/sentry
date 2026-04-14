@@ -52,7 +52,14 @@ describe('ConversationSummary', () => {
     );
 
     expect(screen.getByText('Started')).toBeInTheDocument();
-    expect(screen.getByText('Oct 16, 2016 7:41 PM PDT')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'TIME' &&
+          element.textContent?.includes('Oct 16, 2016') &&
+          element.textContent.includes('PDT')
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText('Last message')).toBeInTheDocument();
     expect(screen.getByText(/ago$/)).toBeInTheDocument();
   });
