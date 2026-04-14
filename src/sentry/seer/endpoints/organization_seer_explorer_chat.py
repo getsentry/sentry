@@ -181,6 +181,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 is_interactive=True,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
+                reasoning_effort="medium",
             )
             if run_id:
                 # Continue existing conversation
