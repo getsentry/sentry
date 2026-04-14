@@ -64,10 +64,7 @@ function mapAlertRuleField(
         label: '',
         type: 'select',
         placeholder: field.placeholder,
-        default:
-          field.initial === null || field.initial === undefined
-            ? undefined
-            : String(field.initial),
+        default: field.initial,
         choices: field.choices?.map(([value, label]) => [String(value), label]),
       };
     case 'number':
@@ -76,9 +73,7 @@ function mapAlertRuleField(
         label: '',
         type: 'number',
         placeholder:
-          field.placeholder === null || field.placeholder === undefined
-            ? undefined
-            : String(field.placeholder),
+          field.placeholder === undefined ? undefined : String(field.placeholder),
       };
     case 'string':
       return {
@@ -371,7 +366,6 @@ export function RuleNode({
     if (name === 'environment') {
       adapterField = {
         ...adapterField,
-        type: 'select',
         choices: project.environments.map(env => [env, env]),
       };
     }

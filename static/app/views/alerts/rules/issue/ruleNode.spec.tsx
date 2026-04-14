@@ -55,11 +55,11 @@ describe('RuleNode', () => {
       },
       exampleNumberChoiceField: {
         type: 'choice',
-        initial: 2,
+        initial: '2',
         choices: [
-          [1, 'label1'],
-          [2, 'label2'],
-          [3, 'label3'],
+          ['1', 'label1'],
+          ['2', 'label2'],
+          ['3', 'label3'],
         ],
       },
       exampleMailActionField: {

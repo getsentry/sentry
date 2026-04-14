@@ -59,7 +59,7 @@ export const enum IssueAlertFilterType {
 interface IssueAlertFormFieldChoice {
   type: 'choice';
   choices?: Array<[key: string | number, name: string]>;
-  initial?: string | number;
+  initial?: string;
   placeholder?: string;
   resetsForm?: boolean;
 }
