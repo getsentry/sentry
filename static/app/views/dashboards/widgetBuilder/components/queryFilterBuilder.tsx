@@ -76,10 +76,12 @@ export function WidgetBuilderQueryFilterBuilder({
   // - Tables: no legend (data shown in rows)
   // - Big Numbers: no legend (single value)
   // - Bar (Categorical): no aliases (only one filter allowed, no point aliasing it)
+  // - Details: no legend (single query, data shown in key-value pairs)
   const canHaveAlias =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    state.displayType !== DisplayType.CATEGORICAL_BAR;
+    state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.DETAILS;
 
   const onAddSearchConditions = () => {
     // TODO: after hook gets updated with different dispatch types, change this part
