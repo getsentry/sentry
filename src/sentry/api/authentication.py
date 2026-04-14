@@ -6,7 +6,6 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -778,49 +777,30 @@ class HmacSignatureAuthentication(StandardAuthentication):
 
 
 class ViewerContextAuthentication(BaseAuthentication):
-    """Authenticate requests using signed X-Viewer-Context headers.
+    """Authenticate requests using X-Viewer-Context headers.
 
+    Accepts both JWT (HS256) and legacy JSON + HMAC signature formats.
     Used by trusted services (e.g., Seer) that echo back the viewer context
-    originally signed by Sentry. The signature is verified against
-    SEER_API_SHARED_SECRET. The user is resolved via user_service.get_user()
-    which works cross-silo (RPC-backed, cached).
+    originally signed by Sentry.
 
+    The user is resolved via user_service.get_user() (RPC-backed, cached).
     Sets request.auth = None so that determine_access derives permissions
     from the user's OrganizationMember role — identical to session auth.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
-        viewer_context = request.META.get("HTTP_X_VIEWER_CONTEXT")
-        viewer_signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
+        from sentry.viewer_context import viewer_context_from_header
 
-        if not viewer_context or not viewer_signature:
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        if not header:
             return None
 
-        secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
-        if not secret:
+        signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
+        vc = viewer_context_from_header(header, signature)
+        if vc is None or vc.user_id is None:
             return None
 
-        # Verify HMAC signature
-        context_bytes = viewer_context.encode("utf-8")
-        computed = hmac.new(
-            secret.encode("utf-8"),
-            context_bytes,
-            hashlib.sha256,
-        ).hexdigest()
-        if not constant_time_compare(computed, viewer_signature):
-            return None
-
-        # Parse viewer context and resolve user
-        try:
-            data = orjson.loads(context_bytes)
-        except (orjson.JSONDecodeError, ValueError, TypeError):
-            return None
-
-        user_id = data.get("user_id")
-        if not user_id:
-            return None
-
-        user = user_service.get_user(user_id=user_id)
+        user = user_service.get_user(user_id=vc.user_id)
         if user is None:
             return None
 
