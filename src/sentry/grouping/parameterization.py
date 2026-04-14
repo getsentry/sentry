@@ -236,14 +236,14 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             #     are valid hex, like `Space::explore()`.
             # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
             # 5 characters on either side, but those are presumably pretty rare.
-            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (?<!\w) # Negative lookbehind
             (
                 ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
                 [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
                 (%\S+)? # Optional zone ID
                 (/\d{1,3})? # Optional CIDR suffix
             )
-            (?![0-9a-zA-Z]) # Negative lookahead
+            (?!\w) # Negative lookahead
         """,
         # Validate that the matched string actually is an IP address before replacing it. If not,
         # leave it alone.
