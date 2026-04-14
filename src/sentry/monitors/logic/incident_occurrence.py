@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from arroyo import Topic as ArroyoTopic
@@ -138,8 +138,6 @@ def send_incident_occurrence(
     """
     monitor_env = failed_checkin.monitor_environment
 
-    current_timestamp = datetime.now(timezone.utc)
-
     # Get last successful check-in to show in evidence display
     last_successful_checkin_timestamp = "Never"
     last_successful_checkin = monitor_env.get_last_successful_checkin()
@@ -217,9 +215,7 @@ def send_incident_occurrence(
             "monitor.slug": str(monitor_env.monitor.slug),
             "monitor.incident": str(incident.id),
         },
-        # option 1: timestamp <- received.isoformat().  This seems reasonable, because the cron incident starts not when
-        # we've processed it, but when relay got the message (which is approximately when the cron failure occurred.)
-        "timestamp": current_timestamp.isoformat(),
+        "timestamp": received.isoformat(),
     }
 
     if trace_id:
@@ -295,8 +291,6 @@ def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
         project_id=project_id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
-        # option 2: make this current_time.  Then, because of monitor ordering guarantees, this will always be ahead of
-        # the start time
         update_date=incident.resolving_timestamp,
     )
     produce_occurrence_to_kafka(
