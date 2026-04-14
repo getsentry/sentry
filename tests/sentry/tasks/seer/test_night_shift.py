@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -18,29 +18,31 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def _mock_explorer_client(group_ids: list[int], action: str = "autofix") -> MagicMock:
-    """Create a mock SeerExplorerClient that returns triage verdicts."""
-    verdicts = [{"group_id": gid, "action": action, "reason": "test"} for gid in group_ids]
-    artifact = Artifact(key="triage_verdicts", data={"verdicts": verdicts}, reason="test")
+class FakeExplorerClient:
+    """Stub SeerExplorerClient that returns canned triage verdicts."""
 
-    state = SeerRunState(
-        run_id=1,
-        blocks=[
-            MemoryBlock(
-                id="test-block",
-                message=Message(role="assistant"),
-                timestamp="2025-01-01T00:00:00",
-                artifacts=[artifact],
-            ),
-        ],
-        status="completed",
-        updated_at="2025-01-01T00:00:00",
-    )
+    def __init__(self, group_ids: list[int], action: str = "autofix"):
+        verdicts = [{"group_id": gid, "action": action, "reason": "test"} for gid in group_ids]
+        artifact = Artifact(key="triage_verdicts", data={"verdicts": verdicts}, reason="test")
+        self._state = SeerRunState(
+            run_id=1,
+            blocks=[
+                MemoryBlock(
+                    id="test-block",
+                    message=Message(role="assistant"),
+                    timestamp="2025-01-01T00:00:00",
+                    artifacts=[artifact],
+                ),
+            ],
+            status="completed",
+            updated_at="2025-01-01T00:00:00",
+        )
 
-    client = MagicMock()
-    client.start_run.return_value = 1
-    client.get_run.return_value = state
-    return client
+    def start_run(self, **kwargs):
+        return 1
+
+    def get_run(self, run_id, **kwargs):
+        return self._state
 
 
 @django_db_all
@@ -181,11 +183,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             seer_autofix_last_triggered=timezone.now(),
         )
 
-        mock_client = _mock_explorer_client([high_fix.id, low_fix.id])
+        fake_client = FakeExplorerClient([high_fix.id, low_fix.id])
         with (
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
-                return_value=mock_client,
+                return_value=fake_client,
             ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
@@ -220,11 +222,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project_b, "high-group", seer_fixability_score=0.95
         )
 
-        mock_client = _mock_explorer_client([high_group.id, low_group.id])
+        fake_client = FakeExplorerClient([high_group.id, low_group.id])
         with (
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
-                return_value=mock_client,
+                return_value=fake_client,
             ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
