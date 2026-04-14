@@ -5,12 +5,14 @@ import contextvars
 import dataclasses
 import enum
 import hashlib
+import hmac
 import logging
 import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
+import orjson
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -232,11 +234,6 @@ def viewer_context_from_header(
 
 def _verify_legacy_viewer_context(context_json: str, signature: str) -> ViewerContext | None:
     """Verify and decode a legacy JSON + HMAC-signed viewer context."""
-    import hashlib
-    import hmac
-
-    import orjson
-
     keys_by_kid = _get_verification_keys()
     context_bytes = context_json.encode("utf-8")
 
