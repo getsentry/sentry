@@ -1,6 +1,4 @@
-
 from typing import Any, Iterable, cast
-
 from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
@@ -939,7 +937,6 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert dl_response.status_code == 200
         stream = cast(StreamingHttpResponse, dl_response).streaming_content
         return b"".join(cast(Iterable[bytes], stream)).strip()
-
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_spans_dataset_called_correctly(self, emailer: MagicMock) -> None:
