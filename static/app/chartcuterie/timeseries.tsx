@@ -16,10 +16,10 @@ import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
 /**
- * Font size and spacing scaled for the larger explore chart canvas (1200x400).
+ * Font size and spacing scaled for the larger timeseries chart canvas (1200x400).
  */
-const EXPLORE_FONT_SIZE = 28;
-const EXPLORE_CHART_SIZE = {width: 1200, height: 400};
+const FONT_SIZE = 28;
+const CHART_SIZE = {width: 1200, height: 400};
 
 /**
  * Builds a y-axis axisLabel formatter from the first timeseries metadata.
@@ -32,7 +32,7 @@ function makeYAxisFormatter(timeSeries: TimeSeries[]) {
   return (value: number) => formatYAxisValue(value, valueType, valueUnit ?? undefined);
 }
 
-type ExploreChartData = {
+type ChartData = {
   timeSeries: TimeSeries[];
   type?: DisplayType;
 };
@@ -40,14 +40,14 @@ type ExploreChartData = {
 export const makeTimeseriesCharts = (
   theme: Theme
 ): Array<RenderDescriptor<ChartType>> => {
-  const exploreXAxis = XAxis({
+  const xAxis = XAxis({
     theme,
     splitNumber: 3,
     isGroupedByDate: true,
-    axisLabel: {fontSize: EXPLORE_FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
+    axisLabel: {fontSize: FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
   });
 
-  const exploreDefaults = {
+  const defaults = {
     grid: Grid({left: 10, right: 10, bottom: 10, top: 60}),
     backgroundColor: theme.tokens.background.primary,
     legend: Legend({
@@ -60,44 +60,44 @@ export const makeTimeseriesCharts = (
       left: 10,
       truncate: 40,
       textStyle: {
-        fontSize: EXPLORE_FONT_SIZE,
-        lineHeight: EXPLORE_FONT_SIZE * 1.4,
+        fontSize: FONT_SIZE,
+        lineHeight: FONT_SIZE * 1.4,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
       pageTextStyle: {
-        fontSize: EXPLORE_FONT_SIZE,
+        fontSize: FONT_SIZE,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
-      pageIconSize: EXPLORE_FONT_SIZE * 0.6,
+      pageIconSize: FONT_SIZE * 0.6,
     }),
     yAxis: YAxis({
       theme,
       splitNumber: 3,
-      axisLabel: {fontSize: EXPLORE_FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
+      axisLabel: {fontSize: FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
     }),
   };
 
-  const exploreCharts: Array<RenderDescriptor<ChartType>> = [];
+  const charts: Array<RenderDescriptor<ChartType>> = [];
 
-  exploreCharts.push({
+  charts.push({
     key: ChartType.SLACK_TIMESERIES,
-    getOption: (data: ExploreChartData) => {
+    getOption: (data: ChartData) => {
       const {timeSeries, type: displayType = DisplayType.LINE} = data;
 
       if (timeSeries.length === 0) {
         return {
-          ...exploreDefaults,
-          xAxis: exploreXAxis,
+          ...defaults,
+          xAxis,
           useUTC: true,
           series: [],
         };
       }
 
-      const exploreYAxis = YAxis({
+      const yAxis = YAxis({
         theme,
         splitNumber: 3,
         axisLabel: {
-          fontSize: EXPLORE_FONT_SIZE,
+          fontSize: FONT_SIZE,
           fontFamily: DEFAULT_FONT_FAMILY,
           formatter: makeYAxisFormatter(timeSeries),
         },
@@ -117,9 +117,9 @@ export const makeTimeseriesCharts = (
         const series = plottable?.toSeries(plottingOptions) ?? [];
 
         return {
-          ...exploreDefaults,
-          yAxis: exploreYAxis,
-          xAxis: exploreXAxis,
+          ...defaults,
+          yAxis,
+          xAxis,
           useUTC: true,
           color,
           series,
@@ -151,16 +151,16 @@ export const makeTimeseriesCharts = (
       });
 
       return {
-        ...exploreDefaults,
-        yAxis: exploreYAxis,
-        xAxis: exploreXAxis,
+        ...defaults,
+        yAxis,
+        xAxis,
         useUTC: true,
         color,
         series,
       };
     },
-    ...EXPLORE_CHART_SIZE,
+    ...CHART_SIZE,
   });
 
-  return exploreCharts;
+  return charts;
 };
