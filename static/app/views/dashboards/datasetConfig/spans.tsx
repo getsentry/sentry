@@ -15,6 +15,7 @@ import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  AGGREGATIONS,
   stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
@@ -116,6 +117,11 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
           },
         ],
       };
+    } else if (
+      aggregate === AggregationKey.PERFORMANCE_SCORE ||
+      aggregate === AggregationKey.OPPORTUNITY_SCORE
+    ) {
+      acc[aggregate] = AGGREGATIONS[aggregate];
     } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
       acc[aggregate] = {
         isSortable: true,
