@@ -96,7 +96,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         if "activities" in self.expand:
             gopas = list(
                 GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list).order_by(
-                    "date_added"
+                    "date_added", "id"
                 )[:1000]
             )
             open_period_activities: defaultdict[int, list[dict[str, Any]]] = defaultdict(list)
