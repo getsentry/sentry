@@ -257,7 +257,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
                 if field:
                     metric_sort_bys.append(f"-{field}" if kind == "desc" else field)
             metric_query = metric_parsed.get("query") or None
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError, AttributeError):
             pass
 
     visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
