@@ -264,6 +264,11 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
     def has_history_scope(self, channel_id: str) -> bool:
         """
         Returns whether this integration is allowed to access the history in the channel.
+
+        Checks if channels:history is installed for public channels,
+        and check groups:history for private channels.
+
+        The type of channel is determined by the conversations.info API call.
         """
         history_scopes = [SlackScope.CHANNELS_HISTORY, SlackScope.GROUPS_HISTORY]
         installed_scope_set = frozenset(self.model.metadata.get("scopes", []))
