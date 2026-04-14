@@ -2,23 +2,14 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {
-  getSourceMapsDocLinks,
-  projectPlatformToDocsMap,
-} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 
 interface ProblemSectionProps {
-  project: Project;
+  sourcemapsDocsUrl: string;
 }
 
-export function ProblemSection({project}: ProblemSectionProps) {
-  const docsSegment =
-    (project.platform && projectPlatformToDocsMap[project.platform]) ?? 'javascript';
-  const docLinks = getSourceMapsDocLinks(docsSegment);
-
+export function ProblemSection({sourcemapsDocsUrl}: ProblemSectionProps) {
   return (
     <Stack gap="lg" padding="lg">
       <Heading as="h3">{t('Problem')}</Heading>
@@ -28,7 +19,7 @@ export function ProblemSection({project}: ProblemSectionProps) {
         )}
       </Text>
       <div>
-        <LinkButton size="sm" icon={<IconInfo />} external href={docLinks.sourcemaps}>
+        <LinkButton size="sm" icon={<IconInfo />} external href={sourcemapsDocsUrl}>
           {t('Why configure source maps?')}
         </LinkButton>
       </div>
