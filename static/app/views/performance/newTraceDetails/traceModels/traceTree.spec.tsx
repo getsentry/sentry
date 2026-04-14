@@ -2078,6 +2078,17 @@ describe('TraceTree', () => {
     });
   });
 
+  describe('IsLastVisibleChild', () => {
+    it('treats the trace root row as the last visible child', () => {
+      const tree = TraceTree.FromTrace(trace, traceOptions);
+      const traceRoot = tree.root.children[0]!;
+
+      expect(TraceTree.VisibleParent(traceRoot)).toBeNull();
+      expect(TraceTree.IsLastVisibleChild(traceRoot)).toBe(true);
+      expect(TraceTree.ConnectorsTo(traceRoot)).toEqual([]);
+    });
+  });
+
   describe('Invalidate', () => {
     it('invalidates node', () => {
       const tree = TraceTree.FromTrace(trace, traceOptions);

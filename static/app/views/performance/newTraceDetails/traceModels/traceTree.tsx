@@ -1244,7 +1244,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     const visibleParent = TraceTree.VisibleParent(node);
 
     if (!visibleParent) {
-      return false;
+      return node.isLastChild();
     }
 
     const visibleChildren = visibleParent.directVisibleChildren;
