@@ -39,6 +39,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -189,6 +190,8 @@ function ManageDashboards() {
     columnCount: DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   });
 
+  const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
+
   const sortOptions = getSortOptions({
     organization,
     dashboardsLayout,
@@ -222,10 +225,12 @@ function ManageDashboards() {
     ],
     {
       staleTime: 0,
-      enabled: !(
-        organization.features.includes('dashboards-starred-reordering') &&
-        dashboardsLayout === TABLE
-      ),
+      enabled:
+        (hasProjectAccess || !projectsLoaded) &&
+        !(
+          organization.features.includes('dashboards-starred-reordering') &&
+          dashboardsLayout === TABLE
+        ),
     }
   );
 
@@ -257,6 +262,7 @@ function ManageDashboards() {
     cursor: decodeScalar(location.query[OWNED_CURSOR_KEY], ''),
     sort: getActiveSort()!.value,
     enabled:
+      (hasProjectAccess || !projectsLoaded) &&
       organization.features.includes('dashboards-starred-reordering') &&
       dashboardsLayout === TABLE,
   });
