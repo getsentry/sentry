@@ -17,7 +17,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilder,
   type GetTagValues,
-  type GetTagValuesParams,
 } from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -360,7 +359,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
   const getEventFieldValues = useCallback<GetTagValues>(
-    async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
+    async ({tag, searchQuery}) => {
       if (getTagList[tag.key]?.kind === FieldKind.FEATURE_FLAG) {
         if (dataset && dataset !== DiscoverDatasets.ERRORS) {
           return Promise.resolve([]);
