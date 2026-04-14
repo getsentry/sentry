@@ -244,7 +244,7 @@ class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
     error_types = JS_SOURCEMAP_ERROR_TYPES
     fingerprint_key = "sourcemap"
     issue_title = "Source maps are misconfigured"
-    issue_subtitle = "Minified stack traces detected, making errors harder to debug"
+    issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
 
 
 @dataclass(frozen=True)
