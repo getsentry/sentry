@@ -215,28 +215,26 @@ export function PluginConfig({
       ),
   });
 
-  const handleSubmit = async (values: Record<string, unknown>) => {
-    if (!wasConfigured) {
-      trackAnalytics('integrations.installation_start', {
-        integration: plugin.id,
-        integration_type: 'plugin',
-        view: 'plugin_details',
-        already_installed: false,
-        organization,
-      });
-    }
-
-    addLoadingMessage(t('Saving changes\u2026'));
-
-    try {
-      await fetchMutation({
+  const submitMutation = useMutation({
+    mutationFn: (values: Record<string, unknown>) => {
+      if (!wasConfigured) {
+        trackAnalytics('integrations.installation_start', {
+          integration: plugin.id,
+          integration_type: 'plugin',
+          view: 'plugin_details',
+          already_installed: false,
+          organization,
+        });
+      }
+      addLoadingMessage(t('Saving changes\u2026'));
+      return fetchMutation({
         method: 'PUT',
         url: pluginEndpoint,
         data: values,
       });
-
+    },
+    onSuccess: () => {
       addSuccessMessage(t('Success!'));
-
       trackAnalytics('integrations.config_saved', {
         integration: plugin.id,
         integration_type: 'plugin',
@@ -244,7 +242,6 @@ export function PluginConfig({
         already_installed: wasConfigured,
         organization,
       });
-
       if (!wasConfigured) {
         trackAnalytics('integrations.installation_complete', {
           integration: plugin.id,
@@ -254,12 +251,10 @@ export function PluginConfig({
           organization,
         });
       }
-
       refetch();
-    } catch {
-      addErrorMessage(t('Unable to save changes. Please try again.'));
-    }
-  };
+    },
+    onError: () => addErrorMessage(t('Unable to save changes. Please try again.')),
+  });
 
   // Auth error state (e.g. OAuth plugins needing identity association)
   if (pluginData?.config_error) {
@@ -348,7 +343,7 @@ export function PluginConfig({
             key={formKey}
             fields={fields}
             initialValues={initialValues}
-            onSubmit={handleSubmit}
+            onSubmit={values => submitMutation.mutate(values)}
             submitLabel={t('Save Changes')}
             submitDisabled={!hasWriteAccess}
             footer={({SubmitButton, disabled}) => (
