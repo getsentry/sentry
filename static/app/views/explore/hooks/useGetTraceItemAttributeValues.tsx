@@ -9,7 +9,6 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useMutation, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -138,9 +137,6 @@ export function useGetTraceItemAttributeValues({
         datetime: datetime ?? selection.datetime,
         traceItemType,
         type,
-      });
-      queryClient.setQueryDefaults([QUERY_KEY, queryKey], {
-        staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
       });
       queryClient.setQueryData([QUERY_KEY, queryKey], data);
     },
