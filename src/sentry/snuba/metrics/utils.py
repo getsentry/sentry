@@ -488,7 +488,7 @@ def get_num_intervals(
 ) -> int:
     """
     Calculates the number of intervals from start to end.
-    If start==None then it calculates from the beginning of unix time (for backward compatibility with
+    If startisNone then it calculates from the beginning of unix time (for backward compatibility with
     MetricsQuery.calculate_intervals_len)
     """
 
