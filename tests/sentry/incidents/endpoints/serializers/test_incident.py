@@ -49,9 +49,11 @@ class IncidentSerializerTest(TestCase):
         assert result["activities"][0] == {
             "id": str(activity.id),
             "incidentIdentifier": str(incident.identifier),
+            "user": None,
             "type": IncidentActivityType.STATUS_CHANGE.value,
             "value": str(IncidentStatus.CRITICAL.value),
             "previousValue": str(IncidentStatus.WARNING.value),
+            "comment": None,
             "dateCreated": activity.date_added,
         }
 
