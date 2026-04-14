@@ -118,9 +118,6 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_data = invocation.event_data
 
     handler = issue_alert_handler_registry.get(action.type)
-    if handler is None:
-        raise ValueError(f"No issue alert handler found for action type: {action.type}")
-
     rule_instance = handler.create_rule_instance_from_action(
         action=action,
         detector=detector,
