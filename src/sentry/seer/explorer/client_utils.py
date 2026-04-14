@@ -315,8 +315,6 @@ def get_proxy_headers() -> dict[str, str] | None:
     if not settings.SEER_API_SHARED_SECRET:
         return None
 
-    import orjson
-
     context_bytes = orjson.dumps(ctx.serialize())
     signature = sign_viewer_context(context_bytes)
     return {

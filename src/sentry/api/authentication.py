@@ -801,7 +801,7 @@ class ViewerContextAuthentication(BaseAuthentication):
             return None
 
         user = user_service.get_user(user_id=vc.user_id)
-        if user is None:
+        if user is None or not user.is_active:
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)

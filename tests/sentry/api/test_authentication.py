@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import orjson
 import pytest
 from django.test import RequestFactory, override_settings
 from django.urls import resolve
@@ -1013,8 +1014,6 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_valid_viewer_context_authenticates(self) -> None:
-        import orjson
-
         context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
         signature = self._sign_context(context)
 
@@ -1028,8 +1027,6 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_invalid_signature_returns_none(self) -> None:
-        import orjson
-
         context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
 
         request = self._make_request(viewer_context=context, viewer_signature="bad-signature")
@@ -1039,8 +1036,6 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_missing_signature_returns_none(self) -> None:
-        import orjson
-
         context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
 
         request = self._make_request(viewer_context=context)
@@ -1056,8 +1051,6 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_unknown_user_id_returns_none(self) -> None:
-        import orjson
-
         context = orjson.dumps({"user_id": 999999999, "actor_type": "user"}).decode()
         signature = self._sign_context(context)
 
@@ -1068,8 +1061,6 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_missing_user_id_returns_none(self) -> None:
-        import orjson
-
         context = orjson.dumps({"actor_type": "system"}).decode()
         signature = self._sign_context(context)
 
@@ -1080,8 +1071,6 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_empty_secret_returns_none(self) -> None:
-        import orjson
-
         context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
 
         request = self._make_request(viewer_context=context, viewer_signature="anything")
