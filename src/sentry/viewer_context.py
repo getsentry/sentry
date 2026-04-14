@@ -135,17 +135,16 @@ def _get_signing_key(key: str | None = None) -> str:
     raise ValueError("No signing key available. Set SEER_API_SHARED_SECRET in settings.")
 
 
-def _get_verification_keys() -> list[str]:
-    """Return all keys that may have been used to sign a ViewerContext JWT.
+def _get_verification_keys() -> dict[str, str]:
+    """Return a ``{kid: key}`` mapping of all known verification keys.
 
-    The receiver tries each key (kid-matched first) when verifying.
     Add new service keys here as more services propagate ViewerContext.
     """
-    keys: list[str] = []
+    keys: dict[str, str] = {}
 
     seer_secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
     if seer_secret:
-        keys.append(seer_secret)
+        keys[_key_id(seer_secret)] = seer_secret
 
     return keys
 
@@ -185,35 +184,27 @@ def decode_viewer_context(
     from ``_get_verification_keys()`` are tried, kid-matched key first.
     """
     if key is not None:
-        keys = [key]
+        secret = key
     else:
-        keys = _get_verification_keys()
+        keys_by_kid = _get_verification_keys()
+        if not keys_by_kid:
+            raise ValueError("No verification keys available.")
 
-    if not keys:
-        raise ValueError("No verification keys available.")
+        kid = pyjwt.get_unverified_header(token).get("kid")
+        secret = keys_by_kid.get(kid, "") if kid else ""
+        if not secret:
+            raise pyjwt.exceptions.InvalidKeyError(f"No verification key matches kid={kid!r}")
 
-    # Use kid to try the matching key first.
-    kid = pyjwt.get_unverified_header(token).get("kid")
-    if kid:
-        keys = sorted(keys, key=lambda k: _key_id(k) != kid)
-
-    last_exc: Exception | None = None
-    for k in keys:
-        try:
-            claims = pyjwt.decode(
-                token,
-                k,
-                algorithms=["HS256"],
-                options={"require": ["iat", "exp", "iss"]},
-                issuer="sentry",
-                leeway=leeway,
-            )
-            vc_data = {ck: cv for ck, cv in claims.items() if ck not in _JWT_STANDARD_CLAIMS}
-            return ViewerContext.deserialize(vc_data)
-        except pyjwt.exceptions.PyJWTError as exc:
-            last_exc = exc
-
-    raise last_exc  # type: ignore[misc]
+    claims = pyjwt.decode(
+        token,
+        secret,
+        algorithms=["HS256"],
+        options={"require": ["iat", "exp", "iss"]},
+        issuer="sentry",
+        leeway=leeway,
+    )
+    vc_data = {ck: cv for ck, cv in claims.items() if ck not in _JWT_STANDARD_CLAIMS}
+    return ViewerContext.deserialize(vc_data)
 
 
 def viewer_context_from_header(
@@ -246,10 +237,10 @@ def _verify_legacy_viewer_context(context_json: str, signature: str) -> ViewerCo
 
     import orjson
 
-    keys = _get_verification_keys()
+    keys_by_kid = _get_verification_keys()
     context_bytes = context_json.encode("utf-8")
 
-    for key in keys:
+    for key in keys_by_kid.values():
         computed = hmac.new(key.encode("utf-8"), context_bytes, hashlib.sha256).hexdigest()
         if hmac.compare_digest(computed, signature):
             try:

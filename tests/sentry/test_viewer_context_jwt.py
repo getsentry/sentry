@@ -109,7 +109,14 @@ class TestDecodeViewerContext(TestCase):
             "exp": time.time() - 60,
             "iss": "sentry",
         }
-        expired_token = pyjwt.encode(payload, "test-secret-key", algorithm="HS256")
+        from sentry.viewer_context import _key_id
+
+        expired_token = pyjwt.encode(
+            payload,
+            "test-secret-key",
+            algorithm="HS256",
+            headers={"kid": _key_id("test-secret-key")},
+        )
 
         with pytest.raises(pyjwt.exceptions.ExpiredSignatureError):
             decode_viewer_context(expired_token)
