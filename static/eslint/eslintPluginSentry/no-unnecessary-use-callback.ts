@@ -1,4 +1,5 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {getStaticValue} from '@typescript-eslint/utils/ast-utils';
 
 interface UsageInfo {
   line: number;
@@ -55,7 +56,11 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
         flaggedUsages.set(name, usages);
       }
       usages.push(usage);
-      flaggedRefCount.set(name, (flaggedRefCount.get(name) ?? 0) + refCount);
+      flaggedRefCount.set(
+        name,
+        (flaggedRefCount.get(name) ?? 0) +
+          1 /* each usage accounts for one reference to the binding */
+      );
     }
 
     /**
@@ -147,11 +152,10 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
         if (expr.type === AST_NODE_TYPES.ArrowFunctionExpression) {
           const calledBinding = findCallToBinding(expr.body);
           if (calledBinding) {
-            addFlaggedUsage(
-              calledBinding,
-              {reason: 'directlyInvoked', line: node.value.loc.start.line},
-              1
-            );
+            addFlaggedUsage(calledBinding, {
+              reason: 'directlyInvoked',
+              line: node.value.loc.start.line,
+            });
             return;
           }
         }
@@ -180,25 +184,17 @@ export const noUnnecessaryUseCallback = ESLintUtils.RuleCreator.withoutDocs({
             tagName.type === AST_NODE_TYPES.JSXIdentifier &&
             tagName.name[0] === tagName.name[0]?.toLowerCase()
           ) {
-            addFlaggedUsage(
-              expr.name,
-              {
-                reason: 'intrinsicElement',
-                element: tagName.name,
-                line: node.value.loc.start.line,
-              },
-              1
-            );
+            addFlaggedUsage(expr.name, {
+              reason: 'intrinsicElement',
+              element: tagName.name,
+              line: node.value.loc.start.line,
+            });
           } else if (elementName && scrapsImports.has(elementName)) {
-            addFlaggedUsage(
-              expr.name,
-              {
-                reason: 'unmemoizedComponent',
-                element: elementName,
-                line: node.value.loc.start.line,
-              },
-              1
-            );
+            addFlaggedUsage(expr.name, {
+              reason: 'unmemoizedComponent',
+              element: elementName,
+              line: node.value.loc.start.line,
+            });
           }
         }
       },
