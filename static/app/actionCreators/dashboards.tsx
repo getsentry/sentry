@@ -366,7 +366,8 @@ export function validateWidget(
 function _enforceWidgetLimit(widget: Widget) {
   if (
     widget.displayType === DisplayType.TABLE ||
-    widget.displayType === DisplayType.BIG_NUMBER
+    widget.displayType === DisplayType.BIG_NUMBER ||
+    widget.displayType === DisplayType.TEXT
   ) {
     return {...widget, limit: null};
   }
