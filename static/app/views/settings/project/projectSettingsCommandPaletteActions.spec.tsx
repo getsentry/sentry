@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PluginFixture} from 'sentry-fixture/plugin';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {getProjectSettingsCommandPaletteSections} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -13,8 +14,13 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     const project = ProjectFixture({
       slug: 'frontend',
       plugins: [
-        {enabled: true, id: 'github', isDeprecated: false, name: 'GitHub'},
-        {enabled: true, id: 'legacy', isDeprecated: true, name: 'Legacy Plugin'},
+        PluginFixture({enabled: true, id: 'github', isDeprecated: false, name: 'GitHub'}),
+        PluginFixture({
+          enabled: true,
+          id: 'legacy',
+          isDeprecated: true,
+          name: 'Legacy Plugin',
+        }),
       ],
     });
 
@@ -23,29 +29,32 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     expect(sections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: 'Project',
+          label: 'Project Settings',
           items: expect.arrayContaining([
             expect.objectContaining({
-              display: expect.objectContaining({label: 'General Settings'}),
-              to: '/settings/acme/projects/frontend/',
+              label: 'General',
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  display: expect.objectContaining({label: 'General Settings'}),
+                  to: '/settings/acme/projects/frontend/',
+                }),
+              ]),
             }),
-          ]),
-        }),
-        expect.objectContaining({
-          label: 'Processing',
-          items: expect.arrayContaining([
             expect.objectContaining({
-              display: expect.objectContaining({label: 'Performance'}),
-              to: '/settings/acme/projects/frontend/performance/',
+              label: 'Processing',
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  display: expect.objectContaining({label: 'Performance'}),
+                  to: '/settings/acme/projects/frontend/performance/',
+                }),
+              ]),
             }),
-          ]),
-        }),
-        expect.objectContaining({
-          label: 'Legacy Integrations',
-          items: expect.arrayContaining([
             expect.objectContaining({
-              display: expect.objectContaining({label: 'GitHub'}),
-              to: '/settings/acme/projects/frontend/plugins/github/',
+              label: 'SDK setup',
+            }),
+            expect.objectContaining({
+              display: expect.objectContaining({label: 'Legacy Integrations'}),
+              to: '/settings/acme/projects/frontend/plugins/',
             }),
           ]),
         }),
@@ -55,8 +64,16 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     expect(sections).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          label: 'Project Settings',
           items: expect.arrayContaining([
-            expect.objectContaining({to: '/settings/acme/projects/frontend/replays/'}),
+            expect.objectContaining({
+              label: 'Processing',
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  to: '/settings/acme/projects/frontend/replays/',
+                }),
+              ]),
+            }),
           ]),
         }),
         expect.objectContaining({

@@ -5,13 +5,14 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {IconCode, IconProject, IconStack} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 
-type ProjectSettingsCommandPaletteAction = {
+type ProjectSettingsCommandPaletteEntry = {
   display: {
     label: string;
   };
@@ -19,10 +20,22 @@ type ProjectSettingsCommandPaletteAction = {
   to: string;
 };
 
-type ProjectSettingsCommandPaletteSection = {
-  icon: ReactNode;
-  items: ProjectSettingsCommandPaletteAction[];
+type ProjectSettingsCommandPaletteGroup = {
+  items: Array<{
+    display: {
+      label: string;
+    };
+    keywords: string[];
+    to: string;
+  }>;
   label: string;
+  icon?: ReactNode;
+};
+
+type ProjectSettingsCommandPaletteSection = {
+  items: Array<ProjectSettingsCommandPaletteEntry | ProjectSettingsCommandPaletteGroup>;
+  label: string;
+  icon?: ReactNode;
 };
 
 function shouldShowItem(
@@ -50,29 +63,77 @@ export function getProjectSettingsCommandPaletteSections({
     organization,
     project,
   };
+  const groupedSectionLabels = new Set([
+    'General',
+    'Processing',
+    'SDK setup',
+    'Legacy Integrations',
+  ]);
 
-  return getNavigationConfiguration({
+  const sections = getNavigationConfiguration({
     debugFilesNeedsReview: false,
     organization,
     project,
   })
-    .map(section => ({
-      icon: <ProjectAvatar project={project} size={16} />,
-      label: section.name,
-      items: section.items
-        .filter(item => shouldShowItem(item, context, section))
-        .map(item => ({
-          display: {
-            label: item.title,
-          },
-          keywords: [section.name, 'project settings', 'settings'],
-          to: replaceRouterParams(item.path, {
-            orgId: organization.slug,
-            projectId: project.slug,
-          }),
-        })),
-    }))
+    .map(section => {
+      const label =
+        section.name === 'Project'
+          ? 'General'
+          : section.name === 'SDK Setup'
+            ? 'SDK setup'
+            : section.name;
+
+      return {
+        icon: groupedSectionLabels.has(label) ? (
+          label === 'General' ? (
+            <IconProject />
+          ) : label === 'Processing' ? (
+            <IconStack />
+          ) : label === 'SDK setup' ? (
+            <IconCode />
+          ) : undefined
+        ) : (
+          <ProjectAvatar project={project} size={16} />
+        ),
+        label,
+        items: section.items
+          .filter(item => shouldShowItem(item, context, section))
+          .map(item => ({
+            display: {
+              label: item.title,
+            },
+            keywords: [section.name, 'project settings', 'settings'],
+            to: replaceRouterParams(item.path, {
+              orgId: organization.slug,
+              projectId: project.slug,
+            }),
+          })),
+      };
+    })
     .filter(section => section.items.length > 0);
+  const groupedSections = sections.filter(section =>
+    groupedSectionLabels.has(section.label)
+  );
+  const ungroupedSections = sections.filter(
+    section => !groupedSectionLabels.has(section.label)
+  );
+
+  if (groupedSections.length === 0) {
+    return ungroupedSections;
+  }
+
+  return [
+    {
+      icon: <ProjectAvatar project={project} size={16} />,
+      label: 'Project Settings',
+      items: groupedSections.map(section =>
+        section.label === 'Legacy Integrations' && section.items.length > 0
+          ? section.items[0]!
+          : section
+      ),
+    },
+    ...ungroupedSections,
+  ];
 }
 
 export function ProjectSettingsCommandPaletteActions({
@@ -86,15 +147,30 @@ export function ProjectSettingsCommandPaletteActions({
 
   return (
     <Fragment>
-      {sections.map(section => (
-        <CommandPaletteSlot key={section.label} name="page">
-          <CMDKAction display={{label: section.label, icon: section.icon}}>
-            {section.items.map(item => (
-              <CMDKAction key={item.to} {...item} />
-            ))}
-          </CMDKAction>
-        </CommandPaletteSlot>
-      ))}
+      {sections.map(section => {
+        return (
+          <CommandPaletteSlot key={section.label} name="page">
+            <CMDKAction display={{label: section.label, icon: section.icon}}>
+              {section.items.map(item => {
+                if ('items' in item) {
+                  return (
+                    <CMDKAction
+                      key={item.label}
+                      display={{label: item.label, icon: item.icon}}
+                    >
+                      {item.items.map(action => (
+                        <CMDKAction key={action.to} {...action} />
+                      ))}
+                    </CMDKAction>
+                  );
+                }
+
+                return <CMDKAction key={item.to} {...item} />;
+              })}
+            </CMDKAction>
+          </CommandPaletteSlot>
+        );
+      })}
     </Fragment>
   );
 }
