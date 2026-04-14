@@ -103,8 +103,7 @@ class OrganizationForkEndpoint(Endpoint):
         requesting_cell_name = get_local_cell().name
         replying_cell_name = org_mapping.cell_name
 
-        # Resolve the locality for the exporting cell. In environments without locality
-        # config (e.g. monolith, tests), falls back to the cell name.
+        # Resolve the locality for the exporting cell.
         try:
             replying_locality_name = get_locality_name_for_cell(replying_cell_name)
         except CellResolutionError:
