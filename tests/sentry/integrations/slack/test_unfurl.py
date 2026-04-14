@@ -1552,7 +1552,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
 
@@ -1601,7 +1601,7 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
 
         # Verify sort is passed to the timeseries API for correct top events
         api_params = mock_client_get.call_args[1]["params"]
@@ -1736,7 +1736,7 @@ class UnfurlTest(TestCase):
         chart_type = mock_generate_chart.call_args[0][0]
         chart_data = mock_generate_chart.call_args[0][1]
 
-        assert chart_type == ChartType.SLACK_EXPLORE_LINE
+        assert chart_type == ChartType.SLACK_TIMESERIES
         # timeSeries should be passed through directly from the API response
         time_series = chart_data["timeSeries"]
         assert isinstance(time_series, list)

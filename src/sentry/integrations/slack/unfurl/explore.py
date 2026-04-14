@@ -134,7 +134,7 @@ def _unfurl_explore(
 
         group_bys = params.getlist("groupBy")
 
-        style = ChartType.SLACK_EXPLORE_LINE
+        style = ChartType.SLACK_TIMESERIES
         if group_bys:
             params.setlist("topEvents", [str(TOP_N)])
             if not params.getlist("sort"):
