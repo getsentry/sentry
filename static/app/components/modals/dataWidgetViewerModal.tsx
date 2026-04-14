@@ -658,7 +658,7 @@ function DataWidgetViewerModal(props: Props) {
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 isFullScreen
                 showConfidenceWarning={
@@ -675,7 +675,7 @@ function DataWidgetViewerModal(props: Props) {
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{
