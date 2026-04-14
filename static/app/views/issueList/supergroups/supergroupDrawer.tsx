@@ -220,21 +220,11 @@ function SupergroupIssueList({
   const matchedIds = new Set(matchedGroups?.map(g => g.id));
   const groupMap = new Map(allGroups?.map(g => [g.id, g]));
 
-  // Sort: matched first, then the rest (skip sorting while match query is loading)
+  // Sort: matched first, then the rest
   const sortedGroups = [...pageGroupIds]
     .map(id => groupMap.get(String(id)))
     .filter((g): g is Group => g !== undefined)
-    .sort((a, b) => {
-      if (matchPending) {
-        return 0;
-      }
-      const aMatched = matchedIds.has(a.id);
-      const bMatched = matchedIds.has(b.id);
-      if (aMatched !== bMatched) {
-        return aMatched ? -1 : 1;
-      }
-      return 0;
-    });
+    .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)));
 
   const visibleGroupIds = sortedGroups.map(g => g.id);
 
