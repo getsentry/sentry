@@ -284,7 +284,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         # always read its own conversation history.
         if is_im:
             return True
-
         if is_private:
             return SlackScope.GROUPS_HISTORY in installed_scope_set
         if is_channel:
@@ -292,6 +291,10 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
 
         # Shouldn't reach here unless channel_info is empty (most likely
         # an API error or an unrecognized conversation type).
+        _logger.warning(
+            "slack.has_history_scope.unrecognized_channel_type",
+            extra={"channel_id": channel_id, "channel_info": channel_info},
+        )
         return False
 
     def get_conversations_info(
