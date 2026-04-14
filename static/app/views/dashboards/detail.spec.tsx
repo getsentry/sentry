@@ -626,10 +626,6 @@ describe('Dashboards > Detail', () => {
     });
 
     it('hides add widget option', async () => {
-      const router = RouterFixture({
-        location: initialData.router.location,
-        params: {orgId: 'org-slug', dashboardId: '1'},
-      });
       const maxWidgets = Array.from({length: types.MAX_WIDGETS}, (_, index) =>
         WidgetFixture({
           id: String(index + 1),
