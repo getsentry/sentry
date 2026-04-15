@@ -10,6 +10,7 @@ import {
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
@@ -126,6 +127,11 @@ describe('AutomationNewSettings', () => {
           type: ActionType.PLUGIN,
           handlerGroup: ActionGroup.OTHER,
           integrations: undefined,
+        }),
+        ActionHandlerFixture({
+          type: ActionType.SLACK_STAGING,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'slack-staging-1', name: 'My Slack Staging Workspace'}],
         }),
       ],
     });
@@ -331,6 +337,16 @@ describe('AutomationNewSettings', () => {
       delay: null,
     });
 
+    await addAction('Slack (Staging)');
+    {
+      const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
+      const stagingTarget = stagingTargets.at(-1);
+      expect(stagingTarget).toBeDefined();
+      await userEvent.type(stagingTarget as HTMLElement, '#staging-alerts', {
+        delay: null,
+      });
+    }
+
     await addAction('Discord');
     await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
       delay: null,
@@ -489,6 +505,15 @@ describe('AutomationNewSettings', () => {
           targetDisplay: null,
         },
       },
+      slack_staging: {
+        type: 'slack_staging',
+        integrationId: 'slack-staging-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '#staging-alerts',
+        },
+      },
     };
 
     await waitFor(() => expect(saveWorkflow).toHaveBeenCalled());
@@ -502,4 +527,27 @@ describe('AutomationNewSettings', () => {
       expect(action).toEqual(expect.objectContaining(expectedAction));
     });
   }, 10000);
+
+  it('surfaces error details when test notification fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/test-fire-actions/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        actions: [{repo: 'Repository is required'}],
+      },
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+    });
+  });
 });

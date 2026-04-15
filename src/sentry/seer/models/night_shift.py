@@ -44,7 +44,7 @@ class SeerNightShiftRunIssue(DefaultFieldsModel):
     run = FlexibleForeignKey(
         "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="issues"
     )
-    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
+    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE, db_constraint=False)
     action = models.CharField(max_length=32)
     seer_run_id = models.TextField(null=True)
 

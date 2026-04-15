@@ -4,10 +4,9 @@ import logging
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
-from sentry_sdk import capture_exception
 
 from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import (
@@ -46,23 +45,17 @@ from sentry.relay.config.metric_extraction import (
 from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .measurements import CUSTOM_MEASUREMENT_LIMIT
-
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:device-class-synthesis",
-    "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
-    "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
@@ -216,103 +209,6 @@ def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> li
     else:
         metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
-
-
-class SlidingWindow(TypedDict):
-    windowSeconds: int
-    granularitySeconds: int
-
-
-class CardinalityLimit(TypedDict):
-    id: str
-    passive: NotRequired[bool]
-    window: SlidingWindow
-    limit: int
-    scope: Literal["organization", "project"]
-    namespace: str | None
-
-
-class CardinalityLimitOption(TypedDict):
-    rollout_rate: NotRequired[float]
-    limit: CardinalityLimit
-    projects: NotRequired[list[int]]
-
-
-def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
-    metrics_config = {}
-
-    if cardinality_limits := get_cardinality_limits(timeout, project):
-        metrics_config["cardinalityLimits"] = cardinality_limits
-
-    return metrics_config or None
-
-
-def get_cardinality_limits(timeout: TimeChecker, project: Project) -> list[CardinalityLimit] | None:
-    if options.get("relay.cardinality-limiter.mode") == "disabled":
-        return None
-
-    passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-        str(project.organization.id), []
-    )
-
-    existing_ids: set[str] = set()
-    cardinality_limits: list[CardinalityLimit] = []
-    for namespace in CARDINALITY_LIMIT_USE_CASES:
-        timeout.check()
-        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
-        if not option or not len(option) == 1:
-            # Multiple quotas are not supported
-            continue
-
-        quota = option[0]
-        id = namespace.value
-
-        limit: CardinalityLimit = {
-            "id": id,
-            "window": {
-                "windowSeconds": quota["window_seconds"],
-                "granularitySeconds": quota["granularity_seconds"],
-            },
-            "limit": quota["limit"],
-            "scope": "organization",
-            "namespace": namespace.value,
-        }
-        if id in passive_limits:
-            limit["passive"] = True
-        cardinality_limits.append(limit)
-        existing_ids.add(id)
-
-    project_limit_options: list[CardinalityLimitOption] = project.get_option(
-        "relay.cardinality-limiter.limits", []
-    )
-    organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
-        "relay.cardinality-limiter.limits", []
-    )
-    option_limit_options: list[CardinalityLimitOption] = options.get(
-        "relay.cardinality-limiter.limits"
-    )
-
-    for clo in project_limit_options + organization_limit_options + option_limit_options:
-        rollout_rate = clo.get("rollout_rate", 1.0)
-        if (project.organization.id % 100000) / 100000 >= rollout_rate:
-            continue
-
-        projects = clo.get("projects")
-        if projects is not None and project.id not in projects:
-            # projects list is defined but the current project is not in the list
-            continue
-
-        try:
-            limit = clo["limit"]
-            if clo["limit"]["id"] in existing_ids:
-                # skip if a limit with the same id already exists
-                continue
-            cardinality_limits.append(limit)
-            existing_ids.add(clo["limit"]["id"])
-        except KeyError:
-            pass
-
-    return cardinality_limits
 
 
 def get_project_config(
@@ -1046,17 +942,7 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
-    add_experimental_config(config, "metrics", get_metrics_config, project)
-
     if _should_extract_transaction_metrics(project):
-        add_experimental_config(
-            config,
-            "transactionMetrics",
-            get_transaction_metrics_settings,
-            project,
-            config.get("breakdownsV2"),
-        )
-
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
@@ -1285,67 +1171,9 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
     return ret_val
 
 
-#: Version of the transaction metrics extraction.
-#: When you increment this version, outdated Relays will stop extracting
-#: transaction metrics.
-#: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 6
-
-
-class CustomMeasurementSettings(TypedDict):
-    limit: int
-
-
-TransactionNameStrategy = Literal["strict", "clientBased"]
-
-
-class TransactionMetricsSettings(TypedDict):
-    version: int
-    extractCustomTags: list[str]
-    customMeasurements: CustomMeasurementSettings
-    acceptTransactionNames: TransactionNameStrategy
-
-
 def _should_extract_transaction_metrics(project: Project) -> bool:
     return features.has(
         "organizations:transaction-metrics-extraction", project.organization
     ) and not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )
-
-
-def get_transaction_metrics_settings(
-    timeout: TimeChecker, project: Project, breakdowns_config: Mapping[str, Any] | None
-) -> TransactionMetricsSettings:
-    """This function assumes that the corresponding feature flag has been checked.
-    See _should_extract_transaction_metrics.
-    """
-    custom_tags: list[str] = []
-
-    if breakdowns_config is not None:
-        # we already have a breakdown configuration that tells relay which
-        # breakdowns to compute for an event. metrics extraction should
-        # probably be in sync with that, or at least not extract more metrics
-        # than there are breakdowns configured.
-        try:
-            for _, breakdown_config in breakdowns_config.items():
-                assert breakdown_config["type"] == "spanOperations"
-
-        except Exception:
-            capture_exception()
-
-    # Tells relay which user-defined tags to add to each extracted
-    # transaction metric.  This cannot include things such as `os.name`
-    # which are computed on the server, they have to come from the SDK as
-    # event tags.
-    try:
-        custom_tags.extend(project.get_option("sentry:transaction_metrics_custom_tags") or ())
-    except Exception:
-        capture_exception()
-
-    return {
-        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
-        "extractCustomTags": custom_tags,
-        "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
-        "acceptTransactionNames": "clientBased",
-    }

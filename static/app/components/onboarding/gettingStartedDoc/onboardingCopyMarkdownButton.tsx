@@ -14,6 +14,7 @@ interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
   source: string;
   borderless?: boolean;
+  label?: string;
   onCopy?: () => void;
   title?: string;
 }
@@ -33,6 +34,7 @@ export function CopyMarkdownButton({
   borderless,
   onCopy,
   title,
+  label,
 }: CopyMarkdownButtonProps) {
   return (
     <Tooltip
@@ -56,7 +58,7 @@ export function CopyMarkdownButton({
         }}
         size="xs"
       >
-        {t('Copy instructions')}
+        {label ?? t('Copy instructions')}
       </Button>
     </Tooltip>
   );

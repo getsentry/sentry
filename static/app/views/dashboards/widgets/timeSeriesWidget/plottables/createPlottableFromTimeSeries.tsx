@@ -13,7 +13,7 @@ type PlottableConfig = {
   stack?: string;
 };
 
-function createPlottableFromTimeSeries(
+export function createPlottableFromTimeSeries(
   displayType: DisplayType,
   timeSeries: TimeSeries,
   config?: PlottableConfig

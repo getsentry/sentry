@@ -11,6 +11,17 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
+from sentry.data_export.base import (
+    DEFAULT_EXPORT_RETRIES,
+    EXPORTED_ROWS_LIMIT,
+    MAX_BATCH_SIZE,
+    MAX_FRAGMENTS_PER_BATCH,
+    RECOVERABLE_RETRY_BASE_SECONDS,
+    RECOVERABLE_RETRY_MAX_SECONDS,
+    SNUBA_MAX_RESULTS,
+    ExportError,
+    ExportQueryType,
+)
 from sentry.data_export.models import ExportedData, ExportedDataBlob
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.explore import ExploreProcessor, TraceItemFullExportProcessor
@@ -32,15 +43,6 @@ from sentry.taskworker.namespaces import export_tasks
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
-from .base import (
-    EXPORTED_ROWS_LIMIT,
-    MAX_BATCH_SIZE,
-    MAX_FRAGMENTS_PER_BATCH,
-    SNUBA_MAX_RESULTS,
-    ExportError,
-    ExportQueryType,
-)
-
 logger = logging.getLogger(__name__)
 
 Processor = (
@@ -56,6 +58,10 @@ class AssembleChunkResult(NamedTuple):
     bytes_written_after_chunk: int
 
 
+class ExportDataFileTooBig(Exception):
+    pass
+
+
 def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     dataset = data_export.query_info.get("dataset", "None")
     return {
@@ -63,14 +69,6 @@ def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
         "query_type": ExportQueryType.as_str(data_export.query_type),
         "dataset": dataset,
     }
-
-
-def _is_full_jsonl_trace_item_export(data_export: ExportedData, output_mode: OutputMode) -> bool:
-    return (
-        data_export.query_type == ExportQueryType.EXPLORE
-        and output_mode == OutputMode.JSONL
-        and len(data_export.query_info.get("field", [])) == 0
-    )
 
 
 def _page_token_b64_from_processor(
@@ -131,17 +129,17 @@ def _should_stop_fetching_more_fragments(
     return False
 
 
-def _write_exported_chunk_to_blob(
+def export_chunk_to_stored_blobs(
     *,
     data_export: ExportedData,
     export_limit: int,
-    batch_size: int,
-    offset: int,
-    bytes_written: int,
     environment_id: int | None,
-    page_token: str | None,
-    last_emitted_item_id_hex: str | None,
-    first_page: bool,
+    last_emitted_item_id_hex: str | None = None,
+    first_page: bool = True,
+    page_token: str | None = None,
+    offset: int = 0,
+    bytes_written: int = 0,
+    batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
     output_mode = OutputMode.from_value(data_export.export_format)
@@ -196,6 +194,15 @@ def _write_exported_chunk_to_blob(
     )
 
 
+def recoverable_retry_countdown(remaining_export_retries: int) -> int:
+    """Delay before re-running assemble_download after a recoverable Snuba error."""
+    attempt_count = max(0, DEFAULT_EXPORT_RETRIES - remaining_export_retries)
+    return min(
+        RECOVERABLE_RETRY_MAX_SECONDS,
+        RECOVERABLE_RETRY_BASE_SECONDS * (2**attempt_count),
+    )
+
+
 def _schedule_retry(
     *,
     data_export_id: int,
@@ -207,6 +214,7 @@ def _schedule_retry(
     export_retries: int,
     page_token: str | None,
     last_emitted_item_id_hex: str | None,
+    delay_retry: bool = False,
 ) -> None:
     assemble_download.apply_async(
         args=[data_export_id],
@@ -220,6 +228,7 @@ def _schedule_retry(
             "page_token": page_token,
             "last_emitted_item_id_hex": last_emitted_item_id_hex,
         },
+        countdown=recoverable_retry_countdown(export_retries) if delay_retry else None,
     )
 
 
@@ -294,11 +303,10 @@ def assemble_download(
     offset: int = 0,
     bytes_written: int = 0,
     environment_id: int | None = None,
-    export_retries: int = 3,
+    export_retries: int = DEFAULT_EXPORT_RETRIES,
     *,
     page_token: str | None = None,
     last_emitted_item_id_hex: str | None = None,
-    run_sync: bool = False,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -321,7 +329,7 @@ def assemble_download(
         export_limit = _normalize_export_limit(export_limit)
 
         try:
-            chunk = _write_exported_chunk_to_blob(
+            chunk = export_chunk_to_stored_blobs(
                 data_export=data_export,
                 export_limit=export_limit,
                 batch_size=batch_size,
@@ -344,6 +352,7 @@ def assemble_download(
                     export_retries=export_retries,
                     page_token=page_token,
                     last_emitted_item_id_hex=last_emitted_item_id_hex,
+                    delay_retry=error.delay_retry,
                 )
             else:
                 metrics.incr(
@@ -385,6 +394,44 @@ def assemble_download(
             )
 
 
+def export_data_to_stored_blobs_sync(
+    data_export: ExportedData,
+    export_limit: int,
+    environment_id: int | None,
+) -> None:
+    extra: dict[str, Any] = {
+        "data_export_id": data_export.id,
+        "query": str(data_export.payload),
+        "organization_id": data_export.organization_id,
+        "download_type": "sync",
+    }
+    sentry_sdk.set_tag("download_type", "sync")
+    sentry_sdk.set_context("data_export", extra)
+
+    try:
+        export_chunk_to_stored_blobs(
+            data_export=data_export,
+            export_limit=export_limit,
+            environment_id=environment_id,
+        )
+        merge_export_blobs(data_export_id=data_export.id, email_notif=False)
+    except Exception as error:
+        metrics.incr(
+            "dataexport.error",
+            tags={
+                **_export_metric_tags(data_export),
+                "error": str(error),
+                "download_type": "sync",
+                "error_type": "ExportError"
+                if isinstance(error, ExportError)
+                else type(error).__name__,
+            },
+            sample_rate=1.0,
+        )
+        logger.exception("export_data_sync", extra=extra)
+        raise
+
+
 def get_processor(
     data_export: ExportedData,
     environment_id: int | None,
@@ -409,25 +456,26 @@ def get_processor(
                 organization=data_export.organization,
             )
         elif data_export.query_type == ExportQueryType.EXPLORE:
-            if _is_full_jsonl_trace_item_export(data_export, output_mode):
-                page_token: bytes | None = None
-                if page_token_b64:
-                    try:
-                        page_token = base64.b64decode(page_token_b64)
-                    except (ValueError, TypeError) as e:
-                        raise ExportError("Invalid export trace item pagination state.") from e
-                return TraceItemFullExportProcessor(
-                    explore_query=data_export.query_info,
-                    organization=data_export.organization,
-                    output_mode=output_mode,
-                    page_token=page_token,
-                    last_emitted_item_id_hex=last_emitted_item_id_hex,
-                )
             return ExploreProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
                 output_mode=output_mode,
             )
+        elif data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT:
+            page_token: bytes | None = None
+            if page_token_b64:
+                try:
+                    page_token = base64.b64decode(page_token_b64)
+                except (ValueError, TypeError) as e:
+                    raise ExportError("Invalid export trace item pagination state.") from e
+            return TraceItemFullExportProcessor(
+                explore_query=data_export.query_info,
+                organization=data_export.organization,
+                output_mode=output_mode,
+                page_token=page_token,
+                last_emitted_item_id_hex=last_emitted_item_id_hex,
+            )
+
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
     except ExportError as error:
@@ -447,7 +495,10 @@ def process_rows(
             rows = process_issues_by_tag(processor, batch_size, offset)
         elif data_export.query_type == ExportQueryType.DISCOVER:
             rows = process_discover(processor, batch_size, offset)
-        elif data_export.query_type == ExportQueryType.EXPLORE:
+        elif (
+            data_export.query_type == ExportQueryType.EXPLORE
+            or data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
+        ):
             rows = process_explore(processor, batch_size, offset)
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
@@ -478,10 +529,6 @@ def process_explore(
     offset: int,
 ) -> list[dict[str, Any]]:
     return processor.run_query(offset, limit)
-
-
-class ExportDataFileTooBig(Exception):
-    pass
 
 
 def store_export_chunk_as_blob(
@@ -526,7 +573,7 @@ def store_export_chunk_as_blob(
     namespace=export_tasks,
     silo_mode=SiloMode.CELL,
 )
-def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
+def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwargs: Any) -> None:
     extra: dict[str, Any] = {"data_export_id": data_export_id}
     with sentry_sdk.start_span(op="merge"):
         try:
@@ -585,7 +632,7 @@ def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
                 # takes longer than the idle timeout, the connection to the primary
                 # database can timeout causing a failure.
                 with atomic_transaction(using=router.db_for_write(ExportedData)):
-                    data_export.finalize_upload(file=file)
+                    data_export.finalize_upload(file=file, email_notif=email_notif)
 
                 time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
                 metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)

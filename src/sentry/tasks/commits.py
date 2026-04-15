@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE = (
     "organizations:integrations-github-fetch-commits-compare-cache"
 )
-GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 120
+GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 3600
 GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
     ("integrations:github", "integrations:github_enterprise")
 )

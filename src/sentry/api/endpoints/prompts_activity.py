@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
@@ -34,12 +35,20 @@ class PromptsActivitySerializer(serializers.Serializer):
         return value
 
 
+class PromptsActivityPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @cell_silo_endpoint
 class PromptsActivityEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
+    permission_classes = (PromptsActivityPermission,)
 
     def get(self, request: Request, organization: Organization, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""

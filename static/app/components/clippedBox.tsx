@@ -161,51 +161,45 @@ export function ClippedBox(props: ClippedBoxProps) {
   const clipHeight = props.clipHeight || 200;
   const clipFlex = props.clipFlex || 28;
 
-  const handleReveal = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      if (!wrapperRef.current) {
-        throw new Error('Cannot reveal clipped box without a wrapper ref');
+  const handleReveal = (event: React.MouseEvent<HTMLElement>) => {
+    if (!wrapperRef.current) {
+      throw new Error('Cannot reveal clipped box without a wrapper ref');
+    }
+
+    event.stopPropagation();
+
+    revealAndDisconnectObserver({
+      contentRef,
+      wrapperRef,
+      revealRef,
+      observerRef,
+      clipHeight,
+      prefersReducedMotion: prefersReducedMotion ?? true,
+    });
+    if (typeof onReveal === 'function') {
+      onReveal();
+    }
+
+    setClipped(false);
+  };
+
+  const handleCollapse = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+
+    if (wrapperRef.current && contentRef.current) {
+      if (prefersReducedMotion) {
+        wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+      } else {
+        const currentHeight =
+          contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
+        wrapperRef.current.style.maxHeight = `${currentHeight}px`;
+        void wrapperRef.current.offsetHeight;
+        wrapperRef.current.style.maxHeight = `${clipHeight}px`;
       }
-
-      event.stopPropagation();
-
-      revealAndDisconnectObserver({
-        contentRef,
-        wrapperRef,
-        revealRef,
-        observerRef,
-        clipHeight,
-        prefersReducedMotion: prefersReducedMotion ?? true,
-      });
-      if (typeof onReveal === 'function') {
-        onReveal();
-      }
-
-      setClipped(false);
-    },
-    [clipHeight, onReveal, prefersReducedMotion]
-  );
-
-  const handleCollapse = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      event.stopPropagation();
-
-      if (wrapperRef.current && contentRef.current) {
-        if (prefersReducedMotion) {
-          wrapperRef.current.style.maxHeight = `${clipHeight}px`;
-        } else {
-          const currentHeight =
-            contentRef.current.clientHeight + calculateAddedHeight({wrapperRef});
-          wrapperRef.current.style.maxHeight = `${currentHeight}px`;
-          void wrapperRef.current.offsetHeight;
-          wrapperRef.current.style.maxHeight = `${clipHeight}px`;
-        }
-      }
-      revealRef.current = false;
-      setClipped(true);
-    },
-    [clipHeight, prefersReducedMotion]
-  );
+    }
+    revealRef.current = false;
+    setClipped(true);
+  };
 
   const onWrapperRef = useCallback(
     (node: HTMLDivElement | null) => {

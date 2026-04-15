@@ -438,7 +438,7 @@ function AutoTriggerFixesButton({
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnableAutoTriggerFixes = useCallback(async () => {
+  const handleEnableAutoTriggerFixes = async () => {
     if (projectsWithRepos.length === 0) {
       addErrorMessage(t('No projects with repositories found to update'));
       return;
@@ -491,15 +491,7 @@ function AutoTriggerFixesButton({
     } finally {
       setIsLoading(false);
     }
-  }, [
-    api,
-    organization.slug,
-    projectsWithRepos,
-    selectedThreshold,
-    queryClient,
-    getStepNumber,
-    setCurrentStep,
-  ]);
+  };
 
   return (
     <Button
@@ -526,7 +518,7 @@ function EnableIssueScansButton({
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnableIssueScans = useCallback(async () => {
+  const handleEnableIssueScans = async () => {
     if (projectsWithoutRepos.length === 0) {
       addErrorMessage(t('No remaining projects found to update'));
       return;
@@ -573,14 +565,7 @@ function EnableIssueScansButton({
     } finally {
       setIsLoading(false);
     }
-  }, [
-    api,
-    organization.slug,
-    projectsWithoutRepos,
-    queryClient,
-    getStepNumber,
-    setCurrentStep,
-  ]);
+  };
 
   return (
     <Button

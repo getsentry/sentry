@@ -1,9 +1,10 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
@@ -15,16 +16,33 @@ from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strateg
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
-def _mock_llm_response(group_ids: list[int], action: str = "autofix") -> MagicMock:
-    verdicts = [{"group_id": gid, "action": action, "reason": "test"} for gid in group_ids]
-    content = json.dumps({"verdicts": verdicts})
-    response = MagicMock()
-    response.status = 200
-    response.data = json.dumps({"content": content}).encode()
-    return response
+class FakeExplorerClient:
+    """Stub SeerExplorerClient that returns canned triage verdicts."""
+
+    def __init__(self, group_ids: list[int], action: str = "autofix"):
+        verdicts = [{"group_id": gid, "action": action, "reason": "test"} for gid in group_ids]
+        artifact = Artifact(key="triage_verdicts", data={"verdicts": verdicts}, reason="test")
+        self._state = SeerRunState(
+            run_id=1,
+            blocks=[
+                MemoryBlock(
+                    id="test-block",
+                    message=Message(role="assistant"),
+                    timestamp="2025-01-01T00:00:00",
+                    artifacts=[artifact],
+                ),
+            ],
+            status="completed",
+            updated_at="2025-01-01T00:00:00",
+        )
+
+    def start_run(self, **kwargs):
+        return 1
+
+    def get_run(self, run_id, **kwargs):
+        return self._state
 
 
 @django_db_all
@@ -92,19 +110,20 @@ class TestGetEligibleProjects(TestCase):
         eligible.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
-        repo = self.create_repo(project=eligible, provider="github")
+        repo = self.create_repo(project=eligible, provider="github", name="owner/eligible-repo")
         SeerProjectRepository.objects.create(project=eligible, repository=repo)
 
         # Automation off (even with repo)
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
-        repo2 = self.create_repo(project=off, provider="github")
+        repo2 = self.create_repo(project=off, provider="github", name="owner/off-repo")
         SeerProjectRepository.objects.create(project=off, repository=repo2)
 
         # No connected repo
         self.create_project(organization=org)
 
-        assert _get_eligible_projects(org) == [eligible]
+        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+            assert _get_eligible_projects(org) == [eligible]
 
 
 @django_db_all
@@ -115,7 +134,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
-        repo = self.create_repo(project=project, provider="github")
+        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
         SeerProjectRepository.objects.create(project=project, repository=repo)
 
     def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
@@ -139,7 +158,10 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+        with (
+            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+        ):
             run_night_shift_for_org(org.id)
             mock_logger.info.assert_called_once()
             assert mock_logger.info.call_args.args[0] == "night_shift.no_eligible_projects"
@@ -165,10 +187,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             seer_autofix_last_triggered=timezone.now(),
         )
 
+        fake_client = FakeExplorerClient([high_fix.id, low_fix.id])
         with (
+            self.feature("organizations:seer-project-settings-read-from-sentry"),
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.make_llm_generate_request",
-                return_value=_mock_llm_response([high_fix.id, low_fix.id]),
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                return_value=fake_client,
             ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
@@ -203,10 +227,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project_b, "high-group", seer_fixability_score=0.95
         )
 
+        fake_client = FakeExplorerClient([high_group.id, low_group.id])
         with (
+            self.feature("organizations:seer-project-settings-read-from-sentry"),
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.make_llm_generate_request",
-                return_value=_mock_llm_response([high_group.id, low_group.id]),
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                return_value=fake_client,
             ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
@@ -225,9 +251,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        with patch(
-            "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
-            side_effect=RuntimeError("boom"),
+        with (
+            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+                side_effect=RuntimeError("boom"),
+            ),
         ):
             run_night_shift_for_org(org.id)
 
@@ -244,9 +273,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        with patch(
-            "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
-            return_value=[],
+        with (
+            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+                return_value=[],
+            ),
         ):
             run_night_shift_for_org(org.id)
 

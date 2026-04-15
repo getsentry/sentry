@@ -63,6 +63,9 @@ jobs:
       # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size (5 for backend changes, 10 for frontend-only)
       MATRIX_INSTANCE_TOTAL: ${{ needs.files-changed.outputs.backend_all == 'true' && '5' || '10' }}
       TEST_GROUP_STRATEGY: roundrobin
+      PYTHONHASHSEED: '0'
+      XDIST_PER_WORKER_SNUBA: '1'
+      XDIST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -73,6 +76,13 @@ jobs:
       - uses: ./.github/actions/setup-devservices
         with:
           mode: acceptance-ci
+
+      - name: Start Snuba bootstrap
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: |
+          # Start in background early so it overlaps with webpack and sentry env setup.
+          # The script polls for ClickHouse readiness itself.
+          python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
 
       - name: Step configurations
         id: config
@@ -111,8 +121,20 @@ jobs:
           sentry init
           ./.github/actions/setup-devservices/wait.sh
 
+      - name: Wait for Snuba bootstrap
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: |
+          timeout 600 bash -c 'until [ -f /tmp/snuba-bootstrap-exit ]; do sleep 2; done' ||
+            { echo "::error::Timed out waiting for Snuba bootstrap after 600s"; exit 1; }
+          rc=$(</tmp/snuba-bootstrap-exit)
+          [ "$rc" -eq 0 ] || { echo "::error::Snuba per-worker bootstrap failed"; exit "$rc"; }
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: make run-acceptance
+        run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          timeout 1200 make run-acceptance || rc=$?
+          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+          exit "${rc:-0}"
 
       - name: Inspect failure
         if: failure()
@@ -124,6 +146,13 @@ jobs:
 
           if command -v devservices; then
             devservices logs
+          fi
+
+          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
+            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+              echo "--- snuba-gw${i} logs ---"
+              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
+            done
           fi
 
       - name: Collect test data

@@ -94,6 +94,13 @@ class GitHubReaction(StrEnum):
     EYES = "eyes"
 
 
+class GitHubApiEndpoint(StrEnum):
+    COMPARE_COMMITS = "compare_commits"
+    GET_COMMITS = "get_commits"
+    GET_COMMIT = "get_commit"
+    CHECK_FILE = "check_file"
+
+
 class GithubSetupApiClient(IntegrationProxyClient):
     """
     API Client that doesn't require an installation.
@@ -342,7 +349,11 @@ class GitHubBaseClient(
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
-        return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
+        return self.get_cached(
+            f"/repos/{repo}/commits",
+            params={"sha": end_sha},
+            endpoint=GitHubApiEndpoint.GET_COMMITS,
+        )
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
@@ -352,6 +363,7 @@ class GitHubBaseClient(
         return self._get_with_pagination(
             f"/repos/{repo}/compare/{start_sha}...{end_sha}",
             response_key="commits",
+            endpoint=GitHubApiEndpoint.COMPARE_COMMITS,
         )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
@@ -364,13 +376,15 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits")
+        return self.get(f"/repos/{repo}/commits", endpoint=GitHubApiEndpoint.GET_COMMITS)
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#get-a-commit
         """
-        return self.get_cached(f"/repos/{repo}/commits/{sha}")
+        return self.get_cached(
+            f"/repos/{repo}/commits/{sha}", endpoint=GitHubApiEndpoint.GET_COMMIT
+        )
 
     def get_installation_info(self, installation_id: int | str) -> Any:
         """
@@ -601,7 +615,11 @@ class GitHubBaseClient(
         return self._get_with_pagination(f"/repos/{repo}/assignees")
 
     def _get_with_pagination(
-        self, path: str, response_key: str | None = None, page_number_limit: int | None = None
+        self,
+        path: str,
+        response_key: str | None = None,
+        page_number_limit: int | None = None,
+        endpoint: GitHubApiEndpoint | None = None,
     ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
@@ -622,7 +640,7 @@ class GitHubBaseClient(
             output: list[dict[str, Any]] = []
 
             page_number = 1
-            resp = self.get(path, params={"per_page": self.page_size})
+            resp = self.get(path, params={"per_page": self.page_size}, endpoint=endpoint)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
@@ -631,7 +649,7 @@ class GitHubBaseClient(
             while next_link and page_number < page_number_limit:
                 # If a per_page is specified, GitHub preserves the per_page value
                 # in the response headers.
-                resp = self.get(next_link)
+                resp = self.get(next_link, endpoint=endpoint)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
@@ -761,7 +779,11 @@ class GitHubBaseClient(
         return self._get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
+        return self.head_cached(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": version},
+            endpoint=GitHubApiEndpoint.CHECK_FILE,
+        )
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False

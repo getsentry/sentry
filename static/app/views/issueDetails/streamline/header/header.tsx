@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -24,7 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueType} from 'sentry/types/group';
+import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -84,15 +84,16 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
 
   const hasErrorUpsampling = project.features.includes('error-upsampling');
 
+  const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
     group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
-    group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2;
+    isAIDetectedIssue;
   const feedbackSource =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
       ? 'issue_details_query_injection'
-      : group.issueType === IssueType.LLM_DETECTED_EXPERIMENTAL_V2
-        ? 'issue_details_llm_detected_experimental_v2'
+      : isAIDetectedIssue
+        ? 'issue_details_ai_detected'
         : 'issue_details_n_plus_one_api_calls';
   const {feedback} = useFeedbackSDKIntegration();
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -118,20 +119,39 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <StyledBreadcrumbs
-              crumbs={[
-                {
-                  label: 'Issues',
-                  to: {
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query,
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="title">
+                <StyledBreadcrumbs
+                  crumbs={[
+                    {
+                      label: 'Issues',
+                      to: {
+                        pathname: `/organizations/${organization.slug}/issues/`,
+                        query,
+                      },
+                    },
+                    {
+                      label: <IssueIdBreadcrumb project={project} group={group} />,
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
+            ) : (
+              <StyledBreadcrumbs
+                crumbs={[
+                  {
+                    label: 'Issues',
+                    to: {
+                      pathname: `/organizations/${organization.slug}/issues/`,
+                      query,
+                    },
                   },
-                },
-                {
-                  label: <IssueIdBreadcrumb project={project} group={group} />,
-                },
-              ]}
-            />
+                  {
+                    label: <IssueIdBreadcrumb project={project} group={group} />,
+                  },
+                ]}
+              />
+            )}
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -192,6 +212,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
             >
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
+            {isAIDetectedIssue && <FeatureBadge type="beta" />}
           </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
@@ -411,7 +432,7 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, max-content);
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
 `;

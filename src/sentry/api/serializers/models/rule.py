@@ -11,6 +11,8 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -591,6 +593,22 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         actions_by_dcg = self._fetch_actions_by_dcg(all_dcg_ids)
 
+        # Batch-fetch integrations for all actions to avoid per-action RPC calls in render_label
+        all_integration_ids: set[int] = set()
+        for action_list in actions_by_dcg.values():
+            for action in action_list:
+                if action.integration_id is not None:
+                    all_integration_ids.add(action.integration_id)
+
+        integration_cache: dict[int, RpcIntegration] = {}
+        if all_integration_ids and item_list:
+            integrations = integration_service.get_integrations(
+                integration_ids=list(all_integration_ids),
+                organization_id=item_list[0].organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            integration_cache = {i.id: i for i in integrations}
+
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
@@ -667,7 +685,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                     continue
 
                 action_data["name"] = action_to_handler[action].render_label(
-                    workflow.organization_id, action_data
+                    workflow.organization_id, action_data, integration_cache=integration_cache
                 )
                 installation_uuid = action_data.get("sentryAppInstallationUuid")
                 install_context = None

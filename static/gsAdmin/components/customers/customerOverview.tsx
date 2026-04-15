@@ -723,6 +723,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.owner ? <CustomerContact owner={customer.owner} /> : 'n/a'}{' '}
           </DetailLabel>
           <DetailLabel title="Type">{customer.type || 'n/a'}</DetailLabel>
+          <DetailLabel title="Managed" yesNo={customer.isManaged} />
           <DetailLabel title="Channel">{customer.channel || 'n/a'}</DetailLabel>
           <DetailLabel title="Sponsored Type">
             {customer.sponsoredType || 'n/a'}
