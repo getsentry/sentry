@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from rest_framework.request import Request
@@ -12,7 +11,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import Serializer, serialize
 from sentry.dashboards.endpoints.organization_dashboard_details import OrganizationDashboardBase
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.organization import Organization
@@ -21,35 +19,22 @@ from sentry.users.services.user.service import user_service
 REVISIONS_FEATURE = "organizations:dashboards-revisions"
 
 
-class DashboardRevisionSerializer(Serializer):
-    def get_attrs(
-        self, item_list: Sequence[DashboardRevision], user: Any, **kwargs: Any
-    ) -> dict[DashboardRevision, dict[str, Any]]:
-        serialized_users = {
-            u["id"]: {"id": u["id"], "name": u["name"], "email": u["email"]}
-            for u in user_service.serialize_many(
-                filter={
-                    "user_ids": [
-                        rev.created_by_id for rev in item_list if rev.created_by_id is not None
-                    ]
-                },
-                as_user=user,
-            )
+def _serialize_revisions(revisions: list[DashboardRevision], user: Any) -> list[dict[str, Any]]:
+    user_ids = [r.created_by_id for r in revisions if r.created_by_id is not None]
+    users_by_id = {
+        u["id"]: {"id": u["id"], "name": u["name"], "email": u["email"]}
+        for u in user_service.serialize_many(filter={"user_ids": user_ids}, as_user=user)
+    }
+    return [
+        {
+            "id": str(r.id),
+            "title": r.title,
+            "dateCreated": r.date_added,
+            "createdBy": users_by_id.get(str(r.created_by_id)),
+            "source": r.source,
         }
-        return {
-            rev: {"created_by": serialized_users.get(str(rev.created_by_id))} for rev in item_list
-        }
-
-    def serialize(
-        self, obj: DashboardRevision, attrs: dict[str, Any], user: Any, **kwargs: Any
-    ) -> dict[str, Any]:
-        return {
-            "id": str(obj.id),
-            "title": obj.title,
-            "dateCreated": obj.date_added,
-            "createdBy": attrs.get("created_by"),
-            "source": obj.source,
-        }
+        for r in revisions
+    ]
 
 
 @cell_silo_endpoint
@@ -82,7 +67,5 @@ class OrganizationDashboardRevisionsEndpoint(OrganizationDashboardBase):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda results: serialize(
-                results, request.user, serializer=DashboardRevisionSerializer()
-            ),
+            on_results=lambda results: _serialize_revisions(results, request.user),
         )
