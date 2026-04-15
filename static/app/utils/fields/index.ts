@@ -395,6 +395,7 @@ export enum AggregationKey {
   FAILURE_RATE = 'failure_rate',
   LAST_SEEN = 'last_seen',
   PERFORMANCE_SCORE = 'performance_score',
+  OPPORTUNITY_SCORE = 'opportunity_score',
 }
 
 export enum IsFieldValues {
@@ -1024,7 +1025,35 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       {
         name: 'value',
         kind: 'column',
-        columnTypes: [FieldValueType.NUMBER],
+        columnTypes: validateAllowedColumns([
+          'measurements.score.total',
+          'measurements.score.lcp',
+          'measurements.score.fcp',
+          'measurements.score.inp',
+          'measurements.score.cls',
+          'measurements.score.ttfb',
+        ]),
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.OPPORTUNITY_SCORE]: {
+    desc: t('Returns the opportunity score for a given web vital'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.SCORE,
+    parameters: [
+      {
+        name: 'value',
+        kind: 'column',
+        columnTypes: validateAllowedColumns([
+          'measurements.score.total',
+          'measurements.score.lcp',
+          'measurements.score.fcp',
+          'measurements.score.inp',
+          'measurements.score.cls',
+          'measurements.score.ttfb',
+        ]),
         defaultValue: 'measurements.score.total',
         required: true,
       },
@@ -1055,6 +1084,8 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.EPS,
   AggregationKey.FAILURE_RATE,
   AggregationKey.FAILURE_COUNT,
+  AggregationKey.PERFORMANCE_SCORE,
+  AggregationKey.OPPORTUNITY_SCORE,
 ];
 
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
