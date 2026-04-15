@@ -31,6 +31,9 @@ interface QuestionProps extends Partial<
   icon?: 'question' | 'info';
 }
 
+/**
+ * @deprecated Prefer `InfoTip` from `@sentry/scraps/info` for new usages.
+ */
 export function QuestionTooltip({
   title,
   size,
