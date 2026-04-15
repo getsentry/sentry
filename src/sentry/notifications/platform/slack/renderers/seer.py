@@ -217,6 +217,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if organization and features.has("organizations:seer-run-id-in-slack", organization):
             blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
 
+        if data.missing_scope_settings_url:
+            blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
+
         return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 
     @classmethod
@@ -270,6 +273,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(ContextBlock(elements=[PlainTextObject(text=f"Run ID: {data.run_id}")]))
 
         return blocks
+
+    @classmethod
+    def render_missing_scope_footer(cls, settings_url: str) -> list[Block]:
+        """Return a context block warning that optional history scopes are missing."""
+        footer_text = (
+            f"_I am only able to see the message with the mention. I can't read the whole thread. "
+            f"<{settings_url}|Reinstall me> to change that._"
+        )
+        return [ContextBlock(elements=[MarkdownTextObject(text=footer_text)])]
 
     @classmethod
     def render_autofix_button(cls, group: Group) -> InteractiveElement:

@@ -11,18 +11,20 @@ from sentry.incidents.endpoints.serializers.incident import (
     IncidentSerializerResponse,
 )
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
+from sentry.incidents.models.incident import (
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentType,
+)
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
-    GroupOpenPeriodActivitySerializer,
-)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataSourceDetector,
@@ -93,17 +95,37 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         if "activities" in self.expand:
             gopas = list(
-                GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)[:1000]
+                GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list).order_by(
+                    "date_added", "id"
+                )[:1000]
             )
-            open_period_activities = defaultdict(list)
-            # XXX: the incident endpoint is undocumented, so we aren' on the hook for supporting
-            # any specific payloads. Since this isn't used on the Sentry side for notification charts,
-            # I've opted to just use the GroupOpenPeriodActivity serializer.
-            for gopa, serialized_activity in zip(
-                gopas,
-                serialize(gopas, user=user, serializer=GroupOpenPeriodActivitySerializer()),
-            ):
-                open_period_activities[gopa.group_open_period_id].append(serialized_activity)
+            open_period_activities: defaultdict[int, list[dict[str, Any]]] = defaultdict(list)
+            for gopa in gopas:
+                existing = open_period_activities[gopa.group_open_period_id]
+                # Derive previousValue from the last activity's value in this open period
+                previous_value = existing[-1]["value"] if existing else None
+
+                # Map PriorityLevel → IncidentStatus numeric string. CLOSED activities always
+                # have value=None since closure has no associated priority, so we map those
+                # explicitly. Non-closed activities with a null value are malformed and skipped.
+                if gopa.value is not None:
+                    value: str = str(
+                        self.priority_to_incident_status.get(gopa.value, IncidentStatus.OPEN.value)
+                    )
+                elif gopa.type == OpenPeriodActivityType.CLOSED:
+                    value = str(IncidentStatus.CLOSED.value)
+                else:
+                    continue
+
+                existing.append(
+                    {
+                        "id": str(gopa.id),
+                        "type": IncidentActivityType.STATUS_CHANGE.value,
+                        "value": value,
+                        "previousValue": previous_value,
+                        "dateCreated": gopa.date_added,
+                    }
+                )
             for open_period in item_list:
                 if open_period in results:
                     results[open_period]["activities"] = open_period_activities[open_period.id]

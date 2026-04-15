@@ -36,15 +36,15 @@ export function SupergroupSection({group}: SupergroupSectionProps) {
 
   const handleClick = () => {
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
+      ariaLabel: t('Issue group details'),
       drawerKey: 'supergroup-drawer',
     });
   };
 
   return (
     <div>
-      <SidebarSectionTitle>{t('Supergroup')}</SidebarSectionTitle>
-      <SupergroupCard onClick={handleClick} aria-label={t('Supergroup details')}>
+      <SidebarSectionTitle>{t('Issue Group')}</SidebarSectionTitle>
+      <SupergroupCard onClick={handleClick} aria-label={t('Issue group details')}>
         <InteractionStateLayer />
         <Flex gap="sm" align="start">
           <AccentIcon size="sm" />

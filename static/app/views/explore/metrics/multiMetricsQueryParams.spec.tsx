@@ -9,6 +9,7 @@ import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
+  useReorderMetricQueries,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -361,6 +362,68 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect(result.current).toHaveLength(2);
       expect(result.current[0]).toEqual(expect.objectContaining({label: 'A'}));
       expect(result.current[1]).toEqual(expect.objectContaining({label: 'ƒ1'}));
+    });
+
+    it('keeps labels attached to query identity when reordering', () => {
+      const {result} = renderHookWithProviders(
+        () => {
+          const metricQueries = useMultiMetricsQueryParams();
+          const reorder = useReorderMetricQueries();
+          return {metricQueries, reorder};
+        },
+        {
+          additionalWrapper: Wrapper,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/explore/metrics/',
+              query: {
+                metric: [
+                  JSON.stringify({
+                    metric: {name: 'foo', type: 'counter'},
+                    query: '',
+                    aggregateFields: [
+                      new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    ],
+                    aggregateSortBys: [],
+                    mode: 'samples',
+                  }),
+                  JSON.stringify({
+                    metric: {name: 'bar', type: 'counter'},
+                    query: '',
+                    aggregateFields: [
+                      new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                    ],
+                    aggregateSortBys: [],
+                    mode: 'samples',
+                  }),
+                ],
+              },
+            },
+          },
+        }
+      );
+
+      expect(result.current.metricQueries[0]).toEqual(
+        expect.objectContaining({label: 'A', metric: {name: 'foo', type: 'counter'}})
+      );
+      expect(result.current.metricQueries[1]).toEqual(
+        expect.objectContaining({label: 'B', metric: {name: 'bar', type: 'counter'}})
+      );
+
+      act(() => {
+        result.current.reorder(
+          [result.current.metricQueries[1]!, result.current.metricQueries[0]!],
+          0,
+          1
+        );
+      });
+
+      expect(result.current.metricQueries[0]).toEqual(
+        expect.objectContaining({label: 'B', metric: {name: 'bar', type: 'counter'}})
+      );
+      expect(result.current.metricQueries[1]).toEqual(
+        expect.objectContaining({label: 'A', metric: {name: 'foo', type: 'counter'}})
+      );
     });
   });
 

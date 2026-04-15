@@ -46,7 +46,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.organization import Organization
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -319,11 +318,6 @@ def validate_request(
                 # Pass user explicitly for cases like Slack webhooks where
                 # request.user may be anonymous but the actual user is known
                 "user": user or getattr(request, "user", None),
-                # Skip team validation in OwnerActorField because:
-                # 1. For bulk updates, each group may have a different current assignee
-                # 2. Team membership validation happens later in validate_bulk_reassignment
-                #    with full access to the groups' current assignments
-                "skip_team_validation": True,
             },
         )
         if not serializer.is_valid():
@@ -798,13 +792,6 @@ def prepare_response(
         pass
 
     if "assignedTo" in result:
-        try:
-            validate_bulk_reassignment(
-                request, group_list, result["assignedTo"], acting_user, organization
-            )
-        except serializers.ValidationError as e:
-            return Response(e.detail, status=400)
-
         result["assignedTo"] = handle_assigned_to(
             result["assignedTo"],
             data.get("assignedBy"),
@@ -1060,84 +1047,6 @@ def handle_is_public(
                 )
 
     return share_id
-
-
-def validate_bulk_reassignment(
-    request: Request,
-    group_list: Sequence[Group],
-    assigned_actor: Actor | None,
-    user: RpcUser | User | None = None,
-    organization: Organization | None = None,
-) -> None:
-    """
-    Validate that the user has permission to assign a team to all groups.
-
-    When assigning to a team, a user is permitted if any of the following are true:
-    - Open Team Membership is enabled for the organization, OR
-    - They have team:admin scope, OR
-    - They are a member of the target team, OR
-    - ALL groups are currently assigned to teams the user is a member of
-      (allows reassignment from own team to any team)
-    """
-    if assigned_actor is None or not assigned_actor.is_team:
-        return
-
-    if organization and organization.flags.allow_joinleave:
-        return
-
-    access = getattr(request, "access", None)
-    if access and access.has_scope("team:admin"):
-        return
-
-    user = user or getattr(request, "user", None)
-    if not user or not getattr(user, "is_authenticated", False):
-        raise serializers.ValidationError(
-            {"assignedTo": "You can only assign teams you are a member of"}
-        )
-
-    user_is_target_team_member = OrganizationMemberTeam.objects.filter(
-        team_id=assigned_actor.id,
-        organizationmember__user_id=user.id,
-        is_active=True,
-    ).exists()
-
-    if user_is_target_team_member:
-        return
-
-    current_assignees = {
-        assignee.group_id: assignee
-        for assignee in GroupAssignee.objects.filter(group__in=group_list).select_related("team")
-    }
-
-    groups_with_team_assignment = {
-        group_id for group_id, assignee in current_assignees.items() if assignee.team_id is not None
-    }
-    all_group_ids = {group.id for group in group_list}
-
-    if groups_with_team_assignment != all_group_ids:
-        # Some groups are either unassigned or assigned to users (not teams)
-        # User cannot reassign these to a team they're not a member of
-        raise serializers.ValidationError(
-            {"assignedTo": "You can only assign teams you are a member of"}
-        )
-
-    current_team_ids = {
-        current_assignees[group_id].team_id for group_id in groups_with_team_assignment
-    }
-
-    user_team_memberships = set(
-        OrganizationMemberTeam.objects.filter(
-            team_id__in=current_team_ids,
-            organizationmember__user_id=user.id,
-            is_active=True,
-        ).values_list("team_id", flat=True)
-    )
-
-    # If any group is assigned to a team the user is not a member of, deny
-    if current_team_ids - user_team_memberships:
-        raise serializers.ValidationError(
-            {"assignedTo": "You can only assign teams you are a member of"}
-        )
 
 
 def handle_assigned_to(

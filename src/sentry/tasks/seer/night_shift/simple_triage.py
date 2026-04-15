@@ -4,6 +4,8 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import sentry_sdk
+
 from sentry import search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models.group import GroupStatus
@@ -86,7 +88,12 @@ def fixability_score_strategy(
         )
 
     candidates.sort(reverse=True)
-    return candidates[:NIGHT_SHIFT_MAX_CANDIDATES]
+    selected = candidates[:NIGHT_SHIFT_MAX_CANDIDATES]
+
+    for c in selected:
+        sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
+
+    return selected
 
 
 def priority_label(priority: int | None) -> str | None:

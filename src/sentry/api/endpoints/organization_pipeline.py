@@ -22,6 +22,7 @@ from sentry.integrations.pipeline import (
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.types import PipelineStepAction
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,12 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return result
         pipeline = result
 
+        metrics.incr(
+            "integrations.pipeline_api.advance",
+            tags={"provider": pipeline.provider.key, "pipeline": pipeline_name},
+            sample_rate=1.0,
+        )
+
         step_result = pipeline.api_advance(request._request, request.data)
 
         response_data = step_result.serialize()
@@ -120,6 +127,12 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return Response({"detail": "Pipeline does not support API mode."}, status=400)
 
         pipeline.set_api_mode()
+
+        metrics.incr(
+            "integrations.pipeline_api.initialize",
+            tags={"provider": provider_id, "pipeline": pipeline_name},
+            sample_rate=1.0,
+        )
 
         # If the provider defines an initial data serializer, validate the
         # initialData dict from the request and bind it to pipeline state.

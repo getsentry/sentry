@@ -7,7 +7,11 @@ from django.urls import reverse
 
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
-from sentry.data_export.tasks import assemble_download, merge_export_blobs
+from sentry.data_export.tasks import (
+    assemble_download,
+    merge_export_blobs,
+    recoverable_retry_countdown,
+)
 from sentry.data_export.writers import OutputMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
@@ -69,6 +73,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     def test_task_persistent_name(self) -> None:
         assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
+
+    def test_recoverable_retry_countdown_exponential_backoff(self) -> None:
+        assert recoverable_retry_countdown(3) == 30
+        assert recoverable_retry_countdown(2) == 60
+        assert recoverable_retry_countdown(1) == 120
+        assert recoverable_retry_countdown(0) == 240
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_issue_by_tag_batched(self, emailer: MagicMock) -> None:

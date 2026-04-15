@@ -100,12 +100,14 @@ class StepConfig:
         artifact_schema: type[BaseModel] | None,
         prompt_fn: Callable[..., str],
         enable_coding: bool = False,
+        reasoning_effort: Literal["low", "medium", "high"] | None = None,
         started_event: type[AiAutofixPhaseEvent] | None = None,
         completed_event: type[AiAutofixPhaseEvent] | None = None,
     ):
         self.artifact_schema = artifact_schema
         self.prompt_fn = prompt_fn
         self.enable_coding = enable_coding
+        self.reasoning_effort = reasoning_effort
         self.started_event = started_event
         self.completed_event = completed_event
 
@@ -115,6 +117,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
     AutofixStep.ROOT_CAUSE: StepConfig(
         artifact_schema=RootCauseArtifact,
         prompt_fn=root_cause_prompt,
+        reasoning_effort="medium",
         started_event=AiAutofixRootCauseStartedEvent,
         completed_event=AiAutofixRootCauseCompletedEvent,
     ),
@@ -206,6 +209,7 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
 def get_autofix_explorer_client(
     group: Group,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
+    reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
 ) -> SeerExplorerClient:
     from sentry.seer.autofix.on_completion_hook import (
@@ -219,6 +223,7 @@ def get_autofix_explorer_client(
         category_key="autofix",
         category_value=str(group.id),
         intelligence_level=intelligence_level,
+        reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
     )
@@ -261,6 +266,7 @@ def trigger_autofix_explorer(
     client = get_autofix_explorer_client(
         group,
         intelligence_level=intelligence_level,
+        reasoning_effort=config.reasoning_effort,
         enable_coding=config.enable_coding,
     )
 
