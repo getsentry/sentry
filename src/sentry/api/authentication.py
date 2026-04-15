@@ -789,19 +789,45 @@ class ViewerContextAuthentication(BaseAuthentication):
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
-        from sentry.viewer_context import viewer_context_from_header
+        from sentry.viewer_context import _get_verification_keys, viewer_context_from_header
 
         header = request.META.get("HTTP_X_VIEWER_CONTEXT")
         if not header:
             return None
 
+        # TODO(jstanley): Temporary diagnostics for debugging prod 401s.
+        # Remove once the auth issue is resolved.
         signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
+        verification_keys = _get_verification_keys()
         vc = viewer_context_from_header(header, signature)
+
+        logger.info(
+            "viewer_context_auth.attempt",
+            extra={
+                "header_length": len(header),
+                "header_is_jwt": "." in header and header.count(".") == 2,
+                "signature_present": signature is not None,
+                "signature_length": len(signature) if signature else 0,
+                "verification_key_count": len(verification_keys),
+                "vc_resolved": vc is not None,
+                "vc_user_id": vc.user_id if vc else None,
+                "path": request.path,
+            },
+        )
+
         if vc is None or vc.user_id is None:
             return None
 
         user = user_service.get_user(user_id=vc.user_id)
         if user is None or not user.is_active:
+            logger.info(
+                "viewer_context_auth.user_lookup_failed",
+                extra={
+                    "vc_user_id": vc.user_id,
+                    "user_found": user is not None,
+                    "user_active": user.is_active if user else None,
+                },
+            )
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
