@@ -158,6 +158,12 @@ function TraceMetricsSearchBar({
       }}
       namespace={hasMultipleMetrics ? undefined : traceMetrics?.[0]?.name}
       disableRecentSearches={hasMultipleMetrics}
+      hiddenAttributeKeys={HiddenTraceMetricSearchFields}
+      attributeQuery={
+        !hasMultipleMetrics && traceMetrics[0]
+          ? createTraceMetricFilter(traceMetrics[0])
+          : undefined
+      }
     />
   );
 }
@@ -200,6 +206,8 @@ function useTraceMetricsSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: widgetQuery?.conditions ?? '',
       projects: pageFilters.projects,
+      hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+      attributeQuery: createTraceMetricFilter(traceMetric),
     });
 
   return {
@@ -251,6 +259,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: '',
       projects: pageFilters.projects,
+      hiddenAttributeKeys: HiddenTraceMetricSearchFields,
     });
 
   return {
