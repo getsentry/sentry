@@ -11,6 +11,7 @@ from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
 from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
+from sentry.utils.display_name_filter import is_spam_display_name
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -165,11 +166,10 @@ class SentryAppParser(Serializer):
         if len(value) > max_length:
             raise ValidationError("Cannot exceed %d characters" % max_length)
 
-        from sentry.utils.display_name_filter import check_spam_display_name
-
-        spam_error = check_spam_display_name(value)
-        if spam_error:
-            raise ValidationError(spam_error)
+        if is_spam_display_name(value):
+            raise ValidationError(
+                "This name contains disallowed content. Please choose a different name."
+            )
 
         return value
 
