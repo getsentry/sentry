@@ -185,7 +185,7 @@ export function ReleaseHeader({
                 {label: t('Release Details')},
               ]}
             />
-            <Layout.Title>{renderTitleContent(28)}</Layout.Title>
+            <Layout.Title>{renderTitleContent(16)}</Layout.Title>
           </React.Fragment>
         )}
       </Layout.HeaderContent>
