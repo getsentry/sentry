@@ -41,7 +41,6 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
           xs: '1fr 1fr',
           md: columnsMd,
         }}
-        rows={{xs: 2}}
         justify="center"
         gap="lg"
       >
