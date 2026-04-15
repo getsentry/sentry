@@ -10,19 +10,13 @@ const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const
 
 export type MeasurementType = (typeof ALL_MEASUREMENTS)[number];
 
-/**
- * Canonical list of metrics artifact types.
- * Keep in sync with PreprodArtifactSizeMetrics.MetricsArtifactType.as_choices() in
- * src/sentry/preprod/models.py
- */
-export const METRICS_ARTIFACT_TYPES = [
+export const ALL_ARTIFACT_TYPES = [
+  'all_artifacts',
   'main_artifact',
   'watch_artifact',
   'android_dynamic_feature_artifact',
   'app_clip_artifact',
 ] as const;
-
-export const ALL_ARTIFACT_TYPES = ['all_artifacts', ...METRICS_ARTIFACT_TYPES] as const;
 
 export type ArtifactType = (typeof ALL_ARTIFACT_TYPES)[number];
 
