@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -15,7 +16,6 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {SeerRepoDefinition} from 'sentry/components/events/autofix/types';
@@ -35,8 +35,13 @@ import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -202,8 +207,13 @@ function ProjectsWithoutRepos({
   onProjectSuccess: (projectId: string) => void;
   projects: Project[];
 }) {
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
+  const organization = useOrganization();
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
   const [projectStates, setProjectStates] = useState<ProjectStateMap>({});
   const [successfullyConnectedProjects, setSuccessfullyConnectedProjects] = useState(

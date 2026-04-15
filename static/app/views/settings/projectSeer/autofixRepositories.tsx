@@ -26,7 +26,10 @@ import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddAutofixRepoModal} from './addAutofixRepoModal';
@@ -42,7 +45,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const organization = useOrganization();
   const repositoriesQuery = useInfiniteQuery({
     ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
-    select: data => data.pages.flatMap(page => page.json),
+    select: selectUniqueRepos,
   });
   useFetchAllPages({result: repositoriesQuery});
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;

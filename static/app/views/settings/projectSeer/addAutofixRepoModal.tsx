@@ -14,7 +14,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
@@ -43,7 +46,7 @@ export function AddAutofixRepoModal({
 
   const repositoriesQuery = useInfiniteQuery({
     ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
-    select: data => data.pages.flatMap(page => page.json),
+    select: selectUniqueRepos,
   });
   useFetchAllPages({result: repositoriesQuery});
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
