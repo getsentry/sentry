@@ -8,7 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {IconChevron, IconSeer} from 'sentry/icons';
+import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
@@ -46,6 +46,7 @@ export function DashboardChatPanel({
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [warningMessageDismissed, setWarningMessageDismissed] = useState(false);
 
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
@@ -128,6 +129,28 @@ export function DashboardChatPanel({
           <FeatureBadge type="beta" />
         </Container>
       </Flex>
+      {showWarningMessage && !isUpdating && hasHistory && !warningMessageDismissed && (
+        <Container padding="md">
+          <Alert.Container>
+            <Alert
+              variant="muted"
+              showIcon
+              trailingItems={
+                <Button
+                  aria-label="Dismiss"
+                  icon={<IconClose />}
+                  size="xs"
+                  onClick={() => setWarningMessageDismissed(true)}
+                />
+              }
+            >
+              {t(
+                'Double check your whole dashboard before saving, edits from this conversation are AI-generated and may not be perfect'
+              )}
+            </Alert>
+          </Alert.Container>
+        </Container>
+      )}
       {hasHistory && isHistoryExpanded && (
         <ChatHistory
           ref={chatContainerRef}
@@ -135,7 +158,6 @@ export function DashboardChatPanel({
           pendingUserInput={pendingUserInput}
           isError={isError}
           widgetErrors={widgetErrors}
-          showWarningMessage={showWarningMessage && !isUpdating}
         />
       )}
       <InputGroup>
@@ -166,13 +188,11 @@ const ChatHistory = memo(function ChatHistoryInner({
   pendingUserInput,
   isError,
   widgetErrors,
-  showWarningMessage,
 }: {
   blocks: Block[];
   ref: React.Ref<HTMLDivElement>;
   isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
-  showWarningMessage?: boolean;
   widgetErrors?: WidgetError[];
 }) {
   return (
@@ -215,17 +235,6 @@ const ChatHistory = memo(function ChatHistoryInner({
                     </li>
                   ))}
                 </ul>
-              </Alert>
-            </Alert.Container>
-          </ChatMessageContainer>
-        )}
-        {showWarningMessage && (
-          <ChatMessageContainer padding="xl">
-            <Alert.Container>
-              <Alert variant="info" showIcon>
-                {t(
-                  'Double check results before saving your dashboard. The edits from this conversation are AI-generated and may not be perfect.'
-                )}
               </Alert>
             </Alert.Container>
           </ChatMessageContainer>
