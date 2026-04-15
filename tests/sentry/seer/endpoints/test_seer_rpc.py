@@ -1550,8 +1550,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_get_project_preferences_returns_default_when_no_preference(self) -> None:
         project = self.create_project(organization=self.organization)
         result = get_project_preferences(
-            organization_id=self.organization.id,
-            project_id=project.id,
+            organization_id=self.organization.id, project_id=project.id
         )
         assert result is not None
         assert result["project_id"] == project.id
