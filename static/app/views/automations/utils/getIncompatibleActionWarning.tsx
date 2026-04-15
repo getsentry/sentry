@@ -5,6 +5,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 const METRIC_DETECTOR_SUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.EMAIL,
   ActionType.SLACK,
+  ActionType.SLACK_STAGING,
   ActionType.MSTEAMS,
   ActionType.PAGERDUTY,
   ActionType.OPSGENIE,

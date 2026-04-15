@@ -277,7 +277,7 @@ function OnionView({
             max={100}
             value={opacity}
             onChange={onOpacityChange}
-            formatLabel={v => `${v}%`}
+            formatOptions={{style: 'unit', unit: 'percent'}}
           />
         </Flex>
         <Text size="sm" variant="muted">

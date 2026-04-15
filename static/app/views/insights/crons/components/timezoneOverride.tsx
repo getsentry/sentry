@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -34,13 +34,10 @@ export function TimezoneOverride({
     [monitorTimezone, userTimezone]
   );
 
-  const handleChange = useCallback(
-    (newMode: Mode) => {
-      setMode(newMode);
-      onTimezoneSelected(timezoneMapping[newMode]);
-    },
-    [onTimezoneSelected, timezoneMapping]
-  );
+  const handleChange = (newMode: Mode) => {
+    setMode(newMode);
+    onTimezoneSelected(timezoneMapping[newMode]);
+  };
 
   return (
     <CompactSelect

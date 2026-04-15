@@ -14,6 +14,8 @@ import {
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
@@ -46,10 +48,19 @@ export function DetectorDetailsDefaultHeaderContent({
   detector: Detector;
   project: Project;
 }) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <DetailLayout.HeaderContent>
-      <DetectorDetailsBreadcrumbs detector={detector} />
-      <DetailLayout.Title title={detector.name} project={project} />
+      {hasPageFrameFeature ? (
+        <TopBar.Slot name="title">
+          <DetectorDetailsBreadcrumbs detector={detector} />
+        </TopBar.Slot>
+      ) : (
+        <DetectorDetailsBreadcrumbs detector={detector} />
+      )}
+      {!hasPageFrameFeature && (
+        <DetailLayout.Title title={detector.name} project={project} />
+      )}
     </DetailLayout.HeaderContent>
   );
 }

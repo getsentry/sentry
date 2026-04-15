@@ -342,6 +342,15 @@ def get_cell_by_name(name: str) -> Cell:
         )
 
 
+def get_new_org_cell_for_locality(name: str) -> Cell:
+    """
+    For the provided locality name, get the Cell
+    that new organizations should be created in.
+    """
+    locality = get_locality_by_name(name)
+    return get_cell_by_name(locality.new_org_cell)
+
+
 def get_locality_by_name(name: str) -> Locality:
     """Look up a locality by name."""
     global_directory = get_global_directory()

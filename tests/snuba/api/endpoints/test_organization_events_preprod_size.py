@@ -20,7 +20,7 @@ class OrganizationEventsPreprodSizeEndpointTest(OrganizationEventsEndpointTestBa
 
     def _do_request(self, data, features=None):
         if features is None:
-            features = {"organizations:preprod-frontend-routes": True}
+            features = {}
         features.update(self.features)
         url = reverse(
             "sentry-api-0-organization-events",

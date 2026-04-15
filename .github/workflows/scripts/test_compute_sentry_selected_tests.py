@@ -19,7 +19,7 @@ _mod = importlib.util.module_from_spec(_spec)
 sys.modules["compute_sentry_selected_tests"] = _mod
 _spec.loader.exec_module(_mod)
 
-from compute_sentry_selected_tests import _query_coverage, main
+from compute_sentry_selected_tests import ALWAYS_RUN_TESTS, _query_coverage, main
 
 
 def _create_coverage_db(path: str, file_to_contexts: dict[str, list[str]]) -> None:
@@ -178,8 +178,9 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=1" in gh
-        assert output.read_text().strip() == "tests/sentry/test_org.py"
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
+        expected_output = sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
+        assert output.read_text().splitlines() == expected_output
 
     def test_getsentry_tests_filtered_out(self, tmp_path):
         """Coverage may return getsentry tests — they should be filtered."""
@@ -211,8 +212,9 @@ class TestMain:
                 {"GITHUB_OUTPUT": str(gh_output)},
             )
 
-        assert "test-count=1" in gh_output.read_text()
-        assert output.read_text().strip() == "tests/sentry/test_org.py"
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh_output.read_text()
+        expected_output = sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
+        assert output.read_text().splitlines() == expected_output
 
     def test_changed_test_file_included(self, tmp_path):
         db_path = tmp_path / "coverage.db"
@@ -236,7 +238,7 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=1" in gh
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
 
     def test_excluded_test_dirs_skipped(self, tmp_path):
         """Tests in acceptance/apidocs/js/tools should not be selected."""
@@ -257,10 +259,10 @@ class TestMain:
                 {"GITHUB_OUTPUT": str(gh_output)},
             )
 
-        assert "test-count=0" in gh_output.read_text()
+        assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh_output.read_text()
 
-    def test_zero_tests_signals_selective_applied(self, tmp_path):
-        """0 tests after filtering should signal 'run nothing', not full suite."""
+    def test_zero_coverage_matches_still_runs_always_run_tests(self, tmp_path):
+        """No coverage matches should still run ALWAYS_RUN_TESTS, not the full suite."""
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(str(db_path), {})
         output = tmp_path / "output.txt"
@@ -282,8 +284,8 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=0" in gh
-        assert output.read_text() == ""
+        assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh
+        assert set(output.read_text().splitlines()) == ALWAYS_RUN_TESTS
 
     def test_renamed_file_queries_old_path(self, tmp_path):
         """When a file is renamed, the old path should be queried against the coverage DB."""
@@ -319,8 +321,9 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=1" in gh
-        assert output.read_text().strip() == "tests/sentry/test_old_name.py"
+        assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}" in gh
+        expected_output = sorted({"tests/sentry/test_old_name.py"} | ALWAYS_RUN_TESTS)
+        assert output.read_text().splitlines() == expected_output
 
     def test_renamed_file_without_previous_misses_coverage(self, tmp_path):
         """Without --previous-filenames, a renamed file gets no coverage hits."""
@@ -349,7 +352,7 @@ class TestMain:
 
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
-        assert "test-count=0" in gh
+        assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh
 
     def test_missing_db_returns_error(self):
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])

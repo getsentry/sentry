@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -103,7 +103,7 @@ function RequestUpdateAlert({
     );
   }, [analyticsCommonProps]);
 
-  const handleClick = useCallback(async () => {
+  const handleClick = async () => {
     setLoading(true);
 
     trackGetsentryAnalytics(
@@ -127,7 +127,7 @@ function RequestUpdateAlert({
     }
 
     setLoading(false);
-  }, [api, isAncientPlan, organization, analyticsCommonProps]);
+  };
 
   return (
     <AlertWithCustomMargin
@@ -194,7 +194,7 @@ function UpdatePlanAlert({
     );
   }, [analyticsCommonProps]);
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     trackGetsentryAnalytics(
       'product_unavailable_upsell_alert_button.clicked',
       analyticsCommonProps
@@ -205,7 +205,7 @@ function UpdatePlanAlert({
     }
 
     am2UpsellModal.showModal();
-  }, [analyticsCommonProps, canSelfServe, isAncientPlan, am2UpsellModal]);
+  };
 
   return (
     <AlertWithCustomMargin

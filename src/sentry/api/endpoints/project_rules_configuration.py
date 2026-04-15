@@ -36,7 +36,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         available_ticket_actions = set()
 
-        project_has_filters = features.has("projects:alert-filters", project)
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
@@ -48,8 +47,8 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project=project)
-            # skip over conditions if they are not in the migrated set for a project with alert-filters
-            if project_has_filters and node.id in MIGRATED_CONDITIONS:
+            # skip over conditions if they are not in the migrated set
+            if node.id in MIGRATED_CONDITIONS:
                 continue
 
             if not can_create_tickets and node.id in TICKET_ACTIONS:
