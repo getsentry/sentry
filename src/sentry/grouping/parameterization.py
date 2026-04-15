@@ -230,20 +230,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # two things:
             #   - Cases where the initial or end characters are all valid, but there are too many of
             #     them. (IOW, we don't want to match `2345:...` inside of an otherwise-invalid IP
-            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.)
+            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.
+            #     Similar logic applies to initial and final colons - we don't want `:::1` to turn
+            #     into `:<ip>` because it's matching on just the second and third colons.)
             #   - Cases where `::` (which is a valid IPv6 address) appears inside of expressions
             #     like `SomeClass::someMethod()`, especially when the characters bordering the `::`
             #     are valid hex, like `Space::explore()`.
             # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
             # 5 characters on either side, but those are presumably pretty rare.
-            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (?<![\w:]) # Negative lookbehind (match can't start immediately after these)
             (
+                (?!:::) # Negative lookahead to prevent starting with three colons
+                (?!:[^:]) # Negative lookahead to prevent starting with a single colon
                 ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
                 [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (?<![^:]:) # Negative lookbehind to prevent ending with a single colon
+                (?<!:::) # Negative lookbehind to prevent ending with three colons
+
                 (%\S+)? # Optional zone ID
                 (/\d{1,3})? # Optional CIDR suffix
             )
-            (?![0-9a-zA-Z]) # Negative lookahead
+            (?![\w:]) # Negative lookahead (match can't end immediately before these)
         """,
         # Validate that the matched string actually is an IP address before replacing it. If not,
         # leave it alone.

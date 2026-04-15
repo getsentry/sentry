@@ -66,7 +66,9 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def test_invalid_group_id(self) -> None:
         self._set_up_sentry_app("Testin", ["event:write"])
         data = self._post_data()
-        data["issueId"] = self.create_group(project=self.create_project()).id
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        data["issueId"] = self.create_group(project=other_project).id
 
         response = self.client.post(
             self.url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"

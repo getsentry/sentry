@@ -85,7 +85,11 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
         with self.feature(
-            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
+            [
+                "organizations:github-repo-auto-sync",
+                "organizations:github-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
         ):
             sync_repos_for_org(self.oi.id)
 

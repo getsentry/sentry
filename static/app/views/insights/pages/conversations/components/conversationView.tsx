@@ -124,19 +124,16 @@ function ConversationView({
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
-  const handleTabChange = useCallback(
-    (newTab: ConversationTab) => {
-      if (activeTab !== newTab) {
-        trackAnalytics('conversations.drawer.tab-switch', {
-          organization,
-          fromTab: activeTab,
-          toTab: newTab,
-        });
-      }
-      setActiveTab(newTab);
-    },
-    [organization, activeTab]
-  );
+  const handleTabChange = (newTab: ConversationTab) => {
+    if (activeTab !== newTab) {
+      trackAnalytics('conversations.drawer.tab-switch', {
+        organization,
+        fromTab: activeTab,
+        toTab: newTab,
+      });
+    }
+    setActiveTab(newTab);
+  };
 
   if (isLoading) {
     return <ConversationViewSkeleton />;

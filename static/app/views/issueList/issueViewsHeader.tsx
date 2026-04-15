@@ -1,13 +1,12 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,14 +60,7 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   return (
     <Layout.Title>
       {title}
-      {description && (
-        <QuestionTooltip
-          isHoverable
-          position="right"
-          size="sm"
-          title={<LeftAlignContainer>{description}</LeftAlignContainer>}
-        />
-      )}
+      {description && <InfoTip position="right" size="sm" title={description} />}
     </Layout.Title>
   );
 }
@@ -279,7 +271,3 @@ export function IssueViewsHeader({
     </Layout.Header>
   );
 }
-
-const LeftAlignContainer = styled('div')`
-  text-align: left;
-`;

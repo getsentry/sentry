@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
 
 import {
   AllowedDataScrubbingDatasets,
@@ -82,6 +83,7 @@ function getDatasetLabel(dataset: AllowedDataScrubbingDatasets) {
   const labelMap: Record<AllowedDataScrubbingDatasets, string> = {
     [AllowedDataScrubbingDatasets.DEFAULT]: t('Events'),
     [AllowedDataScrubbingDatasets.LOGS]: t('Logs'),
+    [AllowedDataScrubbingDatasets.METRICS]: t('Metrics'),
   };
   return labelMap[dataset];
 }
@@ -93,6 +95,7 @@ export function getDatasetLabelLong(dataset: AllowedDataScrubbingDatasets) {
   const labelMap: Record<AllowedDataScrubbingDatasets, string> = {
     [AllowedDataScrubbingDatasets.DEFAULT]: t('Errors, Transactions, Attachments'),
     [AllowedDataScrubbingDatasets.LOGS]: t('Logs'),
+    [AllowedDataScrubbingDatasets.METRICS]: t('Metrics'),
   };
   return labelMap[dataset];
 }
@@ -244,8 +247,10 @@ export function getRuleDescription(rule: Rule) {
  * This indicates whether the data scrubbing modal shows "dataset" selector, which can be used to select new datasets that only allow for TraceItem attribute scrubbing.
  */
 export function areScrubbingDatasetsEnabled(organization: Organization) {
-  // Currently only logs supports scrubbing datasets.
-  return organization.features.includes('ourlogs-enabled');
+  return (
+    organization.features.includes('ourlogs-enabled') ||
+    canUseMetricsPiiScrubbingUI(organization)
+  );
 }
 
 function getSourceLabel(rule: Rule) {
@@ -283,6 +288,11 @@ export class TraceItemFieldSelector {
         fieldName: 'message',
       },
     ],
+    [AllowedDataScrubbingDatasets.METRICS]: [
+      {
+        regex: /^\$metric\.attributes\.'([^']+)'\.value$/,
+      },
+    ],
     [AllowedDataScrubbingDatasets.DEFAULT]: [],
   };
 
@@ -291,6 +301,7 @@ export class TraceItemFieldSelector {
     string | null
   > = {
     [AllowedDataScrubbingDatasets.LOGS]: '$log',
+    [AllowedDataScrubbingDatasets.METRICS]: '$metric',
     [AllowedDataScrubbingDatasets.DEFAULT]: null,
   };
 
@@ -303,6 +314,9 @@ export class TraceItemFieldSelector {
         return '$log.body';
       }
       return `$log.attributes.'${alias}'.value`;
+    },
+    [AllowedDataScrubbingDatasets.METRICS]: (alias: string) => {
+      return `$metric.attributes.'${alias}'.value`;
     },
     [AllowedDataScrubbingDatasets.DEFAULT]: () => null,
   };
@@ -498,15 +512,15 @@ export class TraceItemFieldSelector {
           label: t('body'),
         },
       ],
+      [AllowedDataScrubbingDatasets.METRICS]: null,
       [AllowedDataScrubbingDatasets.DEFAULT]: null,
     };
-    if (
-      dataset === AllowedDataScrubbingDatasets.DEFAULT ||
-      !nonAttributeFields[dataset]
-    ) {
-      Sentry.captureException(
-        new Error('Non-attribute fields should not be used for event selectors')
-      );
+    if (!nonAttributeFields[dataset]) {
+      if (dataset === AllowedDataScrubbingDatasets.DEFAULT) {
+        Sentry.captureException(
+          new Error('Non-attribute fields should not be used for event selectors')
+        );
+      }
       return null;
     }
     return nonAttributeFields[dataset];

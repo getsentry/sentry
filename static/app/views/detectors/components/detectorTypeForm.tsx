@@ -86,7 +86,7 @@ function MonitorTypeField() {
       id: 'metric_issue',
       name: getDetectorTypeLabel('metric_issue'),
       description: t(
-        'Monitor error counts, logs, custom metrics, span duration, crash rates, and more. '
+        'Monitor error counts, logs, application metrics, span duration, crash rates, and more.'
       ),
       visualization: <MetricVisualization />,
       infoBanner: canCreateMetricDetector ? undefined : (

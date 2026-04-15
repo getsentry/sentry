@@ -1,12 +1,12 @@
-import {useCallback} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -28,6 +28,8 @@ type TraceItemAttributeKeyOptions = Pick<
   substringMatch?: string;
 };
 
+const QUERY_KEY = 'use-get-trace-item-attribute-keys';
+
 export function makeTraceItemAttributeKeysQueryOptions({
   traceItemType,
   type,
@@ -43,13 +45,14 @@ export function makeTraceItemAttributeKeysQueryOptions({
   query?: string;
   search?: string;
 }): TraceItemAttributeKeyOptions {
+  const substringMatch = search || undefined;
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
     attributeType: type,
     project: projectIds?.map(String),
     query,
-    substringMatch: search,
     ...normalizeDateTimeParams(datetime),
+    ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 
   // environment left out intentionally as it's not supported
@@ -64,11 +67,12 @@ export function useGetTraceItemAttributeKeys({
   query,
 }: UseGetTraceItemAttributeKeysProps) {
   const api = useApi();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-  const getTraceItemAttributeKeys = useCallback(
-    async (queryString?: string): Promise<TagCollection> => {
+  const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
+    mutationFn: async (queryString?: string): Promise<TagCollection> => {
       const options = makeTraceItemAttributeKeysQueryOptions({
         traceItemType,
         type,
@@ -79,23 +83,26 @@ export function useGetTraceItemAttributeKeys({
       });
 
       let result: Tag[];
-
       try {
-        result = await api.requestPromise(
-          `/organizations/${organization.slug}/trace-items/attributes/`,
-          {
-            method: 'GET',
-            query: options,
-          }
-        );
+        result = await queryClient.fetchQuery({
+          queryKey: [QUERY_KEY, options, organization.slug],
+          queryFn: () =>
+            api.requestPromise(
+              `/organizations/${organization.slug}/trace-items/attributes/`,
+              {
+                method: 'GET',
+                query: options,
+              }
+            ),
+          staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+        });
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
 
       return getTraceItemTagCollection(result, type);
     },
-    [api, organization, selection, traceItemType, projectIds, type, query]
-  );
+  });
 
   return getTraceItemAttributeKeys;
 }
