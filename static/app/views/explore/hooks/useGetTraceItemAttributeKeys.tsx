@@ -1,7 +1,7 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
@@ -12,6 +12,7 @@ import type {
 import {
   getTraceItemTagCollection,
   traceItemAttributeKeysOptions,
+  type AttributeType,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
@@ -67,7 +68,6 @@ export function makeTraceItemAttributeKeysQueryOptions({
 export function useGetTraceItemAttributeKeys({
   traceItemType,
   projectIds,
-  type,
   query,
 }: UseGetTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
@@ -76,14 +76,13 @@ export function useGetTraceItemAttributeKeys({
 
   const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
     mutationFn: async (queryString?: string): Promise<TagCollection> => {
-      let result: Tag[];
+      let result: AttributeType[];
       try {
         const {json} = await queryClient.fetchQuery({
           ...traceItemAttributeKeysOptions({
             organization,
             selection,
             traceItemType,
-            type,
             projectIds: projectIds ?? selection.projects,
             search: queryString,
             query,
@@ -95,7 +94,10 @@ export function useGetTraceItemAttributeKeys({
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
 
-      return getTraceItemTagCollection(result, type);
+      const {booleanAttributes, numberAttributes, stringAttributes} =
+        getTraceItemTagCollection(result);
+
+      return {...booleanAttributes, ...numberAttributes, ...stringAttributes};
     },
   });
 
