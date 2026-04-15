@@ -28,6 +28,7 @@ interface DashboardChatPanelProps {
   onSend: (message: string) => void;
   isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
+  showWarningMessage?: boolean;
   widgetErrors?: WidgetError[];
 }
 
@@ -38,6 +39,7 @@ export function DashboardChatPanel({
   isUpdating,
   isError,
   widgetErrors,
+  showWarningMessage,
 }: DashboardChatPanelProps) {
   const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
@@ -133,6 +135,7 @@ export function DashboardChatPanel({
           pendingUserInput={pendingUserInput}
           isError={isError}
           widgetErrors={widgetErrors}
+          showWarningMessage={showWarningMessage && !isUpdating}
         />
       )}
       <InputGroup>
@@ -163,11 +166,13 @@ const ChatHistory = memo(function ChatHistoryInner({
   pendingUserInput,
   isError,
   widgetErrors,
+  showWarningMessage,
 }: {
   blocks: Block[];
   ref: React.Ref<HTMLDivElement>;
   isError?: boolean;
   pendingUserInput?: PendingUserInput | null;
+  showWarningMessage?: boolean;
   widgetErrors?: WidgetError[];
 }) {
   return (
@@ -210,6 +215,17 @@ const ChatHistory = memo(function ChatHistoryInner({
                     </li>
                   ))}
                 </ul>
+              </Alert>
+            </Alert.Container>
+          </ChatMessageContainer>
+        )}
+        {showWarningMessage && (
+          <ChatMessageContainer padding="xl">
+            <Alert.Container>
+              <Alert variant="info" showIcon>
+                {t(
+                  'Double check results before saving your dashboard. The edits from this conversation are AI-generated and may not be perfect.'
+                )}
               </Alert>
             </Alert.Container>
           </ChatMessageContainer>
