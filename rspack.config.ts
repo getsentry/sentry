@@ -443,6 +443,7 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
+              checker: 'tsgo',
               configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
               configOverwrite: {
                 compilerOptions: {
