@@ -45,9 +45,8 @@ const EventDrawerContainerRoot = styled('div')<{hasPageFrameFeature: boolean}>`
   ${p =>
     p.hasPageFrameFeature &&
     `
+      /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
       --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
-      --event-navigator-height: var(--event-drawer-header-height);
-      --event-navigator-min-height: var(--event-drawer-header-height);
       --event-navigator-box-sizing: border-box;
       --event-navigator-padding-block: 0px;
       --event-navigator-box-shadow: none;
@@ -69,6 +68,7 @@ export function EventDrawerContainer(props: ComponentPropsWithoutRef<'div'>) {
 
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;
+  /* Height priority: container variable (responsive) → DrawerHeader height prop → default */
   height: var(--event-drawer-header-height, var(--drawer-header-height, auto));
   max-height: var(
     --event-drawer-header-height,
@@ -95,8 +95,8 @@ export const EventNavigator = styled('div')`
   padding: var(--event-navigator-padding-block, ${p => p.theme.space.sm}) 24px;
   background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
-  height: var(--event-navigator-height, auto);
-  min-height: var(--event-navigator-min-height, ${MIN_NAV_HEIGHT}px);
+  height: var(--event-drawer-header-height, auto);
+  min-height: var(--event-drawer-header-height, ${MIN_NAV_HEIGHT}px);
   border-bottom: var(--event-navigator-border-bottom, 0);
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: var(
