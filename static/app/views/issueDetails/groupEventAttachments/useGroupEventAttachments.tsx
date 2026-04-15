@@ -14,8 +14,9 @@ interface UseGroupEventAttachmentsOptions {
   group: Group;
   options?: {
     /**
-     * If true, the query will fetch all available attachments for the group, ignoring the
-     * current filters (for environment, date, query, etc).
+     * If true, fetches all attachments for the group without applying any
+     * filters (environment, date range, query). Used by the header badge to
+     * determine whether the issue has any attachments at all.
      */
     fetchAllAvailable?: boolean;
     placeholderData?: typeof keepPreviousData;
@@ -116,7 +117,18 @@ export function useGroupEventAttachments({
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
-  const fetchAllAvailable = options?.fetchAllAvailable;
+
+  const filterParams = options?.fetchAllAvailable
+    ? {}
+    : {
+        environment: eventView.environment as string[],
+        eventQuery,
+        ...(hasSetStatsPeriod && {
+          start: eventView.start,
+          end: eventView.end,
+          statsPeriod: eventView.statsPeriod,
+        }),
+      };
 
   const {data, isPending, isError, refetch} = useQuery({
     ...fetchGroupEventAttachmentsApiOptions({
@@ -124,13 +136,7 @@ export function useGroupEventAttachments({
       group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      // We only want to filter by date/query/environment if we're using the Streamlined UI
-      environment: fetchAllAvailable ? undefined : (eventView.environment as string[]),
-      start: fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.start,
-      end: fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.end,
-      statsPeriod:
-        fetchAllAvailable && !hasSetStatsPeriod ? undefined : eventView.statsPeriod,
-      eventQuery: fetchAllAvailable ? undefined : eventQuery,
+      ...filterParams,
     }),
     placeholderData: options?.placeholderData,
     select: selectJsonWithHeaders,
