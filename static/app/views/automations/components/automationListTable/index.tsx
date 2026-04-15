@@ -1,11 +1,12 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -15,7 +16,6 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -90,10 +90,9 @@ export function AutomationListTable({
   queryCount,
   allResultsVisible,
 }: AutomationListTableProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
-
+  const [query] = useQueryState('query', parseAsString);
   const [selected, setSelected] = useState(new Set<string>());
 
   const togglePageSelected = (pageSelected: boolean) => {
@@ -184,9 +183,9 @@ export function AutomationListTable({
         <SimpleTable.Empty>
           <StyledFlex gap="xl" direction="column" align="center">
             <img src={NoAlertsImage} />
-            <Text as="h5">{t('No alerts found.')}</Text>
+            <Heading as="h3">{t('No alerts found.')}</Heading>
             <Text align="center" variant="muted">
-              {t('Looking for a monitor? Try looking on the monitors page')}
+              {t('Try out that same query on the Monitors page.')}
             </Text>
 
             <LinkButton
@@ -194,9 +193,7 @@ export function AutomationListTable({
               priority="primary"
               to={{
                 pathname: makeMonitorBasePathname(organization.slug),
-                query: {
-                  query: decodeScalar(location.query?.query),
-                },
+                query: {query},
               }}
             >
               {t('Search Monitors')}
@@ -220,7 +217,7 @@ export function AutomationListTable({
 }
 
 const StyledFlex = styled(Flex)`
-  padding: 56px;
+  padding: ${p => p.theme.size.sm};
 `;
 
 const AutomationsSimpleTable = styled(SimpleTable)`

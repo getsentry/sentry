@@ -14,7 +14,7 @@ import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   GridLineLabels,
@@ -248,7 +248,7 @@ export function DetectorListTable({
           <SimpleTable.Empty>
             <StyledFlex gap="xl" direction="column" align="center">
               <img src={NoAlertsImage} />
-              <Text as="h5">{t('No monitors found.')}</Text>
+              <Heading as="h3">{t('No monitors found.')}</Heading>
               <Text align="center" variant="muted">
                 {t("Sorry, we couldn't find what you were looking for.")}
               </Text>
@@ -516,7 +516,7 @@ const VisualizationHeaderContainer = styled(Container)`
 `;
 
 const StyledFlex = styled(Flex)`
-  padding: 56px;
+  padding: ${p => p.theme.size.xs};
 `;
 
 const VisualizationExpandButton = styled('div')`
