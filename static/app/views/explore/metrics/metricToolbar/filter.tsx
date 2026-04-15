@@ -75,40 +75,15 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
-  const {data: numberTags} = useQuery({
+  const {data: data} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'number',
       query: attributeQuery,
     }),
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-    select: selectTraceItemTagCollection('number'),
-  });
-
-  const {data: stringTags} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'string',
-      query: attributeQuery,
-    }),
-    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-    select: selectTraceItemTagCollection('string'),
-  });
-
-  const {data: booleanTags} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'boolean',
-      query: attributeQuery,
-    }),
-    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-    select: selectTraceItemTagCollection('boolean'),
+    select: selectTraceItemTagCollection(),
   });
 
   const visibleNumberTags = useMemo(() => {
@@ -122,12 +97,12 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
     return {
       ...staticNumberTags,
       ...Object.fromEntries(
-        Object.entries(numberTags ?? {}).filter(
+        Object.entries(data?.numberAttributes ?? {}).filter(
           ([key]) => !HiddenTraceMetricSearchFields.includes(key)
         )
       ),
     };
-  }, [numberTags]);
+  }, [data?.numberAttributes]);
 
   const visibleStringTags = useMemo(() => {
     const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce((acc, key) => {
@@ -140,12 +115,12 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
     return {
       ...staticStringTags,
       ...Object.fromEntries(
-        Object.entries(stringTags ?? {}).filter(
+        Object.entries(data?.stringAttributes ?? {}).filter(
           ([key]) => !HiddenTraceMetricSearchFields.includes(key)
         )
       ),
     };
-  }, [stringTags]);
+  }, [data?.stringAttributes]);
 
   const visibleBooleanTags = useMemo(() => {
     const staticBooleanTags = SENTRY_TRACEMETRIC_BOOLEAN_TAGS.reduce((acc, key) => {
@@ -158,12 +133,12 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
     return {
       ...staticBooleanTags,
       ...Object.fromEntries(
-        Object.entries(booleanTags ?? {}).filter(
+        Object.entries(data?.booleanAttributes ?? {}).filter(
           ([key]) => !HiddenTraceMetricSearchFields.includes(key)
         )
       ),
     };
-  }, [booleanTags]);
+  }, [data?.booleanAttributes]);
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {

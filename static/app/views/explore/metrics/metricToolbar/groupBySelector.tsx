@@ -53,7 +53,7 @@ export function GroupBySelector({
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
-  const {data: numberTags, isLoading: numberTagsLoading} = useQuery({
+  const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
@@ -65,53 +65,29 @@ export function GroupBySelector({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
 
-  const {data: stringTags, isLoading: stringTagsLoading} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'string',
-      query: skipTraceMetricFilter ? undefined : traceMetricFilter,
-    }),
-    select: selectTraceItemTagCollection('string'),
-    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-  });
-
-  const {data: booleanTags, isLoading: booleanTagsLoading} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'boolean',
-      query: skipTraceMetricFilter ? undefined : traceMetricFilter,
-    }),
-    select: selectTraceItemTagCollection('boolean'),
-    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-  });
-
   const visibleNumberTags = useMemo(() => {
     return Object.fromEntries(
-      Object.entries(numberTags ?? {}).filter(
+      Object.entries(data?.numberAttributes ?? {}).filter(
         ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
       )
     );
-  }, [numberTags]);
+  }, [data?.numberAttributes]);
 
   const visibleStringTags = useMemo(() => {
     return Object.fromEntries(
-      Object.entries(stringTags ?? {}).filter(
+      Object.entries(data?.stringAttributes ?? {}).filter(
         ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
       )
     );
-  }, [stringTags]);
+  }, [data?.stringAttributes]);
 
   const visibleBooleanTags = useMemo(() => {
     return Object.fromEntries(
-      Object.entries(booleanTags ?? {}).filter(
+      Object.entries(data?.booleanAttributes ?? {}).filter(
         ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
       )
     );
-  }, [booleanTags]);
+  }, [data?.booleanAttributes]);
 
   const enabledOptions = useGroupByFields({
     groupBys,
@@ -121,8 +97,6 @@ export function GroupBySelector({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     hideEmptyOption: true,
   });
-
-  const isLoading = numberTagsLoading || stringTagsLoading || booleanTagsLoading;
 
   const handleChange = useCallback(
     (selectedOptions: Array<SelectOption<string>>) => {

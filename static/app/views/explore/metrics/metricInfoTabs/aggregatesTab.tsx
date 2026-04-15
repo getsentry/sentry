@@ -98,40 +98,15 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
-  const {data: numberTags} = useQuery({
+  const {data} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'number',
       query: traceMetricFilter,
     }),
     enabled: Boolean(traceMetricFilter),
-    select: selectTraceItemTagCollection('number'),
-  });
-
-  const {data: stringTags} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'string',
-      query: traceMetricFilter,
-    }),
-    enabled: Boolean(traceMetricFilter),
-    select: selectTraceItemTagCollection('string'),
-  });
-
-  const {data: booleanTags} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'boolean',
-      query: traceMetricFilter,
-    }),
-    enabled: Boolean(traceMetricFilter),
-    select: selectTraceItemTagCollection('boolean'),
+    select: selectTraceItemTagCollection(),
   });
 
   const meta = result.meta ?? {};
@@ -257,7 +232,10 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         {displayFields.map((field, i) => {
           let label = field;
           const tag =
-            stringTags?.[field] ?? numberTags?.[field] ?? booleanTags?.[field] ?? null;
+            data?.stringAttributes?.[field] ??
+            data?.numberAttributes?.[field] ??
+            data?.booleanAttributes?.[field] ??
+            null;
           const func = parseFunction(field);
           if (field === TraceMetricKnownFieldKey.METRIC_NAME) {
             label = t('Metric');
