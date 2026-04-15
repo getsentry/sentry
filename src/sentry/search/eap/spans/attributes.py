@@ -508,6 +508,12 @@ except Exception:
     logger.exception("Failed to load deprecated attributes from 'deprecated_attributes.json'")
 
 
+_INTERNAL_NAME_TO_PUBLIC_ALIAS: dict[str, str] = {
+    definition.internal_name: definition.public_alias
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if not definition.secondary_alias
+}
+
 try:
     for attribute in DEPRECATED_ATTRIBUTES:
         deprecation = attribute.get("deprecation", {})
@@ -520,9 +526,15 @@ try:
         ):
             status = deprecation["_status"]
             replacement = deprecation["replacement"]
-            if key in SPAN_ATTRIBUTE_DEFINITIONS:
-                deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[key]
-                SPAN_ATTRIBUTE_DEFINITIONS[key] = replace(
+            # The key from sentry-conventions is the raw attribute name (e.g. "app_start_warm"),
+            # but SPAN_ATTRIBUTE_DEFINITIONS is keyed by public_alias which may differ
+            # (e.g. "measurements.app_start_warm"). Fall back to a reverse lookup by internal_name.
+            lookup_key = key
+            if key not in SPAN_ATTRIBUTE_DEFINITIONS and key in _INTERNAL_NAME_TO_PUBLIC_ALIAS:
+                lookup_key = _INTERNAL_NAME_TO_PUBLIC_ALIAS[key]
+            if lookup_key in SPAN_ATTRIBUTE_DEFINITIONS:
+                deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[lookup_key]
+                SPAN_ATTRIBUTE_DEFINITIONS[lookup_key] = replace(
                     deprecated_attr, replacement=replacement, deprecation_status=status
                 )
                 # TODO: Introduce units to attribute schema.
