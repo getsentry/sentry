@@ -1055,6 +1055,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
             type: 'boolean' as const,
             label: t('HTTP Issues'),
+            help: t('Allow HTTP-related issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1066,6 +1067,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
             type: 'boolean' as const,
             label: t('Database Issues'),
+            help: t('Allow database-related issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1077,6 +1079,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
             type: 'boolean' as const,
             label: t('Runtime Performance Issues'),
+            help: t('Allow runtime performance issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1088,6 +1091,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
             type: 'boolean' as const,
             label: t('Security Issues'),
+            help: t('Allow security-related issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1099,6 +1103,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
             type: 'boolean' as const,
             label: t('Code Health Issues'),
+            help: t('Allow code health issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1110,6 +1115,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_GENERAL_ENABLED,
             type: 'boolean' as const,
             label: t('General Issues'),
+            help: t('Allow general issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
