@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
+import {useQuery} from 'sentry/utils/queryClient';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
@@ -18,9 +19,12 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {removeHiddenKeys} from 'sentry/views/explore/utils';
+import {
+  selectTraceItemTagCollection,
+  useTraceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type TypedTraceItemAttributes = {
   boolean: TagCollection;
@@ -77,41 +81,49 @@ function useTraceItemAttributeConfig({
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemAttributeKeys({
-      enabled,
+  const traceItemAttributeKeysOptions = useTraceItemAttributeKeysOptions();
+
+  const {data: numberAttributes, isLoading: numberAttributesLoading} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      traceItemType,
       type: 'number',
-      traceItemType,
       projectIds,
       projects,
       search,
       query,
       staleTime,
-    });
+    }),
+    enabled,
+    select: selectTraceItemTagCollection('number'),
+  });
 
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemAttributeKeys({
-      enabled,
+  const {data: stringAttributes, isLoading: stringAttributesLoading} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      traceItemType,
       type: 'string',
-      traceItemType,
       projectIds,
       projects,
       search,
       query,
       staleTime,
-    });
+    }),
+    enabled,
+    select: selectTraceItemTagCollection('string'),
+  });
 
-  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
-    useTraceItemAttributeKeys({
-      enabled,
-      type: 'boolean',
+  const {data: booleanAttributes, isLoading: booleanAttributesLoading} = useQuery({
+    ...traceItemAttributeKeysOptions({
       traceItemType,
+      type: 'boolean',
       projectIds,
       projects,
       search,
       query,
       staleTime,
-    });
+    }),
+    enabled,
+    select: selectTraceItemTagCollection('boolean'),
+  });
 
   const booleanBaseKeys = useMemo(() => {
     const keys = new Set(getDefaultBooleanAttributes(traceItemType));

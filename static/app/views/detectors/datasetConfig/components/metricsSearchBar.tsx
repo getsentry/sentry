@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {useQuery} from 'sentry/utils/queryClient';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -13,11 +14,14 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  selectTraceItemTagCollection,
+  useTraceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 const EMPTY_TAG_COLLECTION: TagCollection = {};
 
@@ -44,26 +48,38 @@ export function MetricsDetectorSearchBar({
   }
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
-  const {attributes: numberTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    type: 'number',
+  const traceItemAttributeKeysOptions = useTraceItemAttributeKeysOptions();
+  const {data: numberTags} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      type: 'number',
+      query: traceMetricFilter,
+      projectIds,
+    }),
     enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
-    projectIds,
+    select: selectTraceItemTagCollection('number'),
   });
-  const {attributes: stringTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    type: 'string',
+
+  const {data: stringTags} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      type: 'string',
+      query: traceMetricFilter,
+      projectIds,
+    }),
     enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
-    projectIds,
+    select: selectTraceItemTagCollection('string'),
   });
-  const {attributes: booleanTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    type: 'boolean',
+
+  const {data: booleanTags} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      type: 'boolean',
+      query: traceMetricFilter,
+      projectIds,
+    }),
     enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
-    projectIds,
+    select: selectTraceItemTagCollection('boolean'),
   });
 
   const visibleNumberTags = useMemo(() => {
