@@ -45,6 +45,7 @@ function ConversationsLayout() {
         ) : (
           <DetailHeaderWrapper>
             <ConversationsPageHeader
+              domainBaseUrl={conversationsBaseUrl}
               hideDefaultTabs
               headerTitle={<Fragment />}
               breadcrumbs={[{label: conversationId.slice(0, 8)}]}
@@ -52,7 +53,7 @@ function ConversationsLayout() {
           </DetailHeaderWrapper>
         )
       ) : (
-        <ConversationsPageHeader />
+        <ConversationsPageHeader domainBaseUrl={conversationsBaseUrl} />
       )}
       <Outlet />
     </Stack>
