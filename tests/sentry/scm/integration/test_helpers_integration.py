@@ -15,6 +15,7 @@ class TestFetchRepository(TestCase):
             provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
 
         result = fetch_repository(self.organization.id, repo.id)
@@ -35,6 +36,7 @@ class TestFetchRepository(TestCase):
             provider="integrations:github",
             external_id="67890",
             status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
         assert fetch_repository(self.organization.id, repo.id) is None
 
@@ -45,6 +47,7 @@ class TestFetchRepository(TestCase):
             provider="integrations:github",
             external_id="12345",
             status=ObjectStatus.ACTIVE,
+            integration_id=1,
         )
 
         result = fetch_repository(self.organization.id, ("github", "12345"))
