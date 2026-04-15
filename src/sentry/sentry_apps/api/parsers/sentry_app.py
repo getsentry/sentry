@@ -164,6 +164,13 @@ class SentryAppParser(Serializer):
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
             raise ValidationError("Cannot exceed %d characters" % max_length)
+
+        from sentry.utils.display_name_filter import check_spam_display_name
+
+        spam_error = check_spam_display_name(value)
+        if spam_error:
+            raise ValidationError(spam_error)
+
         return value
 
     def validate_allowedOrigins(self, value):

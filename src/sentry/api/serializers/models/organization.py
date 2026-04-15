@@ -175,6 +175,13 @@ class BaseOrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Organization name cannot contain URL schemes (e.g. http:// or https://)."
             )
+
+        from sentry.utils.display_name_filter import check_spam_display_name
+
+        spam_error = check_spam_display_name(value)
+        if spam_error:
+            raise serializers.ValidationError(spam_error)
+
         return value
 
     def validate_slug(self, value: str) -> str:
