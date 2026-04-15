@@ -9,7 +9,7 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {
   createDashboard,
@@ -35,7 +35,6 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
-import {IconSlashForward} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -1183,15 +1182,8 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Header unified={this.props.hasPageFrameFeature}>
                   {this.props.hasPageFrameFeature ? (
                     <TopBar.Slot name="title">
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                        ]}
-                      />
-                      <DashboardPageFrameTitle
+                      <DashboardPageFrameBreadcrumbs
+                        organizationSlug={organization.slug}
                         dashboard={modifiedDashboard ?? dashboard}
                         onUpdate={this.setModifiedDashboard}
                         isEditingDashboard={this.isEditingDashboard}
@@ -1500,33 +1492,42 @@ class DashboardDetail extends Component<Props, State> {
   }
 }
 
-export function DashboardPageFrameTitle({
+function DashboardPageFrameBreadcrumbs({
   dashboard,
+  organizationSlug,
   isEditingDashboard,
   onUpdate,
 }: {
   dashboard: DashboardDetails | null;
   isEditingDashboard: boolean;
   onUpdate: (dashboard: DashboardDetails) => void;
+  organizationSlug: string;
 }) {
   return (
-    <Flex align="center" gap="xs" minWidth={0}>
-      <Flex
-        align="center"
-        justify="center"
-        flexShrink={0}
-        data-test-id="dashboard-breadcrumb-title-separator"
-      >
-        <IconSlashForward size="xs" variant="muted" />
-      </Flex>
-      <DashboardTitle
-        dashboard={dashboard}
-        onUpdate={onUpdate}
-        isEditingDashboard={isEditingDashboard}
-      />
-    </Flex>
+    <StyledDashboardPageFrameBreadcrumbs
+      crumbs={[
+        {
+          label: t('Dashboards'),
+          to: `/organizations/${organizationSlug}/dashboards/`,
+        },
+        {
+          label: (
+            <DashboardTitle
+              dashboard={dashboard}
+              onUpdate={onUpdate}
+              isEditingDashboard={isEditingDashboard}
+            />
+          ),
+        },
+      ]}
+    />
   );
 }
+
+const StyledDashboardPageFrameBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
+  height: 34px;
+`;
 
 const StyledPageHeader = styled('div')`
   display: grid;

@@ -26,16 +26,14 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
-import {
-  DashboardDetailWithInjectedProps as DashboardDetail,
-  DashboardPageFrameTitle,
-} from 'sentry/views/dashboards/detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
@@ -628,19 +626,37 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('shows a separator between the dashboard breadcrumb and title in page frame mode', () => {
+    it('renders the linked dashboard breadcrumb in the top bar when page frame is enabled', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'page-frame'],
+      });
+
       render(
-        <DashboardPageFrameTitle
-          dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
-          isEditingDashboard={false}
-          onUpdate={jest.fn()}
-        />
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
       );
 
+      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
+      expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/dashboards/'
+      );
+      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
+      expect(within(breadcrumbs).getAllByRole('img')).toHaveLength(1);
       expect(
-        screen.getByTestId('dashboard-breadcrumb-title-separator')
-      ).toBeInTheDocument();
-      expect(screen.getByText('Custom Errors')).toBeInTheDocument();
+        screen.queryByRole('heading', {name: 'Custom Errors'})
+      ).not.toBeInTheDocument();
     });
 
     it('hides add widget option', async () => {
