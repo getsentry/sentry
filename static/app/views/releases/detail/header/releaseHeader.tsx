@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -147,7 +148,7 @@ export function ReleaseHeader({
           <Breadcrumbs crumbs={breadcrumbs} />
         )}
         <Layout.Title>
-          <TitleWrapper>
+          <TitleWrapper align="center" gap="md" minWidth={0}>
             <IdBadge
               project={project}
               avatarSize={hasPageFrameFeature ? 16 : 28}
@@ -208,12 +209,7 @@ export function ReleaseHeader({
   );
 }
 
-const TitleWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  min-width: 0;
-
+const TitleWrapper = styled(Flex)`
   .release-copy-button {
     display: none;
   }
