@@ -3,48 +3,38 @@ import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegration
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {IntegrationProvider} from 'sentry/types/integrations';
-
 import {ScmProviderPills} from './scmProviderPills';
 
-function makeBitbucketProvider(): IntegrationProvider {
-  return GitHubIntegrationProviderFixture({
-    key: 'bitbucket',
-    slug: 'bitbucket',
-    name: 'Bitbucket',
-  });
-}
+const bitbucketProvider = GitHubIntegrationProviderFixture({
+  key: 'bitbucket',
+  slug: 'bitbucket',
+  name: 'Bitbucket',
+});
 
-function makeBitbucketServerProvider(): IntegrationProvider {
-  return GitHubIntegrationProviderFixture({
-    key: 'bitbucket_server',
-    slug: 'bitbucket_server',
-    name: 'Bitbucket Server',
-  });
-}
+const bitbucketServerProvider = GitHubIntegrationProviderFixture({
+  key: 'bitbucket_server',
+  slug: 'bitbucket_server',
+  name: 'Bitbucket Server',
+});
 
-function makeGitHubEnterpriseProvider(): IntegrationProvider {
-  return GitHubIntegrationProviderFixture({
-    key: 'github_enterprise',
-    slug: 'github_enterprise',
-    name: 'GitHub Enterprise',
-  });
-}
+const gitHubEnterpriseProvider = GitHubIntegrationProviderFixture({
+  key: 'github_enterprise',
+  slug: 'github_enterprise',
+  name: 'GitHub Enterprise',
+});
 
-function makeAzureDevOpsProvider(): IntegrationProvider {
-  return GitHubIntegrationProviderFixture({
-    key: 'vsts',
-    slug: 'vsts',
-    name: 'Azure DevOps',
-  });
-}
+const azureDevOpsProvider = GitHubIntegrationProviderFixture({
+  key: 'vsts',
+  slug: 'vsts',
+  name: 'Azure DevOps',
+});
 
 describe('ScmProviderPills', () => {
   it('renders primary providers as top-level buttons', () => {
     const providers = [
       GitHubIntegrationProviderFixture(),
       GitLabIntegrationProviderFixture(),
-      makeBitbucketProvider(),
+      bitbucketProvider,
     ];
 
     render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
@@ -59,10 +49,10 @@ describe('ScmProviderPills', () => {
     const providers = [
       GitHubIntegrationProviderFixture(),
       GitLabIntegrationProviderFixture(),
-      makeBitbucketProvider(),
-      makeBitbucketServerProvider(),
-      makeGitHubEnterpriseProvider(),
-      makeAzureDevOpsProvider(),
+      bitbucketProvider,
+      bitbucketServerProvider,
+      gitHubEnterpriseProvider,
+      azureDevOpsProvider,
     ];
 
     render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
@@ -75,17 +65,15 @@ describe('ScmProviderPills', () => {
     // Secondary providers are hidden behind the "More" dropdown
     expect(screen.queryByText('Bitbucket Server')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: /more/i}));
+    await userEvent.click(screen.getByRole('button', {name: 'More'}));
 
     expect(
-      screen.getByRole('menuitemradio', {name: /bitbucket server/i})
+      screen.getByRole('menuitemradio', {name: 'Bitbucket Server'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: /github enterprise/i})
+      screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'})
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: /azure devops/i})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Azure DevOps'})).toBeInTheDocument();
   });
 
   it('triggers install flow when clicking a dropdown item', async () => {
@@ -94,17 +82,12 @@ describe('ScmProviderPills', () => {
       close: jest.fn(),
     } as any);
 
-    const providers = [
-      GitHubIntegrationProviderFixture(),
-      makeGitHubEnterpriseProvider(),
-    ];
+    const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
 
     render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', {name: /more/i}));
-    await userEvent.click(
-      screen.getByRole('menuitemradio', {name: /github enterprise/i})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
 
     expect(open).toHaveBeenCalledTimes(1);
   });
