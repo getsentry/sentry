@@ -26,7 +26,7 @@ class DashboardRevisionSerializer(Serializer):
         self, item_list: Sequence[DashboardRevision], user: Any, **kwargs: Any
     ) -> dict[DashboardRevision, dict[str, Any]]:
         serialized_users = {
-            u["id"]: u
+            u["id"]: {"id": u["id"], "name": u["name"], "email": u["email"]}
             for u in user_service.serialize_many(
                 filter={
                     "user_ids": [
