@@ -597,7 +597,7 @@ export function ProjectPerformance() {
       },
       visible: hasWebVitalsSeerSuggestions,
     },
-    [DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]: {
+    ['AI Issue Detection']: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
       label: t('AI Issue Detection'),
@@ -1104,18 +1104,6 @@ export function ProjectPerformance() {
             type: 'boolean' as const,
             label: t('Code Health Issues'),
             help: t('Allow code health issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-          },
-          {
-            name: DetectorConfigAdmin.AI_DETECTED_GENERAL_ENABLED,
-            type: 'boolean' as const,
-            label: t('General Issues'),
-            help: t('Allow general issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
