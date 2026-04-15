@@ -254,7 +254,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
         data = {
             "app_id": "com.test.app",
             "images": {"screen.png": {"width": 100, "height": 200}},
-            "all_image_names": ["screen.png", "skipped.png"],
+            "selective": True,
+            "all_image_file_names": ["screen.png", "skipped.png"],
             "head_sha": "a" * 40,
             "base_sha": "b" * 40,
             "provider": "github.com",
@@ -270,22 +271,34 @@ class ProjectPreprodSnapshotTest(APITestCase):
                 self._get_create_url(), self._selective_data(**overrides), format="json"
             )
 
-    def test_all_image_names_rejects_empty_list(self):
-        response = self._post_selective(images={}, all_image_names=[])
+    def test_all_image_file_names_rejects_empty_list(self):
+        response = self._post_selective(images={}, all_image_file_names=[])
         assert response.status_code == 400
         assert "empty" in response.data["detail"]
 
-    def test_all_image_names_requires_base_sha(self):
+    def test_selective_requires_base_sha(self):
         response = self._post_selective(base_sha=None)
         assert response.status_code == 400
         assert "base_sha" in response.data["detail"]
 
-    def test_all_image_names_must_contain_all_images(self):
-        response = self._post_selective(all_image_names=["other.png"])
+    def test_all_image_file_names_must_contain_all_images(self):
+        response = self._post_selective(all_image_file_names=["other.png"])
         assert response.status_code == 400
-        assert "all_image_names" in response.data["detail"]
+        assert "all_image_file_names" in response.data["detail"]
 
-    def test_all_image_names_accepted(self):
+    def test_all_image_file_names_requires_selective(self):
+        response = self._post_selective(selective=False)
+        assert response.status_code == 400
+        assert "selective" in response.data["detail"]
+
+    def test_selective_without_all_image_file_names_accepted(self):
+        data = self._selective_data()
+        del data["all_image_file_names"]
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(self._get_create_url(), data, format="json")
+        assert response.status_code == 200
+
+    def test_selective_with_all_image_file_names_accepted(self):
         response = self._post_selective()
         assert response.status_code == 200
 

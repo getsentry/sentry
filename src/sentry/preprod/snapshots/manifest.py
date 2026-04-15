@@ -19,7 +19,8 @@ class ImageMetadata(BaseModel):
 class SnapshotManifest(BaseModel):
     images: dict[str, ImageMetadata]
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
-    all_image_names: list[str] | None = None
+    selective: bool = False
+    all_image_file_names: list[str] | None = None
 
 
 class ComparisonImageResult(BaseModel):
