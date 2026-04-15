@@ -89,10 +89,6 @@ export function GlobalCommandPaletteActions() {
     onSuccess: () => window.location.reload(),
   });
 
-  if (!organization.features.includes('cmd-k-supercharged')) {
-    return null;
-  }
-
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
 
