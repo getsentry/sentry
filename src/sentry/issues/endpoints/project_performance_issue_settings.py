@@ -18,8 +18,13 @@ from sentry.issue_detection.performance_detection import (
     update_performance_settings,
 )
 from sentry.issues.grouptype import (
+    AIDetectedCodeHealthGroupType,
+    AIDetectedDBGroupType,
+    AIDetectedGeneralGroupType,
+    AIDetectedHTTPGroupType,
+    AIDetectedRuntimePerformanceGroupType,
+    AIDetectedSecurityGroupType,
     GroupType,
-    LLMDetectedExperimentalGroupTypeV2,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -87,6 +92,12 @@ class ConfigurableThresholds(Enum):
     WEB_VITALS = "web_vitals_detection_enabled"
     WEB_VITALS_COUNT = "web_vitals_count"
     LLM_ISSUE_DETECTION = "llm_issue_detection_enabled"
+    AI_DETECTED_HTTP = "ai_detected_http_enabled"
+    AI_DETECTED_DB = "ai_detected_db_enabled"
+    AI_DETECTED_RUNTIME_PERFORMANCE = "ai_detected_runtime_performance_enabled"
+    AI_DETECTED_SECURITY = "ai_detected_security_enabled"
+    AI_DETECTED_CODE_HEALTH = "ai_detected_code_health_enabled"
+    AI_DETECTED_GENERAL = "ai_detected_general_enabled"
 
 
 project_settings_to_group_map: dict[str, type[GroupType]] = {
@@ -105,7 +116,12 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
     ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
     ConfigurableThresholds.WEB_VITALS.value: WebVitalsGroup,
-    ConfigurableThresholds.LLM_ISSUE_DETECTION.value: LLMDetectedExperimentalGroupTypeV2,
+    ConfigurableThresholds.AI_DETECTED_HTTP.value: AIDetectedHTTPGroupType,
+    ConfigurableThresholds.AI_DETECTED_DB.value: AIDetectedDBGroupType,
+    ConfigurableThresholds.AI_DETECTED_RUNTIME_PERFORMANCE.value: AIDetectedRuntimePerformanceGroupType,
+    ConfigurableThresholds.AI_DETECTED_SECURITY.value: AIDetectedSecurityGroupType,
+    ConfigurableThresholds.AI_DETECTED_CODE_HEALTH.value: AIDetectedCodeHealthGroupType,
+    ConfigurableThresholds.AI_DETECTED_GENERAL.value: AIDetectedGeneralGroupType,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
@@ -128,7 +144,12 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: ConfigurableThresholds.HTTP_OVERHEAD.value,
     ConfigurableThresholds.SQL_INJECTION_QUERY_VALUE_LENGTH.value: ConfigurableThresholds.DB_QUERY_INJECTION.value,
     ConfigurableThresholds.WEB_VITALS_COUNT.value: ConfigurableThresholds.WEB_VITALS.value,
-    ConfigurableThresholds.LLM_ISSUE_DETECTION.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AI_DETECTED_HTTP.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AI_DETECTED_DB.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AI_DETECTED_RUNTIME_PERFORMANCE.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AI_DETECTED_SECURITY.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AI_DETECTED_CODE_HEALTH.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AI_DETECTED_GENERAL.value: ConfigurableThresholds.LLM_ISSUE_DETECTION.value,
 }
 """
 A mapping of threshold setting to the parent setting that manages it's detection.
@@ -204,6 +225,12 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     db_query_injection_detection_enabled = serializers.BooleanField(required=False)
     web_vitals_detection_enabled = serializers.BooleanField(required=False)
     llm_issue_detection_enabled = serializers.BooleanField(required=False)
+    ai_detected_http_enabled = serializers.BooleanField(required=False)
+    ai_detected_db_enabled = serializers.BooleanField(required=False)
+    ai_detected_runtime_performance_enabled = serializers.BooleanField(required=False)
+    ai_detected_security_enabled = serializers.BooleanField(required=False)
+    ai_detected_code_health_enabled = serializers.BooleanField(required=False)
+    ai_detected_general_enabled = serializers.BooleanField(required=False)
     sql_injection_query_value_length_threshold = serializers.IntegerField(
         required=False, min_value=3, max_value=10
     )
