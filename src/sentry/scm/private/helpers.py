@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.rate_limit import RedisRateLimitProvider
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 
 
@@ -25,7 +26,10 @@ def fetch_service_provider(
     if not integration:
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
+    try:
+        client = integration.get_installation(organization_id=organization_id).get_client()
+    except IntegrationError:
+        return None
 
     if integration.provider == "github":
         return GitHubProvider(
