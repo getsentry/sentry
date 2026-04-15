@@ -30,14 +30,13 @@ describe('ReleaseHeader', () => {
   });
 
   function renderHeader(organization = OrganizationFixture()) {
-    const location = LocationFixture({
-      pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-      query: {
-        project: String(project.id),
-      },
-    });
+    const pathname = `/organizations/${organization.slug}/releases/${release.version}/`;
+    const query = {
+      project: String(project.id),
+    };
+    const location = LocationFixture({pathname, query});
 
-    const initialRouterConfig: RouterConfig = {location};
+    const initialRouterConfig: RouterConfig = {location: {pathname, query}};
 
     return render(
       <TopBar.Slot.Provider>
