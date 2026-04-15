@@ -1119,7 +1119,7 @@ export function ProjectPerformance() {
             visible: hasAIIssueDetection,
           },
         ],
-        initiallyCollapsed: issueType !== IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+        initiallyCollapsed: issueType !== IssueType.AI_DETECTED_GENERAL,
       },
     ];
 
