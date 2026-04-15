@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {queryOptions, skipToken, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
@@ -14,9 +15,7 @@ import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 
 type UpdateParams = {
@@ -284,27 +283,7 @@ export function fetchProjectsCount(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
 }
 
-function makeProjectTeamsQueryKey({
-  orgSlug,
-  projectSlug,
-  cursor,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-  cursor?: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/', {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug,
-      },
-    }),
-    {query: {cursor}},
-  ];
-}
-
-export function useFetchProjectTeams({
+export function projectTeamsApiOptions({
   orgSlug,
   projectSlug,
   cursor,
@@ -313,10 +292,19 @@ export function useFetchProjectTeams({
   projectSlug: string;
   cursor?: string;
 }) {
-  return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}), {
-    staleTime: 0,
+  return queryOptions({
+    ...apiOptions.as<Team[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/',
+      {
+        path:
+          orgSlug && projectSlug
+            ? {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}
+            : skipToken,
+        query: {cursor},
+        staleTime: 0,
+      }
+    ),
     retry: false,
-    enabled: Boolean(orgSlug && projectSlug),
   });
 }
 
@@ -331,18 +319,17 @@ export function useAddTeamToProject({
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const {queryKey} = projectTeamsApiOptions({orgSlug, projectSlug, cursor});
 
   return useCallback(
     async (team: Team) => {
       await addTeamToProject(api, orgSlug, projectSlug, team);
 
-      setApiQueryData<Team[]>(
-        queryClient,
-        makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}),
-        prevData => (Array.isArray(prevData) ? [team, ...prevData] : [team])
+      queryClient.setQueryData(queryKey, prevData =>
+        prevData ? {...prevData, json: [team, ...prevData.json]} : prevData
       );
     },
-    [api, orgSlug, projectSlug, cursor, queryClient]
+    [api, orgSlug, projectSlug, queryKey, queryClient]
   );
 }
 
@@ -357,18 +344,18 @@ export function useRemoveTeamFromProject({
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const {queryKey} = projectTeamsApiOptions({orgSlug, projectSlug, cursor});
 
   return useCallback(
     async (teamSlug: string) => {
       await removeTeamFromProject(api, orgSlug, projectSlug, teamSlug);
 
-      setApiQueryData<Team[]>(
-        queryClient,
-        makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}),
-        prevData =>
-          Array.isArray(prevData) ? prevData.filter(team => team?.slug !== teamSlug) : []
+      queryClient.setQueryData(queryKey, prevData =>
+        prevData
+          ? {...prevData, json: prevData.json.filter(team => team?.slug !== teamSlug)}
+          : prevData
       );
     },
-    [api, orgSlug, projectSlug, cursor, queryClient]
+    [api, orgSlug, projectSlug, queryKey, queryClient]
   );
 }
