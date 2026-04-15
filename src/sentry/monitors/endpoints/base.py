@@ -14,6 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.viewer_context import set_viewer_context_organization
 
 DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
 
@@ -71,6 +72,7 @@ class MonitorEndpoint(Endpoint):
         bind_organization_context(project.organization)
 
         request._request.organization = project.organization
+        set_viewer_context_organization(project.organization.id)
 
         kwargs["organization"] = organization
         kwargs["project"] = project

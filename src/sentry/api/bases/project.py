@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.viewer_context import set_viewer_context_organization
 
 from .organization import OrganizationPermission
 
@@ -211,6 +212,7 @@ class ProjectEndpoint(Endpoint):
         request._request.organization = (
             project.organization
         )  # XXX: we should not be stuffing random attributes into HttpRequest
+        set_viewer_context_organization(project.organization.id)
 
         kwargs["project"] = project
         return (args, kwargs)

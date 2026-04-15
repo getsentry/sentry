@@ -20,6 +20,7 @@ from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.utils.sdk import bind_organization_context
+from sentry.viewer_context import set_viewer_context_organization
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,7 @@ class GroupEndpoint(Endpoint):
             bind_organization_context(organization)
 
             request._request.organization = organization
+            set_viewer_context_organization(organization.id)
         else:
             organization = None
 
@@ -101,6 +103,7 @@ class GroupEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         request._request.organization = group.project.organization
+        set_viewer_context_organization(group.project.organization.id)
 
         kwargs["group"] = group
 

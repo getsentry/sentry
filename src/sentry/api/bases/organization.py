@@ -39,6 +39,7 @@ from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
+from sentry.viewer_context import set_viewer_context_organization
 
 
 class NoProjects(Exception):
@@ -317,6 +318,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
         # Used for API access logs
         request._request.organization = organization_context.organization
+        set_viewer_context_organization(organization_context.organization.id)
 
         return (args, kwargs)
 
@@ -638,6 +640,7 @@ class OrganizationEndpoint(Endpoint):
         bind_organization_context(organization)
 
         request._request.organization = organization
+        set_viewer_context_organization(organization.id)
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
