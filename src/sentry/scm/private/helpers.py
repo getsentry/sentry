@@ -7,6 +7,7 @@ from scm.rate_limit import RateLimitProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.rate_limit import RedisRateLimitProvider
@@ -28,7 +29,7 @@ def fetch_service_provider(
 
     try:
         client = integration.get_installation(organization_id=organization_id).get_client()
-    except IntegrationError:
+    except (IntegrationError, OrganizationIntegrationNotFound):
         return None
 
     if integration.provider == "github":
