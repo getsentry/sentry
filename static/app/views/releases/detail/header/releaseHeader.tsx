@@ -147,7 +147,7 @@ export function ReleaseHeader({
           <Breadcrumbs crumbs={breadcrumbs} />
         )}
         <Layout.Title>
-          <IdBadge project={project} avatarSize={28} hideName />
+          <IdBadge project={project} avatarSize={16} hideName />
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
             <CopyToClipboardButton
