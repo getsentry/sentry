@@ -12,8 +12,15 @@ from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
-from sentry.seer.autofix.issue_summary import _trigger_autofix_task
+from sentry.seer.autofix.constants import (
+    AutofixAutomationTuningSettings,
+    SeerAutomationSource,
+)
+from sentry.seer.autofix.issue_summary import (
+    _trigger_autofix_task,
+    auto_run_source_map,
+    referrer_map,
+)
 from sentry.seer.autofix.utils import bulk_read_preferences
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.seer_api_models import SeerProjectPreference
@@ -228,8 +235,8 @@ def _trigger_autofix_for_candidate(
             group_id=group.id,
             event_id=event.event_id,
             user_id=None,
-            auto_run_source="night_shift",
-            referrer=AutofixReferrer.NIGHT_SHIFT,
+            auto_run_source=auto_run_source_map[SeerAutomationSource.NIGHT_SHIFT],
+            referrer=referrer_map[SeerAutomationSource.NIGHT_SHIFT],
             stopping_point=stopping_point,
         )
         return True
