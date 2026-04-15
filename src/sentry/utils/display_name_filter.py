@@ -31,32 +31,59 @@ CTA_VERBS: list[str] = ["click", "claim", "collect", "withdraw", "act", "pay"]
 CTA_URGENCY: list[str] = ["now", "here", "your", "link"]
 
 SHORT_URL_SIGNALS: list[str] = [
-    "2g.tel",
-    "bit.ly",
-    "t.co",
-    "tinyurl",
-    "rb.gy",
-    "cutt.ly",
-    "shorturl",
-    "is.gd",
-    "v.gd",
-    "ow.ly",
-    "bl.ink",
+    "2g.tel/",
+    "bit.ly/",
+    "t.co/",
+    "tinyurl.com/",
+    "rb.gy/",
+    "cutt.ly/",
+    "shorturl.at/",
+    "is.gd/",
+    "v.gd/",
+    "ow.ly/",
+    "bl.ink/",
 ]
 
 
-def _has_any(lowered: str, signals: list[str]) -> bool:
+def _is_word_at(text: str, pos: int, length: int) -> bool:
+    """Check that the match at text[pos:pos+length] is bounded by non-alphanumeric chars."""
+    if pos > 0 and text[pos - 1].isalnum():
+        return False
+    end = pos + length
+    if end < len(text) and text[end].isalnum():
+        return False
+    return True
+
+
+def _has_substring(lowered: str, signals: list[str]) -> bool:
     return any(s in lowered for s in signals)
 
 
+def _has_word(lowered: str, signals: list[str]) -> bool:
+    for signal in signals:
+        pos = lowered.find(signal)
+        while pos != -1:
+            if _is_word_at(lowered, pos, len(signal)):
+                return True
+            pos = lowered.find(signal, pos + 1)
+    return False
+
+
+def _has_signal(lowered: str, signals: list[str]) -> bool:
+    """Use word-boundary matching for alphabetic signals, substring for the rest."""
+    alpha = [s for s in signals if s.isalpha()]
+    other = [s for s in signals if not s.isalpha()]
+    return _has_word(lowered, alpha) or _has_substring(lowered, other)
+
+
 def _has_cta(lowered: str) -> bool:
-    return _has_any(lowered, CTA_VERBS) and _has_any(lowered, CTA_URGENCY)
+    return _has_signal(lowered, CTA_VERBS) and _has_signal(lowered, CTA_URGENCY)
 
 
 _CATEGORIES: list[tuple[str, Callable[[str], bool]]] = [
-    ("cryptocurrency terminology", lambda val: _has_any(val, CURRENCY_SIGNALS)),
+    ("cryptocurrency terminology", lambda val: _has_signal(val, CURRENCY_SIGNALS)),
     ("call-to-action phrases", _has_cta),
-    ("URL shortener domains", lambda val: _has_any(val, SHORT_URL_SIGNALS)),
+    ("URL shortener domains", lambda val: _has_signal(val, SHORT_URL_SIGNALS)),
 ]
 
 

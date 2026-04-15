@@ -18,7 +18,7 @@ class TestCheckSpamDisplayName:
         assert check_spam_display_name("Click Here Studios") is None
 
     def test_single_shorturl_signal_passes(self) -> None:
-        assert check_spam_display_name("bit.ly team") is None
+        assert check_spam_display_name("bit.ly/promo team") is None
 
     def test_currency_plus_cta_rejected(self) -> None:
         result = check_spam_display_name("Free BTC - Click Here")
@@ -32,11 +32,17 @@ class TestCheckSpamDisplayName:
         assert "cryptocurrency terminology" in result
         assert "URL shortener domains" in result
 
+    def test_shorturl_without_slash_not_matched(self) -> None:
+        assert check_spam_display_name("support.com Solutions") is None
+
     def test_cta_plus_shorturl_rejected(self) -> None:
         result = check_spam_display_name("Click Here: bit.ly/free")
         assert result is not None
         assert "call-to-action phrases" in result
         assert "URL shortener domains" in result
+
+    def test_bare_shorturl_domain_without_path_passes(self) -> None:
+        assert check_spam_display_name("Free BTC bit.ly") is None
 
     def test_all_three_categories_rejected(self) -> None:
         result = check_spam_display_name("Win $50 ETH bit.ly/offer Claim Now")
@@ -58,6 +64,21 @@ class TestCheckSpamDisplayName:
     def test_cta_novel_combo_rejected(self) -> None:
         result = check_spam_display_name("Withdraw Now - Free BTC")
         assert result is not None
+
+    def test_substring_sol_in_solutions_not_matched(self) -> None:
+        assert check_spam_display_name("Impactful Solutions") is None
+
+    def test_substring_eth_in_method_not_matched(self) -> None:
+        assert check_spam_display_name("Method Analytics") is None
+
+    def test_substring_act_in_contact_not_matched(self) -> None:
+        assert check_spam_display_name("Contact Knowledge Solutions") is None
+
+    def test_substring_now_in_knowledge_not_matched(self) -> None:
+        assert check_spam_display_name("Knowledge Now Platform") is None
+
+    def test_substring_here_in_where_not_matched(self) -> None:
+        assert check_spam_display_name("Where We Shine") is None
 
     def test_empty_string_passes(self) -> None:
         assert check_spam_display_name("") is None
