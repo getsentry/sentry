@@ -57,7 +57,7 @@ export function ReleaseHeader({
       label: t('Releases'),
       preservePageFilters: true,
     },
-    {label: t('Release Details')},
+    ...(hasPageFrameFeature ? [] : [{label: t('Release Details')}]),
   ];
 
   const releasePath = makeReleasesPathname({
