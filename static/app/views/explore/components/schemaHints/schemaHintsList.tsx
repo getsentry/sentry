@@ -446,7 +446,10 @@ export function SchemaHintsList({
 
   if (isLoading) {
     return (
-      <SchemaHintsContainer aria-label={t('Schema Hints List')} style={{overflow: 'hidden'}}>
+      <SchemaHintsContainer
+        aria-label={t('Schema Hints List')}
+        style={{overflow: 'hidden'}}
+      >
         <Placeholder width="8%" height="28px" />
         <Placeholder width="10%" height="28px" />
         <Placeholder width="9%" height="28px" />
