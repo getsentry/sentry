@@ -28,7 +28,9 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["organization_id"] == self.organization.id
-        mock_task.apply_async.assert_called_once_with(args=[self.organization.id])
+        mock_task.apply_async.assert_called_once_with(
+            args=[self.organization.id], kwargs={"dry_run": False}
+        )
 
     def test_missing_organization_id(self) -> None:
         response = self.get_response()
