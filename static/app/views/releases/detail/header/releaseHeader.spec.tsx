@@ -13,6 +13,8 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {ReleaseHeader} from './releaseHeader';
 
 describe('ReleaseHeader', () => {
+  const organization = OrganizationFixture();
+
   const project = ReleaseProjectFixture({
     id: 1,
     slug: 'sentry-android-shop',
@@ -29,13 +31,10 @@ describe('ReleaseHeader', () => {
     projects: [project],
   });
 
-  function renderHeader(organization = OrganizationFixture()) {
-    const pathname = `/organizations/${organization.slug}/releases/${release.version}/`;
-    const query = {
-      project: String(project.id),
-    };
+  function renderHeader(org = organization) {
+    const pathname = `/organizations/${org.slug}/releases/${release.version}/`;
+    const query = {project: String(project.id)};
     const location = LocationFixture({pathname, query});
-
     const initialRouterConfig: RouterConfig = {location: {pathname, query}};
 
     return render(
@@ -47,33 +46,39 @@ describe('ReleaseHeader', () => {
         </div>
         <ReleaseHeader
           location={location}
-          organization={organization}
+          organization={org}
           project={project}
           refetchData={jest.fn()}
           release={release}
           releaseMeta={releaseMeta}
         />
       </TopBar.Slot.Provider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization: org, initialRouterConfig}
     );
   }
 
-  it('renders breadcrumbs and title inside the header without page frame', () => {
+  it('renders breadcrumbs with a link to releases and the release version', () => {
     renderHeader();
 
-    const header = screen.getByRole('tablist').closest('header')!;
-    expect(within(header).getByTestId('breadcrumb-list')).toBeInTheDocument();
-    expect(within(header).getByText(release.version)).toBeInTheDocument();
+    const breadcrumbs = screen.getByTestId('breadcrumb-list');
+    expect(within(breadcrumbs).getByRole('link', {name: 'Releases'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/releases/?project=${project.id}`
+    );
+    expect(screen.getByText(release.version)).toBeInTheDocument();
   });
 
-  it('moves breadcrumbs and title into the top bar when page frame is enabled', () => {
-    renderHeader(OrganizationFixture({features: ['page-frame']}));
+  it('renders breadcrumbs with release version in the top bar when page frame is enabled', () => {
+    const pageFrameOrg = OrganizationFixture({features: ['page-frame']});
+    renderHeader(pageFrameOrg);
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
-    expect(within(topbarSlot).getByTestId('breadcrumb-list')).toBeInTheDocument();
+    const breadcrumbs = within(topbarSlot).getByTestId('breadcrumb-list');
+
+    expect(within(breadcrumbs).getByRole('link', {name: 'Releases'})).toHaveAttribute(
+      'href',
+      `/organizations/${pageFrameOrg.slug}/explore/releases/?project=${project.id}`
+    );
     expect(within(topbarSlot).getByText(release.version)).toBeInTheDocument();
   });
 });
