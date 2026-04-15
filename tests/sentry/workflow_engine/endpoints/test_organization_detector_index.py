@@ -560,6 +560,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert detector_a.name not in returned_names
         assert detector_b.name not in returned_names
 
+    def test_query_by_workflow_invalid_value(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "workflow:abc"},
+            status_code=400,
+        )
+
     def test_query_by_assignee_user_email(self) -> None:
         user = self.create_user(email="assignee@example.com")
         self.create_member(organization=self.organization, user=user)

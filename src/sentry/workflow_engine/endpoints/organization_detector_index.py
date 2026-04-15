@@ -227,7 +227,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             if isinstance(filter.value.value, list)
                             else [filter.value.value]
                         )
-                        workflow_ids = [int(v) for v in workflow_ids]
+                        workflow_ids = to_valid_int_id_list("workflow", workflow_ids)
                         if filter.operator in ("!=", "NOT IN"):
                             queryset = queryset.exclude(
                                 detectorworkflow__workflow_id__in=workflow_ids
