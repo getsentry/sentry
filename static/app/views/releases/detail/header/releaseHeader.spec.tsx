@@ -61,29 +61,19 @@ describe('ReleaseHeader', () => {
     );
   }
 
-  it('renders breadcrumbs inside the page header without page frame', () => {
+  it('renders breadcrumbs and title inside the header without page frame', () => {
     renderHeader();
 
-    const header = screen.getByRole('tablist').closest('header');
-    expect(header).not.toBeNull();
-
-    expect(within(header!).getByTestId('breadcrumb-list')).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('topbar-title')).queryByTestId('breadcrumb-list')
-    ).not.toBeInTheDocument();
+    const header = screen.getByRole('tablist').closest('header')!;
+    expect(within(header).getByTestId('breadcrumb-list')).toBeInTheDocument();
+    expect(within(header).getByText(release.version)).toBeInTheDocument();
   });
 
-  it('moves breadcrumbs into the top bar when page frame is enabled', () => {
-    const organization = OrganizationFixture({features: ['page-frame']});
-    renderHeader(organization);
+  it('moves breadcrumbs and title into the top bar when page frame is enabled', () => {
+    renderHeader(OrganizationFixture({features: ['page-frame']}));
 
-    const header = screen.getByRole('tablist').closest('header');
-    expect(header).not.toBeNull();
-
-    expect(within(header!).queryByTestId('breadcrumb-list')).not.toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('topbar-title-slot')).getByTestId('breadcrumb-list')
-    ).toBeInTheDocument();
-    expect(within(header!).getByText(release.version)).toBeInTheDocument();
+    const topbarSlot = screen.getByTestId('topbar-title-slot');
+    expect(within(topbarSlot).getByTestId('breadcrumb-list')).toBeInTheDocument();
+    expect(within(topbarSlot).getByText(release.version)).toBeInTheDocument();
   });
 });
