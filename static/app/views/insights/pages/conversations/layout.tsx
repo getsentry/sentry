@@ -31,7 +31,7 @@ function ConversationsLayout() {
       {isDetailPage ? (
         hasPageFrameFeature ? (
           <TopBar.Slot name="title">
-            <TopBarBreadcrumbs
+            <Breadcrumbs
               crumbs={[
                 {
                   label: CONVERSATIONS_SIDEBAR_LABEL,
@@ -64,10 +64,6 @@ const DetailHeaderWrapper = styled('div')`
     padding-left: ${p => p.theme.space['2xl']};
     padding-right: ${p => p.theme.space['2xl']};
   }
-`;
-
-const TopBarBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
 `;
 
 export default ConversationsLayout;
