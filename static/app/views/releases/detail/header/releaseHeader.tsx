@@ -147,30 +147,31 @@ export function ReleaseHeader({
           <Breadcrumbs crumbs={breadcrumbs} />
         )}
         <Layout.Title>
-          <IdBadge
-            project={project}
-            avatarSize={hasPageFrameFeature ? 16 : 28}
-            hideName
-          />
-          <Version version={version} anchor={false} truncate />
-          <IconWrapper>
+          <TitleWrapper>
+            <IdBadge
+              project={project}
+              avatarSize={hasPageFrameFeature ? 16 : 28}
+              hideName
+            />
+            <Version version={version} anchor={false} truncate />
             <CopyToClipboardButton
+              className="release-copy-button"
               priority="transparent"
               size="zero"
               text={version}
               tooltipProps={{title: version}}
               aria-label={t('Copy release version to clipboard')}
             />
-          </IconWrapper>
-          {!!url && (
-            <IconWrapper>
-              <Tooltip title={url}>
-                <ExternalLink href={url}>
-                  <IconOpen />
-                </ExternalLink>
-              </Tooltip>
-            </IconWrapper>
-          )}
+            {!!url && (
+              <IconWrapper>
+                <Tooltip title={url}>
+                  <ExternalLink href={url}>
+                    <IconOpen />
+                  </ExternalLink>
+                </Tooltip>
+              </IconWrapper>
+            )}
+          </TitleWrapper>
         </Layout.Title>
       </Layout.HeaderContent>
 
@@ -206,6 +207,21 @@ export function ReleaseHeader({
     </Layout.Header>
   );
 }
+
+const TitleWrapper = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  min-width: 0;
+
+  .release-copy-button {
+    display: none;
+  }
+
+  &:hover .release-copy-button {
+    display: block;
+  }
+`;
 
 const IconWrapper = styled('span')`
   transition: color 0.3s ease-in-out;
