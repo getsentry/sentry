@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -26,7 +24,7 @@ import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetecto
 export function DisableDetectorAction({detector}: {detector: Detector}) {
   const {mutate: updateDetector, isPending: isUpdating} = useUpdateDetector();
 
-  const toggleDisabled = useCallback(() => {
+  const toggleDisabled = () => {
     const newEnabled = !detector.enabled;
     updateDetector(
       {
@@ -39,7 +37,7 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
         },
       }
     );
-  }, [updateDetector, detector.enabled, detector.id]);
+  };
 
   const canEdit = useCanEditDetector({
     detectorType: detector.type,
@@ -100,7 +98,7 @@ export function DeleteDetectorAction({detector}: {detector: Detector}) {
   const {mutateAsync: deleteDetector, isPending: isDeleting} =
     useDeleteDetectorMutation();
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     openConfirmModal({
       message: t('Are you sure you want to delete this monitor?'),
       confirmText: t('Delete'),
@@ -110,7 +108,7 @@ export function DeleteDetectorAction({detector}: {detector: Detector}) {
         navigate(makeMonitorTypePathname(organization.slug, detector.type));
       },
     });
-  }, [deleteDetector, detector.id, detector.type, navigate, organization.slug]);
+  };
 
   const canEdit = useCanEditDetector({
     detectorType: detector.type,

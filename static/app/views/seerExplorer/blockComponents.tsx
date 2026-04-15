@@ -287,33 +287,23 @@ export function BlockComponent({
     false
   );
 
-  const trackThumbsFeedback = useCallback(
-    (type: 'positive' | 'negative') => {
-      // Guard against missing runId (shouldn't happen with showActions check, but be defensive)
-      // Do this instead of hiding buttons to prevent flickering while data's loading for this edge case.
-      if (!feedbackSubmitted && runId !== undefined) {
-        trackAnalytics('seer.explorer.feedback_submitted', {
-          organization,
-          type,
-          run_id: runId,
-          block_index: blockIndex,
-          block_message: block.message.content.slice(0, 100),
-          langfuse_url: getLangfuseUrl(runId),
-          explorer_url: getExplorerUrl(runId),
-          conversations_url: getConversationsUrl('sentry', runId),
-        });
-        setFeedbackSubmitted(true); // disable button for rest of the session
-      }
-    },
-    [
-      organization,
-      blockIndex,
-      runId,
-      block.message.content,
-      feedbackSubmitted,
-      setFeedbackSubmitted,
-    ]
-  );
+  const trackThumbsFeedback = (type: 'positive' | 'negative') => {
+    // Guard against missing runId (shouldn't happen with showActions check, but be defensive)
+    // Do this instead of hiding buttons to prevent flickering while data's loading for this edge case.
+    if (!feedbackSubmitted && runId !== undefined) {
+      trackAnalytics('seer.explorer.feedback_submitted', {
+        organization,
+        type,
+        run_id: runId,
+        block_index: blockIndex,
+        block_message: block.message.content.slice(0, 100),
+        langfuse_url: getLangfuseUrl(runId),
+        explorer_url: getExplorerUrl(runId),
+        conversations_url: getConversationsUrl('sentry', runId),
+      });
+      setFeedbackSubmitted(true); // disable button for rest of the session
+    }
+  };
 
   const thumbsFeedbackButton = (type: 'positive' | 'negative') => {
     const ariaLabel =

@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {useCallback, useEffect} from 'react';
+import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -190,7 +190,7 @@ function ActionButtons({
   const api = useApi();
   const {plan, reservations} = useUpgradeNowParams({organization, subscription});
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -224,9 +224,9 @@ function ActionButtons({
       Sentry.captureException(err);
       redirectToManage(organization);
     }
-  }, [api, organization, subscription, plan, reservations, onComplete, hasPriceChange]);
+  };
 
-  const onClickManageSubscription = useCallback(() => {
+  const onClickManageSubscription = () => {
     trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
       organization,
       surface: 'profiling',
@@ -235,7 +235,7 @@ function ActionButtons({
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
     });
-  }, [organization, subscription]);
+  };
 
   const hasBillingAccess = organization.access?.includes('org:billing');
 

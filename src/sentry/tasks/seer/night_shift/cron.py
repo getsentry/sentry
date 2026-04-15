@@ -12,8 +12,8 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import bulk_read_preferences
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.taskworker.namespaces import seer_tasks
@@ -93,13 +93,22 @@ def run_night_shift_for_org(organization_id: int) -> None:
 
     start_time = time.monotonic()
 
-    eligible_projects = _get_eligible_projects(organization)
-    if not eligible_projects:
-        logger.info(
-            "night_shift.no_eligible_projects",
+    try:
+        eligible_projects = _get_eligible_projects(organization)
+        if not eligible_projects:
+            logger.info(
+                "night_shift.no_eligible_projects",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_slug": organization.slug,
+                },
+            )
+            return
+    except Exception:
+        logger.exception(
+            "night_shift.failed_to_get_eligible_projects",
             extra={
                 "organization_id": organization_id,
-                "organization_slug": organization.slug,
             },
         )
         return
@@ -186,18 +195,19 @@ def _get_eligible_orgs_from_batch(
 
 def _get_eligible_projects(organization: Organization) -> list[Project]:
     """Return active projects that have automation enabled and connected repos."""
-    projects_with_repos = set(
-        SeerProjectRepository.objects.filter(
-            project__organization=organization,
-            project__status=ObjectStatus.ACTIVE,
-        ).values_list("project_id", flat=True)
-    )
-    if not projects_with_repos:
+    project_map = {
+        p.id: p
+        for p in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    }
+    if not project_map:
         return []
 
-    projects = Project.objects.filter(id__in=projects_with_repos)
+    preferences = bulk_read_preferences(organization, list(project_map))
+
     return [
-        p
-        for p in projects
-        if p.get_option("sentry:autofix_automation_tuning") != AutofixAutomationTuningSettings.OFF
+        project_map[pid]
+        for pid, pref in preferences.items()
+        if pref is not None
+        and pref.repositories
+        and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
     ]

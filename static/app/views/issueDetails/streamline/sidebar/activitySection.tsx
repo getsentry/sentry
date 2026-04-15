@@ -222,28 +222,25 @@ export function StreamlinedActivitySection({
     [group.activity, mutators, group.id, organization]
   );
 
-  const handleCreate = useCallback(
-    (n: NoteType, _me: User) => {
-      mutators.handleCreate(n, group.activity, {
-        onError: err => {
-          const errMessage = err.responseJSON?.detail
-            ? tct('Error: [msg]', {msg: err.responseJSON?.detail as string})
-            : t('Unable to post comment');
-          addErrorMessage(errMessage);
-        },
-        onSuccess: data => {
-          GroupStore.addActivity(group.id, data);
-          trackAnalytics('issue_details.comment_created', {
-            organization,
-            streamline: true,
-            org_streamline_only: organization.streamlineOnly ?? undefined,
-          });
-          addSuccessMessage(t('Comment posted'));
-        },
-      });
-    },
-    [group.activity, mutators, group.id, organization]
-  );
+  const handleCreate = (n: NoteType, _me: User) => {
+    mutators.handleCreate(n, group.activity, {
+      onError: err => {
+        const errMessage = err.responseJSON?.detail
+          ? tct('Error: [msg]', {msg: err.responseJSON?.detail as string})
+          : t('Unable to post comment');
+        addErrorMessage(errMessage);
+      },
+      onSuccess: data => {
+        GroupStore.addActivity(group.id, data);
+        trackAnalytics('issue_details.comment_created', {
+          organization,
+          streamline: true,
+          org_streamline_only: organization.streamlineOnly ?? undefined,
+        });
+        addSuccessMessage(t('Comment posted'));
+      },
+    });
+  };
 
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,

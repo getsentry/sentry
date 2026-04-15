@@ -67,9 +67,9 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     [blocks, artifacts]
   );
 
-  const handleStartCodeChanges = useCallback(() => {
+  const handleStartCodeChanges = () => {
     startStep('code_changes');
-  }, [startStep]);
+  };
 
   const handleStartStep = useCallback(
     async (step: Parameters<typeof startStep>[0]) => {

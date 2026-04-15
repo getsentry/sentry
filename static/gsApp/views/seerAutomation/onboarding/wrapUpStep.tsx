@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
@@ -21,9 +21,9 @@ export function WrapUpStep() {
     useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
   const hasCodeReview = useMemo(
     () => selectedCodeReviewRepositories.length > 0,

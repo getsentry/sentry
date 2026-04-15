@@ -63,31 +63,25 @@ export function ToolbarVisualize({
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
-  const replaceOverlay = useCallback(
-    (group: number, newVisualize: Visualize) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          return newVisualize.serialize();
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const replaceOverlay = (group: number, newVisualize: Visualize) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        return newVisualize.serialize();
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
-  const toggleVisibility = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          visualize = visualize.replace({visible: !visualize.visible});
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const toggleVisibility = (group: number) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        visualize = visualize.replace({visible: !visualize.visible});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
   const handleOnDelete = useCallback(
     (group: number) => {

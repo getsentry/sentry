@@ -172,6 +172,7 @@ def create_preprod_snapshot_pr_comment_task(
             base_artifact_map,
             changes_map,
             approvals_map=approvals_map,
+            project=artifact.project,
         )
 
         existing_comment_id = find_existing_comment_id(all_for_pr, "snapshots")
