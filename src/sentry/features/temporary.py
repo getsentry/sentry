@@ -500,6 +500,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the expand/collapse table height toggle in the logs UI
     manager.add("organizations:ourlogs-table-expando", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable various explore related dev features, may be used by internal branches for testing.
+    manager.add("organizations:explore-dev-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable alerting on trace metrics
     manager.add("organizations:tracemetrics-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
