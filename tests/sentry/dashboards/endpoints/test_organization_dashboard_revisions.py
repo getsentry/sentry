@@ -58,8 +58,11 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
         assert data["id"] == str(revision.id)
         assert data["title"] == "Dashboard 1"
         assert data["source"] == "edit"
-        assert data["createdBy"] is not None
-        assert data["createdBy"]["id"] == str(self.user.id)
+        assert data["createdBy"] == {
+            "id": str(self.user.id),
+            "name": self.user.get_display_name(),
+            "email": self.user.email,
+        }
         assert "dateCreated" in data
 
     def test_returns_revisions_newest_first(self) -> None:
