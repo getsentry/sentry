@@ -155,6 +155,7 @@ export function Filter({traceMetric}: FilterProps) {
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
         attributeQuery: traceMetricFilter,
+        hiddenAttributeKeys: HiddenTraceMetricSearchFields,
       };
     }, [
       query,

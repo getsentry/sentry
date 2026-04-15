@@ -36,6 +36,7 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  hiddenAttributeKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -107,6 +108,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowLogicalOperators,
   disableRecentSearches,
   attributeQuery,
+  hiddenAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
@@ -150,6 +152,7 @@ export function useTraceItemSearchQueryBuilderProps({
     projects,
     extraTags: functionTags,
     query: attributeQuery,
+    hiddenKeys: hiddenAttributeKeys,
   });
 
   return useMemo(
@@ -248,6 +251,7 @@ export function TraceItemSearchQueryBuilder({
   disallowLogicalOperators,
   disableRecentSearches,
   attributeQuery,
+  hiddenAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -276,6 +280,7 @@ export function TraceItemSearchQueryBuilder({
     disallowLogicalOperators,
     disableRecentSearches,
     attributeQuery,
+    hiddenAttributeKeys,
   });
 
   return (
