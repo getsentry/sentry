@@ -14,14 +14,14 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import {
+  selectTraceItemTagCollection,
+  useTraceItemAttributeKeysOptions,
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  selectTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 const EMPTY_TAG_COLLECTION: TagCollection = {};
 

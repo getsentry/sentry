@@ -18,6 +18,10 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import {
+  selectTraceItemTagCollection,
+  useTraceItemAttributeKeysOptions,
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
@@ -27,10 +31,6 @@ import {
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  selectTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 const EMPTY_TAG_COLLECTION: TagCollection = {};
 const EMPTY_ALIASES: TagCollection = {};

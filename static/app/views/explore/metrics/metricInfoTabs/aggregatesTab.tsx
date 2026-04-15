@@ -17,6 +17,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  selectTraceItemTagCollection,
+  useTraceItemAttributeKeysOptions,
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
   StyledSimpleTable,
@@ -46,10 +50,6 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  selectTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;

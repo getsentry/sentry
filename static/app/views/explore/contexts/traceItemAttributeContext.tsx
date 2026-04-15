@@ -19,12 +19,12 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import {removeHiddenKeys} from 'sentry/views/explore/utils';
 import {
   selectTraceItemTagCollection,
   useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
 
 type TypedTraceItemAttributes = {
   boolean: TagCollection;

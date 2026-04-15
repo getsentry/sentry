@@ -11,12 +11,12 @@ import type {Project} from 'sentry/types/project';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useProjects} from 'sentry/utils/useProjects';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   elideTagBasedAttributes,
   selectTraceItemTagCollection,
   useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   AllowedDataScrubbingDatasets,
   type AttributeSuggestion,

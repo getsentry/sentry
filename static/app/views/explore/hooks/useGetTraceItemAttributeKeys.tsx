@@ -11,7 +11,7 @@ import type {
 import {
   getTraceItemTagCollection,
   useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   projectIds?: Array<string | number>;
