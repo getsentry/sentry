@@ -78,6 +78,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -280,6 +281,23 @@ class ControlSiloOrganizationSerializer(Serializer):
     ) -> ControlSiloOrganizationSerializerResponse:
         return dict(
             id=str(obj.id),
+            slug=obj.slug,
+            name=obj.name,
+        )
+
+
+class ControlSiloOrganizationMappingSerializer(Serializer):
+    # TODO(cells): Add the `avatar` to this serializer
+    # once it is available in the control silo
+    def serialize(
+        self,
+        obj: OrganizationMapping,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ControlSiloOrganizationSerializerResponse:
+        return dict(
+            id=str(obj.organization_id),
             slug=obj.slug,
             name=obj.name,
         )

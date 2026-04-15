@@ -9,6 +9,12 @@ import type {BreakpointSize} from 'sentry/utils/theme';
 import {rc, useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
 
 const theme = ThemeFixture();
+const normalizeCss = (value: string) =>
+  value
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .join('\n');
 
 // Mock window.matchMedia
 const mockMatchMedia = (matches: boolean) => ({
@@ -51,16 +57,15 @@ const setupMediaQueries = (
 };
 
 describe('rc', () => {
-  // Emotion appends ';' after each interpolated string value in a css template literal.
-  // So css`${output}`.styles === output + ';'.
-
   it('returns a simple CSS declaration for a plain string value', () => {
-    const output = rc('color', 'red', theme);
+    const output = rc('color', 'red', theme)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 
   it('returns undefined when value is undefined', () => {
@@ -68,12 +73,14 @@ describe('rc', () => {
   });
 
   it('applies a resolver to a plain value', () => {
-    const output = rc('color', 'primary', theme, value => `resolved-${value}`);
+    const output = rc('color', 'primary', theme, value => `resolved-${value}`)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 
   it('returns undefined when resolver returns undefined for a plain value', () => {
@@ -82,22 +89,26 @@ describe('rc', () => {
 
   it('generates media queries for responsive values', () => {
     // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
-    const output = rc('color', {xs: 'blue', md: 'green'}, theme);
+    const output = rc('color', {xs: 'blue', md: 'green'}, theme)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 
   it('skips undefined intermediate breakpoints', () => {
     // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
-    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme);
+    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme)!;
     expect(
-      css`
-        ${output}
-      `.styles
-    ).toBe(output + ';');
+      normalizeCss(
+        css`
+          ${output}
+        `.styles
+      )
+    ).toEqual(normalizeCss(output));
   });
 });
 

@@ -1006,6 +1006,50 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query_snapshot is not None
         assert snuba_query.query_snapshot.get("user_updated") is True
 
+    def test_update_generic_metrics_dataset_to_transactions(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "event.type:transaction",
+                "aggregate": "count()",
+                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            }
+        ]
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
+            == Dataset.Transactions.value
+        )
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
+            == "event.type:transaction"
+        )
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["eventTypes"] == [
+            SnubaQueryEventType.EventType.TRANSACTION.name.lower()
+        ]
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
+        assert query_sub.snuba_query.query == "event.type:transaction"
+        assert query_sub.snuba_query.aggregate == "count()"
+        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
