@@ -50,9 +50,9 @@ export function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
-  const renderTitleContent = (avatarSize: number) => (
+  const renderTitleContent = () => (
     <React.Fragment>
-      <IdBadge project={project} avatarSize={avatarSize} hideName />
+      <IdBadge project={project} avatarSize={16} hideName />
       <Version version={version} anchor={false} truncate />
       <CopyToClipboardButton
         className="release-copy-button"
@@ -166,7 +166,7 @@ export function ReleaseHeader({
                 {
                   label: (
                     <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                      {renderTitleContent(16)}
+                      {renderTitleContent()}
                     </Flex>
                   ),
                 },
@@ -185,7 +185,7 @@ export function ReleaseHeader({
                 {label: t('Release Details')},
               ]}
             />
-            <Layout.Title>{renderTitleContent(28)}</Layout.Title>
+            <Layout.Title>{renderTitleContent()}</Layout.Title>
           </React.Fragment>
         )}
       </Layout.HeaderContent>
