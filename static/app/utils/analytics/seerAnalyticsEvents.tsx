@@ -109,10 +109,10 @@ export type SeerAnalyticsEventsParameters = {
     user_id: string;
   };
   'seer.config_reminder.rendered': {
+    can_write_settings: boolean;
     has_code_review_beta: boolean;
     has_legacy_seer: boolean;
     has_seat_based_seer: boolean;
-    initial_step: string;
   };
   'seer.explorer.feedback_submitted': {
     block_index: number;

@@ -136,6 +136,7 @@ VALID_GRANULARITIES = frozenset(
         2 * 3600,
         3 * 3600,
         4 * 3600,
+        6 * 3600,
         12 * 3600,
         24 * 3600,  # hours
     }

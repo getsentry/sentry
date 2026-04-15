@@ -1,4 +1,3 @@
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
@@ -11,7 +10,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -76,10 +74,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
-        try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_params(request.GET)
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)

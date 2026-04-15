@@ -3,12 +3,9 @@ from django.utils import timezone
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
-
-event_time = before_now(days=3)
 
 
 @no_silo_test
@@ -17,11 +14,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         super().setUp()
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/issues/alerts/"
-
-    def test_empty_incidents(self) -> None:
-        with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def test_incidents_list(self) -> None:
         alert_rule = self.create_alert_rule(name="Alert Rule #1")

@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import DeleteQuery, Request
 from taskbroker_client.retry import Retry
 
@@ -13,6 +14,11 @@ from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.search.eap.occurrences.query_utils import (
+    build_group_id_in_filter,
+    build_keyset_pagination_filter,
+)
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -155,12 +161,20 @@ def fetch_events_from_eventstore(
 ) -> list[Event]:
     logger.info("Fetching %s events for deletion.", limit)
     conditions = []
+    eap_conditions: TraceItemFilter | None = build_group_id_in_filter(group_ids)
     if last_event_id and last_event_timestamp:
         conditions.extend(
             [
                 ["timestamp", "<=", last_event_timestamp],
                 [["timestamp", "<", last_event_timestamp], ["event_id", "<", last_event_id]],
             ]
+        )
+        eap_conditions = and_trace_item_filters(
+            eap_conditions,
+            build_keyset_pagination_filter(
+                timestamp_value=last_event_timestamp,
+                event_id=last_event_id,
+            ),
         )
 
     events = eventstore.backend.get_unfetched_events(
@@ -169,6 +183,7 @@ def fetch_events_from_eventstore(
             project_ids=[project_id],
             group_ids=group_ids,
         ),
+        eap_conditions=eap_conditions,
         limit=limit,
         referrer=referrer,
         orderby=["-timestamp", "-event_id"],

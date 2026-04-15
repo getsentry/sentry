@@ -55,8 +55,10 @@ class ExplorerChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
+    reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_code_mode_tools: NotRequired[bool]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -68,6 +70,7 @@ class ExplorerChatRequest(TypedDict):
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
+    proxy_headers: NotRequired[dict[str, str] | None]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -294,6 +297,29 @@ def collect_user_org_context(
         "user_teams": user_teams,
         "user_projects": user_projects,
         "all_org_projects": all_org_projects,
+    }
+
+
+def get_proxy_headers() -> dict[str, str] | None:
+    """Build auth headers for Seer to echo back to Sentry on callbacks.
+
+    Returns a dict of headers (X-Viewer-Context + signature) or None.
+    """
+    from sentry.seer.signed_seer_api import sign_viewer_context
+    from sentry.viewer_context import get_viewer_context
+
+    ctx = get_viewer_context()
+    if ctx is None or ctx.user_id is None:
+        return None
+
+    if not settings.SEER_API_SHARED_SECRET:
+        return None
+
+    context_bytes = orjson.dumps(ctx.serialize())
+    signature = sign_viewer_context(context_bytes)
+    return {
+        "X-Viewer-Context": context_bytes.decode("utf-8"),
+        "X-Viewer-Context-Signature": signature,
     }
 
 

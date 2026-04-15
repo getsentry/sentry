@@ -13,7 +13,6 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -51,7 +50,12 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerPanel() {
-  const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
+  const {
+    isOpen: isVisible,
+    openExplorerPanel,
+    isMinimized,
+    setIsMinimized,
+  } = useExplorerPanel();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -62,7 +66,6 @@ export function ExplorerPanel() {
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -101,18 +104,17 @@ export function ExplorerPanel() {
   const {
     runId,
     sessionData,
+    isPolling,
+    isError,
     sendMessage,
     deleteFromIndex,
     startNewSession,
-    isPolling,
-    isError,
-    interruptRun,
-    interruptRequested,
-    wasJustInterrupted,
-    clearWasJustInterrupted,
     switchToRun,
     respondToUserInput,
     createPR,
+    interruptRun,
+    interruptRequested,
+    wasJustInterrupted,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
   } = useSeerExplorer();
@@ -134,15 +136,8 @@ export function ExplorerPanel() {
     switchToRun,
     sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
-    onUnminimize: useCallback(() => setIsMinimized(false), []),
+    onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]),
   });
-
-  // Clear wasJustInterrupted when user starts typing
-  useEffect(() => {
-    if (inputValue.length > 0 && wasJustInterrupted) {
-      clearWasJustInterrupted();
-    }
-  }, [inputValue, wasJustInterrupted, clearWasJustInterrupted]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -153,25 +148,12 @@ export function ExplorerPanel() {
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
-  // Check owner id to determine edit permission. Defensive against any useUser return shape.
-  // Despite the type annotation, useUser can return null or undefined when not logged in.
-  // This component is in the top-level index so we have to guard against this.
-  const rawUser = useUser() as unknown;
-  const ownerUserId = sessionData?.owner_user_id ?? undefined;
-  const readOnly = useMemo(() => {
-    const isUser = (value: unknown): value is User =>
-      Boolean(
-        value &&
-        typeof value === 'object' &&
-        'id' in value &&
-        typeof value.id === 'string'
-      );
-    const userId = isUser(rawUser) ? rawUser.id : undefined;
-    return (
-      userId === undefined ||
-      (ownerUserId !== undefined && ownerUserId?.toString() !== userId)
-    );
-  }, [rawUser, ownerUserId]);
+  // Check owner id to determine edit permission.
+  const user = useUser();
+  const readOnly =
+    sessionData?.owner_user_id !== undefined &&
+    sessionData.owner_user_id !== null &&
+    sessionData.owner_user_id.toString() !== user.id;
 
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
@@ -206,7 +188,20 @@ export function ExplorerPanel() {
         textareaRef.current?.focus();
       }, 100);
     }
-  }, [isVisible]);
+  }, [isVisible, setIsMinimized]);
+
+  // Focus textarea whenever the panel transitions from minimized → unminimized
+  const prevIsMinimizedRef = useRef(isMinimized);
+  useEffect(() => {
+    if (prevIsMinimizedRef.current && !isMinimized) {
+      allowHoverFocusChange.current = false;
+      setTimeout(() => {
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+      }, 100);
+    }
+    prevIsMinimizedRef.current = isMinimized;
+  }, [isMinimized]);
 
   // Detect clicks outside the panel to minimize it (but not when seer drawer is open)
   useEffect(() => {
@@ -224,7 +219,7 @@ export function ExplorerPanel() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen]);
+  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen, setIsMinimized]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -365,8 +360,8 @@ export function ExplorerPanel() {
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
-        formTitle: 'Seer Explorer Feedback',
-        messagePlaceholder: 'How can we make Seer Explorer better for you?',
+        formTitle: 'Seer Agent Feedback',
+        messagePlaceholder: 'How can we make Seer better for you?',
         tags: {
           ['feedback.source']: 'seer_explorer',
           ['feedback.owner']: 'ml-ai',
@@ -406,7 +401,7 @@ export function ExplorerPanel() {
   const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
     closeMenu();
-  }, [closeMenu]);
+  }, [closeMenu, setIsMinimized]);
 
   // Close menu when clicking outside of it
   useEffect(() => {
@@ -446,21 +441,8 @@ export function ExplorerPanel() {
 
   const handleUnminimize = useCallback(() => {
     setIsMinimized(false);
-    // Disable hover focus changes until mouse actually moves
-    allowHoverFocusChange.current = false;
-    // Restore focus to the previously focused block if it exists and is valid
-    if (focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
-      setTimeout(() => {
-        blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
-      }, 100);
-    } else {
-      // No valid block focus, focus input
-      setTimeout(() => {
-        setFocusedBlockIndex(-1);
-        textareaRef.current?.focus();
-      }, 100);
-    }
-  }, [focusedBlockIndex, blocks.length]);
+    // focus/scroll side-effects are handled by the prevIsMinimizedRef effect above
+  }, [setIsMinimized]);
 
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
@@ -549,6 +531,7 @@ export function ExplorerPanel() {
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,
+    setIsMinimized,
   ]);
 
   useBlockNavigation({
@@ -732,13 +715,12 @@ export function ExplorerPanel() {
       <InputSection
         blocks={blocks}
         enabled={!readOnly}
-        focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
+        wasJustInterrupted={wasJustInterrupted}
         isMinimized={isMinimized}
         isPolling={isPolling}
         isVisible={isVisible}
-        wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
         onInputChange={handleInputChange}

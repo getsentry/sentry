@@ -8,9 +8,12 @@ from botocore.exceptions import ClientError
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+from rest_framework.fields import CharField, ChoiceField, IntegerField, ListField
 
 from sentry import analytics, options
 from sentry.analytics.events.integration_serverless_setup import IntegrationServerlessSetup
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -25,7 +28,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView, render_react_view
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView, render_react_view
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
@@ -198,6 +202,209 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.get_serialized_lambda_function(target)
 
 
+class ProjectSelectSerializer(CamelSnakeSerializer):
+    project_id = IntegerField(required=True)
+
+
+class ProjectSelectApiStep:
+    step_name = "project_select"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return ProjectSelectSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        project_id = validated_data["project_id"]
+
+        assert pipeline.organization is not None
+        valid_project_ids = {p.id for p in pipeline.organization.projects}
+        if project_id not in valid_project_ids:
+            return PipelineStepResult.error("Invalid project")
+
+        pipeline.bind_state("project_id", project_id)
+        return PipelineStepResult.advance()
+
+
+class CloudFormationSerializer(CamelSnakeSerializer):
+    account_number = CharField(required=True)
+    region = ChoiceField(choices=[(r, r) for r in ALL_AWS_REGIONS], required=True)
+    aws_external_id = CharField(required=True)
+
+    def validate_account_number(self, value: str) -> str:
+        if not value.isdigit() or len(value) != 12:
+            raise serializers.ValidationError("Must be a 12-digit AWS account number")
+        return value
+
+
+class CloudFormationApiStep:
+    step_name = "cloudformation"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        template_url = options.get("aws-lambda.cloudformation-url")
+        return {
+            "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+            "templateUrl": template_url,
+            "stackName": "Sentry-Monitoring-Stack",
+            "regionList": ALL_AWS_REGIONS,
+        }
+
+    def get_serializer_cls(self) -> type:
+        return CloudFormationSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        account_number = validated_data["account_number"]
+        region = validated_data["region"]
+        aws_external_id = validated_data["aws_external_id"]
+
+        pipeline.bind_state("account_number", account_number)
+        pipeline.bind_state("region", region)
+        pipeline.bind_state("aws_external_id", aws_external_id)
+
+        try:
+            gen_aws_client(account_number, region, aws_external_id)
+        except ClientError:
+            return PipelineStepResult.error(
+                "Please validate the Cloudformation stack was created successfully"
+            )
+        except ConfigurationError:
+            raise
+        except Exception as e:
+            logger.warning(
+                "CloudFormationApiStep.unexpected_error",
+                extra={"error": str(e)},
+            )
+            return PipelineStepResult.error("Unknown error")
+
+        return PipelineStepResult.advance()
+
+
+class FunctionSelectSerializer(CamelSnakeSerializer):
+    enabled_functions = ListField(child=CharField(), required=True)
+
+
+class InstrumentationApiStep:
+    step_name = "instrumentation"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        account_number = pipeline.fetch_state("account_number")
+        region = pipeline.fetch_state("region")
+        aws_external_id = pipeline.fetch_state("aws_external_id")
+
+        lambda_client = gen_aws_client(account_number, region, aws_external_id)
+        lambda_functions = get_supported_functions(lambda_client)
+        lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
+
+        return {
+            "functions": [
+                {
+                    "name": fn["FunctionName"],
+                    "runtime": fn["Runtime"],
+                    "description": fn.get("Description", ""),
+                }
+                for fn in lambda_functions
+            ]
+        }
+
+    def get_serializer_cls(self) -> type:
+        return FunctionSelectSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        assert pipeline.organization is not None
+        organization = pipeline.organization
+
+        account_number = pipeline.fetch_state("account_number")
+        region = pipeline.fetch_state("region")
+        project_id = pipeline.fetch_state("project_id")
+        aws_external_id = pipeline.fetch_state("aws_external_id")
+
+        enabled_functions = validated_data["enabled_functions"]
+        enabled_lambdas = {name: True for name in enabled_functions}
+
+        sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
+
+        lambda_client = gen_aws_client(account_number, region, aws_external_id)
+        lambda_functions = get_supported_functions(lambda_client)
+        lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
+
+        lambda_functions = [
+            fn for fn in lambda_functions if enabled_lambdas.get(fn["FunctionName"])
+        ]
+
+        def _enable_lambda(function):
+            try:
+                enable_single_lambda(lambda_client, function, sentry_project_dsn)
+                return (True, function, None)
+            except Exception as e:
+                return (False, function, e)
+
+        failures: list[dict[str, Any]] = []
+        success_count = 0
+
+        with ContextPropagatingThreadPoolExecutor(
+            max_workers=options.get("aws-lambda.thread-count")
+        ) as _lambda_setup_thread_pool:
+            for success, function, e in _lambda_setup_thread_pool.map(
+                _enable_lambda, lambda_functions
+            ):
+                name = function["FunctionName"]
+                if success:
+                    success_count += 1
+                else:
+                    err_message: str | _StrPromise = str(e)
+                    is_custom_err, err_message = get_sentry_err_message(err_message)
+                    if not is_custom_err:
+                        capture_exception(e)
+                        err_message = _("Unknown Error")
+                    failures.append({"name": name, "error": str(err_message)})
+                    logger.info(
+                        "update_function_configuration.error",
+                        extra={
+                            "organization_id": organization.id,
+                            "lambda_name": name,
+                            "account_number": account_number,
+                            "region": region,
+                            "error": str(e),
+                        },
+                    )
+
+        analytics.record(
+            IntegrationServerlessSetup(
+                user_id=request.user.id,
+                organization_id=organization.id,
+                integration="aws_lambda",
+                success_count=success_count,
+                failure_count=len(failures),
+            )
+        )
+
+        if failures:
+            return PipelineStepResult.stay(
+                data={
+                    "failures": failures,
+                    "successCount": success_count,
+                }
+            )
+
+        return PipelineStepResult.advance()
+
+
 class AwsLambdaIntegrationProvider(IntegrationProvider):
     key = "aws_lambda"
     name = "AWS Lambda"
@@ -211,6 +418,13 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             AwsLambdaCloudFormationPipelineView(),
             AwsLambdaListFunctionsPipelineView(),
             AwsLambdaSetupLayerPipelineView(),
+        ]
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            ProjectSelectApiStep(),
+            CloudFormationApiStep(),
+            InstrumentationApiStep(),
         ]
 
     @control_silo_function

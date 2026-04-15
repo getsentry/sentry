@@ -69,11 +69,11 @@ export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
     [location, navigate, organization]
   );
 
-  const handleViewFullTraceClick = useCallback(() => {
+  const handleViewFullTraceClick = () => {
     trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
       organization,
     });
-  }, [organization]);
+  };
 
   if (isLoading) {
     return <LoadingIndicator />;

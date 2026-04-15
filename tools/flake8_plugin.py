@@ -43,6 +43,11 @@ S014_msg = "S014 Use `unittest.mock` instead"
 
 S016_msg = "S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor` instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation."
 
+S017_msg = (
+    "S017 Platform boundary violation: do not import non-platform getsentry code in "
+    "billing/platform/. Use only getsentry.billing.platform.* imports."
+)
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -55,6 +60,19 @@ def _s015_msg() -> str:
 
 def _is_tests_path(filename: str) -> bool:
     return "tests/" in filename or "testutils/" in filename
+
+
+def _is_platform_path(filename: str) -> bool:
+    return "billing/platform/" in filename and "tests/" not in filename
+
+
+def _is_non_platform_import(module: str) -> bool:
+    """Check if a getsentry import is outside the billing platform."""
+    if module.startswith("getsentry.") or module == "getsentry":
+        platform_prefix = "getsentry.billing.platform"
+        if not (module.startswith(platform_prefix + ".") or module == platform_prefix):
+            return True
+    return False
 
 
 # Returns the literal year when this is a datetime(...) call shape we lint for.
@@ -120,6 +138,14 @@ class SentryVisitor(ast.NodeVisitor):
             ):
                 self.errors.append((node.lineno, node.col_offset, S016_msg))
 
+        if (
+            _is_platform_path(self.filename)
+            and node.module
+            and not node.level
+            and _is_non_platform_import(node.module)
+        ):
+            self.errors.append((node.lineno, node.col_offset, S017_msg))
+
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -133,6 +159,11 @@ class SentryVisitor(ast.NodeVisitor):
                 and "sentry.testutils" in alias.name
             ):
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
+
+        if _is_platform_path(self.filename):
+            for alias in node.names:
+                if _is_non_platform_import(alias.name):
+                    self.errors.append((node.lineno, node.col_offset, S017_msg))
 
         self.generic_visit(node)
 

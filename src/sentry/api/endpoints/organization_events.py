@@ -25,7 +25,6 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -108,7 +107,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
             "organizations:starfish-view",
@@ -194,8 +192,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     },
                 }
             )
-        except InvalidParams as err:
-            raise ParseError(detail=str(err))
 
         batch_features = self.get_features(organization, request)
 

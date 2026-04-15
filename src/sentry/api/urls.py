@@ -377,7 +377,6 @@ from sentry.issues.endpoints.organization_issues_resolved_in_release import (
 )
 from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
-from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.issues.endpoints.project_issues_resolved_in_release import (
     ProjectIssuesResolvedInReleaseEndpoint,
 )
@@ -528,6 +527,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
+from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -3278,12 +3278,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectRepoPathParsingEndpoint.as_view(),
         name="sentry-api-0-project-repo-path-parsing",
     ),
-    # Grouping configs
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/grouping-configs/$",
-        ProjectGroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-project-grouping-configs",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingProfileEndpoint.as_view(),
@@ -3660,6 +3654,11 @@ INTERNAL_URLS = [
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
+    re_path(
+        r"^seer/night-shift/trigger/$",
+        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        name="sentry-admin-seer-night-shift-trigger",
+    ),
 ]
 
 urlpatterns = [
@@ -3788,11 +3787,6 @@ urlpatterns = [
         r"^data-export/notifications/google-cloud/$",
         DataExportNotificationsEndpoint.as_view(),
         name="sentry-api-0-data-export-notifications",
-    ),
-    re_path(
-        r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
-        AcceptOrganizationInvite.as_view(),
-        name="sentry-api-0-accept-organization-invite",
     ),
     re_path(
         r"^notification-defaults/$",

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import partialRight from 'lodash/partialRight';
 
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
@@ -43,10 +42,6 @@ export function scaleTimeSeriesData(
     (sourceType === 'size' && !isASizeUnit(destinationUnit)) ||
     (sourceType === 'rate' && !isARateUnit(destinationUnit))
   ) {
-    Sentry.captureMessage(
-      `Attempted invalid timeseries conversion from ${sourceType} in ${sourceUnit} to ${destinationUnit}`
-    );
-
     return timeSeries;
   }
 

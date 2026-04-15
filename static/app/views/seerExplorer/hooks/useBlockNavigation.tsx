@@ -99,19 +99,6 @@ export function useBlockNavigation({
             }
           }
         }
-      } else if (e.key === 'Tab') {
-        e.preventDefault();
-        onNavigate?.();
-        if (isMinimized && focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
-          scrollToElement(blockRefs.current[focusedBlockIndex] ?? null);
-        } else {
-          setFocusedBlockIndex(-1);
-          const textareaElement = textareaRef.current;
-          if (textareaElement) {
-            textareaElement.focus();
-            scrollToElement(textareaElement);
-          }
-        }
       } else if (e.key === 'Enter' && focusedBlockIndex >= 0) {
         e.preventDefault();
         onKeyPress?.(focusedBlockIndex, 'Enter');

@@ -30,6 +30,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import QueryList from './queryList';
 import {getPrebuiltQueries} from './utils';
@@ -132,6 +134,7 @@ const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 function DiscoverLanding() {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const activeSort = useActiveSort();
   const savedSearchQuery = useSavedSearchQuery();
@@ -201,21 +204,38 @@ function DiscoverLanding() {
                 ]}
               />
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <LinkButton
-                data-test-id="build-new-query"
-                to={to}
-                size="sm"
-                priority="primary"
-                onClick={() => {
-                  trackAnalytics('discover_v2.build_new_query', {
-                    organization,
-                  });
-                }}
-              >
-                {t('Build a new query')}
-              </LinkButton>
-            </Layout.HeaderActions>
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="actions">
+                <LinkButton
+                  data-test-id="build-new-query"
+                  to={to}
+                  priority="primary"
+                  onClick={() => {
+                    trackAnalytics('discover_v2.build_new_query', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Build a new query')}
+                </LinkButton>
+              </TopBar.Slot>
+            ) : (
+              <Layout.HeaderActions>
+                <LinkButton
+                  data-test-id="build-new-query"
+                  to={to}
+                  size="sm"
+                  priority="primary"
+                  onClick={() => {
+                    trackAnalytics('discover_v2.build_new_query', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Build a new query')}
+                </LinkButton>
+              </Layout.HeaderActions>
+            )}
           </Layout.Header>
           <Layout.Body>
             <Layout.Main width="full">
