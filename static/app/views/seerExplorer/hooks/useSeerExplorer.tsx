@@ -508,8 +508,8 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
-  // Clear optimistic blocks once the server has persisted the user message
-  // and produced a real assistant response after the insert point.
+  // On partial response load - clear optimistic blocks and deletedFromIndex once the server has
+  // persisted the user message and produced a real assistant response after the insert point.
   useEffect(() => {
     if (!optimistic || apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
       return;
@@ -536,7 +536,7 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
-  // On response load or timeout
+  // On full response load or timeout
   const isLoaded =
     filteredSessionData &&
     filteredSessionData.status !== 'processing' &&
@@ -546,7 +546,6 @@ export const useSeerExplorer = () => {
     if (isLoaded || isTimedOut) {
       // Reset waiting state and timeout
       setWaitingForResponse(false);
-      setDeletedFromIndex(null);
       cancelPollingTimeout();
 
       if (interruptRequested) {
