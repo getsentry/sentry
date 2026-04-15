@@ -13,9 +13,10 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
-from sentry.seer.autofix.issue_summary import _trigger_autofix_task, get_user_stopping_point
+from sentry.seer.autofix.issue_summary import _trigger_autofix_task
 from sentry.seer.autofix.utils import bulk_read_preferences, get_autofix_state
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction
@@ -97,7 +98,7 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
     start_time = time.monotonic()
 
     try:
-        eligible_projects = _get_eligible_projects(organization)
+        eligible_projects, preferences = _get_eligible_projects(organization)
         if not eligible_projects:
             logger.info(
                 "night_shift.no_eligible_projects",
@@ -155,14 +156,6 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
         sentry_sdk.metrics.count("night_shift.triage_action", 1, attributes={"action": c.action})
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
-    autofix_triggered = 0
-    if not dry_run:
-        for c in candidates:
-            if c.action == TriageAction.AUTOFIX:
-                if _trigger_autofix_for_candidate(c.group, organization):
-                    autofix_triggered += 1
-    sentry_sdk.metrics.count("night_shift.autofix_triggered", autofix_triggered)
-
     logger.info(
         "night_shift.candidates_selected",
         extra={
@@ -172,7 +165,6 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
             "dry_run": dry_run,
-            "num_autofix_triggered": autofix_triggered,
             "candidates": [
                 {
                     "group_id": c.group.id,
@@ -182,6 +174,16 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
             ],
         },
     )
+
+    autofix_triggered = 0
+    if not dry_run:
+        for c in candidates:
+            if c.action == TriageAction.AUTOFIX:
+                pref = preferences.get(c.group.project_id)
+                stopping_point = pref.automated_run_stopping_point if pref else None
+                if _trigger_autofix_for_candidate(c.group, organization, stopping_point):
+                    autofix_triggered += 1
+    sentry_sdk.metrics.count("night_shift.autofix_triggered", autofix_triggered)
 
 
 def _get_eligible_orgs_from_batch(
@@ -206,7 +208,9 @@ def _get_eligible_orgs_from_batch(
     return eligible
 
 
-def _trigger_autofix_for_candidate(group: Group, organization: Organization) -> bool:
+def _trigger_autofix_for_candidate(
+    group: Group, organization: Organization, stopping_point: str | None
+) -> bool:
     """Trigger autofix for a single candidate identified as fixable by night shift triage.
 
     Returns True if the autofix task was dispatched.
@@ -222,8 +226,6 @@ def _trigger_autofix_for_candidate(group: Group, organization: Organization) -> 
                 extra={"group_id": group.id, "organization_id": organization.id},
             )
             return False
-
-        stopping_point = get_user_stopping_point(group)
 
         _trigger_autofix_task.delay(
             group_id=group.id,
@@ -242,21 +244,24 @@ def _trigger_autofix_for_candidate(group: Group, organization: Organization) -> 
         return False
 
 
-def _get_eligible_projects(organization: Organization) -> list[Project]:
+def _get_eligible_projects(
+    organization: Organization,
+) -> tuple[list[Project], dict[int, SeerProjectPreference | None]]:
     """Return active projects that have automation enabled and connected repos."""
     project_map = {
         p.id: p
         for p in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
     }
     if not project_map:
-        return []
+        return [], {}
 
     preferences = bulk_read_preferences(organization, list(project_map))
 
-    return [
+    projects = [
         project_map[pid]
         for pid, pref in preferences.items()
         if pref is not None
         and pref.repositories
         and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
     ]
+    return projects, preferences

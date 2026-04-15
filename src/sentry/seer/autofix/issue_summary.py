@@ -512,17 +512,6 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
     return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 
 
-def get_user_stopping_point(group: Group) -> AutofixStoppingPoint | None:
-    """
-    Get the user's configured stopping point without a fixability assessment.
-    Returns None if the user has no preference configured.
-    """
-    user_preference = _get_user_stopping_point_preference(group)
-    if user_preference is not None:
-        return AutofixStoppingPoint(user_preference)
-    return None
-
-
 def _get_user_stopping_point_preference(group: Group) -> str | None:
     if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
         preference = read_preference_from_sentry_db(group.project)
