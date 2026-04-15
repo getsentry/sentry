@@ -23,7 +23,10 @@ interface GroupBySelectorProps {
    */
   traceMetric: TraceMetric;
   /**
-   * Whether to skip the trace metric filter. For equations.
+   * Whether to skip the trace metric filter.
+   *
+   * For equations, because at the moment there isn't an easy way to filter
+   * the attributes to the relevant attributes.
    */
   skipTraceMetricFilter?: boolean;
 }
