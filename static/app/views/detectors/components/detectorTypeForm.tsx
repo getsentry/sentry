@@ -707,7 +707,7 @@ function MobileBuildVisualization() {
   const danger = theme.colors.red400;
   const accent =
     theme.chart.getColorPalette(0)[0] ?? theme.tokens.graphics.accent.vibrant;
-  const bg = theme.tokens.background.secondary;
+  const bg = theme.tokens.background.primary;
 
   return (
     <svg fill="none" viewBox="0 0 480 56">
