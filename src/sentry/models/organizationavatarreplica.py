@@ -20,6 +20,6 @@ class OrganizationAvatarReplica(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_organizationavatareplica"
+        db_table = "sentry_organizationavatarreplica"
 
     __repr__ = sane_repr("organization_id", "avatar_type")
