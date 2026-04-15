@@ -9,7 +9,6 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.dashboards.endpoints.organization_dashboard_details import OrganizationDashboardBase
 from sentry.models.dashboard import Dashboard, DashboardRevision
@@ -43,7 +42,6 @@ class OrganizationDashboardRevisionsEndpoint(OrganizationDashboardBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (OrganizationPermission,)
 
     def get(
         self,
