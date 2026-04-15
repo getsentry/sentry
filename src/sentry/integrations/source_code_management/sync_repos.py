@@ -247,7 +247,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         provider=provider_key,
                     )
 
-        if removed_ids:
+        if removed_ids and _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org):
             repository_service.disable_repositories_by_external_ids(
                 organization_id=organization_id,
                 integration_id=integration.id,
