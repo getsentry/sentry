@@ -733,19 +733,9 @@ def test_deprecated_attr_lookup_resolves_by_internal_name() -> None:
         d.internal_name: d.public_alias for d in definitions.values() if not d.secondary_alias
     }
 
-    deprecated_attr = {
-        "key": "app_start_warm",
-        "type": "number",
-        "deprecation": {
-            "_status": "backfill",
-            "replacement": "app.vitals.start.warm.value",
-        },
-    }
-
-    key = deprecated_attr["key"]
-    deprecation = deprecated_attr["deprecation"]
-    replacement = deprecation["replacement"]
-    status = deprecation["_status"]
+    key = "app_start_warm"
+    replacement = "app.vitals.start.warm.value"
+    status = "backfill"
 
     lookup_key = key
     if key not in definitions and key in internal_to_public:
