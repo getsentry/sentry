@@ -730,9 +730,7 @@ def test_deprecated_attr_lookup_resolves_by_internal_name() -> None:
     definitions[measurement.public_alias] = measurement
 
     internal_to_public = {
-        d.internal_name: d.public_alias
-        for d in definitions.values()
-        if not d.secondary_alias
+        d.internal_name: d.public_alias for d in definitions.values() if not d.secondary_alias
     }
 
     deprecated_attr = {
@@ -756,9 +754,7 @@ def test_deprecated_attr_lookup_resolves_by_internal_name() -> None:
     assert lookup_key == "measurements.app_start_warm"
 
     existing = definitions[lookup_key]
-    definitions[lookup_key] = replace(
-        existing, replacement=replacement, deprecation_status=status
-    )
+    definitions[lookup_key] = replace(existing, replacement=replacement, deprecation_status=status)
     definitions[replacement] = replace(
         existing, public_alias=replacement, internal_name=replacement
     )
