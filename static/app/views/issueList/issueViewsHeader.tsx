@@ -60,9 +60,7 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   return (
     <Layout.Title>
       {title}
-      {description && (
-        <InfoTip position="right" size="sm" variant="muted" title={description} />
-      )}
+      {description && <InfoTip position="right" size="sm" title={description} />}
     </Layout.Title>
   );
 }
