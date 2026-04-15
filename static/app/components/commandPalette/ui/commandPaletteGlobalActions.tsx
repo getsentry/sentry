@@ -79,7 +79,6 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
   const user = useUser();
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const {projects} = useProjects();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
@@ -90,6 +89,11 @@ export function GlobalCommandPaletteActions() {
     onSuccess: () => window.location.reload(),
   });
 
+  if (!organization.features.includes('cmd-k-supercharged')) {
+    return null;
+  }
+
+  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
 
   return (
