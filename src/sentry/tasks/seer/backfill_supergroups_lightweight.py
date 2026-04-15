@@ -17,6 +17,7 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
@@ -226,7 +227,7 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
         )
 
     results = bulk_snuba_queries(
-        snuba_requests, referrer="supergroups_backfill_lightweight.get_latest_events"
+        snuba_requests, referrer=Referrer.SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS.value
     )
 
     # Build unfetched Event objects from Snuba results, keeping groups aligned
