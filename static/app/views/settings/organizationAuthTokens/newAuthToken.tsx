@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
@@ -43,10 +42,7 @@ function AuthTokenCreateForm({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const handleGoBack = useCallback(
-    () => navigate(`/settings/${organization.slug}/auth-tokens/`),
-    [navigate, organization.slug]
-  );
+  const handleGoBack = () => navigate(`/settings/${organization.slug}/auth-tokens/`);
 
   const mutation = useMutation<
     OrgAuthTokenWithToken,
@@ -132,10 +128,7 @@ export default function OrganizationAuthTokensNewAuthToken() {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const handleGoBack = useCallback(
-    () => navigate(`/settings/${organization.slug}/auth-tokens/`),
-    [navigate, organization.slug]
-  );
+  const handleGoBack = () => navigate(`/settings/${organization.slug}/auth-tokens/`);
 
   return (
     <div>

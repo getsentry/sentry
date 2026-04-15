@@ -32,7 +32,9 @@ interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
   dragListeners?: SyntheticListenerMap;
+  onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   referenceMap?: Record<string, string>;
+  referencedMetricLabels?: Set<string>;
 }
 
 export function MetricToolbar({
@@ -40,6 +42,8 @@ export function MetricToolbar({
   queryLabel,
   referenceMap,
   dragListeners,
+  referencedMetricLabels,
+  onEquationLabelsChange,
 }: MetricToolbarProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
@@ -57,6 +61,20 @@ export function MetricToolbar({
   const canRemoveMetric =
     metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)).length >
       1 || isVisualizeEquation(visualize);
+
+  // A metric function cannot be deleted if it is referenced by any equation.
+  // referencedMetricLabels is precomputed from the stored equations and
+  // overridden with exact labels when the user edits an equation, so that
+  // duplicate metrics only block deletion of the specific label used.
+  const isReferencedByEquation =
+    isVisualizeFunction(visualize) && (referencedMetricLabels?.has(queryLabel) ?? false);
+
+  const handleReferenceLabelsChange = useCallback(
+    (labels: string[]) => {
+      onEquationLabelsChange?.(queryLabel, labels);
+    },
+    [onEquationLabelsChange, queryLabel]
+  );
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -115,9 +133,10 @@ export function MetricToolbar({
               expression={visualize.expression.text}
               referenceMap={referenceMap}
               handleExpressionChange={handleExpressionChange}
+              onReferenceLabelsChange={handleReferenceLabelsChange}
             />
           ) : null}
-          {canRemoveMetric && <DeleteMetricButton />}
+          {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>
         {isNarrow && isVisualizeFunction(visualize) && (
           <Filter traceMetric={traceMetric} />
@@ -165,9 +184,10 @@ export function MetricToolbar({
           expression={visualize.expression.text}
           referenceMap={referenceMap}
           handleExpressionChange={handleExpressionChange}
+          onReferenceLabelsChange={handleReferenceLabelsChange}
         />
       ) : null}
-      {canRemoveMetric && <DeleteMetricButton />}
+      {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
     </Grid>
   );
 }

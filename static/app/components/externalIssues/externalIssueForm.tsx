@@ -253,13 +253,10 @@ export function ExternalIssueForm({
     }
   }, [isPending, isError, loadSpan, organization, group, integration, hasTrackedLoad]);
 
-  const handleClick = useCallback(
-    (newAction: ExternalIssueAction) => {
-      setAction(newAction);
-      refetch();
-    },
-    [refetch]
-  );
+  const handleClick = (newAction: ExternalIssueAction) => {
+    setAction(newAction);
+    refetch();
+  };
 
   const handleSubmit = useCallback(
     async (values: Record<string, unknown>) => {

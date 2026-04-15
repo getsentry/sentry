@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -29,7 +29,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   const teamStoreData = useLegacyStore(TeamStore);
   const selectedTeam = teamStoreData.teams.find(team => team.slug === teamSlug);
 
-  const handleJoinTeam = useCallback(() => {
+  const handleJoinTeam = () => {
     setIsLoading(true);
 
     joinTeam(
@@ -49,7 +49,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
         },
       }
     );
-  }, [api, organization.slug, teamSlug]);
+  };
 
   const openMembership = organization.features.includes('open-membership');
 
