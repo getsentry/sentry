@@ -886,7 +886,7 @@ describe('Add Modal with ourlogs-enabled', () => {
       url: `/organizations/${organizationSlug}/trace-items/attributes/`,
       method: 'GET',
       body: Object.values(
-        mockAttributeResults[AllowedDataScrubbingDatasets.LOGS]?.attributes || {}
+        mockAttributeResults[AllowedDataScrubbingDatasets.LOGS]?.data || {}
       ).map(attr => ({
         key: attr.key,
         name: attr.name,

@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
 
 import {
@@ -474,7 +474,7 @@ export class TraceItemFieldSelector {
 
   static fromTraceItemResults(
     dataset: AllowedDataScrubbingDatasets,
-    attributes: ReturnType<typeof useTraceItemAttributeKeys>['attributes']
+    attributes: TagCollection | undefined
   ): Array<{key: string; label: string; selector: string}> | null {
     if (!attributes) {
       Sentry.captureException(

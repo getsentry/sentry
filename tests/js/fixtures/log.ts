@@ -12,7 +12,6 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldKind} from 'sentry/utils/fields';
 import {LOGS_REFRESH_INTERVAL_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   EventsLogsResult,
@@ -21,10 +20,13 @@ import type {
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
 
-type AttributeResults = Record<
-  AllowedDataScrubbingDatasets,
-  ReturnType<typeof useTraceItemAttributeKeys> | null
->;
+type AttributeResult = {
+  data: TagCollection;
+  error: Error | null;
+  isLoading: boolean;
+};
+
+type AttributeResults = Record<AllowedDataScrubbingDatasets, AttributeResult | null>;
 
 export function LogFixture({
   [OurLogKnownFieldKey.PROJECT_ID]: projectId,
@@ -406,16 +408,14 @@ export function createMockAttributeResults(empty = false): AttributeResults {
     },
   };
 
-  const mockTraceItemAttributeKeysResult: ReturnType<typeof useTraceItemAttributeKeys> = {
-    attributes: mockAttributes,
+  const mockTraceItemAttributeKeysResult: AttributeResult = {
+    data: mockAttributes,
     isLoading: false,
     error: null,
   };
 
-  const mockTraceItemAttributeKeysEmptyResult: ReturnType<
-    typeof useTraceItemAttributeKeys
-  > = {
-    attributes: {},
+  const mockTraceItemAttributeKeysEmptyResult: AttributeResult = {
+    data: {},
     isLoading: false,
     error: null,
   };
