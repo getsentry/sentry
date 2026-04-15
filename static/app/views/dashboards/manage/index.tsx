@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
@@ -31,10 +32,9 @@ import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -199,18 +199,16 @@ function ManageDashboards() {
   });
 
   const {
-    data: dashboardsWithoutPrebuiltConfigs,
+    data: dashboardsResponse,
     isLoading,
     isError,
     error,
-    getResponseHeader,
     refetch: refetchDashboards,
-  } = useApiQuery<DashboardListItem[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<DashboardListItem[]>()(
+      '/organizations/$organizationIdOrSlug/dashboards/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort()!.value,
@@ -221,18 +219,18 @@ function ManageDashboards() {
             ? {filter: DashboardFilter.ONLY_PREBUILT}
             : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
         },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled:
-        (hasProjectAccess || !projectsLoaded) &&
-        !(
-          organization.features.includes('dashboards-starred-reordering') &&
-          dashboardsLayout === TABLE
-        ),
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    enabled:
+      (hasProjectAccess || !projectsLoaded) &&
+      !(
+        organization.features.includes('dashboards-starred-reordering') &&
+        dashboardsLayout === TABLE
+      ),
+  });
+  const dashboardsWithoutPrebuiltConfigs = dashboardsResponse?.json;
 
   const dashboards = useMemo(
     () =>
@@ -267,7 +265,7 @@ function ManageDashboards() {
       dashboardsLayout === TABLE,
   });
 
-  const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
+  const dashboardsPageLinks = dashboardsResponse?.headers.Link ?? '';
 
   function setRowsAndColumns(containerWidth: number) {
     const numWidgetsFitInRow = Math.floor(
@@ -510,9 +508,9 @@ function ManageDashboards() {
       />
     ) : organization.features.includes('dashboards-starred-reordering') ? (
       <OwnedDashboardsTable
-        dashboards={ownedDashboards.data ?? []}
+        dashboards={ownedDashboards.data?.json ?? []}
         isLoading={ownedDashboards.isLoading}
-        pageLinks={ownedDashboards.getResponseHeader?.('Link') ?? undefined}
+        pageLinks={ownedDashboards.data?.headers.Link}
       />
     ) : (
       <DashboardTable

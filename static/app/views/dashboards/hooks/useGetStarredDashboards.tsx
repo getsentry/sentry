@@ -1,39 +1,56 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-export function getStarredDashboardsQueryKey(organization: Organization): ApiQueryKey {
-  const DASHBOARDS_QUERY_KEY = [
-    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
+export function getStarredDashboardsQueryKey(organization: Organization) {
+  if (organization.features.includes('dashboards-starred-reordering')) {
+    return apiOptions.as<DashboardListItem[]>()(
+      '/organizations/$organizationIdOrSlug/dashboards/starred/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        staleTime: Infinity,
+      }
+    ).queryKey;
+  }
+  return apiOptions.as<DashboardListItem[]>()(
+    '/organizations/$organizationIdOrSlug/dashboards/',
     {
-      query: {
-        filter: 'onlyFavorites',
-      },
-    },
-  ] as const;
-  const STARRED_DASHBOARDS_QUERY_KEY = [
-    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/starred/', {
       path: {organizationIdOrSlug: organization.slug},
-    }),
-    {},
-  ] as const;
-  return organization.features.includes('dashboards-starred-reordering')
-    ? STARRED_DASHBOARDS_QUERY_KEY
-    : DASHBOARDS_QUERY_KEY;
+      query: {filter: 'onlyFavorites'},
+      staleTime: Infinity,
+    }
+  ).queryKey;
 }
 
 export function useGetStarredDashboards() {
   const organization = useOrganization();
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
-  return useApiQuery<DashboardListItem[]>(getStarredDashboardsQueryKey(organization), {
-    staleTime: Infinity,
+  const usesStarredEndpoint = organization.features.includes(
+    'dashboards-starred-reordering'
+  );
+
+  return useQuery({
+    ...(usesStarredEndpoint
+      ? apiOptions.as<DashboardListItem[]>()(
+          '/organizations/$organizationIdOrSlug/dashboards/starred/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            staleTime: Infinity,
+          }
+        )
+      : apiOptions.as<DashboardListItem[]>()(
+          '/organizations/$organizationIdOrSlug/dashboards/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: {filter: 'onlyFavorites'},
+            staleTime: Infinity,
+          }
+        )),
     enabled: hasProjectAccess || !projectsLoaded,
   });
 }
