@@ -136,31 +136,6 @@ export function ReleaseHeader({
     return tabs[0]!.to; // default to 'Overview'
   };
 
-  const title = (
-    <Fragment>
-      <IdBadge project={project} avatarSize={28} hideName />
-      <Version version={version} anchor={false} truncate />
-      <IconWrapper>
-        <CopyToClipboardButton
-          priority="transparent"
-          size="zero"
-          text={version}
-          tooltipProps={{title: version}}
-          aria-label={t('Copy release version to clipboard')}
-        />
-      </IconWrapper>
-      {!!url && (
-        <IconWrapper>
-          <Tooltip title={url}>
-            <ExternalLink href={url}>
-              <IconOpen />
-            </ExternalLink>
-          </Tooltip>
-        </IconWrapper>
-      )}
-    </Fragment>
-  );
-
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -171,7 +146,28 @@ export function ReleaseHeader({
         ) : (
           <Breadcrumbs crumbs={breadcrumbs} />
         )}
-        <Layout.Title>{title}</Layout.Title>
+        <Layout.Title>
+          <IdBadge project={project} avatarSize={28} hideName />
+          <Version version={version} anchor={false} truncate />
+          <IconWrapper>
+            <CopyToClipboardButton
+              priority="transparent"
+              size="zero"
+              text={version}
+              tooltipProps={{title: version}}
+              aria-label={t('Copy release version to clipboard')}
+            />
+          </IconWrapper>
+          {!!url && (
+            <IconWrapper>
+              <Tooltip title={url}>
+                <ExternalLink href={url}>
+                  <IconOpen />
+                </ExternalLink>
+              </Tooltip>
+            </IconWrapper>
+          )}
+        </Layout.Title>
       </Layout.HeaderContent>
 
       {hasPageFrameFeature ? (
