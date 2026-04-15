@@ -795,13 +795,14 @@ class ViewerContextAuthentication(BaseAuthentication):
         if not header:
             return None
 
-        # TODO(jstanley): Temporary diagnostics for debugging prod 401s.
-        # Remove once the auth issue is resolved.
         signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
         verification_keys = _get_verification_keys()
         vc = viewer_context_from_header(header, signature)
 
         if vc is None or vc.user_id is None:
+            # TODO(jstanley): Temporary logging for debugging non-public prod 401s
+            # during X-Viewer-Context propagation (Seer code mode callbacks).
+            # Remove once the auth issue is resolved.
             logger.warning(
                 "viewer_context_auth.failed",
                 extra={
@@ -818,6 +819,9 @@ class ViewerContextAuthentication(BaseAuthentication):
 
         user = user_service.get_user(user_id=vc.user_id)
         if user is None or not user.is_active:
+            # TODO(jstanley): Temporary logging for debugging non-public prod 401s
+            # during X-Viewer-Context propagation (Seer code mode callbacks).
+            # Remove once the auth issue is resolved.
             logger.warning(
                 "viewer_context_auth.failed",
                 extra={
