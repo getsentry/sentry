@@ -18,12 +18,7 @@ from sentry.issue_detection.performance_detection import (
     update_performance_settings,
 )
 from sentry.issues.grouptype import (
-    AIDetectedCodeHealthGroupType,
-    AIDetectedDBGroupType,
     AIDetectedGeneralGroupType,
-    AIDetectedHTTPGroupType,
-    AIDetectedRuntimePerformanceGroupType,
-    AIDetectedSecurityGroupType,
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
@@ -117,12 +112,6 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
     ConfigurableThresholds.WEB_VITALS.value: WebVitalsGroup,
     ConfigurableThresholds.AI_ISSUE_DETECTION.value: AIDetectedGeneralGroupType,
-    ConfigurableThresholds.AI_DETECTED_HTTP.value: AIDetectedHTTPGroupType,
-    ConfigurableThresholds.AI_DETECTED_DB.value: AIDetectedDBGroupType,
-    ConfigurableThresholds.AI_DETECTED_RUNTIME_PERFORMANCE.value: AIDetectedRuntimePerformanceGroupType,
-    ConfigurableThresholds.AI_DETECTED_SECURITY.value: AIDetectedSecurityGroupType,
-    ConfigurableThresholds.AI_DETECTED_CODE_HEALTH.value: AIDetectedCodeHealthGroupType,
-    ConfigurableThresholds.AI_DETECTED_GENERAL.value: AIDetectedGeneralGroupType,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
