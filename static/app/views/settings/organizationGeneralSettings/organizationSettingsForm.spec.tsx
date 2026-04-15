@@ -22,6 +22,7 @@ describe('OrganizationSettingsForm', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
+    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(organization, {replace: true});
     jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
