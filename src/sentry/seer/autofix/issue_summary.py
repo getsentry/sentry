@@ -507,16 +507,13 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
     fixability_score = get_and_update_group_fixability_score(group)
     fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
-    user_preference = _get_user_stopping_point_preference(group)
-
-    return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
-
-
-def _get_user_stopping_point_preference(group: Group) -> str | None:
     if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
         preference = read_preference_from_sentry_db(group.project)
-        return preference.automated_run_stopping_point if preference else None
-    return _fetch_user_preference(group.project.id)
+        user_preference = preference.automated_run_stopping_point if preference else None
+    else:
+        user_preference = _fetch_user_preference(group.project.id)
+
+    return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 
 
 def _generate_summary(
