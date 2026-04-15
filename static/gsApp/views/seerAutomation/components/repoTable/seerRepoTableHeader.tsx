@@ -168,7 +168,7 @@ export function SeerRepoTableHeader({
       for (const repo of selectedRepos) {
         if (repo.settings?.codeReviewTriggers?.length === 0) {
           repoIdsWithZeroTriggers.push(repo.id);
-        } else if (!repo.settings?.codeReviewTriggers.includes(added)) {
+        } else if (!repo.settings?.codeReviewTriggers?.includes(added)) {
           repoIdsWithOneTrigger.push(repo.id);
         }
       }
