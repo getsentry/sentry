@@ -118,7 +118,7 @@ export type KnownSentryApiUrls =
   | '/internal/project-config/'
   | '/internal/projectkey-cell-mappings/'
   | '/internal/rpc/$serviceName/$methodName/'
-  | '/internal/scm-rpc/$methodName/'
+  | '/internal/scm-rpc/'
   | '/internal/seer-rpc/$methodName/'
   | '/internal/seer/night-shift/trigger/'
   | '/internal/warnings/'

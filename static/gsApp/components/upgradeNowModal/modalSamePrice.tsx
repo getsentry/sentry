@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -44,7 +43,7 @@ function UpgradeNowModal({
 
   const api = useApi();
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -82,7 +81,7 @@ function UpgradeNowModal({
         )
       );
     }
-  }, [api, organization, subscription, plan, reservations, onComplete, surface]);
+  };
 
   return (
     <UpsellContent>

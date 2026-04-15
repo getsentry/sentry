@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -216,7 +216,7 @@ function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
-  const toggleDisabled = useCallback(() => {
+  const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
       {
@@ -230,7 +230,7 @@ function Actions({automation}: {automation: Automation}) {
         },
       }
     );
-  }, [updateAutomation, automation]);
+  };
 
   return (
     <Fragment>

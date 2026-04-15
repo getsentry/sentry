@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -78,26 +78,23 @@ function MetricsSectionContent({
     ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
     : undefined;
 
-  const onOpenMetricsDrawer = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      trackAnalytics('metrics.issue_details.drawer_opened', {
-        organization,
-      });
+  const onOpenMetricsDrawer = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    trackAnalytics('metrics.issue_details.drawer_opened', {
+      organization,
+    });
 
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            [METRICS_DRAWER_QUERY_PARAM]: 'true',
-          },
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          [METRICS_DRAWER_QUERY_PARAM]: 'true',
         },
-        {replace: true}
-      );
-    },
-    [navigate, location, organization]
-  );
+      },
+      {replace: true}
+    );
+  };
 
   useEffect(() => {
     const shouldOpenDrawer = location.query[METRICS_DRAWER_QUERY_PARAM] === 'true';

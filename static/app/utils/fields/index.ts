@@ -5,6 +5,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -2548,6 +2549,12 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     desc: t('The display name of the application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  artifact_type: {
+    desc: t('The type of artifact component (e.g., main app, watch app, app clip)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    values: [...METRICS_ARTIFACT_TYPES],
   },
   build_configuration_name: {
     desc: t('The name of the build configuration (e.g., Debug, Release)'),

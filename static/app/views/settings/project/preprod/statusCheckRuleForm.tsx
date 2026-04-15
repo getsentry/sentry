@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -65,9 +65,9 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     });
   };
 
-  const handleQueryChange = useCallback((query: string) => {
+  const handleQueryChange = (query: string) => {
     setFilterQuery(query);
-  }, []);
+  };
 
   const handleDelete = () => {
     const ruleDisplayValue =

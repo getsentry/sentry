@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -26,29 +26,26 @@ export function WebAuthnEnroll({challengeData}: WebAuthnEnrollProps) {
 
   const [activated, setActivated] = useState(false);
 
-  const triggerEnroll = useCallback(
-    async (model: FormModel) => {
-      setActivated(false);
-      model.setError('challenge', false);
+  const triggerEnroll = async (model: FormModel) => {
+    setActivated(false);
+    model.setError('challenge', false);
 
-      try {
-        const webAuthnResponse = await handleEnroll(challengeData);
+    try {
+      const webAuthnResponse = await handleEnroll(challengeData);
 
-        if (!webAuthnResponse) {
-          model.setError('challenge', FAILURE_MESSAGE);
-          return;
-        }
-
-        setActivated(true);
-        model.setValue('response', webAuthnResponse);
-        model.setValue('challenge', challenge);
-      } catch (err) {
+      if (!webAuthnResponse) {
         model.setError('challenge', FAILURE_MESSAGE);
-        setActivated(false);
+        return;
       }
-    },
-    [challenge, challengeData]
-  );
+
+      setActivated(true);
+      model.setValue('response', webAuthnResponse);
+      model.setValue('challenge', challenge);
+    } catch (err) {
+      model.setError('challenge', FAILURE_MESSAGE);
+      setActivated(false);
+    }
+  };
 
   return (
     <FormField

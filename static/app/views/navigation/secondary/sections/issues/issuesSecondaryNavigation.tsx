@@ -38,17 +38,22 @@ export function IssuesSecondaryNavigation() {
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
           <SecondaryNavigation.List>
-            {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-              <SecondaryNavigation.ListItem key={key}>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/${key}/`}
-                  end
-                  analyticsItemName={`issues_types_${key}`}
-                >
-                  {label}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            ))}
+            {Object.values(ISSUE_TAXONOMY_CONFIG)
+              .filter(
+                ({featureFlag}) =>
+                  !featureFlag || organization.features.includes(featureFlag)
+              )
+              .map(({key, label}) => (
+                <SecondaryNavigation.ListItem key={key}>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/${key}/`}
+                    end
+                    analyticsItemName={`issues_types_${key}`}
+                  >
+                    {label}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              ))}
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/feedback/`}

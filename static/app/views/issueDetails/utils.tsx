@@ -20,7 +20,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
   api: Client,
@@ -284,7 +284,7 @@ export function useIsSampleEvent(): boolean {
 
   const group = GroupStore.get(groupId);
 
-  const {data} = useGroupTagsReadable(
+  const {data} = useGroupTags(
     {
       groupId,
       environment: environments,

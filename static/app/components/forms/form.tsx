@@ -197,38 +197,22 @@ export function Form({
     [formModel, onSubmitError]
   );
 
-  const handleSubmit = useCallback(
-    (e: any) => {
-      if (!skipPreventDefault) {
-        e.preventDefault();
-      }
-      if (formModel.isSaving) {
-        return;
-      }
+  const handleSubmit = (e: any) => {
+    if (!skipPreventDefault) {
+      e.preventDefault();
+    }
+    if (formModel.isSaving) {
+      return;
+    }
 
-      onPreSubmit?.();
+    onPreSubmit?.();
 
-      onSubmit?.(
-        formModel.getData(),
-        handleSubmitSuccess,
-        handleSubmitError,
-        e,
-        formModel
-      );
+    onSubmit?.(formModel.getData(), handleSubmitSuccess, handleSubmitError, e, formModel);
 
-      if (!onSubmit) {
-        formModel.saveForm();
-      }
-    },
-    [
-      formModel,
-      handleSubmitError,
-      handleSubmitSuccess,
-      onPreSubmit,
-      onSubmit,
-      skipPreventDefault,
-    ]
-  );
+    if (!onSubmit) {
+      formModel.saveForm();
+    }
+  };
 
   const shouldShowFooter = typeof hideFooter === 'undefined' ? !saveOnBlur : !hideFooter;
 

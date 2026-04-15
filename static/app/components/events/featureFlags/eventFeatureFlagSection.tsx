@@ -170,39 +170,36 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     });
   }, [suspectFlagNames, eventFlags, generateAction]);
 
-  const onViewAllFlags = useCallback(
-    (focusControl?: FlagControlOptions) => {
-      trackAnalytics('flags.view-all-clicked', {
-        organization,
-      });
-      openDrawer(
-        () => (
-          <EventFeatureFlagDrawer
-            group={group}
-            event={event}
-            project={project}
-            hydratedFlags={hydratedFlags}
-            initialOrderBy={orderBy}
-            focusControl={focusControl}
-          />
-        ),
-        {
-          ariaLabel: t('Feature flags drawer'),
-          drawerKey: 'feature-flags-drawer',
-          // We prevent a click on the 'View All' button from closing the drawer so that
-          // we don't reopen it immediately, and instead let the button handle this itself.
-          shouldCloseOnInteractOutside: element => {
-            const viewAllButton = viewAllButtonRef.current;
-            if (viewAllButton?.contains(element)) {
-              return false;
-            }
-            return true;
-          },
-        }
-      );
-    },
-    [openDrawer, event, group, project, hydratedFlags, organization, orderBy]
-  );
+  const onViewAllFlags = (focusControl?: FlagControlOptions) => {
+    trackAnalytics('flags.view-all-clicked', {
+      organization,
+    });
+    openDrawer(
+      () => (
+        <EventFeatureFlagDrawer
+          group={group}
+          event={event}
+          project={project}
+          hydratedFlags={hydratedFlags}
+          initialOrderBy={orderBy}
+          focusControl={focusControl}
+        />
+      ),
+      {
+        ariaLabel: t('Feature flags drawer'),
+        drawerKey: 'feature-flags-drawer',
+        // We prevent a click on the 'View All' button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = viewAllButtonRef.current;
+          if (viewAllButton?.contains(element)) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  };
 
   useEffect(() => {
     if (hasFlags) {

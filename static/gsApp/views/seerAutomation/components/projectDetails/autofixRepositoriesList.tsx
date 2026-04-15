@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
@@ -70,27 +70,24 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
     [preference]
   );
 
-  const handleSaveRepoList = useCallback(
-    (updatedRepositories: SeerRepoDefinition[]) => {
-      updateProjectSeerPreferences(
-        {
-          repositories: updatedRepositories,
-          automated_run_stopping_point: preference?.automated_run_stopping_point,
-          automation_handoff: preference?.automation_handoff,
-        },
-        {
-          onError: () => addErrorMessage(t('Failed to connect repositories')),
-          onSuccess: () =>
-            addSuccessMessage(
-              t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
-            ),
-        }
-      );
-    },
-    [updateProjectSeerPreferences, preference, project.slug]
-  );
+  const handleSaveRepoList = (updatedRepositories: SeerRepoDefinition[]) => {
+    updateProjectSeerPreferences(
+      {
+        repositories: updatedRepositories,
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: preference?.automation_handoff,
+      },
+      {
+        onError: () => addErrorMessage(t('Failed to connect repositories')),
+        onSuccess: () =>
+          addSuccessMessage(
+            t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
+          ),
+      }
+    );
+  };
 
-  const handleAddRepoClick = useCallback(() => {
+  const handleAddRepoClick = () => {
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
@@ -123,7 +120,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
         }}
       />
     ));
-  }, [repoMap, handleSaveRepoList, repositories, organization.id]);
+  };
 
   if (isFetchingRepositories) {
     return <LoadingIndicator />;

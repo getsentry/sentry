@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,9 +13,9 @@ import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {
+  type DataConditionGroup,
   DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
-  type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -148,7 +148,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
 
   const numActionFilters = state.actionFilters.length;
 
-  const handleSendTestNotification = useCallback(() => {
+  const handleSendTestNotification = () => {
     const actionFilterActions = actionFilter.actions || [];
 
     // Validate actions before sending test notification
@@ -163,7 +163,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
         })
       );
     }
-  }, [actionFilter.actions, sendTestNotification, setErrors]);
+  };
 
   return (
     <IfThenWrapper>

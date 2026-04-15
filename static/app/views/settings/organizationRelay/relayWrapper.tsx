@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import omit from 'lodash/omit';
 import {z} from 'zod';
 
@@ -42,7 +42,7 @@ export function RelayWrapper() {
 
   const disabled = !organization.access.includes('org:write');
 
-  const handleOpenAddDialog = useCallback(() => {
+  const handleOpenAddDialog = () => {
     openModal(modalProps => (
       <Add
         {...modalProps}
@@ -55,7 +55,7 @@ export function RelayWrapper() {
         }}
       />
     ));
-  }, [relays, api, organization.slug]);
+  };
 
   return (
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
@@ -172,50 +172,44 @@ function RelayUsageList({
     }
   );
 
-  const handleOpenEditDialog = useCallback(
-    (publicKey: string) => {
-      const editRelay = relays.find(relay => relay.publicKey === publicKey);
+  const handleOpenEditDialog = (publicKey: string) => {
+    const editRelay = relays.find(relay => relay.publicKey === publicKey);
 
-      if (!editRelay) {
-        return;
-      }
+    if (!editRelay) {
+      return;
+    }
 
-      openModal(modalProps => (
-        <Edit
-          {...modalProps}
-          savedRelays={relays}
-          api={api}
-          orgSlug={orgSlug}
-          relay={editRelay}
-          onSubmitSuccess={response => {
-            addSuccessMessage(t('Successfully updated Relay public key'));
-            onRelaysChange(response.trustedRelays);
-          }}
-        />
-      ));
-    },
-    [orgSlug, relays, api, onRelaysChange]
-  );
+    openModal(modalProps => (
+      <Edit
+        {...modalProps}
+        savedRelays={relays}
+        api={api}
+        orgSlug={orgSlug}
+        relay={editRelay}
+        onSubmitSuccess={response => {
+          addSuccessMessage(t('Successfully updated Relay public key'));
+          onRelaysChange(response.trustedRelays);
+        }}
+      />
+    ));
+  };
 
-  const handleDeleteRelay = useCallback(
-    async (publicKey: string) => {
-      const trustedRelays = relays
-        .filter(relay => relay.publicKey !== publicKey)
-        .map(relay => omit(relay, ['created', 'lastModified']));
+  const handleDeleteRelay = async (publicKey: string) => {
+    const trustedRelays = relays
+      .filter(relay => relay.publicKey !== publicKey)
+      .map(relay => omit(relay, ['created', 'lastModified']));
 
-      try {
-        const response = await api.requestPromise(`/organizations/${orgSlug}/`, {
-          method: 'PUT',
-          data: {trustedRelays},
-        });
-        addSuccessMessage(t('Successfully deleted Relay public key'));
-        onRelaysChange(response.trustedRelays);
-      } catch {
-        addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
-      }
-    },
-    [relays, api, orgSlug, onRelaysChange]
-  );
+    try {
+      const response = await api.requestPromise(`/organizations/${orgSlug}/`, {
+        method: 'PUT',
+        data: {trustedRelays},
+      });
+      addSuccessMessage(t('Successfully deleted Relay public key'));
+      onRelaysChange(response.trustedRelays);
+    } catch {
+      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
+    }
+  };
 
   if (isPending) {
     return <LoadingIndicator />;

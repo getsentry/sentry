@@ -203,6 +203,12 @@ export enum IssueType {
 
   LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
   LLM_DETECTED_EXPERIMENTAL_V2 = 'llm_detected_experimental_v2',
+  AI_DETECTED_HTTP = 'ai_detected_http',
+  AI_DETECTED_DB = 'ai_detected_db',
+  AI_DETECTED_RUNTIME_PERFORMANCE = 'ai_detected_runtime_performance',
+  AI_DETECTED_SECURITY = 'ai_detected_security',
+  AI_DETECTED_CODE_HEALTH = 'ai_detected_code_health',
+  AI_DETECTED_GENERAL = 'ai_detected_general',
 
   // Preprod
   PREPROD_STATIC = 'preprod_static',
@@ -218,7 +224,23 @@ export enum IssueType {
 const HIDDEN_ISSUE_TYPES: IssueType[] = [
   IssueType.LLM_DETECTED_EXPERIMENTAL,
   IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+  IssueType.AI_DETECTED_HTTP,
+  IssueType.AI_DETECTED_DB,
+  IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
+  IssueType.AI_DETECTED_SECURITY,
+  IssueType.AI_DETECTED_CODE_HEALTH,
+  IssueType.AI_DETECTED_GENERAL,
 ];
+
+export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
+  IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+  IssueType.AI_DETECTED_HTTP,
+  IssueType.AI_DETECTED_DB,
+  IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
+  IssueType.AI_DETECTED_SECURITY,
+  IssueType.AI_DETECTED_CODE_HEALTH,
+  IssueType.AI_DETECTED_GENERAL,
+]);
 
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
   type => !HIDDEN_ISSUE_TYPES.includes(type)
@@ -269,6 +291,12 @@ export enum IssueTitle {
 
   LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
   LLM_DETECTED_EXPERIMENTAL_V2 = 'LLM Detected Issue V2',
+  AI_DETECTED_HTTP = 'AI Detected HTTP Issue',
+  AI_DETECTED_DB = 'AI Detected Database Issue',
+  AI_DETECTED_RUNTIME_PERFORMANCE = 'AI Detected Runtime Performance Issue',
+  AI_DETECTED_SECURITY = 'AI Detected Security Issue',
+  AI_DETECTED_CODE_HEALTH = 'AI Detected Code Health Issue',
+  AI_DETECTED_GENERAL = 'AI Detected Issue',
 
   PREPROD_STATIC = 'Static Analysis',
   PREPROD_DELTA = 'Static Analysis Delta',
@@ -316,6 +344,12 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
   llm_detected_experimental_v2: IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2,
+  ai_detected_http: IssueTitle.AI_DETECTED_HTTP,
+  ai_detected_db: IssueTitle.AI_DETECTED_DB,
+  ai_detected_runtime_performance: IssueTitle.AI_DETECTED_RUNTIME_PERFORMANCE,
+  ai_detected_security: IssueTitle.AI_DETECTED_SECURITY,
+  ai_detected_code_health: IssueTitle.AI_DETECTED_CODE_HEALTH,
+  ai_detected_general: IssueTitle.AI_DETECTED_GENERAL,
 
   preprod_static: IssueTitle.PREPROD_STATIC,
   preprod_delta: IssueTitle.PREPROD_DELTA,
@@ -356,6 +390,12 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
   3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   3502: IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
+  3503: IssueType.AI_DETECTED_HTTP,
+  3504: IssueType.AI_DETECTED_DB,
+  3505: IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
+  3506: IssueType.AI_DETECTED_SECURITY,
+  3507: IssueType.AI_DETECTED_CODE_HEALTH,
+  3508: IssueType.AI_DETECTED_GENERAL,
   10001: IssueType.WEB_VITALS,
   11001: IssueType.PREPROD_STATIC,
   11002: IssueType.PREPROD_DELTA,

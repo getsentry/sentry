@@ -30,6 +30,7 @@ import {
   IconOpen,
   IconSearch,
   IconSettings,
+  IconSiren,
   IconStar,
   IconUser,
 } from 'sentry/icons';
@@ -79,7 +80,6 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
   const user = useUser();
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const {projects} = useProjects();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
@@ -90,20 +90,30 @@ export function GlobalCommandPaletteActions() {
     onSuccess: () => window.location.reload(),
   });
 
+  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
+  const hasInsightsRollout = organization.features.includes(
+    'insights-to-dashboards-ui-rollout'
+  );
+  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
 
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
         <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
-          {Object.values(ISSUE_TAXONOMY_CONFIG).map(config => (
-            <CMDKAction
-              key={config.key}
-              display={{label: config.label}}
-              to={`${prefix}/issues/${config.key}/`}
-            />
-          ))}
+          {Object.values(ISSUE_TAXONOMY_CONFIG)
+            .filter(
+              ({featureFlag}) =>
+                !featureFlag || organization.features.includes(featureFlag)
+            )
+            .map(config => (
+              <CMDKAction
+                key={config.key}
+                display={{label: config.label}}
+                to={`${prefix}/issues/${config.key}/`}
+              />
+            ))}
           <CMDKAction
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}
@@ -165,39 +175,78 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        {organization.features.includes('performance-view') && (
-          <CMDKAction display={{label: t('Insights'), icon: <IconGraph type="area" />}}>
+        {/* Hide the entire Insights section only when both migrations are active.
+            During partial rollout, individual items are gated: domain links
+            (Frontend, Backend, etc.) by insights-to-dashboards-ui-rollout,
+            and Crons/Uptime by workflow-engine-ui. */}
+        {organization.features.includes('performance-view') &&
+          !(hasInsightsRollout && hasWorkflowEngineUI) && (
             <CMDKAction
-              display={{label: t('Frontend')}}
-              to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('Backend')}}
-              to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('Mobile')}}
-              to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('MCP')}}
-              to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction display={{label: t('Crons')}} to={`${prefix}/insights/crons/`} />
+              display={{
+                label: t('Insights'),
+                icon: <IconGraph type="area" />,
+              }}
+            >
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Frontend')}}
+                  to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Backend')}}
+                  to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Mobile')}}
+                  to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Agents')}}
+                  to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('MCP')}}
+                  to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasWorkflowEngineUI && (
+                <CMDKAction
+                  display={{label: t('Crons')}}
+                  to={`${prefix}/insights/crons/`}
+                />
+              )}
+              {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
+                <CMDKAction
+                  display={{label: t('Uptime')}}
+                  to={`${prefix}/insights/uptime/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('All Projects')}}
+                  to={`${prefix}/insights/projects/`}
+                />
+              )}
+            </CMDKAction>
+          )}
+
+        {hasWorkflowEngineUI && (
+          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}}>
+            <CMDKAction display={{label: t('Crons')}} to={`${prefix}/monitors/crons/`} />
             {organization.features.includes('uptime') && (
               <CMDKAction
                 display={{label: t('Uptime')}}
-                to={`${prefix}/insights/uptime/`}
+                to={`${prefix}/monitors/uptime/`}
               />
             )}
-            <CMDKAction
-              display={{label: t('All Projects')}}
-              to={`${prefix}/insights/projects/`}
-            />
           </CMDKAction>
         )}
 

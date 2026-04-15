@@ -46,7 +46,6 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
-from sentry.seer.supergroups.explorer_lightweight_rca import trigger_explorer_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -63,12 +62,14 @@ auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+    SeerAutomationSource.NIGHT_SHIFT: "night_shift",
 }
 
 referrer_map = {
     SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
     SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+    SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -226,13 +227,6 @@ def _trigger_autofix_task(
                 run_id=None,
                 stopping_point=stopping_point,
             )
-            try:
-                trigger_explorer_lightweight_rca(group)
-            except Exception:
-                logger.exception(
-                    "explorer_lightweight_rca.trigger_error_in_trigger_autofix_task",
-                    extra={"group_id": group_id},
-                )
         else:
             response = trigger_autofix(
                 group=group,
