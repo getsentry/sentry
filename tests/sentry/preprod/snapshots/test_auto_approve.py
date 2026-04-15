@@ -86,6 +86,18 @@ class BuildComparisonFingerprintsTest(TestCase):
         fps = _build_comparison_fingerprints(manifest)
         assert fps == {ImageFingerprint("has_hash.png", "changed", "def")}
 
+    def test_skipped_images_excluded_from_fingerprints(self):
+        manifest = self._make_manifest(
+            {
+                "changed.png": ComparisonImageResult(
+                    status="changed", head_hash="b", base_hash="c"
+                ),
+                "skipped.png": ComparisonImageResult(status="skipped", base_hash="e"),
+            }
+        )
+        fps = _build_comparison_fingerprints(manifest)
+        assert fps == {ImageFingerprint("changed.png", "changed", "b")}
+
     def test_skips_renamed_with_missing_hash_or_previous_name(self):
         manifest = self._make_manifest(
             {

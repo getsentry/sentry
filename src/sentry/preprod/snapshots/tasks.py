@@ -151,7 +151,7 @@ class ImageFingerprint(NamedTuple):
 def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFingerprint]:
     fingerprints: set[ImageFingerprint] = set()
     for name, image in manifest.images.items():
-        if image.status == "unchanged":
+        if image.status in ("unchanged", "skipped"):
             continue
         if image.status in ("changed", "added"):
             if not image.head_hash:
