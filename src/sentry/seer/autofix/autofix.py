@@ -740,7 +740,6 @@ def trigger_autofix(
 
     # Resolve the project preference, or create a new one with org defaults.
     # Preference repos are the source of truth (even if empty).
-    # On failure, fall back to code mapping repos.
     preference = _resolve_project_preference(group.organization, group.project)
     if preference:
         repos = [repo.dict() for repo in preference.repositories]
