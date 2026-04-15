@@ -241,6 +241,51 @@ describe('ProjectMapperAdapter', () => {
     expect(addButton).toBeEnabled();
   });
 
+  it('controls disabled during in-flight mutation', async () => {
+    let resolveMutation!: () => void;
+    const pendingMutationOptions = {
+      mutationFn: jest.fn(
+        () => new Promise<void>(resolve => (resolveMutation = resolve))
+      ),
+    };
+
+    render(
+      <BackendJsonAutoSaveForm
+        field={makeConfig()}
+        initialValue={[
+          [101, 'proj-1'],
+          [102, 'proj-2'],
+        ]}
+        mutationOptions={pendingMutationOptions}
+      />,
+      {organization: org}
+    );
+
+    // Delete buttons should be enabled initially
+    const deleteButtons = screen.getAllByRole('button', {name: 'Delete'});
+    expect(deleteButtons[0]).toBeEnabled();
+
+    // Delete to trigger mutation
+    await userEvent.click(deleteButtons[0]!);
+
+    await waitFor(() => {
+      expect(pendingMutationOptions.mutationFn).toHaveBeenCalled();
+    });
+
+    // Delete buttons should be disabled during mutation
+    const disabledButtons = screen.getAllByRole('button', {name: 'Delete'});
+    expect(disabledButtons.every(btn => btn.hasAttribute('disabled'))).toBe(true);
+
+    // Resolve the mutation
+    resolveMutation();
+
+    // Controls should be re-enabled after mutation resolves
+    await waitFor(() => {
+      const enabledButtons = screen.getAllByRole('button', {name: 'Delete'});
+      expect(enabledButtons.some(btn => !btn.hasAttribute('disabled'))).toBe(true);
+    });
+  });
+
   describe('next button', () => {
     const nextButtonConfig = {
       nextButton: {
@@ -319,51 +364,6 @@ describe('ProjectMapperAdapter', () => {
       );
 
       expect(screen.queryByText('Complete on Vercel')).not.toBeInTheDocument();
-    });
-  });
-
-  it('controls disabled during in-flight mutation', async () => {
-    let resolveMutation!: () => void;
-    const pendingMutationOptions = {
-      mutationFn: jest.fn(
-        () => new Promise<void>(resolve => (resolveMutation = resolve))
-      ),
-    };
-
-    render(
-      <BackendJsonAutoSaveForm
-        field={makeConfig()}
-        initialValue={[
-          [101, 'proj-1'],
-          [102, 'proj-2'],
-        ]}
-        mutationOptions={pendingMutationOptions}
-      />,
-      {organization: org}
-    );
-
-    // Delete buttons should be enabled initially
-    const deleteButtons = screen.getAllByRole('button', {name: 'Delete'});
-    expect(deleteButtons[0]).toBeEnabled();
-
-    // Delete to trigger mutation
-    await userEvent.click(deleteButtons[0]!);
-
-    await waitFor(() => {
-      expect(pendingMutationOptions.mutationFn).toHaveBeenCalled();
-    });
-
-    // Delete buttons should be disabled during mutation
-    const disabledButtons = screen.getAllByRole('button', {name: 'Delete'});
-    expect(disabledButtons.every(btn => btn.hasAttribute('disabled'))).toBe(true);
-
-    // Resolve the mutation
-    resolveMutation();
-
-    // Controls should be re-enabled after mutation resolves
-    await waitFor(() => {
-      const enabledButtons = screen.getAllByRole('button', {name: 'Delete'});
-      expect(enabledButtons.some(btn => !btn.hasAttribute('disabled'))).toBe(true);
     });
   });
 });
