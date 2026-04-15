@@ -111,6 +111,11 @@ class TestScmRpc(APITestCase):
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 200, response.content
 
+    @override_settings(SCM_RPC_SHARED_SECRET=[])
+    def test_get_no_secrets_set(self):
+        response = self.client.get(self.url, headers=self.default_headers)
+        assert response.status_code == 401, response.content
+
         response_json = response.json()
         assert response_json == {
             "data": {
