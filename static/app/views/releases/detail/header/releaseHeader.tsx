@@ -50,7 +50,12 @@ export function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
   const titleContent = (avatarSize: number) => (
-    <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
+    <Flex
+      align="center"
+      gap="md"
+      minWidth={0}
+      css={hasPageFrameFeature ? titleWrapperStyles : undefined}
+    >
       <IdBadge project={project} avatarSize={avatarSize} hideName />
       <Version version={version} anchor={false} />
       <CopyToClipboardButton
