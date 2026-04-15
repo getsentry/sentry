@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
@@ -26,21 +25,19 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
 
-function useOrgProjectMembers(orgSlug: string, projectId: string) {
-  const {data} = useQuery(
-    apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
-      path: {organizationIdOrSlug: orgSlug},
+function useProjectMembers(projectId: string) {
+  const organization = useOrganization();
+  return useQuery({
+    ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
+      path: {organizationIdOrSlug: organization.slug},
       query: {project: [projectId]},
       staleTime: 30_000,
-    })
-  );
-  return useMemo(
-    () =>
-      (data ?? [])
+    }),
+    select: data =>
+      data.json
         .filter((m): m is Member & {user: NonNullable<Member['user']>} => m.user !== null)
         .map(m => ({...m.user, role: m.role})),
-    [data]
-  );
+  });
 }
 
 interface GroupHeaderAssigneeSelectorProps {
@@ -69,7 +66,7 @@ export function GroupHeaderAssigneeSelector({
     projectSlug: project.slug,
     group,
   });
-  const memberList = useOrgProjectMembers(organization.slug, project.id);
+  const {data: members} = useProjectMembers(project.id);
 
   const owners = getOwnerList(
     committersResponse?.committers ?? [],
@@ -83,7 +80,7 @@ export function GroupHeaderAssigneeSelector({
       owners={owners}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
-      memberList={memberList}
+      memberList={members}
       showLabel
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
@@ -131,13 +128,13 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     eventOwners,
     group.assignedTo
   );
-  const currentMemberList = useOrgProjectMembers(organization.slug, project.id);
+  const {data: members} = useProjectMembers(project.id);
   const currentAssigneeIcon = group.assignedTo ? (
     <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
   ) : (
     <IconUser />
   );
-  const assignableUsers = currentMemberList.filter(member => member.id !== user?.id);
+  const assignableUsers = (members ?? []).filter(member => member.id !== user?.id);
   const assignableTeams = (ProjectsStore.getBySlug(project.slug)?.teams ?? []).sort(
     (a, b) => a.slug.localeCompare(b.slug)
   );
