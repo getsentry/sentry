@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0006_add_night_shift_models
 
-sentry: 1068_add_avatar_to_organizationmapping
+sentry: 1068_add_organization_avatar_replica
 
 social_auth: 0003_social_auth_json_field
 

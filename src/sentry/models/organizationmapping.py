@@ -56,10 +56,6 @@ class OrganizationMapping(Model):
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)
 
-    # Replicated from OrganizationAvatar in the cell silo
-    avatar_type = models.PositiveSmallIntegerField(default=0, db_default=0)
-    avatar_ident = models.CharField(max_length=32, null=True, db_default=None)
-
     date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:
