@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -14,14 +16,14 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {
-  selectTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 const EMPTY_TAG_COLLECTION: TagCollection = {};
 
@@ -36,6 +38,8 @@ export function MetricsDetectorSearchBar({
   projectIds,
   disabled,
 }: DetectorSearchBarProps) {
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
@@ -48,9 +52,10 @@ export function MetricsDetectorSearchBar({
   }
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
-  const traceItemAttributeKeysOptions = useTraceItemAttributeKeysOptions();
   const {data: numberTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'number',
       query: traceMetricFilter,
@@ -62,6 +67,8 @@ export function MetricsDetectorSearchBar({
 
   const {data: stringTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'string',
       query: traceMetricFilter,
@@ -73,6 +80,8 @@ export function MetricsDetectorSearchBar({
 
   const {data: booleanTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'boolean',
       query: traceMetricFilter,

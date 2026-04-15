@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -18,10 +19,6 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {
-  selectTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
@@ -31,6 +28,10 @@ import {
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 const EMPTY_TAG_COLLECTION: TagCollection = {};
 const EMPTY_ALIASES: TagCollection = {};
@@ -62,6 +63,7 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
@@ -73,9 +75,10 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
-  const traceItemAttributeKeysOptions = useTraceItemAttributeKeysOptions();
   const {data: numberTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'number',
       query: attributeQuery,
@@ -86,6 +89,8 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
 
   const {data: stringTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'string',
       query: attributeQuery,
@@ -96,6 +101,8 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
 
   const {data: booleanTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'boolean',
       query: attributeQuery,

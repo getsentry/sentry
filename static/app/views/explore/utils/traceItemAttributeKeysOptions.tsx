@@ -1,15 +1,12 @@
-import {useCallback} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 type TraceItemAttributeKeyOptions = Pick<
@@ -23,37 +20,9 @@ type TraceItemAttributeKeyOptions = Pick<
   substringMatch?: string;
 };
 
-function makeTraceItemAttributeKeysQueryOptions({
-  traceItemType,
-  type,
-  datetime,
-  projectIds,
-  search,
-  query,
-}: {
-  datetime: PageFilters['datetime'];
-  traceItemType: TraceItemDataset;
-  type: 'string' | 'number' | 'boolean';
-  projectIds?: Array<string | number>;
-  query?: string;
-  search?: string;
-}): TraceItemAttributeKeyOptions {
-  const substringMatch = search || undefined;
-  const options: TraceItemAttributeKeyOptions = {
-    itemType: traceItemType,
-    attributeType: type,
-    project: projectIds?.map(String),
-    query,
-    ...normalizeDateTimeParams(datetime),
-    ...(substringMatch === undefined ? {} : {substringMatch}),
-  };
-
-  // environment left out intentionally as it's not supported
-
-  return options;
-}
-
 interface TraceItemAttributeKeysOptions {
+  organization: Organization;
+  selection: PageFilters;
   traceItemType: TraceItemDataset;
   type: 'string' | 'number' | 'boolean';
   projectIds?: Array<string | number>;
@@ -63,43 +32,38 @@ interface TraceItemAttributeKeysOptions {
   staleTime?: number;
 }
 
-export function useTraceItemAttributeKeysOptions() {
-  const {selection} = usePageFilters();
-  const organization = useOrganization();
+export function traceItemAttributeKeysOptions({
+  organization,
+  selection,
+  staleTime = 0,
+  traceItemType,
+  type,
+  projects,
+  projectIds: explicitProjectIds,
+  query,
+  search,
+}: TraceItemAttributeKeysOptions) {
+  const projectIds =
+    explicitProjectIds ??
+    (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
-  return useCallback(
-    ({
-      staleTime = 0,
-      traceItemType,
-      type,
-      projects,
-      projectIds: explicitProjectIds,
-      query,
-      search,
-    }: TraceItemAttributeKeysOptions) => {
-      const projectIds =
-        explicitProjectIds ??
-        (defined(projects) ? projects.map(project => project.id) : selection.projects);
+  const substringMatch = search || undefined;
+  const options: TraceItemAttributeKeyOptions = {
+    itemType: traceItemType,
+    attributeType: type,
+    project: projectIds?.map(String),
+    query,
+    ...normalizeDateTimeParams(selection.datetime),
+    ...(substringMatch === undefined ? {} : {substringMatch}),
+  };
 
-      const options = makeTraceItemAttributeKeysQueryOptions({
-        datetime: selection.datetime,
-        traceItemType,
-        type,
-        projectIds,
-        query,
-        search,
-      });
-
-      return apiOptions.as<Tag[]>()(
-        '/organizations/$organizationIdOrSlug/trace-items/attributes/',
-        {
-          path: {organizationIdOrSlug: organization.slug},
-          staleTime,
-          query: options,
-        }
-      );
-    },
-    [organization.slug, selection.datetime, selection.projects]
+  return apiOptions.as<Tag[]>()(
+    '/organizations/$organizationIdOrSlug/trace-items/attributes/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime,
+      query: options,
+    }
   );
 }
 

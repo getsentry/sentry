@@ -3,6 +3,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
@@ -10,8 +11,8 @@ import type {
 } from 'sentry/views/explore/types';
 import {
   getTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   projectIds?: Array<string | number>;
@@ -70,15 +71,17 @@ export function useGetTraceItemAttributeKeys({
   query,
 }: UseGetTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const traceItemAttributeKeysOptions = useTraceItemAttributeKeysOptions();
   const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
     mutationFn: async (queryString?: string): Promise<TagCollection> => {
       let result: Tag[];
       try {
         const {json} = await queryClient.fetchQuery({
           ...traceItemAttributeKeysOptions({
+            organization,
+            selection,
             traceItemType,
             type,
             projectIds: projectIds ?? selection.projects,

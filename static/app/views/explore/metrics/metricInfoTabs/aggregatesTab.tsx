@@ -6,6 +6,7 @@ import throttle from 'lodash/throttle';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -17,10 +18,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {
-  selectTraceItemTagCollection,
-  useTraceItemAttributeKeysOptions,
-} from 'sentry/views/explore/hooks/useTraceItemAttributeKeysOptions';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
   StyledSimpleTable,
@@ -50,6 +47,10 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
@@ -72,6 +73,7 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const topEvents = useTopEvents();
@@ -96,9 +98,10 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
-  const traceItemAttributeKeysOptions = useTraceItemAttributeKeysOptions();
   const {data: numberTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'number',
       query: traceMetricFilter,
@@ -109,6 +112,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const {data: stringTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'string',
       query: traceMetricFilter,
@@ -119,6 +124,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const {data: booleanTags} = useQuery({
     ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'boolean',
       query: traceMetricFilter,
