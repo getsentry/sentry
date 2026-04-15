@@ -39,11 +39,9 @@ describe('ReleaseHeader', () => {
 
     return render(
       <TopBar.Slot.Provider>
-        <div data-test-id="topbar-title">
-          <TopBar.Slot.Outlet name="title">
-            {props => <div {...props} data-test-id="topbar-title-slot" />}
-          </TopBar.Slot.Outlet>
-        </div>
+        <TopBar.Slot.Outlet name="title">
+          {props => <div {...props} data-test-id="topbar-title-slot" />}
+        </TopBar.Slot.Outlet>
         <ReleaseHeader
           location={location}
           organization={org}
