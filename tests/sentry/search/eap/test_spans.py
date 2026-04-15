@@ -706,15 +706,6 @@ def test_loads_deprecated_attrs_json() -> None:
     assert attribute["deprecation"]
 
 
-def test_internal_name_to_public_alias_maps_measurements() -> None:
-    from sentry.search.eap.spans.attributes import _INTERNAL_NAME_TO_PUBLIC_ALIAS
-
-    assert _INTERNAL_NAME_TO_PUBLIC_ALIAS["app_start_warm"] == "measurements.app_start_warm"
-    assert _INTERNAL_NAME_TO_PUBLIC_ALIAS["app_start_cold"] == "measurements.app_start_cold"
-    assert _INTERNAL_NAME_TO_PUBLIC_ALIAS["frames_frozen"] == "measurements.frames_frozen"
-    assert _INTERNAL_NAME_TO_PUBLIC_ALIAS["lcp"] == "measurements.lcp"
-
-
 def test_deprecated_attr_lookup_resolves_by_internal_name() -> None:
     """When sentry-conventions deprecates a raw attribute name (e.g. "app_start_warm")
     that is stored in SPAN_ATTRIBUTE_DEFINITIONS under a different public_alias
@@ -729,17 +720,16 @@ def test_deprecated_attr_lookup_resolves_by_internal_name() -> None:
     measurement = simple_measurements_field("app_start_warm", "millisecond")
     definitions[measurement.public_alias] = measurement
 
-    internal_to_public = {
-        d.internal_name: d.public_alias for d in definitions.values() if not d.secondary_alias
-    }
-
     key = "app_start_warm"
     replacement = "app.vitals.start.warm.value"
     status = "backfill"
 
     lookup_key = key
-    if key not in definitions and key in internal_to_public:
-        lookup_key = internal_to_public[key]
+    if key not in definitions:
+        for pub_alias, defn in definitions.items():
+            if defn.internal_name == key and not defn.secondary_alias:
+                lookup_key = pub_alias
+                break
 
     assert lookup_key == "measurements.app_start_warm"
 
