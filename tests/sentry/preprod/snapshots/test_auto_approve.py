@@ -533,3 +533,55 @@ class TryAutoApproveSnapshotTest(TestCase):
             preprod_artifact=head_artifact,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
+
+    def test_auto_approves_selective_build_against_full_build(self):
+        sibling_images = {
+            "screen1.png": ComparisonImageResult(
+                status="changed", head_hash="abc", base_hash="old1"
+            ),
+            "screen2.png": ComparisonImageResult(
+                status="unchanged", head_hash="same", base_hash="same"
+            ),
+            "screen3.png": ComparisonImageResult(
+                status="unchanged", head_hash="same2", base_hash="same2"
+            ),
+        }
+        sibling, comp_key, comp_json = self._create_approved_sibling(
+            pr_number=42,
+            comparison_images=sibling_images,
+        )
+
+        cc = self.create_commit_comparison(
+            organization=self.organization,
+            pr_number=42,
+            head_repo_name="owner/repo",
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=cc,
+            app_id="com.example.app",
+        )
+
+        head_manifest = self._create_head_manifest(
+            {
+                "screen1.png": ComparisonImageResult(
+                    status="changed", head_hash="abc", base_hash="old1"
+                ),
+                "screen2.png": ComparisonImageResult(
+                    status="unchanged", head_hash="same", base_hash="same"
+                ),
+                "screen3.png": ComparisonImageResult(status="skipped", base_hash="same2"),
+            }
+        )
+
+        session = _mock_session_with_manifests({comp_key: comp_json})
+        _try_auto_approve_snapshot(head_artifact, head_manifest, session)
+
+        approval = PreprodComparisonApproval.objects.get(
+            preprod_artifact=head_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        assert approval.extras is not None
+        assert approval.extras["auto_approval"] is True
+        assert approval.extras["prev_approved_artifact_id"] == sibling.id
