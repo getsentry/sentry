@@ -83,6 +83,9 @@ export function SeerRepoTableHeader({
   const queryString = queryOptions?.query?.query;
 
   const selectedRepos = useMemo(() => {
+    if (selectedIds === 'all') {
+      return repositories;
+    }
     return repositories.filter(repo => selectedIds.includes(repo.id));
   }, [repositories, selectedIds]);
 
