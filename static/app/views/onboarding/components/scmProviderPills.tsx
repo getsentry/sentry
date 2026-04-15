@@ -27,14 +27,13 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
   const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.has(p.key));
   const relevantProvidersLength = primaryProviders.length + moreProviders.length;
 
-  const columnPrimaryProviders = primaryProviders.length
-    ? `repeat(${primaryProviders.length}, 1fr)`
-    : '';
-  const columnMoreProviders = moreProviders.length ? 'min-content' : '';
-  const columnSpacer = primaryProviders.length && moreProviders.length ? ' ' : '';
-
-  const columnsMd = `${columnPrimaryProviders}${columnSpacer}${columnMoreProviders}`;
-  const columnsXs = relevantProvidersLength > 1 ? '1fr 1fr' : '1fr';
+  const columnsXs = `repeat(${Math.min(relevantProvidersLength, 2)}, 1fr)`;
+  const columnsMd = [
+    primaryProviders.length && `repeat(${primaryProviders.length}, 1fr)`,
+    moreProviders.length && 'min-content',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <Flex justify="center">
