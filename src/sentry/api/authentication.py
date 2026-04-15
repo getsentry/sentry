@@ -801,31 +801,29 @@ class ViewerContextAuthentication(BaseAuthentication):
         verification_keys = _get_verification_keys()
         vc = viewer_context_from_header(header, signature)
 
-        logger.info(
-            "viewer_context_auth.attempt",
-            extra={
-                "header_length": len(header),
-                "header_is_jwt": "." in header and header.count(".") == 2,
-                "signature_present": signature is not None,
-                "signature_length": len(signature) if signature else 0,
-                "verification_key_count": len(verification_keys),
-                "vc_resolved": vc is not None,
-                "vc_user_id": vc.user_id if vc else None,
-                "path": request.path,
-            },
-        )
-
         if vc is None or vc.user_id is None:
+            logger.warning(
+                "viewer_context_auth.failed",
+                extra={
+                    "reason": "vc_not_resolved" if vc is None else "no_user_id",
+                    "header_length": len(header),
+                    "header_is_jwt": "." in header and header.count(".") == 2,
+                    "signature_present": signature is not None,
+                    "signature_length": len(signature) if signature else 0,
+                    "verification_key_count": len(verification_keys),
+                    "path": request.path,
+                },
+            )
             return None
 
         user = user_service.get_user(user_id=vc.user_id)
         if user is None or not user.is_active:
-            logger.info(
-                "viewer_context_auth.user_lookup_failed",
+            logger.warning(
+                "viewer_context_auth.failed",
                 extra={
+                    "reason": "user_not_found" if user is None else "user_inactive",
                     "vc_user_id": vc.user_id,
-                    "user_found": user is not None,
-                    "user_active": user.is_active if user else None,
+                    "path": request.path,
                 },
             )
             return None
