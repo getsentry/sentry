@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
@@ -14,7 +13,8 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -35,13 +35,16 @@ export function FirstEventFooter({
 }: FirstEventFooterProps) {
   const {activateSidebar} = useOnboardingSidebar();
 
-  const {data: issues} = useQuery(
-    apiOptions.as<Group[]>()('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
-      path: project.firstEvent
-        ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}
-        : skipToken,
+  const {data: issues} = useApiQuery<Group[]>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
+    {
       staleTime: Infinity,
-    })
+      enabled: !!project.firstEvent,
+    }
   );
 
   const firstIssue =
