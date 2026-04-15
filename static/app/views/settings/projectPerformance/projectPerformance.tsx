@@ -200,6 +200,9 @@ export function ProjectPerformance() {
   });
 
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
+  const hasAIIssueDetection =
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('issue-llm-detected-experimental-v2-visible');
 
   const {
     data: threshold,
@@ -612,9 +615,7 @@ export function ProjectPerformance() {
           })
         );
       },
-      visible:
-        organization.features.includes('gen-ai-features') &&
-        organization.features.includes('issue-llm-detected-experimental-v2-visible'),
+      visible: hasAIIssueDetection,
     },
   };
 
@@ -1062,6 +1063,7 @@ export function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
+            visible: hasAIIssueDetection,
           },
           {
             name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
@@ -1074,6 +1076,7 @@ export function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
+            visible: hasAIIssueDetection,
           },
           {
             name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
@@ -1086,6 +1089,7 @@ export function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
+            visible: hasAIIssueDetection,
           },
           {
             name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
@@ -1098,6 +1102,7 @@ export function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
+            visible: hasAIIssueDetection,
           },
           {
             name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
@@ -1110,6 +1115,7 @@ export function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
+            visible: hasAIIssueDetection,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
