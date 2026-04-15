@@ -93,6 +93,12 @@ enum DetectorConfigAdmin {
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
   WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
   LLM_ISSUE_DETECTION_ENABLED = 'llm_issue_detection_enabled',
+  AI_DETECTED_HTTP_ENABLED = 'ai_detected_http_enabled',
+  AI_DETECTED_DB_ENABLED = 'ai_detected_db_enabled',
+  AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED = 'ai_detected_runtime_performance_enabled',
+  AI_DETECTED_SECURITY_ENABLED = 'ai_detected_security_enabled',
+  AI_DETECTED_CODE_HEALTH_ENABLED = 'ai_detected_code_health_enabled',
+  AI_DETECTED_GENERAL_ENABLED = 'ai_detected_general_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -594,7 +600,7 @@ export function ProjectPerformance() {
     [IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2]: {
       name: DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
-      label: t('LLM Issue Detection'),
+      label: t('AI Issue Detection'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -1044,7 +1050,74 @@ export function ProjectPerformance() {
       },
       {
         title: IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2,
-        fields: [],
+        fields: [
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
+            type: 'boolean' as const,
+            label: t('HTTP Issues'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
+            type: 'boolean' as const,
+            label: t('Database Issues'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
+            type: 'boolean' as const,
+            label: t('Runtime Performance Issues'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
+            type: 'boolean' as const,
+            label: t('Security Issues'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
+            type: 'boolean' as const,
+            label: t('Code Health Issues'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_GENERAL_ENABLED,
+            type: 'boolean' as const,
+            label: t('General Issues'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+          },
+        ],
         initiallyCollapsed: issueType !== IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
       },
     ];
