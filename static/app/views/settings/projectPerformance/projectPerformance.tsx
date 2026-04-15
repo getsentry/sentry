@@ -203,7 +203,6 @@ export function ProjectPerformance() {
   const hasAIIssueDetection =
     organization.features.includes('gen-ai-features') &&
     organization.features.includes('ai-issue-detection');
-  const aiIssueDetectionTitle = t('AI Issue Detection');
 
   const {
     data: threshold,
@@ -601,10 +600,10 @@ export function ProjectPerformance() {
       },
       visible: hasWebVitalsSeerSuggestions,
     },
-    [aiIssueDetectionTitle]: {
+    [IssueTitle.AI_DETECTED_GENERAL]: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
-      label: aiIssueDetectionTitle,
+      label: IssueTitle.AI_DETECTED_GENERAL,
       help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
       onChange: value => {
@@ -1052,7 +1051,7 @@ export function ProjectPerformance() {
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
       {
-        title: aiIssueDetectionTitle,
+        title: IssueTitle.AI_DETECTED_GENERAL,
         fields: [
           {
             name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
