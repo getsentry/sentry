@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
@@ -17,6 +17,7 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 
@@ -226,5 +227,51 @@ export function ProjectMapperTable({
         );
       })}
     </div>
+  );
+}
+
+interface ProjectMapperNextButtonProps {
+  config: ProjectMapperConfig;
+  value: MappedValue[];
+}
+
+export function ProjectMapperNextButton({config, value}: ProjectMapperNextButtonProps) {
+  const {nextButton} = config;
+  if (!nextButton) {
+    return null;
+  }
+
+  const nextUrlOrArray = safeGetQsParam('next');
+  let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
+
+  if (nextUrl && !nextUrl.startsWith(nextButton.allowedDomain)) {
+    // eslint-disable-next-line no-console
+    console.warn(`Got unexpected next url: ${nextUrl}`);
+    nextUrl = undefined;
+  }
+
+  if (!nextUrl) {
+    return null;
+  }
+
+  const hasLinkedProjects = value.length > 0;
+
+  return (
+    <Flex align="center" justify="between" gap="md">
+      <Text>{nextButton.description}</Text>
+      <LinkButton
+        size="sm"
+        priority="primary"
+        icon={<IconOpen />}
+        disabled={!hasLinkedProjects}
+        href={nextUrl}
+        tooltipProps={{
+          title: t('Please link at least one project to continue.'),
+          disabled: hasLinkedProjects,
+        }}
+      >
+        {nextButton.text}
+      </LinkButton>
+    </Flex>
   );
 }

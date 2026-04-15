@@ -241,6 +241,87 @@ describe('ProjectMapperAdapter', () => {
     expect(addButton).toBeEnabled();
   });
 
+  describe('next button', () => {
+    const nextButtonConfig = {
+      nextButton: {
+        allowedDomain: 'https://vercel.com',
+        description: 'Link your Sentry projects to complete your installation on Vercel',
+        text: 'Complete on Vercel',
+      },
+    };
+
+    afterEach(() => {
+      window.history.replaceState({}, '', '/');
+    });
+
+    it('renders disabled next button when no mappings exist', () => {
+      window.history.replaceState({}, '', '?next=https://vercel.com/install/complete');
+
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[]}
+          mutationOptions={mutationOptions}
+        />,
+        {organization: org}
+      );
+
+      expect(
+        screen.getByText(
+          'Link your Sentry projects to complete your installation on Vercel'
+        )
+      ).toBeInTheDocument();
+
+      const button = screen.getByRole('button', {name: 'Complete on Vercel'});
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('renders enabled next button when mappings exist', () => {
+      window.history.replaceState({}, '', '?next=https://vercel.com/install/complete');
+
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[[101, 'proj-1']]}
+          mutationOptions={mutationOptions}
+        />,
+        {organization: org}
+      );
+
+      const button = screen.getByRole('button', {name: 'Complete on Vercel'});
+      expect(button).toHaveAttribute('href', 'https://vercel.com/install/complete');
+      expect(button).toHaveAttribute('aria-disabled', 'false');
+    });
+
+    it('does not render next button when next param is missing', () => {
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[]}
+          mutationOptions={mutationOptions}
+        />,
+        {organization: org}
+      );
+
+      expect(screen.queryByText('Complete on Vercel')).not.toBeInTheDocument();
+    });
+
+    it('does not render next button when next param domain does not match', () => {
+      window.history.replaceState({}, '', '?next=https://evil.com/steal');
+
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[]}
+          mutationOptions={mutationOptions}
+        />,
+        {organization: org}
+      );
+
+      expect(screen.queryByText('Complete on Vercel')).not.toBeInTheDocument();
+    });
+  });
+
   it('controls disabled during in-flight mutation', async () => {
     let resolveMutation!: () => void;
     const pendingMutationOptions = {
