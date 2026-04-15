@@ -148,7 +148,7 @@ export function ReleaseHeader({
           <Breadcrumbs crumbs={breadcrumbs} />
         )}
         <Layout.Title>
-          <TitleWrapper align="center" gap="sm" minWidth={0}>
+          <TitleWrapper align="center" gap="md" minWidth={0}>
             <IdBadge
               project={project}
               avatarSize={hasPageFrameFeature ? 16 : 28}
