@@ -40,8 +40,7 @@ class IssueAlertRuleSerializer(serializers.Serializer):
 1. If org has `allow_joinleave` flag → any team is allowed (user could join anyway)
 2. If user has `team:admin` scope → any team is allowed
 3. If user is a member of the target team → allowed
-4. If user is a member of the current owner's team → allowed (can reassign from their team)
-5. Otherwise → `ValidationError("You can only assign teams you are a member of")`
+4. Otherwise → `ValidationError("You can only assign teams you are a member of")`
 
 ### What to look for
 

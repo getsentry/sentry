@@ -260,7 +260,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 "project": project,
                 "organization": project.organization,
                 "request": request,
-                "current_owner": current_owner,
             },
             data=request.data,
             partial=True,

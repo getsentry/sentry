@@ -317,7 +317,7 @@ export function BlockComponent({
 
   const thumbsFeedbackButton = (type: 'positive' | 'negative') => {
     const ariaLabel =
-      type === 'positive' ? t('Seer Explorer Thumbs Up') : t('Seer Explorer Thumbs Down');
+      type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down');
     return (
       <Button
         aria-label={ariaLabel}

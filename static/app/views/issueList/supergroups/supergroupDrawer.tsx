@@ -81,7 +81,7 @@ export function SupergroupDetailDrawer({
           <Flex align="center" gap="sm">
             <NavigationCrumbs
               crumbs={[
-                {label: t('Supergroups')},
+                {label: t('Issue Groups')},
                 {
                   label: (
                     <CrumbContainer>
