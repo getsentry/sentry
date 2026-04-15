@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -47,6 +48,17 @@ export function ReleaseHeader({
   const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
+  const breadcrumbs = [
+    {
+      to: makeReleasesPathname({
+        organization,
+        path: '/',
+      }),
+      label: t('Releases'),
+      preservePageFilters: true,
+    },
+    {label: t('Release Details')},
+  ];
 
   const releasePath = makeReleasesPathname({
     organization,
@@ -125,44 +137,46 @@ export function ReleaseHeader({
     return tabs[0]!.to; // default to 'Overview'
   };
 
+  const title = (
+    <React.Fragment>
+      <IdBadge project={project} avatarSize={28} hideName />
+      <Version version={version} anchor={false} truncate />
+      <IconWrapper>
+        <CopyToClipboardButton
+          priority="transparent"
+          size="zero"
+          text={version}
+          tooltipProps={{title: version}}
+          aria-label={t('Copy release version to clipboard')}
+        />
+      </IconWrapper>
+      {!!url && (
+        <IconWrapper>
+          <Tooltip title={url}>
+            <ExternalLink href={url}>
+              <IconOpen />
+            </ExternalLink>
+          </Tooltip>
+        </IconWrapper>
+      )}
+    </React.Fragment>
+  );
+
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumbs
-          crumbs={[
-            {
-              to: makeReleasesPathname({
-                organization,
-                path: '/',
-              }),
-              label: t('Releases'),
-              preservePageFilters: true,
-            },
-            {label: t('Release Details')},
-          ]}
-        />
-        <Layout.Title>
-          <IdBadge project={project} avatarSize={28} hideName />
-          <Version version={version} anchor={false} truncate />
-          <IconWrapper>
-            <CopyToClipboardButton
-              priority="transparent"
-              size="zero"
-              text={version}
-              tooltipProps={{title: version}}
-              aria-label={t('Copy release version to clipboard')}
-            />
-          </IconWrapper>
-          {!!url && (
-            <IconWrapper>
-              <Tooltip title={url}>
-                <ExternalLink href={url}>
-                  <IconOpen />
-                </ExternalLink>
-              </Tooltip>
-            </IconWrapper>
-          )}
-        </Layout.Title>
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="title">
+            <Breadcrumbs crumbs={breadcrumbs} />
+          </TopBar.Slot>
+        ) : (
+          <Breadcrumbs crumbs={breadcrumbs} />
+        )}
+        {hasPageFrameFeature ? (
+          <PageFrameTitle as="h1">{title}</PageFrameTitle>
+        ) : (
+          <Layout.Title>{title}</Layout.Title>
+        )}
       </Layout.HeaderContent>
 
       {hasPageFrameFeature ? (
@@ -210,6 +224,16 @@ const IconWrapper = styled('span')`
       color: ${p => p.theme.tokens.content.primary};
     }
   }
+`;
+
+const PageFrameTitle = styled(Heading)`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
 `;
 
 const NavTabsBadge = styled(Badge)`
