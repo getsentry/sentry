@@ -32,7 +32,7 @@ class ScmRpcServiceEndpoint(Endpoint):
     Copied from the normal rpc endpoint and modified for use with SCM.
     """
 
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL, "POST": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.CODING_WORKFLOWS
     authentication_classes = ()
     permission_classes = ()
