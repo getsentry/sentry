@@ -11,9 +11,13 @@ type FeatureFlagConfiguration = {
 // Node.js only supports the generic featureFlagsIntegration. Vendor-specific
 // integrations (LaunchDarkly, OpenFeature, etc.) are browser-only in @sentry/browser.
 // All providers therefore use the same generic setup.
-function getGenericConfig(packageName: `@sentry/${string}`): FeatureFlagConfiguration {
+function getGenericConfig(
+  packageName: `@sentry/${string}`,
+  sentryImport?: string
+): FeatureFlagConfiguration {
+  const importStatement = sentryImport ?? `import * as Sentry from "${packageName}";`;
   return {
-    makeConfigureCode: (dsn: string) => `import * as Sentry from "${packageName}";
+    makeConfigureCode: (dsn: string) => `${importStatement}
 
 Sentry.init({
   dsn: "${dsn}",
@@ -31,9 +35,10 @@ Sentry.captureException(new Error("Something went wrong!"));`,
 }
 
 function getFeatureFlagConfigurationMap(
-  packageName: `@sentry/${string}`
+  packageName: `@sentry/${string}`,
+  sentryImport?: string
 ): Record<FeatureFlagProviderEnum, FeatureFlagConfiguration> {
-  const config = getGenericConfig(packageName);
+  const config = getGenericConfig(packageName, sentryImport);
   return {
     [FeatureFlagProviderEnum.GENERIC]: config,
     [FeatureFlagProviderEnum.LAUNCHDARKLY]: config,
@@ -45,12 +50,14 @@ function getFeatureFlagConfigurationMap(
 
 export const featureFlag = ({
   packageName = '@sentry/node',
+  sentryImport,
 }: {
   packageName?: `@sentry/${string}`;
+  sentryImport?: string;
 } = {}): OnboardingConfig => ({
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
-    const configMap = getFeatureFlagConfigurationMap(packageName);
+    const configMap = getFeatureFlagConfigurationMap(packageName, sentryImport);
     const {makeConfigureCode, makeVerifyCode} =
       configMap[featureFlagOptions.integration as keyof typeof configMap];
 
@@ -60,27 +67,37 @@ export const featureFlag = ({
         content: [
           {
             type: 'text',
-            text: t('Install the Sentry SDK.'),
+            text: sentryImport
+              ? t('Import the Sentry SDK.')
+              : t('Install the Sentry SDK.'),
           },
           {
             type: 'code',
-            tabs: [
-              {
-                label: 'npm',
-                language: 'bash',
-                code: `npm install --save ${packageName}`,
-              },
-              {
-                label: 'yarn',
-                language: 'bash',
-                code: `yarn add ${packageName}`,
-              },
-              {
-                label: 'pnpm',
-                language: 'bash',
-                code: `pnpm add ${packageName}`,
-              },
-            ],
+            tabs: sentryImport
+              ? [
+                  {
+                    label: 'JavaScript',
+                    language: 'javascript',
+                    code: sentryImport,
+                  },
+                ]
+              : [
+                  {
+                    label: 'npm',
+                    language: 'bash',
+                    code: `npm install --save ${packageName}`,
+                  },
+                  {
+                    label: 'yarn',
+                    language: 'bash',
+                    code: `yarn add ${packageName}`,
+                  },
+                  {
+                    label: 'pnpm',
+                    language: 'bash',
+                    code: `pnpm add ${packageName}`,
+                  },
+                ],
           },
         ],
       },
