@@ -24,7 +24,12 @@ from sentry.seer.autofix.autofix import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
-from sentry.seer.models import SeerApiError, SeerProjectPreference, SeerRawPreferenceResponse
+from sentry.seer.models import (
+    SeerApiError,
+    SeerAutomationHandoffConfiguration,
+    SeerProjectPreference,
+    SeerRawPreferenceResponse,
+)
 from sentry.seer.utils import get_github_username_for_user
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1138,7 +1143,43 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_creates_preference_from_code_mappings_and_org_defaults(
+    def test_empty_repos_falls_back_to_code_mappings_and_preserves_settings(
+        self, mock_get_prefs, mock_set_pref, mock_write_sentry
+    ):
+        mock_get_prefs.return_value = SeerRawPreferenceResponse(
+            preference=SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[],
+                automated_run_stopping_point="root_cause",
+                automation_handoff=SeerAutomationHandoffConfiguration(
+                    handoff_point="root_cause",
+                    target="cursor_background_agent",
+                    integration_id=42,
+                    auto_create_pr=True,
+                ),
+            )
+        )
+
+        fallback_repos = [self._mock_repo("sentry", "123")]
+        result = _resolve_project_preference(self.organization, self.project, fallback_repos)
+
+        assert result is not None
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "sentry"
+        assert result.automated_run_stopping_point == "root_cause"
+        assert result.automation_handoff is not None
+        assert result.automation_handoff.handoff_point == "root_cause"
+        assert result.automation_handoff.target == "cursor_background_agent"
+        assert result.automation_handoff.integration_id == 42
+        assert result.automation_handoff.auto_create_pr is True
+        mock_set_pref.assert_called_once()
+        mock_write_sentry.assert_called_once()
+
+    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
+    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
+    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
+    def test_no_preference_falls_back_to_code_mappings_and_org_defaults(
         self, mock_get_prefs, mock_set_pref, mock_write_sentry
     ):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
@@ -1212,30 +1253,6 @@ class TestResolveProjectPreference(TestCase):
         assert result.project_id == self.project.id
         mock_set_pref.assert_called_once()
         mock_write_sentry.assert_called_once()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_returns_preference_with_empty_repos(
-        self, mock_get_prefs, mock_set_pref, mock_write_sentry
-    ):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(
-            preference=SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[],
-                automated_run_stopping_point="root_cause",
-            )
-        )
-
-        fallback_repos = [self._mock_repo("sentry", "123")]
-        result = _resolve_project_preference(self.organization, self.project, fallback_repos)
-
-        assert result is not None
-        assert len(result.repositories) == 0
-        assert result.automated_run_stopping_point == "root_cause"
-        mock_set_pref.assert_not_called()
-        mock_write_sentry.assert_not_called()
 
     @with_feature("organizations:seer-project-settings-read-from-sentry")
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
