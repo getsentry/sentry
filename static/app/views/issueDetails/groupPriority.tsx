@@ -2,6 +2,7 @@ import {bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
+  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
@@ -25,6 +26,9 @@ const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
   [PriorityLevel.MEDIUM]: 2,
   [PriorityLevel.LOW]: 1,
 };
+
+const getPriorityUpdateSuccessMessage = (priority: PriorityLevel) =>
+  t('Priority updated to %s', priority);
 
 export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
   const api = useApi({persistInFlight: true});
@@ -57,6 +61,7 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       {
         success: () => {
           clearIndicators();
+          addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
           onChange?.(nextPriority);
         },
         error: () => {
@@ -114,7 +119,10 @@ export function GroupPriorityCommandPaletteAction({
         project: [group.project.id],
       },
       {
-        success: clearIndicators,
+        success: () => {
+          clearIndicators();
+          addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
+        },
         error: () => {
           clearIndicators();
           addErrorMessage(t('Unable to update issue priority'));

@@ -72,6 +72,29 @@ const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => 
   return (data as GroupStatusResolution).status !== undefined;
 };
 
+const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
+  if (isResolutionStatus(data)) {
+    switch (data.status) {
+      case GroupStatus.RESOLVED:
+        return t('Issue resolved');
+      case GroupStatus.IGNORED:
+        return t('Issue archived');
+      case GroupStatus.UNRESOLVED:
+        return group.status === GroupStatus.IGNORED
+          ? t('Issue unarchived')
+          : t('Issue marked unresolved');
+      default:
+        return undefined;
+    }
+  }
+
+  if ((data as {inbox: boolean}).inbox === false) {
+    return t('Issue marked reviewed');
+  }
+
+  return undefined;
+};
+
 interface GroupActionsProps {
   disabled: boolean;
   event: Event | null;
@@ -189,6 +212,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onUpdate = (data: UpdateData, onComplete?: () => void) => {
+    const successMessage = getUpdateSuccessMessage(group, data);
+
     bulkUpdate(
       api,
       {
@@ -200,6 +225,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       {
         complete: () => {
           clearIndicators();
+          if (successMessage) {
+            addSuccessMessage(successMessage);
+          }
           onComplete?.();
           queryClient.invalidateQueries({
             queryKey: makeFetchGroupQueryKey({
