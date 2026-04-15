@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -9,6 +10,7 @@ import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -256,25 +258,19 @@ function EnhancedUsageStatsOrganization({
   const hasAccurateSpikes = getSeriesApiInterval(dataDatetime) === REQUIRED_INTERVAL;
 
   const projectWithSpikeProjectionOptionQueryEnabled = isSingleProject && !!project;
-  const projectWithSpikeProjectionOption = useApiQuery<Project[]>(
-    [
-      // This endpoint refetches the specific project with an added query for the SP option
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          options: SPIKE_PROTECTION_OPTION_DISABLED,
-          query: `id:${project?.id}`,
-        },
+  // This endpoint refetches the specific project with an added query for the SP option
+  const projectWithSpikeProjectionOption = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        options: SPIKE_PROTECTION_OPTION_DISABLED,
+        query: `id:${project?.id}`,
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-      enabled: projectWithSpikeProjectionOptionQueryEnabled,
-    }
-  );
+    }),
+    retry: false,
+    enabled: projectWithSpikeProjectionOptionQueryEnabled,
+  });
 
   const spikesListQueryEnabled = isSingleProject && !!project;
   const spikesList = useApiQuery<SpikesList>(
@@ -340,7 +336,7 @@ function EnhancedUsageStatsOrganization({
     >
       {usageStats => {
         const loadingStatuses = [usageStats.orgStats.isPending];
-        const errorStatuses = [usageStats.orgStats.error];
+        const errorStatuses: Array<Error | null> = [usageStats.orgStats.error];
 
         if (projectWithSpikeProjectionOptionQueryEnabled) {
           loadingStatuses.push(projectWithSpikeProjectionOption.isPending);

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -13,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
@@ -56,10 +58,6 @@ function TokenList({
   tokenList: OrgAuthToken[];
   revokeToken?: (data: {token: OrgAuthToken}) => void;
 }) {
-  const apiEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
-
   const projectIds = tokenList
     .map(token => token.projectLastUsedId)
     .filter(id => !!id) as string[];
@@ -68,13 +66,14 @@ function TokenList({
 
   const hasProjects = projectIds.length > 0;
 
-  const {data: projects, isPending: isLoadingProjects} = useApiQuery<Project[]>(
-    [apiEndpoint, {query: {query: idQueryParams}}],
-    {
+  const {data: projects, isPending: isLoadingProjects} = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {query: idQueryParams},
       staleTime: 0,
-      enabled: hasProjects,
-    }
-  );
+    }),
+    enabled: hasProjects,
+  });
 
   return (
     <Fragment>
