@@ -57,8 +57,11 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
     except RepositoryModel.DoesNotExist:
         return None
 
-    provider = repo.provider
-    assert isinstance(provider, str)
+    # This state should be impossible, however, the invariant is not encoded into the data type.
+    # If we encounter a null provider the repository is functionally useless and there is a
+    # broader bug in the Sentry codebase. Return "None" and let the SCM fail gracefully.
+    if not isinstance(repo.provider, str):
+        return None
 
     return cast(
         Repository,
@@ -69,7 +72,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "is_active": repo.status == ObjectStatus.ACTIVE,
             "name": repo.name,
             "organization_id": repo.organization_id,
-            "provider_name": provider.removeprefix("integrations:"),
+            "provider_name": repo.provider.removeprefix("integrations:"),
         },
     )
 
