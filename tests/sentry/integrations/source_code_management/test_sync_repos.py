@@ -52,7 +52,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
         ):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -69,8 +70,12 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             )
             assert entries.count() == 2
 
+    @patch(
+        "sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request",
+        return_value=MagicMock(status=200),
+    )
     @responses.activate
-    def test_disables_removed_repos(self, _: MagicMock) -> None:
+    def test_disables_removed_repos(self, _: MagicMock, __: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -91,7 +96,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 "organizations:scm-repo-auto-sync-removal",
             ]
         ):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -130,7 +136,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
         ):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -159,7 +166,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
         ):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id)
@@ -178,7 +186,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with self.feature(
             ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
         ):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
@@ -195,7 +204,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         # Only the sync flag, not the apply flag
         with self.feature("organizations:github-repo-auto-sync"):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
         # No repos should be created
         with assume_test_silo_mode(SiloMode.CELL):
@@ -221,7 +231,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         )
 
         with self.feature("organizations:github-repo-auto-sync"), pytest.raises(RetryTaskError):
-            sync_repos_for_org(self.oi.id)
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
 
 
 @control_silo_test
@@ -263,7 +274,8 @@ class SyncReposForOrgGHETestCase(TestCase):
                 "organizations:github_enterprise-repo-auto-sync-apply",
             ]
         ):
-            sync_repos_for_org(oi.id)
+            with self.tasks():
+                sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -337,7 +349,8 @@ class SyncReposForOrgGitLabTestCase(TestCase):
         with self.feature(
             ["organizations:gitlab-repo-auto-sync", "organizations:gitlab-repo-auto-sync-apply"]
         ):
-            sync_repos_for_org(oi.id)
+            with self.tasks():
+                sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -396,7 +409,8 @@ class SyncReposForOrgBitbucketTestCase(TestCase):
                 "organizations:bitbucket-repo-auto-sync-apply",
             ]
         ):
-            sync_repos_for_org(oi.id)
+            with self.tasks():
+                sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -460,7 +474,8 @@ class SyncReposForOrgVstsTestCase(TestCase):
         with self.feature(
             ["organizations:vsts-repo-auto-sync", "organizations:vsts-repo-auto-sync-apply"]
         ):
-            sync_repos_for_org(oi.id)
+            with self.tasks():
+                sync_repos_for_org(oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
