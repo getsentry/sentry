@@ -49,6 +49,31 @@ export function ReleaseHeader({
   const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
+
+  const renderTitleContent = (avatarSize: number) => (
+    <React.Fragment>
+      <IdBadge project={project} avatarSize={avatarSize} hideName />
+      <Version version={version} anchor={false} truncate />
+      <CopyToClipboardButton
+        className="release-copy-button"
+        priority="transparent"
+        size="zero"
+        text={version}
+        tooltipProps={{title: version}}
+        aria-label={t('Copy release version to clipboard')}
+      />
+      {!!url && (
+        <IconWrapper>
+          <Tooltip title={url}>
+            <ExternalLink href={url}>
+              <IconOpen />
+            </ExternalLink>
+          </Tooltip>
+        </IconWrapper>
+      )}
+    </React.Fragment>
+  );
+
   const releasePath = makeReleasesPathname({
     organization,
     path: `/${encodeURIComponent(version)}/`,
@@ -141,25 +166,7 @@ export function ReleaseHeader({
                 {
                   label: (
                     <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                      <IdBadge project={project} avatarSize={16} hideName />
-                      <Version version={version} anchor={false} truncate />
-                      <CopyToClipboardButton
-                        className="release-copy-button"
-                        priority="transparent"
-                        size="zero"
-                        text={version}
-                        tooltipProps={{title: version}}
-                        aria-label={t('Copy release version to clipboard')}
-                      />
-                      {!!url && (
-                        <IconWrapper>
-                          <Tooltip title={url}>
-                            <ExternalLink href={url}>
-                              <IconOpen />
-                            </ExternalLink>
-                          </Tooltip>
-                        </IconWrapper>
-                      )}
+                      {renderTitleContent(16)}
                     </Flex>
                   ),
                 },
@@ -178,27 +185,7 @@ export function ReleaseHeader({
                 {label: t('Release Details')},
               ]}
             />
-            <Layout.Title>
-              <IdBadge project={project} avatarSize={28} hideName />
-              <Version version={version} anchor={false} truncate />
-              <CopyToClipboardButton
-                className="release-copy-button"
-                priority="transparent"
-                size="zero"
-                text={version}
-                tooltipProps={{title: version}}
-                aria-label={t('Copy release version to clipboard')}
-              />
-              {!!url && (
-                <IconWrapper>
-                  <Tooltip title={url}>
-                    <ExternalLink href={url}>
-                      <IconOpen />
-                    </ExternalLink>
-                  </Tooltip>
-                </IconWrapper>
-              )}
-            </Layout.Title>
+            <Layout.Title>{renderTitleContent(28)}</Layout.Title>
           </React.Fragment>
         )}
       </Layout.HeaderContent>
