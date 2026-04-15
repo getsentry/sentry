@@ -45,7 +45,7 @@ export function FirstEventFooter({
   );
 
   const firstIssue =
-    project.firstEvent && issues
+    !!project.firstEvent && issues
       ? issues.find((issue: Group) => issue.firstSeen === project.firstEvent)
       : undefined;
 
@@ -95,9 +95,11 @@ export function FirstEventFooter({
         </AnimatedText>
       </StatusWrapper>
       <OnboardingButtonBar>
+        {/* if hasn't sent first event, allow skipping. if last, no secondary cta */}
         {!project.firstEvent && !isLast ? (
           <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>
         ) : null}
+        {/* if hasn't sent first event, allow creation of sample error */}
         {project.firstEvent ? (
           <LinkButton
             onClick={() =>
