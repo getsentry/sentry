@@ -14,7 +14,15 @@ from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
+from sentry.issues.grouptype import (
+    AIDetectedCodeHealthGroupType,
+    AIDetectedDBGroupType,
+    AIDetectedGeneralGroupType,
+    AIDetectedHTTPGroupType,
+    AIDetectedRuntimePerformanceGroupType,
+    AIDetectedSecurityGroupType,
+    GroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
@@ -146,6 +154,25 @@ def get_base_platform(platform: str | None) -> str | None:
     return None
 
 
+TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Degraded Database Operation": AIDetectedDBGroupType,
+    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Potential Security Leak": AIDetectedSecurityGroupType,
+    "Potential Security Risk": AIDetectedSecurityGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
+    "Deprecation Warning": AIDetectedCodeHealthGroupType,
+}
+
+
+def get_group_type_for_title(title: str) -> type[GroupType]:
+    return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     project: Project,
@@ -187,7 +214,7 @@ def create_issue_occurrence_from_detection(
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupTypeV2,
+        type=get_group_type_for_title(detected_issue.title),
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",

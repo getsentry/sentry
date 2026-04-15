@@ -8,7 +8,7 @@ export function McpResourceErrorRateWidget() {
     <GroupedErrorRateWidget
       groupBy={SpanFields.MCP_RESOURCE_URI}
       referrer={MCPReferrer.MCP_RESOURCE_ERROR_RATE_WIDGET}
-      query={`span.op:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`}
+      query={`span.name:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`}
       title={t('Most Failing Resources')}
     />
   );

@@ -93,8 +93,8 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert attrs["preprod_artifact_id"].int_value == artifact.id
         assert attrs["size_metric_id"].int_value == size_metric.id
         assert (
-            attrs["metrics_artifact_type"].int_value
-            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+            attrs["metrics_artifact_type"].string_value
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT.to_choice_label()
         )
         assert attrs["identifier"].string_value == "com.example.feature"
         assert attrs["min_install_size"].int_value == 1000

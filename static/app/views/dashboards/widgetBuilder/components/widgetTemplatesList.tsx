@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -75,18 +75,15 @@ export function WidgetTemplatesList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSave = useCallback(
-    async (widget: Widget) => {
-      try {
-        const newWidget = {...widget, id: undefined};
-        await validateWidget(api, organization.slug, newWidget);
-        onSave({index: Number(widgetIndex), widget: newWidget});
-      } catch (error) {
-        addErrorMessage(t('Unable to add widget'));
-      }
-    },
-    [api, organization.slug, widgetIndex, onSave]
-  );
+  const handleSave = async (widget: Widget) => {
+    try {
+      const newWidget = {...widget, id: undefined};
+      await validateWidget(api, organization.slug, newWidget);
+      onSave({index: Number(widgetIndex), widget: newWidget});
+    } catch (error) {
+      addErrorMessage(t('Unable to add widget'));
+    }
+  };
 
   return (
     <Fragment>

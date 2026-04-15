@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
+from sentry.issues.grouptype import AIDetectedDBGroupType, AIDetectedGeneralGroupType
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -103,7 +103,7 @@ class LLMIssueDetectionTest(TestCase):
         assert call_kwargs["payload_type"].value == "occurrence"
 
         occurrence = call_kwargs["occurrence"]
-        assert occurrence.type == LLMDetectedExperimentalGroupTypeV2
+        assert occurrence.type == AIDetectedGeneralGroupType
         assert occurrence.issue_title == "Slow Database Query"
         assert occurrence.subtitle == "Your application is running out of database connections"
         assert occurrence.project_id == self.project.id
@@ -145,7 +145,7 @@ class LLMIssueDetectionTest(TestCase):
         self, mock_produce_occurrence
     ):
         detected_issue = DetectedIssue(
-            title="N+1 Database Queries",
+            title="Inefficient Database Queries",
             explanation="Multiple queries in loop",
             impact="Medium",
             evidence="5 queries",
@@ -161,6 +161,7 @@ class LLMIssueDetectionTest(TestCase):
         )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
         assert occurrence.fingerprint == ["llm-detected-n+1-database-queries"]
+        assert occurrence.type == AIDetectedDBGroupType
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")

@@ -2523,6 +2523,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/warnings')),
     },
     {
+      path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
+      component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
+    },
+    {
       path: 'instrumentation/',
       component: make(() => import('sentry/views/issueList/pages/instrumentation')),
     },

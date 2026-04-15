@@ -263,7 +263,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     return (
       <TableWrapper>
         <AgentsTracesTableWidgetVisualization
-          limit={widget.limit}
+          limit={widget.limit ?? undefined}
           tableWidths={widget.tableWidths}
           dashboardFilters={props.dashboardFilters}
           frameless

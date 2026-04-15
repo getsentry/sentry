@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -46,14 +45,14 @@ export function ReleaseHealthCTA({
     }
   );
 
-  const trackAddReleaseHealth = useCallback(() => {
+  const trackAddReleaseHealth = () => {
     if (organization.id && selection.projects[0]) {
       trackAnalytics('releases_list.click_add_release_health', {
         organization,
         project_id: selection.projects[0],
       });
     }
-  }, [organization, selection]);
+  };
 
   if (isPending || isError) {
     return null;
