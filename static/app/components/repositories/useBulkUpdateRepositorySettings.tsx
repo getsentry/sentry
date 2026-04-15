@@ -1,5 +1,6 @@
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {
   fetchMutation,
   useMutation,
@@ -20,7 +21,7 @@ type RepositorySettings =
       enabledCodeReview?: never;
     }
   | {
-      codeReviewTriggers: string[];
+      codeReviewTriggers: CodeReviewTrigger[];
       enabledCodeReview: boolean;
       repositoryIds: string[];
     };
