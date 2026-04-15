@@ -220,7 +220,7 @@ function useTraceMetricsSearchScope() {
       }
 
       search.addOp('(');
-      search.addStringFilter(createTraceMetricFilter(metric) ?? '');
+      search.addStringMultiFilter(createTraceMetricFilter(metric) ?? '');
       search.addOp(')');
 
       if (i < traceMetrics.length - 1) {
