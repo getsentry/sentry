@@ -27,6 +27,7 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
             teams=[self.team], organization=self.organization, name="test_project"
         )
         self._feature = "organizations:preprod-snapshot-pr-comments"
+        self.project.update_option("sentry:preprod_snapshot_pr_comments_enabled", True)
 
     def _create_artifact_with_metrics(
         self,
