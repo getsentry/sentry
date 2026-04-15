@@ -597,7 +597,7 @@ export function ProjectPerformance() {
       },
       visible: hasWebVitalsSeerSuggestions,
     },
-    [IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2]: {
+    [DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
       label: t('AI Issue Detection'),
@@ -1049,7 +1049,7 @@ export function ProjectPerformance() {
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
       {
-        title: IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2,
+        title: t('AI Issue Detection'),
         fields: [
           {
             name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
