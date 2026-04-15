@@ -66,11 +66,13 @@ class TestFetchServiceProvider(TestCase):
         )
 
         repository: Repository = {
+            "id": 1,
             "integration_id": integration.id,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": True,
             "external_id": None,
+            "provider_name": "github",
         }
         provider = fetch_service_provider(
             self.organization.id,
@@ -81,11 +83,13 @@ class TestFetchServiceProvider(TestCase):
 
     def test_returns_none_for_nonexistent_integration(self) -> None:
         repository: Repository = {
+            "id": 1,
             "integration_id": 99999,
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": True,
             "external_id": None,
+            "provider_name": "github",
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
