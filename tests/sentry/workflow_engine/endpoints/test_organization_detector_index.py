@@ -537,6 +537,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
                 "query": f"workflow:[{workflow.id}, {workflow_2.id}]",
             },
         )
+        assert [d["name"] for d in response.data].count(detector_b.name) == 1
         assert {d["name"] for d in response.data} == {detector_a.name, detector_b.name}
 
         # Negation

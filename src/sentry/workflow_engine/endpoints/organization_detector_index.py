@@ -235,7 +235,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         else:
                             queryset = queryset.filter(
                                 detectorworkflow__workflow_id__in=workflow_ids
-                            )
+                            ).distinct()
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.
