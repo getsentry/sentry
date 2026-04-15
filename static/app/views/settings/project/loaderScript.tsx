@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -13,8 +14,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -24,12 +24,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 export default function ProjectLoaderScript() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const apiEndpoint = getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/',
-    {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-    }
-  );
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);
 
   const {
@@ -37,9 +31,9 @@ export default function ProjectLoaderScript() {
     isPending,
     error,
     refetch: refetchProjectKeys,
-  } = useApiQuery<ProjectKey[]>([apiEndpoint], {
-    staleTime: 0,
-  });
+  } = useQuery(
+    projectKeysApiOptions({orgSlug: organization.slug, projSlug: project.slug})
+  );
 
   const handleUpdateProjectKey = useCallback(
     (projectKey: ProjectKey) => {
