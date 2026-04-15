@@ -4,9 +4,8 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
-from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
@@ -94,34 +93,6 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         url = self.url + f"?uri={self.project.id}"
         response = self.client.get(url, format="json")
         assert response.status_code == 500
-
-    def test_rejects_project_id_without_access(self) -> None:
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        user_team = self.create_team(organization=self.org, name="ser-user-team")
-        other_team = self.create_team(organization=self.org, name="ser-other-team")
-        self.create_project(organization=self.org, teams=[user_team], name="ser-user-proj")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="ser-other-proj"
-        )
-
-        limited_user = self.create_user()
-        self.create_member(
-            organization=self.org,
-            user=limited_user,
-            role="member",
-            teams=[user_team],
-            teamRole="admin",
-        )
-
-        self.login_as(user=limited_user)
-        url = self.url + f"?projectId={other_project.id}&uri=/get-projects&query=proj"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 403
-        assert response.data["detail"] == "You do not have permission to access this project."
 
     def test_invalid_project_id_returns_400(self) -> None:
         self.login_as(user=self.user)

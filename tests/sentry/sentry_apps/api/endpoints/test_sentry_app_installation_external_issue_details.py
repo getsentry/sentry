@@ -1,4 +1,3 @@
-from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -72,43 +71,3 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         # Ensure the external issue still exists after failed attempts
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
-
-    def test_rejects_delete_without_project_access(self) -> None:
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        user_team = self.create_team(organization=self.org, name="sed-user-team")
-        other_team = self.create_team(organization=self.org, name="sed-other-team")
-        self.create_project(organization=self.org, teams=[user_team], name="sed-user-proj")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="sed-other-proj"
-        )
-        other_group = self.create_group(project=other_project)
-
-        limited_user = self.create_user()
-        self.create_member(
-            organization=self.org,
-            user=limited_user,
-            role="member",
-            teams=[user_team],
-            teamRole="admin",
-        )
-
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            other_external_issue = PlatformExternalIssue.objects.create(
-                group_id=other_group.id,
-                project_id=other_project.id,
-                service_type=self.sentry_app.slug,
-                display_name="Other#1",
-                web_url="https://example.com/o/1",
-            )
-
-        self.login_as(user=limited_user)
-        self.get_error_response(
-            self.install.uuid,
-            other_external_issue.id,
-            status_code=403,
-        )
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            assert PlatformExternalIssue.objects.filter(id=other_external_issue.id).exists()

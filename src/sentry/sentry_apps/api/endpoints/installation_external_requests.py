@@ -10,7 +10,6 @@ from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
-from sentry.users.services.user.serial import serialize_generic_user
 
 logger = logging.getLogger("sentry.sentry-apps")
 
@@ -27,8 +26,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         if not uri:
             return Response({"detail": "uri query parameter is required"}, status=400)
 
-        rpc_user = serialize_generic_user(request.user)
-        if rpc_user is None:
+        if not request.user.is_authenticated:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
         project_id: int | None = None
@@ -39,11 +37,11 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
             except (TypeError, ValueError):
                 return Response({"detail": "projectId must be an integer"}, status=400)
 
+        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.get_select_options(
             organization_id=installation.organization_id,
             installation=installation,
             uri=request.GET.get("uri"),
-            user=rpc_user,
             project_id=project_id,
             query=request.GET.get("query"),
             dependent_data=request.GET.get("dependentData"),
