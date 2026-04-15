@@ -49,14 +49,9 @@ export function ReleaseHeader({
   const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
-  const titleContent = (avatarSize: number) => (
-    <Flex
-      align="center"
-      gap="md"
-      minWidth={0}
-      css={hasPageFrameFeature ? titleWrapperStyles : undefined}
-    >
-      <IdBadge project={project} avatarSize={avatarSize} hideName />
+  const titleChildren = (
+    <Fragment>
+      <IdBadge project={project} avatarSize={hasPageFrameFeature ? 16 : 28} hideName />
       <Version version={version} anchor={false} />
       <CopyToClipboardButton
         className="release-copy-button"
@@ -75,7 +70,7 @@ export function ReleaseHeader({
           </Tooltip>
         </IconWrapper>
       )}
-    </Flex>
+    </Fragment>
   );
 
   const breadcrumbs = [
@@ -88,7 +83,15 @@ export function ReleaseHeader({
       preservePageFilters: true,
     },
     ...(hasPageFrameFeature
-      ? [{label: titleContent(16)}]
+      ? [
+          {
+            label: (
+              <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
+                {titleChildren}
+              </Flex>
+            ),
+          },
+        ]
       : [{label: t('Release Details')}]),
   ];
 
@@ -179,7 +182,7 @@ export function ReleaseHeader({
         ) : (
           <Fragment>
             <Breadcrumbs crumbs={breadcrumbs} />
-            <Layout.Title>{titleContent(28)}</Layout.Title>
+            <Layout.Title>{titleChildren}</Layout.Title>
           </Fragment>
         )}
       </Layout.HeaderContent>
