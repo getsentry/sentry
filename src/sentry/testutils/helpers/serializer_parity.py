@@ -75,6 +75,11 @@ class _ParityChecker:
     confirmed: set[str] = field(default_factory=set)
 
     def _nested_fields(self, field_set: frozenset[str], key: str) -> frozenset[str]:
+        """Extract child paths for *key* from a dot-separated field set.
+
+        E.g. ``_nested_fields({"activities.id", "title"}, "activities")``
+        returns ``{"id"}``.
+        """
         prefix = key + "."
         return frozenset(e[len(prefix) :] for e in field_set if e.startswith(prefix))
 
