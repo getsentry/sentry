@@ -210,6 +210,8 @@ export function ReleaseHeader({
 }
 
 const TitleWrapper = styled(Flex)`
+  line-height: 1;
+
   .release-copy-button {
     display: none;
   }
