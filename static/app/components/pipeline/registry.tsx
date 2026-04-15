@@ -4,6 +4,7 @@ import {bitbucketIntegrationPipeline} from './pipelineIntegrationBitbucket';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
+import {vstsIntegrationPipeline} from './pipelineIntegrationVsts';
 
 /**
  * All registered pipeline definitions.
@@ -15,6 +16,7 @@ export const PIPELINE_REGISTRY = [
   githubIntegrationPipeline,
   gitlabIntegrationPipeline,
   slackIntegrationPipeline,
+  vstsIntegrationPipeline,
 ] as const;
 
 type AllPipelines = (typeof PIPELINE_REGISTRY)[number];
