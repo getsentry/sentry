@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -49,7 +50,7 @@ export function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
   const titleContent = (avatarSize: number) => (
-    <TitleWrapper align="center" gap="md" minWidth={0}>
+    <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
       <IdBadge project={project} avatarSize={avatarSize} hideName />
       <Version version={version} anchor={false} />
       <CopyToClipboardButton
@@ -69,7 +70,7 @@ export function ReleaseHeader({
           </Tooltip>
         </IconWrapper>
       )}
-    </TitleWrapper>
+    </Flex>
   );
 
   const breadcrumbs = [
@@ -211,7 +212,7 @@ export function ReleaseHeader({
   );
 }
 
-const TitleWrapper = styled(Flex)`
+const titleWrapperStyles = css`
   line-height: 1;
 
   .release-copy-button {
