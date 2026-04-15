@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -9,8 +11,8 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -25,33 +27,34 @@ export function IntegrationExternalTeamMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const ORGANIZATION_TEAMS_ENDPOINT = getApiUrl(
-    '/organizations/$organizationIdOrSlug/teams/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
-  );
-
-  const query = {
-    ...location.query,
-    hasExternalTeams: 'true',
-  };
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
-    data: teams = [],
+    data: teamsResponse,
     refetch: refetchTeams,
-    getResponseHeader,
     isPending: isTeamsPending,
     isError: isTeamsError,
-  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT, {query}], {staleTime: 0});
-  const teamsPageLinks = getResponseHeader?.('Link') ?? '';
+  } = useQuery({
+    ...apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {...location.query, hasExternalTeams: 'true'},
+      staleTime: 0,
+    }),
+    select: selectJsonWithHeaders,
+  });
+  const teams = teamsResponse?.json ?? [];
+  const teamsPageLinks = teamsResponse?.headers.Link ?? '';
   // We use this query as defaultOptions to reduce identical API calls
   const {
     data: initialResults = [],
     refetch: refetchInitialResults,
     isPending: isInitialResultsPending,
     isError: isInitialResultsError,
-  } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT], {staleTime: 0});
+  } = useQuery(
+    apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    })
+  );
 
   const fetchData = () => {
     return Promise.all([refetchTeams(), refetchInitialResults()]);
