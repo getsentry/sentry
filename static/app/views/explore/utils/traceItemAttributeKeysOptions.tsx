@@ -62,7 +62,7 @@ export function traceItemAttributeKeysOptions({
   const substringMatch = search || undefined;
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
-    attributeType: Array.isArray(type) ? type : [type],
+    attributeType: type,
     project: projectIds?.map(String),
     query,
     ...normalizeDateTimeParams(selection.datetime),
@@ -159,12 +159,14 @@ export function getTraceItemTagCollection(
         key: attribute.key,
         name: attribute.name,
         kind: FieldKind.MEASUREMENT,
+        secondaryAliases: attribute?.secondaryAliases ?? [],
       };
     } else if (type === 'boolean' || attribute.attributeType === 'boolean') {
       booleanAttributes[attribute.key] = {
         key: attribute.key,
         name: attribute.name,
         kind: FieldKind.BOOLEAN,
+        secondaryAliases: attribute?.secondaryAliases ?? [],
       };
     }
   }

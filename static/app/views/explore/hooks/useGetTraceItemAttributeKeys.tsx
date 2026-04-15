@@ -67,6 +67,7 @@ export function makeTraceItemAttributeKeysQueryOptions({
 }
 export function useGetTraceItemAttributeKeys({
   traceItemType,
+  type,
   projectIds,
   query,
 }: UseGetTraceItemAttributeKeysProps) {
@@ -83,6 +84,7 @@ export function useGetTraceItemAttributeKeys({
             organization,
             selection,
             traceItemType,
+            type,
             projectIds: projectIds ?? selection.projects,
             search: queryString,
             query,
@@ -94,10 +96,7 @@ export function useGetTraceItemAttributeKeys({
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
 
-      const {booleanAttributes, numberAttributes, stringAttributes} =
-        getTraceItemTagCollection(result);
-
-      return {...booleanAttributes, ...numberAttributes, ...stringAttributes};
+      return getTraceItemTagCollection(result, type);
     },
   });
 
