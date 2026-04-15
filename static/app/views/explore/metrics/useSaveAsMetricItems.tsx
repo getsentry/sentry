@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -33,7 +32,6 @@ interface UseSaveAsMetricItemsOptions {
 }
 
 export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
-  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
@@ -144,15 +142,12 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
               tooltip: isVisualizeEquation(visualize)
                 ? t('Equations cannot currently be added to a dashboard')
                 : undefined,
-              style: isVisualizeEquation(visualize)
-                ? {color: theme.tokens.content.disabled}
-                : undefined,
             };
           }),
         ],
       },
     ];
-  }, [addToDashboard, metricQueries, theme.tokens.content.disabled]);
+  }, [addToDashboard, metricQueries]);
 
   return useMemo(() => {
     return [...saveAsItems, ...addToDashboardItems];
