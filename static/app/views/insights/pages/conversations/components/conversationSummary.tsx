@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -100,11 +100,11 @@ export function ConversationSummary({
   const {selection} = usePageFilters();
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
 
-  const handleCopyConversationId = useCallback(() => {
+  const handleCopyConversationId = () => {
     copyToClipboard(conversationId, {
       successMessage: t('Copied conversation ID to clipboard'),
     });
-  }, [conversationId]);
+  };
 
   const traces = useMemo(() => {
     if (!nodeTraceMap) {

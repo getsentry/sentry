@@ -9,9 +9,9 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedAttribute(
-            public_alias="metrics_artifact_type",
+            public_alias="artifact_type",
             internal_name="metrics_artifact_type",
-            search_type="integer",
+            search_type="string",
         ),
         ResolvedAttribute(
             public_alias="install_size",

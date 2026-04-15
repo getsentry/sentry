@@ -8,9 +8,13 @@ import {TroubleshootingSection} from './troubleshootingSection';
 describe('TroubleshootingSection', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({slug: 'my-project'});
+  const sourcemapsDocsUrl = 'https://docs.sentry.io/platforms/javascript/sourcemaps/';
 
   it('renders all troubleshooting step titles', () => {
-    render(<TroubleshootingSection project={project} />, {organization});
+    render(
+      <TroubleshootingSection project={project} sourcemapsDocsUrl={sourcemapsDocsUrl} />,
+      {organization}
+    );
 
     expect(screen.getByText('Verify Artifacts Are Uploaded')).toBeInTheDocument();
     expect(
@@ -25,7 +29,10 @@ describe('TroubleshootingSection', () => {
   });
 
   it('settings link points to the correct project source maps URL', () => {
-    render(<TroubleshootingSection project={project} />, {organization});
+    render(
+      <TroubleshootingSection project={project} sourcemapsDocsUrl={sourcemapsDocsUrl} />,
+      {organization}
+    );
 
     expect(screen.getByRole('button', {name: /settings/i})).toHaveAttribute(
       'href',
@@ -34,11 +41,14 @@ describe('TroubleshootingSection', () => {
   });
 
   it('renders the footer docs link', () => {
-    render(<TroubleshootingSection project={project} />, {organization});
+    render(
+      <TroubleshootingSection project={project} sourcemapsDocsUrl={sourcemapsDocsUrl} />,
+      {organization}
+    );
 
     expect(screen.getByRole('link', {name: /read all documentation/i})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/'
+      `${sourcemapsDocsUrl}troubleshooting_js/`
     );
   });
 });

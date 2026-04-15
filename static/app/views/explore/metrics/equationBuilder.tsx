@@ -10,6 +10,13 @@ import {
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
 /**
+ * Extracts the set of reference labels (e.g. ["A", "B"]) from an Expression's tokens.
+ */
+function extractReferenceLabels(expression: Expression): string[] {
+  return expression.tokens.filter(isTokenReference).map(token => token.text);
+}
+
+/**
  * Takes an expression and map of references and returns the internal string representation that uses the references.
  */
 function unresolveExpression(
@@ -72,9 +79,11 @@ export function EquationBuilder({
   expression,
   referenceMap,
   handleExpressionChange,
+  onReferenceLabelsChange,
 }: {
   expression: string;
   handleExpressionChange: (expression: Expression) => void;
+  onReferenceLabelsChange?: (labels: string[]) => void;
   referenceMap?: Record<string, string>;
 }) {
   const [_, startTransition] = useTransition();
@@ -112,6 +121,16 @@ export function EquationBuilder({
       }
     }
   }, [referenceMap, internalExpression, handleExpressionChange]);
+
+  // Report which labels this equation references after unresolving.
+  // Cleans up on unmount so deleted equations don't block metric deletion.
+  useEffect(() => {
+    const expr = new Expression(internalExpression, references);
+    onReferenceLabelsChange?.(extractReferenceLabels(expr));
+    return () => {
+      onReferenceLabelsChange?.([]);
+    };
+  }, [internalExpression, references, onReferenceLabelsChange]);
 
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {

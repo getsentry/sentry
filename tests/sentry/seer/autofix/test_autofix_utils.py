@@ -5,7 +5,7 @@ import orjson
 import pytest
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, DataCategory
-from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
@@ -1311,6 +1311,37 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.automated_run_stopping_point == "code_changes"
         assert result.automation_handoff is None
 
+    def test_autofix_automation_tuning_default(self):
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, branch_name="main"
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
+
+    def test_autofix_automation_tuning_explicit(self):
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, branch_name="main"
+        )
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.MEDIUM
+
+    def test_autofix_automation_tuning_alone_creates_preference(self):
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.HIGH
+        assert result.repositories == []
+
     def test_project_with_stopping_point_only(self):
         self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
@@ -1478,6 +1509,35 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref2.automation_handoff.target == "cursor_background_agent"
         assert pref2.automation_handoff.integration_id == 99
         assert pref2.automation_handoff.auto_create_pr is False
+
+    def test_autofix_automation_tuning_populated(self):
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+        self.project1.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH
+        )
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id, [self.project1.id, self.project2.id]
+        )
+
+        pref1 = result[self.project1.id]
+        assert pref1 is not None
+        assert pref1.autofix_automation_tuning == AutofixAutomationTuningSettings.HIGH
+
+        assert result[self.project2.id] is None
+
+    def test_autofix_automation_tuning_defaults_to_off(self):
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+
+        pref = result[self.project1.id]
+        assert pref is not None
+        assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_wrong_organization_excluded(self):
         other_org = self.create_organization()

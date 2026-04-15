@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
@@ -12,13 +10,13 @@ export function SaveReplayQueryButton() {
   const organization = useOrganization();
   const {saveQuery} = useReplaySaveQuery();
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     openSaveQueryModal({
       organization,
       saveQuery,
       traceItemDataset: TraceItemDataset.REPLAYS,
     });
-  }, [organization, saveQuery]);
+  };
 
   return <Button onClick={handleClick}>{t('Save as')}</Button>;
 }

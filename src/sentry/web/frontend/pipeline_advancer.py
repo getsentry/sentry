@@ -126,14 +126,14 @@ class PipelineAdvancerView(BaseView):
         if pipeline.is_api_mode:
             metrics.incr(
                 "integrations.pipeline_advancer.trampoline",
-                tags={"provider": provider_id},
+                tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
                 sample_rate=1.0,
             )
             return _render_trampoline(request, pipeline)
 
         metrics.incr(
             "integrations.pipeline_advancer.legacy",
-            tags={"provider": provider_id},
+            tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
             sample_rate=1.0,
         )
 

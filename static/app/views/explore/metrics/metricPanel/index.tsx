@@ -33,7 +33,10 @@ import {
   useQueryParamsMode,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
@@ -46,8 +49,10 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
   isDragging?: boolean;
+  onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   ref?: React.Ref<HTMLDivElement>;
   referenceMap?: Record<string, string>;
+  referencedMetricLabels?: Set<string>;
 }
 
 export function MetricPanel({
@@ -61,6 +66,8 @@ export function MetricPanel({
   style,
   ref,
   dragAttributes,
+  referencedMetricLabels,
+  onEquationLabelsChange,
   ...rest
 }: MetricPanelProps) {
   const organization = useOrganization();
@@ -75,8 +82,19 @@ export function MetricPanel({
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
 
+  const mode = useQueryParamsMode();
+  const sortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const [interval] = useChartInterval();
+  const topEvents = useTopEvents();
+  const visualize = useMetricVisualize();
+
+  const areQueriesEnabled = isVisualizeFunction(visualize)
+    ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
+    : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
+
   const metricSamplesTableResult = useMetricSamplesTable({
-    disabled: !traceMetric?.name || isMetricOptionsEmpty,
+    disabled: !areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
@@ -84,17 +102,10 @@ export function MetricPanel({
   });
 
   const metricAggregatesTableResult = useMetricAggregatesTable({
-    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
+    enabled: areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
   });
-
-  const mode = useQueryParamsMode();
-  const sortBys = useQueryParamsSortBys();
-  const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const [interval] = useChartInterval();
-  const topEvents = useTopEvents();
-  const visualize = useMetricVisualize();
 
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
@@ -130,6 +141,8 @@ export function MetricPanel({
                 referenceMap={referenceMap}
                 dragListeners={dragListeners}
                 dragAttributes={dragAttributes}
+                referencedMetricLabels={referencedMetricLabels}
+                onEquationLabelsChange={onEquationLabelsChange}
               />
             </Container>
             {visualize.visible ? (
