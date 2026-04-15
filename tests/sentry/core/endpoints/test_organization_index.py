@@ -265,6 +265,18 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="1234", status_code=400)
             self.get_error_response(name="name", slug="I-contain-UPPERCASE", status_code=400)
 
+    def test_name_with_url_scheme_rejected(self) -> None:
+        with self.options({"api.rate-limit.org-create": 9001}):
+            self.get_error_response(
+                name="https://evil.com Click Here", slug="legit-slug", status_code=400
+            )
+            self.get_error_response(name="http://evil.com", slug="legit-slug-2", status_code=400)
+
+    def test_name_with_periods_allowed(self) -> None:
+        response = self.get_success_response(name="Acme Inc.", slug="acme-inc")
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.name == "Acme Inc."
+
     def test_without_slug(self) -> None:
         response = self.get_success_response(name="hello world")
 

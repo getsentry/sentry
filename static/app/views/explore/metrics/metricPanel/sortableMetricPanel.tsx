@@ -46,9 +46,9 @@ export function SortableMetricPanel({
       dragListeners={canDrag ? listeners : undefined}
       isAnyDragging={isAnyDragging}
       isDragging={isDragging}
+      dragAttributes={attributes}
       referencedMetricLabels={referencedMetricLabels}
       onEquationLabelsChange={onEquationLabelsChange}
-      {...attributes}
     />
   );
 }
