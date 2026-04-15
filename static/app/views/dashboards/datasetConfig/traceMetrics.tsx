@@ -17,7 +17,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   type DatasetConfig,
   type SearchBarData,
