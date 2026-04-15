@@ -3,7 +3,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -35,18 +35,13 @@ const useApdex = (props: Props) => {
     isProjectStabilized &&
     hasTransactions
   );
-  const {projects, environments: environments, datetime} = selection;
+  const {projects, environments, datetime} = selection;
   const {period} = datetime;
 
-  const {start: previousStart} = parseStatsPeriod(
-    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
-      .statsPeriod!
-  );
-
-  const {start: previousEnd} = parseStatsPeriod(
-    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
-      .statsPeriod!
-  );
+  const doubledPeriod = getPeriod(
+    {period, start: undefined, end: undefined},
+    {shouldDoublePeriod: true}
+  ).statsPeriod;
 
   const commonQuery = {
     environment: environments,
@@ -84,8 +79,8 @@ const useApdex = (props: Props) => {
       {
         query: {
           ...commonQuery,
-          start: previousStart,
-          end: previousEnd,
+          statsPeriodStart: doubledPeriod,
+          statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
         },
       },
     ],
