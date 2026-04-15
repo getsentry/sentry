@@ -81,6 +81,13 @@ def _backfill_org(
         "seer.supergroups_backfill_lightweight.max_failures_per_batch"
     )
 
+    if batch_size <= 0:
+        logger.error(
+            "supergroups_backfill_lightweight.invalid_batch_size",
+            extra={"organization_id": organization_id, "batch_size": batch_size},
+        )
+        return
+
     # Get the next project to process, starting from where we left off
     project = (
         Project.objects.filter(
