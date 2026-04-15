@@ -887,12 +887,10 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
         raise Project.DoesNotExist
 
     organization = Organization.objects.get_from_cache(id=organization_id)
-    preference: SeerProjectPreference | None = None
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        preference = read_preference_from_sentry_db(project)
-    else:
-        preference = get_project_seer_preferences(project_id).preference
+        return read_preference_from_sentry_db(project).dict()
 
+    preference = get_project_seer_preferences(project_id).preference
     if preference is None:
         return None
     return preference.dict()
@@ -911,8 +909,8 @@ def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]
             str(project_id): preference.dict() if preference else None
             for project_id, preference in preferences.items()
         }
-    else:
-        return bulk_get_project_seer_preferences(organization_id, project_ids)
+
+    return bulk_get_project_seer_preferences(organization_id, project_ids)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
