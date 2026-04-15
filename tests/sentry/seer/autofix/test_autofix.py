@@ -1118,19 +1118,16 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
     def test_returns_existing_preference(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
-        existing_repos = [self._mock_repo("seer", "999")]
         mock_get_prefs.return_value = SeerRawPreferenceResponse(
             preference=SeerProjectPreference(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                repositories=existing_repos,
+                repositories=[self._mock_repo("seer", "999")],
                 automated_run_stopping_point="root_cause",
             )
         )
 
-        result = _resolve_project_preference(
-            self.organization, self.project, [self._mock_repo("sentry", "123")]
-        )
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is not None
         assert len(result.repositories) == 1
@@ -1143,7 +1140,7 @@ class TestResolveProjectPreference(TestCase):
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_empty_repos_falls_back_to_code_mappings_and_preserves_settings(
+    def test_returns_existing_preference_with_empty_repos(
         self, mock_get_prefs, mock_set_pref, mock_write_sentry
     ):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(
@@ -1161,56 +1158,36 @@ class TestResolveProjectPreference(TestCase):
             )
         )
 
-        fallback_repos = [self._mock_repo("sentry", "123")]
-        result = _resolve_project_preference(self.organization, self.project, fallback_repos)
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is not None
-        assert len(result.repositories) == 1
-        assert result.repositories[0].name == "sentry"
+        assert result.repositories == []
         assert result.automated_run_stopping_point == "root_cause"
         assert result.automation_handoff is not None
         assert result.automation_handoff.handoff_point == "root_cause"
         assert result.automation_handoff.target == "cursor_background_agent"
         assert result.automation_handoff.integration_id == 42
         assert result.automation_handoff.auto_create_pr is True
-        mock_set_pref.assert_called_once()
-        mock_write_sentry.assert_called_once()
+        mock_set_pref.assert_not_called()
+        mock_write_sentry.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
     @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
     @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_no_preference_falls_back_to_code_mappings_and_org_defaults(
+    def test_no_preference_creates_one_with_org_defaults(
         self, mock_get_prefs, mock_set_pref, mock_write_sentry
     ):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
         self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
         self.organization.update_option("sentry:auto_open_prs", True)
 
-        code_mapping_repos = [self._mock_repo("sentry", "123")]
-        result = _resolve_project_preference(self.organization, self.project, code_mapping_repos)
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is not None
         assert result.project_id == self.project.id
         assert result.organization_id == self.organization.id
-        assert len(result.repositories) == 1
-        assert result.repositories[0].name == "sentry"
-        assert result.repositories[0].external_id == "123"
-        assert result.automated_run_stopping_point == "open_pr"
-        mock_set_pref.assert_called_once()
-        mock_write_sentry.assert_called_once()
-
-    @patch("sentry.seer.autofix.autofix.write_preference_to_sentry_db")
-    @patch("sentry.seer.autofix.autofix.set_project_seer_preference")
-    @patch("sentry.seer.autofix.autofix.get_project_seer_preferences")
-    def test_creates_preference_with_empty_repos_when_no_fallback(
-        self, mock_get_prefs, mock_set_pref, mock_write_sentry
-    ):
-        mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
-
-        result = _resolve_project_preference(self.organization, self.project, [])
-
-        assert result is not None
         assert result.repositories == []
+        assert result.automated_run_stopping_point == "open_pr"
         mock_set_pref.assert_called_once()
         mock_write_sentry.assert_called_once()
 
@@ -1220,7 +1197,7 @@ class TestResolveProjectPreference(TestCase):
     def test_returns_none_on_get_api_error(self, mock_get_prefs, mock_set_pref, mock_write_sentry):
         mock_get_prefs.side_effect = SeerApiError("test error", 500)
 
-        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is None
         mock_set_pref.assert_not_called()
@@ -1233,7 +1210,7 @@ class TestResolveProjectPreference(TestCase):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
         mock_set_pref.side_effect = SeerApiError("test error", 500)
 
-        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is None
         mock_write_sentry.assert_not_called()
@@ -1247,10 +1224,11 @@ class TestResolveProjectPreference(TestCase):
         mock_get_prefs.return_value = SeerRawPreferenceResponse(preference=None)
         mock_write_sentry.side_effect = Exception()
 
-        result = _resolve_project_preference(self.organization, self.project, [self._mock_repo()])
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is not None
         assert result.project_id == self.project.id
+        assert result.repositories == []
         mock_set_pref.assert_called_once()
         mock_write_sentry.assert_called_once()
 
@@ -1263,17 +1241,14 @@ class TestResolveProjectPreference(TestCase):
         self, mock_get_prefs, mock_read_db, mock_set_pref, mock_write_sentry
     ):
         """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
-        existing_repos = [self._mock_repo("seer", "999")]
         mock_read_db.return_value = SeerProjectPreference(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            repositories=existing_repos,
+            repositories=[self._mock_repo("seer", "999")],
             automated_run_stopping_point="root_cause",
         )
 
-        result = _resolve_project_preference(
-            self.organization, self.project, [self._mock_repo("sentry", "123")]
-        )
+        result = _resolve_project_preference(self.organization, self.project)
 
         assert result is not None
         assert result.repositories[0].name == "seer"
