@@ -47,8 +47,6 @@ const EventDrawerContainerRoot = styled('div')<{hasPageFrameFeature: boolean}>`
     `
       /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
       --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
-      --event-navigator-box-sizing: border-box;
-      --event-navigator-padding-block: 0px;
       --event-navigator-box-shadow: none;
       --event-navigator-border-bottom: 1px solid ${p.theme.tokens.border.primary};
 
@@ -91,8 +89,7 @@ export const EventNavigator = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: ${p => p.theme.space.md};
-  box-sizing: var(--event-navigator-box-sizing, content-box);
-  padding: var(--event-navigator-padding-block, ${p => p.theme.space.sm}) 24px;
+  padding: 0 24px;
   background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
   height: var(--event-drawer-header-height, auto);
