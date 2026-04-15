@@ -8,7 +8,7 @@ export function makeProjectsPathname({
   organization: Organization;
   path: '/' | `/${string}/`;
 }) {
-  const base = organization.features.includes('workflow-engine-ui')
+  const base = organization.features.includes('insights-to-dashboards-ui-rollout')
     ? 'projects'
     : 'insights/projects';
   return normalizeUrl(`/organizations/${organization.slug}/${base}${path}`);
