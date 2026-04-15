@@ -9,13 +9,16 @@ import sentry_sdk
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import bulk_read_preferences
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
+from sentry.seer.autofix.issue_summary import _trigger_autofix_task, get_automation_stopping_point
+from sentry.seer.autofix.utils import bulk_read_preferences, get_autofix_state
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
+from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -76,7 +79,7 @@ def schedule_night_shift() -> None:
     namespace=seer_tasks,
     processing_deadline_duration=5 * 60,
 )
-def run_night_shift_for_org(organization_id: int) -> None:
+def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None:
     try:
         organization = Organization.objects.get(
             id=organization_id, status=OrganizationStatus.ACTIVE
@@ -152,6 +155,14 @@ def run_night_shift_for_org(organization_id: int) -> None:
         sentry_sdk.metrics.count("night_shift.triage_action", 1, attributes={"action": c.action})
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
+    autofix_triggered = 0
+    if not dry_run:
+        for c in candidates:
+            if c.action == TriageAction.AUTOFIX:
+                if _trigger_autofix_for_candidate(c.group, organization):
+                    autofix_triggered += 1
+    sentry_sdk.metrics.count("night_shift.autofix_triggered", autofix_triggered)
+
     logger.info(
         "night_shift.candidates_selected",
         extra={
@@ -160,6 +171,8 @@ def run_night_shift_for_org(organization_id: int) -> None:
             "run_id": run.id,
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
+            "dry_run": dry_run,
+            "num_autofix_triggered": autofix_triggered,
             "candidates": [
                 {
                     "group_id": c.group.id,
@@ -191,6 +204,42 @@ def _get_eligible_orgs_from_batch(
             return []
 
     return eligible
+
+
+def _trigger_autofix_for_candidate(group: Group, organization: Organization) -> bool:
+    """Trigger autofix for a single candidate identified as fixable by night shift triage.
+
+    Returns True if the autofix task was dispatched.
+    """
+    try:
+        if get_autofix_state(group_id=group.id, organization_id=organization.id):
+            return False
+
+        event = group.get_latest_event()
+        if not event:
+            logger.warning(
+                "night_shift.no_event_for_autofix",
+                extra={"group_id": group.id, "organization_id": organization.id},
+            )
+            return False
+
+        stopping_point = get_automation_stopping_point(group)
+
+        _trigger_autofix_task.delay(
+            group_id=group.id,
+            event_id=event.event_id,
+            user_id=None,
+            auto_run_source="night_shift",
+            referrer=AutofixReferrer.NIGHT_SHIFT,
+            stopping_point=stopping_point,
+        )
+        return True
+    except Exception:
+        logger.exception(
+            "night_shift.autofix_trigger_failed",
+            extra={"group_id": group.id, "organization_id": organization.id},
+        )
+        return False
 
 
 def _get_eligible_projects(organization: Organization) -> list[Project]:
