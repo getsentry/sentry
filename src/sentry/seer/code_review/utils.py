@@ -214,7 +214,6 @@ def transform_webhook_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    integration_provider: str = "github",
 ) -> dict[str, Any] | None:
     """
     Transform a GitHub webhook payload into a code review request format for Seer.
@@ -226,7 +225,6 @@ def transform_webhook_to_codegen_request(
         organization: The Sentry organization
         repo: The repository model
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
-        integration_provider: The integration provider string (e.g. "github" or "github_enterprise")
 
     Returns:
         Dictionary with data, and external_owner_id that matches either
@@ -236,7 +234,7 @@ def transform_webhook_to_codegen_request(
     payload = None
     if github_event == GithubWebhookType.ISSUE_COMMENT:
         payload = transform_issue_comment_to_codegen_request(
-            event_payload, organization, repo, target_commit_sha, integration_provider
+            event_payload, organization, repo, target_commit_sha
         )
     elif github_event == GithubWebhookType.PULL_REQUEST:
         payload = transform_pull_request_to_codegen_request(
@@ -245,7 +243,6 @@ def transform_webhook_to_codegen_request(
             organization,
             repo,
             target_commit_sha,
-            integration_provider,
         )
     return payload
 
@@ -257,12 +254,9 @@ def _common_codegen_request_payload(
     target_commit_sha: str,
     organization: Organization,
     event_payload: Mapping[str, Any],
-    integration_provider: str = "github",
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
-        "repo": _build_repo_definition(
-            repo, target_commit_sha, event_payload, integration_provider
-        ),
+        "repo": _build_repo_definition(repo, target_commit_sha, event_payload),
         "bug_prediction_specific_information": {
             "organization_id": organization.id,
             "organization_slug": organization.slug,
@@ -288,7 +282,6 @@ def transform_issue_comment_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    integration_provider: str = "github",
 ) -> dict[str, Any] | None:
     """
     Transform an issue comment on a PR into a code review request for Seer.
@@ -301,7 +294,6 @@ def transform_issue_comment_to_codegen_request(
         target_commit_sha=target_commit_sha,
         organization=organization,
         event_payload=event_payload,
-        integration_provider=integration_provider,
     )
     payload["data"]["pr_id"] = event_payload["issue"]["number"]
     config = payload["data"]["config"]
@@ -322,7 +314,6 @@ def transform_pull_request_to_codegen_request(
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    integration_provider: str = "github",
 ) -> dict[str, Any] | None:
     review_request_trigger = SeerCodeReviewTrigger.UNKNOWN
     match github_event_action:
@@ -337,7 +328,6 @@ def transform_pull_request_to_codegen_request(
         target_commit_sha=target_commit_sha,
         organization=organization,
         event_payload=event_payload,
-        integration_provider=integration_provider,
     )
     pull_request = event_payload.get("pull_request", {})
     payload["data"]["pr_id"] = pull_request.get("number")
@@ -360,7 +350,6 @@ def _build_repo_definition(
     repo: Repository,
     target_commit_sha: str,
     event_payload: Mapping[str, Any],
-    integration_provider: str = "github",
 ) -> dict[str, Any]:
     """
     Build the repository definition for code review requests.
@@ -370,8 +359,10 @@ def _build_repo_definition(
     if len(repo_name_sections) < 2:
         raise ValueError(f"Invalid repository name format: {repo.name}")
 
+    # repo.provider uses the "integrations:<slug>" format; Seer expects the bare slug
+    provider = repo.provider.removeprefix("integrations:") if repo.provider else "github"
     repo_definition = {
-        "provider": integration_provider,
+        "provider": provider,
         "owner": repo_name_sections[0],
         "name": "/".join(repo_name_sections[1:]),
         "external_id": repo.external_id,

@@ -118,5 +118,4 @@ def handle_issue_comment_event(
         repo=repo,
         target_commit_sha=target_commit_sha,
         tags=tags,
-        integration_provider=integration.provider if integration else "github",
     )

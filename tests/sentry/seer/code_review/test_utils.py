@@ -894,22 +894,22 @@ class CodeReviewExperimentAssignmentTest(TestCase):
 
 
 class TestBuildRepoDefinition:
-    def _make_repo(self) -> MagicMock:
+    def _make_repo(self, provider: str = "integrations:github") -> MagicMock:
         repo = MagicMock()
         repo.name = "owner/seer"
         repo.external_id = "456"
         repo.organization_id = 1
         repo.integration_id = 123
+        repo.provider = provider
         return repo
 
     def test_provider_is_github_for_cloud_integration(self) -> None:
         from sentry.seer.code_review.utils import _build_repo_definition
 
         result = _build_repo_definition(
-            repo=self._make_repo(),
+            repo=self._make_repo("integrations:github"),
             target_commit_sha="abc123",
             event_payload={"repository": {"private": False}},
-            integration_provider="github",
         )
         assert result["provider"] == "github"
 
@@ -917,9 +917,8 @@ class TestBuildRepoDefinition:
         from sentry.seer.code_review.utils import _build_repo_definition
 
         result = _build_repo_definition(
-            repo=self._make_repo(),
+            repo=self._make_repo("integrations:github_enterprise"),
             target_commit_sha="abc123",
             event_payload={"repository": {"private": False}},
-            integration_provider="github_enterprise",
         )
         assert result["provider"] == "github_enterprise"

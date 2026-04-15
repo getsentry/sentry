@@ -184,5 +184,4 @@ def handle_pull_request_event(
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
         tags=tags,
-        integration_provider=integration.provider if integration else "github",
     )
