@@ -26,11 +26,23 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         if not uri:
             return Response({"detail": "uri query parameter is required"}, status=400)
 
+        if not request.user.is_authenticated:
+            return Response({"detail": "Authentication credentials were not provided."}, status=401)
+
+        project_id: int | None = None
+        project_id_raw = request.GET.get("projectId")
+        if project_id_raw:
+            try:
+                project_id = int(project_id_raw)
+            except (TypeError, ValueError):
+                return Response({"detail": "projectId must be an integer"}, status=400)
+
+        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.get_select_options(
             organization_id=installation.organization_id,
             installation=installation,
             uri=request.GET.get("uri"),
-            project_id=int(request.GET["projectId"]) if request.GET.get("projectId") else None,
+            project_id=project_id,
             query=request.GET.get("query"),
             dependent_data=request.GET.get("dependentData"),
         )

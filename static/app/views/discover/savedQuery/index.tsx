@@ -497,7 +497,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           onClick={this.handleCreateAlertSuccess}
           referrer="discover"
           size="sm"
-          aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
           alertType={alertType}
         />

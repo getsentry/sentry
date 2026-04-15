@@ -12,7 +12,7 @@ interface WorkflowEngineListLayoutProps {
   actions: React.ReactNode;
   /** The main content for this page */
   children: React.ReactNode;
-  description: string;
+  description: React.ReactNode;
   docsUrl: string;
   title: string;
 }
