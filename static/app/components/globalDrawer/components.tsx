@@ -9,10 +9,7 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {
@@ -62,7 +59,6 @@ function DrawerPanel({
   resizable = true,
   drawerCss,
 }: DrawerPanelProps) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
@@ -84,7 +80,6 @@ function DrawerPanel({
           transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
-          hasPageFrameFeature={hasPageFrameFeature}
           css={drawerCss}
         >
           {drawerKey && enabled && (
@@ -133,6 +128,7 @@ export function DrawerHeader({
   hideCloseButton = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Header
@@ -140,6 +136,7 @@ export function DrawerHeader({
       className={className}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
+      height={hasPageFrameFeature ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
     >
       {!hideCloseButton && (
         <Fragment>
@@ -168,6 +165,7 @@ const HeaderBar = styled('div')`
 `;
 
 const Header = styled('header')<{
+  height?: string;
   hideBar?: boolean;
   hideCloseButton?: boolean;
 }>`
@@ -180,18 +178,21 @@ const Header = styled('header')<{
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? p.theme.space.md : 0)};
   padding: ${p => p.theme.space.lg};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
-  box-sizing: border-box;
-  align-items: var(--drawer-header-align-items, stretch);
-  height: var(--drawer-header-height, auto);
-  border-bottom: var(--drawer-header-border-bottom, 0);
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: var(
-    --drawer-header-box-shadow,
-    ${p => `${p.theme.tokens.border.primary} 0 1px`}
-  );
+  ${p =>
+    p.height &&
+    `
+    --drawer-header-height: ${p.height};
+    height: var(--drawer-header-height);
+    box-sizing: border-box;
+    align-items: center;
+    box-shadow: none;
+    border-bottom: 1px solid ${p.theme.tokens.border.primary};
+  `}
 `;
 
 export const DrawerBody = styled('aside')`
@@ -211,9 +212,7 @@ const DrawerContainer = styled('div')`
   }
 `;
 
-const DrawerSlidePanel = styled(SlideOverPanel, {
-  shouldForwardProp: prop => prop !== 'hasPageFrameFeature',
-})<{hasPageFrameFeature: boolean}>`
+const DrawerSlidePanel = styled(SlideOverPanel)`
   box-shadow: 0 0 0 1px ${p => p.theme.dropShadowHeavy};
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
@@ -229,19 +228,6 @@ const DrawerSlidePanel = styled(SlideOverPanel, {
     var(--drawer-width),
     var(--drawer-max-width)
   ) !important;
-
-  ${p =>
-    p.hasPageFrameFeature &&
-    `
-      --drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
-      --drawer-header-align-items: center;
-      --drawer-header-border-bottom: 1px solid ${p.theme.tokens.border.primary};
-      --drawer-header-box-shadow: none;
-
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        --drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
-      }
-    `}
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     top: 0;
