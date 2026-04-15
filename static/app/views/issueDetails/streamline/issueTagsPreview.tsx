@@ -30,7 +30,7 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -253,7 +253,7 @@ export function IssueTagsPreview({
     isError,
     isPending,
     data: tags,
-  } = useGroupTagsReadable({
+  } = useGroupTags({
     groupId,
     environment: environments,
   });
