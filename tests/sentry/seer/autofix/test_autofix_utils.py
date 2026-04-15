@@ -1519,17 +1519,6 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref2.automation_handoff.integration_id == 99
         assert pref2.automation_handoff.auto_create_pr is False
 
-    def test_autofix_automation_tuning_defaults_to_off(self):
-        SeerProjectRepository.objects.create(
-            project=self.project1, repository=self.repo, branch_name="main"
-        )
-
-        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
-
-        pref = result[self.project1.id]
-        assert pref is not None
-        assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
-
     def test_autofix_automation_tuning_populated(self):
         SeerProjectRepository.objects.create(
             project=self.project1, repository=self.repo, branch_name="main"
@@ -1549,6 +1538,17 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         pref2 = result[self.project2.id]
         assert pref2 is not None
         assert pref2.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
+
+    def test_autofix_automation_tuning_defaults_to_off(self):
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+
+        pref = result[self.project1.id]
+        assert pref is not None
+        assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_wrong_organization_excluded(self):
         other_org = self.create_organization()
