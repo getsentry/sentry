@@ -135,13 +135,12 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-  const {title: rawIssueTitle} = getTitle(group);
-  const issueTitle = rawIssueTitle ?? '';
-  const issueMessage = getMessage(group);
-  const issueCommandLabel =
-    issueMessage && issueMessage !== issueTitle
-      ? `${issueTitle}: ${issueMessage}`
-      : issueTitle;
+  const issueCommandLabel = useMemo(() => {
+    const {title: rawIssueTitle} = getTitle(group);
+    const title = rawIssueTitle ?? '';
+    const message = getMessage(group);
+    return message && message !== title ? `${title}: ${message}` : title;
+  }, [group]);
 
   const {
     actions: {
@@ -432,6 +431,30 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                     status: GroupStatus.IGNORED,
                     statusDetails: {},
                     substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
+                  })
+                }
+              />
+            )}
+            {isResolved && resolveCap.enabled && !isAutoResolved && (
+              <CMDKAction
+                display={{label: t('Unresolve'), icon: <IconCheckmark />}}
+                onAction={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
+                  })
+                }
+              />
+            )}
+            {isIgnored && (
+              <CMDKAction
+                display={{label: t('Unarchive'), icon: <IconClock />}}
+                onAction={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
                   })
                 }
               />

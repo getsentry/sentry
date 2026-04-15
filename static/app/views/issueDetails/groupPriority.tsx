@@ -30,11 +30,11 @@ const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
 const getPriorityUpdateSuccessMessage = (priority: PriorityLevel) =>
   t('Priority updated to %s', priority);
 
-export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) => void) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
-  const onChangePriority = (nextPriority: PriorityLevel) => {
+  return (nextPriority: PriorityLevel) => {
     if (nextPriority === group.priority) {
       return;
     }
@@ -71,6 +71,10 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       }
     );
   };
+}
+
+export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+  const onChangePriority = useChangePriority(group, onChange);
 
   // We can assume that when there is not `priorityLockedAt`, there were no
   // user edits to the priority.
@@ -90,46 +94,8 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
 export function GroupPriorityCommandPaletteAction({
   group,
 }: Pick<GroupDetailsPriorityProps, 'group'>) {
-  const api = useApi({persistInFlight: true});
-  const organization = useOrganization();
+  const onChangePriority = useChangePriority(group);
   const priority = group.priority ?? PriorityLevel.MEDIUM;
-
-  const onChangePriority = (nextPriority: PriorityLevel) => {
-    if (nextPriority === group.priority) {
-      return;
-    }
-
-    trackAnalytics('issue_details.set_priority', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      from_priority: group.priority,
-      to_priority: nextPriority,
-    });
-
-    addLoadingMessage(t('Saving changes\u2026'));
-    IssueListCacheStore.reset();
-
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        itemIds: [group.id],
-        data: {priority: nextPriority},
-        failSilently: true,
-        project: [group.project.id],
-      },
-      {
-        success: () => {
-          clearIndicators();
-          addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
-        },
-        error: () => {
-          clearIndicators();
-          addErrorMessage(t('Unable to update issue priority'));
-        },
-      }
-    );
-  };
 
   return (
     <CMDKAction

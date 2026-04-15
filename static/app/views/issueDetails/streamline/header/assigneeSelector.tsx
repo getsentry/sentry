@@ -1,10 +1,10 @@
-import {useEffect} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
@@ -13,19 +13,35 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
-import {useApi} from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
+
+function useOrgProjectMembers(orgSlug: string, projectId: string) {
+  const {data} = useQuery(
+    apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/users/', {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {project: [projectId]},
+      staleTime: 30_000,
+    })
+  );
+  return useMemo(
+    () =>
+      (data ?? [])
+        .filter((m): m is Member & {user: NonNullable<Member['user']>} => m.user !== null)
+        .map(m => ({...m.user, role: m.role})),
+    [data]
+  );
+}
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
@@ -38,7 +54,6 @@ export function GroupHeaderAssigneeSelector({
   project,
   event,
 }: GroupHeaderAssigneeSelectorProps) {
-  const api = useApi();
   const theme = useTheme();
   const organization = useOrganization();
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
@@ -54,11 +69,7 @@ export function GroupHeaderAssigneeSelector({
     projectSlug: project.slug,
     group,
   });
-
-  useEffect(() => {
-    // TODO: We should check if this is already loaded
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization, project]);
+  const memberList = useOrgProjectMembers(organization.slug, project.id);
 
   const owners = getOwnerList(
     committersResponse?.committers ?? [],
@@ -72,6 +83,7 @@ export function GroupHeaderAssigneeSelector({
       owners={owners}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
+      memberList={memberList}
       showLabel
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
@@ -98,10 +110,8 @@ export function GroupHeaderAssigneeCommandPaletteAction({
   project,
   event,
 }: GroupHeaderAssigneeSelectorProps) {
-  const api = useApi();
   const organization = useOrganization();
   const user = useUser();
-  useLegacyStore(MemberListStore);
   const {handleAssigneeChange} = useHandleAssigneeChange({
     organization,
     group,
@@ -116,16 +126,12 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     group,
   });
 
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization, project]);
-
   const owners = getOwnerList(
     committersResponse?.committers ?? [],
     eventOwners,
     group.assignedTo
   );
-  const currentMemberList = MemberListStore.getAll();
+  const currentMemberList = useOrgProjectMembers(organization.slug, project.id);
   const currentAssigneeIcon = group.assignedTo ? (
     <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
   ) : (
@@ -150,27 +156,27 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         icon: currentAssigneeIcon,
       }}
     >
-      <CMDKAction
-        display={{
-          label: t('Assign to me'),
-          icon: user ? (
-            <ActorAvatar
-              actor={{id: user.id, name: user.name || user.email, type: 'user'}}
-              size={16}
-              hasTooltip={false}
-            />
-          ) : (
-            <IconUser />
-          ),
-        }}
-        onAction={() =>
-          handleAssigneeChange({
-            assignee: user,
-            id: user.id,
-            type: 'user',
-          })
-        }
-      />
+      {user && (
+        <CMDKAction
+          display={{
+            label: t('Assign to me'),
+            icon: (
+              <ActorAvatar
+                actor={{id: user.id, name: user.name || user.email, type: 'user'}}
+                size={16}
+                hasTooltip={false}
+              />
+            ),
+          }}
+          onAction={() =>
+            handleAssigneeChange({
+              assignee: user,
+              id: user.id,
+              type: 'user',
+            })
+          }
+        />
+      )}
       {assignableUsers.map(member => (
         <CMDKAction
           key={`member-${member.id}`}

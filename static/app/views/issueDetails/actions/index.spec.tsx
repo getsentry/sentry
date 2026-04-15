@@ -31,14 +31,6 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-jest.mock('sentry/utils/useCommitters', () => ({
-  useCommitters: () => ({data: {committers: []}}),
-}));
-
-jest.mock('sentry/utils/useIssueEventOwners', () => ({
-  useIssueEventOwners: () => ({data: {owners: [], rules: []}}),
-}));
-
 const project = ProjectFixture({
   id: '2448',
   name: 'project name',
@@ -104,6 +96,18 @@ describe('GroupActions', () => {
     MemberListStore.reset();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events//committers/`,
+      body: {committers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events//owners/`,
+      body: {owners: [], rules: []},
+    });
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
