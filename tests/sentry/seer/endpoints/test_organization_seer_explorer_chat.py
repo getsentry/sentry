@@ -69,13 +69,19 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
         mock_client_class.assert_called_once_with(
-            self.organization, ANY, is_interactive=True, enable_coding=False
+            self.organization,
+            ANY,
+            is_interactive=True,
+            enable_coding=False,
+            enable_code_mode_tools=False,
+            reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
             page_name=None,
             override_ce_enable=True,
+            request=ANY,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -104,6 +110,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
+                enable_code_mode_tools=False,
+                reasoning_effort="medium",
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -121,7 +129,12 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
         mock_client_class.assert_called_once_with(
-            self.organization, ANY, is_interactive=True, enable_coding=False
+            self.organization,
+            ANY,
+            is_interactive=True,
+            enable_coding=False,
+            enable_code_mode_tools=False,
+            reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
             run_id=789,
@@ -129,6 +142,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             insert_index=2,
             on_page_context=None,
             page_name=None,
+            request=ANY,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -152,6 +166,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
+                enable_code_mode_tools=False,
+                reasoning_effort="medium",
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")

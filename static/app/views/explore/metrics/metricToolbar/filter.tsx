@@ -1,8 +1,12 @@
 import {useMemo} from 'react';
 
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -16,6 +20,7 @@ import {
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
@@ -28,31 +33,58 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  skipTraceMetricFilter?: boolean;
 }
 
-export function Filter({traceMetric}: FilterProps) {
+interface MetricsSearchBarProps {
+  traceMetric: TraceMetric;
+  tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
+}
+
+function MetricsSearchBar({
+  tracesItemSearchQueryBuilderProps,
+  traceMetric,
+}: MetricsSearchBarProps) {
+  const {displayAskSeer} = useSearchQueryBuilder();
+
+  if (displayAskSeer) {
+    return <MetricsTabSeerComboBox traceMetric={traceMetric} />;
+  }
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
+}
+
+export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
+  const organization = useOrganization();
+
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+  const hasMetricsAISearch = organization.features.includes(
+    'gen-ai-explore-metrics-search'
+  );
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
   });
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
   });
 
   const visibleNumberTags = useMemo(() => {
@@ -123,6 +155,10 @@ export function Filter({traceMetric}: FilterProps) {
         onSearch: setQuery,
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
+
+        // Disable the recent searches when not using a trace metric filter because
+        // the recent searches for metrics need to be namespaced on the trace metric filter.
+        disableRecentSearches: skipTraceMetricFilter,
       };
     }, [
       query,
@@ -131,6 +167,7 @@ export function Filter({traceMetric}: FilterProps) {
       visibleNumberTags,
       visibleStringTags,
       traceMetric.name,
+      skipTraceMetricFilter,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
@@ -143,8 +180,13 @@ export function Filter({traceMetric}: FilterProps) {
       // This prevents race conditions when navigating between different metrics
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
+      enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
+      aiSearchBadgeType="alpha"
     >
-      <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+      <MetricsSearchBar
+        tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+        traceMetric={traceMetric}
+      />
     </SearchQueryBuilderProvider>
   );
 }

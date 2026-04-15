@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -19,11 +19,14 @@ import {EventInputName} from 'sentry/views/discover/eventInputName';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   api: Client;
   errorCode: number;
   eventView: EventView;
+  hasPageFrameFeature: boolean;
   location: Location;
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
@@ -123,6 +126,7 @@ class ResultsHeader extends Component<Props, State> {
       setSavedQuery,
       isHomepage,
       splitDecision,
+      hasPageFrameFeature,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
     const hasDiscoverQueryFeature = organization.features.includes('discover-query');
@@ -173,31 +177,59 @@ class ResultsHeader extends Component<Props, State> {
           )}
           {this.renderAuthor()}
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <SavedQueryButtonGroup
-            setSavedQuery={setSavedQuery}
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            savedQuery={savedQuery}
-            queryDataLoading={loading}
-            disabled={errorCode >= 400 && errorCode < 500}
-            updateCallback={() => this.fetchData()}
-            yAxis={yAxis}
-            isHomepage={isHomepage}
-            setHomepageQuery={updatedHomepageQuery => {
-              this.setState({
-                homepageQuery: getSavedQueryWithDataset(
-                  updatedHomepageQuery
-                ) as SavedQuery,
-              });
-              if (isHomepage) {
-                setSavedQuery(updatedHomepageQuery);
-              }
-            }}
-            homepageQuery={homepageQuery}
-          />
-        </Layout.HeaderActions>
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="actions">
+            <SavedQueryButtonGroup
+              setSavedQuery={setSavedQuery}
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              savedQuery={savedQuery}
+              queryDataLoading={loading}
+              disabled={errorCode >= 400 && errorCode < 500}
+              updateCallback={() => this.fetchData()}
+              yAxis={yAxis}
+              isHomepage={isHomepage}
+              setHomepageQuery={updatedHomepageQuery => {
+                this.setState({
+                  homepageQuery: getSavedQueryWithDataset(
+                    updatedHomepageQuery
+                  ) as SavedQuery,
+                });
+                if (isHomepage) {
+                  setSavedQuery(updatedHomepageQuery);
+                }
+              }}
+              homepageQuery={homepageQuery}
+            />
+          </TopBar.Slot>
+        ) : (
+          <Layout.HeaderActions>
+            <SavedQueryButtonGroup
+              setSavedQuery={setSavedQuery}
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              savedQuery={savedQuery}
+              queryDataLoading={loading}
+              disabled={errorCode >= 400 && errorCode < 500}
+              updateCallback={() => this.fetchData()}
+              yAxis={yAxis}
+              isHomepage={isHomepage}
+              setHomepageQuery={updatedHomepageQuery => {
+                this.setState({
+                  homepageQuery: getSavedQueryWithDataset(
+                    updatedHomepageQuery
+                  ) as SavedQuery,
+                });
+                if (isHomepage) {
+                  setSavedQuery(updatedHomepageQuery);
+                }
+              }}
+              homepageQuery={homepageQuery}
+            />
+          </Layout.HeaderActions>
+        )}
         <DatasetSelectorTabs
           eventView={eventView}
           isHomepage={isHomepage}
@@ -216,4 +248,16 @@ const Subtitle = styled('h4')`
   margin: ${p => p.theme.space.xs} 0 0 0;
 `;
 
-export default withApi(ResultsHeader);
+const ResultsHeaderWithApi = withApi(ResultsHeader);
+
+type ResultsHeaderWrapperProps = Omit<
+  ComponentProps<typeof ResultsHeaderWithApi>,
+  'hasPageFrameFeature'
+>;
+
+function ResultsHeaderWrapper(props: ResultsHeaderWrapperProps) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  return <ResultsHeaderWithApi {...props} hasPageFrameFeature={hasPageFrameFeature} />;
+}
+
+export {ResultsHeaderWrapper};

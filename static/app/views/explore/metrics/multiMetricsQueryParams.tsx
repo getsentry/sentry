@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {useCallback, useMemo, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -6,10 +6,15 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
+import {
+  getNextLabel,
+  useStableLabels,
+} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -18,13 +23,21 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
+
+export const MAX_METRICS_ALLOWED = 8;
 
 interface MultiMetricsQueryParamsContextValue {
+  insertLabelAtIndex: (position: number, label: string) => void;
   metricQueries: MetricQuery[];
+  reorderLabels: (from: number, to: number) => void;
 }
 
 const [
@@ -46,9 +59,20 @@ export function MultiMetricsQueryParamsProvider({
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const rawQueries = useMemo(
+    () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
+    [location, allowUpTo]
+  );
+
+  const labels = useStableLabels(rawQueries);
 
   const value = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
+    const metricQueries = rawQueries.map((query, i) => ({
+      ...query,
+      // Labels are injected adhoc so each session maintains a label for each query
+      // but the labels will compact sequentially on fresh page loads.
+      label: labels.getLabel(i),
+    }));
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
@@ -62,6 +86,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               metric: metricQuery.metric,
               queryParams: newQueryParams,
+              label: metricQuery.label,
             };
           })
           .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
@@ -113,6 +138,7 @@ export function MultiMetricsQueryParamsProvider({
             return {
               queryParams: metricQuery.queryParams.replace({aggregateFields}),
               metric: newTraceMetric,
+              label: metricQuery.label,
             };
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
@@ -130,6 +156,9 @@ export function MultiMetricsQueryParamsProvider({
           return;
         }
 
+        // Update labels before navigating so they stay stable
+        labels.remove(i);
+
         const target = {...location, query: {...location.query}};
 
         const newMetricQueries = metricQueries
@@ -144,6 +173,8 @@ export function MultiMetricsQueryParamsProvider({
     }
 
     return {
+      insertLabelAtIndex: labels.insert,
+      reorderLabels: labels.move,
       metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
         return {
           ...metric,
@@ -153,7 +184,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [allowUpTo, location, navigate]);
+  }, [labels, location, navigate, rawQueries]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -182,23 +213,68 @@ export function useMultiMetricsQueryParams() {
   return metricQueries;
 }
 
-export function useAddMetricQuery() {
+export function useAddMetricQuery({
+  type = 'aggregate',
+}: {type?: 'aggregate' | 'equation'} = {}) {
   const location = useLocation();
   const navigate = useNavigate();
-  const {metricQueries} = useMultiMetricsQueryParamsContext();
+  const organization = useOrganization();
+  const {metricQueries, insertLabelAtIndex}: MultiMetricsQueryParamsContextValue =
+    useMultiMetricsQueryParamsContext();
+  const hasEquations = canUseMetricsEquations(organization);
 
   return function () {
-    const target = {...location, query: {...location.query}};
+    const nextLabel = getNextLabel(metricQueries, type);
 
-    const newMetricQueries = [
-      ...metricQueries,
-      metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
-    ]
+    const target = {...location, query: {...location.query}};
+    const equationStart = metricQueries.findIndex(metricQuery =>
+      isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
+    );
+    const insertAt =
+      hasEquations && equationStart !== -1 && type === 'aggregate'
+        ? equationStart
+        : metricQueries.length;
+    const lastAggregate = metricQueries.at(insertAt - 1) ?? defaultMetricQuery();
+    const canDuplicate =
+      type === 'aggregate' &&
+      lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
+    const newQuery = canDuplicate
+      ? {...lastAggregate, label: nextLabel}
+      : defaultMetricQuery({type});
+
+    // Update label ref before navigating so labels stay stable
+    insertLabelAtIndex(insertAt, nextLabel);
+
+    const baseQueries: BaseMetricQuery[] = metricQueries;
+    const newMetricQueries = baseQueries.toSpliced(insertAt, 0, newQuery);
+    target.query.metric = newMetricQueries
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)
       .filter(Boolean);
-    target.query.metric = newMetricQueries;
 
     navigate(target);
   };
+}
+
+export function useReorderMetricQueries() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {reorderLabels}: MultiMetricsQueryParamsContextValue =
+    useMultiMetricsQueryParamsContext();
+
+  return useCallback(
+    (reorderedQueries: BaseMetricQuery[], oldIndex: number, newIndex: number) => {
+      // Keep labels attached to query identity during drag reorder.
+      reorderLabels(oldIndex, newIndex);
+
+      const target = {...location, query: {...location.query}};
+      target.query.metric = reorderedQueries
+        .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+        .filter(defined)
+        .filter(Boolean);
+
+      navigate(target);
+    },
+    [location, navigate, reorderLabels]
+  );
 }

@@ -162,10 +162,10 @@ describe('BlockComponent', () => {
       );
 
       expect(
-        screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'})
+        screen.getByRole('button', {name: 'Feedback Thumbs Up'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'})
+        screen.getByRole('button', {name: 'Feedback Thumbs Down'})
       ).toBeInTheDocument();
     });
 
@@ -182,10 +182,10 @@ describe('BlockComponent', () => {
       );
 
       expect(
-        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Up'})
+        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Seer Explorer Thumbs Down'})
+        screen.queryByRole('button', {name: 'Feedback Thumbs Down'})
       ).not.toBeInTheDocument();
     });
 
@@ -201,8 +201,8 @@ describe('BlockComponent', () => {
         />
       );
 
-      const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
       expect(upButton).toBeEnabled();
 
       await userEvent.click(upButton);
@@ -223,8 +223,8 @@ describe('BlockComponent', () => {
         />
       );
 
-      const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
       expect(downButton).toBeEnabled();
 
       await userEvent.click(downButton);
@@ -246,8 +246,8 @@ describe('BlockComponent', () => {
       />
     );
 
-    const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
-    const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+    const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+    const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
     expect(upButton).toBeEnabled();
 
     await userEvent.click(upButton);
@@ -268,8 +268,8 @@ describe('BlockComponent', () => {
       />
     );
 
-    const upButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Up'});
-    const downButton = screen.getByRole('button', {name: 'Seer Explorer Thumbs Down'});
+    const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
+    const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
     expect(downButton).toBeEnabled();
 
     await userEvent.click(downButton);

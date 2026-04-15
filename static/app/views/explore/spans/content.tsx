@@ -1,5 +1,5 @@
+import {Fragment, useMemo} from 'react';
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -167,33 +167,73 @@ function SpansTabHeader() {
             orgSlug={organization?.slug}
           />
         ) : null}
-        {title && defined(id) ? (
-          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
-        ) : null}
-        <Layout.Title>
-          {title ? title : t('Traces')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://github.com/getsentry/sentry/discussions/81239"
-            title={t(
-              'Find problematic spans/traces or compute real-time metrics via aggregation.'
-            )}
-            linkLabel={t('Read the Discussion')}
-          />
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <StarSavedQueryButton />
-          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
+        {hasPageFrameFeature ? (
+          title && defined(id) ? (
+            <TopBar.Slot name="title">
+              <ExploreBreadcrumb
+                traceItemDataset={TraceItemDataset.SPANS}
+                savedQueryName={savedQuery?.name}
+              />
+              <PageHeadingQuestionTooltip
+                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                title={t(
+                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                )}
+                linkLabel={t('Read the Discussion')}
+              />
             </TopBar.Slot>
           ) : (
+            <TopBar.Slot name="title">
+              {title ? title : t('Traces')}
+              <PageHeadingQuestionTooltip
+                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                title={t(
+                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                )}
+                linkLabel={t('Read the Discussion')}
+              />
+            </TopBar.Slot>
+          )
+        ) : (
+          <Fragment>
+            {title && defined(id) ? (
+              <ExploreBreadcrumb
+                traceItemDataset={TraceItemDataset.SPANS}
+                savedQueryName={savedQuery?.name}
+              />
+            ) : null}
+            <Layout.Title>
+              {title ? title : t('Traces')}
+              <PageHeadingQuestionTooltip
+                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                title={t(
+                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                )}
+                linkLabel={t('Read the Discussion')}
+              />
+            </Layout.Title>
+          </Fragment>
+        )}
+      </Layout.HeaderContent>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <StarSavedQueryButton />
+            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
             <FeedbackButton />
-          )}
-        </Grid>
-      </Layout.HeaderActions>
+          </Grid>
+        </Layout.HeaderActions>
+      )}
     </Layout.Header>
   );
 }

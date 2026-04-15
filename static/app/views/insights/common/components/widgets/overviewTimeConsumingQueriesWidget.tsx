@@ -52,7 +52,7 @@ export default function OverviewTimeConsumingQueriesWidget(
   const supportedSystems = Object.values(SupportedDatabaseSystem);
 
   const search = new MutableSearch(
-    `${SpanFields.DB_SYSTEM}:[${supportedSystems.join(',')}] ${query}`.trim()
+    `has:${SpanFields.SPAN_GROUP} ${SpanFields.DB_SYSTEM}:[${supportedSystems.join(',')}] ${query}`.trim()
   );
   const referrer = Referrer.OVERVIEW_TIME_CONSUMING_QUERIES_WIDGET;
   const groupBy = SpanFields.NORMALIZED_DESCRIPTION;

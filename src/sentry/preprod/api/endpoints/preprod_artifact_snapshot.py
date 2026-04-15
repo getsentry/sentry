@@ -59,6 +59,7 @@ from sentry.preprod.snapshots.utils import (
     find_head_snapshot_artifacts_awaiting_base,
 )
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     create_preprod_snapshot_status_check_task,
 )
@@ -78,6 +79,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "additionalProperties": ImageMetadata.schema(),
             "maxProperties": 50000,
         },
+        "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -434,6 +436,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
                 approval_info=approval_info,
+                diff_threshold=manifest.diff_threshold,
             ).dict()
         )
 
@@ -466,6 +469,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         app_id = data.get("app_id")
         images = data.get("images", {})
+        diff_threshold = data.get("diff_threshold")
 
         # VCS info
         head_sha = data.get("head_sha")
@@ -524,7 +528,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest = SnapshotManifest(images=images)
+            manifest = SnapshotManifest(images=images, diff_threshold=diff_threshold)
             manifest_json = manifest.json(exclude_none=True)
             session.put(manifest_json.encode(), key=manifest_key)
 
@@ -574,6 +578,12 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 logger.exception("Failed to record bundles_per_commit metric")
 
         create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "upload_completion",
+            },
+        )
+        create_preprod_snapshot_pr_comment_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact.id,
                 "caller": "upload_completion",

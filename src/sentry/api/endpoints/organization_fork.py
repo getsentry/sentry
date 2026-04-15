@@ -22,7 +22,7 @@ from sentry.relocation.api.endpoints.index import (
 )
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks.process import uploading_start
-from sentry.types.cell import get_local_cell
+from sentry.types.cell import CellResolutionError, get_local_cell, get_locality_name_for_cell
 from sentry.utils.db import atomic_transaction
 
 ERR_DUPLICATE_ORGANIZATION_FORK = Template(
@@ -35,12 +35,12 @@ ERR_ORGANIZATION_INACTIVE = Template(
 ERR_CANNOT_FORK_INTO_SAME_REGION = Template(
     "The organization already lives in region `$region`, so it cannot be forked into that region."
 )
-ERR_CANNOT_FORK_FROM_REGION = Template(
-    "Forking an organization from region `$region` is forbidden."
+ERR_CANNOT_FORK_FROM_LOCALITY = Template(
+    "Forking an organization from locality `$locality` is forbidden."
 )
 
-# For legal reasons, there are certain regions from which forking is disallowed.
-CANNOT_FORK_FROM_REGION = {"de"}
+# For legal reasons, there are certain localities from which forking is disallowed.
+CANNOT_FORK_FROM_LOCALITY = {"de"}
 
 logger = logging.getLogger(__name__)
 
@@ -99,23 +99,33 @@ class OrganizationForkEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Figure out which region the organization being forked lives in.
-        requesting_region_name = get_local_cell().name
-        replying_region_name = org_mapping.cell_name
-        if replying_region_name in CANNOT_FORK_FROM_REGION:
+        # Figure out which cell the organization being forked lives in.
+        requesting_cell_name = get_local_cell().name
+        replying_cell_name = org_mapping.cell_name
+
+        # Resolve the locality for the exporting cell.
+        try:
+            replying_locality_name = get_locality_name_for_cell(replying_cell_name)
+        except CellResolutionError:
+            return Response(
+                {"detail": "Could not resolve the locality for the target cell."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if replying_locality_name in CANNOT_FORK_FROM_LOCALITY:
             return Response(
                 {
-                    "detail": ERR_CANNOT_FORK_FROM_REGION.substitute(
-                        region=replying_region_name,
+                    "detail": ERR_CANNOT_FORK_FROM_LOCALITY.substitute(
+                        locality=replying_locality_name,
                     )
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if replying_region_name == requesting_region_name:
+        if replying_cell_name == requesting_cell_name:
             return Response(
                 {
                     "detail": ERR_CANNOT_FORK_INTO_SAME_REGION.substitute(
-                        region=requesting_region_name,
+                        region=requesting_cell_name,
                     )
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -164,7 +174,7 @@ class OrganizationForkEndpoint(Endpoint):
         # When we received this back (via RPC call), we'll be able to continue with the usual
         # relocation flow, picking up from the `uploading_complete` task.
         uploading_start.apply_async(
-            args=[new_relocation.uuid, replying_region_name, org_mapping.slug]
+            args=[new_relocation.uuid, replying_cell_name, org_mapping.slug]
         )
 
         try:
@@ -174,8 +184,8 @@ class OrganizationForkEndpoint(Endpoint):
                     owner_id=owner.id,
                     uuid=str(new_relocation.uuid),
                     from_org_slug=org_mapping.slug,
-                    requesting_region_name=requesting_region_name,
-                    replying_region_name=replying_region_name,
+                    requesting_region_name=requesting_cell_name,
+                    replying_region_name=replying_cell_name,
                 )
             )
         except Exception as e:

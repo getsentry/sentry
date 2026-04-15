@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
@@ -14,8 +15,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Release} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -67,47 +67,46 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const releaseListUrl = props.projectSlug
-    ? getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: props.projectSlug,
-        },
-      })
-    : getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+  const releaseListOptions = props.projectSlug
+    ? apiOptions.as<Release[]>()(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: props.projectSlug,
+          },
+          query: {query: debouncedSearch},
+          staleTime: 60_000,
+        }
+      )
+    : apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
         path: {organizationIdOrSlug: organization.slug},
+        query: {query: debouncedSearch},
+        staleTime: 60_000,
       });
 
-  const {data: releases = [], isFetching} = useApiQuery<Release[]>(
-    [
-      releaseListUrl,
-      {
-        query: {
-          query: debouncedSearch,
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-      retry: false,
-    }
-  );
+  const {data: releases = [], isFetching} = useQuery({
+    ...releaseListOptions,
+    retry: false,
+  });
 
   const shouldLookupExact = debouncedSearch.trim().length > 0;
 
   // Attempt to find the exact release, the list is capped at the most recent 100 releases
-  const {data: exactRelease} = useApiQuery<Release>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
-        path: {organizationIdOrSlug: organization.slug, version: debouncedSearch.trim()},
-      }),
-    ],
-    {
-      enabled: shouldLookupExact,
-      staleTime: 30_000,
-      retry: false,
-    }
-  );
+  const {data: exactRelease} = useQuery({
+    ...apiOptions.as<Release>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          version: debouncedSearch.trim(),
+        },
+        staleTime: 30_000,
+      }
+    ),
+    enabled: shouldLookupExact,
+    retry: false,
+  });
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const baseOptions = releases.map(release =>

@@ -695,7 +695,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "DELETE"
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stacktrace-link/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/grouping-configs/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/": {"POST"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/apps/": {
         "POST"
@@ -810,7 +809,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/authenticators/": {"GET"},
     "/api/0/accept-transfer/": {"GET", "POST"},
     "/api/0/accept-invite/{organization_id_or_slug}/{member_id}/{token}/": {"GET", "POST"},
-    "/api/0/accept-invite/{member_id}/{token}/": {"GET", "POST"},
     "/api/0/profiling/projects/{project_id}/profile/{profile_id}/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/participants/": {"GET"},
     "/api/0/{var}/{issue_id}/participants/": {"GET"},
@@ -822,8 +820,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/doc-integrations/{doc_integration_id_or_slug}/avatar/": {"GET", "PUT"},
     "/api/0/integration-features/": {"GET"},
     "/api/0/issue-occurrence/": {"POST"},
-    "/api/0/grouping-configs/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/grouping-configs/": {"GET"},
     "/api/0/builtin-symbol-sources/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/builtin-symbol-sources/": {"GET"},
     "/api/0/wizard/": {"GET", "DELETE"},

@@ -16,6 +16,7 @@ export type IntegrationView = {
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
     | 'onboarding'
+    | 'onboarding_scm'
     | 'project_creation'
     | 'developer_settings'
     | 'new_integration_modal'

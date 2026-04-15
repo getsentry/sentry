@@ -303,29 +303,26 @@ function DashboardInner({
     [organization, dashboard.widgets, onEditWidget]
   );
 
-  const handleChangeSplitDataset = useCallback(
-    (widget: Widget, index: number) => {
-      const widgetCopy = cloneDeep({
-        ...widget,
-        id: undefined,
-      });
+  const handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
 
-      const nextList = [...dashboard.widgets];
-      const nextWidgetData = {
-        ...widgetCopy,
-        widgetType: WidgetType.TRANSACTIONS,
-        datasetSource: DatasetSource.USER,
-        id: widget.id,
-      };
-      nextList[index] = nextWidgetData;
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [dashboard.widgets, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {

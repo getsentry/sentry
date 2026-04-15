@@ -1,15 +1,17 @@
 from typing import Optional
 
 import msgspec
-
-from sentry.scm.types import (
+from scm.types import (
     CheckRunAction,
-    CheckRunEvent,
     CommentAction,
-    CommentEvent,
-    EventType,
     EventTypeHint,
     PullRequestAction,
+)
+
+from sentry.scm.types import (
+    CheckRunEvent,
+    CommentEvent,
+    EventType,
     PullRequestEvent,
     SubscriptionEvent,
 )

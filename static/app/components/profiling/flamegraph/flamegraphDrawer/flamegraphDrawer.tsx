@@ -78,12 +78,9 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
     return invertCallTree(maybeFilteredRoots);
   }, [tab, treeType, props.rootNodes]);
 
-  const handleRecursionChange = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      setRecursion(evt.currentTarget.checked ? 'collapsed' : null);
-    },
-    []
-  );
+  const handleRecursionChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+    setRecursion(evt.currentTarget.checked ? 'collapsed' : null);
+  };
 
   const onBottomUpClick = useCallback(() => {
     setTab('bottom up');
@@ -93,17 +90,17 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
     setTab('top down');
   }, [setTab]);
 
-  const onAllApplicationsClick = useCallback(() => {
+  const onAllApplicationsClick = () => {
     setTreeType('all');
-  }, []);
+  };
 
-  const onApplicationsClick = useCallback(() => {
+  const onApplicationsClick = () => {
     setTreeType('application');
-  }, []);
+  };
 
-  const onSystemsClick = useCallback(() => {
+  const onSystemsClick = () => {
     setTreeType('system');
-  }, []);
+  };
 
   const onTableLeftClick = useCallback(() => {
     dispatch({type: 'set layout', payload: 'table left'});

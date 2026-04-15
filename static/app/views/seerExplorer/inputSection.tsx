@@ -33,7 +33,6 @@ interface QuestionActions {
 interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
-  focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
@@ -47,21 +46,21 @@ interface InputSectionProps {
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  wasJustInterrupted: boolean;
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
   isVisible?: boolean;
   questionActions?: QuestionActions;
-  wasJustInterrupted?: boolean;
 }
 
 export function InputSection({
   blocks,
   enabled,
   inputValue,
-  focusedBlockIndex,
   isMinimized = false,
   isPolling,
   interruptRequested,
+  wasJustInterrupted = false,
   isVisible = false,
   onCreatePR,
   onInputChange,
@@ -74,23 +73,16 @@ export function InputSection({
   textAreaRef,
   fileApprovalActions,
   questionActions,
-  wasJustInterrupted = false,
 }: InputSectionProps) {
   // Check if there are any file patches for showing the PR widget
   const hasCodeChanges = useMemo(() => {
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
   }, [blocks]);
   const getPlaceholder = () => {
-    if (!enabled) {
-      return 'This conversation is owned by another user and is read-only';
-    }
     if (wasJustInterrupted) {
-      return 'Interrupted. What should Seer do instead?';
+      return t('Interrupted. What should Seer do instead?');
     }
-    if (focusedBlockIndex !== -1) {
-      return 'Press Tab ⇥ to return here';
-    }
-    return 'Type your message or / command and press Enter ↵';
+    return t('Type your message or / command and press Enter ↵');
   };
 
   // Handle keyboard shortcuts for file approval
@@ -169,12 +161,9 @@ export function InputSection({
           <StyledInputGroup>
             <InputGroup.TextArea
               disabled
-              ref={textAreaRef}
-              value={inputValue}
-              onChange={onInputChange}
-              onKeyDown={onKeyDown}
-              onClick={onInputClick}
-              placeholder={getPlaceholder()}
+              placeholder={t(
+                'This conversation is owned by another user and is read-only'
+              )}
               rows={1}
               data-test-id="seer-explorer-input"
             />

@@ -32,9 +32,16 @@ Segments are flushed out to `buffered-spans` topic under two conditions:
 
 Now how does that look like in Redis? For each incoming span, we:
 
-1. Store the span payload in a payload key:
-   "span-buf:s:{project_id:trace_id:span_id}:span_id". Each subsegment
-   gets its own key, distributed across Redis cluster nodes.
+1. Store the span payload in a payload key. Each subsegment gets its own key,
+   distributed across Redis cluster nodes.
+   a. When segment size enforcement is disabled, the key uses the parent_span_id to
+   determine where to write span payloads to.
+   Key: `span-buf:s:{project_id:trace_id:parent_span_id}:parent_span_id`
+   b. When segment size enforcement is enabled, the key uses a unique salt per
+   subsegment. This allows us to skip merging the subsegment into the parent segment
+   and not lose any data, since the subsegment will become its own separate segment
+   and be flushed out independently.
+   Key: `span-buf:s:{project_id:trace_id:salt}:salt`
 2. The Lua script (add-buffer.lua) receives the span IDs and:
    a. Follows redirects from parent_span_id (hashmap at
       "span-buf:ssr:{project_id:trace_id}") to find the segment root.
@@ -42,6 +49,9 @@ Now how does that look like in Redis? For each incoming span, we:
    c. Merges member-keys indexes and counters (ingested count, byte count)
       from span IDs that were previously separate segment roots into the
       current segment root.
+   d. If segment size enforcement is enabled and the segment exceeds
+      max_segment_bytes, detaches the subsegment into its own segment
+      keyed by the salt.
 3. To a "global queue", we write the segment key, sorted by timeout.
 
 Eventually, flushing cronjob looks at that global queue, and removes all timed
@@ -57,6 +67,22 @@ consumer reads and writes to shards that correspond to its own assigned
 partitions. This means that extra care needs to be taken when recreating topics
 or using spillover topics, especially when their new partition count is lower
 than the original topic.
+
+Segment size enforcement:
+
+Segments can grow unboundedly as spans arrive. To prevent oversized segments from
+consuming excessive memory during flush, the buffer enforces a maximum byte limit
+per segment (controlled by `spans.buffer.max-segment-bytes` and gated behind
+`spans.buffer.enforce-segment-size`).
+
+Each subsegment is assigned a unique salt (UUID). The Lua script tracks cumulative
+ingested bytes per segment via `span-buf:ibc` keys. If adding a subsegment would
+push the segment over the byte limit, the script detaches it into a new segment
+keyed by the salt instead of merging it into the parent. The detached segment is
+independently tracked and flushed.
+
+During flush, segments that exceed `max-segment-bytes` are chunked into multiple
+Kafka messages to stay within downstream size limits.
 
 Glossary for types of keys:
 
@@ -76,6 +102,7 @@ import itertools
 import logging
 import math
 import time
+import uuid
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple, cast
 
@@ -146,6 +173,12 @@ class Span(NamedTuple):
 type SpanPayload = dict[str, Any]
 
 
+class Subsegment(NamedTuple):
+    project_and_trace: tuple[str, str]
+    salt: str
+    subsegment: list[Span]
+
+
 class OutputSpan(NamedTuple):
     payload: SpanPayload
 
@@ -164,16 +197,12 @@ class FlushedSegment(NamedTuple):
         """
         Build producer messages for this segment.
 
-        If chunk-oversized-segments is enabled and the segment exceeds
-        max_segment_bytes, the segment is split into multiple messages with
-        skip_enrichment=True. Otherwise, returns a single message.
+        If the segment size exceeds `spans.buffer.max_segment_bytes`, the segment is split
+        into multiple messages with skip_enrichment=True. Otherwise, returns a single message.
         """
-        chunk_oversized_segments = options.get("spans.buffer.chunk-oversized-segments")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
         spans: list[SpanPayload] = [span.payload for span in self.spans]
-        if not chunk_oversized_segments:
-            return [{"spans": spans}]
 
         sizes = [len(orjson.dumps(s)) for s in spans]
         if sum(sizes) <= max_segment_bytes:
@@ -195,7 +224,11 @@ class FlushedSegment(NamedTuple):
             messages.append({"spans": current, "skip_enrichment": True})
 
         if len(messages) > 1:
-            metrics.incr("spans.buffer.oversized_segments_chunked_messages", len(messages))
+            metrics.timing(
+                "spans.buffer.oversized_segments_chunked",
+                len(messages),
+            )
+            metrics.timing("spans.buffer.oversized_segments_size", sum(sizes))
 
         return messages
 
@@ -254,6 +287,8 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        enforce_segment_size = options.get("spans.buffer.enforce-segment-size")
         result_meta = []
         is_root_span_count = 0
 
@@ -263,15 +298,15 @@ class SpansBuffer:
 
             # Split large subsegments into chunks to avoid Lua unpack() limits.
             # Chunks share the same parent_span_id but are processed separately.
-            tree_items: list[tuple[tuple[str, str], list[Span]]] = []
+            tree_items: list[Subsegment] = []
             for key, subsegment in trees.items():
                 if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
                     for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
-                        tree_items.append((key, list(chunk)))
+                        tree_items.append(Subsegment(key, uuid.uuid4().hex, list(chunk)))
                 else:
-                    tree_items.append((key, subsegment))
+                    tree_items.append(Subsegment(key, uuid.uuid4().hex, subsegment))
 
-            tree_batches: Sequence[Sequence[tuple[tuple[str, str], list[Span]]]]
+            tree_batches: Sequence[Sequence[Subsegment]]
             if pipeline_batch_size > 0:
                 tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
             else:
@@ -279,9 +314,11 @@ class SpansBuffer:
 
             for batch in tree_batches:
                 with self.client.pipeline(transaction=False) as p:
-                    for (project_and_trace, parent_span_id), subsegment in batch:
+                    for (project_and_trace, parent_span_id), salt, subsegment in batch:
                         set_members = self._prepare_payloads(subsegment)
                         payload_key = self._get_payload_key(project_and_trace, parent_span_id)
+                        if enforce_segment_size:
+                            payload_key = self._get_payload_key(project_and_trace, salt)
                         p.sadd(payload_key, *set_members)
                         p.expire(payload_key, redis_ttl)
 
@@ -296,7 +333,7 @@ class SpansBuffer:
             results: list[Any] = []
             for batch in tree_batches:
                 with self.client.pipeline(transaction=False) as p:
-                    for (project_and_trace, parent_span_id), subsegment in batch:
+                    for (project_and_trace, parent_span_id), salt, subsegment in batch:
                         byte_count = sum(len(span.payload) for span in subsegment)
 
                         try:
@@ -323,6 +360,8 @@ class SpansBuffer:
                             is_segment_span,
                             redis_ttl,
                             byte_count,
+                            max_segment_bytes,
+                            salt if enforce_segment_size else "",
                             *span_ids,
                         )
 
@@ -331,7 +370,7 @@ class SpansBuffer:
                         # All spans in a subsegment share the same trace_id,
                         # so they all came from the same Kafka partition.
                         partition = subsegment[0].partition
-                        result_meta.append((project_and_trace, parent_span_id, partition))
+                        result_meta.append((project_and_trace, parent_span_id, partition, salt))
 
                     results.extend(p.execute())
 
@@ -349,7 +388,9 @@ class SpansBuffer:
 
             assert len(result_meta) == len(results)
 
-            for (project_and_trace, parent_span_id, partition), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id, partition, salt), result in zip(
+                result_meta, results
+            ):
                 (
                     segment_key,
                     has_root_span,
@@ -402,9 +443,11 @@ class SpansBuffer:
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
-                delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
-                )
+                if not segment_key.endswith(salt.encode("ascii")):
+                    delete_set.update(
+                        self._get_span_key(project_and_trace, span.span_id)
+                        for span in subsegment_spans
+                    )
                 delete_set.discard(segment_key)
 
             for result in results:
@@ -721,11 +764,9 @@ class SpansBuffer:
         """
 
         page_size = options.get("spans.buffer.segment-page-size")
-        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         payload_keys_map: dict[SegmentKey, list[PayloadKey]] = {key: [] for key in segment_keys}
-        sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
@@ -752,31 +793,18 @@ class SpansBuffer:
                 cursors[payload_key] = 0
             payload_keys_map[key] = segment_payload_keys
 
-        chunk_oversized_segments = options.get("spans.buffer.chunk-oversized-segments")
         dropped_segments: set[SegmentKey] = set()
 
-        def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
+        def _add_spans(key: SegmentKey, raw_data: bytes):
             """
-            Decompress and add spans to the segment. Returns False if the
-            segment exceeded max_segment_bytes and was dropped.
+            Decompress and add spans to the segment.
             """
             nonlocal decompress_latency_ms
 
             decompress_start = time.monotonic()
             decompressed = self._decompress_batch(raw_data)
             decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
-
-            sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
-            if sizes[key] > max_segment_bytes and not chunk_oversized_segments:
-                metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                logger.warning("Skipping too large segment, byte size %s", sizes[key])
-                payloads.pop(key, None)
-                sizes.pop(key, None)
-                dropped_segments.add(key)
-                return False
-
             payloads[key].extend(decompressed)
-            return True
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -793,15 +821,11 @@ class SpansBuffer:
                     cursors.pop(key, None)
                     continue
 
-                size_exceeded = False
                 for scan_value in scan_values:
                     if segment_key in payloads:
-                        if not _add_spans(segment_key, scan_value):
-                            size_exceeded = True
+                        _add_spans(segment_key, scan_value)
 
-                if size_exceeded:
-                    cursors.pop(key, None)
-                elif cursor == 0:
+                if cursor == 0:
                     del cursors[key]
                 else:
                     cursors[key] = cursor

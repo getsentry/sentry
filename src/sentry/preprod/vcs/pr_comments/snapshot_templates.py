@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.utils.translation import gettext_lazy as _
 
+from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
@@ -21,6 +22,8 @@ def format_snapshot_pr_comment(
     base_artifact_map: dict[int, PreprodArtifact],
     changes_map: dict[int, bool],
     approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+    *,
+    project: Project,
 ) -> str:
     """Format a PR comment for snapshot comparisons."""
     if not artifacts:
@@ -86,7 +89,14 @@ def format_snapshot_pr_comment(
                 f" | {status} |"
             )
 
-    return f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)
+    settings_url = project.organization.absolute_url(
+        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
+    )
+
+    table = f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)
+    settings_link = f"[⚙️ {project.name} Snapshot Settings]({settings_url})"
+
+    return f"{table}\n\n{settings_link}"
 
 
 def _name_cell(

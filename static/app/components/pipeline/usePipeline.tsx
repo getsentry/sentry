@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getPipelineDefinition} from './registry';
@@ -12,27 +14,64 @@ import type {
 import type {
   ApiPipeline,
   PipelineAdvanceResponse,
+  PipelineCompletionProps,
   PipelineStepProps,
   PipelineStepResponse,
 } from './types';
 import {getBackendPipelineType} from './types';
 
 type PipelineState<T extends RegisteredPipelineType, P extends ProvidersByType[T]> =
-  | {status: 'idle'}
-  | {status: 'initializing'}
   | {
+      /**
+       * Pipeline has not yet started
+       */
+      status: 'idle';
+    }
+  | {
+      /**
+       * Pipeline is making it's initialization call. This is essentially a
+       * loading state, but the first view will be available.
+       */
+      status: 'initializing';
+    }
+  | {
+      /**
+       * Pipeline is currently stepping through each step of the pipeline
+       */
       status: 'active';
       stepData: Record<string, unknown>;
       stepInfo: PipelineStepResponse;
     }
-  | {data: CompletionDataFor<T, P>; status: 'complete'}
-  | {error: Error; status: 'error'};
+  | {
+      data: CompletionDataFor<T, P>;
+      /**
+       * Pipeline has been completed and no longer needs to be advanced.
+       */
+      status: 'complete';
+    }
+  | {
+      error: Error;
+      /**
+       * When the pipeline is in the error state, this indicates an
+       * unrecoverable error. Advance responses with status error will NOT put
+       * the pipeline into an unrecoverable state. This is reserved for a
+       * pipeline expiring or a 500 error.
+       */
+      status: 'error';
+    };
 
 interface UsePipelineOptions<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T],
 > {
   enabled?: boolean;
+  /**
+   * Data that will be passed through to the initialization call.
+   */
+  initialData?: Record<string, string>;
+  /**
+   * Called when the piepline has finished
+   */
   onComplete?: (data: CompletionDataFor<T, P>) => void;
 }
 
@@ -94,7 +133,7 @@ export function usePipeline<
   onCompleteRef.current = options.onComplete;
   const generationRef = useRef(0);
 
-  const {enabled = true} = options;
+  const {enabled = true, initialData} = options;
 
   const pipelineName = getBackendPipelineType(type);
   const apiUrl = `/organizations/${organization.slug}/pipeline/${pipelineName}/`;
@@ -104,26 +143,25 @@ export function usePipeline<
     [type, provider]
   );
 
-  const {mutate: initializeMutate, ...initializeRest} = useMutation<
-    PipelineStepResponse,
-    Error,
-    void,
-    {generation: number}
-  >({
+  const {
+    mutate: initializeMutate,
+    error: initializeError,
+    isPending: isInitializePending,
+  } = useMutation<PipelineStepResponse, RequestError, void, {generation: number}>({
     mutationFn: () =>
       fetchMutation<PipelineStepResponse>({
         method: 'POST',
         url: apiUrl,
-        data: {action: 'initialize', provider},
+        data: {action: 'initialize', provider, initialData},
       }),
     onMutate: () => ({generation: generationRef.current}),
-    onSuccess: (data: PipelineStepResponse, _variables, context) => {
+    onSuccess: (data, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }
       setState({status: 'active', stepInfo: data, stepData: data.data});
     },
-    onError: (error: Error, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }
@@ -138,7 +176,7 @@ export function usePipeline<
     reset: resetAdvance,
   } = useMutation<
     PipelineAdvanceResponse,
-    Error,
+    RequestError,
     Record<string, unknown>,
     {generation: number}
   >({
@@ -149,7 +187,7 @@ export function usePipeline<
         data,
       }),
     onMutate: () => ({generation: generationRef.current}),
-    onSuccess: (response: PipelineAdvanceResponse, _variables, context) => {
+    onSuccess: (response, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }
@@ -189,22 +227,37 @@ export function usePipeline<
           const data = definition.getCompletionData(rawData) as CompletionDataFor<T, P>;
 
           setState({status: 'complete', data});
-          onCompleteRef.current?.(data);
+
+          // If there's no completion view, fire onComplete immediately.
+          if (!definition.completionView) {
+            onCompleteRef.current?.(data);
+          }
           break;
         }
         case 'error':
-          setState({
-            status: 'error',
-            error: new Error((response.data?.detail as string) ?? 'Pipeline error'),
-          });
+          // The backend returns HTTP 400 for error results, so this case
+          // is handled by onError below, not here.
           break;
       }
     },
-    onError: (error: Error, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }
-      setState({status: 'error', error});
+      // 404 means the pipeline session expired — unrecoverable.
+      if (error.status === 404) {
+        setState({
+          status: 'error',
+          error: new Error(t('This flow has expired. Please start over.')),
+        });
+        return;
+      }
+      // Other 4xx errors are recoverable (e.g. validation failures) and are
+      // surfaced via advanceError. Only transition to the error state for
+      // 5xx or unknown errors which are unrecoverable.
+      if (!error.status || error.status >= 500) {
+        setState({status: 'error', error});
+      }
     },
   });
 
@@ -237,12 +290,23 @@ export function usePipeline<
     return null;
   }, [state, definition]);
 
+  const finish = useCallback(() => {
+    if (state.status === 'complete') {
+      onCompleteRef.current?.(state.data);
+    }
+  }, [state]);
+
   const view = useMemo(() => {
-    if (!stepDefinition) {
-      return null;
+    // Render completion view when the pipeline is complete and one is defined
+    if (state.status === 'complete' && definition.completionView) {
+      const CompletionView: React.ComponentType<PipelineCompletionProps<any>> =
+        definition.completionView;
+      return <CompletionView data={state.data} finish={finish} />;
     }
 
-    const isActive = state.status === 'active';
+    if (!stepDefinition || state.status !== 'active') {
+      return null;
+    }
 
     // Widen from the specific union of component types to the general
     // PipelineStepDefinition component type
@@ -251,25 +315,30 @@ export function usePipeline<
 
     return (
       <Component
-        stepIndex={isActive ? state.stepInfo.stepIndex : 0}
-        totalSteps={isActive ? state.stepInfo.totalSteps : definition.steps.length}
-        stepData={isActive ? state.stepData : {}}
+        stepIndex={state.stepInfo.stepIndex}
+        totalSteps={state.stepInfo.totalSteps}
+        stepData={state.stepData}
         advance={advanceMutate}
         isAdvancing={isAdvancePending}
         advanceError={advanceError}
       />
     );
-  }, [state, stepDefinition, definition, advanceMutate, isAdvancePending, advanceError]);
+  }, [
+    state,
+    stepDefinition,
+    definition,
+    advanceMutate,
+    isAdvancePending,
+    advanceError,
+    finish,
+  ]);
 
   const {stepIndex, totalSteps} =
     state.status === 'active'
       ? {stepIndex: state.stepInfo.stepIndex, totalSteps: state.stepInfo.totalSteps}
       : {stepIndex: 0, totalSteps: definition.steps.length};
 
-  const error =
-    state.status === 'error'
-      ? state.error
-      : (advanceError ?? initializeRest.error ?? null);
+  const error = getPipelineError(state, initializeError, advanceError);
 
   const completionData = state.status === 'complete' ? state.data : null;
 
@@ -280,10 +349,57 @@ export function usePipeline<
     stepDefinition,
     stepIndex,
     totalSteps,
-    isInitializing: state.status === 'initializing' || initializeRest.isPending,
+    isInitializing: state.status === 'initializing' || isInitializePending,
     isAdvancing: isAdvancePending,
     isComplete: state.status === 'complete',
     error,
     completionData,
   };
+}
+
+/**
+ * Extract a human-readable message from an error. Prefers the `detail` field
+ * from a DRF error response, falls back to the JS error message.
+ */
+function getErrorMessage(err: Error): string {
+  if (err instanceof RequestError) {
+    const detail = (err.responseJSON as Record<string, unknown> | undefined)?.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+  }
+  return err.message;
+}
+
+/**
+ * Derive the pipeline-level error string. Three sources, in priority:
+ *
+ * 1. Unrecoverable state error — expired session (404) or server error (5xx)
+ * 2. Initialization failure — bad provider, missing params, etc.
+ * 3. Step error — PipelineStepResult.error() returned as 400 with
+ *    {status: "error", data: {detail: "..."}}. Field-level validation
+ *    errors are NOT surfaced here; those go to step components via
+ *    advanceError / setFieldErrors().
+ */
+function getPipelineError(
+  state: {status: string; error?: Error},
+  initializeError: RequestError | null,
+  advanceError: RequestError | null
+): string | null {
+  if (state.status === 'error' && state.error) {
+    return getErrorMessage(state.error);
+  }
+  if (initializeError) {
+    return getErrorMessage(initializeError);
+  }
+  if (advanceError) {
+    const json = advanceError.responseJSON as Record<string, unknown> | undefined;
+    if (json?.status === 'error') {
+      const data = json.data as Record<string, unknown> | undefined;
+      if (typeof data?.detail === 'string') {
+        return data.detail;
+      }
+    }
+  }
+  return null;
 }

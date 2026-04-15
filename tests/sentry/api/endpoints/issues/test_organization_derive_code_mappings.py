@@ -98,6 +98,49 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.data == expected_matches
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_frame_with_module_multiple_same_repo_matches(
+        self, mock_get_trees_for_org: Any
+    ) -> None:
+        config_data = {
+            "absPath": "GraphQLFetcher.java",
+            "module": "io.sentry.graphql.GraphQLFetcher",
+            "platform": "java",
+            "stacktraceFilename": "GraphQLFetcher.java",
+        }
+        expected_matches = [
+            {
+                "filename": "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "io/sentry/graphql/",
+                "source_path": "sentry-graphql/src/main/java/io/sentry/graphql/",
+            },
+            {
+                "filename": "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "io/sentry/graphql/",
+                "source_path": "sentry-graphql-core/src/main/java/io/sentry/graphql/",
+            },
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                ),
+                files=[
+                    "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                    "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                ],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_start_with_backslash(self, mock_get_trees_for_org: Any) -> None:
         file = "stack/root/file.py"
         config_data = {"stacktraceFilename": f"/{file}"}

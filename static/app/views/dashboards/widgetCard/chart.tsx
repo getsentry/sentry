@@ -263,7 +263,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     return (
       <TableWrapper>
         <AgentsTracesTableWidgetVisualization
-          limit={widget.limit}
+          limit={widget.limit ?? undefined}
           tableWidths={widget.tableWidths}
           dashboardFilters={props.dashboardFilters}
           frameless
@@ -658,11 +658,6 @@ function TableComponent({
           tableData={tableData}
           frameless
           scrollable
-          fit={
-            widget?.tableWidths?.length && widget?.tableWidths?.length > 0
-              ? undefined
-              : 'max-content'
-          }
           aliases={aliases}
           onChangeSort={onWidgetTableSort}
           sort={sort}
