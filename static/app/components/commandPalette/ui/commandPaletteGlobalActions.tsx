@@ -298,20 +298,14 @@ export function GlobalCommandPaletteActions() {
           />
           {!isActiveSuperuser() && (
             <CMDKAction
-              display={{
-                label: t('Open Superuser Modal'),
-                icon: <IconLock locked />,
-              }}
+              display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
               keywords={[t('superuser')]}
               onAction={() => openSudo({isSuperuser: true, needsReload: true})}
             />
           )}
           {isActiveSuperuser() && (
             <CMDKAction
-              display={{
-                label: t('Exit Superuser'),
-                icon: <IconLock locked={false} />,
-              }}
+              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
               keywords={[t('superuser')]}
               onAction={() => exitSuperuser()}
             />
@@ -433,9 +427,7 @@ export function GlobalCommandPaletteActions() {
                   for (const hit of index.hits.slice(0, 3)) {
                     results.push({
                       display: {
-                        label: DOMPurify.sanitize(hit.title ?? '', {
-                          ALLOWED_TAGS: [],
-                        }),
+                        label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
                         details: DOMPurify.sanitize(
                           hit.context?.context1 ?? hit.context?.context2 ?? '',
                           {ALLOWED_TAGS: []}
