@@ -18,6 +18,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
@@ -188,7 +189,8 @@ export function SeerRepoTable() {
         <LinkButton
           priority="primary"
           size="sm"
-          to={`/settings/organizations/${organization.slug}/repos/`}
+          to={`/settings/${organization.slug}/repos/`}
+          icon={<IconOpen />}
         >
           {t('Manage Repositories')}
         </LinkButton>
