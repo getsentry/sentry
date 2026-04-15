@@ -14,7 +14,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
 from sentry.seer.autofix.issue_summary import _trigger_autofix_task
-from sentry.seer.autofix.utils import bulk_read_preferences, get_autofix_state
+from sentry.seer.autofix.utils import bulk_read_preferences
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
@@ -216,9 +216,6 @@ def _trigger_autofix_for_candidate(
     Returns True if the autofix task was dispatched.
     """
     try:
-        if get_autofix_state(group_id=group.id, organization_id=organization.id):
-            return False
-
         event = group.get_latest_event()
         if not event:
             logger.warning(
