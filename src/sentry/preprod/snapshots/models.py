@@ -21,9 +21,7 @@ class PreprodSnapshotMetrics(DefaultFieldsModel):
     )
 
     image_count = BoundedPositiveIntegerField(default=0)
-
-    # Other future fields like carry forward references (selective testing),
-    # history support, etc.
+    is_selective = models.BooleanField(default=False, db_default=False)
 
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
