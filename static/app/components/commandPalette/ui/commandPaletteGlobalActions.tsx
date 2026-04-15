@@ -79,7 +79,6 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
   const user = useUser();
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const {projects} = useProjects();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
@@ -90,6 +89,7 @@ export function GlobalCommandPaletteActions() {
     onSuccess: () => window.location.reload(),
   });
 
+  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
 
   return (
@@ -97,13 +97,18 @@ export function GlobalCommandPaletteActions() {
       <CMDKAction display={{label: t('Go to...')}}>
         <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
-          {Object.values(ISSUE_TAXONOMY_CONFIG).map(config => (
-            <CMDKAction
-              key={config.key}
-              display={{label: config.label}}
-              to={`${prefix}/issues/${config.key}/`}
-            />
-          ))}
+          {Object.values(ISSUE_TAXONOMY_CONFIG)
+            .filter(
+              ({featureFlag}) =>
+                !featureFlag || organization.features.includes(featureFlag)
+            )
+            .map(config => (
+              <CMDKAction
+                key={config.key}
+                display={{label: config.label}}
+                to={`${prefix}/issues/${config.key}/`}
+              />
+            ))}
           <CMDKAction
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}

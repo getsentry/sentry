@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
@@ -72,6 +72,16 @@ export default function AutomationsList() {
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
+  const paginationCaption =
+    isLoading || !automations
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit: AUTOMATION_LIST_PAGE_LIMIT,
+          pageLength: automations.length,
+          total: hits,
+        });
+
   return (
     <SentryDocumentTitle title={t('Alerts')}>
       <ListLayout
@@ -101,6 +111,7 @@ export default function AutomationsList() {
           </VisuallyCompleteWithData>
           <Pagination
             pageLinks={pageLinks}
+            caption={paginationCaption}
             onCursor={newCursor => {
               navigate({
                 pathname: location.pathname,

@@ -18,6 +18,7 @@ type PreprodSettingsEvent = {
 export type BuildListPageSource =
   | 'preprod_builds_list'
   | 'releases_mobile_builds_tab'
+  | 'releases_snapshots_tab'
   | 'releases_details_preprod_builds';
 
 export type PreprodBuildEventParameters = {

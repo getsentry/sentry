@@ -119,7 +119,6 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
               title={t('Context')}
             >
               <FeedbackItemContexts
-                feedbackItem={feedbackItem}
                 eventData={eventData}
                 project={feedbackItem.project}
               />
@@ -154,11 +153,9 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
 
 function FeedbackItemContexts({
   eventData,
-  feedbackItem,
   project,
 }: {
   eventData: Event;
-  feedbackItem: FeedbackIssue;
   project: undefined | Project;
 }) {
   const evidenceObject = Object.fromEntries(
@@ -182,7 +179,6 @@ function FeedbackItemContexts({
         alias={alias}
         value={contextValue}
         event={eventData}
-        group={feedbackItem as unknown as Group}
         project={project}
       />
     )

@@ -19,7 +19,7 @@ from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
@@ -582,6 +582,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 AlertRuleActivity,
                 Dashboard,
                 DashboardFavoriteUser,
+                DashboardRevision,
                 GroupAssignee,
                 GroupBookmark,
                 GroupSeen,

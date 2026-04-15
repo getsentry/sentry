@@ -48,20 +48,20 @@ _logger = logging.getLogger(__name__)
 
 _SEER_STARTING_PROMPTS = [
     {
-        "title": "Summarize recent issues",
-        "message": "What are the most important unresolved issues in my projects right now?",
+        "title": "👾  What's breaking right now?",
+        "message": "What are the most critical unresolved errors happening in my projects right now?",
     },
     {
-        "title": "Investigate an error",
-        "message": "Help me investigate what's causing errors in my project.",
+        "title": "⚡️  Locate the bottlenecks",
+        "message": "Find the slowest endpoints and biggest performance bottlenecks in the last 24 hours.",
     },
     {
-        "title": "Explain a stack trace",
-        "message": "Can you explain the root cause of this stack trace?",
+        "title": "🛰  Run a diagnostics scan",
+        "message": "Give me a full health summary of my projects — top errors, performance trends, and anything that needs attention.",
     },
     {
-        "title": "Find performance bottlenecks",
-        "message": "What are the slowest endpoints or pages in my projects?",
+        "title": "🪐  Weekly mission debrief",
+        "message": "Summarize what's broken, improved and any notable changes across my projects over the last 7 days.",
     },
 ]
 _SEER_LOADING_MESSAGES = [

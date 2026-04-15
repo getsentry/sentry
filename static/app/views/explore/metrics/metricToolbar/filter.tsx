@@ -1,8 +1,12 @@
 import {useMemo} from 'react';
 
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -16,6 +20,7 @@ import {
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
@@ -30,9 +35,35 @@ interface FilterProps {
   traceMetric: TraceMetric;
 }
 
+interface MetricsSearchBarProps {
+  traceMetric: TraceMetric;
+  tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
+}
+
+function MetricsSearchBar({
+  tracesItemSearchQueryBuilderProps,
+  traceMetric,
+}: MetricsSearchBarProps) {
+  const {displayAskSeer} = useSearchQueryBuilder();
+
+  if (displayAskSeer) {
+    return <MetricsTabSeerComboBox traceMetric={traceMetric} />;
+  }
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
+}
+
 export function Filter({traceMetric}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
+  const organization = useOrganization();
+
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+  const hasMetricsAISearch = organization.features.includes(
+    'gen-ai-explore-metrics-search'
+  );
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -143,8 +174,13 @@ export function Filter({traceMetric}: FilterProps) {
       // This prevents race conditions when navigating between different metrics
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
+      enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
+      aiSearchBadgeType="alpha"
     >
-      <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+      <MetricsSearchBar
+        tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+        traceMetric={traceMetric}
+      />
     </SearchQueryBuilderProvider>
   );
 }

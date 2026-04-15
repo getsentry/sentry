@@ -240,6 +240,30 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 },
             ),
         ),
+        (
+            "https://sentry.io/organizations/org1/explore/metrics/?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value)%22%5D%7D%5D%7D&project=1&statsPeriod=7d",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/explore/metrics/?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22avg(value)%22%5D%7D%5D%7D&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=avg(value)&statsPeriod=24h"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
+                },
+            ),
+        ),
     ],
 )
 def test_match_link(url, expected) -> None:
@@ -1528,7 +1552,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
 
@@ -1577,7 +1601,7 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_EXPLORE_LINE
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
 
         # Verify sort is passed to the timeseries API for correct top events
         api_params = mock_client_get.call_args[1]["params"]
@@ -1712,7 +1736,7 @@ class UnfurlTest(TestCase):
         chart_type = mock_generate_chart.call_args[0][0]
         chart_data = mock_generate_chart.call_args[0][1]
 
-        assert chart_type == ChartType.SLACK_EXPLORE_LINE
+        assert chart_type == ChartType.SLACK_TIMESERIES
         # timeSeries should be passed through directly from the API response
         time_series = chart_data["timeSeries"]
         assert isinstance(time_series, list)
@@ -1910,3 +1934,40 @@ class UnfurlTest(TestCase):
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
         assert call_kwargs["params"]["dataset"] == "logs"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_metrics(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%5D%7D&project={self.project.id}&statsPeriod=7d"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == SupportedTraceItemType.TRACEMETRICS
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Metrics - sum(value,my.metric,distribution,millisecond)",
+                chart_url="chart-url",
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        call_kwargs = mock_client_get.call_args[1]
+        api_params = call_kwargs["params"]
+        assert api_params["dataset"] == "tracemetrics"
+        assert api_params["yAxis"] == "sum(value,my.metric,distribution,millisecond)"

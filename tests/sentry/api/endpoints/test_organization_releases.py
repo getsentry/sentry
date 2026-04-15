@@ -1350,6 +1350,22 @@ class OrganizationReleasesStatsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, query="release:*baz*")
         assert [r["version"] for r in response.data] == []
 
+    def test_environment_in_query_param(self) -> None:
+        """environment: in the query string filters the stats endpoint's ValuesQuerySet correctly."""
+        env = self.create_environment(name="prod", project=self.project1)
+
+        release_in_env = self.create_release(project=self.project1, version="release-in-env")
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project1.id,
+            release_id=release_in_env.id,
+            environment_id=env.id,
+        )
+
+        self.create_release(project=self.project2, version="release-not-in-env")
+
+        response = self.get_success_response(self.organization.slug, query="environment:prod")
+        assert [r["version"] for r in response.data] == [release_in_env.version]
+
 
 class OrganizationReleaseCreateTest(APITestCase):
     def test_empty_release_version(self) -> None:
@@ -2461,6 +2477,8 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
 
 
 class OrganizationReleaseListEnvironmentsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-releases"
+
     def setUp(self) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user)
@@ -2534,7 +2552,6 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         return env
 
     def assert_releases(self, response, releases):
-        assert response.status_code == 200, response.content
         assert len(response.data) == len(releases)
 
         response_versions = sorted(r["version"] for r in response.data)
@@ -2542,77 +2559,101 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         assert response_versions == releases_versions
 
     def test_environments_filter(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
-        response = self.client.get(url + "?environment=" + self.env1.name, format="json")
+        response = self.get_success_response(self.org.slug, environment=self.env1.name)
         self.assert_releases(response, [self.release1, self.release5])
 
-        response = self.client.get(url + "?environment=" + self.env2.name, format="json")
+        response = self.get_success_response(self.org.slug, environment=self.env2.name)
         self.assert_releases(response, [self.release2, self.release3, self.release5])
 
     def test_empty_environment(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
         env = self.make_environment("", self.project2)
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project2.id, release_id=self.release4.id, environment_id=env.id
         )
-        response = self.client.get(url + "?environment=", format="json")
+        response = self.get_success_response(self.org.slug, environment="")
         self.assert_releases(response, [self.release4])
 
     def test_all_environments(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
-        response = self.client.get(url, format="json")
+        response = self.get_success_response(self.org.slug)
         self.assert_releases(
             response, [self.release1, self.release2, self.release3, self.release4, self.release5]
         )
 
     def test_invalid_environment(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
+        self.get_error_response(self.org.slug, environment="invalid_environment", status_code=404)
+
+    def test_environment_in_query_param_no_duplicates(self) -> None:
+        """A release in the same environment across multiple projects must appear only once."""
+        # Give project2 the prod environment and associate release5 with it,
+        # so release5 has two RPE rows both matching environment:prod.
+        self.env1.add_project(self.project2)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project2.id, release_id=self.release5.id, environment_id=self.env1.id
         )
-        response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
-        assert response.status_code == 404
+        # Use the header that enables __get_new, which lacks the .distinct() that __get_old has.
+        response = self.get_success_response(
+            self.org.slug,
+            query=f"environment:{self.env1.name}",
+            extra_headers={"HTTP_X_PERFORMANCE_OPTIMIZATIONS": "enabled"},
+        )
+        self.assert_releases(response, [self.release1, self.release5])
+
+    def test_environment_in_query_param(self) -> None:
+        """environment: in the query string should filter the same as ?environment="""
+        response = self.get_success_response(self.org.slug, query=f"environment:{self.env1.name}")
+        self.assert_releases(response, [self.release1, self.release5])
+
+        response = self.get_success_response(self.org.slug, query=f"environment:{self.env2.name}")
+        self.assert_releases(response, [self.release2, self.release3, self.release5])
+
+    def test_environment_query_param_and_environment_filter_are_anded(self) -> None:
+        """Both ?environment= and environment: in query are applied as AND conditions."""
+        # ?environment=prod alone → release1, release5
+        # query=environment:staging alone → release2, release3, release5
+        # Both together → only release5 (in both prod and staging)
+        response = self.get_success_response(
+            self.org.slug,
+            environment=self.env1.name,
+            query=f"environment:{self.env2.name}",
+        )
+        self.assert_releases(response, [self.release5])
+
+    def test_environment_wildcard_in_query_param(self) -> None:
+        """environment: with wildcard patterns in the query string should use substring matching"""
+        # env1="prod" contains "rod"; env2="staging" does not
+        response = self.get_success_response(self.org.slug, query="environment:*rod*")
+        self.assert_releases(response, [self.release1, self.release5])
+
+        # The frontend sends Contains via private-use unicode delimiters — same semantics
+        response = self.get_success_response(
+            self.org.slug, query="!environment:\uf00dContains\uf00dprod"
+        )
+        self.assert_releases(response, [self.release2, self.release3, self.release4])
 
     def test_specify_project_ids(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
-        response = self.client.get(url, format="json", data={"project": self.project1.id})
+        response = self.get_success_response(self.org.slug, project=self.project1.id)
         self.assert_releases(response, [self.release1, self.release3, self.release5])
-        response = self.client.get(url, format="json", data={"project": self.project2.id})
+
+        response = self.get_success_response(self.org.slug, project=self.project2.id)
         self.assert_releases(response, [self.release2, self.release4, self.release5])
-        response = self.client.get(
-            url, format="json", data={"project": [self.project1.id, self.project2.id]}
+
+        response = self.get_success_response(
+            self.org.slug, project=[self.project1.id, self.project2.id]
         )
         self.assert_releases(
             response, [self.release1, self.release2, self.release3, self.release4, self.release5]
         )
 
     def test_date_range(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
-        response = self.client.get(
-            url,
-            format="json",
-            data={
-                "start": (datetime.now() - timedelta(days=1)).isoformat() + "Z",
-                "end": datetime.now().isoformat() + "Z",
-            },
+        response = self.get_success_response(
+            self.org.slug,
+            start=(datetime.now() - timedelta(days=1)).isoformat() + "Z",
+            end=datetime.now().isoformat() + "Z",
         )
         self.assert_releases(response, [self.release4, self.release5])
 
     def test_invalid_date_range(self) -> None:
-        url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
-        )
-        response = self.client.get(url, format="json", data={"start": "null", "end": "null"})
-        assert response.status_code == 400
+        self.get_error_response(self.org.slug, start="null", end="null", status_code=400)
 
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):

@@ -7,7 +7,6 @@ import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface AiConfigResult {
   areAiFeaturesAllowed: boolean;
-  autofixEnabled: boolean;
   hasAutofix: boolean;
   hasAutofixQuota: boolean;
   hasGithubIntegration: boolean;
@@ -27,7 +26,6 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     hasAutofixQuota,
     refetch: refetchAutofixSetup,
     seerReposLinked,
-    autofixEnabled,
   } = useAutofixSetup({
     groupId: group.id,
   });
@@ -58,6 +56,5 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
     hasAutofixQuota,
     refetchAutofixSetup,
     seerReposLinked,
-    autofixEnabled,
   };
 };

@@ -9,8 +9,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
+import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
@@ -24,17 +24,15 @@ export function NoProjectMessage({
   organization,
   superuserNeedsToBeProjectMember,
 }: Props) {
-  const user = useUser();
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {projects} = useProjects();
+  const {hasProjectAccess, projectsLoaded} = useHasProjectAccess({
+    superuserNeedsToBeProjectMember,
+  });
 
   const canUserCreateProject = useCanCreateProject();
   const canJoinTeam = organization.access.includes('team:read');
 
   const orgHasProjects = !!projects?.length;
-  const hasProjectAccess =
-    user.isSuperuser && !superuserNeedsToBeProjectMember
-      ? !!projects?.some(p => p.hasAccess)
-      : !!projects?.some(p => p.isMember && p.hasAccess);
 
   if (hasProjectAccess || !projectsLoaded) {
     return <Fragment>{children}</Fragment>;

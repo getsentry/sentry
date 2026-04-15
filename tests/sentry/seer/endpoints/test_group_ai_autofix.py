@@ -336,6 +336,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -495,6 +496,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -581,6 +583,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -653,6 +656,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=234,
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -938,7 +942,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=AutofixStoppingPoint.CODE_CHANGES,
                 run_id=None,
-                intelligence_level="low",
+                intelligence_level="medium",
                 user_context=None,
                 insert_index=None,
             )
@@ -966,7 +970,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=None,
                 run_id=42,
-                intelligence_level="low",
+                intelligence_level="medium",
                 user_context=None,
                 insert_index=3,
             )

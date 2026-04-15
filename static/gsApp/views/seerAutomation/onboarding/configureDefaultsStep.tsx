@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -49,11 +49,11 @@ export function ConfigureDefaultsStep() {
   const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
     useUpdateOrganization(organization);
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     updateOrganization(
       {
         defaultAutofixAutomationTuning: proposeFixesEnabled ? 'medium' : 'off',
@@ -82,15 +82,7 @@ export function ConfigureDefaultsStep() {
         },
       }
     );
-  }, [
-    autoCreatePREnabled,
-    enableCodeReview,
-    proposeFixesEnabled,
-    updateOrganization,
-    currentStep,
-    setCurrentStep,
-    organization,
-  ]);
+  };
 
   return (
     <Fragment>

@@ -81,7 +81,6 @@ class DetectedIssue(BaseModel):
     explanation: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     impact: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     evidence: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
     transaction_name: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
@@ -169,7 +168,6 @@ def create_issue_occurrence_from_detection(
         "explanation": detected_issue.explanation,
         "impact": detected_issue.impact,
         "evidence": detected_issue.evidence,
-        "missing_telemetry": detected_issue.missing_telemetry,
         "offender_span_ids": detected_issue.offender_span_ids,
     }
 

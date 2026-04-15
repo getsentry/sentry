@@ -170,14 +170,11 @@ export function RequestLog({app}: RequestLogProps) {
 
   const hasPrevPage = useMemo(() => currentPage > 0, [currentPage]);
 
-  const handleChangeEventType = useCallback(
-    (newEventType: string) => {
-      setEventType(newEventType);
-      setCurrentPage(0);
-      refetch();
-    },
-    [refetch]
-  );
+  const handleChangeEventType = (newEventType: string) => {
+    setEventType(newEventType);
+    setCurrentPage(0);
+    refetch();
+  };
 
   const handleChangeErrorsOnly = useCallback(() => {
     setErrorsOnly(!errorsOnly);
@@ -185,13 +182,13 @@ export function RequestLog({app}: RequestLogProps) {
     refetch();
   }, [errorsOnly, refetch]);
 
-  const handleNextPage = useCallback(() => {
+  const handleNextPage = () => {
     setCurrentPage(currentPage + 1);
-  }, [currentPage]);
+  };
 
-  const handlePrevPage = useCallback(() => {
+  const handlePrevPage = () => {
     setCurrentPage(currentPage - 1);
-  }, [currentPage]);
+  };
 
   return (
     <Fragment>

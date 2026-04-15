@@ -450,7 +450,7 @@ function AgentTags({agents}: {agents: string[]}) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleShowAll = useCallback(() => {
+  const handleShowAll = () => {
     setShowAll(!showAll);
 
     if (!containerRef.current) return;
@@ -466,7 +466,7 @@ function AgentTags({agents}: {agents: string[]}) {
     });
     resizeObserverRef.current = observer;
     observer.observe(containerRef.current);
-  }, [showAll]);
+  };
 
   // Cleanup the resize observer when the component unmounts
   useEffect(() => {
