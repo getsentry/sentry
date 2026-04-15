@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.utils import timezone
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -71,7 +70,7 @@ class ExplorerChatRequest(TypedDict):
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
-    user_auth_token: NotRequired[str | None]
+    proxy_headers: NotRequired[dict[str, str] | None]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -301,32 +300,27 @@ def collect_user_org_context(
     }
 
 
-def create_explorer_api_token(user: SentryUser | RpcUser, organization: Organization) -> str | None:
-    """Create a short-lived read-only API token for Seer to call back into Sentry."""
-    try:
-        from sentry.models.apitoken import ApiToken
-        from sentry.types.token import AuthTokenType
-        from sentry.users.models.user import User as UserModel
+def get_proxy_headers() -> dict[str, str] | None:
+    """Build auth headers for Seer to echo back to Sentry on callbacks.
 
-        real_user = UserModel.objects.get(id=user.id)
-        token = ApiToken.objects.create(
-            user=real_user,
-            token_type=AuthTokenType.USER,
-            scoping_organization_id=organization.id,
-            scope_list=[
-                "org:read",
-                "project:read",
-                "event:read",
-                "alerts:read",
-                "member:read",
-                "team:read",
-            ],
-            expires_at=timezone.now() + timedelta(hours=1),
-        )
-        return token.plaintext_token
-    except Exception:
-        logger.exception("Failed to create short-lived API token for Seer Explorer")
+    Returns a dict of headers (X-Viewer-Context + signature) or None.
+    """
+    from sentry.seer.signed_seer_api import sign_viewer_context
+    from sentry.viewer_context import get_viewer_context
+
+    ctx = get_viewer_context()
+    if ctx is None or ctx.user_id is None:
         return None
+
+    if not settings.SEER_API_SHARED_SECRET:
+        return None
+
+    context_bytes = orjson.dumps(ctx.serialize())
+    signature = sign_viewer_context(context_bytes)
+    return {
+        "X-Viewer-Context": context_bytes.decode("utf-8"),
+        "X-Viewer-Context-Signature": signature,
+    }
 
 
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:

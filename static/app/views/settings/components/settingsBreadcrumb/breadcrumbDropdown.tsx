@@ -112,11 +112,11 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
     closeTimeoutRef.current = window.setTimeout(() => close?.(), CLOSE_MENU_TIMEOUT);
   }, [close]);
 
-  const handleOpen = useCallback(() => {
+  const handleOpen = () => {
     activeCrumbStates.forEach(state => state?.close());
     window.clearTimeout(closeTimeoutRef.current);
     open?.();
-  }, [open]);
+  };
 
   useEffect(() => {
     if (menuHasHover) {

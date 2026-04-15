@@ -1,4 +1,4 @@
-The {{ organization.name }} organization has been scheduled for deletion by:
+{% load sentry_helpers %}The {{ organization.name|sanitize_periods }} organization has been scheduled for deletion by:
 
 User: {{ username }}
 IP: {{ user_ip_address }}

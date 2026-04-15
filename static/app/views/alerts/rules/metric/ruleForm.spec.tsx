@@ -397,14 +397,16 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      expect(mockTraceItemAttribtes).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            itemType: 'spans',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(mockTraceItemAttribtes).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              itemType: 'spans',
+            }),
+          })
+        );
+      });
 
       // Clear field
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
@@ -450,14 +452,16 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      expect(mockTraceItemAttribtes).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            itemType: 'logs',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(mockTraceItemAttribtes).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              itemType: 'logs',
+            }),
+          })
+        );
+      });
 
       // Clear field
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));

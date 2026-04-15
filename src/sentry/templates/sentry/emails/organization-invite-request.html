@@ -6,7 +6,7 @@
 {% block main %}
   <h3>Request for Access</h3>
 
-  <p><strong>{{ inviter_name|sanitize_periods }}</strong> has requested to invite <strong>{{ email }}</strong> to the {{ organization_name }} organization.</p>
+  <p><strong>{{ inviter_name|sanitize_periods }}</strong> has requested to invite <strong>{{ email }}</strong> to the {{ organization_name|sanitize_periods }} organization.</p>
 
   <a href="{{ pending_requests_link }}" class="btn">View access requests</a>
 

@@ -118,7 +118,7 @@ export function defaultMetricQuery({
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.SAMPLES,
+      mode: type === 'equation' ? Mode.AGGREGATE : Mode.SAMPLES,
       query: defaultQuery(),
 
       cursor: '',

@@ -230,7 +230,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+        assert alert_rule.snuba_query.dataset == Dataset.Transactions.value
 
     def test_aggregate(self) -> None:
         self.run_fail_validation_test(
@@ -850,18 +850,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid()
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.query == "status:unresolved"
-
-    def test_http_response_rate(self) -> None:
-        params = self.valid_params.copy()
-        params["query"] = "span.module:http span.op:http.client"
-        params["aggregate"] = "http_response_rate(3)"
-        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-        params["dataset"] = Dataset.PerformanceMetrics.value
-        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-        assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
-        assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
-        assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
 
     def test_performance_score(self) -> None:
         params = self.valid_params.copy()

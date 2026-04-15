@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -15,14 +15,14 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {
+  type ModalRenderProps,
   openConsoleModal,
   openProjectCreationModal,
-  type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {
-  PlatformPicker,
   type Category,
   type Platform,
+  PlatformPicker,
 } from 'sentry/components/platformPicker';
 import type {TeamOption} from 'sentry/components/teamSelector';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -94,7 +94,7 @@ export default function ProjectCreationModal({
     });
   }
 
-  const createProject = useCallback(async () => {
+  const createProject = async () => {
     const {slug} = organization;
 
     const alertRuleConfig = getRequestDataFragment(alertForm);
@@ -156,7 +156,7 @@ export default function ProjectCreationModal({
       setCreating(false);
       addErrorMessage(`Failed to create project ${projectName}`);
     }
-  }, [api, organization, platform, projectName, team, closeModal, alertForm]);
+  };
 
   return (
     <Fragment>

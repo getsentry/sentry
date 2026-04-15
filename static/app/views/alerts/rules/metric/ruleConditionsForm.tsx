@@ -32,7 +32,10 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  SearchQueryBuilder,
+  type GetTagValues,
+} from 'sentry/components/searchQueryBuilder';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -234,7 +237,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     }
   }
 
-  getEventFieldValues = async (tag: any, query: any): Promise<string[]> => {
+  getEventFieldValues: GetTagValues = async ({tag, searchQuery}) => {
     const {api, organization, project, dataset, router} = this.props;
 
     if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -254,7 +257,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       api,
       orgSlug: organization.slug,
       tagKey: tag.key,
-      search: query,
+      search: searchQuery,
       projectIds: [project.id],
       endpointParams: normalizeDateTimeParams(router.location.query), // allows searching for tags on transactions as well
       includeTransactions: true, // allows searching for tags on sessions as well

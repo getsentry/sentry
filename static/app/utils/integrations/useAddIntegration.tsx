@@ -9,6 +9,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {computeCenteredWindow} from 'sentry/utils/window/computeCenteredWindow';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 export interface AddIntegrationParams {
@@ -30,6 +31,7 @@ export interface AddIntegrationParams {
       | 'test_analytics_org_selector';
   };
   modalParams?: Record<string, string>;
+  urlParams?: Record<string, string>;
 }
 
 /**
@@ -66,47 +68,21 @@ function getApiPipelineProvider(
   return key;
 }
 
-function computeCenteredWindow(width: number, height: number) {
-  const screenLeft = window.screenLeft === undefined ? window.screenX : window.screenLeft;
-  const screenTop = window.screenTop === undefined ? window.screenY : window.screenTop;
-
-  const innerWidth = window.innerWidth
-    ? window.innerWidth
-    : document.documentElement.clientWidth
-      ? document.documentElement.clientWidth
-      : screen.width;
-
-  const innerHeight = window.innerHeight
-    ? window.innerHeight
-    : document.documentElement.clientHeight
-      ? document.documentElement.clientHeight
-      : screen.height;
-
-  const left = innerWidth / 2 - width / 2 + screenLeft;
-  const top = innerHeight / 2 - height / 2 + screenTop;
-
-  return {left, top};
-}
-
 /**
- * Opens the legacy Django-driven integration setup flow in a popup window and
- * listens for a `postMessage` callback on completion.
+ * Opens the integration setup flow. Accepts all parameters at call time via
+ * `startFlow(params)`, so a single hook instance can launch flows for any
+ * provider. Automatically selects between the API-driven pipeline modal and
+ * the legacy popup-based flow depending on the organization's feature flags.
  *
- * Used  for integrations that have not been migrated to the API pipeline system.
+ * The hook manages its own `message` event listener for the legacy popup flow.
+ * No context provider is needed.
  */
-function useLegacyAddIntegration({
-  provider,
-  organization,
-  onInstall,
-  account,
-  analyticsParams,
-  modalParams,
-}: AddIntegrationParams) {
+export function useAddIntegration() {
   const dialogRef = useRef<Window | null>(null);
-  const onInstallRef = useRef(onInstall);
-  onInstallRef.current = onInstall;
-  const analyticsParamsRef = useRef(analyticsParams);
-  analyticsParamsRef.current = analyticsParams;
+  const activeProviderRef = useRef<IntegrationProvider | null>(null);
+  const organizationRef = useRef<Organization | null>(null);
+  const onInstallRef = useRef<((data: IntegrationWithConfig) => void) | null>(null);
+  const analyticsParamsRef = useRef<AddIntegrationParams['analyticsParams']>(undefined);
 
   useEffect(() => {
     function handleMessage(message: MessageEvent) {
@@ -133,14 +109,16 @@ function useLegacyAddIntegration({
         return;
       }
 
-      trackIntegrationAnalytics('integrations.installation_complete', {
-        integration: provider.key,
-        integration_type: 'first_party',
-        organization,
-        ...analyticsParamsRef.current,
-      });
-      addSuccessMessage(t('%s added', provider.name));
-      onInstallRef.current(data);
+      if (activeProviderRef.current && organizationRef.current) {
+        trackIntegrationAnalytics('integrations.installation_complete', {
+          integration: activeProviderRef.current.key,
+          integration_type: 'first_party',
+          organization: organizationRef.current,
+          ...analyticsParamsRef.current,
+        });
+        addSuccessMessage(t('%s added', activeProviderRef.current.name));
+      }
+      onInstallRef.current?.(data);
     }
 
     window.addEventListener('message', handleMessage);
@@ -148,67 +126,33 @@ function useLegacyAddIntegration({
       window.removeEventListener('message', handleMessage);
       dialogRef.current?.close();
     };
-  }, [provider.key, provider.name, organization]);
+  }, []);
 
-  const startFlow = useCallback(
-    (urlParams?: Record<string, string>) => {
+  const startFlow = useCallback((params: AddIntegrationParams) => {
+    const {
+      organization,
+      provider,
+      onInstall,
+      account,
+      analyticsParams,
+      modalParams,
+      urlParams,
+    } = params;
+
+    // Store in refs for the message handler
+    activeProviderRef.current = provider;
+    organizationRef.current = organization;
+    onInstallRef.current = onInstall;
+    analyticsParamsRef.current = analyticsParams;
+
+    const pipelineProvider = getApiPipelineProvider(organization, provider.key);
+
+    if (pipelineProvider !== null) {
       trackIntegrationAnalytics('integrations.installation_start', {
         integration: provider.key,
         integration_type: 'first_party',
         organization,
         ...analyticsParams,
-      });
-
-      const name = modalParams?.use_staging
-        ? 'sentryAddStagingIntegration'
-        : 'sentryAddIntegration';
-      const {url, width, height} = provider.setupDialog;
-      const {left, top} = computeCenteredWindow(width, height);
-
-      let query: Record<string, string> = {...urlParams};
-      if (account) {
-        query.account = account;
-      }
-      if (modalParams) {
-        query = {...query, ...modalParams};
-      }
-
-      const installUrl = `${url}?${qs.stringify(query)}`;
-      const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
-
-      dialogRef.current = window.open(installUrl, name, opts);
-      dialogRef.current?.focus();
-    },
-    [provider, organization, account, analyticsParams, modalParams]
-  );
-
-  return {startFlow};
-}
-
-/**
- * Opens the integration setup flow. Automatically selects between the new
- * API-driven pipeline modal and the legacy popup-based flow depending on
- * the organization's feature flags.
- */
-export function useAddIntegration(params: AddIntegrationParams) {
-  const {provider, organization, onInstall} = params;
-  const {startFlow: legacyStartFlow} = useLegacyAddIntegration(params);
-  const pipelineProvider = getApiPipelineProvider(organization, provider.key);
-
-  const startFlow = useCallback(
-    (urlParams?: Record<string, string>) => {
-      // Fallback to legacy view-based flow when the feature flag for API based
-      // flows is not enabled for the provider.
-      if (pipelineProvider === null) {
-        legacyStartFlow(urlParams);
-        return;
-      }
-
-      trackIntegrationAnalytics('integrations.installation_start', {
-        integration: provider.key,
-        integration_type: 'first_party',
-        organization,
-        ...params.analyticsParams,
       });
       openPipelineModal({
         type: 'integration',
@@ -219,22 +163,43 @@ export function useAddIntegration(params: AddIntegrationParams) {
             integration: provider.key,
             integration_type: 'first_party',
             organization,
-            ...params.analyticsParams,
+            ...analyticsParams,
           });
           addSuccessMessage(t('%s added', provider.name));
           onInstall(data);
         },
       });
-    },
-    [
-      pipelineProvider,
-      provider,
+      return;
+    }
+
+    // Legacy popup flow
+    trackIntegrationAnalytics('integrations.installation_start', {
+      integration: provider.key,
+      integration_type: 'first_party',
       organization,
-      params.analyticsParams,
-      onInstall,
-      legacyStartFlow,
-    ]
-  );
+      ...analyticsParams,
+    });
+
+    const name = modalParams?.use_staging
+      ? 'sentryAddStagingIntegration'
+      : 'sentryAddIntegration';
+    const {url, width, height} = provider.setupDialog;
+    const {left, top} = computeCenteredWindow(width, height);
+
+    let query: Record<string, string> = {...urlParams};
+    if (account) {
+      query.account = account;
+    }
+    if (modalParams) {
+      query = {...query, ...modalParams};
+    }
+
+    const installUrl = `${url}?${qs.stringify(query)}`;
+    const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
+
+    dialogRef.current = window.open(installUrl, name, opts);
+    dialogRef.current?.focus();
+  }, []);
 
   return {startFlow};
 }

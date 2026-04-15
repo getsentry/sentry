@@ -2369,6 +2369,59 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
 
 @control_silo_test
+class GitHubPipelineAdvancerTest(IntegrationTestCase):
+    """Tests for PipelineAdvancerView behavior when GitHub redirects with setup_action=install.
+
+    This happens when a user installs the GitHub App directly from github.com
+    rather than from within Sentry's UI.
+    """
+
+    provider = GitHubIntegrationProvider
+
+    def _get_setup_install_url(self, installation_id: str = "12345") -> str:
+        return "{}?{}".format(
+            self.setup_path,
+            urlencode({"setup_action": "install", "installation_id": installation_id}),
+        )
+
+    def _get_expected_redirect(self, installation_id: str = "12345") -> str:
+        return reverse("integration-installation", args=["github", installation_id])
+
+    @responses.activate
+    def test_no_pipeline_redirects_to_org_picker(self) -> None:
+        """When there is no active pipeline, redirect to the org picker."""
+        # Clear the pipeline session that IntegrationTestCase.setUp created
+        self.session.clear()
+        self.save_session()
+
+        resp = self.client.get(self._get_setup_install_url())
+        assert resp.status_code == 302
+        assert resp["Location"] == self._get_expected_redirect()
+
+    @responses.activate
+    def test_api_pipeline_redirects_to_org_picker(self) -> None:
+        """When an API pipeline is active, redirect to the org picker instead
+        of rendering the trampoline (which would leave the user stuck since
+        there is no opener window)."""
+        self.pipeline.set_api_mode()
+        self.save_session()
+
+        resp = self.client.get(self._get_setup_install_url())
+        assert resp.status_code == 302
+        assert resp["Location"] == self._get_expected_redirect()
+
+    @responses.activate
+    def test_legacy_pipeline_does_not_redirect(self) -> None:
+        """When a legacy pipeline is active, do not redirect. The legacy flow
+        handles setup_action=install as part of its normal callback."""
+        resp = self.client.get(self._get_setup_install_url())
+        # Should NOT redirect to the org picker — the legacy pipeline processes it
+        assert resp.status_code != 302 or self._get_expected_redirect() not in resp.get(
+            "Location", ""
+        )
+
+
+@control_silo_test
 class GitHubIntegrationApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
     method = "post"

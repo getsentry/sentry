@@ -71,11 +71,8 @@ export function MobileNavigation() {
     }
   }, [endTour, layout, currentStepId]);
 
-  const handleClick = useCallback(
-    () =>
-      setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed')),
-    [activeGroup]
-  );
+  const handleClick = () =>
+    setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed'));
 
   const showSuperuserWarning =
     isActiveSuperuser() &&

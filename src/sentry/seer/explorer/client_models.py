@@ -145,6 +145,39 @@ class ExplorerCodingAgentState(BaseModel):
         extra = "allow"
 
 
+class Usage(BaseModel):
+    """Token usage and cost for a single model."""
+
+    completion_tokens: int = 0
+    prompt_tokens: int = 0
+    total_tokens: int = 0
+    prompt_cache_read_tokens: int = 0
+    prompt_cache_write_tokens: int = 0
+    thinking_tokens: int = 0
+    dollar_cost: float = 0.0
+    model: str = ""
+
+    class Config:
+        extra = "allow"
+
+
+class UsageAccumulator(BaseModel):
+    """Aggregated usage across multiple LLM calls."""
+
+    usages: list[Usage] = Field(default_factory=list)
+
+    class Config:
+        extra = "allow"
+
+    @property
+    def total_dollar_cost(self) -> float:
+        return sum(u.dollar_cost for u in self.usages)
+
+    @property
+    def total_tokens(self) -> int:
+        return sum(u.total_tokens for u in self.usages)
+
+
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
 
@@ -156,6 +189,7 @@ class SeerRunState(BaseModel):
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
     metadata: dict[str, Any] | None = None
     coding_agents: dict[str, ExplorerCodingAgentState] = Field(default_factory=dict)
+    usage: UsageAccumulator = Field(default_factory=UsageAccumulator)
 
     class Config:
         extra = "allow"

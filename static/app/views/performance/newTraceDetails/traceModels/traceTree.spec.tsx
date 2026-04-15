@@ -844,6 +844,16 @@ describe('TraceTree', () => {
         childTransactionA,
         childTransactionB,
       ]);
+      expect(TraceTree.VisibleParent(childTransactionA)).toBe(rootTransaction);
+      expect(TraceTree.VisibleParent(childTransactionB)).toBe(rootTransaction);
+      expect(TraceTree.Depth(childTransactionA)).toBe(
+        TraceTree.Depth(rootTransaction) + 1
+      );
+      expect(TraceTree.Depth(childTransactionB)).toBe(
+        TraceTree.Depth(rootTransaction) + 1
+      );
+      expect(TraceTree.IsLastVisibleChild(childTransactionA)).toBe(false);
+      expect(TraceTree.IsLastVisibleChild(childTransactionB)).toBe(true);
       const rootTransactionIndex = tree.list.indexOf(rootTransaction);
       expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 3)).toEqual([
         rootTransaction,
@@ -855,6 +865,10 @@ describe('TraceTree', () => {
 
       expect(childTransactionA.parent).toBe(spanA);
       expect(childTransactionB.parent).toBe(spanB);
+      expect(TraceTree.VisibleParent(childTransactionA)).toBe(spanA);
+      expect(TraceTree.VisibleParent(childTransactionB)).toBe(spanB);
+      expect(TraceTree.Depth(childTransactionA)).toBe(TraceTree.Depth(spanA) + 1);
+      expect(TraceTree.Depth(childTransactionB)).toBe(TraceTree.Depth(spanB) + 1);
       expect(tree.list.slice(rootTransactionIndex, rootTransactionIndex + 5)).toEqual([
         rootTransaction,
         spanA,
@@ -2061,6 +2075,17 @@ describe('TraceTree', () => {
         traceOptions
       );
       expect(tree.root.children[0]!.children[1]!.isLastChild()).toBe(true);
+    });
+  });
+
+  describe('IsLastVisibleChild', () => {
+    it('treats the trace root row as the last visible child', () => {
+      const tree = TraceTree.FromTrace(trace, traceOptions);
+      const traceRoot = tree.root.children[0]!;
+
+      expect(TraceTree.VisibleParent(traceRoot)).toBeNull();
+      expect(TraceTree.IsLastVisibleChild(traceRoot)).toBe(true);
+      expect(TraceTree.ConnectorsTo(traceRoot)).toEqual([]);
     });
   });
 

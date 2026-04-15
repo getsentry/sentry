@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -55,11 +55,11 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
       })
     : null;
 
-  const handleGoToTransaction = useCallback(() => {
+  const handleGoToTransaction = () => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
     });
-  }, [organization]);
+  };
 
   const breadcrumbTrails = useMemo(() => {
     return [
@@ -84,36 +84,41 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ] as const;
   }, [location, projectSlug, transactionName, profileId]);
 
-  return (
-    <SmallerLayoutHeader>
-      <SmallerHeaderContent>
-        <SmallerProfilingBreadcrumbsWrapper>
-          <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
-        </SmallerProfilingBreadcrumbsWrapper>
-      </SmallerHeaderContent>
-      {hasPageFrameFeature ? (
-        <Fragment>
-          {transactionTarget && (
-            <TopBar.Slot name="actions">
-              <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
-                {t('Go to Trace')}
-              </LinkButton>
-            </TopBar.Slot>
-          )}
-          <TopBar.Slot name="feedback">
-            <FeedbackButton>{null}</FeedbackButton>
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <StyledHeaderActions>
-          <FeedbackButton />
-          {transactionTarget && (
-            <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+  const breadcrumbs = (
+    <SmallerProfilingBreadcrumbsWrapper>
+      <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
+    </SmallerProfilingBreadcrumbsWrapper>
+  );
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        {transactionTarget && (
+          <TopBar.Slot name="actions">
+            <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
               {t('Go to Trace')}
             </LinkButton>
-          )}
-        </StyledHeaderActions>
-      )}
+          </TopBar.Slot>
+        )}
+        <TopBar.Slot name="feedback">
+          <FeedbackButton>{null}</FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
+  return (
+    <SmallerLayoutHeader>
+      <SmallerHeaderContent>{breadcrumbs}</SmallerHeaderContent>
+      <StyledHeaderActions>
+        <FeedbackButton />
+        {transactionTarget && (
+          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+            {t('Go to Trace')}
+          </LinkButton>
+        )}
+      </StyledHeaderActions>
     </SmallerLayoutHeader>
   );
 }

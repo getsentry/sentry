@@ -13,21 +13,26 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 
 type ExplorerPanelContextValue = {
   closeExplorerPanel: () => void;
+  isMinimized: boolean;
   isOpen: boolean;
   openExplorerPanel: () => void;
+  setIsMinimized: (value: boolean) => void;
   toggleExplorerPanel: () => void;
 };
 
 const ExplorerPanelContext = createContext<ExplorerPanelContextValue>({
   closeExplorerPanel: () => {},
+  isMinimized: false,
   isOpen: false,
   openExplorerPanel: () => {},
+  setIsMinimized: () => {},
   toggleExplorerPanel: () => {},
 });
 
 export function ExplorerPanelProvider({children}: {children: ReactNode}) {
   // Initialize the global explorer panel state. Includes hotkeys.
   const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const openExplorerPanel = useCallback(() => {
     setIsOpen(true);
@@ -44,11 +49,13 @@ export function ExplorerPanelProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo(
     () => ({
       isOpen,
+      isMinimized,
       openExplorerPanel,
       closeExplorerPanel,
+      setIsMinimized,
       toggleExplorerPanel,
     }),
-    [isOpen, openExplorerPanel, closeExplorerPanel, toggleExplorerPanel]
+    [isOpen, isMinimized, openExplorerPanel, closeExplorerPanel, toggleExplorerPanel]
   );
 
   // Hot keys for toggling the explorer panel.
@@ -60,7 +67,13 @@ export function ExplorerPanelProvider({children}: {children: ReactNode}) {
       : [
           {
             match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
-            callback: () => toggleExplorerPanel(),
+            callback: () => {
+              if (isOpen && isMinimized) {
+                setIsMinimized(false);
+              } else {
+                toggleExplorerPanel();
+              }
+            },
             includeInputs: true,
           },
         ]

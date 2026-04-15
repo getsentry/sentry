@@ -5,7 +5,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export function ProblemSection() {
+interface ProblemSectionProps {
+  sourcemapsDocsUrl: string;
+}
+
+export function ProblemSection({sourcemapsDocsUrl}: ProblemSectionProps) {
   return (
     <Stack gap="lg" padding="lg">
       <Heading as="h3">{t('Problem')}</Heading>
@@ -15,13 +19,7 @@ export function ProblemSection() {
         )}
       </Text>
       <div>
-        <LinkButton
-          size="sm"
-          icon={<IconInfo />}
-          external
-          // TODO Abdullah Khan: Look into adding platform specific links to source map docs
-          href="https://docs.sentry.io/platforms/javascript/sourcemaps/"
-        >
+        <LinkButton size="sm" icon={<IconInfo />} external href={sourcemapsDocsUrl}>
           {t('Why configure source maps?')}
         </LinkButton>
       </div>

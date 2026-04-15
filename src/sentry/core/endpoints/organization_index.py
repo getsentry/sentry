@@ -3,7 +3,8 @@ import logging
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -16,12 +17,13 @@ from sentry.analytics.events.data_consent_org_creation import (
 )
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
+    ControlSiloOrganizationMappingSerializer,
     OrganizationSummarySerializerResponse,
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -33,7 +35,9 @@ from sentry.db.models.query import in_iexact
 from sentry.demo_mode.utils import is_demo_user
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 from sentry.services.organization import (
@@ -43,6 +47,7 @@ from sentry.services.organization import (
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
+from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
 from sentry.utils.pagination_factory import PaginatorLike
 
@@ -69,7 +74,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
 
 
 @extend_schema(tags=["Users"])
-@cell_silo_endpoint
+@all_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -101,6 +106,12 @@ class OrganizationIndexEndpoint(Endpoint):
         Return a list of organizations available to the authenticated session in a region.
         This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
         """
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return self._get_from_control(request)
+
+        return self._get_from_cell(request)
+
+    def _get_from_cell(self, request: Request) -> Response:
         owner_only = request.GET.get("owner") in ("1", "true")
 
         queryset = Organization.objects.distinct()
@@ -163,6 +174,10 @@ class OrganizationIndexEndpoint(Endpoint):
                     }
                     queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
+                    # Note: platform filtering is kept here but is not present in the control version
+                    # of this endpoint, since the data is not in control and our UI isn't
+                    # passing this anymore.
+                    sentry_sdk.capture_message("organization_index.platform_filter_used")
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(platform__in=value).values(
                             "project_id"
@@ -193,6 +208,7 @@ class OrganizationIndexEndpoint(Endpoint):
             order_by = "-member_count"
             paginator_cls = OffsetPaginator
         elif sort_by == "projects":
+            sentry_sdk.capture_message("organization_index.sort_by_projects_used")
             queryset = queryset.annotate(project_count=Count("project"))
             order_by = "-project_count"
             paginator_cls = OffsetPaginator
@@ -205,6 +221,119 @@ class OrganizationIndexEndpoint(Endpoint):
             queryset=queryset,
             order_by=order_by,
             on_results=lambda x: serialize(x, request.user),
+            paginator_cls=paginator_cls,
+        )
+
+    def _get_from_control(self, request: Request) -> Response:
+        owner_only = request.GET.get("owner") in ("1", "true")
+
+        if owner_only:
+            return Response(
+                {"detail": "The control-silo organizations endpoint does not support owner=1."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = OrganizationMapping.objects.distinct()
+
+        if request.auth and not request.user.is_authenticated:
+            if hasattr(request.auth, "project"):
+                queryset = queryset.filter(organization_id=request.auth.project.organization_id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
+        elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
+            assert request.user.id is not None
+            queryset = queryset.filter(
+                organization_id__in=OrganizationMemberMapping.objects.filter(
+                    user_id=request.user.id
+                ).values("organization_id")
+            )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
+
+        query = request.GET.get("query")
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in tokens.items():
+                if key == "query":
+                    query_value = " ".join(value)
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(
+                            emails=[query_value], is_verified=False
+                        )
+                    }
+                    queryset = queryset.filter(
+                        Q(name__icontains=query_value)
+                        | Q(slug__icontains=query_value)
+                        # Control-side equivalent of `Q(member_set__user_id__in=user_ids)`
+                        | Q(
+                            organization_id__in=OrganizationMemberMapping.objects.filter(
+                                user_id__in=user_ids
+                            ).values("organization_id")
+                        )
+                    )
+                elif key == "slug":
+                    queryset = queryset.filter(in_iexact("slug", value))
+                elif key == "email":
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
+                    queryset = queryset.filter(
+                        organization_id__in=OrganizationMemberMapping.objects.filter(
+                            user_id__in=user_ids
+                        ).values("organization_id")
+                    )
+                elif key == "id":
+                    queryset = queryset.filter(organization_id__in=value)
+                elif key == "status":
+                    try:
+                        queryset = queryset.filter(
+                            status__in=[OrganizationStatus[v.upper()] for v in value]
+                        )
+                    except KeyError:
+                        queryset = queryset.none()
+                elif key == "member_id":
+                    queryset = queryset.filter(
+                        organization_id__in=OrganizationMemberMapping.objects.filter(
+                            organizationmember_id__in=value
+                        ).values("organization_id")
+                    )
+                else:
+                    queryset = queryset.none()
+
+        sort_by = request.GET.get("sortBy")
+        paginator_cls: type[PaginatorLike]
+        if sort_by == "members":
+            member_count_subquery = (
+                OrganizationMemberMapping.objects.filter(
+                    organization_id=OuterRef("organization_id")
+                )
+                .values("organization_id")
+                .annotate(member_count=Count("id"))
+                .values("member_count")[:1]
+            )
+            queryset = queryset.annotate(member_count=Coalesce(Subquery(member_count_subquery), 0))
+            order_by = "-member_count"
+            paginator_cls = OffsetPaginator
+        elif sort_by == "projects":
+            queryset = queryset.none()
+            order_by = "-date_created"
+            paginator_cls = OffsetPaginator
+        else:
+            order_by = "-date_created"
+            paginator_cls = DateTimePaginator
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by=order_by,
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=ControlSiloOrganizationMappingSerializer(),
+            ),
             paginator_cls=paginator_cls,
         )
 
@@ -225,6 +354,13 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
+        # TODO(cells): Move org creation to control as part of the broader
+        # org-listing/org-provisioning cutover. Since POST is private, the
+        # legacy cell-side path can be removed once the control implementation
+        # is ready.
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return Response(status=404)
+
         if not request.user.is_authenticated:
             return Response({"detail": "This endpoint requires user info"}, status=401)
 
