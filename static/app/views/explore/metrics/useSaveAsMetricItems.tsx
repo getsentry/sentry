@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -32,6 +33,7 @@ interface UseSaveAsMetricItemsOptions {
 }
 
 export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
@@ -111,15 +113,21 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
                   label: t('All Metrics'),
                   textValue: t('All Metrics'),
                   onAction: () => {
-                    addToDashboard(metricQueries);
+                    addToDashboard(
+                      metricQueries.filter(
+                        metricQuery =>
+                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
+                      )
+                    );
                   },
                 },
               ]
             : []),
           ...metricQueries.map((metricQuery, index) => {
+            const visualize = metricQuery.queryParams.visualizes[0]!;
             return {
               key: `add-to-dashboard-${index}`,
-              label: `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(metricQuery.queryParams.visualizes[0]!))}: ${
+              label: `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
                 formatTraceMetricsFunction(
                   metricQuery.queryParams.aggregateFields
                     .filter(isVisualize)
@@ -127,14 +135,24 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
                 ) as string
               }`,
               onAction: () => {
+                if (isVisualizeEquation(visualize)) {
+                  return;
+                }
                 addToDashboard(metricQuery);
               },
+              disabled: isVisualizeEquation(visualize),
+              tooltip: isVisualizeEquation(visualize)
+                ? t('Equations cannot currently be added to a dashboard')
+                : undefined,
+              style: isVisualizeEquation(visualize)
+                ? {color: theme.tokens.content.disabled}
+                : undefined,
             };
           }),
         ],
       },
     ];
-  }, [addToDashboard, metricQueries]);
+  }, [addToDashboard, metricQueries, theme.tokens.content.disabled]);
 
   return useMemo(() => {
     return [...saveAsItems, ...addToDashboardItems];
