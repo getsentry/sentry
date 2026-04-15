@@ -90,33 +90,21 @@ export function DetectorsTableActions({
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleUpdate = useCallback(
-    ({enabled}: {enabled: boolean}) => {
-      openConfirmModal({
-        message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
-        confirmText: enabled ? t('Enable') : t('Disable'),
-        priority: 'danger',
-        onConfirm: async () => {
-          if (allInQuerySelected) {
-            await updateDetectors({enabled, query, projects: selection.projects});
-          } else {
-            await updateDetectors({enabled, ids: Array.from(selected)});
-          }
-          togglePageSelected(false);
-        },
-      });
-    },
-    [
-      selected,
-      allInQuerySelected,
-      updateDetectors,
-      getEnableConfirmMessage,
-      getDisableConfirmMessage,
-      togglePageSelected,
-      selection.projects,
-      query,
-    ]
-  );
+  const handleUpdate = ({enabled}: {enabled: boolean}) => {
+    openConfirmModal({
+      message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
+      confirmText: enabled ? t('Enable') : t('Disable'),
+      priority: 'danger',
+      onConfirm: async () => {
+        if (allInQuerySelected) {
+          await updateDetectors({enabled, query, projects: selection.projects});
+        } else {
+          await updateDetectors({enabled, ids: Array.from(selected)});
+        }
+        togglePageSelected(false);
+      },
+    });
+  };
 
   const getDeleteConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
@@ -134,7 +122,7 @@ export function DetectorsTableActions({
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     openConfirmModal({
       message: getDeleteConfirmMessage(),
       confirmText: t('Delete'),
@@ -148,15 +136,7 @@ export function DetectorsTableActions({
         togglePageSelected(false);
       },
     });
-  }, [
-    selected,
-    allInQuerySelected,
-    deleteDetectors,
-    getDeleteConfirmMessage,
-    togglePageSelected,
-    selection.projects,
-    query,
-  ]);
+  };
 
   return (
     <Fragment>

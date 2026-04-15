@@ -350,6 +350,7 @@ def make_llm_generate_request(
         "/v1/llm/generate",
         body=orjson.dumps(body),
         timeout=timeout,
+        metric_tags={"referrer": body["referrer"]},
         viewer_context=viewer_context,
     )
 

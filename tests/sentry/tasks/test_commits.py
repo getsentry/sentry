@@ -14,6 +14,7 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.tasks.commits import (
+    GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
     fetch_commits,
     get_github_compare_commits_cache_key,
     handle_invalid_identity,
@@ -222,6 +223,47 @@ class FetchCommitsTest(TestCase):
                 )
 
         assert mock_compare_commits.call_count == 2
+
+    @patch("sentry.integrations.github.repository.GitHubRepositoryProvider.compare_commits")
+    def test_github_compare_commits_cache_ttl(
+        self,
+        mock_compare_commits: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
+        self.login_as(user=self.user)
+        cache.clear()
+
+        org, repo, previous_release, first_release, _, refs = (
+            self._setup_github_compare_commits_cache_context()
+        )
+        mock_compare_commits.return_value = self._github_compare_commits_result(repo.name, "b" * 40)
+
+        with self.feature(
+            {"organizations:integrations-github-fetch-commits-compare-cache": [org.slug]}
+        ):
+            with patch("sentry.tasks.commits.cache.set", wraps=cache.set) as mock_cache_set:
+                with self.tasks():
+                    fetch_commits(
+                        release_id=first_release.id,
+                        user_id=self.user.id,
+                        refs=refs,
+                        prev_release_id=previous_release.id,
+                    )
+
+        expected_cache_key = get_github_compare_commits_cache_key(
+            organization_id=repo.organization_id,
+            repository_id=repo.id,
+            provider=repo.provider,
+            start_sha="a" * 40,
+            end_sha="b" * 40,
+        )
+
+        assert mock_cache_set.call_args_list
+        assert any(
+            call.args[0] == expected_cache_key
+            and call.args[2] == GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS
+            for call in mock_cache_set.call_args_list
+        )
 
     def test_release_locked(self, mock_record_event: MagicMock) -> None:
         self.login_as(user=self.user)

@@ -11,6 +11,7 @@ from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.utils.json import dumps_htmlsafe
 from sentry.web.frontend.base import BaseView, all_silo_view
@@ -105,7 +106,10 @@ class PipelineAdvancerView(BaseView):
         if (
             provider_id == IntegrationProviderSlug.GITHUB.value
             and request.GET.get("setup_action") == "install"
-            and pipeline is None
+            # There should be no pipeline. If there IS an active API pipeline
+            # we also redirect, since the trampoline would render with no
+            # opener window and leave the user stuck.
+            and (pipeline is None or pipeline.is_api_mode)
         ):
             installation_id = request.GET.get("installation_id")
             return self.redirect(
@@ -120,7 +124,18 @@ class PipelineAdvancerView(BaseView):
         # that relays the callback params back to the opener window via
         # postMessage instead of processing the callback server-side.
         if pipeline.is_api_mode:
+            metrics.incr(
+                "integrations.pipeline_advancer.trampoline",
+                tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
+                sample_rate=1.0,
+            )
             return _render_trampoline(request, pipeline)
+
+        metrics.incr(
+            "integrations.pipeline_advancer.legacy",
+            tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
+            sample_rate=1.0,
+        )
 
         subdomain = pipeline.fetch_state("subdomain")
         if subdomain is not None and request.subdomain != subdomain:
