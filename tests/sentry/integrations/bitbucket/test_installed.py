@@ -14,6 +14,7 @@ from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvid
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectFailureReason,
     AtlassianConnectValidationError,
     get_query_hash,
 )
@@ -297,7 +298,9 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "Failed to retrieve token from request headers")
+        assert_halt_metric(
+            mock_record_event, AtlassianConnectFailureReason.FAILED_TO_RETRIEVE_TOKEN
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_invalid_token(self, mock_record_event: MagicMock) -> None:
@@ -311,11 +314,15 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "Failed to retrieve token from request headers")
+        assert_halt_metric(
+            mock_record_event, AtlassianConnectFailureReason.FAILED_TO_RETRIEVE_TOKEN
+        )
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
-        side_effect=AtlassianConnectValidationError("Failed to fetch key id"),
+        side_effect=AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.FAILED_TO_FETCH_KEY_ID
+        ),
     )
     @responses.activate
     def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
@@ -346,7 +353,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "Expired signature")
+        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN)
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
@@ -367,7 +374,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "JWT contained invalid signature")
+        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN)
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
@@ -388,7 +395,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "Could not decode JWT token")
+        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_without_key_id(self, mock_record_event: MagicMock) -> None:
@@ -401,7 +408,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "Missing key_id (kid)")
+        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.MISSING_KEY_ID)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
@@ -422,4 +429,4 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, "JWT contained invalid key_id (kid)")
+        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_KEY_ID)

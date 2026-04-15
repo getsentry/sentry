@@ -14,6 +14,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectFailureReason,
     AtlassianConnectValidationError,
     get_query_hash,
 )
@@ -101,7 +102,9 @@ class JiraInstalledTest(APITestCase):
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
-        side_effect=AtlassianConnectValidationError("Failed to fetch key id"),
+        side_effect=AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.FAILED_TO_FETCH_KEY_ID
+        ),
     )
     @responses.activate
     def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
@@ -136,7 +139,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "Expired signature",
+            AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN,
         )
 
     @patch(
@@ -162,7 +165,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "JWT contained invalid signature",
+            AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN,
         )
 
     @patch(
@@ -188,7 +191,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "Could not decode JWT token",
+            AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT,
         )
 
     @patch("sentry_sdk.set_tag")
@@ -221,7 +224,7 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "Missing key_id (kid)",
+            AtlassianConnectFailureReason.MISSING_KEY_ID,
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -250,5 +253,5 @@ class JiraInstalledTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
             mock_record_event,
-            "JWT contained invalid key_id (kid)",
+            AtlassianConnectFailureReason.INVALID_KEY_ID,
         )
