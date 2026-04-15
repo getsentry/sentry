@@ -1049,13 +1049,13 @@ export function ProjectPerformance() {
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
       {
-        title: t('AI Issue Detection'),
+        title: 'AI Issue Detection',
         fields: [
           {
             name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
             type: 'boolean' as const,
             label: t('HTTP Issues'),
-            help: t('Allow HTTP-related issues to be created'),
+            help: t('Allow HTTP issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1067,7 +1067,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
             type: 'boolean' as const,
             label: t('Database Issues'),
-            help: t('Allow database-related issues to be created'),
+            help: t('Allow database issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
@@ -1091,7 +1091,7 @@ export function ProjectPerformance() {
             name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
             type: 'boolean' as const,
             label: t('Security Issues'),
-            help: t('Allow security-related issues to be created'),
+            help: t('Allow security issues to be created'),
             defaultValue: true,
             disabled: !(
               hasAccess &&
