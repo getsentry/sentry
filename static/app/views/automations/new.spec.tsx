@@ -128,6 +128,11 @@ describe('AutomationNewSettings', () => {
           handlerGroup: ActionGroup.OTHER,
           integrations: undefined,
         }),
+        ActionHandlerFixture({
+          type: ActionType.SLACK_STAGING,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'slack-staging-1', name: 'My Slack Staging Workspace'}],
+        }),
       ],
     });
 
@@ -332,6 +337,16 @@ describe('AutomationNewSettings', () => {
       delay: null,
     });
 
+    await addAction('Slack (Staging)');
+    {
+      const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
+      const stagingTarget = stagingTargets.at(-1);
+      expect(stagingTarget).toBeDefined();
+      await userEvent.type(stagingTarget as HTMLElement, '#staging-alerts', {
+        delay: null,
+      });
+    }
+
     await addAction('Discord');
     await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
       delay: null,
@@ -488,6 +503,15 @@ describe('AutomationNewSettings', () => {
           targetType: null,
           targetIdentifier: '',
           targetDisplay: null,
+        },
+      },
+      slack_staging: {
+        type: 'slack_staging',
+        integrationId: 'slack-staging-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '#staging-alerts',
         },
       },
     };

@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0006_add_night_shift_models
 
-sentry: 1066_add_export_format_in_data_export_obj
+sentry: 1067_add_dashboard_revision_model
 
 social_auth: 0003_social_auth_json_field
 

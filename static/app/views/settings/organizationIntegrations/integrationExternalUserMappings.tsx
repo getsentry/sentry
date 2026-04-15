@@ -13,8 +13,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Member} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -27,7 +26,6 @@ type Props = {
 export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
 
   const DATA_ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/members/', {
     path: {organizationIdOrSlug: organization.slug},
@@ -62,29 +60,27 @@ export function IntegrationExternalUserMappings(props: Props) {
     return Promise.all([refetchMembers(), refetchInitialResults()]);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: (mapping: ExternalActorMapping) =>
+      fetchMutation({
+        url: `/organizations/${organization.slug}/external-users/${mapping.id}/`,
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Deletion successful'));
+      fetchData();
+    },
+    onError: () => {
+      addErrorMessage(t('An error occurred'));
+    },
+  });
+
   if (isMembersPending || isInitialResultsPending) {
     return <LoadingIndicator />;
   }
   if (isMembersError || isInitialResultsError) {
     return <LoadingError onRetry={() => fetchData()} />;
   }
-
-  const handleDelete = async (mapping: ExternalActorMapping) => {
-    try {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/external-users/${mapping.id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
-      // remove config and update state
-      addSuccessMessage(t('Deletion successful'));
-      fetchData();
-    } catch {
-      // no 4xx errors should happen on delete
-      addErrorMessage(t('An error occurred'));
-    }
-  };
 
   const handleSubmitSuccess = () => {
     // Don't bother updating state. The info is in array of objects for each object in another array of objects.
@@ -139,7 +135,7 @@ export function IntegrationExternalUserMappings(props: Props) {
         getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
         defaultOptions={defaultUserOptions}
         onCreate={openMembersModal}
-        onDelete={handleDelete}
+        onDelete={deleteMutation.mutate}
         onSubmitSuccess={async () => {
           await fetchData();
         }}

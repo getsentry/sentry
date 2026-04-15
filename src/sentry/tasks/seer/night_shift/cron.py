@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Sequence
 from datetime import timedelta
 
@@ -62,6 +63,8 @@ def schedule_night_shift() -> None:
             )
             batch_index += 1
 
+    sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
+
     logger.info(
         "night_shift.schedule_complete",
         extra={"orgs_dispatched": batch_index},
@@ -88,6 +91,8 @@ def run_night_shift_for_org(organization_id: int) -> None:
         }
     )
 
+    start_time = time.monotonic()
+
     eligible_projects = _get_eligible_projects(organization)
     if not eligible_projects:
         logger.info(
@@ -98,6 +103,8 @@ def run_night_shift_for_org(organization_id: int) -> None:
             },
         )
         return
+
+    sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
 
     triage_strategy = "agentic_triage"
     run = SeerNightShiftRun.objects.create(
@@ -120,6 +127,7 @@ def run_night_shift_for_org(organization_id: int) -> None:
                 ]
             )
     except Exception:
+        sentry_sdk.metrics.count("night_shift.run_error", 1)
         logger.exception(
             "night_shift.run_failed",
             extra={
@@ -129,6 +137,11 @@ def run_night_shift_for_org(organization_id: int) -> None:
         )
         run.update(error_message="Night shift run failed")
         return
+
+    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
+    for c in candidates:
+        sentry_sdk.metrics.count("night_shift.triage_action", 1, attributes={"action": c.action})
+    sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
     logger.info(
         "night_shift.candidates_selected",

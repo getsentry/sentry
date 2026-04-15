@@ -57,6 +57,26 @@ def backfill_supergroups_lightweight_for_org(
         )
         return
 
+    try:
+        _backfill_org(organization, organization_id, last_project_id, last_group_id)
+    except Exception:
+        logger.exception(
+            "supergroups_backfill_lightweight.task_failed",
+            extra={
+                "organization_id": organization_id,
+                "last_project_id": last_project_id,
+                "last_group_id": last_group_id,
+            },
+        )
+        raise
+
+
+def _backfill_org(
+    organization: Organization,
+    organization_id: int,
+    last_project_id: int,
+    last_group_id: int,
+) -> None:
     # Get the next project to process, starting from where we left off
     project = (
         Project.objects.filter(
@@ -102,6 +122,18 @@ def backfill_supergroups_lightweight_for_org(
             headers={"sentry-propagate-traces": False},
         )
         return
+
+    logger.info(
+        "supergroups_backfill_lightweight.batch_starting",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "last_group_id": last_group_id,
+            "batch_size": len(groups),
+            "first_group_id": groups[0].id,
+            "last_group_id_in_batch": groups[-1].id,
+        },
+    )
 
     # Phase 1: Batch fetch event data
     group_event_pairs = _batch_fetch_events(groups, organization_id)
@@ -169,6 +201,17 @@ def backfill_supergroups_lightweight_for_org(
     metrics.incr(
         "seer.supergroups_backfill_lightweight.groups_failed",
         amount=failure_count,
+    )
+
+    logger.info(
+        "supergroups_backfill_lightweight.batch_complete",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "success_count": success_count,
+            "failure_count": failure_count,
+            "last_group_id_in_batch": groups[-1].id,
+        },
     )
 
     if failure_count >= MAX_FAILURES_PER_BATCH:
@@ -247,11 +290,22 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     # Batch fetch all event data from nodestore in one multi-get
     eventstore.bind_nodes(events)
 
+    # Filter out events with empty data
+    valid_groups: list[Group] = []
+    valid_events: list[Event] = []
+    for group, event in zip(matched_groups, events):
+        if event.data:
+            valid_groups.append(group)
+            valid_events.append(event)
+
+    if not valid_events:
+        return []
+
     # Bulk serialize all events
-    serialized_events = serialize(events, None, EventSerializer())
+    serialized_events = serialize(valid_events, None, EventSerializer())
 
     return [
         (group, serialized_event)
-        for group, serialized_event in zip(matched_groups, serialized_events)
+        for group, serialized_event in zip(valid_groups, serialized_events)
         if serialized_event
     ]

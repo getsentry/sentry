@@ -56,6 +56,8 @@ export interface StackTraceProviderProps {
   children: ReactNode;
   event: Event;
   stacktrace: StacktraceType;
+  /** When true, all frames start collapsed regardless of their position. */
+  collapseAll?: boolean;
   /** Optional exception index in the full exception values list. */
   exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */

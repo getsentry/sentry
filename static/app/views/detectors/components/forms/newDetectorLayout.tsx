@@ -18,6 +18,8 @@ import {DetectorNameField} from 'sentry/views/detectors/components/forms/common/
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -47,6 +49,7 @@ export function NewDetectorLayout<
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const {projects} = useProjects();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const initialProjectId = useMemo(() => {
     const queryProjectId = location.query.project as string | undefined;
@@ -97,7 +100,13 @@ export function NewDetectorLayout<
     <EditLayout formProps={formProps}>
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
-          <NewDetectorBreadcrumbs detectorType={detectorType} />
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <NewDetectorBreadcrumbs detectorType={detectorType} />
+            </TopBar.Slot>
+          ) : (
+            <NewDetectorBreadcrumbs detectorType={detectorType} />
+          )}
         </EditLayout.HeaderContent>
 
         <div>

@@ -43,7 +43,7 @@ export function SupergroupRow({
         />
       ),
       {
-        ariaLabel: t('Supergroup details'),
+        ariaLabel: t('Issue group details'),
         drawerKey: 'supergroup-drawer',
         onClose: () => setIsActive(false),
       }
