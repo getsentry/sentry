@@ -202,6 +202,7 @@ SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automation_handoff_target",
     "sentry:seer_automation_handoff_integration_id",
     "sentry:seer_automation_handoff_auto_create_pr",
+    "sentry:autofix_automation_tuning",
 ]
 
 # Boolean to enable/disable preprod size analysis for this project.

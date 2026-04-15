@@ -343,8 +343,8 @@ export function ExplorerPanel() {
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
-        formTitle: 'Seer Explorer Feedback',
-        messagePlaceholder: 'How can we make Seer Explorer better for you?',
+        formTitle: 'Seer Agent Feedback',
+        messagePlaceholder: 'How can we make Seer better for you?',
         tags: {
           ['feedback.source']: 'seer_explorer',
           ['feedback.owner']: 'ml-ai',

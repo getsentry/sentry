@@ -2,10 +2,7 @@ import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  CONVERSATIONS_LANDING_SUB_PATH,
   CONVERSATIONS_LANDING_TITLE,
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/conversations/settings';
@@ -15,6 +12,7 @@ import {
 } from 'sentry/views/insights/pages/domainViewHeader';
 
 type Props = {
+  domainBaseUrl: string;
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
   headerTitle?: HeaderProps['headerTitle'];
@@ -26,16 +24,11 @@ export function ConversationsPageHeader({
   headerTitle,
   breadcrumbs,
   hideDefaultTabs,
+  domainBaseUrl,
 }: Props) {
-  const organization = useOrganization();
-
-  const conversationsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
-  );
-
   return (
     <DomainViewHeader
-      domainBaseUrl={conversationsBaseUrl}
+      domainBaseUrl={domainBaseUrl}
       domainTitle={CONVERSATIONS_SIDEBAR_LABEL}
       headerTitle={
         headerTitle ?? (

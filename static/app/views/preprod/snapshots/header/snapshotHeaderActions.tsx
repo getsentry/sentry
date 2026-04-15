@@ -65,7 +65,7 @@ export function SnapshotHeaderActions({
       : undefined,
   }));
 
-  const handleApprove = useCallback(() => {
+  const handleApprove = () => {
     setIsApproving(true);
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprodartifacts/${data.head_artifact_id}/approve/`,
@@ -87,7 +87,7 @@ export function SnapshotHeaderActions({
         },
       }
     );
-  }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
+  };
 
   const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
