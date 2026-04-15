@@ -26,7 +26,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
-import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
+import {
+  DashboardDetailWithInjectedProps as DashboardDetail,
+  DashboardPageFrameTitle,
+} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -623,6 +626,21 @@ describe('Dashboards > Detail', () => {
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
       expect(mockReleases).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a separator between the dashboard breadcrumb and title in page frame mode', () => {
+      render(
+        <DashboardPageFrameTitle
+          dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+          isEditingDashboard={false}
+          onUpdate={jest.fn()}
+        />
+      );
+
+      expect(
+        screen.getByTestId('dashboard-breadcrumb-title-separator')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Custom Errors')).toBeInTheDocument();
     });
 
     it('hides add widget option', async () => {
