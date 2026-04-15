@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -19,21 +18,17 @@ import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadg
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
@@ -262,15 +257,9 @@ function MaybeTopBarSlot({
 }
 
 function HeaderActions({group}: {group: Group}) {
-  const organization = useOrganization();
   const hasPageFrameFeature = useHasPageFrameFeature();
   const {feedback} = useFeedbackSDKIntegration();
-  const [showLearnMore, setShowLearnMore] = useLocalStorageState(
-    'issue-details-learn-more',
-    true
-  );
 
-  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
   const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
   const hasFeedbackForm =
     group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
@@ -287,27 +276,6 @@ function HeaderActions({group}: {group: Group}) {
     tags: {['feedback.source']: feedbackSource},
   };
 
-  if (!hasOnlyOneUIOption && !hasFeedbackForm) {
-    return (
-      <MaybeTopBarSlot name="actions">
-        <LinkButton
-          size={hasPageFrameFeature ? undefined : 'xs'}
-          external
-          tooltipProps={{title: t('Learn more about the new UI')}}
-          href="https://docs.sentry.io/product/issues/issue-details/"
-          aria-label={t('Learn more about the new UI')}
-          icon={<IconInfo />}
-          analyticsEventKey="issue_details.streamline_ui_learn_more"
-          analyticsEventName="Issue Details: Streamline UI Learn More"
-          analyticsParams={{show_learn_more: showLearnMore}}
-          onClick={() => setShowLearnMore(false)}
-        >
-          {showLearnMore ? t("See What's New") : null}
-        </LinkButton>
-      </MaybeTopBarSlot>
-    );
-  }
-
   if (hasFeedbackForm && feedback) {
     return (
       <MaybeTopBarSlot name="feedback">
@@ -316,17 +284,13 @@ function HeaderActions({group}: {group: Group}) {
           size={hasPageFrameFeature ? undefined : 'xs'}
           feedbackOptions={feedbackOptions}
         >
-          {null}
+          {hasPageFrameFeature ? null : t('Give Feedback')}
         </FeedbackButton>
       </MaybeTopBarSlot>
     );
   }
 
-  return (
-    <MaybeTopBarSlot name="actions">
-      <NewIssueExperienceButton />
-    </MaybeTopBarSlot>
-  );
+  return null;
 }
 
 const Header = styled('header')`
