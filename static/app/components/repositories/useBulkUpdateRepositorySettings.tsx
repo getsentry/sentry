@@ -54,6 +54,15 @@ export function useBulkUpdateRepositorySettings(
           }
         ).queryKey,
       });
+      queryClient.invalidateQueries({
+        queryKey: apiOptions.asInfinite<Repository[]>()(
+          '/organizations/$organizationIdOrSlug/repos/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            staleTime: 0,
+          }
+        ).queryKey,
+      });
       (data ?? []).forEach(repo => {
         const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);
         queryClient.invalidateQueries({queryKey});
