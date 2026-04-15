@@ -50,7 +50,7 @@ export function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
-  const renderTitleContent = () => (
+  const titleContent = (
     <React.Fragment>
       <IdBadge project={project} avatarSize={16} hideName />
       <Version version={version} anchor={false} truncate />
@@ -166,7 +166,7 @@ export function ReleaseHeader({
                 {
                   label: (
                     <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                      {renderTitleContent()}
+                      {titleContent}
                     </Flex>
                   ),
                 },
@@ -185,7 +185,7 @@ export function ReleaseHeader({
                 {label: t('Release Details')},
               ]}
             />
-            <Layout.Title>{renderTitleContent()}</Layout.Title>
+            <Layout.Title>{titleContent}</Layout.Title>
           </React.Fragment>
         )}
       </Layout.HeaderContent>
