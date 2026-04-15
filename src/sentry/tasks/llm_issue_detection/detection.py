@@ -192,7 +192,7 @@ def create_issue_occurrence_from_detection(
     group_type = get_group_type_for_title(detected_issue.title)
     setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
     if setting_key:
-        perf_settings = project.get_option("sentry:performance_issue_settings")
+        perf_settings = project.get_option("sentry:performance_issue_settings", default={})
         if not perf_settings.get(setting_key, True):
             return
 
@@ -323,7 +323,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not has_access:
         return
 
-    perf_settings = project.get_option("sentry:performance_issue_settings")
+    perf_settings = project.get_option("sentry:performance_issue_settings", default={})
     if not perf_settings.get("ai_issue_detection_enabled", True):
         return
 
