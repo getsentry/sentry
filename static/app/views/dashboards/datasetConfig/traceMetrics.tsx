@@ -185,13 +185,22 @@ function useTraceMetricsSearchBarDataProvider(
   };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
+      'string',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'number');
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
+      'number',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
       {query: createTraceMetricFilter(traceMetric)},
-      'boolean'
+      'boolean',
+      HiddenTraceMetricSearchFields
     );
 
   const {filterKeys, filterKeySections, getTagValues} =
