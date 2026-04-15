@@ -13,7 +13,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixReferrer
-from sentry.seer.autofix.issue_summary import _trigger_autofix_task, get_automation_stopping_point
+from sentry.seer.autofix.issue_summary import _trigger_autofix_task, get_user_stopping_point
 from sentry.seer.autofix.utils import bulk_read_preferences, get_autofix_state
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.tasks.base import instrumented_task
@@ -223,7 +223,7 @@ def _trigger_autofix_for_candidate(group: Group, organization: Organization) -> 
             )
             return False
 
-        stopping_point = get_automation_stopping_point(group)
+        stopping_point = get_user_stopping_point(group)
 
         _trigger_autofix_task.delay(
             group_id=group.id,
