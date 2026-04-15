@@ -9,7 +9,6 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.team import Team, TeamStatus
 from sentry.utils.sdk import bind_organization_context
-from sentry.viewer_context import set_viewer_context_organization
 
 from .organization import OrganizationPermission
 
@@ -68,7 +67,6 @@ class TeamEndpoint(Endpoint):
         bind_organization_context(team.organization)
 
         request._request.organization = team.organization
-        set_viewer_context_organization(team.organization.id)
 
         kwargs["team"] = team
         return (args, kwargs)
