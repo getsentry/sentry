@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {queryOptions, skipToken, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import chunk from 'lodash/chunk';
@@ -321,16 +320,13 @@ export function useAddTeamToProject({
   const queryClient = useQueryClient();
   const {queryKey} = projectTeamsApiOptions({orgSlug, projectSlug, cursor});
 
-  return useCallback(
-    async (team: Team) => {
-      await addTeamToProject(api, orgSlug, projectSlug, team);
+  return async (team: Team) => {
+    await addTeamToProject(api, orgSlug, projectSlug, team);
 
-      queryClient.setQueryData(queryKey, prevData =>
-        prevData ? {...prevData, json: [team, ...prevData.json]} : prevData
-      );
-    },
-    [api, orgSlug, projectSlug, queryKey, queryClient]
-  );
+    queryClient.setQueryData(queryKey, prevData =>
+      prevData ? {...prevData, json: [team, ...prevData.json]} : prevData
+    );
+  };
 }
 
 export function useRemoveTeamFromProject({
@@ -346,16 +342,13 @@ export function useRemoveTeamFromProject({
   const queryClient = useQueryClient();
   const {queryKey} = projectTeamsApiOptions({orgSlug, projectSlug, cursor});
 
-  return useCallback(
-    async (teamSlug: string) => {
-      await removeTeamFromProject(api, orgSlug, projectSlug, teamSlug);
+  return async (teamSlug: string) => {
+    await removeTeamFromProject(api, orgSlug, projectSlug, teamSlug);
 
-      queryClient.setQueryData(queryKey, prevData =>
-        prevData
-          ? {...prevData, json: prevData.json.filter(team => team?.slug !== teamSlug)}
-          : prevData
-      );
-    },
-    [api, orgSlug, projectSlug, queryKey, queryClient]
-  );
+    queryClient.setQueryData(queryKey, prevData =>
+      prevData
+        ? {...prevData, json: prevData.json.filter(team => team?.slug !== teamSlug)}
+        : prevData
+    );
+  };
 }
