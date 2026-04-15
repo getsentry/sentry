@@ -231,7 +231,7 @@ const titleWrapperStyles = css`
   }
 
   &:hover .release-copy-button {
-    display: block;
+    display: inline-flex;
   }
 `;
 
