@@ -1,4 +1,6 @@
 import {useState} from 'react';
+import * as Sentry from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -17,7 +19,6 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 
@@ -237,20 +238,14 @@ interface ProjectMapperNextButtonProps {
 
 export function ProjectMapperNextButton({config, value}: ProjectMapperNextButtonProps) {
   const {nextButton} = config;
-  if (!nextButton) {
+  const [nextUrl] = useQueryState('next', parseAsString);
+
+  if (!nextButton || !nextUrl) {
     return null;
   }
 
-  const nextUrlOrArray = safeGetQsParam('next');
-  let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
-
-  if (nextUrl && !nextUrl.startsWith(nextButton.allowedDomain)) {
-    // eslint-disable-next-line no-console
-    console.warn(`Got unexpected next url: ${nextUrl}`);
-    nextUrl = undefined;
-  }
-
-  if (!nextUrl) {
+  if (!nextUrl.startsWith(nextButton.allowedDomain)) {
+    Sentry.captureMessage(`Got invalid next url: ${nextUrl}`);
     return null;
   }
 

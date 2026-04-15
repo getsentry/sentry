@@ -295,20 +295,22 @@ describe('ProjectMapperAdapter', () => {
       },
     };
 
-    afterEach(() => {
-      window.history.replaceState({}, '', '/');
-    });
-
     it('renders disabled next button when no mappings exist', () => {
-      window.history.replaceState({}, '', '?next=https://vercel.com/install/complete');
-
       render(
         <BackendJsonAutoSaveForm
           field={makeConfig(nextButtonConfig)}
           initialValue={[]}
           mutationOptions={mutationOptions}
         />,
-        {organization: org}
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {next: 'https://vercel.com/install/complete'},
+            },
+          },
+        }
       );
 
       expect(
@@ -322,15 +324,21 @@ describe('ProjectMapperAdapter', () => {
     });
 
     it('renders enabled next button when mappings exist', () => {
-      window.history.replaceState({}, '', '?next=https://vercel.com/install/complete');
-
       render(
         <BackendJsonAutoSaveForm
           field={makeConfig(nextButtonConfig)}
           initialValue={[[101, 'proj-1']]}
           mutationOptions={mutationOptions}
         />,
-        {organization: org}
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {next: 'https://vercel.com/install/complete'},
+            },
+          },
+        }
       );
 
       const button = screen.getByRole('button', {name: 'Complete on Vercel'});
@@ -352,15 +360,18 @@ describe('ProjectMapperAdapter', () => {
     });
 
     it('does not render next button when next param domain does not match', () => {
-      window.history.replaceState({}, '', '?next=https://evil.com/steal');
-
       render(
         <BackendJsonAutoSaveForm
           field={makeConfig(nextButtonConfig)}
           initialValue={[]}
           mutationOptions={mutationOptions}
         />,
-        {organization: org}
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {pathname: '/', query: {next: 'https://evil.com/steal'}},
+          },
+        }
       );
 
       expect(screen.queryByText('Complete on Vercel')).not.toBeInTheDocument();
