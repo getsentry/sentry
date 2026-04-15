@@ -81,9 +81,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         query_info["dataset"] = dataset
         return query_info
 
-    def _validate_query_info(
-        self, query_type: str, query_info: dict[str, Any], *, export_format: str
-    ) -> dict[str, Any]:
+    def _validate_query_info(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
         base_fields = query_info.get("field")
         if base_fields is None:
             base_fields = []
@@ -174,9 +172,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         export_format = data.get("format", OutputMode.CSV.value)
 
         if query_type == ExportQueryType.DISCOVER_STR:
-            query_info = self._validate_query_info(
-                query_type, query_info, export_format=export_format
-            )
+            query_info = self._validate_query_info(query_type, query_info)
             query_info = self._validate_dataset(query_type, query_info)
             dataset = query_info["dataset"]
 
@@ -211,9 +207,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 raise serializers.ValidationError("Invalid search query.")
 
         elif query_type == ExportQueryType.EXPLORE_STR:
-            query_info = self._validate_query_info(
-                query_type, query_info, export_format=export_format
-            )
+            query_info = self._validate_query_info(query_type, query_info)
             query_info = self._validate_dataset(query_type, query_info)
             explore_output_mode = OutputMode.from_value(export_format)
             try:
@@ -242,9 +236,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 sentry_sdk.capture_exception(err)
                 raise serializers.ValidationError("Invalid table query.")
         elif query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR:
-            query_info = self._validate_query_info(
-                query_type, query_info, export_format=export_format
-            )
+            query_info = self._validate_query_info(query_type, query_info)
             query_info = self._validate_dataset(query_type, query_info)
             explore_output_mode = OutputMode.from_value(export_format)
             if explore_output_mode != OutputMode.JSONL:
