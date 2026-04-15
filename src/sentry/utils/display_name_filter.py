@@ -61,11 +61,7 @@ _CATEGORIES: list[tuple[str, Callable[[str], bool]]] = [
 
 
 def check_spam_display_name(name: str) -> str | None:
-    """Check if a user-controlled display name matches known spam patterns.
-
-    Returns a user-facing error string listing the matched categories
-    if 2+ distinct signal categories fire, or None if the name is clean.
-    """
+    """Return an error string if the name matches 2+ spam categories, else None."""
     lowered = name.lower()
     matched_labels: list[str] = [label for label, check in _CATEGORIES if check(lowered)]
     if len(matched_labels) >= 2:
