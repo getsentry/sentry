@@ -1,3 +1,4 @@
+import threading
 from typing import Any
 
 from arroyo.backends.kafka import build_kafka_producer_configuration
@@ -15,6 +16,26 @@ class KafkaPublisher:
             build_kafka_producer_configuration(default_config=connection)
         )
         self.asynchronous = asynchronous
+        self._shutdown = threading.Event()
+        self._poll_thread = threading.Thread(
+            target=self.__worker,
+            name="KafkaPublisher.poll",
+            daemon=True,
+        )
+        self._poll_thread.start()
+
+    def __worker(self) -> None:
+        """
+        Drain rdkafka's internal queue continuously so stats ops (generated
+        by statistics.interval.ms=1000 that arroyo sets on all producers)
+        don't accumulate when the publisher is idle between publish() calls.
+        Without this, each stats op holds a JSON blob that is never freed,
+        causing RSS growth and OOMKill when no attachments for a long period.
+
+        Similar to https://github.com/getsentry/arroyo/blob/a4bd9a7ef5e9a23a7862e278d9881d0a7a7e18e5/arroyo/backends/kafka/consumer.py#L774-L784
+        """
+        while not self._shutdown.is_set():
+            self.producer.poll(0.1)
 
     def publish(self, channel: str, value: str, key: str | None = None) -> None:
         self.producer.produce(topic=channel, value=value, key=key)
