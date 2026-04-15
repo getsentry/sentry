@@ -35,11 +35,9 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
-import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -53,8 +51,6 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
-import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
-import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -84,7 +80,6 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
   const user = useUser();
-  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const {projects} = useProjects();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
@@ -95,6 +90,7 @@ export function GlobalCommandPaletteActions() {
     onSuccess: () => window.location.reload(),
   });
 
+  const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
@@ -250,34 +246,11 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
-          {getUserOrgNavigationConfiguration().map(section => {
-            const orgNavContext: NavigationGroupProps = {
-              ...section,
-              organization,
-              access: new Set(organization.access ?? []),
-              features: new Set(organization.features ?? []),
-              isSelfHosted: ConfigStore.get('isSelfHosted'),
-            };
-            return (
-              <CMDKAction key={section.name} display={{label: section.name}}>
-                {section.items
-                  .filter(item =>
-                    typeof item.show === 'function'
-                      ? item.show(orgNavContext)
-                      : item.show !== false
-                  )
-                  .map(item => (
-                    <CMDKAction
-                      key={item.path}
-                      display={{label: item.title, details: item.description}}
-                      to={replaceRouterParams(item.path, {
-                        orgId: organization.slug,
-                      })}
-                    />
-                  ))}
-              </CMDKAction>
-            );
-          })}
+          {getUserOrgNavigationConfiguration().flatMap(section =>
+            section.items.map(item => (
+              <CMDKAction key={item.path} display={{label: item.title}} to={item.path} />
+            ))
+          )}
         </CMDKAction>
 
         <CMDKAction
@@ -291,36 +264,8 @@ export function GlobalCommandPaletteActions() {
                 label: project.name,
                 icon: <ProjectAvatar project={project} size={16} />,
               }}
-            >
-              {getNavigationConfiguration({organization, project}).flatMap(section => {
-                const projectNavContext = {
-                  ...section,
-                  organization,
-                  project,
-                  access: new Set(organization.access ?? []),
-                  features: new Set(project.features ?? []),
-                };
-                return section.items
-                  .filter(item =>
-                    typeof item.show === 'function'
-                      ? item.show(projectNavContext)
-                      : item.show !== false
-                  )
-                  .map(item => (
-                    <CMDKAction
-                      key={item.path}
-                      display={{
-                        label: item.title,
-                        details: item.description,
-                      }}
-                      to={replaceRouterParams(item.path, {
-                        orgId: organization.slug,
-                        projectId: project.slug,
-                      })}
-                    />
-                  ));
-              })}
-            </CMDKAction>
+              to={`/settings/${organization.slug}/projects/${project.slug}/`}
+            />
           ))}
         </CMDKAction>
       </CMDKAction>

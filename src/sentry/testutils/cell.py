@@ -16,20 +16,23 @@ class TestEnvCellDirectory(CellDirectory):
         self._default_cell = next(iter(cells))
         self._apply_cells(cells)
 
-    def _apply_cells(self, cells: Collection[Cell]) -> None:
-        localities = frozenset(
-            Locality(
-                name=c.name,
-                cells=frozenset([c.name]),
-                category=c.category,
-                visible=c.visible,
-                new_org_cell=c.name,
-            )
-            for c in cells
-        )
+    def _apply_cells(
+        self, cells: Collection[Cell], localities: Collection[Locality] | None = None
+    ) -> None:
+        if localities is None:
+            localities = [
+                Locality(
+                    name=c.name,
+                    cells=frozenset([c.name]),
+                    category=c.category,
+                    visible=c.visible,
+                    new_org_cell=c.name,
+                )
+                for c in cells
+            ]
         self._cells = frozenset(cells)
         self._by_name = {c.name: c for c in self._cells}
-        self._localities = localities
+        self._localities = frozenset(localities)
         self._localities_by_name = {loc.name: loc for loc in localities}
         self._cell_to_locality = {cell_name: loc for loc in localities for cell_name in loc.cells}
 
@@ -37,6 +40,7 @@ class TestEnvCellDirectory(CellDirectory):
     def swap_state(
         self,
         cells: Sequence[Cell],
+        localities: Sequence[Locality] | None = None,
         local_cell: Cell | None = None,
     ) -> Generator[None]:
         prev_state = (
@@ -49,7 +53,7 @@ class TestEnvCellDirectory(CellDirectory):
         )
         try:
             self._default_cell = local_cell or cells[0]
-            self._apply_cells(cells)
+            self._apply_cells(cells, localities)
             monolith_cell = cells[0]
             with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
                 if local_cell:

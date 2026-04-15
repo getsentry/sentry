@@ -10,7 +10,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {
   createTraceMetricFilter,
@@ -39,6 +40,10 @@ import {
   useQueryParamsGroupBys,
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
@@ -67,9 +72,12 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
+  const visualize = useMetricVisualize();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
+    enabled: isVisualizeFunction(visualize)
+      ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
+      : isVisualizeEquation(visualize) && Boolean(visualize.expression.text),
     limit: RESULT_LIMIT,
     traceMetric,
   });
@@ -107,21 +115,22 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   // When no group bys are selected, prepend the metric name as a virtual group-by column
   const displayFields = useMemo(() => {
-    if (groupBys.length === 0) {
+    if (groupBys.length === 0 && isVisualizeFunction(visualize)) {
       return [TraceMetricKnownFieldKey.METRIC_NAME, ...fields];
     }
     return fields;
-  }, [groupBys.length, fields]);
+  }, [groupBys.length, fields, visualize]);
 
   const displayColumns = useMemo(() => {
-    if (groupBys.length === 0) {
+    if (groupBys.length === 0 && isVisualizeFunction(visualize)) {
       return [METRIC_NAME_COLUMN, ...columns];
     }
     return columns;
-  }, [groupBys.length, columns]);
+  }, [groupBys.length, columns, visualize]);
 
   // Include the virtual metric name column in the group-by count so grid/divider logic works
-  const groupByFieldCount = groupBys.length === 0 ? 1 : groupBys.length;
+  const groupByFieldCount =
+    groupBys.length === 0 && isVisualizeFunction(visualize) ? 1 : groupBys.length;
   const aggregateFieldCount = displayFields.length - groupByFieldCount;
 
   const tableStyle = useMemo(() => {
@@ -233,12 +242,16 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             label = `${func.name}(…)`;
           } else if (tag) {
             label = tag.name;
+          } else if (isEquation(field)) {
+            // TODO: This should say the reference format of equations
+            label = t('Result');
           } else {
             label = prettifyTagKey(field);
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
-          const canSort = displayColumns[i]?.isSortable !== false;
+          const canSort =
+            displayColumns.find(column => column.key === field)?.isSortable !== false;
 
           function updateSort() {
             const kind = direction === 'desc' ? 'asc' : 'desc';
@@ -250,7 +263,9 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
               key={i}
               divider={shouldShowDivider(i)}
               data-sticky-column={isLastColumn(i) ? 'true' : 'false'}
-              isAggregate={Boolean(func)}
+              isAggregate={
+                Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
+              }
               isSticky={isLastColumn(i)}
               sort={direction}
               handleSortClick={canSort ? updateSort : undefined}
@@ -289,7 +304,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                     offset={j === 0 ? firstColumnOffset : undefined}
                   >
                     <FieldRenderer
-                      column={displayColumns[j]}
+                      column={displayColumns.find(column => column.key === field)}
                       data={displayRow}
                       unit={getMetricsUnit(meta, field)}
                       meta={meta}

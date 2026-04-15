@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
+import type {QueryClient} from '@tanstack/react-query';
 
 import {type ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -28,8 +29,10 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
+  LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
   MAX_LOG_INGEST_DELAY,
   MAX_LOGS_INFINITE_QUERY_PAGES,
+  MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
@@ -402,6 +405,19 @@ type QueryKey = [
   'infinite',
 ];
 
+/**
+ * `maxPages` is evaluated before `useInfiniteQuery` returns `data`, so we base it on the
+ * query cache (same snapshot React Query will use for this key).
+ */
+function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): number {
+  const cached = client.getQueryData<InfiniteData<ApiResult<EventsLogsResult>>>(queryKey);
+  const rows =
+    cached?.pages?.reduce((n, page) => n + (page[0]?.data?.length ?? 0), 0) ?? 0;
+  return rows < LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES
+    ? MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED
+    : MAX_LOGS_INFINITE_QUERY_PAGES;
+}
+
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
@@ -526,7 +542,7 @@ export function useInfiniteLogsQuery({
     initialPageParam,
     enabled: !disabled,
     staleTime: autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView),
-    maxPages: MAX_LOGS_INFINITE_QUERY_PAGES,
+    maxPages: maxPagesForLogsInfiniteQuery(queryClient, queryKeyWithInfinite),
     refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 

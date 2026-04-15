@@ -120,7 +120,7 @@ export function AutomationHistoryList({
             <SimpleTable.RowCell>
               <StyledLink
                 to={{
-                  pathname: `/organizations/${org.slug}/issues/${row.group.id}/events/${row.eventId}/`,
+                  pathname: `/organizations/${org.slug}/issues/${row.group.id}/`,
                   query: {project: row.group.project.id},
                 }}
               >

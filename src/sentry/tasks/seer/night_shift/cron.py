@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Sequence
 from datetime import timedelta
 
@@ -11,8 +12,8 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.utils import bulk_read_preferences
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.taskworker.namespaces import seer_tasks
@@ -62,6 +63,8 @@ def schedule_night_shift() -> None:
             )
             batch_index += 1
 
+    sentry_sdk.metrics.count("night_shift.orgs_dispatched", batch_index)
+
     logger.info(
         "night_shift.schedule_complete",
         extra={"orgs_dispatched": batch_index},
@@ -88,16 +91,29 @@ def run_night_shift_for_org(organization_id: int) -> None:
         }
     )
 
-    eligible_projects = _get_eligible_projects(organization)
-    if not eligible_projects:
-        logger.info(
-            "night_shift.no_eligible_projects",
+    start_time = time.monotonic()
+
+    try:
+        eligible_projects = _get_eligible_projects(organization)
+        if not eligible_projects:
+            logger.info(
+                "night_shift.no_eligible_projects",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_slug": organization.slug,
+                },
+            )
+            return
+    except Exception:
+        logger.exception(
+            "night_shift.failed_to_get_eligible_projects",
             extra={
                 "organization_id": organization_id,
-                "organization_slug": organization.slug,
             },
         )
         return
+
+    sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
 
     triage_strategy = "agentic_triage"
     run = SeerNightShiftRun.objects.create(
@@ -120,6 +136,7 @@ def run_night_shift_for_org(organization_id: int) -> None:
                 ]
             )
     except Exception:
+        sentry_sdk.metrics.count("night_shift.run_error", 1)
         logger.exception(
             "night_shift.run_failed",
             extra={
@@ -129,6 +146,11 @@ def run_night_shift_for_org(organization_id: int) -> None:
         )
         run.update(error_message="Night shift run failed")
         return
+
+    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
+    for c in candidates:
+        sentry_sdk.metrics.count("night_shift.triage_action", 1, attributes={"action": c.action})
+    sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
     logger.info(
         "night_shift.candidates_selected",
@@ -173,18 +195,19 @@ def _get_eligible_orgs_from_batch(
 
 def _get_eligible_projects(organization: Organization) -> list[Project]:
     """Return active projects that have automation enabled and connected repos."""
-    projects_with_repos = set(
-        SeerProjectRepository.objects.filter(
-            project__organization=organization,
-            project__status=ObjectStatus.ACTIVE,
-        ).values_list("project_id", flat=True)
-    )
-    if not projects_with_repos:
+    project_map = {
+        p.id: p
+        for p in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    }
+    if not project_map:
         return []
 
-    projects = Project.objects.filter(id__in=projects_with_repos)
+    preferences = bulk_read_preferences(organization, list(project_map))
+
     return [
-        p
-        for p in projects
-        if p.get_option("sentry:autofix_automation_tuning") != AutofixAutomationTuningSettings.OFF
+        project_map[pid]
+        for pid, pref in preferences.items()
+        if pref is not None
+        and pref.repositories
+        and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
     ]

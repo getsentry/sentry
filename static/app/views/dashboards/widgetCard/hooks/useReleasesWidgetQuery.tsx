@@ -77,7 +77,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           organization,
           pageFilters,
           interval,
-          filteredWidget.limit
+          filteredWidget.limit ?? undefined
         );
 
         return {
@@ -277,7 +277,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           organization,
           pageFilters,
           undefined, // interval
-          limit ?? filteredWidget.limit,
+          limit ?? filteredWidget.limit ?? undefined,
           cursor
         );
 
