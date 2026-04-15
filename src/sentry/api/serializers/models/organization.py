@@ -170,6 +170,13 @@ class BaseOrganizationSerializer(serializers.Serializer):
         max_length=DEFAULT_SLUG_MAX_LENGTH,
     )
 
+    def validate_name(self, value: str) -> str:
+        if "://" in value:
+            raise serializers.ValidationError(
+                "Organization name cannot contain URL schemes (e.g. http:// or https://)."
+            )
+        return value
+
     def validate_slug(self, value: str) -> str:
         # Historically, the only check just made sure there was more than 1
         # character for the slug, but since then, there are many slugs that

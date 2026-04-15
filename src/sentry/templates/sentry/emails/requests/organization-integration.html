@@ -6,7 +6,7 @@
 {% block main %}
   <p>
     Seems like your team could use some new tools. {{ requester_name|sanitize_periods }} from
-    {{ organization_name }} requested the installation of {{ integration_name }}.
+    {{ organization_name|sanitize_periods }} requested the installation of {{ integration_name }}.
     {% if message %}
         They've included some additional context:
         <pre>{{ message }}</pre>
