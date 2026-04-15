@@ -20,6 +20,7 @@ import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
  * This hook will cause the promotional modal to appear if:
@@ -118,6 +119,7 @@ function useIssueDetailsPromoModal() {
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
   const isSuperUser = isActiveSuperuser();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {
     startTour,
     isRegistered: isTourRegistered,
@@ -188,7 +190,7 @@ export function NewIssueExperienceButton() {
       description={t('Click here to take the tour or share feedback with the team.')}
       actions={
         <TourAction
-          size="xs"
+          size={hasPageFrameFeature ? undefined : 'xs'}
           onClick={() => {
             trackAnalytics('issue_details.tour.reminder', {
               organization,
