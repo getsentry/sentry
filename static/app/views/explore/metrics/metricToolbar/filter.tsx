@@ -154,6 +154,7 @@ export function Filter({traceMetric}: FilterProps) {
         onSearch: setQuery,
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
+        attributeQuery: traceMetricFilter,
       };
     }, [
       query,
@@ -162,6 +163,7 @@ export function Filter({traceMetric}: FilterProps) {
       visibleNumberTags,
       visibleStringTags,
       traceMetric.name,
+      traceMetricFilter,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

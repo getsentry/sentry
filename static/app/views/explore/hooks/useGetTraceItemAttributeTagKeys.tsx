@@ -10,25 +10,30 @@ export function useGetTraceItemAttributeTagKeys({
   itemType,
   projects,
   extraTags,
+  query,
 }: {
   itemType: TraceItemDataset;
   extraTags?: TagCollection;
   projects?: PageFilters['projects'];
+  query?: string;
 }): GetTagKeys {
   const getStringKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    query,
   });
   const getNumberKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     type: 'number',
     projectIds: projects,
+    query,
   });
   const getBooleanKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     type: 'boolean',
     projectIds: projects,
+    query,
   });
 
   return useCallback(

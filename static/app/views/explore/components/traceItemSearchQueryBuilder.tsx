@@ -29,6 +29,7 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   disableRecentSearches?: boolean;
   disabled?: boolean;
@@ -105,6 +106,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
@@ -134,6 +136,7 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    query: attributeQuery,
   });
 
   const getSuggestedAttribute = useExploreSuggestedAttribute({
@@ -146,6 +149,7 @@ export function useTraceItemSearchQueryBuilderProps({
     itemType,
     projects,
     extraTags: functionTags,
+    query: attributeQuery,
   });
 
   return useMemo(
@@ -243,6 +247,7 @@ export function TraceItemSearchQueryBuilder({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -270,6 +275,7 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
+    attributeQuery,
   });
 
   return (
