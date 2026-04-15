@@ -58,10 +58,9 @@ export function GroupBySelector({
       organization,
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
-      type: 'number',
       query: skipTraceMetricFilter ? undefined : traceMetricFilter,
     }),
-    select: selectTraceItemTagCollection('number'),
+    select: selectTraceItemTagCollection(),
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
 
