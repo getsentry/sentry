@@ -49,52 +49,6 @@ export function ReleaseHeader({
   const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
-  const titleChildren = (
-    <React.Fragment>
-      <IdBadge project={project} avatarSize={hasPageFrameFeature ? 16 : 28} hideName />
-      <Version version={version} anchor={false} />
-      <CopyToClipboardButton
-        className="release-copy-button"
-        priority="transparent"
-        size="zero"
-        text={version}
-        tooltipProps={{title: version}}
-        aria-label={t('Copy release version to clipboard')}
-      />
-      {!!url && (
-        <IconWrapper>
-          <Tooltip title={url}>
-            <ExternalLink href={url}>
-              <IconOpen />
-            </ExternalLink>
-          </Tooltip>
-        </IconWrapper>
-      )}
-    </React.Fragment>
-  );
-
-  const breadcrumbs = [
-    {
-      to: makeReleasesPathname({
-        organization,
-        path: '/',
-      }),
-      label: t('Releases'),
-      preservePageFilters: true,
-    },
-    ...(hasPageFrameFeature
-      ? [
-          {
-            label: (
-              <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
-                {titleChildren}
-              </Flex>
-            ),
-          },
-        ]
-      : [{label: t('Release Details')}]),
-  ];
-
   const releasePath = makeReleasesPathname({
     organization,
     path: `/${encodeURIComponent(version)}/`,
@@ -177,12 +131,74 @@ export function ReleaseHeader({
       <Layout.HeaderContent>
         {hasPageFrameFeature ? (
           <TopBar.Slot name="title">
-            <Breadcrumbs crumbs={breadcrumbs} />
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: makeReleasesPathname({organization, path: '/'}),
+                  label: t('Releases'),
+                  preservePageFilters: true,
+                },
+                {
+                  label: (
+                    <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
+                      <IdBadge project={project} avatarSize={16} hideName />
+                      <Version version={version} anchor={false} truncate />
+                      <CopyToClipboardButton
+                        className="release-copy-button"
+                        priority="transparent"
+                        size="zero"
+                        text={version}
+                        tooltipProps={{title: version}}
+                        aria-label={t('Copy release version to clipboard')}
+                      />
+                      {!!url && (
+                        <IconWrapper>
+                          <Tooltip title={url}>
+                            <ExternalLink href={url}>
+                              <IconOpen />
+                            </ExternalLink>
+                          </Tooltip>
+                        </IconWrapper>
+                      )}
+                    </Flex>
+                  ),
+                },
+              ]}
+            />
           </TopBar.Slot>
         ) : (
           <React.Fragment>
-            <Breadcrumbs crumbs={breadcrumbs} />
-            <Layout.Title>{titleChildren}</Layout.Title>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: makeReleasesPathname({organization, path: '/'}),
+                  label: t('Releases'),
+                  preservePageFilters: true,
+                },
+                {label: t('Release Details')},
+              ]}
+            />
+            <Layout.Title>
+              <IdBadge project={project} avatarSize={28} hideName />
+              <Version version={version} anchor={false} truncate />
+              <CopyToClipboardButton
+                className="release-copy-button"
+                priority="transparent"
+                size="zero"
+                text={version}
+                tooltipProps={{title: version}}
+                aria-label={t('Copy release version to clipboard')}
+              />
+              {!!url && (
+                <IconWrapper>
+                  <Tooltip title={url}>
+                    <ExternalLink href={url}>
+                      <IconOpen />
+                    </ExternalLink>
+                  </Tooltip>
+                </IconWrapper>
+              )}
+            </Layout.Title>
           </React.Fragment>
         )}
       </Layout.HeaderContent>
