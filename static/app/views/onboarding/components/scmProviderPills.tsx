@@ -83,7 +83,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                   organization,
                   onInstall,
                   analyticsParams: {
-                    view: 'onboarding',
+                    view: 'onboarding_scm',
                     already_installed: false,
                   },
                 }),
