@@ -2,7 +2,7 @@
 Seems like your team could use some new tools. {{ requester_name|sanitize_periods }} from {{ organization_name|sanitize_periods }} requested the installation of {{ integration_name }}.
 {% if message %}
 They’ve included some additional context:
-    {{ message }}
+    {{ message|sanitize_periods }}
 {% endif %}
 Install {{ provider_name }} by clicking the link below:
 

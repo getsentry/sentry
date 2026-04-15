@@ -9,7 +9,7 @@
     {{ organization_name|sanitize_periods }} requested the installation of {{ integration_name }}.
     {% if message %}
         They've included some additional context:
-        <pre>{{ message }}</pre>
+        <pre>{{ message|sanitize_periods }}</pre>
     {% endif %}
   </p>
   <p>
