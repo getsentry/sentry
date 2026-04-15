@@ -57,7 +57,35 @@ export function ReleaseHeader({
       label: t('Releases'),
       preservePageFilters: true,
     },
-    ...(hasPageFrameFeature ? [] : [{label: t('Release Details')}]),
+    ...(hasPageFrameFeature
+      ? [
+          {
+            label: (
+              <TitleWrapper align="center" gap="md" minWidth={0}>
+                <IdBadge project={project} avatarSize={16} hideName />
+                <Version version={version} anchor={false} />
+                <CopyToClipboardButton
+                  className="release-copy-button"
+                  priority="transparent"
+                  size="zero"
+                  text={version}
+                  tooltipProps={{title: version}}
+                  aria-label={t('Copy release version to clipboard')}
+                />
+                {!!url && (
+                  <IconWrapper>
+                    <Tooltip title={url}>
+                      <ExternalLink href={url}>
+                        <IconOpen />
+                      </ExternalLink>
+                    </Tooltip>
+                  </IconWrapper>
+                )}
+              </TitleWrapper>
+            ),
+          },
+        ]
+      : [{label: t('Release Details')}]),
   ];
 
   const releasePath = makeReleasesPathname({
@@ -145,35 +173,33 @@ export function ReleaseHeader({
             <Breadcrumbs crumbs={breadcrumbs} />
           </TopBar.Slot>
         ) : (
-          <Breadcrumbs crumbs={breadcrumbs} />
+          <Fragment>
+            <Breadcrumbs crumbs={breadcrumbs} />
+            <Layout.Title>
+              <TitleWrapper align="center" gap="md" minWidth={0}>
+                <IdBadge project={project} avatarSize={28} hideName />
+                <Version version={version} anchor={false} />
+                <CopyToClipboardButton
+                  className="release-copy-button"
+                  priority="transparent"
+                  size="zero"
+                  text={version}
+                  tooltipProps={{title: version}}
+                  aria-label={t('Copy release version to clipboard')}
+                />
+                {!!url && (
+                  <IconWrapper>
+                    <Tooltip title={url}>
+                      <ExternalLink href={url}>
+                        <IconOpen />
+                      </ExternalLink>
+                    </Tooltip>
+                  </IconWrapper>
+                )}
+              </TitleWrapper>
+            </Layout.Title>
+          </Fragment>
         )}
-        <Layout.Title>
-          <TitleWrapper align="center" gap="md" minWidth={0}>
-            <IdBadge
-              project={project}
-              avatarSize={hasPageFrameFeature ? 16 : 28}
-              hideName
-            />
-            <Version version={version} anchor={false} />
-            <CopyToClipboardButton
-              className="release-copy-button"
-              priority="transparent"
-              size="zero"
-              text={version}
-              tooltipProps={{title: version}}
-              aria-label={t('Copy release version to clipboard')}
-            />
-            {!!url && (
-              <IconWrapper>
-                <Tooltip title={url}>
-                  <ExternalLink href={url}>
-                    <IconOpen />
-                  </ExternalLink>
-                </Tooltip>
-              </IconWrapper>
-            )}
-          </TitleWrapper>
-        </Layout.Title>
       </Layout.HeaderContent>
 
       {hasPageFrameFeature ? (
