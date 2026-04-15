@@ -36,44 +36,60 @@ export interface AddIntegrationParams {
 }
 
 /**
- * Per-provider feature flags that gate the new API-driven pipeline setup flow.
- * When enabled for a provider, the integration setup uses the React pipeline
- * modal instead of the legacy Django view popup window.
- *
- * Keys are provider identifiers (constrained to registered pipeline providers
- * via `satisfies`), values are feature flag names without the `organizations:`
- * prefix.
+ * Providers that should always use the API-driven pipeline modal.
  */
-const API_PIPELINE_FEATURE_FLAGS = {
-  aws_lambda: 'integration-api-pipeline-aws-lambda',
-  bitbucket: 'integration-api-pipeline-bitbucket',
-  github: 'integration-api-pipeline-github',
-  gitlab: 'integration-api-pipeline-gitlab',
-  slack: 'integration-api-pipeline-slack',
-} as const satisfies Partial<Record<ProvidersByType['integration'], string>>;
+const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
+  'aws_lambda',
+  'bitbucket',
+  'github',
+  'gitlab',
+  'slack',
+] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 
-type ApiPipelineProvider = keyof typeof API_PIPELINE_FEATURE_FLAGS;
+type UnconditionalApiPipelineProvider =
+  (typeof UNCONDITIONAL_API_PIPELINE_PROVIDERS)[number];
+
+/**
+ * Providers that support the API-driven pipeline modal but still require an
+ * organization feature flag during rollout.
+ *
+ * Keys are provider identifiers, values are feature flag names without the
+ * `organizations:` prefix.
+ */
+const API_PIPELINE_FEATURE_FLAGS = {} as const satisfies Partial<
+  Record<ProvidersByType['integration'], string>
+>;
+
+type FlaggedApiPipelineProvider = keyof typeof API_PIPELINE_FEATURE_FLAGS;
+type ApiPipelineProvider = UnconditionalApiPipelineProvider | FlaggedApiPipelineProvider;
 
 function getApiPipelineProvider(
   organization: Organization,
   providerKey: string
 ): ApiPipelineProvider | null {
-  if (!(providerKey in API_PIPELINE_FEATURE_FLAGS)) {
-    return null;
+  if (
+    UNCONDITIONAL_API_PIPELINE_PROVIDERS.includes(
+      providerKey as UnconditionalApiPipelineProvider
+    )
+  ) {
+    return providerKey as UnconditionalApiPipelineProvider;
   }
-  const key = providerKey as ApiPipelineProvider;
-  const flag = API_PIPELINE_FEATURE_FLAGS[key];
-  if (!organization.features.includes(flag)) {
-    return null;
+
+  if (providerKey in API_PIPELINE_FEATURE_FLAGS) {
+    const key = providerKey as keyof typeof API_PIPELINE_FEATURE_FLAGS;
+    if (organization.features.includes(API_PIPELINE_FEATURE_FLAGS[key])) {
+      return key;
+    }
   }
-  return key;
+
+  return null;
 }
 
 /**
  * Opens the integration setup flow. Accepts all parameters at call time via
  * `startFlow(params)`, so a single hook instance can launch flows for any
  * provider. Automatically selects between the API-driven pipeline modal and
- * the legacy popup-based flow depending on the organization's feature flags.
+ * the legacy popup-based flow based on the provider's rollout state.
  *
  * The hook manages its own `message` event listener for the legacy popup flow.
  * No context provider is needed.
