@@ -58,6 +58,13 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
         return None
 
     # This state should be impossible, however, the invariant is not encoded into the data type.
+    # If we encounter a null integration_id the repository is useless. Return "None" and let the
+    # SCM fail gracefully. Failing to return "None" here could fetch _any_ integration belonging
+    # to the organization.
+    if not isinstance(repo.integration_id, int):
+        return None
+
+    # This state should be impossible, however, the invariant is not encoded into the data type.
     # If we encounter a null provider the repository is functionally useless and there is a
     # broader bug in the Sentry codebase. Return "None" and let the SCM fail gracefully.
     if not isinstance(repo.provider, str):
