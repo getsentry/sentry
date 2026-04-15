@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -31,6 +32,7 @@ import {
 interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
+  dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   referenceMap?: Record<string, string>;
@@ -42,6 +44,7 @@ export function MetricToolbar({
   queryLabel,
   referenceMap,
   dragListeners,
+  dragAttributes,
   referencedMetricLabels,
   onEquationLabelsChange,
 }: MetricToolbarProps) {
@@ -103,7 +106,9 @@ export function MetricToolbar({
         data-test-id="metric-toolbar"
       >
         <Grid align="center" gap="md" columns={columns}>
-          {dragListeners ? <DragReorderButton iconSize="sm" {...dragListeners} /> : null}
+          {dragListeners ? (
+            <DragReorderButton iconSize="sm" {...dragListeners} {...dragAttributes} />
+          ) : null}
           <VisualizeLabel
             label={queryLabel}
             visualize={visualize}
@@ -129,12 +134,19 @@ export function MetricToolbar({
               )}
             </Fragment>
           ) : isVisualizeEquation(visualize) ? (
-            <EquationBuilder
-              expression={visualize.expression.text}
-              referenceMap={referenceMap}
-              handleExpressionChange={handleExpressionChange}
-              onReferenceLabelsChange={handleReferenceLabelsChange}
-            />
+            <Flex minWidth={0} gap="md">
+              <Flex flex="4 1 0" minWidth={0}>
+                <EquationBuilder
+                  expression={visualize.expression.text}
+                  referenceMap={referenceMap}
+                  handleExpressionChange={handleExpressionChange}
+                  onReferenceLabelsChange={handleReferenceLabelsChange}
+                />
+              </Flex>
+              <Flex flex="1 1 0" minWidth={0}>
+                <GroupBySelector traceMetric={traceMetric} skipTraceMetricFilter />
+              </Flex>
+            </Flex>
           ) : null}
           {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>

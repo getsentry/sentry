@@ -86,7 +86,7 @@ export function TraceRowConnectors(props: {
         );
       })}
       {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
-      {props.node.isLastChild() ? (
+      {TraceTree.IsLastVisibleChild(props.node) ? (
         <span className="TraceVerticalLastChildConnector" />
       ) : null}
     </Fragment>

@@ -165,29 +165,27 @@ describe('useBlockNavigation', () => {
   });
 
   describe('Tab Navigation', () => {
-    it('always returns to input on Tab', () => {
+    it('does not intercept Tab key (allows native browser focus management)', () => {
       const props = {...defaultProps, focusedBlockIndex: 1};
       renderHook(() => useBlockNavigation(props));
 
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
+      const event = new KeyboardEvent('keydown', {key: 'Tab', cancelable: true});
       document.dispatchEvent(event);
 
-      expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
-      expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-      expect(mockTextarea.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-        behavior: 'smooth',
-      });
+      expect(props.setFocusedBlockIndex).not.toHaveBeenCalled();
+      expect(props.textareaRef.current?.focus).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
     });
 
-    it('focuses textarea even when already at input', () => {
+    it('does not intercept Tab key when at input', () => {
       renderHook(() => useBlockNavigation(defaultProps));
 
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
+      const event = new KeyboardEvent('keydown', {key: 'Tab', cancelable: true});
       document.dispatchEvent(event);
 
-      expect(defaultProps.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
-      expect(defaultProps.textareaRef.current?.focus).toHaveBeenCalled();
+      expect(defaultProps.setFocusedBlockIndex).not.toHaveBeenCalled();
+      expect(defaultProps.textareaRef.current?.focus).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
     });
   });
 
@@ -206,7 +204,7 @@ describe('useBlockNavigation', () => {
       const props = {...defaultProps, isOpen: true};
       renderHook(() => useBlockNavigation(props));
 
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
+      const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalled();
@@ -311,11 +309,15 @@ describe('useBlockNavigation', () => {
       });
     });
 
-    it('handles null textarea ref gracefully', () => {
-      const props = {...defaultProps, textareaRef: {current: null}};
+    it('handles null textarea ref gracefully on ArrowDown from last block', () => {
+      const props = {
+        ...defaultProps,
+        focusedBlockIndex: 2,
+        textareaRef: {current: null},
+      };
       renderHook(() => useBlockNavigation(props));
 
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
+      const event = new KeyboardEvent('keydown', {key: 'ArrowDown'});
       document.dispatchEvent(event);
 
       // Should not throw error with null textarea ref

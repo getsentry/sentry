@@ -33,7 +33,6 @@ interface QuestionActions {
 interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
-  focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
@@ -58,7 +57,6 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
-  focusedBlockIndex,
   isMinimized = false,
   isPolling,
   interruptRequested,
@@ -82,12 +80,9 @@ export function InputSection({
   }, [blocks]);
   const getPlaceholder = () => {
     if (wasJustInterrupted) {
-      return 'Interrupted. What should Seer do instead?';
+      return t('Interrupted. What should Seer do instead?');
     }
-    if (focusedBlockIndex !== -1) {
-      return 'Press Tab ⇥ to return here';
-    }
-    return 'Type your message or / command and press Enter ↵';
+    return t('Type your message or / command and press Enter ↵');
   };
 
   // Handle keyboard shortcuts for file approval

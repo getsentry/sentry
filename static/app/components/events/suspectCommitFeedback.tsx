@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -22,21 +22,18 @@ export function SuspectCommitFeedback({
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const user = useUser();
 
-  const handleFeedback = useCallback(
-    (isCorrect: boolean) => {
-      const analyticsData = {
-        choice_selected: isCorrect,
-        group_owner_id: groupOwnerId,
-        user_id: user.id,
-        organization,
-      };
+  const handleFeedback = (isCorrect: boolean) => {
+    const analyticsData = {
+      choice_selected: isCorrect,
+      group_owner_id: groupOwnerId,
+      user_id: user.id,
+      organization,
+    };
 
-      trackAnalytics('suspect_commit.feedback_submitted', analyticsData);
+    trackAnalytics('suspect_commit.feedback_submitted', analyticsData);
 
-      setFeedbackSubmitted(true);
-    },
-    [groupOwnerId, organization, user]
-  );
+    setFeedbackSubmitted(true);
+  };
 
   if (feedbackSubmitted) {
     return (

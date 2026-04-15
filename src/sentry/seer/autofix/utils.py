@@ -655,14 +655,17 @@ def _write_preferences_to_sentry_db(
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
-    """Write a single Seer project preference to ProjectOption and SeerProjectRepository."""
+    """Write a single Seer project preference to ProjectOption and SeerProjectRepository.
+    TODO(AIML-2753): Add support for writing autofix_automation_tuning"""
     _write_preferences_to_sentry_db([(project, preference)])
 
 
 def bulk_write_preferences_to_sentry_db(
     projects: list[Project], preferences: list[SeerProjectPreference]
 ) -> None:
-    """Write multiple Seer project preferences using bulk operations."""
+    """Write multiple Seer project preferences using bulk operations.
+    TODO(AIML-2753): Add support for writing autofix_automation_tuning
+    """
     projects_by_id = {p.id: p for p in projects}
 
     project_preferences: list[tuple[Project, SeerProjectPreference]] = []
@@ -758,6 +761,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
         repositories=repo_definitions,
         automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         automation_handoff=_build_automation_handoff(project.get_option),
+        autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
 
@@ -813,8 +817,46 @@ def bulk_read_preferences_from_sentry_db(
                 "sentry:seer_automated_run_stopping_point"
             ),
             automation_handoff=_build_automation_handoff(_get_project_option),
+            autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
         )
 
+    return result
+
+
+def bulk_read_preferences(
+    organization: Organization, project_ids: list[int]
+) -> dict[int, SeerProjectPreference | None]:
+    """Read Seer project preferences in bulk, using the correct source based on feature flag.
+
+    Always returns ``dict[int, SeerProjectPreference | None]`` regardless of the
+    underlying read path (Sentry DB or Seer API)."""
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)
+
+    raw = bulk_get_project_preferences(organization.id, project_ids)
+    tuning_by_id = ProjectOption.objects.get_value_bulk_id(
+        project_ids, "sentry:autofix_automation_tuning"
+    )
+    result: dict[int, SeerProjectPreference | None] = {}
+    for pid, data in raw.items():
+        int_pid = int(pid)
+        if data is None:
+            result[int_pid] = None
+            continue
+        try:
+            pref = SeerProjectPreference.validate(data)
+        except pydantic.ValidationError:
+            logger.exception(
+                "seer.bulk_read_preferences.validation_error",
+                extra={"project_id": pid, "organization_id": organization.id},
+            )
+            result[int_pid] = None
+            continue
+        tuning = tuning_by_id.get(int_pid)
+        if tuning is None:
+            tuning = projectoptions.get_well_known_default("sentry:autofix_automation_tuning")
+        pref.autofix_automation_tuning = tuning
+        result[int_pid] = pref
     return result
 
 

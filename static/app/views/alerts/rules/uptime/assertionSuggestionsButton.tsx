@@ -91,7 +91,7 @@ export function AssertionSuggestionsButton({
     [getCurrentAssertion, onApplySuggestion]
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     const {url, timeoutMs, method, headers, body} = getFormData();
 
     if (!url) {
@@ -108,7 +108,7 @@ export function AssertionSuggestionsButton({
       ),
       {ariaLabel: t('AI Assertion Suggestions')}
     );
-  }, [getFormData, openDrawer, handleApplySuggestion]);
+  };
 
   return (
     <Button

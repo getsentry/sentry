@@ -8,7 +8,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   GenAiOperationType,
-  getGenAiOperationTypeFromSpanOp,
+  getGenAiOperationTypeFromSpanName,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -36,7 +36,7 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
 
   const opType =
     (attrs[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
-    getGenAiOperationTypeFromSpanOp(node.op);
+    getGenAiOperationTypeFromSpanName(node.value.name);
 
   if (!opType) {
     return undefined;
