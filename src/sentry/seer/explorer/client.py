@@ -20,8 +20,8 @@ from sentry.seer.explorer.client_utils import (
     ExplorerRunsRequest,
     ExplorerUpdateRequest,
     collect_user_org_context,
-    create_explorer_api_token,
     fetch_run_status,
+    get_proxy_headers,
     make_explorer_chat_request,
     make_explorer_runs_request,
     make_explorer_update_request,
@@ -272,13 +272,6 @@ class SeerExplorerClient:
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
-        user_auth_token = (
-            create_explorer_api_token(self.user, self.organization)
-            if self.enable_code_mode_tools
-            and self.user
-            and not isinstance(self.user, AnonymousUser)
-            else None
-        )
 
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
@@ -292,7 +285,7 @@ class SeerExplorerClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
-            user_auth_token=user_auth_token,
+            proxy_headers=get_proxy_headers() if self.enable_code_mode_tools else None,
         )
 
         if self.reasoning_effort is not None:
@@ -384,14 +377,6 @@ class SeerExplorerClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
-        user_auth_token = (
-            create_explorer_api_token(self.user, self.organization)
-            if self.enable_code_mode_tools
-            and self.user
-            and not isinstance(self.user, AnonymousUser)
-            else None
-        )
-
         chat_body: ExplorerChatRequest = ExplorerChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -402,7 +387,7 @@ class SeerExplorerClient:
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,
-            user_auth_token=user_auth_token,
+            proxy_headers=get_proxy_headers() if self.enable_code_mode_tools else None,
         )
 
         if prompt_metadata:

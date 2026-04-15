@@ -619,6 +619,26 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             validator.save()
 
+    def test_am1_org_transactions_dataset_allowed(self) -> None:
+        """AM1 orgs (no dynamic-sampling or on-demand-metrics) can't create detectors with generic_metrics dataset."""
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["data_sources"][0]["dataset"] == Dataset.Transactions
+
 
 class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
     def setUp(self) -> None:

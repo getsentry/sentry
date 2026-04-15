@@ -136,6 +136,61 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert response.data[0]["id"] == str(org1.id)
 
 
+@control_silo_test(cells=create_test_cells("us", "de"))
+class OrganizationsControlListTest(OrganizationIndexTest):
+    endpoint = "sentry-api-0-organizations"
+
+    def test_membership_across_cells(self) -> None:
+        us_org = self.create_organization(cell="us", owner=self.user, name="US Org", slug="us-org")
+        de_org = self.create_organization(cell="de", owner=self.user, name="DE Org", slug="de-org")
+
+        response = self.get_success_response()
+
+        assert {item["id"] for item in response.data} == {str(us_org.id), str(de_org.id)}
+        assert {item["slug"] for item in response.data} == {"us-org", "de-org"}
+
+    def test_show_only_token_organization(self) -> None:
+        org1 = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_scoped_token = ApiToken.objects.create(
+                user=self.user, scoping_organization_id=org1.id, scope_list=["org:read"]
+            )
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {org_scoped_token.plaintext_token}")
+        response = self.client.get(reverse(self.endpoint))
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(org1.id)
+
+    def test_owner_not_supported(self) -> None:
+        self.create_organization(cell="us", owner=self.user)
+
+        response = self.get_error_response(status_code=400, owner="1")
+
+        assert (
+            response.data["detail"]
+            == "The control-silo organizations endpoint does not support owner=1."
+        )
+
+    def test_sort_by_members(self) -> None:
+        smaller_org = self.create_organization(
+            cell="us", owner=self.user, name="Smaller Org", slug="smaller-org"
+        )
+        larger_org = self.create_organization(
+            cell="de", owner=self.user, name="Larger Org", slug="larger-org"
+        )
+
+        self.create_member(user=self.create_user(), organization=smaller_org)
+        self.create_member(user=self.create_user(), organization=larger_org)
+        self.create_member(user=self.create_user(), organization=larger_org)
+
+        response = self.get_success_response(sortBy="members")
+
+        assert [item["id"] for item in response.data] == [str(larger_org.id), str(smaller_org.id)]
+
+
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
