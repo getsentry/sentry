@@ -129,17 +129,19 @@ class TestScmRpc(APITestCase):
         )
 
     def test_get_invalid_secret(self):
-        assert_coded_error(
-            self.client.get(
-                self.url,
-                headers={
-                    **self.default_headers,
-                    "Authorization": f"rpcsignature {sign_get('s', 1, 2)}",
-                },
-            ),
-            401,
-            "rpc_invalid_grant",
-        )
+        def sig(secret):
+            return f"rpcsignature {sign_get(secret, self.organization.id, self.repo.id)}"
+
+        # Succeeds with correct secret.
+        headers = {
+            **self.default_headers,
+            "Authorization": sig("a-long-value-that-is-hard-to-guess"),
+        }
+        assert self.client.get(self.url, headers=headers).status_code == 200
+
+        # Fails with incorrect secret.
+        response = self.client.get(self.url, headers={**headers, "Authorization": sig("s")})
+        assert_coded_error(response, 401, "rpc_invalid_grant")
 
     def test_post_invalid_headers(self):
         assert_streaming_coded_error(
