@@ -166,16 +166,17 @@ export function ReleaseHeader({
     <Layout.Header>
       <Layout.HeaderContent>
         {hasPageFrameFeature ? (
-          <TopBar.Slot name="title">
+          <React.Fragment>
+            <TopBar.Slot name="title">
+              <Breadcrumbs crumbs={breadcrumbs} />
+            </TopBar.Slot>
+            <PageFrameTitle as="h1">{title}</PageFrameTitle>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
             <Breadcrumbs crumbs={breadcrumbs} />
-          </TopBar.Slot>
-        ) : (
-          <Breadcrumbs crumbs={breadcrumbs} />
-        )}
-        {hasPageFrameFeature ? (
-          <PageFrameTitle as="h1">{title}</PageFrameTitle>
-        ) : (
-          <Layout.Title>{title}</Layout.Title>
+            <Layout.Title>{title}</Layout.Title>
+          </React.Fragment>
         )}
       </Layout.HeaderContent>
 
