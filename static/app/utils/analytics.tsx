@@ -224,15 +224,6 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-/**
- * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
- * an analytics function.
- */
-export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
-  data,
-  options
-) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
-
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {
     /**

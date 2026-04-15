@@ -172,6 +172,7 @@ describe('usePipeline', () => {
     MockApiClient.addMockResponse({
       url: API_URL,
       method: 'POST',
+      statusCode: 400,
       body: {
         status: 'error',
         data: {detail: 'Something went wrong'},
@@ -184,12 +185,103 @@ describe('usePipeline', () => {
 
     expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
 
+    // Pipeline stays active — step view is still visible
+    expect(screen.getByTestId('step')).toHaveTextContent('step_one');
+    expect(screen.getByRole('textbox', {name: 'Your name'})).toBeInTheDocument();
+
     // Restart should recover from the error and re-initialize
     await userEvent.click(screen.getByTestId('restart'));
 
     expect(await screen.findByText('Hello!')).toBeInTheDocument();
     expect(screen.getByTestId('error')).toHaveTextContent('none');
     expect(screen.getByTestId('step')).toHaveTextContent('step_one');
+  });
+
+  it('handles expired session (404) as unrecoverable', async () => {
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 2,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+
+    render(<TestHarness />, {organization});
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      statusCode: 404,
+      body: {detail: 'No active pipeline session.'},
+      match: [MockApiClient.matchData({name: 'Test'})],
+    });
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Your name'}), 'Test');
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(
+      await screen.findByText('This flow has expired. Please start over.')
+    ).toBeInTheDocument();
+
+    // Step view is gone — pipeline is in unrecoverable error state
+    expect(screen.getByTestId('step')).toHaveTextContent('none');
+  });
+
+  it('handles server error (5xx) as unrecoverable', async () => {
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 2,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+
+    render(<TestHarness />, {organization});
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Internal server error'},
+      match: [MockApiClient.matchData({name: 'Test'})],
+    });
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Your name'}), 'Test');
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(await screen.findByText('Internal server error')).toBeInTheDocument();
+
+    // Step view is gone — pipeline is in unrecoverable error state
+    expect(screen.getByTestId('step')).toHaveTextContent('none');
+  });
+
+  it('handles initialization failure', async () => {
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'provider is required.'},
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+
+    render(<TestHarness />, {organization});
+
+    expect(await screen.findByText('provider is required.')).toBeInTheDocument();
+
+    // Step view is gone — pipeline is in unrecoverable error state
+    expect(screen.getByTestId('step')).toHaveTextContent('none');
   });
 
   it('restarts the pipeline from the beginning', async () => {

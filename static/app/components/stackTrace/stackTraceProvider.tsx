@@ -19,6 +19,7 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 
 export function StackTraceProvider({
   children,
+  collapseAll = false,
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
@@ -122,6 +123,7 @@ export function StackTraceProvider({
   const value = useMemo<StackTraceContextValue>(
     () => ({
       allRows,
+      collapseAll,
       exceptionIndex,
       event,
       hasAnyExpandableFrames,
@@ -140,6 +142,7 @@ export function StackTraceProvider({
     }),
     [
       allRows,
+      collapseAll,
       exceptionIndex,
       event,
       frameSourceMapDebuggerData,

@@ -7,10 +7,14 @@ interfaces defined by the taskbroker-client library.
 
 from __future__ import annotations
 
+import contextlib
+import logging
 import threading
+from collections.abc import MutableMapping
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 
+import orjson
 from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
@@ -26,6 +30,9 @@ from sentry.utils import json
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.memory import track_memory_usage as sentry_track_memory_usage
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
+
+logger = logging.getLogger(__name__)
 
 
 class DjangoCacheAtMostOnceStore(AtMostOnceStore):
@@ -143,6 +150,34 @@ class SentryRouter(LibraryRouter):
         if name in self._route_map:
             return Topic(self._route_map[name]).value
         return self._default_topic.value
+
+
+class ViewerContextHook:
+    """
+    ContextHook that propagates ViewerContext through task headers.
+
+    Uses a single JSON header, matching the RPC layer's serialization
+    via ViewerContext.serialize() / ViewerContext.deserialize().
+    """
+
+    HEADER = "sentry-viewer-context"
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        ctx = get_viewer_context()
+        if ctx is None:
+            return
+        headers[self.HEADER] = orjson.dumps(ctx.serialize()).decode()
+
+    def on_execute(self, headers: dict[str, str]) -> contextlib.AbstractContextManager[None]:
+        raw = headers.get(self.HEADER)
+        if not raw:
+            return contextlib.nullcontext()
+        try:
+            ctx = ViewerContext.deserialize(orjson.loads(raw))
+        except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
+            logger.exception("Failed to deserialize viewer context header")
+            return contextlib.nullcontext()
+        return viewer_context_scope(ctx)
 
 
 _producer_local = threading.local()

@@ -2,6 +2,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
@@ -29,7 +30,10 @@ export function getStarredDashboardsQueryKey(organization: Organization): ApiQue
 
 export function useGetStarredDashboards() {
   const organization = useOrganization();
+  const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
+
   return useApiQuery<DashboardListItem[]>(getStarredDashboardsQueryKey(organization), {
     staleTime: Infinity,
+    enabled: hasProjectAccess || !projectsLoaded,
   });
 }

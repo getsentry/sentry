@@ -203,6 +203,19 @@ describe('Core StackTrace', () => {
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
+  it('starts all frames collapsed when collapseAll is set', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    render(
+      <TestStackTraceProvider event={event} stacktrace={stacktrace} collapseAll>
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(4);
+    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+  });
+
   it('toggles frame expansion when clicking the right trailing area', async () => {
     renderStackTrace();
 
