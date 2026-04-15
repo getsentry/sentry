@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useMemo, type ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -16,6 +16,7 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -93,22 +94,43 @@ function TraceMetricsSearchBar({
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
-  const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+  const traceMetrics = useMemo(
+    () => aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [],
+    [aggregateSource]
+  );
 
   const hasMultipleMetrics = hasMultipleMetricsSelected(
     traceMetrics,
     hasMultiMetricSelection
   );
 
+  const metricQuery = useMemo(() => {
+    if (traceMetrics.length === 1 && traceMetrics[0]) {
+      return createTraceMetricFilter(traceMetrics[0]);
+    }
+
+    const search = new MutableSearch('');
+    for (let i = 0; i < traceMetrics.length; i++) {
+      const metric = traceMetrics[i];
+      if (!metric) continue;
+
+      search.addOp('(');
+      search.addStringFilter(createTraceMetricFilter(metric) ?? '');
+      search.addOp(')');
+
+      if (i < traceMetrics.length - 1) {
+        search.addOp('OR');
+      }
+    }
+
+    return search.formatString();
+  }, [traceMetrics]);
+
   // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: metricQuery,
         enabled: defined(traceMetrics[0]), // Only enable if there is at least one metric
       },
       'string',
@@ -117,10 +139,7 @@ function TraceMetricsSearchBar({
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: metricQuery,
         enabled: defined(traceMetrics[0]),
       },
       'number',
@@ -129,10 +148,7 @@ function TraceMetricsSearchBar({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: metricQuery,
         enabled: defined(traceMetrics[0]),
       },
       'boolean',
@@ -159,11 +175,7 @@ function TraceMetricsSearchBar({
       namespace={hasMultipleMetrics ? undefined : traceMetrics?.[0]?.name}
       disableRecentSearches={hasMultipleMetrics}
       hiddenAttributeKeys={HiddenTraceMetricSearchFields}
-      attributeQuery={
-        !hasMultipleMetrics && traceMetrics[0]
-          ? createTraceMetricFilter(traceMetrics[0])
-          : undefined
-      }
+      attributeQuery={metricQuery}
     />
   );
 }
