@@ -119,7 +119,7 @@ export function FunctionTrendsWidget({
     setExpandedIndex(0);
   }, [trendsQuery.data]);
 
-  const hasTrends = (trendsQuery.data?.length || 0) > 0;
+  const hasTrends = (trendsQuery.data?.json?.length || 0) > 0;
   const isLoading = trendsQuery.isPending;
   const isError = trendsQuery.isError;
 
@@ -142,7 +142,7 @@ export function FunctionTrendsWidget({
       <FunctionTrendsWidgetHeader
         header={header}
         handleCursor={handleCursor}
-        pageLinks={trendsQuery.getResponseHeader?.('Link') ?? null}
+        pageLinks={trendsQuery.data?.headers.Link ?? null}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
         trendType={trendType}
       />
@@ -168,7 +168,7 @@ export function FunctionTrendsWidget({
         )}
         {hasTrends && (
           <Accordion>
-            {(trendsQuery.data ?? []).map((f, i, l) => {
+            {(trendsQuery.data?.json ?? []).map((f, i, l) => {
               return (
                 <FunctionTrendsEntry
                   key={`${f.project}-${f.function}-${f.package}`}

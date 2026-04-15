@@ -122,7 +122,6 @@ class OrganizationEventsMetaEndpoint(
         )
         features = {
             "organizations:discover-basic": True,
-            "organizations:performance-use-metrics": True,
         }
         for dataset in ["discover", "transactions"]:
             query = {

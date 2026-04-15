@@ -65,6 +65,7 @@ export function MetricsQueryParamsProvider({
         query: getUpdatedValue(writableQueryParams.query, defaultQuery),
         aggregateFields: writableQueryParams.aggregateFields,
         aggregateSortBys: writableQueryParams.aggregateSortBys,
+        sortBys: writableQueryParams.sortBys,
         mode: writableQueryParams.mode,
       });
 
@@ -159,6 +160,7 @@ export function useMetricLabel(): string {
   const {metric} = useTraceMetricContext();
 
   if (isVisualizeEquation(visualize)) {
+    // TODO: This should show the unresolved expression from the equation builder
     return visualize.expression.text;
   }
   if (isVisualizeFunction(visualize) && visualize.parsedFunction) {

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -20,7 +21,7 @@ import {
   OrderBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
-import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
+import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
@@ -77,14 +78,16 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
   const eventView = useIssueDetailsEventView({group});
-  const {data: rawFlagData} = useOrganizationFlagLog({
-    organization,
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
-  });
+  const {data: rawFlagData} = useQuery(
+    organizationFlagLogOptions({
+      organization,
+      query: {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      },
+    })
+  );
   const location = useLocation();
 
   // issue list params we want to preserve in the search
@@ -167,39 +170,36 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     });
   }, [suspectFlagNames, eventFlags, generateAction]);
 
-  const onViewAllFlags = useCallback(
-    (focusControl?: FlagControlOptions) => {
-      trackAnalytics('flags.view-all-clicked', {
-        organization,
-      });
-      openDrawer(
-        () => (
-          <EventFeatureFlagDrawer
-            group={group}
-            event={event}
-            project={project}
-            hydratedFlags={hydratedFlags}
-            initialOrderBy={orderBy}
-            focusControl={focusControl}
-          />
-        ),
-        {
-          ariaLabel: t('Feature flags drawer'),
-          drawerKey: 'feature-flags-drawer',
-          // We prevent a click on the 'View All' button from closing the drawer so that
-          // we don't reopen it immediately, and instead let the button handle this itself.
-          shouldCloseOnInteractOutside: element => {
-            const viewAllButton = viewAllButtonRef.current;
-            if (viewAllButton?.contains(element)) {
-              return false;
-            }
-            return true;
-          },
-        }
-      );
-    },
-    [openDrawer, event, group, project, hydratedFlags, organization, orderBy]
-  );
+  const onViewAllFlags = (focusControl?: FlagControlOptions) => {
+    trackAnalytics('flags.view-all-clicked', {
+      organization,
+    });
+    openDrawer(
+      () => (
+        <EventFeatureFlagDrawer
+          group={group}
+          event={event}
+          project={project}
+          hydratedFlags={hydratedFlags}
+          initialOrderBy={orderBy}
+          focusControl={focusControl}
+        />
+      ),
+      {
+        ariaLabel: t('Feature flags drawer'),
+        drawerKey: 'feature-flags-drawer',
+        // We prevent a click on the 'View All' button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = viewAllButtonRef.current;
+          if (viewAllButton?.contains(element)) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  };
 
   useEffect(() => {
     if (hasFlags) {

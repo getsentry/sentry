@@ -1,13 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import React, {
-  Fragment,
-  memo,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -93,8 +85,8 @@ import {
   getLogSeverityLevel,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
-  ourlogToJson,
   type LogTableRowItem,
+  ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
@@ -663,7 +655,7 @@ function LogRowDetailsActions({
   // Memoize in case we are attempting to copy large JSON objects.
   const json = useMemo(() => ourlogToJson(data), [data]);
 
-  const betterCopyToClipboard = useCallback(() => {
+  const betterCopyToClipboard = () => {
     if (!json) {
       return;
     }
@@ -676,7 +668,7 @@ function LogRowDetailsActions({
         organization,
       });
     });
-  }, [copy, organization, tableDataRow, json]);
+  };
 
   return (
     <Fragment>

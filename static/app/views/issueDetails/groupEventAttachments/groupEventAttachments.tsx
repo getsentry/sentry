@@ -67,11 +67,10 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
     }
   }, [previouslyUsedAttachmentsTab, location, navigate]);
 
-  const {attachments, isPending, isError, getResponseHeader, refetch} =
-    useGroupEventAttachments({
-      group,
-      activeAttachmentsTab,
-    });
+  const {attachments, isPending, isError, pageLinks, refetch} = useGroupEventAttachments({
+    group,
+    activeAttachmentsTab,
+  });
 
   const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
 
@@ -162,7 +161,7 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
-      <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
+      <NoMarginPagination pageLinks={pageLinks} />
     </Stack>
   );
 }

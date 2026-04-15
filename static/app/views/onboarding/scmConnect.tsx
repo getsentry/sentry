@@ -63,10 +63,8 @@ export function ScmConnect({onComplete}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
-        stepNumber={1}
         heading={t('Connect a repository')}
         subtitle={t('Link your source control for enhanced debugging features')}
-        tag={t('Optional')}
       />
 
       <LayoutGroup>

@@ -203,6 +203,19 @@ describe('Core StackTrace', () => {
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
+  it('starts all frames collapsed when collapseAll is set', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    render(
+      <TestStackTraceProvider event={event} stacktrace={stacktrace} collapseAll>
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(4);
+    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+  });
+
   it('toggles frame expansion when clicking the right trailing area', async () => {
     renderStackTrace();
 
@@ -738,6 +751,34 @@ describe('Core StackTrace', () => {
     expect(await screen.findByText('native_module.c')).toBeInTheDocument();
     expect(screen.queryByText(':0')).not.toBeInTheDocument();
     expect(screen.queryByText(':0:0')).not.toBeInTheDocument();
+  });
+
+  it('does not render line number for non-in-app frames', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'library_internal.py',
+              lineNo: 42,
+              inApp: false,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findByText('library_internal.py')).toBeInTheDocument();
+    // Line number not shown for non-in-app frames
+    expect(screen.queryByText(/42/)).not.toBeInTheDocument();
   });
 
   it('falls back to raw function and renders trimmed package in title metadata', async () => {

@@ -162,27 +162,24 @@ export function EAPMetricsField({
     [onChange, traceMetric]
   );
 
-  const handleMetricChange = useCallback(
-    (option: MetricSelectOption) => {
-      const newMetric: TraceMetric = {
-        name: option.metricName,
-        type: option.metricType,
-        unit: hasMetricUnitsUI ? (option.metricUnit ?? NONE_UNIT) : undefined,
-      };
-      const newMetricType = option.metricType?.toLowerCase() ?? '';
-      const validOperations = OPTIONS_BY_TYPE[newMetricType] ?? [];
+  const handleMetricChange = (option: MetricSelectOption) => {
+    const newMetric: TraceMetric = {
+      name: option.metricName,
+      type: option.metricType,
+      unit: hasMetricUnitsUI ? (option.metricUnit ?? NONE_UNIT) : undefined,
+    };
+    const newMetricType = option.metricType?.toLowerCase() ?? '';
+    const validOperations = OPTIONS_BY_TYPE[newMetricType] ?? [];
 
-      // Always reset to first available operation for the new metric type
-      const newAggregation = validOperations[0]?.value ?? 'avg';
+    // Always reset to first available operation for the new metric type
+    const newAggregation = validOperations[0]?.value ?? 'avg';
 
-      const newAggregate = makeMetricsAggregate({
-        aggregate: newAggregation,
-        traceMetric: newMetric,
-      });
-      onChange(newAggregate, {});
-    },
-    [onChange, hasMetricUnitsUI]
-  );
+    const newAggregate = makeMetricsAggregate({
+      aggregate: newAggregation,
+      traceMetric: newMetric,
+    });
+    onChange(newAggregate, {});
+  };
 
   const traceMetricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}

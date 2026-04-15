@@ -67,12 +67,12 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
     source: TraceViewSources.AGENT_MONITORING,
   });
 
-  const handleViewFullTraceClick = useCallback(() => {
+  const handleViewFullTraceClick = () => {
     trackAnalytics('agent-monitoring.drawer.view-full-trace-click', {
       organization,
     });
     closeDrawer();
-  }, [organization, closeDrawer]);
+  };
 
   return (
     <Stack height="100%">

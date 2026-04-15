@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -40,11 +40,11 @@ export function ContinuousProfileHeader({transaction}: ContinuousProfileHeader) 
       })
     : null;
 
-  const handleGoToTransaction = useCallback(() => {
+  const handleGoToTransaction = () => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
     });
-  }, [organization]);
+  };
 
   return (
     <SmallerLayoutHeader>

@@ -335,7 +335,7 @@ describe('desktop navigation', () => {
           [`${ORG}/issues/warnings/`, 'Issues', 'Warnings'],
           [`${ORG}/issues/feedback/`, 'Issues', 'User Feedback'],
           [`${ORG}/issues/views/`, 'Issues', 'All Views'],
-          [`${ORG}/monitors/?alertsRedirect=true`, 'Monitors', 'All Monitors'],
+          [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           // Explore
           [`${ORG}/explore/traces/`, 'Explore', 'Traces'],
           [`${ORG}/explore/logs/`, 'Explore', 'Logs'],
@@ -353,7 +353,6 @@ describe('desktop navigation', () => {
           [`${ORG}/insights/ai-agents/`, 'Insights', 'Agents'],
           [`${ORG}/insights/mcp/`, 'Insights', 'MCP'],
           [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Crons'],
-          [`${ORG}/insights/projects/`, 'Insights', 'All Projects'],
           // Monitors
           [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           [`${ORG}/monitors/my-monitors/`, 'Monitors', 'My Monitors'],

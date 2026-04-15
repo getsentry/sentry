@@ -43,6 +43,7 @@ type ReadableQuery = {
   // - `aggregateField` which contains a list of group bys and visualizes merged together
   // - `groupby` and `visualize` which contains the group bys and visualizes separately
   aggregateField?: Array<RawGroupBy | RawVisualize>;
+  aggregateOrderby?: string;
   caseInsensitive?: CaseInsensitive;
 
   groupby?: string[];
@@ -59,6 +60,7 @@ class SavedQueryQuery {
   query: string;
   caseInsensitive?: CaseInsensitive;
   aggregateField: Array<RawGroupBy | RawVisualize>;
+  aggregateOrderby?: string;
   groupby: string[];
   visualize: RawVisualize[];
 
@@ -71,6 +73,7 @@ class SavedQueryQuery {
     this.orderby = query.orderby;
     this.query = query.query;
     this.caseInsensitive = query.caseInsensitive;
+    this.aggregateOrderby = query.aggregateOrderby;
     // for compatibility, we ensure that aggregate fields, group bys and visualizes are all populated
     // we ensure that group bys + visualizes = aggregate fields
     this.groupby =

@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
@@ -11,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useSeerSupportedProviderIds} from 'sentry/components/events/autofix/utils';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
@@ -20,15 +18,16 @@ import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {fetchMutation, useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useCodeReviewOverviewSection() {
   const organization = useOrganization();
   const seerSupportedProviderIds = useSeerSupportedProviderIds();
 
-  const queryOptions = organizationRepositoriesInfiniteOptions({
+  const queryOptions = organizationRepositoriesWithSettingsInfiniteOptions({
     organization,
     query: {per_page: 100},
   });
@@ -94,6 +93,10 @@ export function CodeReviewOverviewSection({
       if (queryKey) {
         queryClient.invalidateQueries({queryKey});
       }
+      // Invalidate the onboarding check query to get the updated settings
+      queryClient.invalidateQueries({
+        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+      });
       (mutations ?? []).forEach(mutation => {
         // Invalidate related queries
         queryClient.invalidateQueries({
@@ -103,71 +106,65 @@ export function CodeReviewOverviewSection({
     },
   });
 
-  const handleToggleCodeReview = useCallback(
-    (enabledCodeReview: boolean) => {
-      const repositoryIds = (
-        enabledCodeReview
-          ? seerRepos.filter(repo => !repo.settings?.enabledCodeReview)
-          : reposWithCodeReview
-      ).map(repo => repo.id);
-      mutateRepositorySettings(
-        {enabledCodeReview, repositoryIds},
-        {
-          onError: (_, variables) => {
-            addErrorMessage(
-              tn(
-                'Failed to update code review for %s repository',
-                'Failed to update code review for %s repositories',
-                variables.repositoryIds.length
-              )
-            );
-          },
-          onSuccess: (_, variables) => {
-            addSuccessMessage(
-              tn(
-                'Code review updated for %s repository',
-                'Code review updated for %s repositories',
-                variables.repositoryIds.length
-              )
-            );
-          },
-        }
-      );
-    },
-    [mutateRepositorySettings, reposWithCodeReview, seerRepos]
-  );
-
-  const handleChangeTriggers = useCallback(
-    (newTriggers: string[]) => {
-      mutateRepositorySettings(
-        {
-          codeReviewTriggers: newTriggers,
-          repositoryIds: seerRepos.map(repo => repo.id),
+  const handleToggleCodeReview = (enabledCodeReview: boolean) => {
+    const repositoryIds = (
+      enabledCodeReview
+        ? seerRepos.filter(repo => !repo.settings?.enabledCodeReview)
+        : reposWithCodeReview
+    ).map(repo => repo.id);
+    mutateRepositorySettings(
+      {enabledCodeReview, repositoryIds},
+      {
+        onError: (_, variables) => {
+          addErrorMessage(
+            tn(
+              'Failed to update code review for %s repository',
+              'Failed to update code review for %s repositories',
+              variables.repositoryIds.length
+            )
+          );
         },
-        {
-          onError: (_, variables) => {
-            addErrorMessage(
-              tn(
-                'Failed to update triggers for %s repository',
-                'Failed to update triggers for %s repositories',
-                variables.repositoryIds.length
-              )
-            );
-          },
-          onSuccess: (_, variables) => {
-            addSuccessMessage(
-              tn(
-                'Triggers updated for %s repository',
-                'Triggers updated for %s repositories',
-                variables.repositoryIds.length
-              )
-            );
-          },
-        }
-      );
-    },
-    [mutateRepositorySettings, seerRepos]
-  );
+        onSuccess: (_, variables) => {
+          addSuccessMessage(
+            tn(
+              'Code review updated for %s repository',
+              'Code review updated for %s repositories',
+              variables.repositoryIds.length
+            )
+          );
+        },
+      }
+    );
+  };
+
+  const handleChangeTriggers = (newTriggers: string[]) => {
+    mutateRepositorySettings(
+      {
+        codeReviewTriggers: newTriggers,
+        repositoryIds: seerRepos.map(repo => repo.id),
+      },
+      {
+        onError: (_, variables) => {
+          addErrorMessage(
+            tn(
+              'Failed to update triggers for %s repository',
+              'Failed to update triggers for %s repositories',
+              variables.repositoryIds.length
+            )
+          );
+        },
+        onSuccess: (_, variables) => {
+          addSuccessMessage(
+            tn(
+              'Triggers updated for %s repository',
+              'Triggers updated for %s repositories',
+              variables.repositoryIds.length
+            )
+          );
+        },
+      }
+    );
+  };
 
   return (
     <FieldGroup

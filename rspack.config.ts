@@ -308,7 +308,7 @@ const appConfig: Configuration = {
         test: /\.(js|jsx|ts|tsx)$/,
         // core-js: Avoids recompiling core-js based on usage imports
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
-        // compiled via Babel. Re-processing with @swc/plugin-emotion causes
+        // compiled via swc. Re-processing with @swc/plugin-emotion causes
         // "illegal escape sequence" warnings in dev mode.
         exclude: /node_modules[\\/](core-js|react-select)/,
         loader: 'builtin:swc-loader',

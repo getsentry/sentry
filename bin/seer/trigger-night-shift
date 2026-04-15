@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import sys
+
+from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
+
+
+def main(org_id: int) -> None:
+    sys.stdout.write(f"> Running night shift for organization {org_id}...\n")
+    run_night_shift_for_org(org_id)
+    sys.stdout.write("> Done.\n")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Trigger night shift for an organization.")
+    parser.add_argument(
+        "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
+    )
+    args = parser.parse_args()
+    main(args.org_id)
