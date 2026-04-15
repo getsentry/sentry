@@ -468,6 +468,9 @@ describe('GroupActions', () => {
 
   describe('command palette labels', () => {
     beforeEach(() => {
+      ConfigStore.loadInitialData({
+        user: UserFixture({id: '1', name: 'Test User'}),
+      } as any);
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
         method: 'GET',
