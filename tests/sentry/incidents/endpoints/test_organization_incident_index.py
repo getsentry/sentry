@@ -359,6 +359,8 @@ class IncidentListDeltaTest(APITestCase):
                     "activities.user",
                     "activities.comment",
                 },
+                # Different tables with independent auto-increment sequences
+                unreliable={"activities.id"},
             )
 
 
