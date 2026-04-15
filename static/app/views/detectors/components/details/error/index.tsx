@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -19,6 +21,8 @@ import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/compon
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type ErrorDetectorDetailsProps = {
   detector: Detector;
@@ -72,16 +76,27 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
   const organization = useOrganization();
   const canEdit = useCanEditDetectorWorkflowConnections({projectId: project.id});
   const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <DetailLayout>
-      <DetailLayout.Header>
-        <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-        <DetailLayout.Actions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+          <TopBar.Slot name="actions">
+            <EditDetectorAction detector={detector} canEdit={canEdit} />
+          </TopBar.Slot>
           <MonitorFeedbackButton />
-          <EditDetectorAction detector={detector} canEdit={canEdit} />
-        </DetailLayout.Actions>
-      </DetailLayout.Header>
+        </Fragment>
+      ) : (
+        <DetailLayout.Header>
+          <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+          <DetailLayout.Actions>
+            <MonitorFeedbackButton />
+            <EditDetectorAction detector={detector} canEdit={canEdit} />
+          </DetailLayout.Actions>
+        </DetailLayout.Header>
+      )}
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DisabledAlert

@@ -139,12 +139,12 @@ describe('SchemaHintsList', () => {
     });
   });
 
-  it('should render loading indicator when isLoading is true', () => {
+  it('should render placeholder skeletons when isLoading is true', () => {
     render(
       <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
     );
 
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
   });
 
   it('should open drawer when see full list is clicked', async () => {
