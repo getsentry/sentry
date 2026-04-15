@@ -643,9 +643,11 @@ def _resolve_project_preference(
     """
     Resolve the Seer project preference for a project before triggering autofix.
 
-    If an existing preference is found in Seer, returns it.
-    If not, creates one from fallback_repos.
+    If an existing preference with repositories is found, returns it.
+    Otherwise, creates one using fallback repos and preserves any existing
+    stopping point / handoff settings.
     """
+    preference: SeerProjectPreference | None = None
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
         preference = read_preference_from_sentry_db(project)
     else:
@@ -658,16 +660,24 @@ def _resolve_project_preference(
             )
             return None
 
-    if preference:
+    if preference and preference.repositories:
         return preference
 
-    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
+    if preference:
+        # Preference exists but has no repos —
+        # keep the user's existing stopping point and handoff settings.
+        stopping_point = preference.automated_run_stopping_point
+        handoff = preference.automation_handoff
+    else:
+        # No preference at all — use org defaults.
+        stopping_point, handoff = get_org_default_seer_automation_handoff(organization)
+
     preference = SeerProjectPreference(
         organization_id=organization.id,
         project_id=project.id,
         repositories=fallback_repos,
-        automated_run_stopping_point=default_stopping_point,
-        automation_handoff=default_handoff,
+        automated_run_stopping_point=stopping_point,
+        automation_handoff=handoff,
     )
 
     try:
@@ -684,7 +694,7 @@ def _resolve_project_preference(
             write_preference_to_sentry_db(project, preference)
         except Exception:
             logger.exception(
-                "seer.write_preferences.resolve_project_preference.sentry_db_write_failed",
+                "seer.resolve_project_preference.write_failed",
                 extra={"project_id": project.id, "organization_id": organization.id},
                 exc_info=True,
             )
