@@ -69,9 +69,15 @@ export function EventDrawerContainer(props: ComponentPropsWithoutRef<'div'>) {
 
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;
-  height: var(--event-drawer-header-height, auto);
-  max-height: var(--event-drawer-header-height, ${MIN_NAV_HEIGHT}px);
-  min-height: var(--event-drawer-header-height, ${MIN_NAV_HEIGHT}px);
+  height: var(--event-drawer-header-height, var(--drawer-header-height, auto));
+  max-height: var(
+    --event-drawer-header-height,
+    var(--drawer-header-height, ${MIN_NAV_HEIGHT}px)
+  );
+  min-height: var(
+    --event-drawer-header-height,
+    var(--drawer-header-height, ${MIN_NAV_HEIGHT}px)
+  );
   align-items: center;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
