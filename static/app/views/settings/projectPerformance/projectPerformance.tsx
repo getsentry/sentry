@@ -92,7 +92,7 @@ enum DetectorConfigAdmin {
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
   WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
-  LLM_ISSUE_DETECTION_ENABLED = 'llm_issue_detection_enabled',
+  AI_ISSUE_DETECTION_ENABLED = 'ai_issue_detection_enabled',
   AI_DETECTED_HTTP_ENABLED = 'ai_detected_http_enabled',
   AI_DETECTED_DB_ENABLED = 'ai_detected_db_enabled',
   AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED = 'ai_detected_runtime_performance_enabled',
@@ -598,7 +598,7 @@ export function ProjectPerformance() {
       visible: hasWebVitalsSeerSuggestions,
     },
     [IssueTitle.LLM_DETECTED_EXPERIMENTAL_V2]: {
-      name: DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED,
+      name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
       label: t('AI Issue Detection'),
       defaultValue: true,
@@ -608,7 +608,7 @@ export function ProjectPerformance() {
           getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
           data => ({
             ...data!,
-            llm_issue_detection_enabled: value,
+            ai_issue_detection_enabled: value,
           })
         );
       },
@@ -1058,7 +1058,7 @@ export function ProjectPerformance() {
             defaultValue: true,
             disabled: !(
               hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
           },
@@ -1069,7 +1069,7 @@ export function ProjectPerformance() {
             defaultValue: true,
             disabled: !(
               hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
           },
@@ -1080,7 +1080,7 @@ export function ProjectPerformance() {
             defaultValue: true,
             disabled: !(
               hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
           },
@@ -1091,7 +1091,7 @@ export function ProjectPerformance() {
             defaultValue: true,
             disabled: !(
               hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
           },
@@ -1102,7 +1102,7 @@ export function ProjectPerformance() {
             defaultValue: true,
             disabled: !(
               hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
           },
@@ -1113,7 +1113,7 @@ export function ProjectPerformance() {
             defaultValue: true,
             disabled: !(
               hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LLM_ISSUE_DETECTION_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
             ),
             disabledReason,
           },
