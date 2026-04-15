@@ -63,10 +63,12 @@ export function WidgetBuilderQueryFilterBuilder({
   // - Tables: only one filter (no overlay concept)
   // - Big Numbers: only one filter (single value display)
   // - Bar (Categorical): only one filter allowed, to simplify product for now
+  // - Details: only one filter (single query, key-value display)
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.DETAILS &&
     state.query &&
     state.query.length < 3;
 

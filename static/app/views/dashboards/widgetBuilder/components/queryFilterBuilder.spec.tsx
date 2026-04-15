@@ -143,6 +143,35 @@ describe('QueryFilterBuilder', () => {
     expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
   });
 
+  it('does not allow adding multiple filters for the details widget', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.DETAILS,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Search for spans, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
+  });
+
   it('limits number of filter queries to 3', async () => {
     render(
       <WidgetBuilderProvider>
