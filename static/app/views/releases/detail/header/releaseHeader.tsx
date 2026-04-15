@@ -154,7 +154,7 @@ export function ReleaseHeader({
               avatarSize={hasPageFrameFeature ? 16 : 28}
               hideName
             />
-            <Version version={version} anchor={false} truncate />
+            <Version version={version} anchor={false} />
             <CopyToClipboardButton
               className="release-copy-button"
               priority="transparent"
