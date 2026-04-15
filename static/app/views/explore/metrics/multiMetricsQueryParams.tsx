@@ -102,71 +102,69 @@ export function MultiMetricsQueryParamsProvider({
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
+        const newMetricQueries = metricQueries.map(
+          (metricQuery: BaseMetricQuery, j: number) => {
+            if (i !== j) {
+              return metricQuery;
+            }
+            return {
+              metric: metricQuery.metric,
+              queryParams: newQueryParams,
+              label: metricQuery.label,
+            };
+          }
+        );
         navigateToMetricQueries(
-          syncUpdatedMetricQueries(
-            metricQueries,
-            metricQueries.map((metricQuery: BaseMetricQuery, j: number) => {
-              if (i !== j) {
-                return metricQuery;
-              }
-              return {
-                metric: metricQuery.metric,
-                queryParams: newQueryParams,
-                label: metricQuery.label,
-              };
-            })
-          )
+          syncUpdatedMetricQueries(metricQueries, newMetricQueries)
         );
       };
     }
 
     function setTraceMetricForIndex(i: number) {
       return function (newTraceMetric: TraceMetric) {
+        const newMetricQueries = metricQueries.map(
+          (metricQuery: BaseMetricQuery, j: number) => {
+            if (i !== j) {
+              return metricQuery;
+            }
+
+            // when changing trace metrics, we need to look at the currently selected
+            // aggregation and make necessary adjustments
+            const visualize = metricQuery.queryParams.visualizes[0];
+            let aggregateFields = undefined;
+            if (visualize && isVisualizeFunction(visualize)) {
+              const selectedAggregation = visualize.parsedFunction?.name;
+              const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
+
+              if (
+                selectedAggregation &&
+                allowedAggregations?.find(option => option.value === selectedAggregation)
+              ) {
+                // the currently selected aggregation changed types
+                aggregateFields = [
+                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              } else {
+                // the currently selected aggregation isn't supported on the new metric
+                const defaultAggregation =
+                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
+                aggregateFields = [
+                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              }
+            }
+
+            return {
+              queryParams: metricQuery.queryParams.replace({aggregateFields}),
+              metric: newTraceMetric,
+              label: metricQuery.label,
+            };
+          }
+        );
         navigateToMetricQueries(
-          syncUpdatedMetricQueries(
-            metricQueries,
-            metricQueries.map((metricQuery: BaseMetricQuery, j: number) => {
-              if (i !== j) {
-                return metricQuery;
-              }
-
-              // when changing trace metrics, we need to look at the currently selected
-              // aggregation and make necessary adjustments
-              const visualize = metricQuery.queryParams.visualizes[0];
-              let aggregateFields = undefined;
-              if (visualize && isVisualizeFunction(visualize)) {
-                const selectedAggregation = visualize.parsedFunction?.name;
-                const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
-
-                if (
-                  selectedAggregation &&
-                  allowedAggregations?.find(
-                    option => option.value === selectedAggregation
-                  )
-                ) {
-                  // the currently selected aggregation changed types
-                  aggregateFields = [
-                    updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
-                    ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                  ];
-                } else {
-                  // the currently selected aggregation isn't supported on the new metric
-                  const defaultAggregation =
-                    DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
-                  aggregateFields = [
-                    updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
-                    ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                  ];
-                }
-              }
-
-              return {
-                queryParams: metricQuery.queryParams.replace({aggregateFields}),
-                metric: newTraceMetric,
-                label: metricQuery.label,
-              };
-            })
-          )
+          syncUpdatedMetricQueries(metricQueries, newMetricQueries)
         );
       };
     }
