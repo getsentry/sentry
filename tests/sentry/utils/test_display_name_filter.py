@@ -21,25 +21,16 @@ class TestCheckSpamDisplayName:
         assert check_spam_display_name("bit.ly/promo team") is None
 
     def test_currency_plus_cta_rejected(self) -> None:
-        result = check_spam_display_name("Free BTC - Click Here")
-        assert result is not None
-        assert "cryptocurrency terminology" in result
-        assert "call-to-action phrases" in result
+        assert check_spam_display_name("Free BTC - Click Here") is not None
 
     def test_currency_plus_shorturl_rejected(self) -> None:
-        result = check_spam_display_name("Earn $100 via 2g.tel/promo")
-        assert result is not None
-        assert "cryptocurrency terminology" in result
-        assert "URL shortener domains" in result
+        assert check_spam_display_name("Earn $100 via 2g.tel/promo") is not None
 
     def test_shorturl_without_slash_not_matched(self) -> None:
         assert check_spam_display_name("support.com Solutions") is None
 
     def test_cta_plus_shorturl_rejected(self) -> None:
-        result = check_spam_display_name("Click Here: bit.ly/free")
-        assert result is not None
-        assert "call-to-action phrases" in result
-        assert "URL shortener domains" in result
+        assert check_spam_display_name("Click Here: bit.ly/free") is not None
 
     def test_bare_shorturl_domain_without_path_passes(self) -> None:
         assert check_spam_display_name("Free BTC bit.ly") is None
