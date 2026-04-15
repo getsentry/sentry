@@ -25,6 +25,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
   const {startFlow} = useAddIntegration();
   const primaryProviders = providers.filter(p => PRIMARY_PROVIDER_KEYS.has(p.key));
   const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.has(p.key));
+  const relevantProvidersLength = primaryProviders.length + moreProviders.length;
 
   const columnPrimaryProviders = primaryProviders.length
     ? `repeat(${primaryProviders.length}, 1fr)`
@@ -33,12 +34,13 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
   const columnSpacer = primaryProviders.length && moreProviders.length ? ' ' : '';
 
   const columnsMd = `${columnPrimaryProviders}${columnSpacer}${columnMoreProviders}`;
+  const columnsXs = relevantProvidersLength > 1 ? '1fr 1fr' : '1fr';
 
   return (
     <Flex justify="center">
       <Grid
         columns={{
-          xs: '1fr 1fr',
+          xs: columnsXs,
           md: columnsMd,
         }}
         justify="center"
