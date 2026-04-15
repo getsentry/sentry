@@ -2,12 +2,13 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -34,7 +35,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {Breadcrumb, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {getCrumbs, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -259,41 +260,56 @@ export function TransactionHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        {hasPageFrameFeature ? null : (
-          <Breadcrumb
-            organization={organization}
-            location={location}
-            transaction={{
-              project: projectId,
-              name: transactionName,
-            }}
-          />
-        )}
-        <Layout.Title>
-          {project && (
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-          )}
-          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-            <TransactionName>{transactionName}</TransactionName>
-          </Tooltip>
-        </Layout.Title>
         {hasPageFrameFeature ? (
           <TopBar.Slot name="title">
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              transaction={{
-                project: projectId,
-                name: transactionName,
-              }}
+            <Breadcrumbs
+              crumbs={getCrumbs({
+                organization,
+                location,
+                transaction: {project: projectId, name: transactionName},
+              }).concat({
+                label: (
+                  <Flex align="center" gap="sm">
+                    {project && (
+                      <IdBadge
+                        project={project}
+                        avatarSize={16}
+                        hideName
+                        avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                      />
+                    )}
+                    <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                      <TransactionName>{transactionName}</TransactionName>
+                    </Tooltip>
+                  </Flex>
+                ),
+              })}
             />
           </TopBar.Slot>
-        ) : null}
+        ) : (
+          <Fragment>
+            <Breadcrumbs
+              crumbs={getCrumbs({
+                organization,
+                location,
+                transaction: {project: projectId, name: transactionName},
+              })}
+            />
+            <Layout.Title>
+              {project && (
+                <IdBadge
+                  project={project}
+                  avatarSize={28}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                />
+              )}
+              <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                <TransactionName>{transactionName}</TransactionName>
+              </Tooltip>
+            </Layout.Title>
+          </Fragment>
+        )}
       </Layout.HeaderContent>
       {hasPageFrameFeature ? (
         <Fragment>
