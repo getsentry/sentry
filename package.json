@@ -48,19 +48,14 @@
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
     "snapshots": "jest --config jest.config.snapshots.ts",
     "knip": "knip --treat-config-hints-as-errors",
-    "knip:prod": "pnpm run knip --production --exclude dependencies,unresolved"
+    "knip:prod": "pnpm run knip --production --exclude dependencies"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
-    "@babel/core": "~7.29.0",
-    "@babel/preset-env": "~7.29.0",
-    "@babel/preset-react": "^7.28.5",
-    "@babel/preset-typescript": "^7.28.5",
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/modifiers": "7.0.0",
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@emotion/babel-plugin": "^11.13.5",
     "@emotion/cache": "^11.14.0",
     "@emotion/css": "^11.13.5",
     "@emotion/is-prop-valid": "^1.3.0",
@@ -122,7 +117,7 @@
     "@sentry/webpack-plugin": "4.6.1",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^5.10.0",
-    "@swc/plugin-emotion": "14.3.0",
+    "@swc/plugin-emotion": "14.8.0",
     "@tanstack/query-async-storage-persister": "5.96.0",
     "@tanstack/react-devtools": "0.9.9",
     "@tanstack/react-form": "1.28.6",
@@ -226,7 +221,7 @@
     "ts-checker-rspack-plugin": "1.2.6",
     "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
-    "zod": "^4.3.5",
+    "zod": "4.3.5",
     "zrender": "6.0.0",
     "zxcvbn": "^4.4.2"
   },
@@ -242,6 +237,9 @@
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "10.41.0-beta.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
+    "@swc-contrib/mut-cjs-exports": "14.8.0",
+    "@swc/core": "1.15.24",
+    "@swc/jest": "0.2.39",
     "@tanstack/eslint-plugin-query": "5.96.0",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "6.9.1",
@@ -255,7 +253,6 @@
     "@typescript-eslint/utils": "8.58.0",
     "@typescript/native-preview": "7.0.0-dev.20260401.1",
     "@volar/typescript": "^2.4.28",
-    "babel-jest": "30.3.0",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^3.8.3",
@@ -279,7 +276,7 @@
     "jest-environment-jsdom": "30.3.0",
     "jest-fail-on-console": "3.3.4",
     "jest-junit": "16.0.0",
-    "knip": "6.3.1",
+    "knip": "6.4.1",
     "odiff-bin": "^4.3.2",
     "oxfmt": "^0.41.0",
     "playwright": "^1.58.2",
@@ -330,7 +327,10 @@
       "esbuild",
       "odiff-bin",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "zod@4.3.5": "patches/zod@4.3.5.patch"
+    }
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000"

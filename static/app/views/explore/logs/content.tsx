@@ -126,7 +126,10 @@ function LogsHeader() {
           />
         ) : null}
         {title && defined(pageId) ? (
-          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.LOGS}
+            savedQueryName={savedQuery?.name}
+          />
         ) : null}
 
         <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
