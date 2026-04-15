@@ -200,10 +200,9 @@ export function ProjectPerformance() {
   });
 
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
-  // const hasAIIssueDetection =
-  //   organization.features.includes('gen-ai-features') &&
-  //   organization.features.includes('ai-issue-detection');
-  const hasAIIssueDetection = true;
+  const hasAIIssueDetection =
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('ai-issue-detection');
 
   const {
     data: threshold,
@@ -605,6 +604,7 @@ export function ProjectPerformance() {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
       label: t('AI Issue Detection'),
+      help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
       onChange: value => {
         setApiQueryData<ProjectPerformanceSettings>(
@@ -1133,10 +1133,10 @@ export function ProjectPerformance() {
             ...fieldGroup,
             fields: [
               {
-                ...manageField,
                 help: t(
                   'Controls whether or not Sentry should detect this type of issue.'
                 ),
+                ...manageField,
                 disabled: !hasAccess,
                 disabledReason: t('You do not have permission to manage detectors.'),
               },
