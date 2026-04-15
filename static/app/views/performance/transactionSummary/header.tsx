@@ -259,14 +259,16 @@ export function TransactionHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumb
-          organization={organization}
-          location={location}
-          transaction={{
-            project: projectId,
-            name: transactionName,
-          }}
-        />
+        {hasPageFrameFeature ? null : (
+          <Breadcrumb
+            organization={organization}
+            location={location}
+            transaction={{
+              project: projectId,
+              name: transactionName,
+            }}
+          />
+        )}
         <Layout.Title>
           {project && (
             <IdBadge
@@ -280,6 +282,18 @@ export function TransactionHeader({
             <TransactionName>{transactionName}</TransactionName>
           </Tooltip>
         </Layout.Title>
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="title">
+            <Breadcrumb
+              organization={organization}
+              location={location}
+              transaction={{
+                project: projectId,
+                name: transactionName,
+              }}
+            />
+          </TopBar.Slot>
+        ) : null}
       </Layout.HeaderContent>
       {hasPageFrameFeature ? (
         <Fragment>
