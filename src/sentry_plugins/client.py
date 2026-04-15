@@ -59,6 +59,7 @@ class AuthApiClient(ApiClient):
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: Literal[True] = ...,
     ) -> Response: ...
 
@@ -77,6 +78,7 @@ class AuthApiClient(ApiClient):
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: bool = ...,
     ) -> Any: ...
 
