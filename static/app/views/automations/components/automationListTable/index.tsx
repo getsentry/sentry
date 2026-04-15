@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
-import {Button} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,6 +15,7 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -24,6 +25,7 @@ import {
   AutomationListRowSkeleton,
 } from 'sentry/views/automations/components/automationListTable/row';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 type AutomationListTableProps = {
   allResultsVisible: boolean;
@@ -88,6 +90,7 @@ export function AutomationListTable({
   queryCount,
   allResultsVisible,
 }: AutomationListTableProps) {
+  const location = useLocation();
   const organization = useOrganization();
   const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
 
@@ -178,17 +181,27 @@ export function AutomationListTable({
         />
       )}
       {isSuccess && automations.length === 0 && (
-        {/* TODO - pull this out so it's on it's own */}
         <SimpleTable.Empty>
-          {/* TODO - Gap 16px, padding 56px */}
-          <Flex direction="column" align="center">
+          <StyledFlex gap="xl" direction="column" align="center">
             <img src={NoAlertsImage} />
             <Text as="h5">{t('No alerts found.')}</Text>
-            <Text>{t('Looking for a monitor? Try looking on the monitors page')}</Text>
-            <Button icon={<IconSearch />} priority="primary">
+            <Text align="center" variant="muted">
+              {t('Looking for a monitor? Try looking on the monitors page')}
+            </Text>
+
+            <LinkButton
+              icon={<IconSearch />}
+              priority="primary"
+              to={{
+                pathname: makeMonitorBasePathname(organization.slug),
+                query: {
+                  query: decodeScalar(location.query?.query),
+                },
+              }}
+            >
               {t('Search Monitors')}
-            </Button>
-          </Flex>
+            </LinkButton>
+          </StyledFlex>
         </SimpleTable.Empty>
       )}
       {isError && <LoadingError message={t('Error loading alerts')} />}
@@ -205,6 +218,10 @@ export function AutomationListTable({
     </AutomationsSimpleTable>
   );
 }
+
+const StyledFlex = styled(Flex)`
+  padding: 56px;
+`;
 
 const AutomationsSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr;
