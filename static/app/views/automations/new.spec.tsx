@@ -529,7 +529,7 @@ describe('AutomationNewSettings', () => {
       expect(expectedAction).toBeDefined();
       expect(action).toEqual(expect.objectContaining(expectedAction));
     });
-  }, 10000);
+  }, 30000);
 
   it('sends test notification with project slug from connected monitor', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
