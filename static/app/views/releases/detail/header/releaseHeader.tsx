@@ -6,7 +6,6 @@ import pick from 'lodash/pick';
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
-import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -166,18 +165,13 @@ export function ReleaseHeader({
     <Layout.Header>
       <Layout.HeaderContent>
         {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">
-              <Breadcrumbs crumbs={breadcrumbs} />
-            </TopBar.Slot>
-            <PageFrameTitle as="h1">{title}</PageFrameTitle>
-          </Fragment>
-        ) : (
-          <Fragment>
+          <TopBar.Slot name="title">
             <Breadcrumbs crumbs={breadcrumbs} />
-            <Layout.Title>{title}</Layout.Title>
-          </Fragment>
+          </TopBar.Slot>
+        ) : (
+          <Breadcrumbs crumbs={breadcrumbs} />
         )}
+        <Layout.Title>{title}</Layout.Title>
       </Layout.HeaderContent>
 
       {hasPageFrameFeature ? (
@@ -225,16 +219,6 @@ const IconWrapper = styled('span')`
       color: ${p => p.theme.tokens.content.primary};
     }
   }
-`;
-
-const PageFrameTitle = styled(Heading)`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  width: 100%;
 `;
 
 const NavTabsBadge = styled(Badge)`
