@@ -880,7 +880,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
     """Get Seer project preferences for a single project.
 
     Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
-    Returns None if the project has no configured preferences.
+    Returns None if the project has no preference row in Seer DB.
     """
     project = Project.objects.get_from_cache(id=project_id)
     if project.organization_id != organization_id:
@@ -891,9 +891,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
         return read_preference_from_sentry_db(project).dict()
 
     preference = get_project_seer_preferences(project_id).preference
-    if preference is None:
-        return None
-    return preference.dict()
+    return preference.dict() if preference else None
 
 
 def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
