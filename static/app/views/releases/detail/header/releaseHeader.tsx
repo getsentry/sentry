@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -50,7 +50,7 @@ export function ReleaseHeader({
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
   const titleChildren = (
-    <Fragment>
+    <React.Fragment>
       <IdBadge project={project} avatarSize={hasPageFrameFeature ? 16 : 28} hideName />
       <Version version={version} anchor={false} />
       <CopyToClipboardButton
@@ -70,7 +70,7 @@ export function ReleaseHeader({
           </Tooltip>
         </IconWrapper>
       )}
-    </Fragment>
+    </React.Fragment>
   );
 
   const breadcrumbs = [
@@ -136,14 +136,14 @@ export function ReleaseHeader({
             <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
-          <Fragment>
+          <React.Fragment>
             <NavTabsBadge variant="muted">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
               <FeatureBadge type="new" />
             </BadgeWrapper>
-          </Fragment>
+          </React.Fragment>
         ),
     }),
     textValue: t('Mobile Builds %s', numberOfMobileBuilds),
@@ -180,10 +180,10 @@ export function ReleaseHeader({
             <Breadcrumbs crumbs={breadcrumbs} />
           </TopBar.Slot>
         ) : (
-          <Fragment>
+          <React.Fragment>
             <Breadcrumbs crumbs={breadcrumbs} />
             <Layout.Title>{titleChildren}</Layout.Title>
-          </Fragment>
+          </React.Fragment>
         )}
       </Layout.HeaderContent>
 
