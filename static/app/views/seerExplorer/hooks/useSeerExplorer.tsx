@@ -451,7 +451,7 @@ export const useSeerExplorer = () => {
     [api, orgSlug, runId, queryClient]
   );
 
-  // Always filter messages based on optimistic state and deletedFromIndex before any other processing
+  // Apply deletedFromIndex and optimistic state before any other processing
   const sessionData = apiData?.session ?? null;
 
   const filteredSessionData = useMemo(() => {
@@ -508,6 +508,61 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
+  // Clear optimistic blocks once the server has persisted the user message
+  // and produced a real assistant response after the insert point.
+  useEffect(() => {
+    if (!optimistic || apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
+      return;
+    }
+
+    const serverBlocks = apiData?.session?.blocks || [];
+    const blockAtInsert = serverBlocks[optimistic.insertIndex];
+
+    const serverHasUserBlock =
+      blockAtInsert?.message.role === 'user' &&
+      blockAtInsert?.message.content === optimistic.userQuery;
+
+    if (!serverHasUserBlock) {
+      return;
+    }
+
+    const hasAssistantResponse = serverBlocks
+      .slice(optimistic.insertIndex + 1)
+      .some(b => b.message.role === 'assistant');
+
+    if (hasAssistantResponse) {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+    }
+  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
+
+  // On response load or timeout
+  const isLoaded =
+    filteredSessionData &&
+    filteredSessionData.status !== 'processing' &&
+    filteredSessionData.blocks.every((block: Block) => !block.loading);
+
+  useEffect(() => {
+    if (isLoaded || isTimedOut) {
+      // Reset waiting state and timeout
+      setWaitingForResponse(false);
+      setDeletedFromIndex(null);
+      cancelPollingTimeout();
+
+      if (interruptRequested) {
+        // Clear waiting for interrupt state and set persistent UI flag until next request
+        setInterruptRequested(false);
+        setWasJustInterrupted(true);
+      }
+    }
+  }, [
+    waitingForResponse,
+    interruptRequested,
+    isLoaded,
+    isTimedOut,
+    cancelPollingTimeout,
+  ]);
+
   // Detect PR creation errors and show error messages
   useEffect(() => {
     const currentPRStates = sessionData?.repo_pr_states ?? {};
@@ -529,34 +584,6 @@ export const useSeerExplorer = () => {
 
     previousPRStatesRef.current = currentPRStates;
   }, [sessionData?.repo_pr_states]);
-
-  // On response load or timeout
-  const isLoaded =
-    filteredSessionData &&
-    filteredSessionData.status !== 'processing' &&
-    filteredSessionData.blocks.every((block: Block) => !block.loading);
-
-  useEffect(() => {
-    if (isLoaded || isTimedOut) {
-      // Reset waiting and request states
-      setWaitingForResponse(false);
-      setOptimistic(null);
-      setDeletedFromIndex(null);
-      cancelPollingTimeout();
-
-      if (interruptRequested) {
-        // Clear waiting for interrupt state and set persistent UI flag until next request
-        setInterruptRequested(false);
-        setWasJustInterrupted(true);
-      }
-    }
-  }, [
-    waitingForResponse,
-    interruptRequested,
-    isLoaded,
-    isTimedOut,
-    cancelPollingTimeout,
-  ]);
 
   return {
     sessionData: filteredSessionData,
