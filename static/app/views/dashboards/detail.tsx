@@ -1182,11 +1182,22 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Header unified={this.props.hasPageFrameFeature}>
                   {this.props.hasPageFrameFeature ? (
                     <TopBar.Slot name="title">
-                      <DashboardPageFrameBreadcrumbs
-                        organizationSlug={organization.slug}
-                        dashboard={modifiedDashboard ?? dashboard}
-                        onUpdate={this.setModifiedDashboard}
-                        isEditingDashboard={this.isEditingDashboard}
+                      <Breadcrumbs
+                        crumbs={[
+                          {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
+                          {
+                            label: (
+                              <DashboardTitle
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onUpdate={this.setModifiedDashboard}
+                                isEditingDashboard={this.isEditingDashboard}
+                              />
+                            ),
+                          },
+                        ]}
                       />
                     </TopBar.Slot>
                   ) : (
@@ -1491,43 +1502,6 @@ class DashboardDetail extends Component<Props, State> {
     return this.renderDefaultDashboardDetail();
   }
 }
-
-function DashboardPageFrameBreadcrumbs({
-  dashboard,
-  organizationSlug,
-  isEditingDashboard,
-  onUpdate,
-}: {
-  dashboard: DashboardDetails | null;
-  isEditingDashboard: boolean;
-  onUpdate: (dashboard: DashboardDetails) => void;
-  organizationSlug: string;
-}) {
-  return (
-    <StyledDashboardPageFrameBreadcrumbs
-      crumbs={[
-        {
-          label: t('Dashboards'),
-          to: `/organizations/${organizationSlug}/dashboards/`,
-        },
-        {
-          label: (
-            <DashboardTitle
-              dashboard={dashboard}
-              onUpdate={onUpdate}
-              isEditingDashboard={isEditingDashboard}
-            />
-          ),
-        },
-      ]}
-    />
-  );
-}
-
-const StyledDashboardPageFrameBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
-  height: 34px;
-`;
 
 const StyledPageHeader = styled('div')`
   display: grid;
