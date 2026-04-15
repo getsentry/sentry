@@ -74,6 +74,9 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
 
   const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
 
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
+
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
       attachment,
@@ -83,10 +86,12 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
       environment: eventView.environment as string[],
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
       eventQuery,
+      ...(hasSetStatsPeriod && {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      }),
     });
   };
 
