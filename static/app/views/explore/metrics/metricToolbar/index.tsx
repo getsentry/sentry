@@ -157,8 +157,11 @@ export function MetricToolbar({
           ) : null}
           {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>
-        {isNarrow && isVisualizeFunction(visualize) && (
-          <Filter traceMetric={traceMetric} />
+        {isNarrow && (
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter={isVisualizeEquation(visualize)}
+          />
         )}
       </Flex>
     );
