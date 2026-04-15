@@ -9,7 +9,10 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
+} from 'sentry/views/navigation/constants';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {
@@ -137,6 +140,11 @@ export function DrawerHeader({
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
       height={hasPageFrameFeature ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
+      mobileHeight={
+        hasPageFrameFeature
+          ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+          : undefined
+      }
     >
       {!hideCloseButton && (
         <Fragment>
@@ -168,6 +176,7 @@ const Header = styled('header')<{
   height?: string;
   hideBar?: boolean;
   hideCloseButton?: boolean;
+  mobileHeight?: string;
 }>`
   position: sticky;
   top: 0;
@@ -193,6 +202,15 @@ const Header = styled('header')<{
     box-shadow: none;
     border-bottom: 1px solid ${p.theme.tokens.border.primary};
   `}
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    ${p =>
+      p.mobileHeight &&
+      `
+      --drawer-header-height: ${p.mobileHeight};
+      height: var(--drawer-header-height);
+    `}
+  }
 `;
 
 export const DrawerBody = styled('aside')`
