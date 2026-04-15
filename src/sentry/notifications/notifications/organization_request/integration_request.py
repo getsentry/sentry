@@ -85,7 +85,9 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         requester_name = sanitize_outbound_name(self.requester.get_display_name())
         optional_message = (
-            f" They've included this message `{self.message}`" if self.message else ""
+            f" They've included this message `{sanitize_outbound_name(self.message)}`"
+            if self.message
+            else ""
         )
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {sanitize_outbound_name(self.organization.name)}.{optional_message}"
 
