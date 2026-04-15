@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
@@ -22,6 +21,11 @@ import {AutomationBuilderConflictContext} from 'sentry/views/automations/compone
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
+import {
+  EmbeddedSelectField,
+  Step,
+  StepLead,
+} from 'sentry/views/automations/components/stepComponents';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
@@ -119,23 +123,6 @@ export function AutomationBuilder() {
     </AutomationBuilderConflictContext.Provider>
   );
 }
-
-const Step = styled(Flex)`
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const StepLead = styled(Flex)`
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const EmbeddedSelectField = styled(Select)`
-  padding: 0;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  text-transform: none;
-`;
 
 const StyledAlert = styled(Alert)`
   margin-top: ${p => p.theme.space.md};

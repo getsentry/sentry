@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
 
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
@@ -26,6 +25,11 @@ import {
   validateActions,
 } from 'sentry/views/automations/components/automationFormData';
 import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
+import {
+  EmbeddedSelectField,
+  Step,
+  StepLead,
+} from 'sentry/views/automations/components/stepComponents';
 import {useSendTestNotification as useSendTestNotificationMutation} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 
@@ -171,23 +175,6 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
     </IfThenWrapper>
   );
 }
-
-const Step = styled(Flex)`
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const StepLead = styled(Flex)`
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const EmbeddedSelectField = styled(Select)`
-  padding: 0;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  text-transform: none;
-`;
 
 const IfThenWrapper = styled(Flex)`
   position: relative;
