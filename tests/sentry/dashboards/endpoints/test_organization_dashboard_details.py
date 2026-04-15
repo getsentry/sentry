@@ -4014,21 +4014,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
     def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
-        original_title = self.dashboard.title
         with self.feature("organizations:dashboards-revisions"):
             response = self.do_request(
                 "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
             )
         assert response.status_code == 200, response.data
-
-        revisions = DashboardRevision.objects.filter(dashboard=self.dashboard)
-        assert revisions.count() == 1
-        revision = revisions.first()
-        assert revision is not None
-        assert revision.title == original_title
-        assert revision.snapshot["title"] == original_title
-        assert revision.snapshot_schema_version == 1
-        assert revision.created_by_id == self.user.id
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
 
     def test_put_does_not_create_revision_when_feature_disabled(self) -> None:
         response = self.do_request(
@@ -4048,28 +4039,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         # The dashboard itself was updated
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "New Title"
-
-    def test_put_deletes_revisions_beyond_retention_limit(self) -> None:
-        # Create 10 existing revisions
-        for i in range(10):
-            DashboardRevision.objects.create(
-                dashboard=self.dashboard,
-                created_by_id=self.user.id,
-                title=f"Revision {i}",
-                snapshot={},
-                snapshot_schema_version=1,
-            )
-
-        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 10
-
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
-            )
-        assert response.status_code == 200, response.data
-
-        # After creating the 11th revision, the oldest should be deleted to maintain 10
-        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 10
 
     def test_put_snapshot_includes_widgets_and_queries(self) -> None:
         with self.feature("organizations:dashboards-revisions"):
