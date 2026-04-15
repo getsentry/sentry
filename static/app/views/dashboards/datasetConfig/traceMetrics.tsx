@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import {useMemo, type ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -16,6 +16,8 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -86,7 +88,7 @@ function TraceMetricsSearchBar({
   } = usePageFilters();
   const {attributeQuery, hasMultipleMetrics, traceMetrics} = useTraceMetricsSearchScope();
 
-  // In the case of multiple metrics, wipe the query so it fetches all attributes
+  // Attribute lookups should be scoped to the currently selected metric set.
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
@@ -197,16 +199,37 @@ function useTraceMetricsSearchScope() {
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
-  const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+  const traceMetrics = useMemo(
+    () => aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [],
+    [aggregateSource]
+  );
   const hasMultipleMetrics = hasMultipleMetricsSelected(
     traceMetrics,
     hasMultiMetricSelection
   );
-  const attributeQuery =
-    !hasMultipleMetrics && traceMetrics[0]
-      ? createTraceMetricFilter(traceMetrics[0])
-      : undefined;
+  const attributeQuery = useMemo(() => {
+    if (traceMetrics.length === 1 && traceMetrics[0]) {
+      return createTraceMetricFilter(traceMetrics[0]);
+    }
+
+    const search = new MutableSearch('');
+    for (let i = 0; i < traceMetrics.length; i++) {
+      const metric = traceMetrics[i];
+      if (!metric) {
+        continue;
+      }
+
+      search.addOp('(');
+      search.addStringFilter(createTraceMetricFilter(metric) ?? '');
+      search.addOp(')');
+
+      if (i < traceMetrics.length - 1) {
+        search.addOp('OR');
+      }
+    }
+
+    return search.formatString() || undefined;
+  }, [traceMetrics]);
 
   return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
