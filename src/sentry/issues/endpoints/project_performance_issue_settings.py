@@ -116,6 +116,7 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
     ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
     ConfigurableThresholds.WEB_VITALS.value: WebVitalsGroup,
+    ConfigurableThresholds.AI_ISSUE_DETECTION.value: AIDetectedGeneralGroupType,
     ConfigurableThresholds.AI_DETECTED_HTTP.value: AIDetectedHTTPGroupType,
     ConfigurableThresholds.AI_DETECTED_DB.value: AIDetectedDBGroupType,
     ConfigurableThresholds.AI_DETECTED_RUNTIME_PERFORMANCE.value: AIDetectedRuntimePerformanceGroupType,

@@ -183,19 +183,12 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
             project_settings_to_group_map as map,
         )
 
-        PARENT_SETTING_DESCRIPTIONS: dict[str, str] = {
-            "ai_issue_detection_enabled": "AI issue detection",
-        }
-
         data = audit_log_entry.data
-        items = []
-        for key, value in data.items():
-            action = "enable" if value else "disable"
-            if key in map:
-                items.append(f"to {action} detection of {map[key].description} issue")
-            elif key in PARENT_SETTING_DESCRIPTIONS:
-                items.append(f"to {action} {PARENT_SETTING_DESCRIPTIONS[key]}")
-        items_string = ", ".join(items)
+        items_string = ", ".join(
+            f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
+            for (key, value) in data.items()
+            if key in map.keys()
+        )
         return "edited project performance issue detector settings " + items_string
 
 
