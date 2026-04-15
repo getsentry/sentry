@@ -251,8 +251,9 @@ class BaseApiClient:
         # It shouldn't be possible for integration_type to be null.
         if self.integration_type:
             extra[self.integration_type] = self.name
-        if self.integration_id is not None:
-            extra["integration_id"] = str(self.integration_id)
+        integration_id = getattr(self, "integration_id", None)
+        if integration_id is not None:
+            extra["integration_id"] = str(integration_id)
         if endpoint is not None:
             extra["endpoint"] = endpoint
 
