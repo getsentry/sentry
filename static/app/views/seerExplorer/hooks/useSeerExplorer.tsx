@@ -538,16 +538,11 @@ export const useSeerExplorer = () => {
 
   useEffect(() => {
     if (isLoaded || isTimedOut) {
-      if (waitingForResponse) {
-        // Reset waiting and request states
-        setWaitingForResponse(false);
-        setOptimistic(null);
-        setDeletedFromIndex(null);
-      }
-
-      if (!isTimedOut) {
-        cancelPollingTimeout();
-      }
+      // Reset waiting and request states
+      setWaitingForResponse(false);
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+      cancelPollingTimeout();
 
       if (interruptRequested) {
         // Clear waiting for interrupt state and set persistent UI flag until next request
