@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -101,14 +101,14 @@ export function ReleaseHeader({
             <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
-          <React.Fragment>
+          <Fragment>
             <NavTabsBadge variant="muted">
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
               <FeatureBadge type="new" />
             </BadgeWrapper>
-          </React.Fragment>
+          </Fragment>
         ),
     }),
     textValue: t('Mobile Builds %s', numberOfMobileBuilds),
@@ -138,7 +138,7 @@ export function ReleaseHeader({
   };
 
   const title = (
-    <React.Fragment>
+    <Fragment>
       <IdBadge project={project} avatarSize={28} hideName />
       <Version version={version} anchor={false} truncate />
       <IconWrapper>
@@ -159,24 +159,24 @@ export function ReleaseHeader({
           </Tooltip>
         </IconWrapper>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 
   return (
     <Layout.Header>
       <Layout.HeaderContent>
         {hasPageFrameFeature ? (
-          <React.Fragment>
+          <Fragment>
             <TopBar.Slot name="title">
               <Breadcrumbs crumbs={breadcrumbs} />
             </TopBar.Slot>
             <PageFrameTitle as="h1">{title}</PageFrameTitle>
-          </React.Fragment>
+          </Fragment>
         ) : (
-          <React.Fragment>
+          <Fragment>
             <Breadcrumbs crumbs={breadcrumbs} />
             <Layout.Title>{title}</Layout.Title>
-          </React.Fragment>
+          </Fragment>
         )}
       </Layout.HeaderContent>
 
