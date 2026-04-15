@@ -1,5 +1,5 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
@@ -14,8 +14,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -36,64 +35,21 @@ export function FirstEventFooter({
 }: FirstEventFooterProps) {
   const {activateSidebar} = useOnboardingSidebar();
 
-  const {data: issues} = useApiQuery<Group[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-    ],
-    {
+  const {data: issues} = useQuery(
+    apiOptions.as<Group[]>()('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
+      path: project.firstEvent
+        ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}
+        : skipToken,
       staleTime: Infinity,
-      enabled: !!project.firstEvent,
-    }
+    })
   );
 
   const firstIssue =
-    !!project.firstEvent && issues
+    project.firstEvent && issues
       ? issues.find((issue: Group) => issue.firstSeen === project.firstEvent)
       : undefined;
 
   const source = 'targeted_onboarding_first_event_footer';
-
-  const getSecondaryCta = useCallback(() => {
-    // if hasn't sent first event, allow skiping.
-    // if last, no secondary cta
-    if (!project?.firstEvent && !isLast) {
-      return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
-    }
-    return null;
-  }, [project?.firstEvent, isLast, onClickSetupLater]);
-
-  const getPrimaryCta = useCallback(() => {
-    // if hasn't sent first event, allow creation of sample error
-    if (!project?.firstEvent) {
-      return (
-        <CreateSampleEventButton
-          project={project}
-          source="targeted-onboarding"
-          priority="primary"
-        >
-          {t('View Sample Error')}
-        </CreateSampleEventButton>
-      );
-    }
-    return (
-      <LinkButton
-        onClick={() =>
-          trackAnalytics('growth.onboarding_take_to_error', {
-            organization: project.organization,
-            platform: project.platform,
-          })
-        }
-        to={`/organizations/${organization.slug}/issues/${
-          firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
-        }?referrer=onboarding-first-event-footer`}
-        priority="primary"
-      >
-        {t('Take me to my error')}
-      </LinkButton>
-    );
-  }, [project, organization.slug, firstIssue]);
 
   return (
     <GridFooter>
@@ -129,18 +85,43 @@ export function FirstEventFooter({
           exit: {opacity: 0, y: 10},
         }}
       >
-        {project?.firstEvent ? (
+        {project.firstEvent ? (
           <IconCheckmark variant="success" />
         ) : (
           <WaitingIndicator variants={indicatorAnimation} />
         )}
-        <AnimatedText errorReceived={!!project?.firstEvent} variants={indicatorAnimation}>
-          {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
+        <AnimatedText errorReceived={!!project.firstEvent} variants={indicatorAnimation}>
+          {project.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
       <OnboardingButtonBar>
-        {getSecondaryCta()}
-        {getPrimaryCta()}
+        {!project.firstEvent && !isLast ? (
+          <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>
+        ) : null}
+        {project.firstEvent ? (
+          <LinkButton
+            onClick={() =>
+              trackAnalytics('growth.onboarding_take_to_error', {
+                organization,
+                platform: project.platform,
+              })
+            }
+            to={`/organizations/${organization.slug}/issues/${
+              firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+            }?referrer=onboarding-first-event-footer`}
+            priority="primary"
+          >
+            {t('Take me to my error')}
+          </LinkButton>
+        ) : (
+          <CreateSampleEventButton
+            project={project}
+            source="targeted-onboarding"
+            priority="primary"
+          >
+            {t('View Sample Error')}
+          </CreateSampleEventButton>
+        )}
       </OnboardingButtonBar>
     </GridFooter>
   );
