@@ -36,14 +36,14 @@ from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 
 
-def as_tag_key(name: str, type: Literal["string", "number", "boolean"]):
-    key, _, _ = translate_internal_to_public_alias(name, type, SupportedTraceItemType.SPANS)
+def as_tag_key(name: str, search_type: Literal["string", "number", "boolean"]):
+    key, _, _ = translate_internal_to_public_alias(name, search_type, SupportedTraceItemType.SPANS)
 
     if key is not None:
         name = key
-    elif type == "number":
+    elif search_type == "number":
         key = f"tags[{name},number]"
-    elif type == "boolean":
+    elif search_type == "boolean":
         key = f"tags[{name},boolean]"
     else:
         key = name

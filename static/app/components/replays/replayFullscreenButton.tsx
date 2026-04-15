@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import screenfull from 'screenfull';
 
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +20,7 @@ export function ReplayFullscreenButton({toggleFullscreen}: Props) {
   const isFullscreen = useIsFullscreen();
   const {analyticsContext} = useReplayContext();
 
-  const handleFullscreenToggle = useCallback(() => {
+  const handleFullscreenToggle = () => {
     trackAnalytics('replay.toggle-fullscreen', {
       organization,
       context: analyticsContext,
@@ -29,7 +28,7 @@ export function ReplayFullscreenButton({toggleFullscreen}: Props) {
       fullscreen: !isFullscreen,
     });
     toggleFullscreen();
-  }, [analyticsContext, isFullscreen, organization, toggleFullscreen, user.email]);
+  };
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen

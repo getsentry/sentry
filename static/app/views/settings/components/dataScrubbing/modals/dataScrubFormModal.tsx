@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
@@ -163,23 +163,20 @@ export function DataScrubFormModal({
 
   const type = useStore(form.store, state => state.values.type);
 
-  const handleValidateAttributeField = useCallback(
-    (value: string) => {
-      const traceItemField = TraceItemFieldSelector.fromField(dataset, value);
+  const handleValidateAttributeField = (value: string) => {
+    const traceItemField = TraceItemFieldSelector.fromField(dataset, value);
 
-      if (!traceItemField) {
-        return;
-      }
+    if (!traceItemField) {
+      return;
+    }
 
-      const validation = validateTraceItemFieldSelector(traceItemField);
-      if (!validation.isValid && validation.error) {
-        setFieldErrors(form, {
-          source: {message: validation.error},
-        });
-      }
-    },
-    [dataset, form]
-  );
+    const validation = validateTraceItemFieldSelector(traceItemField);
+    if (!validation.isValid && validation.error) {
+      setFieldErrors(form, {
+        source: {message: validation.error},
+      });
+    }
+  };
 
   const containsRootDeepWildcard = (source: string) => {
     return /(^|[^.])\*\*$/.test(source);

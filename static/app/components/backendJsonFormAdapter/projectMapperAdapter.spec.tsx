@@ -285,4 +285,96 @@ describe('ProjectMapperAdapter', () => {
       expect(enabledButtons.some(btn => !btn.hasAttribute('disabled'))).toBe(true);
     });
   });
+
+  describe('next button', () => {
+    const nextButtonConfig = {
+      nextButton: {
+        allowedDomain: 'https://vercel.com',
+        description: 'Link your Sentry projects to complete your installation on Vercel',
+        text: 'Complete on Vercel',
+      },
+    };
+
+    it('renders disabled next button when no mappings exist', () => {
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[]}
+          mutationOptions={mutationOptions}
+        />,
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {next: 'https://vercel.com/install/complete'},
+            },
+          },
+        }
+      );
+
+      expect(
+        screen.getByText(
+          'Link your Sentry projects to complete your installation on Vercel'
+        )
+      ).toBeInTheDocument();
+
+      const button = screen.getByRole('button', {name: 'Complete on Vercel'});
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('renders enabled next button when mappings exist', () => {
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[[101, 'proj-1']]}
+          mutationOptions={mutationOptions}
+        />,
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {
+              pathname: '/',
+              query: {next: 'https://vercel.com/install/complete'},
+            },
+          },
+        }
+      );
+
+      const button = screen.getByRole('button', {name: 'Complete on Vercel'});
+      expect(button).toHaveAttribute('href', 'https://vercel.com/install/complete');
+      expect(button).toHaveAttribute('aria-disabled', 'false');
+    });
+
+    it('does not render next button when next param is missing', () => {
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[]}
+          mutationOptions={mutationOptions}
+        />,
+        {organization: org}
+      );
+
+      expect(screen.queryByText('Complete on Vercel')).not.toBeInTheDocument();
+    });
+
+    it('does not render next button when next param domain does not match', () => {
+      render(
+        <BackendJsonAutoSaveForm
+          field={makeConfig(nextButtonConfig)}
+          initialValue={[]}
+          mutationOptions={mutationOptions}
+        />,
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {pathname: '/', query: {next: 'https://evil.com/steal'}},
+          },
+        }
+      );
+
+      expect(screen.queryByText('Complete on Vercel')).not.toBeInTheDocument();
+    });
+  });
 });

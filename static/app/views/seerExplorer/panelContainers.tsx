@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Block, PanelSize} from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
@@ -121,7 +122,11 @@ export function PanelContainers({
                     style={{width: '100%'}}
                   >
                     <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="lg" />
-                    <Text size="xs">{t('Tab ⇥ to continue')}</Text>
+                    <Text size="xs">
+                      {tct('[hotkey] to continue', {
+                        hotkey: <Hotkey value={['cmd+/', 'ctrl+/']} />,
+                      })}
+                    </Text>
                     <Text size="xs" variant="muted" ellipsis style={{maxWidth: '100%'}}>
                       {statusText}
                     </Text>
@@ -202,7 +207,7 @@ const PanelContent = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -221,25 +226,11 @@ const MinimizedOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background: ${p => p.theme.tokens.background.primary};
+  background: ${p => p.theme.tokens.background.overlay};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
   cursor: pointer;
-
-  /* Purple tint */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: ${p => p.theme.tokens.background.transparent.accent.muted};
-    border-radius: inherit;
-    z-index: -1;
-    pointer-events: none;
-  }
 `;
 
 const MinimizedCorner = styled('div')`
