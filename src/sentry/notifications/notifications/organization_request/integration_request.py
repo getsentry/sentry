@@ -72,7 +72,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"Your team member requested the {self.provider_name} integration on Sentry"
+        return f"Your team member requested the {sanitize_outbound_name(self.provider_name)} integration on Sentry"
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -89,7 +89,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             if self.message
             else ""
         )
-        return f"{requester_name} is requesting to install the {self.provider_name} integration into {sanitize_outbound_name(self.organization.name)}.{optional_message}"
+        return f"{requester_name} is requesting to install the {sanitize_outbound_name(self.provider_name)} integration into {sanitize_outbound_name(self.organization.name)}.{optional_message}"
 
     def get_message_actions(
         self, recipient: Actor, provider: ExternalProviders
