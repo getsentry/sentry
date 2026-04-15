@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
@@ -22,6 +22,13 @@ interface GroupBySelectorProps {
    * The metric to filter attributes by
    */
   traceMetric: TraceMetric;
+  /**
+   * Whether to skip the trace metric filter.
+   *
+   * For equations, because at the moment there isn't an easy way to filter
+   * the attributes to the relevant attributes.
+   */
+  skipTraceMetricFilter?: boolean;
 }
 
 /**
@@ -29,7 +36,10 @@ interface GroupBySelectorProps {
  * Fetches available attribute keys from the trace-items API endpoint
  * and displays them as options in a compact select dropdown.
  */
-export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
+export function GroupBySelector({
+  traceMetric,
+  skipTraceMetricFilter,
+}: GroupBySelectorProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
@@ -39,22 +49,22 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     useTraceItemAttributeKeys({
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'number',
-      enabled: Boolean(traceMetricFilter),
-      query: traceMetricFilter,
+      enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+      query: skipTraceMetricFilter ? undefined : traceMetricFilter,
     });
   const {attributes: stringTags, isLoading: stringTagsLoading} =
     useTraceItemAttributeKeys({
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'string',
-      enabled: Boolean(traceMetricFilter),
-      query: traceMetricFilter,
+      enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+      query: skipTraceMetricFilter ? undefined : traceMetricFilter,
     });
   const {attributes: booleanTags, isLoading: booleanTagsLoading} =
     useTraceItemAttributeKeys({
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'boolean',
-      enabled: Boolean(traceMetricFilter),
-      query: traceMetricFilter,
+      enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+      query: skipTraceMetricFilter ? undefined : traceMetricFilter,
     });
 
   const visibleNumberTags = useMemo(() => {
@@ -122,7 +132,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={!traceMetricFilter}
+      disabled={!skipTraceMetricFilter && !traceMetricFilter}
       onChange={handleChange}
       style={{width: '100%'}}
     />

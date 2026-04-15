@@ -52,14 +52,16 @@ class AuthApiClient(ApiClient):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: tuple[str, str] | str | None = None,
+        auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: Literal[True] = ...,
+        endpoint: str | None = None,
     ) -> Response: ...
 
     @overload
@@ -77,7 +79,9 @@ class AuthApiClient(ApiClient):
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: bool = ...,
+        endpoint: str | None = None,
     ) -> Any: ...
 
     def _request(self, method, path, **kwargs):

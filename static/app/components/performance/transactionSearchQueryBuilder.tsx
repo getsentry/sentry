@@ -104,7 +104,7 @@ export function TransactionSearchQueryBuilder({
 
   // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
   const getTransactionFilterTagValues = useCallback<GetTagValues>(
-    async (tag, queryString) => {
+    async ({tag, searchQuery}) => {
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -122,7 +122,7 @@ export function TransactionSearchQueryBuilder({
           api,
           orgSlug: organization.slug,
           tagKey: tag.key,
-          search: queryString,
+          search: searchQuery,
           projectIds: projects?.map(String) ?? selection.projects?.map(String),
           includeTransactions: true,
           sort: '-count',

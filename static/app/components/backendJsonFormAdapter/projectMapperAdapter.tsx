@@ -1,6 +1,8 @@
 import {useState} from 'react';
+import * as Sentry from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
@@ -226,5 +228,45 @@ export function ProjectMapperTable({
         );
       })}
     </div>
+  );
+}
+
+interface ProjectMapperNextButtonProps {
+  config: ProjectMapperConfig;
+  value: MappedValue[];
+}
+
+export function ProjectMapperNextButton({config, value}: ProjectMapperNextButtonProps) {
+  const {nextButton} = config;
+  const [nextUrl] = useQueryState('next', parseAsString);
+
+  if (!nextButton || !nextUrl) {
+    return null;
+  }
+
+  if (!nextUrl.startsWith(nextButton.allowedDomain)) {
+    Sentry.captureMessage(`Got invalid next url: ${nextUrl}`);
+    return null;
+  }
+
+  const hasLinkedProjects = value.length > 0;
+
+  return (
+    <Flex align="center" justify="between" gap="md">
+      <Text>{nextButton.description}</Text>
+      <LinkButton
+        size="sm"
+        priority="primary"
+        icon={<IconOpen />}
+        disabled={!hasLinkedProjects}
+        href={nextUrl}
+        tooltipProps={{
+          title: t('Please link at least one project to continue.'),
+          disabled: hasLinkedProjects,
+        }}
+      >
+        {nextButton.text}
+      </LinkButton>
+    </Flex>
   );
 }

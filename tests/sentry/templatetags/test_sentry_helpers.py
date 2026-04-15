@@ -170,3 +170,10 @@ def test_sanitize_periods() -> None:
     input = '{% load sentry_helpers %} {{ "example.com"|sanitize_periods}}'
     result = engines["django"].from_string(input).render().strip()
     assert result == "example\u2060.com"
+
+
+def test_sanitize_periods_breaks_url_scheme() -> None:
+    input = '{% load sentry_helpers %} {{ "https://evil.com"|sanitize_periods}}'
+    result = engines["django"].from_string(input).render().strip()
+    assert "://" not in result
+    assert "\u2060." in result

@@ -8,7 +8,11 @@ import {Stack} from '@sentry/scraps/layout';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
-import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
+import {
+  ProjectMapperAddRow,
+  ProjectMapperNextButton,
+  ProjectMapperTable,
+} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 import {getDefaultForField, getZodType, transformChoices} from './utils';
@@ -110,6 +114,7 @@ export function BackendJsonAutoSaveForm<
                     indicator={indicator}
                     disabled={field.disabled || baseProps.disabled}
                   />
+                  <ProjectMapperNextButton config={field} value={fieldApi.state.value} />
                 </Stack>
               );
             }}

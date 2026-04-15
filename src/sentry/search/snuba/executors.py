@@ -147,6 +147,7 @@ def group_categories_from_search_filters(
         # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
         group_categories.discard(GroupCategory.INSTRUMENTATION.value)
+        group_categories.discard(GroupCategory.CONFIGURATION.value)
 
     if not features.has("organizations:performance-issues-search", organization):
         group_categories.discard(GroupCategory.PERFORMANCE.value)

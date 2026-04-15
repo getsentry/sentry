@@ -5,10 +5,12 @@ import {Link} from '@sentry/scraps/link';
 
 import {useDismissable} from 'sentry/components/banner';
 import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {
@@ -33,6 +35,7 @@ export function PrebuiltDashboardRenderer({
   storageNamespace,
 }: PrebuiltDashboardRendererProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
     useGetPrebuiltDashboard(prebuiltId);
@@ -100,7 +103,10 @@ export function PrebuiltDashboardRenderer({
               {
                 link: (
                   <Link
-                    to={`/organizations/${organization.slug}/dashboards/${dashboardId}/`}
+                    to={{
+                      pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/`,
+                      query: extractSelectionParameters(location.query),
+                    }}
                   />
                 ),
               }

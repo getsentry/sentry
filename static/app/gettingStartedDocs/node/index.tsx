@@ -6,6 +6,7 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 import {crashReport} from './crashReport';
+import {featureFlag} from './featureFlag';
 import {logs} from './logs';
 import {mcp} from './mcp';
 import {getNodeMetricsOnboarding} from './metrics';
@@ -20,6 +21,7 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   profilingOnboarding: profiling,
+  featureFlagOnboarding: featureFlag(),
   logsOnboarding: logs,
   metricsOnboarding: getNodeMetricsOnboarding({
     docsPlatform: 'node',

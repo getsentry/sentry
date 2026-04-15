@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +10,30 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.conf.server import SENTRY_EARLY_FEATURES
 from sentry.runner.settings import configure, discover_configs
+
+
+def _coerce_early_feature_flag_value(value: object) -> bool | None:
+    """
+    Map API input to a bool for SENTRY_FEATURES. Accepts JSON booleans, 0/1
+    (common in scripts), and the strings "true"/"false" (case-insensitive).
+    Returns None if the value cannot be interpreted safely.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        if value == 1:
+            return True
+        if value == 0:
+            return False
+        return None
+    if isinstance(value, str):
+        lowered = value.lower()
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+        return None
+    return None
 
 
 @all_silo_endpoint
@@ -36,8 +62,29 @@ class InternalFeatureFlagsEndpoint(Endpoint):
         if not settings.SENTRY_SELF_HOSTED:
             return Response("You are not self-hosting Sentry.", status=403)
 
-        data = request.data.keys()
-        valid_feature_flags = [flag for flag in data if SENTRY_EARLY_FEATURES.get(flag, False)]
+        payload: object = request.data
+        if not isinstance(payload, Mapping):
+            return Response(
+                {"detail": "Feature flag updates must be a JSON object."},
+                status=400,
+            )
+
+        valid_feature_flags = [flag for flag in payload if flag in SENTRY_EARLY_FEATURES]
+        coerced_values: dict[str, bool] = {}
+        for valid_flag in valid_feature_flags:
+            coerced = _coerce_early_feature_flag_value(payload.get(valid_flag))
+            if coerced is None:
+                return Response(
+                    {
+                        "detail": (
+                            f'Feature flag "{valid_flag}" must be true or false '
+                            f"(boolean, 0 or 1, or the string true or false)."
+                        )
+                    },
+                    status=400,
+                )
+            coerced_values[valid_flag] = coerced
+
         _, py, yml = discover_configs()
         # Open the file for reading and writing
         with open(py, "r+") as file:
@@ -45,9 +92,8 @@ class InternalFeatureFlagsEndpoint(Endpoint):
             # print(lines)
             for valid_flag in valid_feature_flags:
                 match_found = False
-                new_string = (
-                    f'\nSENTRY_FEATURES["{valid_flag}"]={request.data.get(valid_flag, False)}\n'
-                )
+                python_bool = "True" if coerced_values[valid_flag] else "False"
+                new_string = f'\nSENTRY_FEATURES["{valid_flag}"]={python_bool}\n'
                 # Search for the string match and update lines
                 for i, line in enumerate(lines):
                     if valid_flag in line:

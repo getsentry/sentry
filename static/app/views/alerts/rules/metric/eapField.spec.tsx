@@ -43,7 +43,7 @@ describe('EAPField', () => {
     expect(noVisibilityFieldsMock).not.toHaveBeenCalled();
   });
 
-  it('renders', () => {
+  it('renders', async () => {
     renderWithVisibilityFeature(
       <EAPField
         aggregate="count(span.duration)"
@@ -51,12 +51,14 @@ describe('EAPField', () => {
         eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
       />
     );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number'}),
+        })
+      );
+    });
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
@@ -74,7 +76,7 @@ describe('EAPField', () => {
     expect(inputs[1]).toBeDisabled();
   });
 
-  it('renders epm with argument disabled', () => {
+  it('renders epm with argument disabled', async () => {
     renderWithVisibilityFeature(
       <EAPField
         aggregate="epm()"
@@ -82,12 +84,14 @@ describe('EAPField', () => {
         eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
       />
     );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
+        })
+      );
+    });
     expect(screen.getByText('epm')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
 
@@ -99,7 +103,7 @@ describe('EAPField', () => {
     expect(inputs[1]).toBeDisabled();
   });
 
-  it('renders failure_rate with argument disabled', () => {
+  it('renders failure_rate with argument disabled', async () => {
     renderWithVisibilityFeature(
       <EAPField
         aggregate="failure_rate()"
@@ -107,12 +111,14 @@ describe('EAPField', () => {
         eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
       />
     );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
+        })
+      );
+    });
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
@@ -139,12 +145,14 @@ describe('EAPField', () => {
         eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
       />
     );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number'}),
+        })
+      );
+    });
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
@@ -222,7 +230,7 @@ describe('EAPField', () => {
     expect(screen.getByText('span.op')).toBeInTheDocument();
   });
 
-  it('renders count with argument disabled for logs', () => {
+  it('renders count with argument disabled for logs', async () => {
     renderWithVisibilityFeature(
       <EAPField
         aggregate="count(message)"
@@ -230,12 +238,14 @@ describe('EAPField', () => {
         eventTypes={[EventTypes.TRACE_ITEM_LOG]}
       />
     );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+        })
+      );
+    });
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
@@ -266,12 +276,14 @@ describe('EAPField', () => {
 
     renderWithVisibilityFeature(<Component />);
 
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+        })
+      );
+    });
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
@@ -299,12 +311,14 @@ describe('EAPField', () => {
 
     renderWithVisibilityFeature(<Component />);
 
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
-      })
-    );
+    await waitFor(() => {
+      expect(fieldsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/trace-items/attributes/`,
+        expect.objectContaining({
+          query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+        })
+      );
+    });
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
