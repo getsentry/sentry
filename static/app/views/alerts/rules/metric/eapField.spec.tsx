@@ -8,6 +8,14 @@ import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture({features: ['visibility-explore-view']});
+  const traceItemAttributes = [
+    {attributeType: 'string', key: 'message', name: 'message'},
+    {attributeType: 'string', key: 'severity', name: 'severity'},
+    {attributeType: 'string', key: 'span.op', name: 'span.op'},
+    {attributeType: 'number', key: 'severity_number', name: 'severity_number'},
+    {attributeType: 'number', key: 'span.duration', name: 'span.duration'},
+    {attributeType: 'number', key: 'span.self_time', name: 'span.self_time'},
+  ];
   let fieldsMock: any;
 
   function renderWithVisibilityFeature(ui: ReactElement) {
@@ -18,6 +26,7 @@ describe('EAPField', () => {
     fieldsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
+      body: traceItemAttributes,
     });
   });
 
@@ -55,16 +64,13 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'spans',
+          }),
         })
       );
     });
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string'}),
-      })
-    );
     expect(screen.getByText('count')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
 
@@ -88,7 +94,10 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'spans',
+          }),
         })
       );
     });
@@ -115,16 +124,13 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number', itemType: 'spans'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'spans',
+          }),
         })
       );
     });
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string', itemType: 'spans'}),
-      })
-    );
     expect(screen.getByText('failure_rate')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
 
@@ -149,16 +155,13 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'spans',
+          }),
         })
       );
     });
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string', itemType: 'spans'}),
-      })
-    );
     await userEvent.click(screen.getByText('count'));
     await userEvent.click(await screen.findByText('max'));
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('max(span.duration)', {}));
@@ -242,16 +245,13 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'logs',
+          }),
         })
       );
     });
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
-      })
-    );
     expect(screen.getByText('count')).toBeInTheDocument();
     expect(screen.getByText('logs')).toBeInTheDocument();
 
@@ -280,16 +280,13 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'logs',
+          }),
         })
       );
     });
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
-      })
-    );
     await userEvent.click(screen.getByText('count'));
     await userEvent.click(await screen.findByText('count_unique'));
 
@@ -315,16 +312,13 @@ describe('EAPField', () => {
       expect(fieldsMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace-items/attributes/`,
         expect.objectContaining({
-          query: expect.objectContaining({attributeType: 'number', itemType: 'logs'}),
+          query: expect.objectContaining({
+            attributeType: ['string', 'number', 'boolean'],
+            itemType: 'logs',
+          }),
         })
       );
     });
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeType: 'string', itemType: 'logs'}),
-      })
-    );
     await userEvent.click(screen.getByText('count'));
     await userEvent.click(await screen.findByText('sum'));
 
