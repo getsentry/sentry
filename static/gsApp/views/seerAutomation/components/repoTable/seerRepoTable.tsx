@@ -81,7 +81,10 @@ export function SeerRepoTable() {
           }
 
           if (sort.field === 'enabled') {
-            if (a.settings?.enabledCodeReview === b.settings?.enabledCodeReview) {
+            if (
+              (a.settings?.enabledCodeReview ?? false) ===
+              (b.settings?.enabledCodeReview ?? false)
+            ) {
               return sort.kind === 'asc'
                 ? a.name.localeCompare(b.name)
                 : b.name.localeCompare(a.name);
