@@ -48,6 +48,30 @@ export function ReleaseHeader({
   const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
+  const titleContent = (avatarSize: number) => (
+    <TitleWrapper align="center" gap="md" minWidth={0}>
+      <IdBadge project={project} avatarSize={avatarSize} hideName />
+      <Version version={version} anchor={false} />
+      <CopyToClipboardButton
+        className="release-copy-button"
+        priority="transparent"
+        size="zero"
+        text={version}
+        tooltipProps={{title: version}}
+        aria-label={t('Copy release version to clipboard')}
+      />
+      {!!url && (
+        <IconWrapper>
+          <Tooltip title={url}>
+            <ExternalLink href={url}>
+              <IconOpen />
+            </ExternalLink>
+          </Tooltip>
+        </IconWrapper>
+      )}
+    </TitleWrapper>
+  );
+
   const breadcrumbs = [
     {
       to: makeReleasesPathname({
@@ -58,33 +82,7 @@ export function ReleaseHeader({
       preservePageFilters: true,
     },
     ...(hasPageFrameFeature
-      ? [
-          {
-            label: (
-              <TitleWrapper align="center" gap="md" minWidth={0}>
-                <IdBadge project={project} avatarSize={16} hideName />
-                <Version version={version} anchor={false} />
-                <CopyToClipboardButton
-                  className="release-copy-button"
-                  priority="transparent"
-                  size="zero"
-                  text={version}
-                  tooltipProps={{title: version}}
-                  aria-label={t('Copy release version to clipboard')}
-                />
-                {!!url && (
-                  <IconWrapper>
-                    <Tooltip title={url}>
-                      <ExternalLink href={url}>
-                        <IconOpen />
-                      </ExternalLink>
-                    </Tooltip>
-                  </IconWrapper>
-                )}
-              </TitleWrapper>
-            ),
-          },
-        ]
+      ? [{label: titleContent(16)}]
       : [{label: t('Release Details')}]),
   ];
 
@@ -175,29 +173,7 @@ export function ReleaseHeader({
         ) : (
           <Fragment>
             <Breadcrumbs crumbs={breadcrumbs} />
-            <Layout.Title>
-              <TitleWrapper align="center" gap="md" minWidth={0}>
-                <IdBadge project={project} avatarSize={28} hideName />
-                <Version version={version} anchor={false} />
-                <CopyToClipboardButton
-                  className="release-copy-button"
-                  priority="transparent"
-                  size="zero"
-                  text={version}
-                  tooltipProps={{title: version}}
-                  aria-label={t('Copy release version to clipboard')}
-                />
-                {!!url && (
-                  <IconWrapper>
-                    <Tooltip title={url}>
-                      <ExternalLink href={url}>
-                        <IconOpen />
-                      </ExternalLink>
-                    </Tooltip>
-                  </IconWrapper>
-                )}
-              </TitleWrapper>
-            </Layout.Title>
+            <Layout.Title>{titleContent(28)}</Layout.Title>
           </Fragment>
         )}
       </Layout.HeaderContent>
