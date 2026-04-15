@@ -107,12 +107,6 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "db_query_injection_detection_enabled": False,
     "web_vitals_detection_enabled": True,
     "ai_issue_detection_enabled": True,
-    "ai_detected_http_enabled": True,
-    "ai_detected_db_enabled": True,
-    "ai_detected_runtime_performance_enabled": True,
-    "ai_detected_security_enabled": True,
-    "ai_detected_code_health_enabled": True,
-    "ai_detected_general_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
