@@ -267,30 +267,28 @@ export function ExplorerPanel() {
     }
   }, [focusedBlockIndex]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (readOnly) {
-      return;
-    }
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (readOnly || e.nativeEvent.isComposing) {
+        return;
+      }
 
-    // While input is focused, prevent backtick from triggering superuser ViewAsHookMiddleware
-    if (e.key === '`') {
-      e.nativeEvent.stopImmediatePropagation();
-    }
-
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (inputValue.trim() && !isPolling) {
-        sendMessage(inputValue.trim(), undefined);
-        setInputValue('');
-        // Reset scroll state so we auto-scroll to show the response
-        userScrolledUpRef.current = false;
-        // Reset textarea height
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (inputValue.trim() && !isPolling) {
+          sendMessage(inputValue.trim());
+          setInputValue('');
+          // Reset scroll state so we auto-scroll to show the response
+          userScrolledUpRef.current = false;
+          // Reset textarea height
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
         }
       }
-    }
-  };
+    },
+    [readOnly, inputValue, isPolling, sendMessage]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;

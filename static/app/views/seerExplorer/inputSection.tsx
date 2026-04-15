@@ -83,11 +83,11 @@ export function InputSection({
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
   }, [blocks]);
   const getPlaceholder = () => {
-    if (wasJustInterrupted) {
-      return 'Interrupted. What should Seer do instead?';
-    }
     if (isTimedOut) {
       return 'The request timed out. Please try again.';
+    }
+    if (wasJustInterrupted) {
+      return 'Interrupted. What should Seer do instead?';
     }
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';

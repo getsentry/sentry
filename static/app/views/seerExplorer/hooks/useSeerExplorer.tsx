@@ -92,23 +92,16 @@ const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse =
 });
 
 /** Determines if we should poll for updates */
-const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boolean) => {
-  if (!sessionData && !runStarted) {
-    return false;
-  }
-
+const isPolling = (
+  sessionData: SeerExplorerResponse['session'],
+  waitingForResponse: boolean
+) => {
   // Check if any PR is being created
   const anyPRCreating = Object.values(sessionData?.repo_pr_states ?? {}).some(
     state => state.pr_creation_status === 'creating'
   );
 
-  return (
-    !sessionData ||
-    runStarted ||
-    sessionData.status === 'processing' ||
-    sessionData.blocks.some(message => message.loading) ||
-    anyPRCreating
-  );
+  return anyPRCreating || waitingForResponse;
 };
 
 export const useSeerExplorer = () => {
@@ -153,9 +146,6 @@ export const useSeerExplorer = () => {
     timeMs: POLLING_TIMEOUT_MS,
     onTimeout: () => {
       setIsTimedOut(true);
-      setWaitingForResponse(false);
-      setInterruptRequested(false);
-      setWasJustInterrupted(false);
     },
   });
 
@@ -518,40 +508,6 @@ export const useSeerExplorer = () => {
     return sessionData;
   }, [sessionData, deletedFromIndex, optimistic, runId]);
 
-  // Clear optimistic blocks once the server has persisted the user message
-  // and produced a real assistant response after the insert point.
-  useEffect(() => {
-    if (!optimistic) {
-      return undefined;
-    }
-
-    if (apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
-      return undefined;
-    }
-
-    const serverBlocks = apiData?.session?.blocks || [];
-    const blockAtInsert = serverBlocks[optimistic.insertIndex];
-
-    const serverHasUserBlock =
-      blockAtInsert?.message.role === 'user' &&
-      blockAtInsert?.message.content === optimistic.userQuery;
-
-    if (!serverHasUserBlock) {
-      return undefined;
-    }
-
-    const hasAssistantResponse = serverBlocks
-      .slice(optimistic.insertIndex + 1)
-      .some(b => b.message.role === 'assistant');
-
-    if (hasAssistantResponse) {
-      setOptimistic(null);
-      setDeletedFromIndex(null);
-    }
-
-    return undefined;
-  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
-
   // Detect PR creation errors and show error messages
   useEffect(() => {
     const currentPRStates = sessionData?.repo_pr_states ?? {};
@@ -574,28 +530,38 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [sessionData?.repo_pr_states]);
 
-  // On response load
+  // On response load or timeout
   const isLoaded =
     filteredSessionData &&
     filteredSessionData.status !== 'processing' &&
     filteredSessionData.blocks.every((block: Block) => !block.loading);
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded || isTimedOut) {
       if (waitingForResponse) {
-        // Stop waiting once we see the response is no longer loading
+        // Reset waiting and request states
         setWaitingForResponse(false);
+        setOptimistic(null);
         setDeletedFromIndex(null);
-        setIsTimedOut(false);
+      }
+
+      if (!isTimedOut) {
         cancelPollingTimeout();
       }
 
       if (interruptRequested) {
+        // Clear waiting for interrupt state and set persistent UI flag until next request
         setInterruptRequested(false);
-        setWasJustInterrupted(true); // set persistent UI flag until next request
+        setWasJustInterrupted(true);
       }
     }
-  }, [waitingForResponse, interruptRequested, isLoaded, cancelPollingTimeout]);
+  }, [
+    waitingForResponse,
+    interruptRequested,
+    isLoaded,
+    isTimedOut,
+    cancelPollingTimeout,
+  ]);
 
   return {
     sessionData: filteredSessionData,
