@@ -116,6 +116,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 on_completion_hook=DashboardOnCompletionHook,
                 category_key="dashboard_generate",
                 category_value=str(organization.id),
+                reasoning_effort="medium",
             )
             run_id = client.start_run(
                 prompt=prompt,
