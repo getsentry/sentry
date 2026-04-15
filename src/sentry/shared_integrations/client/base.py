@@ -91,8 +91,6 @@ class BaseApiClient:
         extra: Mapping[str, str] | None = None,
     ) -> None:
         tags: dict[str, str | int] = {self.integration_type: self.name, "status": code}
-        if extra is not None and (endpoint := extra.get("endpoint")) is not None:
-            tags["endpoint"] = endpoint
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
@@ -229,8 +227,6 @@ class BaseApiClient:
         full_url = self.build_url(path)
 
         request_tags: dict[str, str] = {self.integration_type: self.name}
-        if endpoint is not None:
-            request_tags["endpoint"] = endpoint
         metrics.incr(
             f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
