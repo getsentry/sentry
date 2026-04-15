@@ -33,6 +33,7 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  skipTraceMetricFilter?: boolean;
 }
 
 interface MetricsSearchBarProps {
@@ -53,7 +54,7 @@ function MetricsSearchBar({
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
-export function Filter({traceMetric}: FilterProps) {
+export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
   const organization = useOrganization();
@@ -70,20 +71,20 @@ export function Filter({traceMetric}: FilterProps) {
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
   });
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
   });
 
   const visibleNumberTags = useMemo(() => {
@@ -154,6 +155,10 @@ export function Filter({traceMetric}: FilterProps) {
         onSearch: setQuery,
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
+
+        // Disable the recent searches when not using a trace metric filter because
+        // the recent searches for metrics need to be namespaced on the trace metric filter.
+        disableRecentSearches: skipTraceMetricFilter,
       };
     }, [
       query,
@@ -162,6 +167,7 @@ export function Filter({traceMetric}: FilterProps) {
       visibleNumberTags,
       visibleStringTags,
       traceMetric.name,
+      skipTraceMetricFilter,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

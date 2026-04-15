@@ -107,18 +107,20 @@ export function SeerRepoTable() {
     isFetchingNextPage,
   } = result;
 
-  const [mutationData, setMutations] = useState<Record<string, RepositoryWithSettings>>(
-    {}
-  );
-
   const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
     onSuccess: mutations => {
-      setMutations(prev => {
-        const updated = {...prev};
-        mutations.forEach(mutation => {
-          updated[mutation.id] = mutation;
-        });
-        return updated;
+      const mutationMap = new Map(mutations.map(m => [m.id, m]));
+      queryClient.setQueryData(queryOptions.queryKey, prev => {
+        if (!prev) {
+          return prev;
+        }
+        return {
+          ...prev,
+          pages: prev.pages.map(page => ({
+            ...page,
+            json: page.json.map(repo => mutationMap.get(repo.id) ?? repo),
+          })),
+        };
       });
     },
     onSettled: mutations => {
@@ -192,10 +194,10 @@ export function SeerRepoTable() {
         <TablePanel>
           <SeerRepoTableHeader
             gridColumns={GRID_COLUMNS}
+            isFetchingNextPage={isFetchingNextPage}
+            isPending={isPending}
             mutateRepositorySettings={mutateRepositorySettings}
             onSortClick={setSort}
-            isPending={isPending}
-            isFetchingNextPage={isFetchingNextPage}
             sort={sort}
           />
           {isPending ? (
@@ -221,7 +223,6 @@ export function SeerRepoTable() {
               hasNextPage={hasNextPage}
               isFetchingNextPage={isFetchingNextPage}
               mutateRepositorySettings={mutateRepositorySettings}
-              mutationData={mutationData}
               repositories={repositories}
               scrollBodyRef={scrollBodyRef}
             />
@@ -236,14 +237,12 @@ function VirtualizedRepoTable({
   hasNextPage,
   isFetchingNextPage,
   mutateRepositorySettings,
-  mutationData,
   repositories,
   scrollBodyRef,
 }: {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
-  mutationData: Record<string, RepositoryWithSettings>;
   repositories: RepositoryWithSettings[];
   scrollBodyRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -296,7 +295,6 @@ function VirtualizedRepoTable({
               gridColumns={GRID_COLUMNS}
               style={{transform: `translateY(${virtualItem.start}px)`}}
               mutateRepositorySettings={mutateRepositorySettings}
-              mutationData={mutationData}
               repository={repository}
             />
           );

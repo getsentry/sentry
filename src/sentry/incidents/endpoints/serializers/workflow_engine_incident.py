@@ -93,6 +93,18 @@ class WorkflowEngineIncidentSerializer(Serializer):
             results[open_period] = {"projects": [open_period.project.slug]}
             results[open_period]["alert_rule"] = alert_rules.get(str(alert_rule_id))
 
+        igops = IncidentGroupOpenPeriod.objects.filter(group_open_period__in=results.keys())
+        igop_by_open_period_id = {igop.group_open_period_id: igop for igop in igops}
+
+        for open_period in results:
+            if igop := igop_by_open_period_id.get(open_period.id):
+                results[open_period]["incident_id"] = igop.incident_id
+                results[open_period]["incident_identifier"] = igop.incident_identifier
+            else:
+                fake_id = get_fake_id_from_object_id(open_period.id)
+                results[open_period]["incident_id"] = fake_id
+                results[open_period]["incident_identifier"] = fake_id
+
         if "activities" in self.expand:
             gopas = list(
                 GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list).order_by(
@@ -169,13 +181,8 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
-        try:
-            igop = IncidentGroupOpenPeriod.objects.get(group_open_period=obj)
-            incident_id = igop.incident_id
-            incident_identifier = igop.incident_identifier
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            incident_id = get_fake_id_from_object_id(obj.id)
-            incident_identifier = incident_id
+        incident_id = attrs["incident_id"]
+        incident_identifier = attrs["incident_identifier"]
 
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {

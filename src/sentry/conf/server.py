@@ -1216,7 +1216,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": crontab("0", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -2240,7 +2240,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.3.1"
+SELF_HOSTED_STABLE_VERSION = "26.4.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

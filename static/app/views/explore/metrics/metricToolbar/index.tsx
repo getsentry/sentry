@@ -134,8 +134,10 @@ export function MetricToolbar({
               )}
             </Fragment>
           ) : isVisualizeEquation(visualize) ? (
+            // The flex definitions are more complex for this case to mirror the styling for the
+            // visualizeFunction case.
             <Flex minWidth={0} gap="md">
-              <Flex flex="4 1 0" minWidth={0}>
+              <Flex flex="16 1 0" minWidth={0}>
                 <EquationBuilder
                   expression={visualize.expression.text}
                   referenceMap={referenceMap}
@@ -143,15 +145,23 @@ export function MetricToolbar({
                   onReferenceLabelsChange={handleReferenceLabelsChange}
                 />
               </Flex>
-              <Flex flex="1 1 0" minWidth={0}>
+              <Flex flex="9 1 0" minWidth={0}>
                 <GroupBySelector traceMetric={traceMetric} skipTraceMetricFilter />
               </Flex>
+              {!isNarrow && (
+                <Flex flex="30 1 0" minWidth={0}>
+                  <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+                </Flex>
+              )}
             </Flex>
           ) : null}
           {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>
-        {isNarrow && isVisualizeFunction(visualize) && (
-          <Filter traceMetric={traceMetric} />
+        {isNarrow && (
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter={isVisualizeEquation(visualize)}
+          />
         )}
       </Flex>
     );

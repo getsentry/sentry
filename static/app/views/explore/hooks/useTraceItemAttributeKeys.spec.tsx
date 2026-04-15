@@ -8,6 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {makeTraceItemAttributeKeysQueryOptions} from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -254,5 +255,22 @@ describe('useTraceItemAttributeKeys', () => {
     };
 
     expect(result.current.attributes).toEqual(expectedAttributes);
+  });
+
+  it('omits empty substringMatch from attribute key query options', () => {
+    const options = makeTraceItemAttributeKeysQueryOptions({
+      traceItemType: TraceItemDataset.LOGS,
+      type: 'string',
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+      projectIds: [1],
+      search: '',
+    });
+
+    expect(options).not.toHaveProperty('substringMatch');
   });
 });
