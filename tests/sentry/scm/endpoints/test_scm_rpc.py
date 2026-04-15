@@ -116,22 +116,6 @@ class TestScmRpc(APITestCase):
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 401, response.content
 
-        response_json = response.json()
-        assert response_json == {
-            "data": {
-                "id": str(self.repo.id),
-                "type": "repository",
-                "attributes": {
-                    "organization_id": self.repo.organization_id,
-                    "name": self.repo.name,
-                    "provider_name": self.repo.provider.removeprefix("integrations:"),
-                    "external_id": self.repo.external_id,
-                    "is_active": self.repo.status == ObjectStatus.ACTIVE,
-                    "integration_id": self.repo.integration_id,
-                },
-            }
-        }
-
     def test_get_invalid_headers(self):
         assert_coded_error(
             self.client.get(self.url, headers={}), 400, "rpc_malformed_request_headers"
