@@ -65,7 +65,10 @@ function ReplaysHeader() {
           />
         ) : null}
         {title && defined(pageId) ? (
-          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.REPLAYS} />
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.REPLAYS}
+            savedQueryName={savedQuery?.name}
+          />
         ) : null}
 
         <Layout.Title>

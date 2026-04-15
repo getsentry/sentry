@@ -626,8 +626,7 @@ describe('Dashboards > Detail', () => {
     });
 
     it('hides add widget option', async () => {
-      // @ts-expect-error this is assigning to readonly property...
-      types.MAX_WIDGETS = 1;
+      jest.spyOn(types, 'MAX_WIDGETS', 'get').mockReturnValue(1 as 30);
 
       render(
         <OrganizationContext value={initialData.organization}>

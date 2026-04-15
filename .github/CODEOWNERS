@@ -172,7 +172,6 @@ pyproject.toml                                           @getsentry/owners-pytho
 vercel.json                                              @getsentry/owners-js-build
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
-babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
@@ -356,6 +355,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
 /static/app/components/charts/                                            @getsentry/data-browsing
+/static/app/chartcuterie/timeseries.tsx                                   @getsentry/data-browsing
 
 /static/app/views/insights/                                               @getsentry/dashboards
 

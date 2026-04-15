@@ -19,6 +19,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 interface MetricInfoTabsProps {
   orientation: TableOrientation;
@@ -54,7 +55,15 @@ export function MetricInfoTabs({
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
             <TabList variant="floating">
-              <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
+              <TabList.Item
+                key={Mode.SAMPLES}
+                disabled={contentsHidden || isVisualizeEquation(visualize)}
+                tooltip={{
+                  title: isVisualizeEquation(visualize)
+                    ? t('Samples are not available for equations')
+                    : undefined,
+                }}
+              >
                 {t('Samples')}
               </TabList.Item>
               <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
