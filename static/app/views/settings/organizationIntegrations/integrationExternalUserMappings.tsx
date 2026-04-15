@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -12,8 +13,9 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Member} from 'sentry/types/organization';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -27,9 +29,6 @@ export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
 
-  const DATA_ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/members/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
   const BASE_FORM_ENDPOINT = getApiUrl(
     '/organizations/$organizationIdOrSlug/external-users/',
     {
@@ -38,23 +37,35 @@ export function IntegrationExternalUserMappings(props: Props) {
   );
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
-    data: members = [],
+    data,
     refetch: refetchMembers,
-    getResponseHeader,
     isPending: isMembersPending,
     isError: isMembersError,
-  } = useApiQuery<Array<Member & {externalUsers: ExternalUser[]}>>(
-    [DATA_ENDPOINT, {query: {query: 'hasExternalUsers:true', expand: 'externalUsers'}}],
-    {staleTime: 0}
-  );
-  const membersPageLinks = getResponseHeader?.('Link') ?? '';
+  } = useQuery({
+    ...apiOptions.as<Array<Member & {externalUsers: ExternalUser[]}>>()(
+      '/organizations/$organizationIdOrSlug/members/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {query: 'hasExternalUsers:true', expand: 'externalUsers'},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const members = data?.json ?? [];
+  const membersPageLinks = data?.headers.Link ?? '';
   // We use this query as defaultOptions to reduce identical API calls
   const {
     data: initialResults = [],
     refetch: refetchInitialResults,
     isPending: isInitialResultsPending,
     isError: isInitialResultsError,
-  } = useApiQuery<Member[]>([DATA_ENDPOINT], {staleTime: 0});
+  } = useQuery(
+    apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    })
+  );
 
   const fetchData = () => {
     return Promise.all([refetchMembers(), refetchInitialResults()]);
