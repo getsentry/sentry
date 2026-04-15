@@ -626,6 +626,7 @@ def trigger_coding_agent_launch(
             if features.has("organizations:seer-project-settings-dual-write", organization):
                 project = Project.objects.get_from_cache(id=project_id)
 
+                preference: SeerProjectPreference | None = None
                 if features.has(
                     "organizations:seer-project-settings-read-from-sentry", organization
                 ):
@@ -886,6 +887,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
         raise Project.DoesNotExist
 
     organization = Organization.objects.get_from_cache(id=organization_id)
+    preference: SeerProjectPreference | None = None
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
         preference = read_preference_from_sentry_db(project)
     else:
