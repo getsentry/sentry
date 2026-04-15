@@ -200,9 +200,10 @@ export function ProjectPerformance() {
   });
 
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
-  const hasAIIssueDetection =
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('issue-llm-detected-experimental-v2-visible');
+  // const hasAIIssueDetection =
+  //   organization.features.includes('gen-ai-features') &&
+  //   organization.features.includes('ai-issue-detection');
+  const hasAIIssueDetection = true;
 
   const {
     data: threshold,
