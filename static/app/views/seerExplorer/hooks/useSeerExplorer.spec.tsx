@@ -11,6 +11,19 @@ jest.mock('sentry/views/seerExplorer/utils', () => ({
   usePageReferrer: jest.fn(),
 }));
 
+// Controlled mock for useTimeout — lets tests trigger the timeout callback directly
+// instead of relying on real or fake timers (which conflict with router initialization).
+const mockTimeoutStart = jest.fn();
+const mockTimeoutCancel = jest.fn();
+let capturedOnTimeout: (() => void) | null = null;
+
+jest.mock('sentry/utils/useTimeout', () => ({
+  useTimeout: ({onTimeout}: {onTimeout: () => void; timeMs: number}) => {
+    capturedOnTimeout = onTimeout;
+    return {start: mockTimeoutStart, cancel: mockTimeoutCancel, end: jest.fn()};
+  },
+}));
+
 describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -347,6 +360,255 @@ describe('useSeerExplorer', () => {
 
       expect(result.current.sessionData?.blocks?.some(b => b.loading)).toBe(true);
       expect(result.current.deletedFromIndex).toBe(0);
+    });
+  });
+
+  describe('Timeout', () => {
+    beforeEach(() => {
+      mockTimeoutStart.mockClear();
+      mockTimeoutCancel.mockClear();
+      capturedOnTimeout = null;
+    });
+
+    it('isTimedOut is false by default', () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      expect(result.current.isTimedOut).toBe(false);
+    });
+
+    it('isTimedOut becomes true when the timeout fires during a request', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 1}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 1,
+            status: 'processing',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // Simulate the 7-minute timeout firing
+      act(() => {
+        capturedOnTimeout?.();
+      });
+
+      expect(result.current.isTimedOut).toBe(true);
+      expect(result.current.isPolling).toBe(false);
+    });
+
+    it('isTimedOut resets to false when a new message is sent after timeout', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 1}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 1,
+            status: 'processing',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      await act(async () => {
+        await result.current.sendMessage('First message');
+      });
+      act(() => {
+        capturedOnTimeout?.();
+      });
+      expect(result.current.isTimedOut).toBe(true);
+
+      // Send a new message — isTimedOut should reset.
+      // After the first send, runId is set to 1, so subsequent sends POST to the run-scoped URL.
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 1,
+            status: 'processing',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        },
+      });
+
+      await act(async () => {
+        await result.current.sendMessage('Second message');
+      });
+
+      expect(result.current.isTimedOut).toBe(false);
+    });
+
+    it('timeout timer is cancelled when the response loads successfully', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 1}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [
+              {
+                id: 'a1',
+                message: {role: 'assistant', content: 'Done'},
+                timestamp: '2024-01-01T00:00:01Z',
+                loading: false,
+              },
+            ],
+            run_id: 1,
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:01Z',
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // isTimedOut should remain false — the timeout callback was never triggered
+      expect(result.current.isTimedOut).toBe(false);
+    });
+
+    it('polling timeout timer is cancelled when a request errors', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({
+        url: chatUrl,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Server error'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // cancelPollingTimeout is called via _onRequestError when the API errors
+      expect(mockTimeoutCancel).toHaveBeenCalled();
+      expect(result.current.isTimedOut).toBe(false);
+    });
+
+    it('isTimedOut resets to false when switching to a different run', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 1}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 1,
+            status: 'processing',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}999/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 999,
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+      act(() => {
+        capturedOnTimeout?.();
+      });
+      expect(result.current.isTimedOut).toBe(true);
+
+      act(() => {
+        result.current.switchToRun(999);
+      });
+
+      expect(result.current.isTimedOut).toBe(false);
+    });
+
+    it('isPolling is true while waiting for response and false after timeout fires', async () => {
+      const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+
+      MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+      MockApiClient.addMockResponse({url: chatUrl, method: 'POST', body: {run_id: 1}});
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}1/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 1,
+            status: 'processing',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+
+      expect(result.current.isPolling).toBe(false);
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // isPolling is true while the request is in flight (waitingForResponse=true)
+      expect(result.current.isPolling).toBe(true);
+
+      // Firing the timeout clears waitingForResponse, which stops polling
+      act(() => {
+        capturedOnTimeout?.();
+      });
+
+      expect(result.current.isPolling).toBe(false);
     });
   });
 });
