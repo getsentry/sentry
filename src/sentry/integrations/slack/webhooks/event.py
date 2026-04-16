@@ -32,7 +32,6 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.entrypoints.slack.messaging import send_identity_link_prompt
@@ -71,7 +70,6 @@ _SEER_LOADING_MESSAGES = [
     "Hold on, I've seen this one before...",
     "It worked on my machine...",
 ]
-SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 
 @all_silo_endpoint  # Only challenge verification is handled at control
