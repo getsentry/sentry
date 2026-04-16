@@ -503,20 +503,19 @@ export function PlanFeatures({
     if (priorPlan && priorPlan?.basePrice > 0) {
       perPlanPriceDiffs[planOption.id] = {
         plan: planOption,
-        ...Object.entries(planOption.planCategories ?? {}).reduce(
-          (acc, [category, eventBuckets]) => {
-            const priorPlanEventBuckets =
-              priorPlan?.planCategories[category as DataCategory];
-            const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
-            const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
-            const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
-            if (perUnitPriceDiff > 0) {
-              acc[category as DataCategory] = perUnitPriceDiff;
-            }
-            return acc;
-          },
-          {} as Partial<Record<DataCategory, number>>
-        ),
+        ...Object.entries(planOption.planCategories ?? {}).reduce<
+          Partial<Record<DataCategory, number>>
+        >((acc, [category, eventBuckets]) => {
+          const priorPlanEventBuckets =
+            priorPlan?.planCategories[category as DataCategory];
+          const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+          const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+          const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
+          if (perUnitPriceDiff > 0) {
+            acc[category as DataCategory] = perUnitPriceDiff;
+          }
+          return acc;
+        }, {}),
       };
     }
   });

@@ -324,12 +324,12 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = ConfigStore.get('regions').reduce(
+  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
     (acc: any, region: any) => {
       acc[region.url] = region.name;
       return acc;
     },
-    {} as Record<string, string>
+    {}
   );
   const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 

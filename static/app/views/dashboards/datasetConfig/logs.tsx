@@ -61,7 +61,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 
 const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
   (x: {value: AggregationKey}) => x.value
-).reduce(
+).reduce<Record<AggregationKey, Aggregation>>(
   (acc: Record<AggregationKey, Aggregation>, aggregate: AggregationKey) => {
     if (aggregate === AggregationKey.COUNT) {
       acc[AggregationKey.COUNT] = {

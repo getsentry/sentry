@@ -89,7 +89,9 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
+const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce<
+  Record<AggregationKey, Aggregation>
+>(
   (acc, aggregate) => {
     if (aggregate === AggregationKey.COUNT) {
       acc[AggregationKey.COUNT] = {

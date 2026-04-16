@@ -97,9 +97,9 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         .findAll({queryKey: [key]})
         .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
         .filter(defined)
-        .reduce(
+        .reduce<Data | undefined>(
           (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
-          undefined as Data | undefined
+          undefined
         ),
     [cache, key, queryClient, responseReducer]
   );

@@ -122,13 +122,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   );
 
   const columns = useMemo(() => {
-    return eventView.getColumns().reduce(
-      (acc, col) => {
+    return eventView
+      .getColumns()
+      .reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
-      },
-      {} as Record<string, TableColumn<string>>
-    );
+      }, {});
   }, [eventView]);
 
   return (
