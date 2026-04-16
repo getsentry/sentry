@@ -18,7 +18,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
@@ -52,7 +51,7 @@ function trackExternalAnalytics({
   organization,
   provider,
 }: {
-  eventName: IntegrationAnalyticsKey;
+  eventName: 'integrations.installation_start';
   organization: Organization | null;
   provider: IntegrationProvider | null;
   startSession?: boolean;
