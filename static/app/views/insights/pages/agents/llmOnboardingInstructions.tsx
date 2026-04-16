@@ -65,10 +65,10 @@ export function CopyLLMPromptButton() {
  * Contextual note prepended when the instructions follow onboarding setup
  * steps so the LLM knows to complete those first.
  */
-export const LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE = `> The setup steps above contain the correct DSN and project-specific SDK configuration — complete them first.
-> Then follow the skill references below for instrumentation and agent naming.`;
 
-export const LLM_ONBOARDING_COPY_MARKDOWN = `${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}
+export const LLM_ONBOARDING_COPY_MARKDOWN = `
+> The setup steps above contain the correct DSN and project-specific SDK configuration — complete them first.
+> Then follow the skill references below for instrumentation and agent naming.
 
 # Instrument Sentry AI Agent Monitoring
 
