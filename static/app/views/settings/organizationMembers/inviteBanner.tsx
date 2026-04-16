@@ -82,10 +82,10 @@ export function InviteBanner({
           method: 'GET',
         }
       );
-      const githubMissingMembers = data?.filter(
+      const githubMissingMembers = data?.find(
         (integrationMissingMembers: any) =>
           integrationMissingMembers.integration === 'github'
-      )[0];
+      );
       setMissingMembers(githubMissingMembers?.users || []);
     } catch (err: any) {
       if (err.status !== 403) {
