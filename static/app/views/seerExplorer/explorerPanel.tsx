@@ -106,7 +106,6 @@ export function ExplorerPanel() {
     sessionData,
     isPolling,
     isError,
-    isTimedOut,
     sendMessage,
     deleteFromIndex,
     startNewSession,
@@ -630,7 +629,6 @@ export function ExplorerPanel() {
           <EmptyState
             isLoading={isWaitingForSessionData}
             isError={isError}
-            isTimedOut={isTimedOut}
             runId={runId}
           />
         ) : (
@@ -718,7 +716,6 @@ export function ExplorerPanel() {
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={isMinimized}
         isPolling={isPolling}
-        isTimedOut={isTimedOut}
         isVisible={isVisible}
         onClear={() => setInputValue('')}
         onCreatePR={createPR}

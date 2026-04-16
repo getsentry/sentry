@@ -35,7 +35,6 @@ interface InputSectionProps {
   enabled: boolean;
   inputValue: string;
   isPolling: boolean;
-  isTimedOut: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -59,7 +58,6 @@ export function InputSection({
   inputValue,
   isMinimized = false,
   isPolling,
-  isTimedOut,
   waitingForInterrupt,
   isVisible = false,
   onCreatePR,
@@ -285,18 +283,14 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup isTimedOut={isTimedOut}>
+        <StyledInputGroup>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={
-              isTimedOut
-                ? t('The request timed out. Please try again.')
-                : t('Type your message or / command and press Enter ↵')
-            }
+            placeholder={t('Type your message or / command and press Enter ↵')}
             rows={1}
             data-test-id="seer-explorer-input"
           />
@@ -331,14 +325,14 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.sm};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{isTimedOut?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.isTimedOut ? p.theme.tokens.content.warning : undefined)};
+      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
     }
   }
 

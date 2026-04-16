@@ -13,30 +13,6 @@ import {
 import * as useSeerExplorerModule from './hooks/useSeerExplorer';
 import {ExplorerPanel} from './explorerPanel';
 
-function mockUseSeerExplorer(
-  overrides: Partial<ReturnType<typeof useSeerExplorerModule.useSeerExplorer>>
-) {
-  return jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-    runId: null,
-    sessionData: null,
-    sendMessage: jest.fn(),
-    deleteFromIndex: jest.fn(),
-    startNewSession: jest.fn(),
-    isPolling: false,
-    isError: false,
-    isTimedOut: false,
-    deletedFromIndex: null,
-    interruptRun: jest.fn(),
-    waitingForInterrupt: false,
-    switchToRun: jest.fn(),
-    respondToUserInput: jest.fn(),
-    createPR: jest.fn(),
-    overrideCtxEngEnable: true,
-    setOverrideCtxEngEnable: jest.fn(),
-    ...overrides,
-  });
-}
-
 // Mock createPortal to render content directly
 jest.mock('react-dom', () => ({
   ...jest.requireActual('react-dom'),
@@ -220,7 +196,26 @@ describe('ExplorerPanel', () => {
     });
 
     it('shows error when hook returns isError=true', async () => {
-      const useSeerExplorerSpy = mockUseSeerExplorer({runId: 123, isError: true});
+      const useSeerExplorerSpy = jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          runId: 123,
+          sessionData: null, // should always be null when isError
+          sendMessage: jest.fn(),
+          deleteFromIndex: jest.fn(),
+          startNewSession: jest.fn(),
+          isPolling: false,
+          isError: true, // isError
+          deletedFromIndex: null,
+          interruptRun: jest.fn(),
+          waitingForInterrupt: false,
+          switchToRun: jest.fn(),
+          respondToUserInput: jest.fn(),
+          createPR: jest.fn(),
+          overrideCtxEngEnable: true,
+          setOverrideCtxEngEnable: jest.fn(),
+        });
+
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
@@ -263,9 +258,23 @@ describe('ExplorerPanel', () => {
       };
 
       // Mock the hook to return our test data
-      mockUseSeerExplorer({
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         sessionData:
           mockSessionData as useSeerExplorerModule.SeerExplorerResponse['session'],
+        sendMessage: jest.fn(),
+        deleteFromIndex: jest.fn(),
+        startNewSession: jest.fn(),
+        isPolling: false,
+        isError: false,
+        deletedFromIndex: null,
+        interruptRun: jest.fn(),
+        waitingForInterrupt: false,
+        runId: null,
+        respondToUserInput: jest.fn(),
+        switchToRun: jest.fn(),
+        createPR: jest.fn(),
+        overrideCtxEngEnable: true,
+        setOverrideCtxEngEnable: jest.fn(),
       });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
@@ -611,58 +620,6 @@ describe('ExplorerPanel', () => {
       rerenderWithOpen(true);
 
       expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
-    });
-  });
-
-  describe('Timeout UI', () => {
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('shows timeout message in empty state when isTimedOut is true', async () => {
-      mockUseSeerExplorer({isTimedOut: true});
-
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      expect(
-        await screen.findByText('The request timed out. Please try again.')
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByText(/Ask Seer anything about your application./)
-      ).not.toBeInTheDocument();
-    });
-
-    it('shows timeout placeholder on the input when isTimedOut is true', async () => {
-      mockUseSeerExplorer({isTimedOut: true});
-
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      const textarea = await screen.findByTestId('seer-explorer-input');
-      expect(textarea).toHaveAttribute(
-        'placeholder',
-        'The request timed out. Please try again.'
-      );
-    });
-
-    it('input is still enabled when timed out so user can retry', async () => {
-      mockUseSeerExplorer({isTimedOut: true});
-
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      const textarea = await screen.findByTestId('seer-explorer-input');
-      expect(textarea).toBeEnabled();
-    });
-
-    it('timeout placeholder takes precedence over interrupted state', async () => {
-      mockUseSeerExplorer({isTimedOut: true, wasJustInterrupted: true});
-
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      const textarea = await screen.findByTestId('seer-explorer-input');
-      expect(textarea).toHaveAttribute(
-        'placeholder',
-        'The request timed out. Please try again.'
-      );
     });
   });
 });
