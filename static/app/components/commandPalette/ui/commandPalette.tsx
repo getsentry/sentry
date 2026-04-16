@@ -100,7 +100,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     return nodes;
   }, [store, state.action]);
 
-  const actions = useMemo<CMDKFlatItem[]>(() => {
+  const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
     if (!state.query) {
       return flattenActions(currentNodes, null);
     }
@@ -123,7 +123,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const treeState = useTreeState({
     disabledKeys: sectionKeys,
     children: actions.map(action => {
-      const menuItem = makeMenuItemFromAction(action);
+      const menuItem = makeMenuItemFromAction(action, prefixMap);
 
       if (action.listItemType === 'section') {
         return (
@@ -159,11 +159,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         );
       }
 
+      const prefix = prefixMap.get(action.key);
       return (
         <Item<CommandPaletteActionMenuItem>
           {...menuItem}
           key={action.key}
-          textValue={action.display.label}
+          textValue={
+            prefix?.length
+              ? `${prefix.join(' ')} ${action.display.label}`
+              : action.display.label
+          }
         >
           {menuItem.label}
         </Item>
@@ -226,7 +231,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       const resultIndex = actions.indexOf(action);
-      const sourceAction = getSourceAction(action, actions);
+      const sourceAction = getSourceAction(action, actions, prefixMap);
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
@@ -272,7 +277,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
       closeModal?.();
     },
-    [actions, analytics, closeModal, dispatch, navigate, state.query]
+    [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
   );
 
   const resultsListRef = useRef<HTMLDivElement>(null);
@@ -567,7 +572,7 @@ function flattenActions(
   nodes: Array<CollectionTreeNode<CMDKActionData>>,
   scores: Map<string, CommandPaletteScore> | null,
   sortLeafResults = false
-): CMDKFlatItem[] {
+): [CMDKFlatItem[], Map<string, string[]>] {
   // Browse mode: show each top-level node and its direct children.
   if (!scores) {
     const results: CMDKFlatItem[] = [];
@@ -602,7 +607,7 @@ function flattenActions(
         results.push({...node, listItemType: 'action'});
       }
     }
-    return results;
+    return [results, new Map()];
   }
 
   // Search mode: DFS all nodes, collect as flat list, sort groups by max child
@@ -622,6 +627,11 @@ function flattenActions(
     dfs(node);
   }
 
+  const nodeMap = new Map<string, CollectionTreeNode<CMDKActionData>>();
+  for (const item of collected) {
+    nodeMap.set(item.key, item);
+  }
+
   // Keep the existing top-level search ordering by default, but when we are
   // inside an expanded group we also sort leaf actions by their own score so
   // the full result list matches the limited preview ordering.
@@ -635,6 +645,8 @@ function flattenActions(
   // Track processed keys so children beyond a group's limit cannot resurface as
   // standalone flat items later in the traversal.
   const seen = new Set<string>();
+  const prefixMap = new Map<string, string[]>();
+  const usedSectionHeaders = new Set<string>();
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
     if (seen.has(item.key)) return [];
@@ -642,7 +654,7 @@ function flattenActions(
 
     if (item.children.length > 0) {
       const matched = item.children.filter(
-        c => scores.get(c.key)?.matched && !isEmptyResourceNode(c)
+        c => scores.get(c.key)?.matched && !isEmptyResourceNode(c) && !seen.has(c.key)
       );
       if (!matched.length) return [];
       const sortedMatches = matched.sort((a, b) =>
@@ -655,12 +667,50 @@ function flattenActions(
       for (const child of item.children) {
         markSubtreeSeen(child, seen);
       }
+      // Walk the ancestor chain inline to find the root section for this group.
+      let root: CollectionTreeNode<CMDKActionData> = item;
+      const intermediatePath: string[] = [];
+      while (root.parent !== null) {
+        const parent = nodeMap.get(root.parent);
+        if (!parent) break;
+        intermediatePath.unshift(root.display.label);
+        root = parent;
+      }
+      const isNested = root.key !== item.key;
+      const seeMore = shouldShowSeeMore(matched.length, item.limit);
+
+      if (isNested) {
+        for (const child of limitedMatches) {
+          prefixMap.set(child.key, intermediatePath);
+        }
+        if (seeMore) {
+          // Store the group label so getSourceAction can recover it for the
+          // "See all" item even though the original section header is not emitted.
+          // Use a distinct `:source-label` suffix so this entry is never mistaken
+          // for a render-time prefix by makeMenuItemFromAction.
+          prefixMap.set(`${item.key}:see-more:source-label`, [item.display.label]);
+        }
+        const sectionHeader = usedSectionHeaders.has(root.key)
+          ? []
+          : [makeSectionAction(root)];
+        usedSectionHeaders.add(root.key);
+        return [
+          ...sectionHeader,
+          ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
+          ...(seeMore ? [makeSeeMoreAction(item)] : []),
+        ];
+      }
+
+      // A nested descendant processed earlier may have already emitted this item's
+      // section header via the root-bubbling path — skip it to avoid a duplicate key.
+      const sectionHeader = usedSectionHeaders.has(item.key)
+        ? []
+        : [makeSectionAction(item)];
+      usedSectionHeaders.add(item.key);
       return [
-        makeSectionAction(item),
+        ...sectionHeader,
         ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
-        ...(shouldShowSeeMore(matched.length, item.limit)
-          ? [makeSeeMoreAction(item)]
-          : []),
+        ...(seeMore ? [makeSeeMoreAction(item)] : []),
       ];
     }
 
@@ -672,7 +722,7 @@ function flattenActions(
     return scores.get(item.key)?.matched ? [{...item, listItemType: 'action'}] : [];
   });
 
-  return flattened;
+  return [flattened, prefixMap];
 }
 
 function getLimitedChildren<T>(children: T[], limit?: number): T[] {
@@ -708,15 +758,29 @@ function makeSectionAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
   };
 }
 
-function getSourceAction(action: CMDKFlatItem, actions: CMDKFlatItem[]): CMDKFlatItem {
+function getSourceAction(
+  action: CMDKFlatItem,
+  actions: CMDKFlatItem[],
+  prefixMap: Map<string, string[]>
+): CMDKFlatItem {
   if (!isSeeMoreAction(action.key)) {
     return action;
   }
 
   const sourceActionKey = getSourceActionKey(action.key);
-  return (
-    actions.find(candidate => candidate.key === `${sourceActionKey}:header`) ?? action
+  const headerMatch = actions.find(
+    candidate => candidate.key === `${sourceActionKey}:header`
   );
+  if (headerMatch) return headerMatch;
+
+  // For nested groups the original header was replaced by the root ancestor header.
+  // The prefix map stores the group label under a distinct `:source-label` key.
+  const groupLabel = prefixMap.get(`${action.key}:source-label`)?.[0];
+  if (groupLabel) {
+    return {...action, display: {...action.display, label: groupLabel}};
+  }
+
+  return action;
 }
 
 function isSeeMoreAction(key: string): boolean {
@@ -737,7 +801,11 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
   );
 }
 
-function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {
+function makeMenuItemFromAction(
+  action: CMDKFlatItem,
+  prefixMap: Map<string, string[]>
+): CommandPaletteActionMenuItem {
+  const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
   const trailingItems =
     'to' in action ? (
@@ -754,7 +822,23 @@ function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuI
 
   return {
     key: action.key,
-    label: action.display.label,
+    label: prefix?.length ? (
+      <Flex align="center" gap="xs">
+        {prefix.map((segment, i) => (
+          <Fragment key={i}>
+            <Text size="sm" variant="muted">
+              {segment}
+            </Text>
+            <IconDefaultsProvider size="xs" variant="muted">
+              <IconArrow direction="right" />
+            </IconDefaultsProvider>
+          </Fragment>
+        ))}
+        <Text size="sm">{action.display.label}</Text>
+      </Flex>
+    ) : (
+      action.display.label
+    ),
     details: action.display.details,
     leadingItems: (
       <Flex
