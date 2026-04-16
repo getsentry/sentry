@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 from uuid import uuid4
 
 from sentry.models.group import GroupStatus
@@ -164,7 +165,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] == str(self.event_a.event_id)
         assert response.data["nextEventID"] is None
 
-    def _build_interleaved_tag_group(self) -> tuple:
+    def _build_interleaved_tag_group(self) -> tuple[Any, Any, Any, Any, Any]:
         m1 = self.store_event(
             data={
                 "event_id": "1" * 32,
@@ -215,7 +216,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         group_id = m1.group.id
         query = "attachmentsAdded:true"
 
-        def fetch(event_id: str):
+        def fetch(event_id: str) -> Any:
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/events/{event_id}/"
             return self.client.get(url, {"query": query}, format="json")
 
