@@ -1,21 +1,16 @@
 import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {
+  dashboardsApiOptions,
+  starredDashboardsApiOptions,
+} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export function getStarredDashboardsQueryKey(organization: Organization) {
   if (organization.features.includes('dashboards-starred-reordering')) {
-    return apiOptions.as<DashboardListItem[]>()(
-      '/organizations/$organizationIdOrSlug/dashboards/starred/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: Infinity,
-      }
-    ).queryKey;
+    return starredDashboardsApiOptions(organization).queryKey;
   }
   return dashboardsApiOptions(organization, {
     query: {filter: 'onlyFavorites'},
@@ -32,13 +27,7 @@ export function useGetStarredDashboards() {
 
   return useQuery({
     ...(usesStarredEndpoint
-      ? apiOptions.as<DashboardListItem[]>()(
-          '/organizations/$organizationIdOrSlug/dashboards/starred/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: Infinity,
-          }
-        )
+      ? starredDashboardsApiOptions(organization)
       : dashboardsApiOptions(organization, {
           query: {filter: 'onlyFavorites'},
         })),
