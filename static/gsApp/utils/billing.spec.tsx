@@ -1348,6 +1348,43 @@ describe('productIsEnabled', () => {
     };
     expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(true);
   });
+  it('returns true for gifted-only data categories (reserved=0, free>0)', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+
+    subscription.categories.uptime = {
+      ...subscription.categories.uptime!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    expect(productIsEnabled(subscription, DataCategory.UPTIME)).toBe(true);
+  });
+
+  it('returns false for categories with no quota at all', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(false);
+  });
+
+  it('returns true for categories with both reserved and gifted quota', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 1,
+      free: 1,
+      prepaid: 2,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+  });
 });
 
 describe('getSeerTrialCategory', () => {

@@ -59,7 +59,7 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : (subscription.categories[productFromQuery as DataCategory]?.reserved ?? 0) >
+          : (subscription.categories[productFromQuery as DataCategory]?.prepaid ?? 0) >
               0 ||
             !!getActiveProductTrial(
               subscription.productTrials ?? null,

@@ -1040,7 +1040,7 @@ export function productIsEnabled(
   if (!metricHistory) {
     return false;
   }
-  const isPaygOnly = metricHistory.reserved === 0;
+  const isPaygOnly = (metricHistory.prepaid ?? 0) === 0;
   return (
     !isPaygOnly ||
     metricHistory.onDemandBudget > 0 ||

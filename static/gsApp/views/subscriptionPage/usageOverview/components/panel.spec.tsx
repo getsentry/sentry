@@ -669,6 +669,46 @@ describe('ProductBreakdownPanel', () => {
     await screen.findByText('Active Contributors (0)'); // wait for billed seats to be loaded
   });
 
+  it('does not show Upgrade required for gifted-only monitors', async () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.MONITOR_SEATS}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
+  });
+
+  it('does not show Upgrade required for gifted-only uptime monitors', async () => {
+    subscription.categories.uptime = {
+      ...subscription.categories.uptime!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.UPTIME}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Uptime Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
+  });
+
   it('renders for data category with missing metric history', async () => {
     // NOTE(isabella): currently, we would never have this case IRL
     // since we would not allow a data category without a metric history to be
