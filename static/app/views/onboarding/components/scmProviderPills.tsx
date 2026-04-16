@@ -25,9 +25,9 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
   const {startFlow} = useAddIntegration();
   const primaryProviders = providers.filter(p => PRIMARY_PROVIDER_KEYS.has(p.key));
   const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.has(p.key));
-  const relevantProvidersLength = primaryProviders.length + moreProviders.length;
+  const gridItemCount = primaryProviders.length + (moreProviders.length > 0 ? 1 : 0);
 
-  const columnsXs = `repeat(${Math.min(relevantProvidersLength, 2)}, 1fr)`;
+  const columnsXs = `repeat(${Math.min(gridItemCount, 2)}, 1fr)`;
   const columnsMd = [
     primaryProviders.length && `repeat(${primaryProviders.length}, 1fr)`,
     moreProviders.length && 'min-content',
