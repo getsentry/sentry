@@ -30,6 +30,8 @@ import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetail
 import {
   AlwaysPresentLogFields,
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
+  LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
+  LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
   MAX_LOG_INGEST_DELAY,
   MAX_LOGS_INFINITE_QUERY_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
@@ -421,12 +423,10 @@ function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): 
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
-  maxAutoFetches = 5,
   referrer,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
-  maxAutoFetches?: number;
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
@@ -705,28 +705,19 @@ export function useInfiniteLogsQuery({
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
-  // the original state starts at -1 because we have to count
-  // the 1 query made by default outside of the auto fetches
-  const [autoFetchesRemaining, setAutoFetchesRemaining] = useState(maxAutoFetches - 1);
   const canAutoFetchNextPage =
     !!highFidelity &&
     hasNextPage &&
     nextPageHasData &&
     (lastPageLength === 0 || _data.length < limit);
-  const shouldAutoFetchNextPage = canAutoFetchNextPage && autoFetchesRemaining > 0;
 
-  useEffect(() => {
-    if (!shouldAutoFetchNextPage) {
-      return;
-    }
-
-    if (isFetchingNextPage) {
-      return;
-    }
-
-    setAutoFetchesRemaining(remaining => remaining - 1);
-    _fetchNextPage();
-  }, [shouldAutoFetchNextPage, isFetchingNextPage, _fetchNextPage, nextPageCursor]);
+  const {shouldAutoFetchNextPage, resumeAutoFetch} = useAutoFetchWindow({
+    queryKey: queryKeyWithInfinite,
+    canAutoFetchNextPage,
+    isFetchingNextPage,
+    nextPageCursor,
+    fetchNextPage: _fetchNextPage,
+  });
 
   return {
     error,
@@ -757,13 +748,79 @@ export function useInfiniteLogsQuery({
     isFetchingPreviousPage,
     lastPageLength,
     canResumeAutoFetch: canAutoFetchNextPage,
-    resumeAutoFetch: () => setAutoFetchesRemaining(maxAutoFetches),
+    resumeAutoFetch,
     dataScanned,
     bytesScanned: totalBytesScanned,
   };
 }
 
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;
+
+interface AutoFetchWindowOptions {
+  canAutoFetchNextPage: boolean;
+  fetchNextPage: () => unknown;
+  isFetchingNextPage: boolean;
+  nextPageCursor: string | null | undefined;
+  queryKey: QueryKey;
+}
+
+/**
+ * Time-bounds the high-fidelity "needle in a haystack" auto-fetching.
+ * Whenever the caller reports it wants to start (`canAutoFetchNextPage`),
+ * this hook continuously calls `fetchNextPage` until the window closes.
+ * `resumeAutoFetch` reopens a fresh (longer) window after the first.
+ */
+function useAutoFetchWindow({
+  queryKey,
+  canAutoFetchNextPage,
+  isFetchingNextPage,
+  nextPageCursor,
+  fetchNextPage,
+}: AutoFetchWindowOptions) {
+  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
+
+  const queryKeyHash = useMemo(() => {
+    const [url, endpointOptions] = queryKey;
+    return JSON.stringify([url, endpointOptions?.query]);
+  }, [queryKey]);
+
+  useEffect(() => {
+    setDeadlineMs(null);
+  }, [queryKeyHash]);
+
+  useEffect(() => {
+    if (!canAutoFetchNextPage || isFetchingNextPage) {
+      return;
+    }
+
+    if (deadlineMs === null) {
+      setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS);
+      return;
+    }
+
+    if (Date.now() >= deadlineMs) {
+      return;
+    }
+
+    fetchNextPage();
+  }, [
+    canAutoFetchNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    nextPageCursor,
+    deadlineMs,
+  ]);
+
+  const resumeAutoFetch = useCallback(
+    () => setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS),
+    []
+  );
+
+  const shouldAutoFetchNextPage =
+    canAutoFetchNextPage && (deadlineMs === null || Date.now() < deadlineMs);
+
+  return {shouldAutoFetchNextPage, resumeAutoFetch};
+}
 
 export function useLogsQueryHighFidelity() {
   const sortBys = useQueryParamsSortBys();
