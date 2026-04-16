@@ -393,7 +393,42 @@ export function GlobalCommandPaletteActions() {
         )}
       </CMDKAction>
 
-      <CMDKAction display={{label: t('Help')}}>
+      <CMDKAction
+        display={{label: t('Help')}}
+        resource={(query: string): CMDKQueryOptions => {
+          return cmdkQueryOptions({
+            queryKey: ['command-palette-help-search', query, helpSearch],
+            queryFn: () =>
+              helpSearch.query(
+                query,
+                {searchAllIndexes: true},
+                {analyticsTags: ['source:command-palette']}
+              ),
+            select: data => {
+              const results = [];
+              for (const index of data) {
+                for (const hit of index.hits.slice(0, 3)) {
+                  results.push({
+                    display: {
+                      label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
+                      details: DOMPurify.sanitize(
+                        hit.context?.context1 ?? hit.context?.context2 ?? '',
+                        {ALLOWED_TAGS: []}
+                      ),
+                      icon: <IconDocs />,
+                    },
+                    keywords: [hit.context?.context1, hit.context?.context2].filter(
+                      (v): v is string => typeof v === 'string'
+                    ),
+                    to: hit.url,
+                  });
+                }
+              }
+              return results;
+            },
+          });
+        }}
+      >
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
           to="https://docs.sentry.io"
@@ -410,44 +445,6 @@ export function GlobalCommandPaletteActions() {
           display={{label: t('View Changelog'), icon: <IconOpen />}}
           to="https://sentry.io/changelog/"
         />
-        <CMDKAction
-          display={{label: t('Search Results')}}
-          resource={(query: string): CMDKQueryOptions => {
-            return cmdkQueryOptions({
-              queryKey: ['command-palette-help-search', query, helpSearch],
-              queryFn: () =>
-                helpSearch.query(
-                  query,
-                  {searchAllIndexes: true},
-                  {analyticsTags: ['source:command-palette']}
-                ),
-              select: data => {
-                const results = [];
-                for (const index of data) {
-                  for (const hit of index.hits.slice(0, 3)) {
-                    results.push({
-                      display: {
-                        label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
-                        details: DOMPurify.sanitize(
-                          hit.context?.context1 ?? hit.context?.context2 ?? '',
-                          {ALLOWED_TAGS: []}
-                        ),
-                        icon: <IconDocs />,
-                      },
-                      keywords: [hit.context?.context1, hit.context?.context2].filter(
-                        (v): v is string => typeof v === 'string'
-                      ),
-                      to: hit.url,
-                    });
-                  }
-                }
-                return results;
-              },
-            });
-          }}
-        >
-          {data => data.map((item, i) => renderAsyncResult(item, i))}
-        </CMDKAction>
       </CMDKAction>
 
       <CMDKAction display={{label: t('Interface')}}>
