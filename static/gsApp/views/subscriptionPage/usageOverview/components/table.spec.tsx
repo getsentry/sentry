@@ -466,6 +466,47 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
   });
 
+  it('renders soft cap monitors as enabled, not disabled', async () => {
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.categories.monitorSeats = {
+      ...sub.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    sub.categories.uptime = {
+      ...sub.categories.uptime!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    sub.hasSoftCap = true;
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // Soft cap monitors should appear as enabled rows
+    expect(screen.getByTestId('product-row-monitorSeats')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-monitorSeats')
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('product-row-uptime')).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
+  });
+
   it('renders disabled product rows', async () => {
     // both profiling categories are disabled because there is no PAYG
     subscription.onDemandBudgets = {

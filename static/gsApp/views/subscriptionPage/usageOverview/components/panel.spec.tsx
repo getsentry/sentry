@@ -709,6 +709,29 @@ describe('ProductBreakdownPanel', () => {
     expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
   });
 
+  it('does not show Upgrade required for soft cap monitors with no prepaid quota', async () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    subscription.hasSoftCap = true;
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <ProductBreakdownPanel
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        selectedProduct={DataCategory.MONITOR_SEATS}
+      />
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByText('Upgrade required')).not.toBeInTheDocument();
+  });
+
   it('renders for data category with missing metric history', async () => {
     // NOTE(isabella): currently, we would never have this case IRL
     // since we would not allow a data category without a metric history to be
