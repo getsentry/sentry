@@ -114,6 +114,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
                     "organizations:integrations-github-platform-detection": True,
                 }
             ),
@@ -167,7 +168,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_onboarding_skip_integration(self) -> None:
         """Skip flow: welcome → skip connect → manual platform → create project."""
-        with self.feature({"organizations:onboarding-scm-experiment": True}):
+        with self.feature(
+            {
+                "organizations:onboarding-scm-experiment": True,
+                "organizations:onboarding-scm-project-details-experiment": True,
+            }
+        ):
             self.start_onboarding()
 
             # SCM Connect: skip
@@ -237,6 +243,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
                     "organizations:integrations-github-platform-detection": True,
                 }
             ),
@@ -372,6 +379,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
                     "organizations:integrations-github-platform-detection": True,
                 }
             ),
@@ -447,7 +455,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_back_from_setup_docs_non_active_project(self) -> None:
         """Non-active project is deleted on back-nav; re-creating produces a fresh project."""
-        with self.feature({"organizations:onboarding-scm-experiment": True}):
+        with self.feature(
+            {
+                "organizations:onboarding-scm-experiment": True,
+                "organizations:onboarding-scm-project-details-experiment": True,
+            }
+        ):
             self.start_onboarding()
             self.skip_to_setup_docs("React", "React")
 
@@ -473,7 +486,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
     def test_scm_back_from_setup_docs_active_project_no_changes(self) -> None:
         """Active project survives back-nav; clicking Create again reuses it (no duplicate)."""
         with (
-            self.feature({"organizations:onboarding-scm-experiment": True}),
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
+                }
+            ),
             self.projects_born_active(),
         ):
             self.start_onboarding()
@@ -500,7 +518,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
     def test_scm_back_from_setup_docs_active_project_alert_changed(self) -> None:
         """Changing the alert setting abandons the active project and creates a new one."""
         with (
-            self.feature({"organizations:onboarding-scm-experiment": True}),
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
+                }
+            ),
             self.projects_born_active(),
         ):
             self.start_onboarding()
@@ -537,7 +560,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
     def test_scm_back_from_setup_docs_active_project_platform_changed(self) -> None:
         """Active project survives back-nav; changing platform creates a new project."""
         with (
-            self.feature({"organizations:onboarding-scm-experiment": True}),
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
+                }
+            ),
             self.projects_born_active(),
         ):
             self.start_onboarding()
@@ -571,3 +599,40 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 deleted_project_ids=[],
             )
             assert Rule.objects.filter(project=project2).count() == 1
+
+    def test_scm_onboarding_skips_project_details_when_experiment_off(self) -> None:
+        """Control path: Continue on platform features auto-creates project and lands on setup-docs."""
+        with self.feature(
+            {
+                "organizations:onboarding-scm-experiment": True,
+                "organizations:onboarding-scm-project-details-experiment": False,
+            }
+        ):
+            self.start_onboarding()
+
+            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//h3[text()="Select a platform"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("React")
+            self.browser.wait_until(
+                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
+            )
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Skips scm-project-details entirely and lands on setup-docs.
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            assert not self.browser.element_exists(
+                '[data-test-id="onboarding-step-scm-project-details"]'
+            )
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+            assert project.slug == "javascript-react"
+            assert Rule.objects.filter(project=project).count() == 1
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )

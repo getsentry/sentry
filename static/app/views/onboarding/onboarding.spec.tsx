@@ -808,6 +808,102 @@ describe('Onboarding', () => {
       });
     });
 
+    it('skips scm-project-details and auto-creates the project when experiment is off', async () => {
+      ProjectsStore.loadInitialData([]);
+      const controlOrganization = OrganizationFixture({
+        features: ['onboarding-scm-experiment'],
+      });
+      const createdProject = ProjectFixture({
+        platform: 'javascript-nextjs',
+        slug: 'javascript-nextjs',
+      });
+      jest
+        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+        .mockImplementation(() => ({
+          project: createdProject,
+          isProjectActive: false,
+        }));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/`,
+        body: controlOrganization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/config/integrations/`,
+        body: {providers: [githubProvider]},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/integrations/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/repos/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/teams/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/sdks/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${controlOrganization.slug}/${createdProject.slug}/keys/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${controlOrganization.slug}/${createdProject.slug}/issues/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${controlOrganization.slug}/${createdProject.slug}/overview/`,
+        body: createdProject,
+      });
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/experimental/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      const {router} = render(
+        <OnboardingContextProvider
+          initialValue={{
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }}
+        >
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: controlOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${controlOrganization.slug}/scm-platform-features/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(createRequest).toHaveBeenCalled();
+      });
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${controlOrganization.slug}/setup-docs/`
+        );
+      });
+    });
+
     it('renders scm-project-details step with project details form', () => {
       render(
         <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
