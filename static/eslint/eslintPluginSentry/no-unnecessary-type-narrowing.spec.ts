@@ -73,6 +73,30 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       filename: 'valid.ts',
     },
     {
+      name: 'assertion in generic call without explicit type args — drives inference',
+      code: `
+        declare function generic<T>(value: T): T;
+        generic([] as string[]);
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'assertion in reduce initial value — drives generic inference',
+      code: `
+        declare const items: number[];
+        items.reduce((acc, item) => acc, [] as string[]);
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'assertion inside object arg to generic call — drives inference',
+      code: `
+        declare function generic<T>(opts: T): T;
+        generic({ data: [] as string[] });
+      `,
+      filename: 'valid.ts',
+    },
+    {
       name: 'assertion needed — narrows null away and target does not accept null',
       code: `
         declare function accept(x: string): void;

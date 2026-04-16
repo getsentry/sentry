@@ -20,6 +20,45 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
     const parserServices = getParserServices(context);
     const checker = parserServices.program.getTypeChecker();
 
+    function isArgumentToGenericCall(node: TSESTree.TSAsExpression): boolean {
+      // Walk up: the assertion might be inside an object literal property
+      // that is an argument to a call, e.g. fn({ x: val as T })
+      let current: TSESTree.Node = node;
+      while (current.parent) {
+        // eslint-disable-next-line @sentry/no-unnecessary-type-annotation -- breaks circular inference from `current = parent`
+        const parent: TSESTree.Node = current.parent;
+        if (
+          parent.type === 'CallExpression' &&
+          parent.arguments.includes(current as TSESTree.CallExpressionArgument)
+        ) {
+          // Found the call — check if it has explicit type arguments
+          if (parent.typeArguments && parent.typeArguments.params.length > 0) {
+            return false;
+          }
+          // Check if the callee has generic call signatures
+          const calleeTsNode = parserServices.esTreeNodeToTSNodeMap.get(parent.callee);
+          const calleeType = checker.getTypeAtLocation(calleeTsNode);
+          const callSignatures = calleeType.getCallSignatures();
+          return callSignatures.some(sig => {
+            const typeParams = sig.getTypeParameters();
+            return typeParams && typeParams.length > 0;
+          });
+        }
+        // Keep walking through object/array literals and properties
+        if (
+          parent.type === 'Property' ||
+          parent.type === 'ObjectExpression' ||
+          parent.type === 'ArrayExpression' ||
+          parent.type === 'SpreadElement'
+        ) {
+          current = parent;
+          continue;
+        }
+        break;
+      }
+      return false;
+    }
+
     return {
       TSAsExpression(node: TSESTree.TSAsExpression) {
         // Skip `as const` — always valid
@@ -38,6 +77,13 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
             (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) !==
           0
         ) {
+          return;
+        }
+
+        // Skip assertions that are arguments to generic function calls without
+        // explicit type arguments — the assertion participates in type inference
+        // for the generic, so removing it would change the inferred types.
+        if (isArgumentToGenericCall(node)) {
           return;
         }
 
