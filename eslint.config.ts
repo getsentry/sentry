@@ -623,6 +623,7 @@ export default typescript.config([
           '@typescript-eslint/no-meaningless-void-operator': 'error',
           '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
+          '@sentry/no-unnecessary-type-narrowing': 'error',
         }
       : {},
   },
