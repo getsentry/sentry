@@ -91,7 +91,7 @@ def run_night_shift_for_org(
     organization_id: int,
     dry_run: bool = False,
     max_candidates: int | None = None,
-) -> None:
+) -> int | None:
     try:
         organization = Organization.objects.get(
             id=organization_id, status=OrganizationStatus.ACTIVE
@@ -204,6 +204,8 @@ def run_night_shift_for_org(
                 if _trigger_autofix_for_candidate(c.group, organization, stopping_point):
                     autofix_triggered += 1
     sentry_sdk.metrics.count("night_shift.autofix_triggered", autofix_triggered)
+
+    return agent_run_id
 
 
 def _get_eligible_orgs_from_batch(
