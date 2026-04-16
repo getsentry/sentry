@@ -1,9 +1,7 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {z} from 'zod';
 
-import {AutoSaveForm} from '@sentry/scraps/form';
-import {Container} from '@sentry/scraps/layout';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -70,7 +68,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
     : t('You do not have permission to update this setting.');
 
   return (
-    <FormPanelBody border="primary" radius="md">
+    <FieldGroup>
       <AutoSaveForm
         name="agent"
         schema={z.object({
@@ -123,7 +121,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
       <AutoSaveForm
         name="stoppingPoint"
         schema={z.object({
-          stoppingPoint: z.enum(['off', 'plan', 'code', 'create_pr']),
+          stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
         })}
         initialValue={stoppingPointValue}
         mutationOptions={stoppingPointMutationOptions}
@@ -149,23 +147,6 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           </field.Layout.Row>
         )}
       </AutoSaveForm>
-    </FormPanelBody>
+    </FieldGroup>
   );
 }
-
-// const PanelNoMargin = styled(Panel)`
-//   margin-bottom: 0;
-// `;
-
-// Mirrors FieldGroup's PanelBody so that field.Layout.Row gets the expected
-// padding (xl) and border-bottom separators between each AutoSaveForm row.
-const FormPanelBody = styled(Container)`
-  > * {
-    padding: ${p => p.theme.space.xl};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-`;

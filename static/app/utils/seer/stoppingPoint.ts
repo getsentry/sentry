@@ -18,12 +18,12 @@ import {
   setApiQueryData,
 } from 'sentry/utils/queryClient';
 
-type ProjectStoppingPoint = 'off' | 'plan' | 'code' | 'create_pr';
+type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
 export const PROJECT_STOPPING_POINT_OPTIONS = [
   {value: 'off' as const, label: t('No Automation')},
-  {value: 'plan' as const, label: t('Stop after Root Cause')},
-  {value: 'code' as const, label: t('Stop after Plan')},
+  {value: 'root_cause' as const, label: t('Stop after Root Cause')},
+  {value: 'plan' as const, label: t('Stop after Plan')},
   {value: 'create_pr' as const, label: t('Stop after PR drafted')},
 ];
 
@@ -37,12 +37,12 @@ export const PROJECT_STOPPING_POINT_OPTIONS = [
 export function getProjectStoppingPointValue(
   project: Project,
   preference: ProjectSeerPreferences | null | undefined
-): ProjectStoppingPoint {
+): UserFacingStoppingPoint {
   if (!project.autofixAutomationTuning || project.autofixAutomationTuning === 'off') {
     return 'off';
   }
   if (preference?.automated_run_stopping_point === 'root_cause') {
-    return 'plan';
+    return 'root_cause';
   }
   if (
     preference?.automated_run_stopping_point === 'open_pr' ||
@@ -50,7 +50,7 @@ export function getProjectStoppingPointValue(
   ) {
     return 'create_pr';
   }
-  return 'code';
+  return 'plan';
 }
 
 /**
@@ -63,34 +63,35 @@ export function getProjectStoppingPointValue(
  * Setting 'off' only writes autofixAutomationTuning and intentionally leaves
  * automated_run_stopping_point unchanged, so re-enabling restores the prior state.
  */
-function resolveApiValues(
-  stoppingPoint: ProjectStoppingPoint,
+function resolveStoppingPoint(
+  stoppingPoint: UserFacingStoppingPoint,
   handoff: ProjectSeerPreferences['automation_handoff']
 ): {
   automationHandoff: ProjectSeerPreferences['automation_handoff'];
   stoppingPointValue: ProjectSeerPreferences['automated_run_stopping_point'];
 } {
   switch (stoppingPoint) {
-    case 'plan':
+    case 'create_pr':
       return {
-        stoppingPointValue: 'root_cause',
-        automationHandoff: handoff ? {...handoff, auto_create_pr: false} : undefined,
+        stoppingPointValue: 'open_pr',
+        automationHandoff: handoff ? {...handoff, auto_create_pr: true} : undefined,
       };
-    case 'code':
+    case 'plan':
       return {
         stoppingPointValue: 'code_changes',
         automationHandoff: handoff ? {...handoff, auto_create_pr: false} : undefined,
       };
-    case 'create_pr':
-      if (handoff?.integration_id) {
-        return {
-          stoppingPointValue: 'code_changes',
-          automationHandoff: {...handoff, auto_create_pr: true},
-        };
-      }
-      return {stoppingPointValue: 'open_pr', automationHandoff: undefined};
+    case 'root_cause':
+      return {
+        stoppingPointValue: 'root_cause',
+        automationHandoff: handoff ? {...handoff, auto_create_pr: false} : undefined,
+      };
+    case 'off':
     default:
-      return {stoppingPointValue: undefined, automationHandoff: handoff};
+      return {
+        stoppingPointValue: undefined,
+        automationHandoff: handoff ? {...handoff, auto_create_pr: false} : undefined,
+      };
   }
 }
 
@@ -109,7 +110,7 @@ export function getProjectStoppingPointMutationOptions({
   );
 
   return mutationOptions({
-    mutationFn: async ({stoppingPoint}: {stoppingPoint: ProjectStoppingPoint}) => {
+    mutationFn: async ({stoppingPoint}: {stoppingPoint: UserFacingStoppingPoint}) => {
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
 
       const projectPromise = fetchMutation<Project>({
@@ -129,7 +130,7 @@ export function getProjectStoppingPointMutationOptions({
       });
       const preference = prefsData?.preference;
 
-      const {stoppingPointValue, automationHandoff} = resolveApiValues(
+      const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
         stoppingPoint,
         preference?.automation_handoff
       );
@@ -146,7 +147,7 @@ export function getProjectStoppingPointMutationOptions({
 
       return Promise.all([projectPromise, preferencesPromise]);
     },
-    onMutate: ({stoppingPoint}: {stoppingPoint: ProjectStoppingPoint}) => {
+    onMutate: ({stoppingPoint}: {stoppingPoint: UserFacingStoppingPoint}) => {
       const previousProject = ProjectsStore.getById(project.id);
       const previousPreference = getApiQueryData<SeerPreferencesResponse>(
         queryClient,
@@ -157,7 +158,7 @@ export function getProjectStoppingPointMutationOptions({
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
 
       if (stoppingPoint !== 'off' && previousPreference?.preference) {
-        const {stoppingPointValue, automationHandoff} = resolveApiValues(
+        const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
           stoppingPoint,
           previousPreference.preference.automation_handoff
         );
