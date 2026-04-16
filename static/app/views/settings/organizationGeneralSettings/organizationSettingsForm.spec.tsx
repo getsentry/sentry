@@ -24,6 +24,7 @@ describe('OrganizationSettingsForm', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(organization, {replace: true});
+    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
