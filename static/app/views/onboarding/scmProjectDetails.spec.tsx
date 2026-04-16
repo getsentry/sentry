@@ -381,6 +381,7 @@ describe('ScmProjectDetails', () => {
     const existingProject = ProjectFixture({
       slug: 'javascript-nextjs',
       name: 'javascript-nextjs',
+      platform: 'javascript-nextjs',
     });
     ProjectsStore.loadInitialData([existingProject]);
 
@@ -486,6 +487,73 @@ describe('ScmProjectDetails', () => {
     await userEvent.type(input, 'renamed-project');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
+  });
+
+  it('creates a new project when the stored project has a different platform', async () => {
+    const stalePythonProject = ProjectFixture({
+      slug: 'javascript-nextjs',
+      name: 'javascript-nextjs',
+      platform: 'python',
+    });
+    ProjectsStore.loadInitialData([stalePythonProject]);
+
+    const createRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({
+        slug: 'javascript-nextjs',
+        name: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    const onComplete = jest.fn();
+
+    render(
+      <ScmProjectDetails
+        onComplete={onComplete}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+          createdProjectSlug: stalePythonProject.slug,
+          projectDetailsForm: {
+            projectName: 'javascript-nextjs',
+            teamSlug: teamWithAccess.slug,
+            alertRuleConfig: {
+              alertSetting: RuleAction.DEFAULT_ALERT,
+              interval: '1m',
+              metric: MetricValues.ERRORS,
+              threshold: '10',
+            },
+          },
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
 
     await waitFor(() => {
       expect(createRequest).toHaveBeenCalled();

@@ -113,11 +113,17 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     !isLoadingTeams &&
     projectsLoaded;
 
-  const projectStillExists =
-    !!createdProjectSlug && projects.some(p => p.slug === createdProjectSlug);
+  const existingProject = createdProjectSlug
+    ? projects.find(p => p.slug === createdProjectSlug)
+    : undefined;
 
+  // Platform is compared against the project record rather than a form-state
+  // snapshot because the Project model tracks it; alert fields are not on the
+  // Project record so we compare those against the context snapshot.
+  const samePlatform = existingProject?.platform === selectedPlatform?.key;
   const savedAlert = projectDetailsForm?.alertRuleConfig;
   const nothingChanged =
+    samePlatform &&
     !!projectDetailsForm &&
     projectNameResolved === projectDetailsForm.projectName &&
     teamSlugResolved === projectDetailsForm.teamSlug &&
@@ -136,10 +142,10 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     // User navigated back and clicked Create without changing anything; skip
     // to setup-docs without creating a duplicate. Any actual change abandons
     // the previous project and creates a new one, matching legacy onboarding.
-    if (projectStillExists && createdProjectSlug && nothingChanged) {
+    if (existingProject && nothingChanged) {
       trackAnalytics('onboarding.scm_project_details_create_succeeded', {
         organization,
-        project_slug: createdProjectSlug,
+        project_slug: existingProject.slug,
       });
       onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined);
       return;
