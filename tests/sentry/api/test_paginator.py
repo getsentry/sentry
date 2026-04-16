@@ -825,6 +825,29 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert len(prev_results) == 5
         assert prev_results == page1_results
 
+    def test_prev_page_not_limited(self) -> None:
+        Rule.objects.all().delete()
+
+        rules = []
+        for i in range(10):
+            rules.append(self.create_project_rule(name=f"rule{i}"))
+
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[rule_intermediary],
+            desc=True,
+        )
+
+        # Page forward twice with limit=3 so we're on page 3.
+        page1 = paginator.get_result(limit=3, cursor=None)
+        page2 = paginator.get_result(limit=3, cursor=page1.next)
+        page3 = paginator.get_result(limit=3, cursor=page2.next)
+        assert len(page3) == 3
+
+        # Navigate back to page 2 via prev cursor.
+        prev_result = paginator.get_result(limit=3, cursor=page3.prev)
+        assert list(prev_result) == list(page2)
+
     def test_individual_querysets_are_limited(self) -> None:
         Rule.objects.all().delete()
 

@@ -707,7 +707,10 @@ class CombinedQuerysetPaginator:
         offset = page * cursor_value
         stop = offset + (int(cursor_value) or limit) + 1
 
-        combined_querysets = self._build_combined_querysets(cursor.is_prev, max_rows=stop)
+        # is_prev reverses the SQL sort direction, so applying max_rows would
+        # keep items from the wrong end of each queryset.
+        max_rows = stop if not cursor.is_prev else None
+        combined_querysets = self._build_combined_querysets(cursor.is_prev, max_rows=max_rows)
 
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
