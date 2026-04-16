@@ -140,7 +140,7 @@ def _sync_repos_for_org(
                     provider=integration.provider,
                 )
 
-    if repos_removed:
+    if repos_removed and features.has("organizations:scm-repo-auto-sync-removal", rpc_org):
         # Look up repos before disabling to get their IDs and names
         external_ids = [str(repo["id"]) for repo in repos_removed]
         existing_repos = repository_service.get_repositories(

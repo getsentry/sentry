@@ -6,7 +6,6 @@ import dashboardsImg from 'getsentry-images/features/dashboards.svg';
 import dataRetentionImg from 'getsentry-images/features/data-retention.svg';
 import tracingImg from 'getsentry-images/features/distributed-tracing.svg';
 import dataVolumeImg from 'getsentry-images/features/event-volume.svg';
-import insightsImg from 'getsentry-images/features/insights.svg';
 import integrationAlerts from 'getsentry-images/features/integration-alerts.svg';
 import incidentsImg from 'getsentry-images/features/metric-alerts.svg';
 import performanceViewImg from 'getsentry-images/features/perf-summary.svg';
@@ -67,15 +66,6 @@ type State = {
  * understanding.
  */
 const ALL_FEATURE_LIST: Feature[] = [
-  {
-    id: 'insights-modules',
-    planFeatures: ['insight-modules'],
-    name: t('Application Insights'),
-    image: insightsImg,
-    desc: t(
-      'Intuitive drill-down workflows and specialized views to debug issues for the components of your application that matter, such as databases, HTTP requests, and more.'
-    ),
-  },
   {
     id: 'extended-data-retention',
     planFeatures: ['extended-data-retention'],
@@ -185,8 +175,6 @@ const selectFeatures = (features: string[]) =>
 
 const TEAM_FEATURES = selectFeatures(['extended-data-retention']).filter(Boolean);
 
-const INSIGHTS_FEATURES = selectFeatures(['insights-modules']).filter(Boolean);
-
 const BUSINESS_FEATURES = selectFeatures([
   'discover-query',
   'change-alerts',
@@ -213,8 +201,8 @@ export class Details extends Component<Props, State> {
 
     this.features = hasPerformance(props.subscription.planDetails)
       ? this.shouldShowTeamFeatures
-        ? [...INSIGHTS_FEATURES, ...BUSINESS_FEATURES, ...TEAM_FEATURES]
-        : [...INSIGHTS_FEATURES, ...BUSINESS_FEATURES]
+        ? [...BUSINESS_FEATURES, ...TEAM_FEATURES]
+        : BUSINESS_FEATURES
       : PERFORMANCE_FEATURES;
 
     const highlightedFeatureId = this.features.some(f => f.id === props.source)

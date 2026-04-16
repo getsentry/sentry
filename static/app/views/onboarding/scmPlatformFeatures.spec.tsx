@@ -420,6 +420,48 @@ describe('ScmPlatformFeatures', () => {
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
   });
 
+  it('clears persisted project details form when detected platform changes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/42/platforms/`,
+      body: {
+        platforms: [
+          DetectedPlatformFixture(),
+          DetectedPlatformFixture({
+            platform: 'python-django',
+            language: 'Python',
+            priority: 2,
+          }),
+        ],
+      },
+    });
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedRepository: mockRepository,
+          projectDetailsForm: {
+            projectName: 'stale-name',
+            teamSlug: 'stale-team',
+          },
+        }),
+      }
+    );
+
+    const djangoCard = await screen.findByRole('radio', {name: /Django/});
+    await userEvent.click(djangoCard);
+
+    await waitFor(() => {
+      const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
+      expect(stored.projectDetailsForm).toBeUndefined();
+    });
+  });
+
   describe('analytics', () => {
     let trackAnalyticsSpy: jest.SpyInstance;
 

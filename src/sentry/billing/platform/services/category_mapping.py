@@ -27,6 +27,15 @@ SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
     int(DataCategory.SECURITY): ProtoDataCategory.DATA_CATEGORY_SECURITY,
     int(DataCategory.PROFILE_CHUNK): ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK,
     int(DataCategory.PROFILE_CHUNK_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK_UI,
+    int(DataCategory.TRANSACTION_PROCESSED): ProtoDataCategory.DATA_CATEGORY_TRANSACTION_PROCESSED,
+    int(DataCategory.TRANSACTION_INDEXED): ProtoDataCategory.DATA_CATEGORY_TRANSACTION_INDEXED,
+    int(DataCategory.PROFILE_INDEXED): ProtoDataCategory.DATA_CATEGORY_PROFILE_INDEXED,
+    int(DataCategory.METRIC_BUCKET): ProtoDataCategory.DATA_CATEGORY_METRIC_BUCKET,
+    int(DataCategory.ATTACHMENT_ITEM): ProtoDataCategory.DATA_CATEGORY_ATTACHMENT_ITEM,
+    int(DataCategory.LOG_ITEM): ProtoDataCategory.DATA_CATEGORY_LOG_ITEM,
+    int(DataCategory.PROFILE_BACKEND): ProtoDataCategory.DATA_CATEGORY_PROFILE_BACKEND,
+    int(DataCategory.PROFILE_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_UI,
+    int(DataCategory.TRACE_METRIC_BYTE): ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC_BYTE,
 }
 
 

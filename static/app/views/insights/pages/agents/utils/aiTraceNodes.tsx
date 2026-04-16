@@ -2,7 +2,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
-  getGenAiOperationTypeFromSpanOp,
+  getGenAiOperationTypeFromSpanName,
   getIsAiAgentSpan,
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -57,16 +57,18 @@ export function ensureAttributeObject(
 
 /**
  * Returns the `gen_ai.operation.type` for a given trace node.
- * If the attribute is not present it will deduce it from the `span.op`
+ * If the attribute is not present it will deduce it from the `span.name`
  *
- * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.op` on the old data model.
+ * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.name` on the old data model.
  */
 export function getGenAiOpType(node: BaseNode): string | undefined {
   const attributeObject = node.attributes;
 
   return (
     (attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
-    getGenAiOperationTypeFromSpanOp(node.op)
+    getGenAiOperationTypeFromSpanName(
+      node.value && 'name' in node.value ? (node.value.name as string) : undefined
+    )
   );
 }
 

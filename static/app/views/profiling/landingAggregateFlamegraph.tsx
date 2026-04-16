@@ -88,13 +88,13 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       ];
     }, []);
 
-  const onResetZoom = useCallback(() => {
+  const onResetZoom = () => {
     props.scheduler.dispatch('reset zoom');
     trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
       organization,
       profile_type: 'landing aggregate flamegraph',
     });
-  }, [props.scheduler, organization]);
+  };
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {

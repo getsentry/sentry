@@ -12,7 +12,7 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.viewer_context import ViewerContext, get_viewer_context
+from sentry.viewer_context import ViewerContext, encode_viewer_context, get_viewer_context
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -138,18 +138,15 @@ def make_signed_seer_api_request(
 
     resolved = _resolve_viewer_context(viewer_context)
     if resolved:
-        if settings.SEER_API_SHARED_SECRET:
-            try:
-                context_bytes = orjson.dumps(resolved.serialize())
-                context_signature = sign_viewer_context(context_bytes)
-                headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
-                headers["X-Viewer-Context-Signature"] = context_signature
-            except Exception:
-                logger.exception("Failed to serialize viewer context for call to Seer.")
-        else:
+        try:
+            headers["X-Viewer-Context"] = encode_viewer_context(resolved)
+        except ValueError:
             logger.warning(
-                "settings.SEER_API_SHARED_SECRET is not set. Unable to sign viewer context for call to Seer."
+                "viewer_context_jwt.no_signing_key",
+                extra={"msg": "No key available to sign viewer context JWT."},
             )
+        except Exception:
+            logger.exception("Failed to encode viewer context JWT for call to Seer.")
 
     options: dict[str, Any] = {}
     if timeout:

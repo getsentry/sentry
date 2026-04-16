@@ -233,7 +233,7 @@ function Task({task, hidePanel}: TaskProps) {
     [task, organization, navigate, location, hidePanel, tours, sidebarTour]
   );
 
-  const handleMarkSkipped = useCallback(() => {
+  const handleMarkSkipped = () => {
     // all demos tasks are not skippable,
     // so this apply for the quick start only.
     // Adding this check here just in case it changes in the future
@@ -255,7 +255,7 @@ function Task({task, hidePanel}: TaskProps) {
         completionSeen: true,
       },
     ]);
-  }, [task, organization, mutateOnboardingTasks]);
+  };
 
   const iconTooltipText = useMemo(() => {
     switch (task.status) {

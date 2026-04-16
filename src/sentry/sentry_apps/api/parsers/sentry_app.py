@@ -1,3 +1,5 @@
+import logging
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from jsonschema.exceptions import ValidationError as SchemaValidationError
@@ -11,6 +13,7 @@ from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
 from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
+from sentry.utils.display_name_filter import is_spam_display_name
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -164,6 +167,22 @@ class SentryAppParser(Serializer):
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
             raise ValidationError("Cannot exceed %d characters" % max_length)
+
+        if is_spam_display_name(value):
+            extra: dict[str, object] = {"attempted_name": value, "reason": "spam_filter"}
+            request = self.context.get("request")
+            if request is not None:
+                extra["user_id"] = getattr(request.user, "id", None)
+                extra["user_ip"] = request.META.get("REMOTE_ADDR")
+                extra["user_agent"] = request.META.get("HTTP_USER_AGENT")
+            if self.instance:
+                extra["sentry_app_id"] = self.instance.id
+                extra["sentry_app_slug"] = self.instance.slug
+            logging.getLogger("sentry.security").warning("spam.display-name-blocked", extra=extra)
+            raise ValidationError(
+                "This name contains disallowed content. Please choose a different name."
+            )
+
         return value
 
     def validate_allowedOrigins(self, value):

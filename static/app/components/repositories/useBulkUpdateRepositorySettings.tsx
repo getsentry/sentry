@@ -1,5 +1,6 @@
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
-import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {
   fetchMutation,
   useMutation,
@@ -45,7 +46,22 @@ export function useBulkUpdateRepositorySettings(
     ...options,
     onSettled: (data, error, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/repos/`],
+        queryKey: apiOptions.as<Repository[]>()(
+          '/organizations/$organizationIdOrSlug/repos/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            staleTime: 0,
+          }
+        ).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: apiOptions.asInfinite<Repository[]>()(
+          '/organizations/$organizationIdOrSlug/repos/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            staleTime: 0,
+          }
+        ).queryKey,
       });
       (data ?? []).forEach(repo => {
         const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);

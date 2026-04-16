@@ -55,6 +55,7 @@ function CommandPaletteSlotOutlets() {
 }
 
 function UserAndOrganizationNavigation() {
+  const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
   const {view, setView} = useSecondaryNavigation();
@@ -76,7 +77,9 @@ function UserAndOrganizationNavigation() {
     <NavigationLayout>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
-      <GlobalCommandPaletteActions />
+      {organization.features.includes('cmd-k-supercharged') && (
+        <GlobalCommandPaletteActions />
+      )}
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}

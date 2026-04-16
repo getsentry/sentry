@@ -22,8 +22,10 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.message_builder.routing import SlackRoutingData, decode_action_id
-from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.requests.event import is_event_challenge
+from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.command import SlackCommandRequest
+from sentry.integrations.slack.requests.event import SlackEventRequest, is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views import SALT
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
@@ -55,6 +57,7 @@ class SlackRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.SLACK
     response_url: str | None = None
     action_option: str | None = None
+    slack_request: SlackRequest | None = None
 
     control_classes = [
         SlackLinkIdentityView,
@@ -203,6 +206,7 @@ class SlackRequestParser(BaseRequestParser):
                     "slack.validation_error", extra={"path": self.request.path, "error": error}
                 )
                 return None
+            self.slack_request = slack_request
             self.response_url = slack_request.response_url
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
@@ -222,11 +226,13 @@ class SlackRequestParser(BaseRequestParser):
         as an additional argument. If not, we'll pick from all the organizations, which might fail.
         """
 
-        drf_request: Request
-        if self.view_class == SlackCommandsEndpoint:
-            drf_request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
-            cmd_input = slack_request.get_command_input()
+        if not self.slack_request:
+            return organizations
+
+        if self.view_class == SlackCommandsEndpoint and isinstance(
+            self.slack_request, SlackCommandRequest
+        ):
+            cmd_input = self.slack_request.get_command_input()
 
             # For both linking/unlinking teams, the organization slug is found in the same place
             link_input = None
@@ -249,15 +255,13 @@ class SlackRequestParser(BaseRequestParser):
                 return [linking_organization]
 
         elif self.view_class in [SlackActionEndpoint, SlackOptionsLoadEndpoint]:
-            drf_request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
             if self.view_class == SlackActionEndpoint:
-                actions = slack_request.data.get("actions", [])
+                actions = self.slack_request.data.get("actions", [])
                 action_ids: list[str] = [
                     action["action_id"] for action in actions if action.get("action_id")
                 ]
             elif self.view_class == SlackOptionsLoadEndpoint:
-                action_ids = [slack_request.data.get("action_id", "")]
+                action_ids = [self.slack_request.data.get("action_id", "")]
 
             decoded_actions: list[SlackRoutingData] = [
                 decode_action_id(action_id) for action_id in action_ids
@@ -271,7 +275,7 @@ class SlackRequestParser(BaseRequestParser):
                 logger.info(
                     "slack.control.multiple_organizations",
                     extra={
-                        "integration_id": slack_request.integration.id,
+                        "integration_id": self.slack_request.integration.id,
                         "organization_ids": list(decoded_organization_ids),
                         "action_ids": action_ids,
                     },
@@ -287,11 +291,45 @@ class SlackRequestParser(BaseRequestParser):
                 )
                 return [action_organization]
 
-        logger.info(
-            "slack.control.could_not_route",
-            extra={"view_class": self.view_class},
-        )
-        return organizations
+        return self._filter_organizations_for_seer_event(organizations)
+
+    def _filter_organizations_for_seer_event(
+        self, organizations: list[RpcOrganizationMapping]
+    ) -> list[RpcOrganizationMapping]:
+        """
+        If the request is a Seer Agent event, attempt to resolve a specific organization.
+        Fallback to the original organizations if there's no resolution.
+        """
+        if not self.slack_request:
+            return organizations
+
+        if self.view_class != SlackEventEndpoint or not isinstance(
+            self.slack_request, SlackEventRequest
+        ):
+            return organizations
+
+        if not self.slack_request.is_seer_agent_request:
+            return organizations
+
+        organization_id, error_reason = self.slack_request.resolve_seer_organization()
+        logger_ctx = {"organization_id": organization_id, "error_reason": error_reason}
+
+        if not organization_id or error_reason:
+            logger.info(
+                "slack.control.filter_seer_event.organization_not_resolved", extra=logger_ctx
+            )
+            return organizations
+
+        mapping = next((org for org in organizations if org.id == organization_id), None)
+        if not mapping:
+            logger.info(
+                "slack.control.filter_seer_event.organization_mapping_not_found",
+                extra=logger_ctx,
+            )
+            return organizations
+
+        logger.info("slack.control.filter_seer_event.routed", extra=logger_ctx)
+        return [mapping]
 
     def get_response(self) -> HttpResponseBase:
         """
@@ -322,12 +360,12 @@ class SlackRequestParser(BaseRequestParser):
             # this request until it succeeds.
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        if self.view_class == SlackActionEndpoint:
-            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
-            self.response_url = slack_request.response_url
+        if self.view_class == SlackActionEndpoint and isinstance(
+            self.slack_request, SlackActionRequest
+        ):
+            self.response_url = self.slack_request.response_url
             self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
-                slack_request=slack_request
+                slack_request=self.slack_request
             )
             # All actions other than those below are sent to every cell
             if self.action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:

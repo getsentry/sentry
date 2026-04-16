@@ -8,7 +8,10 @@ export const canUseMetricsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsUI = (organization: Organization) => {
-  return canUseMetricsUI(organization);
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('explore-dev-features')
+  );
 };
 
 export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
@@ -39,5 +42,12 @@ export const canUseMetricsEquations = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
     organization.features.includes('tracemetrics-equations-in-explore')
+  );
+};
+
+export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-pii-scrubbing-ui')
   );
 };

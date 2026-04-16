@@ -10,9 +10,16 @@ import sys
 from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
 
 
-def main(org_id: int) -> None:
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"must be >= 1, got {parsed}")
+    return parsed
+
+
+def main(org_id: int, max_candidates: int | None) -> None:
     sys.stdout.write(f"> Running night shift for organization {org_id}...\n")
-    run_night_shift_for_org(org_id)
+    run_night_shift_for_org(org_id, max_candidates=max_candidates)
     sys.stdout.write("> Done.\n")
 
 
@@ -21,5 +28,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
     )
+    parser.add_argument(
+        "--max-candidates",
+        type=_positive_int,
+        default=None,
+        help="Override the candidate cap (default: seer.night_shift.issues_per_org option)",
+    )
     args = parser.parse_args()
-    main(args.org_id)
+    main(args.org_id, args.max_candidates)

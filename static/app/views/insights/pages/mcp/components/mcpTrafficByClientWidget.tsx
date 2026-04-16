@@ -8,7 +8,7 @@ export function McpTrafficByClientWidget() {
     <GroupedTrafficWidget
       groupBy={SpanFields.MCP_CLIENT_NAME}
       referrer={MCPReferrer.MCP_TRAFFIC_BY_CLIENT_WIDGET}
-      query="span.op:mcp.server"
+      query="span.name:mcp.server"
       title={t('Traffic by Client')}
     />
   );

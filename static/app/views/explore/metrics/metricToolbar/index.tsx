@@ -1,4 +1,5 @@
 import {Fragment, useCallback} from 'react';
+import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -31,8 +32,12 @@ import {
 interface MetricToolbarProps {
   queryLabel: string;
   traceMetric: TraceMetric;
+  dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
+  onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
+  onTitleChange?: (title: string) => void;
   referenceMap?: Record<string, string>;
+  referencedMetricLabels?: Set<string>;
 }
 
 export function MetricToolbar({
@@ -40,6 +45,10 @@ export function MetricToolbar({
   queryLabel,
   referenceMap,
   dragListeners,
+  dragAttributes,
+  referencedMetricLabels,
+  onEquationLabelsChange,
+  onTitleChange,
 }: MetricToolbarProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
@@ -58,11 +67,26 @@ export function MetricToolbar({
     metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)).length >
       1 || isVisualizeEquation(visualize);
 
-  const handleExpressionChange = useCallback(
-    (newExpression: Expression) => {
-      setVisualize(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
+  // A metric function cannot be deleted if it is referenced by any equation.
+  // referencedMetricLabels is precomputed from the stored equations and
+  // overridden with exact labels when the user edits an equation, so that
+  // duplicate metrics only block deletion of the specific label used.
+  const isReferencedByEquation =
+    isVisualizeFunction(visualize) && (referencedMetricLabels?.has(queryLabel) ?? false);
+
+  const handleReferenceLabelsChange = useCallback(
+    (labels: string[]) => {
+      onEquationLabelsChange?.(queryLabel, labels);
     },
-    [setVisualize, visualize]
+    [onEquationLabelsChange, queryLabel]
+  );
+
+  const handleExpressionChange = useCallback(
+    (newExpression: Expression, internalText: string) => {
+      setVisualize(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
+      onTitleChange?.(internalText);
+    },
+    [setVisualize, visualize, onTitleChange]
   );
 
   const dndGrid = dragListeners ? 'auto ' : '';
@@ -85,7 +109,9 @@ export function MetricToolbar({
         data-test-id="metric-toolbar"
       >
         <Grid align="center" gap="md" columns={columns}>
-          {dragListeners ? <DragReorderButton iconSize="sm" {...dragListeners} /> : null}
+          {dragListeners ? (
+            <DragReorderButton iconSize="sm" {...dragListeners} {...dragAttributes} />
+          ) : null}
           <VisualizeLabel
             label={queryLabel}
             visualize={visualize}
@@ -111,16 +137,34 @@ export function MetricToolbar({
               )}
             </Fragment>
           ) : isVisualizeEquation(visualize) ? (
-            <EquationBuilder
-              expression={visualize.expression.text}
-              referenceMap={referenceMap}
-              handleExpressionChange={handleExpressionChange}
-            />
+            // The flex definitions are more complex for this case to mirror the styling for the
+            // visualizeFunction case.
+            <Flex minWidth={0} gap="md">
+              <Flex flex="16 1 0" minWidth={0}>
+                <EquationBuilder
+                  expression={visualize.expression.text}
+                  referenceMap={referenceMap}
+                  handleExpressionChange={handleExpressionChange}
+                  onReferenceLabelsChange={handleReferenceLabelsChange}
+                />
+              </Flex>
+              <Flex flex="9 1 0" minWidth={0}>
+                <GroupBySelector traceMetric={traceMetric} skipTraceMetricFilter />
+              </Flex>
+              {!isNarrow && (
+                <Flex flex="30 1 0" minWidth={0}>
+                  <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+                </Flex>
+              )}
+            </Flex>
           ) : null}
-          {canRemoveMetric && <DeleteMetricButton />}
+          {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
         </Grid>
-        {isNarrow && isVisualizeFunction(visualize) && (
-          <Filter traceMetric={traceMetric} />
+        {isNarrow && (
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter={isVisualizeEquation(visualize)}
+          />
         )}
       </Flex>
     );
@@ -165,9 +209,10 @@ export function MetricToolbar({
           expression={visualize.expression.text}
           referenceMap={referenceMap}
           handleExpressionChange={handleExpressionChange}
+          onReferenceLabelsChange={handleReferenceLabelsChange}
         />
       ) : null}
-      {canRemoveMetric && <DeleteMetricButton />}
+      {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
     </Grid>
   );
 }

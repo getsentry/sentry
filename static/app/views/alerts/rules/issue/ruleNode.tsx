@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
-import merge from 'lodash/merge';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,14 +9,17 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import {transformChoices} from 'sentry/components/backendJsonFormAdapter/utils';
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
-  IssueAlertConfiguration,
   IssueAlertRuleAction,
+  IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
+  IssueAlertRuleFormField,
   TicketActionData,
 } from 'sentry/types/alerts';
 import {
@@ -34,11 +36,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 interface FieldProps {
   data: Props['data'];
   disabled: boolean;
-  fieldConfig: FormField;
   index: number;
   name: string;
   onMemberTeamChange: (data: Props['data']) => void;
@@ -48,15 +50,56 @@ interface FieldProps {
   project: Project;
 }
 
-function NumberField({
+/**
+ * Maps a backend alert rule form field to the JsonFormAdapterFieldConfig shape.
+ */
+function mapAlertRuleField(
+  name: string,
+  field: IssueAlertRuleFormField
+): JsonFormAdapterFieldConfig {
+  switch (field.type) {
+    case 'choice':
+      return {
+        name,
+        label: '',
+        type: 'select',
+        placeholder: field.placeholder,
+        default: field.initial,
+        choices: field.choices?.map(([value, label]) => [String(value), label]),
+      };
+    case 'number':
+      return {
+        name,
+        label: '',
+        type: 'number',
+        placeholder:
+          field.placeholder === undefined ? undefined : String(field.placeholder),
+      };
+    case 'string':
+      return {
+        name,
+        label: '',
+        type: 'string',
+        placeholder: field.placeholder,
+      };
+    default:
+      return {name, label: '', type: 'string'};
+  }
+}
+
+function InlineField({
   data,
-  index,
   disabled,
+  index,
   name,
-  fieldConfig,
+  field,
+  resetsForm,
   onPropertyChange,
-}: FieldProps) {
-  const value =
+  onReset,
+}: FieldProps & {field: JsonFormAdapterFieldConfig; resetsForm?: boolean}) {
+  const placeholder = field.type === 'number' ? field.placeholder : undefined;
+
+  const numValue =
     (data[name] && typeof data[name] !== 'boolean') || data[name] === 0
       ? Number(data[name])
       : NaN;
@@ -65,26 +108,87 @@ function NumberField({
   useEffect(() => {
     if (
       data.id === IssueAlertFilterType.ISSUE_OCCURRENCES &&
-      isNaN(value) &&
-      !isNaN(Number(fieldConfig.placeholder))
+      isNaN(numValue) &&
+      !isNaN(Number(placeholder))
     ) {
-      onPropertyChange(index, name, `${fieldConfig.placeholder}`);
+      onPropertyChange(index, name, String(placeholder));
     }
     // Value omitted on purpose to avoid overwriting user changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onPropertyChange, index, name, fieldConfig.placeholder, data.id]);
+  }, [onPropertyChange, index, name, placeholder, data.id]);
 
-  return (
-    <InlineNumberInput
-      min={0}
-      name={name}
-      value={value}
-      placeholder={`${fieldConfig.placeholder}`}
-      disabled={disabled}
-      onChange={newVal => onPropertyChange(index, name, String(newVal))}
-      aria-label={t('Value')}
-    />
-  );
+  switch (field.type) {
+    case 'select':
+    case 'choice': {
+      const allOptions = transformChoices(field.choices);
+
+      const defaultValue = typeof field.default === 'string' ? field.default : undefined;
+
+      let selectedValue: string | undefined;
+      if (data[name] === undefined && allOptions.length > 0) {
+        selectedValue = defaultValue ?? allOptions[0]?.value;
+      } else {
+        selectedValue = String(data[name]);
+      }
+
+      const options = filterCategoryChoices(data, name, allOptions, selectedValue);
+
+      return (
+        <InlineSelectControl
+          isClearable={false}
+          name={name}
+          value={selectedValue}
+          styles={{
+            control: (provided: any) => ({
+              ...provided,
+              minHeight: '28px',
+              height: '28px',
+            }),
+          }}
+          disabled={disabled}
+          options={options}
+          onChange={({value}: {value: string}) => {
+            if (resetsForm) {
+              onReset(index, name, value);
+            } else {
+              onPropertyChange(index, name, value);
+            }
+          }}
+        />
+      );
+    }
+    case 'number':
+      return (
+        <InlineNumberInput
+          min={0}
+          name={name}
+          value={numValue}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          onChange={newVal => onPropertyChange(index, name, String(newVal))}
+          aria-label={t('Value')}
+        />
+      );
+    case 'string':
+    case 'text': {
+      const textValue =
+        data[name] && typeof data[name] !== 'boolean' ? String(data[name]) : '';
+      return (
+        <InlineInput
+          type="text"
+          name={name}
+          value={textValue}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onPropertyChange(index, name, e.target.value)
+          }
+        />
+      );
+    }
+    default:
+      return null;
+  }
 }
 
 function AssigneeFilterFields({
@@ -142,124 +246,56 @@ function MailActionFields({
   );
 }
 
-function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
-  const fieldConfig =
-    node?.formFields && 'value' in node.formFields
-      ? (node.formFields.value as FormField)
-      : undefined;
+export function isSchemaFormConfig(
+  formFields: Record<string, IssueAlertRuleFormField> | SchemaFormConfig
+): formFields is SchemaFormConfig {
+  return 'uri' in formFields;
+}
 
-  return fieldConfig?.choices.find(
+/**
+ * Narrows node.formFields to a Record of form fields.
+ * For ticket/sentryapp actions, formFields is a SchemaFormConfig — not a Record.
+ */
+function getFormFieldsRecord(
+  node?: IssueAlertRuleActionTemplate | null
+): Record<string, IssueAlertRuleFormField> | undefined {
+  if (!node?.formFields || isSchemaFormConfig(node.formFields)) {
+    return undefined;
+  }
+  return node.formFields;
+}
+
+function getSelectedCategoryLabel({data, node}: Pick<Props, 'data' | 'node'>) {
+  const formFields = getFormFieldsRecord(node);
+  const fieldConfig = formFields?.value;
+
+  if (fieldConfig?.type !== 'choice') {
+    return undefined;
+  }
+
+  return fieldConfig.choices?.find(
     ([value]: [string | number, string]) => value === data.value
   )?.[1];
 }
 
-function getChoices({
-  data,
-  fieldConfig,
-  name,
-  selectedValue,
-}: Pick<FieldProps, 'data' | 'fieldConfig' | 'name'> & {
-  selectedValue?: string;
-}) {
+/**
+ * For the issue category filter, hide deprecated categories unless already selected.
+ */
+function filterCategoryChoices(
+  data: Props['data'],
+  name: string,
+  options: Array<{label: string; value: string}>,
+  selectedValue?: string
+) {
   if (data.id === IssueAlertFilterType.ISSUE_CATEGORY && name === 'value') {
-    return fieldConfig.choices.filter(
-      ([value, label]: [string | number, string]) =>
-        VALID_ISSUE_CATEGORIES.includes(label as IssueCategory) || value === selectedValue
+    return options.filter(
+      opt =>
+        VALID_ISSUE_CATEGORIES.includes(opt.label as IssueCategory) ||
+        opt.value === selectedValue
     );
   }
-
-  return fieldConfig.choices;
+  return options;
 }
-
-function ChoiceField({
-  data,
-  disabled,
-  index,
-  onPropertyChange,
-  onReset,
-  name,
-  fieldConfig,
-}: FieldProps) {
-  // Select the first item on this list
-  // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-  let initialVal: string | undefined;
-  if (data[name] === undefined && !!fieldConfig.choices.length) {
-    initialVal = fieldConfig.initial
-      ? `${fieldConfig.initial}`
-      : `${fieldConfig.choices[0][0]}`;
-  } else {
-    initialVal = `${data[name]}`;
-  }
-
-  // All `value`s are cast to string
-  // There are integrations that give the form field choices with the value as number, but
-  // when the integration configuration gets saved, it gets saved and returned as a string
-  const options = getChoices({
-    data,
-    fieldConfig,
-    name,
-    selectedValue: initialVal,
-  }).map(([value, label]: [string | number, string]) => ({
-    value: `${value}`,
-    label,
-  }));
-
-  return (
-    <InlineSelectControl
-      isClearable={false}
-      name={name}
-      value={initialVal}
-      styles={{
-        control: (provided: any) => ({
-          ...provided,
-          minHeight: '28px',
-          height: '28px',
-        }),
-      }}
-      disabled={disabled}
-      options={options}
-      onChange={({value}: {value: string}) => {
-        if (fieldConfig.resetsForm) {
-          onReset(index, name, value);
-        } else {
-          onPropertyChange(index, name, value);
-        }
-      }}
-    />
-  );
-}
-
-function TextField({
-  data,
-  index,
-  onPropertyChange,
-  disabled,
-  name,
-  fieldConfig,
-}: FieldProps) {
-  const value =
-    data[name] && typeof data[name] !== 'boolean' ? (data[name] as string | number) : '';
-
-  return (
-    <InlineInput
-      type="text"
-      name={name}
-      value={value}
-      placeholder={`${fieldConfig.placeholder}`}
-      disabled={disabled}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onPropertyChange(index, name, e.target.value)
-      }
-    />
-  );
-}
-
-type FormField = {
-  // The rest is configuration for the form field
-  [key: string]: any;
-  // Type of form fields
-  type: string;
-};
 
 interface Props {
   data: IssueAlertRuleAction | IssueAlertRuleCondition;
@@ -272,7 +308,7 @@ interface Props {
   project: Project;
   incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
-  node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
+  node?: IssueAlertRuleActionTemplate | null;
 }
 
 export function RuleNode({
@@ -300,11 +336,12 @@ export function RuleNode({
     [index, onPropertyChange]
   );
 
-  function getField(name: string, fieldConfig: FormField) {
+  const formFields = getFormFieldsRecord(node);
+
+  function getField(name: string, fieldConfig: IssueAlertRuleFormField) {
     const fieldProps: FieldProps = {
       index,
       name,
-      fieldConfig,
       data,
       organization,
       project,
@@ -314,30 +351,33 @@ export function RuleNode({
       onReset,
     };
 
-    if (name === 'environment') {
-      return (
-        <ChoiceField
-          {...merge(fieldProps, {
-            fieldConfig: {choices: project.environments.map(env => [env, env])},
-          })}
-        />
-      );
+    // mailAction and assignee are special member/team pickers, not generic form fields
+    if (fieldConfig.type === 'mailAction') {
+      return <MailActionFields {...fieldProps} />;
+    }
+    if (fieldConfig.type === 'assignee') {
+      return <AssigneeFilterFields {...fieldProps} />;
     }
 
-    switch (fieldConfig.type) {
-      case 'choice':
-        return <ChoiceField {...fieldProps} />;
-      case 'number':
-        return <NumberField {...fieldProps} />;
-      case 'string':
-        return <TextField {...fieldProps} />;
-      case 'mailAction':
-        return <MailActionFields {...fieldProps} />;
-      case 'assignee':
-        return <AssigneeFilterFields {...fieldProps} />;
-      default:
-        return null;
+    // Map backend field config to the adapter type system
+    let adapterField = mapAlertRuleField(name, fieldConfig);
+
+    // Override environment choices with project-specific values
+    if (name === 'environment') {
+      adapterField = {
+        ...adapterField,
+        type: 'select',
+        choices: project.environments.map(env => [env, env]),
+      };
     }
+
+    return (
+      <InlineField
+        {...fieldProps}
+        field={adapterField}
+        resetsForm={fieldConfig.type === 'choice' ? fieldConfig.resetsForm : undefined}
+      />
+    );
   }
 
   function renderRow() {
@@ -374,10 +414,7 @@ export function RuleNode({
       }
       return (
         <Separator key={key}>
-          {node.formFields?.hasOwnProperty(key)
-            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              getField(key, node.formFields[key])
-            : part}
+          {formFields?.[key] ? getField(key, formFields[key]) : part}
         </Separator>
       );
     });
@@ -397,7 +434,7 @@ export function RuleNode({
    * Displays a button to open a custom modal for sentry apps or ticket integrations
    */
   function renderIntegrationButton() {
-    if (!node || !('actionType' in node)) {
+    if (!node?.actionType) {
       return null;
     }
 
@@ -410,8 +447,8 @@ export function RuleNode({
             openModal(deps => (
               <TicketRuleModal
                 {...deps}
-                link={node.link}
-                ticketType={node.ticketType}
+                link={node.link ?? null}
+                ticketType={node.ticketType ?? t('an external issue')}
                 instance={data as unknown as TicketActionData}
                 onSubmitAction={updateParentFromTicketRule}
               />
@@ -423,7 +460,14 @@ export function RuleNode({
       );
     }
 
-    if (node.actionType === 'sentryapp' && node.sentryAppInstallationUuid) {
+    if (
+      node.actionType === 'sentryapp' &&
+      node.sentryAppInstallationUuid &&
+      node.formFields &&
+      isSchemaFormConfig(node.formFields)
+    ) {
+      const sentryAppConfig = node.formFields;
+      const sentryAppUuid = node.sentryAppInstallationUuid;
       return (
         <Button
           size="sm"
@@ -434,8 +478,8 @@ export function RuleNode({
               deps => (
                 <SentryAppRuleModal
                   {...deps}
-                  sentryAppInstallationUuid={node.sentryAppInstallationUuid}
-                  config={node.formFields}
+                  sentryAppInstallationUuid={sentryAppUuid}
+                  config={sentryAppConfig}
                   appName={node.prompt ?? node.label}
                   onSubmitSuccess={updateParentFromSentryAppRule}
                   resetValues={data}

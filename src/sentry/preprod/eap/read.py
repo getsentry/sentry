@@ -33,7 +33,7 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="metrics_artifact_type",
             internal_name="metrics_artifact_type",
-            search_type="integer",
+            search_type="string",
         ),
         ResolvedAttribute(
             public_alias="max_install_size",

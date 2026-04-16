@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
@@ -48,27 +48,24 @@ export function ProjectInstallPlatform({project, platform}: Props) {
     [location.query.product]
   );
 
-  const redirectWithProjectSelection = useCallback(
-    (to: LocationDescriptorObject) => {
-      if (!project?.id) {
-        return;
-      }
-      // We need to persist and pin the project filter
-      // so the selection does not reset on further navigation
-      PageFiltersStore.updateProjects([Number(project?.id)], null);
-      PageFiltersStore.pin('projects', true);
-      setPageFiltersStorage(organization.slug, new Set(['projects']));
+  const redirectWithProjectSelection = (to: LocationDescriptorObject) => {
+    if (!project?.id) {
+      return;
+    }
+    // We need to persist and pin the project filter
+    // so the selection does not reset on further navigation
+    PageFiltersStore.updateProjects([Number(project?.id)], null);
+    PageFiltersStore.pin('projects', true);
+    setPageFiltersStorage(organization.slug, new Set(['projects']));
 
-      navigate({
-        ...to,
-        query: {
-          ...to.query,
-          project: project?.id,
-        },
-      });
-    },
-    [navigate, organization.slug, project?.id]
-  );
+    navigate({
+      ...to,
+      query: {
+        ...to.query,
+        project: project?.id,
+      },
+    });
+  };
 
   if (!platform) {
     return <NotFound />;

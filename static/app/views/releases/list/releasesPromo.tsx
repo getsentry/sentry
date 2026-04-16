@@ -151,16 +151,13 @@ export function ReleasesPromo({organization, project}: Props) {
     });
   }, [organization, project]);
 
-  const trackQuickstartCreatedIntegration = useCallback(
-    (integration: SentryApp) => {
-      trackAnalytics('releases.quickstart_create_integration.success', {
-        organization,
-        project_id: project.id,
-        integration_uuid: integration.uuid,
-      });
-    },
-    [organization, project]
-  );
+  const trackQuickstartCreatedIntegration = (integration: SentryApp) => {
+    trackAnalytics('releases.quickstart_create_integration.success', {
+      organization,
+      project_id: project.id,
+      integration_uuid: integration.uuid,
+    });
+  };
 
   const trackCreateIntegrationModalClose = useCallback(() => {
     trackAnalytics('releases.quickstart_create_integration_modal.close', {

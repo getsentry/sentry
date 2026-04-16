@@ -30,6 +30,7 @@ export function SideBySideOrientation({
   infoContentHidden,
   setInfoContentHidden,
   isMetricOptionsEmpty,
+  title,
 }: {
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
@@ -38,6 +39,7 @@ export function SideBySideOrientation({
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  title?: string;
 }) {
   const organization = useOrganization();
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
@@ -52,6 +54,7 @@ export function SideBySideOrientation({
             timeseriesResult={timeseriesResult}
             orientation={orientation}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
           />
         </Container>
         <Container minWidth="0">
@@ -98,6 +101,7 @@ export function SideBySideOrientation({
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
+          title={title}
         />
       </div>
     );
@@ -114,6 +118,7 @@ export function SideBySideOrientation({
                 timeseriesResult={timeseriesResult}
                 orientation={orientation}
                 isMetricOptionsEmpty={isMetricOptionsEmpty}
+                title={title}
               />
             ),
             default: defaultSplit,

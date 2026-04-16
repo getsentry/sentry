@@ -1188,12 +1188,16 @@ class DashboardDetail extends Component<Props, State> {
                             label: t('Dashboards'),
                             to: `/organizations/${organization.slug}/dashboards/`,
                           },
+                          {
+                            label: (
+                              <DashboardTitle
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onUpdate={this.setModifiedDashboard}
+                                isEditingDashboard={this.isEditingDashboard}
+                              />
+                            ),
+                          },
                         ]}
-                      />
-                      <DashboardTitle
-                        dashboard={modifiedDashboard ?? dashboard}
-                        onUpdate={this.setModifiedDashboard}
-                        isEditingDashboard={this.isEditingDashboard}
                       />
                     </TopBar.Slot>
                   ) : (

@@ -1,4 +1,5 @@
 import {Activity, Fragment, useRef, useState} from 'react';
+import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
@@ -17,6 +18,7 @@ import {
   getTraceSamplesTableFields,
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
+import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
@@ -32,7 +34,10 @@ import {
   useQueryParamsMode,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
@@ -41,11 +46,14 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
   queryLabel: string;
   traceMetric: TraceMetric;
+  dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
   isDragging?: boolean;
+  onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
   ref?: React.Ref<HTMLDivElement>;
   referenceMap?: Record<string, string>;
+  referencedMetricLabels?: Set<string>;
 }
 
 export function MetricPanel({
@@ -58,6 +66,9 @@ export function MetricPanel({
   isDragging,
   style,
   ref,
+  dragAttributes,
+  referencedMetricLabels,
+  onEquationLabelsChange,
   ...rest
 }: MetricPanelProps) {
   const organization = useOrganization();
@@ -72,8 +83,26 @@ export function MetricPanel({
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
 
+  const mode = useQueryParamsMode();
+  const sortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const [interval] = useChartInterval();
+  const topEvents = useTopEvents();
+  const visualize = useMetricVisualize();
+
+  const [title, setTitle] = useState<string | undefined>(() => {
+    if (isVisualizeEquation(visualize)) {
+      return unresolveExpression(visualize.expression.text, referenceMap);
+    }
+    return undefined;
+  });
+
+  const areQueriesEnabled = isVisualizeFunction(visualize)
+    ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
+    : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
+
   const metricSamplesTableResult = useMetricSamplesTable({
-    disabled: !traceMetric?.name || isMetricOptionsEmpty,
+    disabled: !areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
@@ -81,17 +110,10 @@ export function MetricPanel({
   });
 
   const metricAggregatesTableResult = useMetricAggregatesTable({
-    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
+    enabled: areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
   });
-
-  const mode = useQueryParamsMode();
-  const sortBys = useQueryParamsSortBys();
-  const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const [interval] = useChartInterval();
-  const topEvents = useTopEvents();
-  const visualize = useMetricVisualize();
 
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
@@ -126,6 +148,10 @@ export function MetricPanel({
                 queryLabel={queryLabel}
                 referenceMap={referenceMap}
                 dragListeners={dragListeners}
+                dragAttributes={dragAttributes}
+                referencedMetricLabels={referencedMetricLabels}
+                onEquationLabelsChange={onEquationLabelsChange}
+                onTitleChange={setTitle}
               />
             </Container>
             {visualize.visible ? (
@@ -152,6 +178,7 @@ export function MetricPanel({
                       infoContentHidden={infoContentHidden}
                       setInfoContentHidden={setInfoContentHidden}
                       isMetricOptionsEmpty={isMetricOptionsEmpty}
+                      title={title}
                     />
                   </Container>
                 </Activity>
@@ -175,6 +202,7 @@ export function MetricPanel({
             infoContentHidden={infoContentHidden}
             setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
           />
         ) : (
           <StackedOrientation
@@ -186,6 +214,7 @@ export function MetricPanel({
             infoContentHidden={infoContentHidden}
             setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
           />
         )}
       </PanelBody>

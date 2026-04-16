@@ -425,6 +425,12 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL_V2]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_HTTP]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_DB]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_RUNTIME_PERFORMANCE]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_SECURITY]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_CODE_HEALTH]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_GENERAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({

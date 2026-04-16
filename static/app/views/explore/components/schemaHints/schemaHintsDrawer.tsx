@@ -98,51 +98,48 @@ export function SchemaHintsDrawer({
 
   const virtualItems = virtualizer.getVirtualItems();
 
-  const handleCheckboxChange = useCallback(
-    (hint: Tag) => {
-      const filterQuery = new MutableSearch(queryRef.current);
-      if (
-        filterQuery
-          .getFilterKeys()
-          .map(parseTagKey)
-          .some(key => key === hint.key || key === `!${hint.key}`)
-      ) {
-        const keyToRemove =
-          hint.kind === FieldKind.FUNCTION
-            ? (filterQuery
-                .getFilterKeys()
-                .find(key => parseFunction(key)?.name === hint.key) ?? '')
-            : hint.key;
-        // remove hint and/or negated hint if it exists
-        filterQuery.removeFilter(keyToRemove);
-        filterQuery.removeFilter(`!${keyToRemove}`);
-      } else {
-        const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-        addFilterToQuery(filterQuery, hint, hintFieldDefinition);
-      }
+  const handleCheckboxChange = (hint: Tag) => {
+    const filterQuery = new MutableSearch(queryRef.current);
+    if (
+      filterQuery
+        .getFilterKeys()
+        .map(parseTagKey)
+        .some(key => key === hint.key || key === `!${hint.key}`)
+    ) {
+      const keyToRemove =
+        hint.kind === FieldKind.FUNCTION
+          ? (filterQuery
+              .getFilterKeys()
+              .find(key => parseFunction(key)?.name === hint.key) ?? '')
+          : hint.key;
+      // remove hint and/or negated hint if it exists
+      filterQuery.removeFilter(keyToRemove);
+      filterQuery.removeFilter(`!${keyToRemove}`);
+    } else {
+      const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+      addFilterToQuery(filterQuery, hint, hintFieldDefinition);
+    }
 
-      handleQueryChange(filterQuery);
-      searchBarDispatch({
-        type: 'UPDATE_QUERY',
-        query: filterQuery.formatString(),
-        focusOverride: {
-          itemKey: `filter:${filterQuery
-            .getTokenKeys()
-            .filter(key => key !== undefined)
-            .map(parseTagKey)
-            .lastIndexOf(hint.key)}`,
-          part: 'value',
-        },
-        shouldCommitQuery: false,
-      });
-      trackAnalytics('trace.explorer.schema_hints_click', {
-        hint_key: hint.key,
-        source: 'drawer',
-        organization,
-      });
-    },
-    [handleQueryChange, organization, queryRef, searchBarDispatch]
-  );
+    handleQueryChange(filterQuery);
+    searchBarDispatch({
+      type: 'UPDATE_QUERY',
+      query: filterQuery.formatString(),
+      focusOverride: {
+        itemKey: `filter:${filterQuery
+          .getTokenKeys()
+          .filter(key => key !== undefined)
+          .map(parseTagKey)
+          .lastIndexOf(hint.key)}`,
+        part: 'value',
+      },
+      shouldCommitQuery: false,
+    });
+    trackAnalytics('trace.explorer.schema_hints_click', {
+      hint_key: hint.key,
+      source: 'drawer',
+      organization,
+    });
+  };
 
   const noAttributesMessage = (
     <NoAttributesMessage>

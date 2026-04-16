@@ -53,7 +53,7 @@ const rightAlignColumns = new Set([
 export function McpOverviewTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = useCombinedQuery('span.op:mcp.server');
+  const query = useCombinedQuery('span.name:mcp.server');
   const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
@@ -188,7 +188,7 @@ function SpanDescriptionCell({
   fields.push('timestamp');
 
   const search = new MutableSearch('');
-  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.NAME, 'mcp.server');
   search.addFilterValue(SpanFields.SPAN_DESCRIPTION, spanDescription);
   const link = getExploreUrl({
     organization,
