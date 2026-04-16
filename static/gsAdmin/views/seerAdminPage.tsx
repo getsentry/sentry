@@ -128,13 +128,12 @@ export function SeerAdminPage() {
                   onChange={opt => setStrategy(String(opt.value))}
                 />
                 <label htmlFor="maxCandidates">
-                  <Text bold>Max candidates (optional, 1-50):</Text>
+                  <Text bold>Max candidates (optional):</Text>
                 </label>
                 <Input
                   type="number"
                   name="maxCandidates"
                   min={1}
-                  max={50}
                   value={maxCandidates}
                   onChange={e => setMaxCandidates(e.target.value)}
                   placeholder="Leave blank to use default"
