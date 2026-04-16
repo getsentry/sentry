@@ -243,7 +243,8 @@ describe('FilterSelector', () => {
     // Search for the entire long value to test that search works on the full textValue
     // even though the displayed label is truncated at 70 characters
     const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
-    await userEvent.type(searchInput, longValue);
+    await userEvent.click(searchInput);
+    await userEvent.paste(longValue);
 
     // After searching, only the long value should match
     // Verify we now have only 1 checkbox (the matching long value)
