@@ -8,25 +8,14 @@ import {t, tct} from 'sentry/locale';
 interface EmptyStateProps {
   isError?: boolean;
   isLoading?: boolean;
-  isTimedOut?: boolean;
   runId?: number | null;
 }
 
-export function EmptyState({
-  isLoading = false,
-  isError = false,
-  isTimedOut = false,
-  runId,
-}: EmptyStateProps) {
+export function EmptyState({isLoading = false, isError = false, runId}: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
-      {isTimedOut ? (
-        <Fragment>
-          <IconSeer size="xl" />
-          <Text>{t('The request timed out. Please try again.')}</Text>
-        </Fragment>
-      ) : isError ? (
+      {isError ? (
         <Fragment>
           <IconSeer size="xl" />
           <Text>
