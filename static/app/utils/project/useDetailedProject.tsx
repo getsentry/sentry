@@ -38,6 +38,7 @@ export function useDetailedProject(
 ) {
   return useQuery({
     ...makeDetailedProjectApiOptions(params),
+    retry: false,
     ...options,
   });
 }
