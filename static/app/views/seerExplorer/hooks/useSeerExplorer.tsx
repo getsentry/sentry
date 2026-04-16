@@ -208,18 +208,20 @@ export const useSeerExplorer = () => {
         },
       });
     },
-    onSuccess: (_response, params) => {
-      // Set run ID if this is a new session
-      if (!params.runId) {
-        setRunId(params.runId);
+    onSuccess: (response, params) => {
+      if (params.runId) {
+        // invalidate the query so fresh data is fetched
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
+        });
+      } else {
+        // set run ID if this is a new session
+        setRunId(response.run_id);
       }
-      // invalidate the query so fresh data is fetched
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug ?? '', params.runId),
-      });
     },
     onError: (e, params) => {
       setWaitingForInterrupt(false);
+      setOptimistic(null);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
         setApiQueryData<SeerExplorerResponse>(
@@ -279,7 +281,7 @@ export const useSeerExplorer = () => {
       addErrorMessage(
         typeof e.responseJSON?.detail === 'string'
           ? e.responseJSON.detail
-          : 'Failed to send message'
+          : 'Failed to send user input'
       );
     },
   });
