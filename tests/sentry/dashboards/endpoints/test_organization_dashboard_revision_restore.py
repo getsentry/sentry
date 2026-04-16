@@ -114,8 +114,11 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
 
         assert response.status_code == 200
 
-        new_count = DashboardRevision.objects.filter(dashboard=self.dashboard).count()
-        assert new_count == initial_revision_count + 1
+        new_revisions = DashboardRevision.objects.filter(dashboard=self.dashboard).order_by(
+            "-date_added"
+        )
+        assert new_revisions.count() == initial_revision_count + 1
+        assert new_revisions.first().source == "pre-restore"
 
     def test_returns_updated_dashboard(self) -> None:
         revision = self._create_revision(

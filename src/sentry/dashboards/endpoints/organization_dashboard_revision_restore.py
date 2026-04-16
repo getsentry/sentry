@@ -94,7 +94,9 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 if snapshot is not None:
-                    DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
+                    DashboardRevision.create_for_dashboard(
+                        dashboard, request.user, snapshot, source="pre-restore"
+                    )
                 serializer.save()
         except IntegrityError:
             return Response({"detail": "Dashboard with that title already exists."}, status=409)
