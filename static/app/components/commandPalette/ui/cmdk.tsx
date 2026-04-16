@@ -133,9 +133,10 @@ export function CMDKAction({
   const resolvedResourceNodes =
     typeof children !== 'function' && data
       ? (data as CommandPaletteAction[]).map((item, i) => {
-          if ('to' in item) return <CMDKAction key={i} {...item} />;
-          if ('onAction' in item) return <CMDKAction key={i} {...item} />;
-          return null;
+          // CommandPaletteActionGroup has an `actions` prop that CMDKAction doesn't
+          // accept, so we skip groups here — they can't be auto-rendered as leaf nodes.
+          if ('actions' in item) return null;
+          return <CMDKAction key={i} {...item} />;
         })
       : null;
 
