@@ -19,6 +19,7 @@ import argparse
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -96,6 +97,55 @@ ALWAYS_RUN_TESTS: set[str] = {
 
 def _is_test(path: str) -> bool:
     return any(path.startswith(d) for d in TEST_DIRS)
+
+
+def _path_to_module(file_path: str) -> str | None:
+    """Convert a sentry source file path to a Python module path.
+
+    e.g. "src/sentry/seer/explorer/client_models.py" -> "sentry.seer.explorer.client_models"
+    """
+    if not file_path.startswith("src/") or not file_path.endswith(".py"):
+        return None
+    rel = file_path[len("src/"):]
+    if rel.endswith("/__init__.py"):
+        rel = rel[: -len("/__init__.py")]
+    else:
+        rel = rel[:-3]
+    return rel.replace("/", ".")
+
+
+def _find_tests_by_imports(changed_files: list[str]) -> set[str]:
+    """Find test files that import changed source modules.
+
+    Catches cases where tests only invoke inherited or metaclass-generated
+    methods (e.g. Pydantic BaseModel), so no source lines appear in coverage.
+    """
+    results: set[str] = set()
+    for changed_file in changed_files:
+        if changed_file.startswith("tests/"):
+            continue
+        module = _path_to_module(changed_file)
+        if module is None:
+            continue
+        for pattern in (f"from {module}", f"import {module}"):
+            for test_dir in TEST_DIRS:
+                if not Path(test_dir).exists():
+                    continue
+                try:
+                    proc = subprocess.run(
+                        ["grep", "-r", "-l", "--include=*.py", pattern, test_dir],
+                        capture_output=True,
+                        text=True,
+                    )
+                    for line in proc.stdout.splitlines():
+                        path = line.strip()
+                        if path.startswith("./"):
+                            path = path[2:]
+                        if path:
+                            results.add(path)
+                except (subprocess.SubprocessError, OSError):
+                    pass
+    return results
 
 
 def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
@@ -225,6 +275,16 @@ def main() -> int:
                 affected_test_files.update(static_tests)
 
             affected_test_files -= EXCLUDED_TEST_FILES
+
+            import_tests = _find_tests_by_imports(changed)
+            import_tests -= EXCLUDED_TEST_FILES
+            import_tests = {
+                f for f in import_tests if not any(p.search(f) for p in EXCLUDED_TEST_PATTERNS)
+            }
+            new_via_imports = import_tests - affected_test_files
+            if new_via_imports:
+                print(f"Including {len(new_via_imports)} test file(s) via import analysis")
+                affected_test_files.update(new_via_imports)
 
             # Extra mapped files
             for f in changed:
