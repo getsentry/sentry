@@ -140,6 +140,23 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       filename: 'valid.ts',
     },
     {
+      name: 'narrowing from any — adds type safety',
+      code: `
+        declare function accept(x: string): void;
+        declare const value: any;
+        accept(value as string);
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'narrowing from any in object literal — adds type safety',
+      code: `
+        declare const value: any;
+        const obj: { x: string } = { x: value as string };
+      `,
+      filename: 'valid.ts',
+    },
+    {
       name: 'assertion in spread — even when original is an object type',
       code: `
         declare const config: { dir: string };

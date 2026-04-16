@@ -95,6 +95,13 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           }
         }
 
+        // Skip assertions that narrow away from `any` — these add type safety
+        const originalTsNode = parserServices.esTreeNodeToTSNodeMap.get(node.expression);
+        const originalType = checker.getTypeAtLocation(originalTsNode);
+        if ((originalType.flags & ts.TypeFlags.Any) !== 0) {
+          return;
+        }
+
         // Skip assertions that are arguments to generic function calls without
         // explicit type arguments — the assertion participates in type inference
         // for the generic, so removing it would change the inferred types.
@@ -109,10 +116,6 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
         if (!contextualType) {
           return;
         }
-
-        // Get the original type of the expression before the assertion
-        const originalTsNode = parserServices.esTreeNodeToTSNodeMap.get(node.expression);
-        const originalType = checker.getTypeAtLocation(originalTsNode);
 
         // If the original type is already assignable to the contextual type,
         // the narrowing assertion is unnecessary
