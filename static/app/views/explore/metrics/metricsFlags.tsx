@@ -8,7 +8,10 @@ export const canUseMetricsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsUI = (organization: Organization) => {
-  return canUseMetricsUI(organization);
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('explore-dev-features')
+  );
 };
 
 export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
