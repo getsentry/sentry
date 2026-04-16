@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
@@ -7,6 +8,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
@@ -16,13 +18,18 @@ import {
   getDisabledProducts,
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
+import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Team} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useTeams} from 'sentry/utils/useTeams';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
 
@@ -85,7 +92,19 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     selectedFeatures,
     setSelectedFeatures,
     setProjectDetailsForm,
+    createdProjectSlug,
+    setCreatedProjectSlug,
   } = useOnboardingContext();
+
+  const {teams, fetching: isLoadingTeams} = useTeams();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const createProject = useCreateProject();
+  // Exposure is reported upstream in onboarding.tsx when the user enters SCM
+  // onboarding; skip it here to avoid double-counting on step mount.
+  const {inExperiment: hasProjectDetailsStep} = useExperiment({
+    feature: 'onboarding-scm-project-details-experiment',
+    reportExposure: false,
+  });
 
   const [showManualPicker, setShowManualPicker] = useState(false);
 
@@ -332,7 +351,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     }
   }
 
-  function handleContinue() {
+  const existingProject = createdProjectSlug
+    ? projects.find(p => p.slug === createdProjectSlug)
+    : undefined;
+
+  async function handleContinue() {
     // Persist derived defaults to context if user accepted them
     if (currentPlatformKey && !selectedPlatform?.key) {
       setPlatform(currentPlatformKey);
@@ -340,6 +363,47 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     if (!selectedFeatures) {
       setSelectedFeatures(currentFeatures);
     }
+
+    if (!hasProjectDetailsStep) {
+      // Auto-create project with defaults when SCM_PROJECT_DETAILS step is skipped
+      const platform =
+        selectedPlatform ??
+        (currentPlatformKey
+          ? toSelectedSdk(getPlatformInfo(currentPlatformKey)!)
+          : undefined);
+      if (!platform) {
+        return;
+      }
+
+      // If a project was already created for this platform (e.g. the user
+      // went back after the project received its first event), reuse it.
+      // If the platform changed, abandon the old project and create a new
+      // one — matching legacy onboarding behavior.
+      if (existingProject?.platform === platform.key) {
+        onComplete(undefined, {product: currentFeatures});
+        return;
+      }
+
+      const firstAdminTeam = teams.find((team: Team) =>
+        team.access.includes('team:admin')
+      );
+
+      try {
+        const project = await createProject.mutateAsync({
+          name: platform.key,
+          platform,
+          default_rules: true,
+          firstTeamSlug: firstAdminTeam?.slug,
+        });
+        setCreatedProjectSlug(project.slug);
+        onComplete(undefined, {product: currentFeatures});
+      } catch (error) {
+        addErrorMessage(t('Failed to create project'));
+        Sentry.captureException(error);
+      }
+      return;
+    }
+
     onComplete();
   }
 
@@ -485,7 +549,12 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                 features: currentFeatures,
               }}
               onClick={handleContinue}
-              disabled={!currentPlatformKey}
+              disabled={
+                !currentPlatformKey ||
+                createProject.isPending ||
+                (!hasProjectDetailsStep && (isLoadingTeams || !projectsLoaded))
+              }
+              busy={createProject.isPending}
             >
               {t('Continue')}
             </Button>

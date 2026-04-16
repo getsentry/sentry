@@ -10,6 +10,8 @@ import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
@@ -72,6 +74,8 @@ describe('ScmPlatformFeatures', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorageWrapper.clear();
+    ProjectsStore.loadInitialData([]);
+    TeamStore.loadInitialData([]);
   });
 
   afterEach(() => {

@@ -170,7 +170,18 @@ export function OnboardingWithoutContext() {
     feature: 'onboarding-scm-experiment',
   });
 
-  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
+  // Only report exposure for users who are actually in SCM onboarding —
+  // the assignment is irrelevant for legacy onboarding.
+  const {inExperiment: hasProjectDetailsStep} = useExperiment({
+    feature: 'onboarding-scm-project-details-experiment',
+    reportExposure: hasScmOnboarding,
+  });
+
+  const scmSteps = hasProjectDetailsStep
+    ? scmOnboardingSteps
+    : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
+
+  const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);

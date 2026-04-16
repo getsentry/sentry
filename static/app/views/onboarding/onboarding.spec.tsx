@@ -630,7 +630,10 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: ['onboarding-scm-experiment'],
+      features: [
+        'onboarding-scm-experiment',
+        'onboarding-scm-project-details-experiment',
+      ],
     });
 
     const githubProvider = GitHubIntegrationProviderFixture({
