@@ -290,7 +290,7 @@ export class TraceItemFieldSelector {
     ],
     [AllowedDataScrubbingDatasets.METRICS]: [
       {
-        regex: /^\$metric\.attributes\.'([^']+)'\.value$/,
+        regex: /^\$trace_metric\.attributes\.'([^']+)'\.value$/,
       },
     ],
     [AllowedDataScrubbingDatasets.DEFAULT]: [],
@@ -301,7 +301,7 @@ export class TraceItemFieldSelector {
     string | null
   > = {
     [AllowedDataScrubbingDatasets.LOGS]: '$log',
-    [AllowedDataScrubbingDatasets.METRICS]: '$metric',
+    [AllowedDataScrubbingDatasets.METRICS]: '$trace_metric',
     [AllowedDataScrubbingDatasets.DEFAULT]: null,
   };
 
@@ -316,7 +316,7 @@ export class TraceItemFieldSelector {
       return `$log.attributes.'${alias}'.value`;
     },
     [AllowedDataScrubbingDatasets.METRICS]: (alias: string) => {
-      return `$metric.attributes.'${alias}'.value`;
+      return `$trace_metric.attributes.'${alias}'.value`;
     },
     [AllowedDataScrubbingDatasets.DEFAULT]: () => null,
   };
