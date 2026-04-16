@@ -513,6 +513,64 @@ export const useSeerExplorer = () => {
     [orgSlug, runId, createPRMutate]
   );
 
+  // On partial response load - clear optimistic blocks and deletedFromIndex once the server has
+  // persisted the user message and produced a real assistant response after the insert point.
+  useEffect(() => {
+    if (!optimistic || apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
+      return;
+    }
+
+    const serverBlocks = apiData?.session?.blocks || [];
+    const blockAtInsert = serverBlocks[optimistic.insertIndex];
+
+    const serverHasUserBlock =
+      blockAtInsert?.message.role === 'user' &&
+      blockAtInsert?.message.content === optimistic.userQuery;
+
+    if (!serverHasUserBlock) {
+      return;
+    }
+
+    const hasAssistantResponse = serverBlocks
+      .slice(optimistic.insertIndex + 1)
+      .some(b => b.message.role === 'assistant');
+
+    if (hasAssistantResponse) {
+      setOptimistic(null);
+      setDeletedFromIndex(null);
+    }
+  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
+
+  // On full response load
+  useEffect(() => {
+    if (isSessionComplete(apiData?.session)) {
+      // Clear interrupt and loading states
+      setWaitingForInterrupt(false);
+    }
+  }, [apiData?.session]);
+
+  // Detect PR creation errors and show error messages
+  useEffect(() => {
+    const currentPRStates = apiData?.session?.repo_pr_states ?? {};
+    const previousPRStates = previousPRStatesRef.current;
+
+    // Check each repo for errors
+    for (const [repoName, currentState] of Object.entries(currentPRStates)) {
+      const previousState = previousPRStates[repoName];
+
+      // Detect transition from 'creating' to 'error'
+      if (
+        previousState?.pr_creation_status === 'creating' &&
+        currentState.pr_creation_status === 'error' &&
+        currentState.pr_creation_error
+      ) {
+        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+      }
+    }
+
+    previousPRStatesRef.current = currentPRStates;
+  }, [apiData?.session?.repo_pr_states]);
+
   // Filtered session data for UI, applying deletedFromIndex and optimistic state
   const filteredSessionData = useMemo(() => {
     const rawSessionData = apiData?.session ?? null;
@@ -568,64 +626,6 @@ export const useSeerExplorer = () => {
 
     return rawSessionData;
   }, [apiData?.session, deletedFromIndex, optimistic, runId]);
-
-  // On partial response load - clear optimistic blocks and deletedFromIndex once the server has
-  // persisted the user message and produced a real assistant response after the insert point.
-  useEffect(() => {
-    if (!optimistic || apiData?.session?.updated_at === optimistic.baselineUpdatedAt) {
-      return;
-    }
-
-    const serverBlocks = apiData?.session?.blocks || [];
-    const blockAtInsert = serverBlocks[optimistic.insertIndex];
-
-    const serverHasUserBlock =
-      blockAtInsert?.message.role === 'user' &&
-      blockAtInsert?.message.content === optimistic.userQuery;
-
-    if (!serverHasUserBlock) {
-      return;
-    }
-
-    const hasAssistantResponse = serverBlocks
-      .slice(optimistic.insertIndex + 1)
-      .some(b => b.message.role === 'assistant');
-
-    if (hasAssistantResponse) {
-      setOptimistic(null);
-      setDeletedFromIndex(null);
-    }
-  }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
-
-  // On full response load
-  useEffect(() => {
-    if (isSessionComplete(filteredSessionData)) {
-      // Clear interrupt and loading states
-      setWaitingForInterrupt(false);
-    }
-  }, [filteredSessionData]);
-
-  // Detect PR creation errors and show error messages
-  useEffect(() => {
-    const currentPRStates = filteredSessionData?.repo_pr_states ?? {};
-    const previousPRStates = previousPRStatesRef.current;
-
-    // Check each repo for errors
-    for (const [repoName, currentState] of Object.entries(currentPRStates)) {
-      const previousState = previousPRStates[repoName];
-
-      // Detect transition from 'creating' to 'error'
-      if (
-        previousState?.pr_creation_status === 'creating' &&
-        currentState.pr_creation_status === 'error' &&
-        currentState.pr_creation_error
-      ) {
-        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
-      }
-    }
-
-    previousPRStatesRef.current = currentPRStates;
-  }, [filteredSessionData?.repo_pr_states]);
 
   return {
     sessionData: filteredSessionData,
