@@ -1386,6 +1386,16 @@ describe('productIsEnabled', () => {
     expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
   });
 
+  it('returns true for categories with unlimited prepaid (UNLIMITED_RESERVED sentinel)', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: UNLIMITED_RESERVED,
+      free: 0,
+      prepaid: UNLIMITED_RESERVED,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+  });
+
   it('returns true for categories with softCapType TRUE_FORWARD even with no prepaid quota', () => {
     subscription.categories.monitorSeats = {
       ...subscription.categories.monitorSeats!,
