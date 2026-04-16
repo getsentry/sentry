@@ -16,7 +16,7 @@ type RepositorySettings =
       codeReviewTriggers?: never;
     }
   | {
-      codeReviewTriggers: string[];
+      codeReviewTriggers: CodeReviewTrigger[];
       repositoryIds: string[];
       enabledCodeReview?: never;
     }
