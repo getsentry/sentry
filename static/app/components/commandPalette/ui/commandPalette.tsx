@@ -882,7 +882,7 @@ function makeMenuItemFromAction(
       action.display.label
     ),
     details: action.display.details,
-    leadingItems: (
+    leadingItems: isSeeMoreAction(action.key) ? null : (
       <Flex
         height="100%"
         align="start"
