@@ -826,15 +826,13 @@ function makeMenuItemFromAction(
       <Flex align="center" gap="xs">
         {prefix.map((segment, i) => (
           <Fragment key={i}>
-            <Text size="sm" variant="muted">
-              {segment}
-            </Text>
+            <Text variant="muted">{segment}</Text>
             <IconDefaultsProvider size="xs" variant="muted">
               <IconArrow direction="right" />
             </IconDefaultsProvider>
           </Fragment>
         ))}
-        <Text size="sm">{action.display.label}</Text>
+        <Text>{action.display.label}</Text>
       </Flex>
     ) : (
       action.display.label
