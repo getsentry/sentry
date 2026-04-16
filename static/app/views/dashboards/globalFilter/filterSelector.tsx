@@ -213,6 +213,7 @@ export function FilterSelector({
       const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
+        textValue: value,
       };
 
       // Only add checkboxes for multi-select mode

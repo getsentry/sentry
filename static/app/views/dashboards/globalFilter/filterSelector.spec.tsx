@@ -211,4 +211,39 @@ describe('FilterSelector', () => {
     expect(screen.queryByRole('row', {name: '21'})).not.toBeInTheDocument();
     expect(screen.queryByRole('row', {name: '154'})).not.toBeInTheDocument();
   });
+
+  it('allows searching for values over 70 characters', async () => {
+    const longValue =
+      '/api/v1/users/{user_pk}/sendgrid_history_feed_results/query_history_feed/';
+    const longValueSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve([longValue, 'short_value']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={mockGlobalFilter}
+        searchBarData={longValueSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    await userEvent.click(button);
+
+    // Wait for options to load
+    expect(await screen.findByText('short_value')).toBeInTheDocument();
+
+    // Search for the long value using characters beyond the 70-char truncation point
+    const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
+    await userEvent.click(searchInput);
+    await userEvent.type(searchInput, 'query_history_feed');
+
+    // The long value should still be found because we search on the full textValue
+    expect(await screen.findByText(/sendgrid_history_feed_results/)).toBeInTheDocument();
+    // The short value should not be visible because it doesn't match
+    expect(screen.queryByText('short_value')).not.toBeInTheDocument();
+  });
 });
