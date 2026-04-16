@@ -5,9 +5,12 @@ spread over time via a scheduled task.
 The framework takes a queryset, a task, a cycle duration, and a schedule key.
 It reads the tick interval from the schedule config, then automatically
 calculates the batch size needed to complete one full cycle within the target
-duration. Each invocation, it fetches the next batch of PKs and dispatches
-the task for each one. The cursor is stored in cache (Redis) so progress
-persists across invocations. A distributed lock prevents overlapping ticks.
+duration. At cycle start, all matching PKs are snapshotted into cache so that
+batch sizes remain stable even if the queryset grows or shrinks mid-cycle.
+Each invocation, it fetches the next batch of PKs from the cached snapshot
+and dispatches the task for each one. The cursor is stored in cache (Redis)
+so progress persists across invocations. A distributed lock prevents
+overlapping ticks.
 
 Usage:
 
@@ -35,6 +38,20 @@ Usage:
 
 The task will be called with the PK as a positional argument:
     process_item.delay(item_pk)
+
+Optional validate_item callback:
+
+    def is_eligible(pk: int) -> bool:
+        org = Organization.objects.get_from_cache(id=pk)
+        return features.has("organizations:my-feature", org)
+
+    scheduler = CursoredScheduler(
+        ...
+        validate_item=is_eligible,
+    )
+
+When provided, validate_item is called for each PK before dispatching.
+Items that fail validation are skipped without dispatching the task.
 """
 
 from __future__ import annotations
@@ -42,6 +59,7 @@ from __future__ import annotations
 import logging
 import math
 import time
+from collections.abc import Callable
 from datetime import timedelta
 
 from django.conf import settings
@@ -58,6 +76,7 @@ logger = logging.getLogger(__name__)
 CURSOR_CACHE_KEY_PREFIX = "cursored_scheduler"
 BATCH_SIZE_CACHE_KEY_PREFIX = "cursored_scheduler_batch_size"
 CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_cycle_start"
+PK_LIST_CACHE_KEY_PREFIX = "cursored_scheduler_pks"
 LOCK_PREFIX = "cursored_scheduler_lock"
 # How long to hold the lock during a tick
 DEFAULT_LOCK_DURATION_SECONDS = 120
@@ -97,6 +116,10 @@ class CursoredScheduler[M: Model]:
     When all rows have been processed, the cursor resets and a new cycle
     begins on the next tick().
 
+    At cycle start, all matching PKs are snapshotted into cache. Subsequent
+    ticks read from this snapshot, ensuring stable batch sizes even if the
+    underlying queryset changes mid-cycle.
+
     Batch size is auto-calculated at the start of each cycle based on the total
     row count, cycle_duration, and the tick interval from the schedule config,
     so that one full pass through the queryset completes within approximately
@@ -111,18 +134,21 @@ class CursoredScheduler[M: Model]:
         task: Task[[int], None],
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
+        validate_item: Callable[[int], bool] | None = None,
     ):
         self.name = name
         self.schedule_key = schedule_key
         self.cache_key = f"{CURSOR_CACHE_KEY_PREFIX}:{name}"
         self.batch_size_cache_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:{name}"
         self.cycle_start_cache_key = f"{CYCLE_START_CACHE_KEY_PREFIX}:{name}"
+        self.pk_list_cache_key = f"{PK_LIST_CACHE_KEY_PREFIX}:{name}"
         self.lock_key = f"{LOCK_PREFIX}:{name}"
         self.queryset = queryset
         self.task = task
         self.cycle_duration = cycle_duration
         self.cache_ttl = int(cycle_duration.total_seconds() * 2)
         self.lock_duration = lock_duration
+        self.validate_item = validate_item
         self._metric_tags = {"scheduler": name}
 
     @property
@@ -134,8 +160,8 @@ class CursoredScheduler[M: Model]:
         Process the next batch. Call this from your beat task.
 
         Acquires a lock to prevent overlapping ticks, fetches the next batch
-        of PKs from the queryset, dispatches the task for each one, and
-        advances the cursor.
+        of PKs from the cached snapshot, dispatches the task for each one,
+        and advances the cursor.
 
         Returns True if there are more items to process, False if the cycle
         is complete. Returns False without processing if the lock cannot be
@@ -162,28 +188,36 @@ class CursoredScheduler[M: Model]:
         tick_start = time.time()
 
         cursor = self._get_cursor()
-        queryset = self.queryset
 
         if cursor == 0:
-            batch_size = self._initialize_batch(queryset)
+            batch_size = self._initialize_cycle()
         else:
             batch_size = self._get_batch_size()
 
-        items = list(
-            queryset.filter(pk__gt=cursor).order_by("pk").values_list("pk", flat=True)[:batch_size]
-        )
-
-        if not items:
-            self._finalize_batch()
+        cached_pks = self._get_cached_pks()
+        if not cached_pks:
+            self._finalize_cycle()
             metrics.timing(
                 "cursored_scheduler.tick_duration", time.time() - tick_start, tags=self._metric_tags
             )
             return False
 
-        for pk in items:
-            self.task.delay(pk)
+        items = [pk for pk in cached_pks if pk > cursor][:batch_size]
 
-        dispatched = len(items)
+        if not items:
+            self._finalize_cycle()
+            metrics.timing(
+                "cursored_scheduler.tick_duration", time.time() - tick_start, tags=self._metric_tags
+            )
+            return False
+
+        dispatched = 0
+        for pk in items:
+            if self.validate_item is not None and not self.validate_item(pk):
+                continue
+            self.task.delay(pk)
+            dispatched += 1
+
         metrics.gauge("cursored_scheduler.batch_size", dispatched, tags=self._metric_tags)
 
         self._set_cursor(items[-1])
@@ -192,33 +226,36 @@ class CursoredScheduler[M: Model]:
             "cursored_scheduler.tick_duration", time.time() - tick_start, tags=self._metric_tags
         )
 
-        if dispatched < batch_size:
-            self._finalize_batch()
+        if len(items) < batch_size:
+            self._finalize_cycle()
             return False
 
         return True
 
-    def _initialize_batch(self, queryset: QuerySet[M]) -> int:
-        batch_size = self._calculate_batch_size(queryset)
+    def _initialize_cycle(self) -> int:
+        all_pks = list(self.queryset.order_by("pk").values_list("pk", flat=True))
+        self._set_cached_pks(all_pks)
+
+        batch_size = self._calculate_batch_size(len(all_pks))
         cache.set(self.batch_size_cache_key, batch_size, self.cache_ttl)
         cache.set(self.cycle_start_cache_key, time.time(), self.cache_ttl)
         return batch_size
 
-    def _finalize_batch(self):
-        """Reset cursor and batch size to 0, starting a new cycle on the next tick."""
+    def _finalize_cycle(self):
+        """Reset cursor, batch size, and PK cache, starting a new cycle on the next tick."""
         self._emit_cycle_duration()
         cache.set(self.cache_key, 0, self.cache_ttl)
         cache.set(self.batch_size_cache_key, 0, self.cache_ttl)
+        cache.delete(self.pk_list_cache_key)
         cache.delete(self.cycle_start_cache_key)
         metrics.incr("cursored_scheduler.cycle_complete", tags=self._metric_tags)
 
-    def _calculate_batch_size(self, queryset: QuerySet[M]) -> int:
+    def _calculate_batch_size(self, total_rows: int) -> int:
         """
         Calculate batch size based on total rows, cycle duration, and tick interval.
 
         batch_size = ceil(total_rows / ticks_per_cycle)
         """
-        total_rows = queryset.count()
         ticks_per_cycle = self.cycle_duration / self.tick_interval
         batch_size = math.ceil(total_rows / ticks_per_cycle)
         return max(batch_size, MIN_BATCH_SIZE)
@@ -250,3 +287,12 @@ class CursoredScheduler[M: Model]:
         if value is None:
             return 0
         return int(value)
+
+    def _get_cached_pks(self) -> list[int]:
+        value = cache.get(self.pk_list_cache_key)
+        if value is None:
+            return []
+        return value
+
+    def _set_cached_pks(self, pks: list[int]) -> None:
+        cache.set(self.pk_list_cache_key, pks, self.cache_ttl)
