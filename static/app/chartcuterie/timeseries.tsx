@@ -146,6 +146,7 @@ export const makeTimeseriesCharts = (
         const plottable = createPlottableFromTimeSeries(displayType, ts, {
           name: formatTimeSeriesLabel(ts),
           color: color?.[i],
+          stack: 'all',
         });
         return plottable?.toSeries(plottingOptions) ?? [];
       });
