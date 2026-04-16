@@ -113,10 +113,13 @@ const isPolling = (
   sessionData: SeerExplorerResponse['session'] | undefined,
   isMutatePending: boolean
 ) => {
+  if (isMutatePending) {
+    return true;
+  }
   if (!runId) {
     return false;
   }
-  return !isSessionComplete(sessionData) || isMutatePending;
+  return !isSessionComplete(sessionData);
 };
 
 export const useSeerExplorer = () => {
