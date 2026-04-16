@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextvars
 import dataclasses
 import threading
+from unittest import mock
 
 import pytest
 
@@ -10,6 +11,7 @@ from sentry.viewer_context import (
     ActorType,
     ViewerContext,
     get_viewer_context,
+    observe_viewer_context_propagation,
     set_viewer_context_organization,
     viewer_context_scope,
 )
@@ -145,3 +147,81 @@ class TestViewerContextScope:
         set_viewer_context_organization(42)
 
         assert get_viewer_context() is None
+
+
+class TestObserve:
+    @pytest.fixture(autouse=True)
+    def patch_metrics(self):
+        with mock.patch("sentry.viewer_context.metrics") as m:
+            yield m
+
+    def _tags(self, m):
+        assert m.incr.call_count == 1
+        args, kwargs = m.incr.call_args
+        assert args == ("viewer_context.observation",)
+        return kwargs["tags"]
+
+    def test_no_context_tags_actor_none(self, patch_metrics):
+        observe_viewer_context_propagation("seer_rpc_out")
+        tags = self._tags(patch_metrics)
+        assert tags == {
+            "point": "seer_rpc_out",
+            "actor_type": "none",
+            "has_user_id": "false",
+            "has_org_id": "false",
+            "expected": "true",
+        }
+
+    def test_with_context_tags_actor_and_presence_flags(self, patch_metrics):
+        ctx = ViewerContext(user_id=42, organization_id=7, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            observe_viewer_context_propagation("seer_rpc_out")
+        tags = self._tags(patch_metrics)
+        assert tags["actor_type"] == "user"
+        assert tags["has_user_id"] == "true"
+        assert tags["has_org_id"] == "true"
+
+    def test_partial_context_tags_individual_flags(self, patch_metrics):
+        # User without org (e.g. cross-org admin lookup before org is resolved)
+        ctx = ViewerContext(user_id=42, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            observe_viewer_context_propagation("rpc_inbound")
+        tags = self._tags(patch_metrics)
+        assert tags["has_user_id"] == "true"
+        assert tags["has_org_id"] == "false"
+
+    def test_explicit_ctx_overrides_contextvar(self, patch_metrics):
+        # Caller passes a resolved value that's distinct from the contextvar
+        with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+            observe_viewer_context_propagation(
+                "seer_rpc_out", ctx=ViewerContext(actor_type=ActorType.INTEGRATION)
+            )
+        tags = self._tags(patch_metrics)
+        assert tags["actor_type"] == "integration"
+
+    def test_explicit_ctx_none_treated_as_missing(self, patch_metrics):
+        # Distinguishes "ctx wasn't passed" (sentinel) from "ctx is explicitly None"
+        with viewer_context_scope(ViewerContext(actor_type=ActorType.USER)):
+            observe_viewer_context_propagation("seer_rpc_out", ctx=None)
+        tags = self._tags(patch_metrics)
+        assert tags["actor_type"] == "none"
+
+    def test_expected_false_does_not_log_when_missing(self, patch_metrics, caplog):
+        observe_viewer_context_propagation("optional_point", expected=False)
+        tags = self._tags(patch_metrics)
+        assert tags["expected"] == "false"
+        # No warning log for expected=False misses
+        assert all(r.levelname != "WARNING" for r in caplog.records)
+
+    def test_expected_true_logs_when_missing(self, patch_metrics, caplog):
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="sentry.viewer_context"):
+            observe_viewer_context_propagation("rpc_inbound")
+        assert any(r.message == "viewer_context.missing" for r in caplog.records)
+
+    def test_expected_true_does_not_log_when_present(self, patch_metrics, caplog):
+        ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
+        with viewer_context_scope(ctx):
+            observe_viewer_context_propagation("rpc_inbound")
+        assert all(r.message != "viewer_context.missing" for r in caplog.records)
