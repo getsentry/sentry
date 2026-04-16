@@ -2,6 +2,7 @@ import time
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from django.core.cache import cache
 
 from sentry.testutils.cases import TestCase
@@ -27,6 +28,11 @@ class TestCircuitBreaker(TestCase):
     def test_activated_at_error_limit(self) -> None:
         assert circuit_breaker_activated(key=self.key, error_limit=self.error_limit)
 
+    @pytest.mark.skip(
+        reason="test pollution: concurrent xdist worker's clear_caches fixture calls cache.clear() "
+        "between passthrough calls 2 and 3, resetting the ratelimiter counter so call 3 "
+        "returns False (bypass) instead of True (throttled)"
+    )
     @patch("sentry.utils.circuit_breaker.metrics.incr")
     def test_passthrough(self, mock_metrics: MagicMock) -> None:
         assert not circuit_breaker_activated(self.key, self.error_limit, self.passthrough_data)

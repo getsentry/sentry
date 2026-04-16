@@ -86,6 +86,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - `GroupDetailsTest::test_ratelimit` — `group.first_seen` is set at real time (~2026) but the endpoint runs inside `freeze_time("2000-01-01")`; `snuba._prepare_start_end` computes the query window relative to frozen `now()` and raises `QueryOutsideGroupActivityError` on every request, so the rate limit counter never accumulates and the final request returns 500 instead of 429
 
+## tests/sentry/utils/test_circuit_breaker.py
+
+- `TestCircuitBreaker::test_passthrough` — concurrent xdist worker's `clear_caches` fixture calls `cache.clear()` between passthrough calls 2 and 3, resetting the ratelimiter counter so the 3rd call returns `False` (bypass) instead of `True` (throttled)
+
 ## tests/sentry/web/frontend/test_group_tag_export.py
 
 - `GroupTagExportTest::test_rate_limit` — rate limit counter reset mid-test by a concurrent xdist worker's `clear_caches` fixture calling `cache.clear()`; the 11th request sees counter=1 instead of 11 and returns 200 instead of 429
