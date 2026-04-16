@@ -515,3 +515,79 @@ class HandleInvalidIdentityTest(TestCase):
         msg = mail.outbox[-1]
         assert msg.subject == "Unable to Fetch Commits"
         assert msg.to == [self.user.email]
+
+
+class FetchCommitsLifecycleExtrasTest(TestCase):
+    @patch("sentry.integrations.utils.metrics.logger.info")
+    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
+    def test_halted_log_includes_repository_url(
+        self, mock_compare_commits: MagicMock, mock_logger_info: MagicMock
+    ) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            url="https://github.com/example/example",
+            provider="dummy",
+            organization_id=org.id,
+        )
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id, repository_id=repo.id, release=release, commit=commit
+        )
+        release2 = Release.objects.create(organization_id=org.id, version="12345678")
+        refs = [{"repository": repo.name, "commit": "b" * 40}]
+
+        mock_compare_commits.side_effect = PluginError("You can read me")
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release2.id,
+                user_id=self.user.id,
+                refs=refs,
+                prev_release_id=release.id,
+            )
+
+        assert any(
+            call.args
+            and call.args[0] == "integrations.slo.halted"
+            and call.kwargs.get("extra", {}).get("url") == repo.url
+            and call.kwargs.get("extra", {}).get("endpoint") == "compare_commits"
+            for call in mock_logger_info.call_args_list
+        )
+
+    @patch("sentry.integrations.utils.metrics.logger.info")
+    @patch("sentry.integrations.github.repository.GitHubRepositoryProvider.compare_commits")
+    def test_halted_log_includes_fallback_endpoint_when_start_sha_missing(
+        self, mock_compare_commits: MagicMock, mock_logger_info: MagicMock
+    ) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example",
+            url="https://github.com/example/example",
+            provider="integrations:github",
+            organization_id=org.id,
+        )
+        previous_release = Release.objects.create(organization_id=org.id, version="old-release")
+        release = Release.objects.create(organization_id=org.id, version="new-release")
+        refs = [{"repository": repo.name, "commit": "b" * 40}]
+
+        mock_compare_commits.side_effect = PluginError("You can read me")
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release.id,
+                user_id=self.user.id,
+                refs=refs,
+                prev_release_id=previous_release.id,
+            )
+
+        assert any(
+            call.args
+            and call.args[0] == "integrations.slo.halted"
+            and call.kwargs.get("extra", {}).get("url") == repo.url
+            and call.kwargs.get("extra", {}).get("endpoint") == "get_commits"
+            for call in mock_logger_info.call_args_list
+        )

@@ -12,6 +12,7 @@ from taskbroker_client.retry import Retry
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.github.client import GitHubApiEndpoint
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -242,6 +243,14 @@ def fetch_commits(
                 pass
 
         end_sha = ref["commit"]
+        provider_name = repo.provider
+        endpoint = (
+            GitHubApiEndpoint.GET_COMMITS
+            if isinstance(provider_name, str)
+            and provider_name in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
+            and start_sha is None
+            else GitHubApiEndpoint.COMPARE_COMMITS
+        )
 
         with SCMIntegrationInteractionEvent(
             SCMIntegrationInteractionType.COMPARE_COMMITS,
@@ -254,13 +263,14 @@ def fetch_commits(
                     "organization_id": repo.organization_id,
                     "user_id": user_id,
                     "repository": repo.name,
+                    "url": repo.url,
                     "provider": provider.id,
                     "end_sha": end_sha,
                     "start_sha": start_sha,
+                    "endpoint": endpoint,
                 }
             )
             try:
-                provider_name = repo.provider
                 compare_commits_cache_enabled = (
                     github_compare_commits_cache_feature_enabled
                     and isinstance(provider_name, str)
