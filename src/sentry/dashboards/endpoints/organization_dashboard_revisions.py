@@ -10,12 +10,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
-from sentry.dashboards.endpoints.organization_dashboard_details import OrganizationDashboardBase
+from sentry.dashboards.endpoints.organization_dashboard_details import (
+    REVISIONS_FEATURE,
+    OrganizationDashboardBase,
+)
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
-
-REVISIONS_FEATURE = "organizations:dashboards-revisions"
 
 
 def _serialize_revisions(revisions: list[DashboardRevision], user: Any) -> list[dict[str, Any]]:
