@@ -30,7 +30,7 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
 
         max_candidates_raw = request.data.get("max_candidates")
         max_candidates: int | None
-        if max_candidates_raw in (None, ""):
+        if max_candidates_raw is None or max_candidates_raw == "":
             max_candidates = None
         else:
             try:
