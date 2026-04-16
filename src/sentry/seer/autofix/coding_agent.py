@@ -54,6 +54,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
     StoreCodingAgentStatesRequest,
+    extract_api_error_message,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
@@ -393,7 +394,10 @@ def _launch_agents_for_repos(
                 if status_code == 401:
                     error_message = "Authentication failed. Please check that your API credentials are correct and have access to the required API endpoints."
                 else:
-                    error_message = f"Failed to launch coding agent: {status_code} Error: {e}"
+                    error_message = (
+                        extract_api_error_message(e.response)
+                        or f"Failed to launch coding agent ({status_code})"
+                    )
 
             failure: dict = {
                 "repo_name": repo_name,

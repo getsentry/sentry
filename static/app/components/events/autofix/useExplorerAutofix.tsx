@@ -521,6 +521,8 @@ export function useExplorerAutofix(
    */
   const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
+  const [codingAgentErrors, setCodingAgentErrors] = useState<string[]>([]);
+
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
     {
@@ -731,9 +733,14 @@ export function useExplorerAutofix(
             openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
           }
 
-          otherFailures.forEach(failure => {
-            addErrorMessage(failure.error_message ?? 'Failed to launch coding agent');
-          });
+          if (otherFailures.length > 0) {
+            setCodingAgentErrors(prev => [
+              ...prev,
+              ...otherFailures.map(
+                f => f.error_message ?? 'Failed to launch coding agent'
+              ),
+            ]);
+          }
         }
 
         // Invalidate to fetch fresh data
@@ -746,7 +753,10 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        setCodingAgentErrors(prev => [
+          ...prev,
+          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
+        ]);
         throw e;
       } finally {
         setWaitingForCodingAgent(false);
@@ -793,6 +803,16 @@ export function useExplorerAutofix(
      * Trigger coding agent handoff for an existing run.
      */
     triggerCodingAgentHandoff,
+    /**
+     * Errors from coding agent launch attempts, accumulated across launches and
+     * persisted for the lifetime of the hook mount. Displayed inline in the panel.
+     */
+    codingAgentErrors,
+    /**
+     * Dismiss a single coding agent error by its index in `codingAgentErrors`.
+     */
+    dismissCodingAgentError: (index: number) =>
+      setCodingAgentErrors(prev => prev.filter((_, i) => i !== index)),
   };
 }
 
