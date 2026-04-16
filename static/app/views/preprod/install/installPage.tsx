@@ -56,7 +56,11 @@ export default function InstallPage() {
                     </Flex>
                   </Container>
                   <Container padding="2xl">
-                    <InstallDetailsContent artifactId={artifactId} size="lg" />
+                    <InstallDetailsContent
+                      artifactId={artifactId}
+                      size="lg"
+                      projectSlug={buildDetailsQuery.data?.project_slug}
+                    />
                   </Container>
                 </Container>
                 {buildDetailsQuery.data && (

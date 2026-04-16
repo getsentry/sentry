@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -14,17 +15,20 @@ import {t, tct, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
 interface InstallDetailsContentProps {
   artifactId: string;
+  projectSlug?: string;
   size?: 'sm' | 'lg';
 }
 
 export function InstallDetailsContent({
   artifactId,
+  projectSlug,
   size = 'sm',
 }: InstallDetailsContentProps) {
   const theme = useTheme();
@@ -54,6 +58,12 @@ export function InstallDetailsContent({
     ],
     {
       staleTime: 0,
+      retry: (failureCount, apiError) => {
+        if ((apiError as RequestError)?.status === 404) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     }
   );
 
@@ -66,12 +76,38 @@ export function InstallDetailsContent({
       </Flex>
     );
   } else if (isError || !installDetails) {
-    body = (
-      <Flex direction="column" align="center" gap={outerGap}>
-        <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
-        <Button onClick={() => refetch()}>{t('Retry')}</Button>
-      </Flex>
-    );
+    if (error?.status === 404) {
+      body = (
+        <Flex direction="column" align="center" gap={outerGap}>
+          <Text>{t('Build distribution is not enabled')}</Text>
+          <Text size="sm" variant="muted" align="center">
+            {projectSlug
+              ? tct(
+                  'The installable file is not available for this build. Enable build distribution in your [link:project settings].',
+                  {
+                    link: (
+                      <Link
+                        to={`/settings/${organization.slug}/projects/${projectSlug}/mobile-builds/?tab=distribution`}
+                      />
+                    ),
+                  }
+                )
+              : t(
+                  'The installable file is not available for this build. Enable build distribution in your project settings.'
+                )}
+          </Text>
+        </Flex>
+      );
+    } else {
+      body = (
+        <Flex direction="column" align="center" gap={outerGap}>
+          <Text>
+            {t('Error: %s', error?.message || 'Failed to fetch install details')}
+          </Text>
+          <Button onClick={() => refetch()}>{t('Retry')}</Button>
+        </Flex>
+      );
+    }
   } else if (installDetails.codesigning_type === 'appstore') {
     body = (
       <Flex direction="column" align="center" gap={outerGap}>
