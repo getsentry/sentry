@@ -282,16 +282,16 @@ describe('RuleNode', () => {
             value: {
               type: 'choice',
               choices: [
-                [1, IssueCategory.ERROR],
-                [2, IssueCategory.PERFORMANCE],
-                [3, IssueCategory.DB_QUERY],
+                ['1', IssueCategory.ERROR],
+                ['2', IssueCategory.PERFORMANCE],
+                ['3', IssueCategory.DB_QUERY],
               ],
             },
           },
         },
         {
           id: IssueAlertFilterType.ISSUE_CATEGORY,
-          value: 1,
+          value: '1',
         }
       );
 
@@ -319,15 +319,15 @@ describe('RuleNode', () => {
           value: {
             type: 'choice',
             choices: [
-              [1, IssueCategory.ERROR],
-              [2, IssueCategory.PERFORMANCE],
+              ['1', IssueCategory.ERROR],
+              ['2', IssueCategory.PERFORMANCE],
             ],
           },
         },
       },
       {
         id: IssueAlertFilterType.ISSUE_CATEGORY,
-        value: 2,
+        value: '2',
       }
     );
 
