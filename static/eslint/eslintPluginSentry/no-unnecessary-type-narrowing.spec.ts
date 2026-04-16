@@ -131,6 +131,22 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       `,
       filename: 'valid.ts',
     },
+    {
+      name: 'assertion in spread — needed to satisfy object type constraint (TS2698)',
+      code: `
+        declare const config: { static: string | { dir: string } };
+        const obj: Record<string, unknown> = { ...(config.static as Record<PropertyKey, unknown>) };
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'assertion in spread — even when original is an object type',
+      code: `
+        declare const config: { dir: string };
+        const obj: Record<string, unknown> = { ...(config as Record<PropertyKey, unknown>) };
+      `,
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
