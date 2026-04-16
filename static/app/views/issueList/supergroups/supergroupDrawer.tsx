@@ -153,9 +153,37 @@ function SupergroupIssueList({
     end,
   } = location.query;
   const query = typeof searchQuery === 'string' ? searchQuery : '';
-  const totalPages = Math.ceil(groupIds.length / PAGE_SIZE);
-  const pageGroupIds = groupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const issueIdFilter = `issue.id:[${pageGroupIds.join(',')}]`;
+
+  // Search with the stream query across all member issues so matched issues
+  // can be hoisted to page 1 before pagination.
+  const {data: matchedGroups, isPending: matchedPending} = useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project,
+        environment,
+        statsPeriod,
+        start,
+        end,
+        query: `${query} issue.id:[${groupIds.join(',')}]`,
+        per_page: PAGE_SIZE,
+      },
+      staleTime: 30_000,
+    }),
+    enabled: !!filterWithCurrentSearch,
+  });
+
+  const matchedIds = new Set(matchedGroups?.map(g => g.id));
+  const sortedGroupIds = [...groupIds].sort(
+    (a, b) => Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
+  );
+
+  const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
+  const safePage = Math.min(page, totalPages - 1);
+  const pageGroupIds = sortedGroupIds.slice(
+    safePage * PAGE_SIZE,
+    (safePage + 1) * PAGE_SIZE
+  );
 
   // Fetch all groups on this page
   const {data: allGroups, isPending: allPending} = useQuery(
@@ -169,24 +197,7 @@ function SupergroupIssueList({
     })
   );
 
-  // Search with the stream query to find which ones match
-  const {data: matchedGroups} = useQuery({
-    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project,
-        environment,
-        statsPeriod,
-        start,
-        end,
-        query: `${query} ${issueIdFilter}`,
-      },
-      staleTime: 30_000,
-    }),
-    enabled: !!filterWithCurrentSearch,
-  });
-
-  if (allPending) {
+  if (allPending || (filterWithCurrentSearch && matchedPending)) {
     return (
       <Fragment>
         {filterWithCurrentSearch && (
@@ -212,14 +223,11 @@ function SupergroupIssueList({
     );
   }
 
-  const matchedIds = new Set(matchedGroups?.map(g => g.id));
   const groupMap = new Map(allGroups?.map(g => [g.id, g]));
 
-  // Sort: matched first, then the rest
-  const sortedGroups = [...pageGroupIds]
+  const sortedGroups = pageGroupIds
     .map(id => groupMap.get(String(id)))
-    .filter((g): g is Group => g !== undefined)
-    .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)));
+    .filter((g): g is Group => g !== undefined);
 
   const visibleGroupIds = sortedGroups.map(g => g.id);
 
@@ -266,22 +274,22 @@ function SupergroupIssueList({
       {totalPages > 1 && (
         <Flex justify="end" align="center" gap="sm" padding="md 0">
           <Text size="sm" variant="muted">
-            {`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, groupIds.length)} of ${groupIds.length}`}
+            {`${safePage * PAGE_SIZE + 1}-${Math.min((safePage + 1) * PAGE_SIZE, sortedGroupIds.length)} of ${sortedGroupIds.length}`}
           </Text>
           <Flex gap="xs">
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
-              disabled={page === 0}
-              onClick={() => setPage(p => p - 1)}
+              disabled={safePage === 0}
+              onClick={() => setPage(safePage - 1)}
             />
             <Button
               size="xs"
               icon={<IconChevron direction="right" />}
               aria-label={t('Next')}
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(p => p + 1)}
+              disabled={safePage >= totalPages - 1}
+              onClick={() => setPage(safePage + 1)}
             />
           </Flex>
         </Flex>

@@ -455,17 +455,13 @@ class SyncReposForOrgVstsTestCase(TestCase):
                     "id": "repo-uuid-1",
                     "name": "cool-service",
                     "project": {"name": "ProjectA"},
-                    "_links": {
-                        "web": {"href": "https://myvstsaccount.visualstudio.com/_git/cool-service"}
-                    },
+                    "webUrl": "https://myvstsaccount.visualstudio.com/_git/cool-service",
                 },
                 {
                     "id": "repo-uuid-2",
                     "name": "other-service",
                     "project": {"name": "ProjectA"},
-                    "_links": {
-                        "web": {"href": "https://myvstsaccount.visualstudio.com/_git/other-service"}
-                    },
+                    "webUrl": "https://myvstsaccount.visualstudio.com/_git/other-service",
                 },
             ]
         }
