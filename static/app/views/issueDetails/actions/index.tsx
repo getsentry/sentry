@@ -398,8 +398,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
   return (
     <Fragment>
-      <CommandPaletteSlot name="task">
-        {!disabled && (
+      {!disabled && (
+        <CommandPaletteSlot name="page">
           <CMDKAction
             display={{
               label: issueCommandLabel,
@@ -466,8 +466,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               project={project}
             />
           </CMDKAction>
-        )}
-      </CommandPaletteSlot>
+        </CommandPaletteSlot>
+      )}
       <Flex align="center" gap="xs">
         {isResolved || isIgnored ? (
           <Flex align="center" gap="md">

@@ -15,9 +15,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {
+  CMDKActionData,
   CMDKCollection,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
+import {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
@@ -65,7 +67,7 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
 function CommandPaletteTree({
   onTree,
 }: {
-  onTree: (tree: ReturnType<ReturnType<typeof CMDKCollection.useStore>['tree']>) => void;
+  onTree: (tree: Array<CollectionTreeNode<CMDKActionData>>) => void;
 }) {
   const store = CMDKCollection.useStore();
   onTree(store.tree());
@@ -485,7 +487,7 @@ describe('GroupActions', () => {
 
     function renderWithCommandPalette(commandGroup: Group) {
       const treeRef: {
-        current: ReturnType<ReturnType<typeof CMDKCollection.useStore>['tree']>;
+        current: Array<CollectionTreeNode<CMDKActionData>>;
       } = {current: []};
       render(
         <CommandPaletteProvider>
