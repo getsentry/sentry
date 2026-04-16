@@ -59,6 +59,15 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "max_candidates must be a valid integer"
 
+    def test_trigger_rejects_non_positive_max_candidates(self) -> None:
+        for value in (0, -1):
+            response = self.get_response(
+                organization_id=self.organization.id,
+                max_candidates=value,
+            )
+            assert response.status_code == 400, value
+            assert response.data["detail"] == "max_candidates must be >= 1"
+
     def test_missing_organization_id(self) -> None:
         response = self.get_response()
         assert response.status_code == 400

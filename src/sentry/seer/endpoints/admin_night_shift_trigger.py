@@ -37,6 +37,8 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
                 max_candidates = int(max_candidates_raw)
             except (ValueError, TypeError):
                 return Response({"detail": "max_candidates must be a valid integer"}, status=400)
+            if max_candidates < 1:
+                return Response({"detail": "max_candidates must be >= 1"}, status=400)
 
         run_night_shift_for_org.apply_async(
             args=[organization_id],
