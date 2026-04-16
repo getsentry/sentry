@@ -77,6 +77,10 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         assert response.json()["incompatible_projects"] == [self.bad_project.id]
         assert response.json()["compatible_projects"] == [self.project.id]
 
+    @pytest.mark.skip(
+        reason="test pollution: MaxSnowflakeRetryError from concurrent xdist workers saturating "
+        "the Redis snowflake sequence counter during create_project() calls"
+    )
     def test_multiple_projects(self) -> None:
         project2 = self.create_project()
         project3 = self.create_project()
