@@ -378,6 +378,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues-metrics/'
   | '/organizations/$organizationIdOrSlug/issues-stats/'
   | '/organizations/$organizationIdOrSlug/issues-timeseries/'
+  | '/organizations/$organizationIdOrSlug/issues-with-supergroups/'
   | '/organizations/$organizationIdOrSlug/issues/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/activities/'
