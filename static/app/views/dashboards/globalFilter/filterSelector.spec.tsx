@@ -213,9 +213,10 @@ describe('FilterSelector', () => {
   });
 
   it('allows searching for values over 70 characters', async () => {
+    // Create a long transaction name that exceeds 70 characters
     const longValue =
-      '/api/v1/users/{user_pk}/sendgrid_history_feed_results/query_history_feed/';
-    const shortValue = 'short_value';
+      'GET /api/organizations/{organization_slug}/projects/{project_slug}/events/{event_id}/committers/';
+    const shortValue = 'chrome';
     const longValueSearchBarData: SearchBarData = {
       getFilterKeySections: () => [],
       getFilterKeys: () => ({}),
@@ -240,8 +241,9 @@ describe('FilterSelector', () => {
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
 
     // Search for the long value using text beyond the 70-char truncation point
+    // "committers" appears at position 94, well beyond the 70-char limit
     const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
-    await userEvent.type(searchInput, 'query_history_feed');
+    await userEvent.type(searchInput, 'committers');
 
     // After searching, only the long value should match
     // Verify we now have only 1 checkbox (the long value that matches)
