@@ -3,6 +3,8 @@ import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceExc
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -12,12 +14,22 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {
+  CMDKCollection,
+  CommandPaletteProvider,
+  type CMDKActionData,
+} from 'sentry/components/commandPalette/ui/cmdk';
+import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
+import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ModalStore} from 'sentry/stores/modalStore';
-import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {GroupStatus, IssueCategory, PriorityLevel, type Group} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
+import {getMessage, getTitle} from 'sentry/utils/events';
 import {GroupActions} from 'sentry/views/issueDetails/actions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -25,6 +37,7 @@ const project = ProjectFixture({
   id: '2448',
   name: 'project name',
   slug: 'project',
+  teams: [TeamFixture({id: '3', slug: 'frontend', name: 'Frontend'})],
 });
 
 const group = GroupFixture({
@@ -51,11 +64,52 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   useIssueDetailsTour: () => mockTour(),
 }));
 
+function CommandPaletteTree({
+  onTree,
+}: {
+  onTree: (tree: Array<CollectionTreeNode<CMDKActionData>>) => void;
+}) {
+  const store = CMDKCollection.useStore();
+  onTree(store.tree());
+  return null;
+}
+
+function SlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {p => <div {...p} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
 describe('GroupActions', () => {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
     ConfigStore.init();
+    MemberListStore.reset();
+    ProjectsStore.reset();
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events//committers/`,
+      body: {committers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events//owners/`,
+      body: {owners: [], rules: []},
+    });
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -411,6 +465,118 @@ describe('GroupActions', () => {
     // Verify that the group is fetched a second time after the action to refresh data
     await waitFor(() => {
       expect(groupFetchApi).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('command palette labels', () => {
+    beforeEach(() => {
+      ConfigStore.loadInitialData({
+        user: UserFixture({id: '1', name: 'Test User'}),
+      } as any);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        method: 'GET',
+        body: [],
+      });
+      MemberListStore.loadInitialData([
+        UserFixture({id: '1', name: 'Test User'}),
+        UserFixture({id: '2', name: 'Grace Hopper'}),
+        UserFixture({id: '7', name: 'Ada Lovelace'}),
+      ]);
+    });
+
+    function renderWithCommandPalette(commandGroup: Group) {
+      const treeRef: {
+        current: Array<CollectionTreeNode<CMDKActionData>>;
+      } = {current: []};
+      render(
+        <CommandPaletteProvider>
+          <GroupActions
+            group={commandGroup}
+            project={project}
+            disabled={false}
+            event={null}
+          />
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
+            }}
+          />
+        </CommandPaletteProvider>,
+        {organization}
+      );
+
+      return treeRef;
+    }
+
+    it('omits stale default state text from task actions', async () => {
+      const treeRef = renderWithCommandPalette(group);
+
+      await waitFor(() => {
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
+
+      const labels = treeRef.current.flatMap(node => [
+        node.display.label,
+        ...node.children.map(child => child.display.label),
+      ]);
+      const issueTaskGroup = treeRef.current[0];
+
+      expect(labels).toContain('Archive');
+      expect(labels).toContain('Resolve');
+      expect(labels).toContain('Set Priority');
+      expect(labels).toContain('Assign to');
+      const issueTitle = getTitle(group).title;
+      const issueMessage = getMessage(group);
+      expect(issueTaskGroup?.display.label).toBe(
+        issueMessage && issueMessage !== issueTitle
+          ? `${issueTitle}: ${issueMessage}`
+          : issueTitle
+      );
+      expect(issueTaskGroup?.display.details).toBeUndefined();
+
+      expect(labels).not.toContain('Resolve (Unresolved)');
+      expect(labels).not.toContain('Archive (Active)');
+      expect(labels).not.toContain('Assign (Unassigned)');
+    });
+
+    it('shows current priority icon and assignee when present', async () => {
+      const treeRef = renderWithCommandPalette(
+        GroupFixture({
+          ...group,
+          priority: PriorityLevel.HIGH,
+          assignedTo: {
+            id: '7',
+            type: 'user',
+            name: 'Ada Lovelace',
+            email: 'ada@example.com',
+          },
+        })
+      );
+
+      await waitFor(() => {
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
+
+      const issueTaskGroup = treeRef.current[0];
+      const labels = issueTaskGroup?.children.map(child => child.display.label) ?? [];
+      const setPriorityAction = issueTaskGroup?.children.find(
+        child => child.display.label === 'Set Priority'
+      );
+      const assignAction = issueTaskGroup?.children.find(
+        child => child.display.label === 'Assign to'
+      );
+      const assignLabels = assignAction?.children.map(child => child.display.label) ?? [];
+
+      expect(labels).toContain('Set Priority');
+      expect(labels).toContain('Assign to');
+      expect(assignLabels).toContain('Assign to me');
+      expect(assignLabels).toContain('#frontend');
+      expect(setPriorityAction?.display.icon).toMatchObject({props: {bars: 3}});
+      expect(assignAction?.display.icon).toMatchObject({
+        props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},
+      });
     });
   });
 });

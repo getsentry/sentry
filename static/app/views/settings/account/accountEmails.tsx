@@ -7,7 +7,7 @@ import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
@@ -107,15 +107,17 @@ function AccountEmails() {
         </form.AppForm>
       </FormSearch>
 
-      <AlertLink.Container>
-        <AlertLink
-          to="/settings/account/notifications"
-          trailingItems={<IconStack />}
-          variant="info"
-        >
-          {t('Want to change how many emails you get? Use the notifications panel.')}
-        </AlertLink>
-      </AlertLink.Container>
+      <Container paddingTop="xl">
+        <AlertLink.Container>
+          <AlertLink
+            to="/settings/account/notifications/"
+            trailingItems={<IconStack />}
+            variant="info"
+          >
+            {t('Want to change how many emails you get? Use the notifications panel.')}
+          </AlertLink>
+        </AlertLink.Container>
+      </Container>
     </Fragment>
   );
 }

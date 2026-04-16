@@ -35,6 +35,7 @@ interface MetricToolbarProps {
   dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
+  onTitleChange?: (title: string) => void;
   referenceMap?: Record<string, string>;
   referencedMetricLabels?: Set<string>;
 }
@@ -47,6 +48,7 @@ export function MetricToolbar({
   dragAttributes,
   referencedMetricLabels,
   onEquationLabelsChange,
+  onTitleChange,
 }: MetricToolbarProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
@@ -80,10 +82,11 @@ export function MetricToolbar({
   );
 
   const handleExpressionChange = useCallback(
-    (newExpression: Expression) => {
+    (newExpression: Expression, internalText: string) => {
       setVisualize(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
+      onTitleChange?.(internalText);
     },
-    [setVisualize, visualize]
+    [setVisualize, visualize, onTitleChange]
   );
 
   const dndGrid = dragListeners ? 'auto ' : '';

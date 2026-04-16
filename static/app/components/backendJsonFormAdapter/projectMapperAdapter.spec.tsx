@@ -369,7 +369,10 @@ describe('ProjectMapperAdapter', () => {
         {
           organization: org,
           initialRouterConfig: {
-            location: {pathname: '/', query: {next: 'https://evil.com/steal'}},
+            location: {
+              pathname: '/',
+              query: {next: 'https://vercel.com.evil.example.com/steal'},
+            },
           },
         }
       );

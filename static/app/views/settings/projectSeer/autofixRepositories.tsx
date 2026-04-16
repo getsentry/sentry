@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
@@ -25,6 +25,11 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddAutofixRepoModal} from './addAutofixRepoModal';
@@ -38,8 +43,12 @@ interface ProjectSeerProps {
 export function AutofixRepositories({project}: ProjectSeerProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
   const {
     preference,
     codeMappingRepos,
