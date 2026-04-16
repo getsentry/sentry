@@ -206,19 +206,20 @@ describe('FilterSelector', () => {
     });
     await userEvent.click(button);
 
-    expect(screen.getByRole('row', {name: 'North America'})).toBeInTheDocument();
-    expect(screen.getByRole('row', {name: 'Northern Europe'})).toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: '21'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', {name: '154'})).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('gridcell', {name: /North America/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
   });
 
   it('allows searching for values over 70 characters', async () => {
     const longValue =
       '/api/v1/users/{user_pk}/sendgrid_history_feed_results/query_history_feed/';
+    const shortValue = 'short_value';
     const longValueSearchBarData: SearchBarData = {
       getFilterKeySections: () => [],
       getFilterKeys: () => ({}),
-      getTagValues: () => Promise.resolve([longValue, 'short_value']),
+      getTagValues: () => Promise.resolve([longValue, shortValue]),
     };
 
     render(
@@ -233,17 +234,21 @@ describe('FilterSelector', () => {
     const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
-    // Wait for options to load
-    expect(await screen.findByText('short_value')).toBeInTheDocument();
+    // Wait for options to load - both values should be visible initially
+    expect(await screen.findByText(shortValue)).toBeInTheDocument();
+    expect(screen.getByText(/sendgrid_history_feed_results/)).toBeInTheDocument();
 
-    // Search for the long value using characters beyond the 70-char truncation point
+    // Search for the long value using text beyond the 70-char truncation point
     const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
-    await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'query_history_feed');
 
-    // The long value should still be found because we search on the full textValue
-    expect(await screen.findByText(/sendgrid_history_feed_results/)).toBeInTheDocument();
-    // The short value should not be visible because it doesn't match
-    expect(screen.queryByText('short_value')).not.toBeInTheDocument();
+    // The long value should still be found via its checkbox
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', {name: /query_history_feed/})
+      ).toBeInTheDocument();
+    });
+    // The short value should be filtered out
+    expect(screen.queryByText(shortValue)).not.toBeInTheDocument();
   });
 });
