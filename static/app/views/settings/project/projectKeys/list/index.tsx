@@ -178,7 +178,7 @@ export default function ProjectKeys() {
             params={params}
           />
         ))}
-        <Pagination pageLinks={keyListResponse?.headers.Link} />
+        <Pagination pageLinks={keyListResponse.headers.Link} />
       </Fragment>
     );
   };
