@@ -99,10 +99,12 @@ export function ConversationAggregatesBar({
   nodes,
   conversationId,
   isLoading,
+  lastMessageDate,
 }: {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
+  lastMessageDate?: Date | null;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -137,6 +139,21 @@ export function ConversationAggregatesBar({
         value={formatLLMCosts(aggregates.totalCost)}
         isLoading={isLoading}
       />
+      {lastMessageDate !== undefined && (
+        <AggregateItem
+          label={t('Last message')}
+          value={
+            lastMessageDate ? (
+              <TimeSince date={lastMessageDate} />
+            ) : (
+              <Text size="sm" variant="muted">
+                {'\u2014'}
+              </Text>
+            )
+          }
+          isLoading={isLoading}
+        />
+      )}
       {isLoading ? (
         <Flex align="center" gap="xs" flexShrink={0}>
           <Text size="sm" bold variant="muted">
@@ -251,19 +268,7 @@ export function ConversationSummary({
         nodes={nodes}
         conversationId={conversationId}
         isLoading={isLoading}
-      />
-      <AggregateItem
-        label={t('Last message')}
-        value={
-          lastMessageDate ? (
-            <TimeSince date={lastMessageDate} />
-          ) : (
-            <Text size="sm" variant="muted">
-              {'\u2014'}
-            </Text>
-          )
-        }
-        isLoading={isLoading}
+        lastMessageDate={lastMessageDate}
       />
     </Flex>
   );
