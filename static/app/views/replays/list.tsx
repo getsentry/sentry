@@ -21,6 +21,7 @@ import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
@@ -32,11 +33,13 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import {ReplaysFilters} from 'sentry/views/replays/list/filters';
 import {ReplayIndexContainer} from 'sentry/views/replays/list/replayIndexContainer';
 import {ReplayIndexTimestampPrefPicker} from 'sentry/views/replays/list/replayIndexTimestampPrefPicker';
 import {ReplayOnboardingPanel} from 'sentry/views/replays/list/replayOnboardingPanel';
 import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
+import {ReplayWidgetsToggleButton} from 'sentry/views/replays/list/replayWidgetsToggleButton';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import {ReplaysSearch} from 'sentry/views/replays/list/search';
 
@@ -45,7 +48,17 @@ const ReplayListPageHeaderHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-function ReplaysHeader() {
+interface ReplaysHeaderProps {
+  onToggleWidgets: () => void;
+  showDeadRageClickCards: boolean;
+  widgetIsOpen: boolean;
+}
+
+function ReplaysHeader({
+  onToggleWidgets,
+  showDeadRageClickCards,
+  widgetIsOpen,
+}: ReplaysHeaderProps) {
   const pageId = useQueryParamsId();
   const title = useQueryParamsTitle();
   const organization = useOrganization();
@@ -90,6 +103,13 @@ function ReplaysHeader() {
       {hasPageFrameFeature ? (
         <TopBar.Slot name="actions">
           <ReplayIndexTimestampPrefPicker />
+          <SaveReplayQueryButton />
+          {showDeadRageClickCards ? (
+            <ReplayWidgetsToggleButton
+              onClick={onToggleWidgets}
+              widgetIsOpen={widgetIsOpen}
+            />
+          ) : null}
         </TopBar.Slot>
       ) : (
         <Layout.HeaderActions>
@@ -103,7 +123,9 @@ function ReplaysHeader() {
 export default function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
+  const {allMobileProj} = useAllMobileProj({});
 
   const hasSessionReplay = organization.features.includes('session-replay');
 
@@ -115,6 +137,17 @@ export default function ReplaysListContainer() {
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
     projectId: projects.map(String),
   });
+  const isLoading = hasSentReplays.fetching || rageClicksSdkVersion.isFetching;
+  const showDeadRageClickCards =
+    hasSentReplays.hasSentOneReplay &&
+    !rageClicksSdkVersion.needsUpdate &&
+    !allMobileProj &&
+    !isLoading;
+  const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
+    'replay-dead-rage-widget-open',
+    true
+  );
+  const toggleWidgets = () => setWidgetIsOpen(!widgetIsOpen);
 
   useRouteAnalyticsParams({
     hasSessionReplay,
@@ -128,7 +161,11 @@ export default function ReplaysListContainer() {
         <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
           <ReplayQueryParamsProvider>
             <Stack flex={1}>
-              <ReplaysHeader />
+              <ReplaysHeader
+                onToggleWidgets={toggleWidgets}
+                showDeadRageClickCards={showDeadRageClickCards}
+                widgetIsOpen={widgetIsOpen}
+              />
               <PageFiltersContainer>
                 <Layout.Body>
                   <Layout.Main width="full">
@@ -136,14 +173,18 @@ export default function ReplaysListContainer() {
                       <ReplayListPageHeaderHook />
                       {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
                         <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                          <ReplayIndexContainer />
+                          <ReplayIndexContainer
+                            onToggleWidgets={toggleWidgets}
+                            showDeadRageClickCards={showDeadRageClickCards}
+                            widgetIsOpen={widgetIsOpen}
+                          />
                         </ReplayAccess>
                       ) : (
                         <Fragment>
                           <Flex gap="xl" wrap="wrap">
                             <ReplaysFilters />
                             <ReplaysSearch />
-                            <SaveReplayQueryButton />
+                            {hasPageFrameFeature ? null : <SaveReplayQueryButton />}
                           </Flex>
                           <ReplayOnboardingPanel />
                         </Fragment>

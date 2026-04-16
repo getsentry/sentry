@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -16,19 +15,16 @@ import {t, tct} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {
-  MIN_DEAD_RAGE_CLICK_SDK,
-  MIN_REPLAY_CLICK_SDK,
-} from 'sentry/utils/replays/sdkVersions';
+import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import {BulkDeleteAlert} from 'sentry/views/replays/list/bulkDeleteAlert';
 import {ReplaysFilters} from 'sentry/views/replays/list/filters';
+import {ReplayWidgetsToggleButton} from 'sentry/views/replays/list/replayWidgetsToggleButton';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import {ReplaysSearch} from 'sentry/views/replays/list/search';
 import {useReplayIndexTableColumns} from 'sentry/views/replays/list/useReplayIndexTableColumns';
@@ -39,18 +35,25 @@ interface Props {
   error: RequestError | null | undefined;
   hasMoreResults: boolean;
   isPending: boolean;
+  onToggleWidgets: () => void;
   queryKey: ApiQueryKey;
   replays: ReplayListRecord[];
+  showDeadRageClickCards: boolean;
+  widgetIsOpen: boolean;
 }
 
 export function ReplayIndexTable({
   error,
   hasMoreResults,
   isPending,
+  onToggleWidgets,
   queryKey,
   replays,
+  showDeadRageClickCards,
+  widgetIsOpen,
 }: Props) {
   const queryClient = useQueryClient();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const {
     selection: {projects},
@@ -58,13 +61,6 @@ export function ReplayIndexTable({
 
   const tableRef = useRef<HTMLDivElement>(null);
   const tableDimensions = useDimensions({elementRef: tableRef});
-
-  const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
-    minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
-    projectId: projects.map(String),
-  });
-  const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
-  const isLoading = hasSentReplays.fetching || rageClicksSdkVersion.isFetching;
 
   const {onSortClick, sortType} = useReplayTableSort();
 
@@ -75,14 +71,6 @@ export function ReplayIndexTable({
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
     search: options?.query?.query,
   });
-
-  const showDeadRageClickCards =
-    !rageClicksSdkVersion.needsUpdate && !allMobileProj && !isLoading;
-
-  const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
-    'replay-dead-rage-widget-open',
-    true
-  );
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays,
@@ -95,11 +83,12 @@ export function ReplayIndexTable({
       <Flex gap="md" wrap="wrap">
         <ReplaysFilters />
         <ReplaysSearch />
-        <SaveReplayQueryButton />
-        {showDeadRageClickCards ? (
-          <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
-            {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
-          </Button>
+        {hasPageFrameFeature ? null : <SaveReplayQueryButton />}
+        {hasPageFrameFeature ? null : showDeadRageClickCards ? (
+          <ReplayWidgetsToggleButton
+            onClick={onToggleWidgets}
+            widgetIsOpen={widgetIsOpen}
+          />
         ) : null}
       </Flex>
       {projects.length === 1 ? (
