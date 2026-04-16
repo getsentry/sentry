@@ -16,7 +16,7 @@ function mockTraceItemAttributeKeysByType({
 }) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
-    body,
+    body: body.map(attribute => ({...attribute, attributeType})),
     match: [
       (_url, options) => {
         const query = options?.query || {};

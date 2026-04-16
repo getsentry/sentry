@@ -197,7 +197,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
     const stringMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.message', name: 'log.message'}],
+      body: [{attributeType: 'string', key: 'log.message', name: 'log.message'}],
       match: [
         (_url, options) => {
           const query = options?.query || {};
@@ -209,7 +209,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
     const numberMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.duration', name: 'log.duration'}],
+      body: [{attributeType: 'number', key: 'log.duration', name: 'log.duration'}],
       match: [
         (_url, options) => {
           const query = options?.query || {};
@@ -221,7 +221,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
     const booleanMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.flag', name: 'log.flag'}],
+      body: [{attributeType: 'boolean', key: 'log.flag', name: 'log.flag'}],
       match: [
         (_url, options) => {
           const query = options?.query || {};
