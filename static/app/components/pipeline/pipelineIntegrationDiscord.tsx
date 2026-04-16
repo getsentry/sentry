@@ -25,7 +25,7 @@ function DiscordOAuthLoginStep({
 
   return (
     <OAuthLoginStep
-      oauthUrl={stepData.oauthUrl}
+      oauthUrl={stepData?.oauthUrl}
       isLoading={isAdvancing}
       serviceName="Discord"
       onOAuthCallback={handleOAuthCallback}
