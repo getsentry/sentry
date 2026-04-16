@@ -18,6 +18,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - `OrganizationMetricsCompatiblity::test_multiple_projects` — `MaxSnowflakeRetryError`: concurrent xdist workers saturate the Redis snowflake counter during `create_project()` calls in the test body
 
+## tests/sentry/dynamic_sampling/tasks/test_common.py
+
+- `TestGetActiveOrgsVolumes::test_get_active_orgs_volumes_exact_batch_match` — Snuba performance metrics from prior tests accumulate in ClickHouse and contaminate `GetActiveOrgsVolumes` query; `org.total` returns 200.0 instead of 3
+
 ## tests/sentry/dynamic_sampling/tasks/test_tasks.py
 
 - `TestRecalibrateOrgsTasks::test_recalibrate_orgs_with_custom_ds` — Snuba performance metrics from prior tests contaminate the recalibration factor query; observed sample rate for orgs[0] appears as ~20% instead of 10%, so `recalibrate_orgs()` writes no key to Redis

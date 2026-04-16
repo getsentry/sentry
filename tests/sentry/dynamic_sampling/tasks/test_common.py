@@ -103,6 +103,11 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
     def now(self):
         return MOCK_DATETIME
 
+    @pytest.mark.skip(
+        reason="test pollution: Snuba performance metrics from prior tests accumulate in "
+        "ClickHouse and contaminate the GetActiveOrgsVolumes query; org.total returns "
+        "200.0 instead of 3 due to cross-worker metric data"
+    )
     def test_get_active_orgs_volumes_exact_batch_match(self) -> None:
         """
         gets active org volumes, with a batch size multiple of
