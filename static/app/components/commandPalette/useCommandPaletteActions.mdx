@@ -1,7 +1,7 @@
 ---
-title: useCommandPaletteActions
-description: Registers actions with the command palette
-source: 'sentry/components/commandPalette/useCommandPaletteActions'
+title: CommandPalette JSX API
+description: Registers actions with the command palette using JSX components
+source: 'sentry/components/commandPalette/ui/cmdk'
 ---
 
 import {Fragment} from 'react';
@@ -12,21 +12,20 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
-
 import * as Storybook from 'sentry/stories';
 
-import {CommandPaletteDemo, RegisterActions} from './__stories__/components';
+import {CommandPaletteDemo} from './__stories__/components';
 
 ## Basic Usage
 
-Use `useCommandPaletteActions(actions)` inside your page or feature component to register contextual actions with the global command palette. Actions are registered on mount and automatically unregistered on unmount, so they only appear in the palette while your component is rendered. This is ideal for page‑specific shortcuts.
+Use `CMDKAction` JSX components inside your page or feature component to register contextual actions with the global command palette. Actions are registered on mount and automatically unregistered on unmount, so they only appear in the palette while your component is rendered. This is ideal for page‑specific shortcuts.
 
-There are a few different types of actions you can register:
+Wrap your tree in `CommandPaletteProvider` and place the `CommandPalette` UI component wherever you want the dialog to render. Then declare actions anywhere inside the provider:
 
-- **Navigation actions**: Provide a `to` destination to navigate to when selected.
+- **Navigation actions**: Provide a `to` prop to navigate when selected.
 - **Callback actions**: Provide an `onAction` handler to execute when selected.
-- **Nested actions**: Provide an `actions: CommandPaletteAction[]` array on a parent item to show a second level. Selecting the parent reveals its children.
+- **Grouped actions**: Nest `CMDKAction` children inside another `CMDKAction` to show a second level. Selecting the parent reveals its children.
+- **Async actions**: Provide a `resource` prop and use the render-prop children signature to fetch and populate async results.
 
 <Storybook.Demo>
   <Flex width="100%">
@@ -35,34 +34,76 @@ There are a few different types of actions you can register:
 </Storybook.Demo>
 
 ```tsx
-import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  CMDKAction,
+  CommandPaletteProvider,
+} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 
 function YourComponent() {
-  useCommandPaletteActions([
-    {
-      display: {label: 'Go to Input story'},
-      to: '/stories/core/input/',
-      groupingKey: 'navigate',
-    },
-    {
-      display: {label: 'Execute an action'},
-      groupingKey: 'help',
-      onAction: () => {
-        addSuccessMessage('Action executed');
-      },
-    },
-    {
-      groupingKey: 'add',
-      display: {label: 'Parent action'},
-      actions: [
-        {
-          display: {label: 'Child action'},
-          onAction: () => {
-            addSuccessMessage('Child action executed');
-          },
-        },
-      ],
-    },
-  ]);
+  return (
+    <CommandPaletteProvider>
+      {/* Navigation action */}
+      <CMDKAction display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
+
+      {/* Callback action */}
+      <CMDKAction
+        display={{label: 'Execute an action'}}
+        onAction={() => addSuccessMessage('Action executed')}
+      />
+
+      {/* Grouped actions */}
+      <CMDKAction display={{label: 'Parent action'}}>
+        <CMDKAction
+          display={{label: 'Child action'}}
+          onAction={() => addSuccessMessage('Child action executed')}
+        />
+      </CMDKAction>
+
+      {/* Inline actions — register them directly inside the provider */}
+      <CMDKAction display={{label: 'Issues List'}}>
+        <CMDKAction
+          display={{label: 'Select all'}}
+          onAction={() => addSuccessMessage('Select all')}
+        />
+        <CMDKAction
+          display={{label: 'Deselect all'}}
+          onAction={() => addSuccessMessage('Deselect all')}
+        />
+      </CMDKAction>
+
+      {/* The command palette UI */}
+      <CommandPalette />
+    </CommandPaletteProvider>
+  );
 }
+```
+
+## Async / Resource Actions
+
+`CMDKAction` accepts a `resource` prop — a function that takes the current search query and returns a TanStack Query options object. The `children` prop becomes a render function that receives the fetched results:
+
+```tsx
+import type {CommandPaletteAsyncResult} from 'sentry/components/commandPalette/types';
+
+<CMDKAction
+  display={{label: 'Projects'}}
+  resource={query => ({
+    queryKey: ['/projects/', {query}],
+    queryFn: () => fetchProjects(query),
+    // transform response into CommandPaletteAsyncResult[]
+    select: (data): CommandPaletteAsyncResult[] =>
+      data.map(p => ({
+        display: {label: p.name},
+        to: `/projects/${p.slug}/`,
+      })),
+  })}
+>
+  {(results: CommandPaletteAsyncResult[]) =>
+    results.map(r => (
+      <CMDKAction key={'label' in r.display ? r.display.label : ''} {...r} />
+    ))
+  }
+</CMDKAction>;
 ```

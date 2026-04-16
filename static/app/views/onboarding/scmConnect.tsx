@@ -42,7 +42,7 @@ export function ScmConnect({onComplete}: StepProps) {
   } = useScmProviders();
 
   // Pre-warm platform detection so results are cached when the user advances
-  useScmPlatformDetection(selectedRepository?.id);
+  useScmPlatformDetection(selectedRepository);
 
   // Derive integration from explicit selection, falling back to existing
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
@@ -63,10 +63,8 @@ export function ScmConnect({onComplete}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
-        stepNumber={1}
         heading={t('Connect a repository')}
         subtitle={t('Link your source control for enhanced debugging features')}
-        tag={t('Optional')}
       />
 
       <LayoutGroup>

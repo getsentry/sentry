@@ -16,6 +16,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
@@ -40,6 +42,7 @@ const DIFF_TYPE_ORDER: Record<string, number> = Object.fromEntries(
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -76,7 +79,7 @@ export default function SnapshotsPage() {
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
     const palette = theme.chart.getColorPalette(10);
-    return palette.at(-1) ?? '#67C800';
+    return palette.at(-5) ?? palette[0];
   });
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
@@ -403,13 +406,23 @@ export default function SnapshotsPage() {
             isSoloView={isSoloView}
             onToggleView={handleToggleView}
           />
-          <Layout.HeaderActions style={{alignSelf: 'center'}}>
-            <SnapshotHeaderActions
-              data={data}
-              organizationSlug={organization.slug}
-              apiUrl={snapshotApiUrl}
-            />
-          </Layout.HeaderActions>
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="actions">
+              <SnapshotHeaderActions
+                data={data}
+                organizationSlug={organization.slug}
+                apiUrl={snapshotApiUrl}
+              />
+            </TopBar.Slot>
+          ) : (
+            <Layout.HeaderActions style={{alignSelf: 'center'}}>
+              <SnapshotHeaderActions
+                data={data}
+                organizationSlug={organization.slug}
+                apiUrl={snapshotApiUrl}
+              />
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
 
         {isComparisonProcessing ? processingContent : snapshotContent}

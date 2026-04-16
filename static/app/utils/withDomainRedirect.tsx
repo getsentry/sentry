@@ -33,8 +33,9 @@ import {useOrganization} from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-export function withDomainRedirect<P>(WrappedComponent: RouteComponent) {
-  return function WithDomainRedirectWrapper(props: P) {
+export function withDomainRedirect(WrappedComponent: RouteComponent) {
+  // eslint-disable-next-line @typescript-eslint/no-restricted-types
+  return function WithDomainRedirectWrapper(props: object) {
     const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});

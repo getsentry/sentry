@@ -32,7 +32,7 @@ function DisabledAlertsPage({
   children: _children,
   ...props
 }: Props) {
-  const requiredPlan = tct(`You'll need a [plan] or up to view metric alerts.`, {
+  const requiredPlan = tct("You'll need a [plan] or up to view metric alerts.", {
     plan: (
       <PlanFeature organization={organization} features={features}>
         {({plan}) => (

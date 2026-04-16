@@ -373,7 +373,7 @@ class ReleaseIssues extends Component<Props, State> {
             id={DemoTourStep.RELEASES_ISSUES}
             title={t('New and regressed issues')}
             description={t(
-              `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
+              'Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.'
             )}
             position="top-start"
           >

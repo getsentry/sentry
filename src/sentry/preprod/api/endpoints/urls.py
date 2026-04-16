@@ -23,6 +23,7 @@ from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDelete
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_approve import OrganizationPreprodArtifactApproveEndpoint
 from .preprod_artifact_rerun_analysis import (
+    PreprodArtifactAdminBatchRerunAnalysisEndpoint,
     PreprodArtifactAdminRerunAnalysisEndpoint,
     PreprodArtifactRerunAnalysisEndpoint,
 )
@@ -218,6 +219,11 @@ preprod_internal_urlpatterns = [
         r"^preprod-artifact/rerun-analysis/$",
         PreprodArtifactAdminRerunAnalysisEndpoint.as_view(),
         name="sentry-admin-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^preprod-artifact/batch-rerun-analysis/$",
+        PreprodArtifactAdminBatchRerunAnalysisEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-batch-rerun-analysis",
     ),
     re_path(
         r"^preprod-artifact/(?P<head_artifact_id>[^/]+)/info/$",

@@ -372,7 +372,7 @@ export function UsageStatsOrganization({
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

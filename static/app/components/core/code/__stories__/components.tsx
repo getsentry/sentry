@@ -21,7 +21,7 @@ export function OnTabClickExample() {
       onTabClick={handleTabClick}
       language="bash"
     >
-      {tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
+      {tab === 'npm' ? 'npm install --save @sentry/browser' : 'yarn add @sentry/browser'}
     </CodeBlock>
   );
 }

@@ -26,6 +26,7 @@ export const cronConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true},
       graph: {enabled: true, type: 'cron-checks'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: true},
     },

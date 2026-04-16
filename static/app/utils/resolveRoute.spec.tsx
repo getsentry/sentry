@@ -110,10 +110,10 @@ describe('resolveRoute', () => {
     ConfigStore.set('customerDomain', {
       subdomain: otherOrg.slug,
       organizationUrl: `https://${otherOrg.slug}.sentry.io`,
-      sentryUrl: `https://sentry.io`,
+      sentryUrl: 'https://sentry.io',
     });
 
     const result = resolveRoute(`/organizations/${otherOrg.slug}/issues/`, otherOrg);
-    expect(result).toBe(`/issues/`);
+    expect(result).toBe('/issues/');
   });
 });

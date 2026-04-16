@@ -138,11 +138,11 @@ const setupMockApiResponeses = () => {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/recent-searches/`,
+    url: '/organizations/org-slug/recent-searches/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/tags/`,
+    url: '/organizations/org-slug/tags/',
     body: [],
   });
 };

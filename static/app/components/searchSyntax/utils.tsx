@@ -26,11 +26,11 @@ class TokenResultFoundError extends Error {
  */
 const skipTokenMarker = Symbol('Returned to skip visiting a token');
 
-type VisitorFn = (opts: {
+type VisitorFn<T> = (opts: {
   /**
    * Call this to return the provided value as the result of treeResultLocator
    */
-  returnResult: (result: any) => TokenResultFoundError;
+  returnResult: (result: T) => TokenResultFoundError;
   /**
    * Return this to skip visiting any inner tokens
    */
@@ -41,12 +41,12 @@ type VisitorFn = (opts: {
   token: TokenResult<Token>;
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
 
-type TreeResultLocatorOpts = {
+type TreeResultLocatorOpts<T> = {
   /**
    * The value to return when returnValue was never called and all nodes of the
    * search tree were visited.
    */
-  noResultValue: any;
+  noResultValue: T;
   /**
    * The tree to visit
    */
@@ -56,7 +56,7 @@ type TreeResultLocatorOpts = {
    * visiting. May also indicate that we want to skip any further traversal of
    * inner nodes.
    */
-  visitorTest: VisitorFn;
+  visitorTest: VisitorFn<T>;
 };
 
 /**
@@ -72,7 +72,7 @@ export function treeResultLocator<T>({
   tree,
   visitorTest,
   noResultValue,
-}: TreeResultLocatorOpts): T {
+}: TreeResultLocatorOpts<T>): T {
   const returnResult = (result: any) => new TokenResultFoundError(result);
 
   const nodeVisitor = (token: TokenResult<Token> | null) => {

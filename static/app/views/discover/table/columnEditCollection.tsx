@@ -562,7 +562,7 @@ class ColumnEditCollection extends Component<Props, State> {
     const title = canAdd
       ? undefined
       : t(
-          `Sorry, you've reached the maximum number of columns (%d). Delete columns to add more.`,
+          "Sorry, you've reached the maximum number of columns (%d). Delete columns to add more.",
           MAX_COL_COUNT
         );
 
@@ -671,7 +671,7 @@ function OnDemandEquationsWarning() {
       <Tooltip
         containerDisplayMode="inline-flex"
         title={t(
-          `This is using indexed data because we don't routinely collect metrics for equations.`
+          "This is using indexed data because we don't routinely collect metrics for equations."
         )}
       >
         <IconWarning variant="warning" />
@@ -704,7 +704,7 @@ const RowContainer = styled('div')<{
     css`
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn
-        ? `1fr`
+        ? '1fr'
         : `${p.theme.space['2xl']} 1fr 40px 40px`};
 
       @media (min-width: ${p.theme.breakpoints.sm}) {

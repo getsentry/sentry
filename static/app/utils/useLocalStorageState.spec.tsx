@@ -201,7 +201,7 @@ describe('useLocalStorageState', () => {
     );
 
     expect(() => result.current[1](recursiveReferenceMap)).toThrow(
-      `useLocalStorage: Native serialization of Map is not supported`
+      'useLocalStorage: Native serialization of Map is not supported'
     );
   });
 

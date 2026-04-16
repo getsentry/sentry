@@ -137,7 +137,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
       <WebVitalDetailHeader score={score} value={value} webVital={webVital} />
       <Stack marginBottom="md">
         {longDescription}
-        {tct(` [webVital] is available for the following browsers:`, {
+        {tct(' [webVital] is available for the following browsers:', {
           webVital: webVital.toUpperCase(),
         })}
       </Stack>

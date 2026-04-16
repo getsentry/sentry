@@ -146,10 +146,11 @@ const StyledMain = styled(Layout.Main)`
 function ProfilesIndex() {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const transaction = decodeScalar(location.query.transaction);
 
   if (!transaction) {
-    redirectToPerformanceHomepage(organization, location);
+    redirectToPerformanceHomepage(organization, location, navigate);
     return null;
   }
 

@@ -81,7 +81,7 @@ export function FeedbackOnboardingWebApiBanner() {
     <Alert.Container>
       <Alert variant="info">
         {tct(
-          `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
+          'When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
@@ -330,7 +330,7 @@ export const getCrashReportPHPInstallSteps = (params: any): OnboardingStep[] => 
           {
             label: 'PHP',
             language: 'php',
-            code: `\\Sentry\\SentrySdk::getCurrentHub()->getLastEventId();`,
+            code: '\\Sentry\\SentrySdk::getCurrentHub()->getLastEventId();',
           },
         ],
       },

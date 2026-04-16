@@ -862,6 +862,19 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     # Create a new widget.
                     self.create_widget(instance, data)
                 else:
+                    sentry_sdk.set_context(
+                        "dashboard",
+                        {
+                            "org_slug": instance.organization.slug,
+                            "dashboard_id": instance.id,
+                            "widget_id": widget_id,
+                            "existing_widget_ids": list(existing_map.keys()),
+                            "requested_widget_ids": widget_ids,
+                        },
+                    )
+                    sentry_sdk.capture_message(
+                        "Attempted to update widget not belonging to dashboard."
+                    )
                     raise serializers.ValidationError(
                         "You cannot update widgets that are not part of this dashboard."
                     )

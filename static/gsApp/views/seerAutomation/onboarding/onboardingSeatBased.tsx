@@ -13,6 +13,8 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -23,9 +25,18 @@ import {SeerOnboardingProvider} from './hooks/seerOnboardingContext';
 import {StepsManager} from './stepsManager';
 import {Steps} from './types';
 
+const seerFeedbackOptions = {
+  messagePlaceholder: t('How can we make Seer better for you?'),
+  tags: {
+    ['feedback.source']: 'seer-settings-wizard',
+    ['feedback.owner']: 'coding-workflows',
+  },
+};
+
 export function SeerOnboardingSeatBased() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {isPending, initialStep} = useSeerOnboardingStep();
   const navigate = useNavigate();
 
@@ -81,16 +92,15 @@ export function SeerOnboardingSeatBased() {
           'Follow these steps to configure Seer for your organization. Seer helps automatically analyze, fix, and prevent issues in your codebase.'
         )}
         action={
-          <FeedbackButton
-            size="md"
-            feedbackOptions={{
-              messagePlaceholder: t('How can we make Seer better for you?'),
-              tags: {
-                ['feedback.source']: 'seer-settings-wizard',
-                ['feedback.owner']: 'coding-workflows',
-              },
-            }}
-          />
+          hasPageFrameFeature ? (
+            <TopBar.Slot name="feedback">
+              <FeedbackButton feedbackOptions={seerFeedbackOptions}>
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          ) : (
+            <FeedbackButton size="md" feedbackOptions={seerFeedbackOptions} />
+          )
         }
       />
 

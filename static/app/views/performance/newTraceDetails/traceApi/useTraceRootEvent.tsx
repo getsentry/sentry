@@ -43,7 +43,7 @@ export function useTraceRootEvent({
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

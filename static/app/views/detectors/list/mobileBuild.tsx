@@ -28,7 +28,12 @@ export default function MobileBuildDetectorsList() {
           docsUrl={DOCS_URL}
         >
           <DetectorListHeader showTypeFilter={false} />
-          <DetectorListContent {...detectorListQuery} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </Feature>

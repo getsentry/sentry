@@ -18,7 +18,7 @@ export default function OrganizationTeamsContainer() {
   const queryKey = useMemo(
     () =>
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/access-requests/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/access-requests/', {
           path: {organizationIdOrSlug: organization?.slug!},
         }),
       ] as const,

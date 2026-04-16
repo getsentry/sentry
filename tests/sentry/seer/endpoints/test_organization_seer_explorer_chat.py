@@ -45,6 +45,46 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data["session"]["status"] == "completed"
         mock_client.get_run.assert_called_once_with(run_id=123)
 
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
+        from sentry.seer.explorer.client_models import (
+            MemoryBlock,
+            Message,
+            SeerRunState,
+            Usage,
+            UsageAccumulator,
+        )
+
+        mock_state = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="b1",
+                    message=Message(role="assistant", content="hello"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            usage=UsageAccumulator(
+                usages=[Usage(dollar_cost=0.42, model="claude", total_tokens=1000)]
+            ),
+            metadata={"internal": "data"},
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        session = response.data["session"]
+        assert "usage" not in session
+        assert "metadata" not in session
+        assert "coding_agents" not in session
+        assert session["blocks"][0]["id"] == "b1"
+        assert session["blocks"][0]["message"]["content"] == "hello"
+
     def test_post_without_query_returns_400(self) -> None:
         data: dict[str, Any] = {}
         response = self.client.post(self.url, data, format="json")
@@ -69,13 +109,19 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
         mock_client_class.assert_called_once_with(
-            self.organization, ANY, is_interactive=True, enable_coding=False
+            self.organization,
+            ANY,
+            is_interactive=True,
+            enable_coding=False,
+            enable_code_mode_tools=False,
+            reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
             page_name=None,
             override_ce_enable=True,
+            request=ANY,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -104,6 +150,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
+                enable_code_mode_tools=False,
+                reasoning_effort="medium",
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -121,7 +169,12 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
         mock_client_class.assert_called_once_with(
-            self.organization, ANY, is_interactive=True, enable_coding=False
+            self.organization,
+            ANY,
+            is_interactive=True,
+            enable_coding=False,
+            enable_code_mode_tools=False,
+            reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
             run_id=789,
@@ -129,6 +182,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             insert_index=2,
             on_page_context=None,
             page_name=None,
+            request=ANY,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -152,6 +206,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 ANY,
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
+                enable_code_mode_tools=False,
+                reasoning_effort="medium",
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")

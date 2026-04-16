@@ -711,7 +711,7 @@ DATA_SOURCES_HELP_TEXT = """
             ```
 
             **Largest Contentful Paint Metric Monitor**
-            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `generic_metrics`.
+            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
             - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
 
             ```json
@@ -730,7 +730,7 @@ DATA_SOURCES_HELP_TEXT = """
             ```
 
             **Custom Metric Monitor**
-            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `generic_metrics`.
+            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
             - `aggregate`: Valid values are:
             `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
             `p50(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
@@ -747,7 +747,7 @@ DATA_SOURCES_HELP_TEXT = """
             [
                 {
                     "aggregate": "p75(measurements.ttfb)"
-                    "dataset": "generic_metrics",
+                    "dataset": "events_analytics_platform",
                     "queryType": 1,
                 },
             ],

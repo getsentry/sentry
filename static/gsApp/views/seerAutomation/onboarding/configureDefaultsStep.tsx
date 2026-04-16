@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -49,11 +49,11 @@ export function ConfigureDefaultsStep() {
   const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
     useUpdateOrganization(organization);
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     updateOrganization(
       {
         defaultAutofixAutomationTuning: proposeFixesEnabled ? 'medium' : 'off',
@@ -82,15 +82,7 @@ export function ConfigureDefaultsStep() {
         },
       }
     );
-  }, [
-    autoCreatePREnabled,
-    enableCodeReview,
-    proposeFixesEnabled,
-    updateOrganization,
-    currentStep,
-    setCurrentStep,
-    organization,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -101,7 +93,7 @@ export function ConfigureDefaultsStep() {
               <Flex direction="column" gap="md">
                 <Text density="comfortable">
                   {tct(
-                    `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
+                    'Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].',
                     {
                       link: <Link to={`/settings/${organization.slug}/seer/`} />,
                     }
@@ -109,7 +101,7 @@ export function ConfigureDefaultsStep() {
                 </Text>
                 <Text density="comfortable">
                   {t(
-                    `This will not effect the configuration of the repos and projects on the previous two steps.`
+                    'This will not effect the configuration of the repos and projects on the previous two steps.'
                   )}
                 </Text>
               </Flex>

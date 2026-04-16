@@ -19,6 +19,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 interface MetricInfoTabsProps {
   orientation: TableOrientation;
@@ -42,21 +43,27 @@ export function MetricInfoTabs({
 
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
-  const size = hasMetricsUIRefresh ? 'md' : 'xs';
-
   return (
     <TabStateProvider<Mode>
       value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
-      size={size}
+      size={hasMetricsUIRefresh ? 'md' : 'xs'}
     >
-      {(orientation === 'right' || visualize.visible) && (
+      {orientation === 'right' || visualize.visible ? (
         <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
             <TabList variant="floating">
-              <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
+              <TabList.Item
+                key={Mode.SAMPLES}
+                disabled={contentsHidden || isVisualizeEquation(visualize)}
+                tooltip={{
+                  title: isVisualizeEquation(visualize)
+                    ? t('Samples are not available for equations')
+                    : undefined,
+                }}
+              >
                 {t('Samples')}
               </TabList.Item>
               <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
@@ -66,8 +73,8 @@ export function MetricInfoTabs({
           </TabListWrapper>
           {additionalActions}
         </Flex>
-      )}
-      {visualize.visible && !contentsHidden && (
+      ) : null}
+      {visualize.visible && !contentsHidden ? (
         <BodyContainer>
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
@@ -84,7 +91,7 @@ export function MetricInfoTabs({
             </TabPanels.Item>
           </StyledTabPanels>
         </BodyContainer>
-      )}
+      ) : null}
     </TabStateProvider>
   );
 }

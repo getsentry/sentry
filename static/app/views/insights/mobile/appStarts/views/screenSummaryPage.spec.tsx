@@ -22,7 +22,7 @@ describe('Screen Summary', () => {
         [SpanFields.APP_START_TYPE]: 'cold',
       },
     },
-    route: `/organizations/:orgId/insights/screens/spans/`,
+    route: '/organizations/:orgId/insights/screens/spans/',
   };
 
   describe('Native Project', () => {

@@ -69,37 +69,19 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.4 sh
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.5 sh
 
       - name: Upload snapshots
         id: upload
         if: ${{ !cancelled() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
-        run: |
-          ARGS=(
-            --log-level=debug
-            --auth-token "${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}"
-            build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
-            --app-id sentry-frontend
-            --project sentry-frontend
-            --head-sha "${{ github.event.pull_request.head.sha || github.sha }}"
-            --vcs-provider github
-            --head-repo-name "${{ github.repository }}"
-          )
-
-          # PR-only flags: base-sha, base-ref, base-repo-name, head-ref, pr-number
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            ARGS+=(
-              --base-sha "${{ github.event.pull_request.base.sha }}"
-              --base-repo-name "${{ github.repository }}"
-              --head-ref "${{ github.head_ref }}"
-              --base-ref "${{ github.base_ref }}"
-              --pr-number "${{ github.event.number }}"
-            )
-          fi
-
-          sentry-cli "${ARGS[@]}"
+        run: >
+          sentry-cli
+          --log-level=debug
+          build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
+          --app-id sentry-frontend
+          --project sentry-frontend
 
       - name: Report upload failure to Sentry
         if: ${{ failure() && steps.upload.outcome == 'failure' }}

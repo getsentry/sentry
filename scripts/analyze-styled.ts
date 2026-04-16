@@ -422,7 +422,7 @@ if (!config.startDate) {
     if (config.targetFile) {
       logger.fatal(`❌ File not found: ${config.targetFile}`);
     } else {
-      logger.fatal(`❌ No .tsx files found in search directory`);
+      logger.fatal('❌ No .tsx files found in search directory');
     }
     process.exit(1);
   }

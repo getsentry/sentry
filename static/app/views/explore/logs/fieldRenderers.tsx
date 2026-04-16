@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -23,8 +24,8 @@ import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
+import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
@@ -146,7 +147,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-export function TimestampRenderer(props: LogFieldRendererProps) {
+function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
@@ -240,10 +241,12 @@ function CodePathRenderer(props: LogFieldRendererProps) {
       : undefined;
   const filename = props.item.value;
 
-  const {data: release} = useRelease({
-    orgSlug: props.extra.organization.slug,
-    projectSlug: props.extra.projectSlug ?? '',
-    releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+  const {data: release} = useQuery({
+    ...releaseApiOptions({
+      orgSlug: props.extra.organization.slug,
+      projectSlug: props.extra.projectSlug ?? '',
+      releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+    }),
     enabled: shouldLoad,
   });
   const {data: codeLink} = useStacktraceLink(
@@ -353,7 +356,7 @@ function FilteredTooltip({
     return (
       <Tooltip
         title={tct(
-          `The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].`,
+          'The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].',
           {
             settings: (
               <Link

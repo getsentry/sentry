@@ -5,16 +5,19 @@ import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useBulkMutateSelectedAgent,
@@ -34,7 +37,34 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Agent'), key: 'fixes', sortKey: 'agent'},
+  {
+    title: ({organization}: {organization: Organization}) => (
+      <Flex gap="sm" align="center">
+        {t('Preferred Coding Agent')}
+        <InfoTip
+          title={tct(
+            'Select the coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
+            {
+              manageLink: (
+                <Link
+                  to={{
+                    pathname: normalizeUrl(
+                      `/settings/${organization.slug}/integrations/`
+                    ),
+                    query: {category: 'coding agent'},
+                  }}
+                >
+                  {t('Manage Coding Agent Integrations')}
+                </Link>
+              ),
+            }
+          )}
+        />
+      </Flex>
+    ),
+    key: 'fixes',
+    sortKey: 'agent',
+  },
   {
     title: (
       <Flex gap="sm" align="center">
@@ -126,7 +156,7 @@ export function ProjectTableHeader({
             }
             sort={sort?.field === sortKey ? sort.kind : undefined}
           >
-            {title}
+            {typeof title === 'function' ? title({organization}) : title}
           </SimpleTable.HeaderCell>
         ))}
       </TableHeader>

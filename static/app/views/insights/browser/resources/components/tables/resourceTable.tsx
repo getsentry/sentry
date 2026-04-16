@@ -55,7 +55,7 @@ const {
 const {EPM} = SpanFunction;
 
 const RESOURCE_SIZE_ALERT = t(
-  `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
+  "If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher."
 );
 
 type Row = Pick<
@@ -169,7 +169,7 @@ export function ResourceTable({sort, defaultResourceTypes}: Props) {
     if (key === 'avg(http.response_content_length)') {
       return <ResourceSizeCell bytes={row[key]} />;
     }
-    if (key === `avg(span.self_time)`) {
+    if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {

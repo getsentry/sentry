@@ -259,7 +259,7 @@ function EnhancedUsageStatsOrganization({
   const projectWithSpikeProjectionOption = useApiQuery<Project[]>(
     [
       // This endpoint refetches the specific project with an added query for the SP option
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -281,7 +281,7 @@ function EnhancedUsageStatsOrganization({
     [
       // Get all the spikes in the time period
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/`,
+        '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
         {
           path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
         }
@@ -300,7 +300,7 @@ function EnhancedUsageStatsOrganization({
     [
       // Only fetch spike thresholds if the interval is 1h
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/`,
+        '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

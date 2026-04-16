@@ -135,7 +135,7 @@ const onboardingRetail: OnboardingConfig = {
         {
           type: 'code',
           language: 'c',
-          code: `os.name: PlayStation`,
+          code: 'os.name: PlayStation',
         },
       ],
     },

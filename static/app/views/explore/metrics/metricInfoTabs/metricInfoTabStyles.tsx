@@ -74,6 +74,7 @@ export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
   noPadding?: boolean;
 }>`
   font-size: ${p => p.theme.font.size.sm};
+  white-space: nowrap;
   padding: ${p => (p.noPadding ? 0 : p.embedded ? p.theme.space.xl : p.theme.space.lg)};
   padding-top: ${p =>
     p.noPadding ? 0 : p.embedded ? p.theme.space.sm : p.theme.space.xs};
@@ -128,10 +129,6 @@ export const MetricsDetailsWrapper = styled(DetailsWrapper)`
   border-bottom: 0;
   margin-right: -15px;
   padding-right: calc(15px + ${p => p.theme.space.md});
-`;
-
-export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
-  justify-content: flex-end;
 `;
 
 export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`

@@ -105,27 +105,27 @@ function setupMocks() {
   ConfigStore.set('customerDomain', null);
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/broadcasts/`,
+    url: '/organizations/org-slug/broadcasts/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/assistant/`,
+    url: '/assistant/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/group-search-views/starred/`,
+    url: '/organizations/org-slug/group-search-views/starred/',
     body: [GroupSearchViewFixture({name: 'Starred View 1'})],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/issues-count/`,
+    url: '/organizations/org-slug/issues-count/',
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/explore/saved/`,
+    url: '/organizations/org-slug/explore/saved/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/dashboards/`,
+    url: '/organizations/org-slug/dashboards/',
     body: [
       // This ensures that we test the "All Projects", "My projects", "multiple projects" icons
       DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),
@@ -209,6 +209,27 @@ describe('desktop navigation', () => {
       expect(links[3]).toHaveAttribute('href', '/organizations/org-slug/insights/');
       expect(links[4]).toHaveAttribute('href', '/organizations/org-slug/monitors/');
       expect(links[5]).toHaveAttribute('href', '/settings/org-slug/');
+    });
+
+    it('hides Insights nav item when insights-to-dashboards-ui-rollout is enabled', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {
+            features: [...ALL_AVAILABLE_FEATURES, 'insights-to-dashboards-ui-rollout'],
+          },
+        })
+      );
+
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      const links = within(primaryNav).getAllByRole('link');
+      const linkNames = links.map(
+        link => link.getAttribute('aria-label') ?? link.textContent
+      );
+
+      expect(linkNames).not.toContain('Insights');
     });
 
     it('primary navigation marks exactly one link as active for the current route', () => {
@@ -335,7 +356,7 @@ describe('desktop navigation', () => {
           [`${ORG}/issues/warnings/`, 'Issues', 'Warnings'],
           [`${ORG}/issues/feedback/`, 'Issues', 'User Feedback'],
           [`${ORG}/issues/views/`, 'Issues', 'All Views'],
-          [`${ORG}/monitors/?alertsRedirect=true`, 'Monitors', 'All Monitors'],
+          [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           // Explore
           [`${ORG}/explore/traces/`, 'Explore', 'Traces'],
           [`${ORG}/explore/logs/`, 'Explore', 'Logs'],
@@ -353,7 +374,6 @@ describe('desktop navigation', () => {
           [`${ORG}/insights/ai-agents/`, 'Insights', 'Agents'],
           [`${ORG}/insights/mcp/`, 'Insights', 'MCP'],
           [`${ORG}/monitors/crons/?insightsRedirect=true`, 'Monitors', 'Crons'],
-          [`${ORG}/insights/projects/`, 'Insights', 'All Projects'],
           // Monitors
           [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           [`${ORG}/monitors/my-monitors/`, 'Monitors', 'My Monitors'],
@@ -362,9 +382,9 @@ describe('desktop navigation', () => {
           [`${ORG}/monitors/crons/`, 'Monitors', 'Crons'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
           // Settings
-          [`/settings/org-slug/`, 'Settings', 'General Settings'],
+          ['/settings/org-slug/', 'Settings', 'General Settings'],
           [
-            `/settings/org-slug/projects/project-slug/teams/`,
+            '/settings/org-slug/projects/project-slug/teams/',
             'Settings',
             'Project Teams',
             '/settings/:orgId/projects/:projectId/teams/',

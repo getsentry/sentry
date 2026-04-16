@@ -133,7 +133,7 @@ web.run_app(app)
           type: 'text',
           text: [
             tct(
-              `When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.`,
+              'When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.',
               {
                 localhostLInk: <ExternalLink href="http://localhost:8080/" />,
               }

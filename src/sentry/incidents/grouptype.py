@@ -350,6 +350,7 @@ class MetricIssue(GroupType):
     category_v2 = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
@@ -375,18 +376,3 @@ class MetricIssue(GroupType):
             },
         },
     )
-
-    @classmethod
-    def allow_ingest(cls, organization: Organization) -> bool:
-        return True
-
-    @classmethod
-    def allow_post_process_group(cls, organization: Organization) -> bool:
-        return True
-
-    @classmethod
-    def build_visible_feature_name(cls) -> list[str]:
-        return [
-            "organizations:workflow-engine-ui",
-            "organizations:workflow-engine-metric-issue-ui",
-        ]

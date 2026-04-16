@@ -27,7 +27,7 @@ export function CreateBroadcastModal({
 
   const {mutate: updateBroadcast} = useMutation({
     mutationFn: (data: Broadcast) => {
-      return api.requestPromise(`/broadcasts/`, {
+      return api.requestPromise('/broadcasts/', {
         method: 'POST',
         data,
       });

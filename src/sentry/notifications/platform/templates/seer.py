@@ -189,6 +189,7 @@ class SeerExplorerResponse(NotificationData):
     run_id: int
     organization_id: int
     summary: str
+    missing_scope_settings_url: str | None = None
     source: NotificationSource = NotificationSource.SEER_EXPLORER_RESPONSE
 
 

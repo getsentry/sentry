@@ -53,7 +53,7 @@ function SentryApplicationDashboard() {
     isError: isAppError,
   } = useApiQuery<SentryApp>(
     [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
         path: {sentryAppIdOrSlug: appSlug},
       }),
     ],
@@ -66,7 +66,7 @@ function SentryApplicationDashboard() {
     isError: isInteractionsError,
   } = useApiQuery<Interactions>(
     [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/interaction/`, {
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/interaction/', {
         path: {sentryAppIdOrSlug: appSlug},
       }),
       {query: {since: now - ninety_days_ago, until: now}},
@@ -80,7 +80,7 @@ function SentryApplicationDashboard() {
     isError: isStatsError,
   } = useApiQuery<Stats>(
     [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/stats/`, {
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/stats/', {
         path: {sentryAppIdOrSlug: appSlug},
       }),
       {query: {since: now - ninety_days_ago, until: now}},

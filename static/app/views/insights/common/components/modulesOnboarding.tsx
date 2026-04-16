@@ -260,7 +260,7 @@ type EmptyStateContent = {
 
 const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
   [ModuleName.APP_START]: {
-    heading: t(`Don't lose your user's attention before your app loads`),
+    heading: t("Don't lose your user's attention before your app loads"),
     description: tct(
       'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
       {
@@ -268,7 +268,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
           MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
       }
     ),
-    valuePropDescription: tct(`Mobile [dataType] insights give you visibility into:`, {
+    valuePropDescription: tct('Mobile [dataType] insights give you visibility into:', {
       dataType: MODULE_DATA_TYPES[ModuleName.APP_START],
     }),
     valuePropPoints: [
@@ -423,7 +423,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
   [ModuleName.SCREEN_LOAD]: {
-    heading: t(`Don’t lose your user's attention once your app loads`),
+    heading: t("Don’t lose your user's attention once your app loads"),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
       {
@@ -463,7 +463,7 @@ const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   [ModuleName.SESSIONS]: {
-    heading: t(`Get insights about your application's session health`),
+    heading: t("Get insights about your application's session health"),
     description: tct(
       'Understand the frequency of handled errors and crashes compared to healthy sessions.',
       {

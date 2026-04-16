@@ -1,8 +1,11 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -10,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGrid';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
-import {useUptimeChecks} from 'sentry/views/insights/uptime/utils/useUptimeChecks';
+import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -36,8 +39,8 @@ export default function GroupUptimeChecks() {
     enabled: canFetchUptimeChecks,
   });
 
-  const {data: uptimeChecks, getResponseHeader} = useUptimeChecks(
-    {
+  const {data} = useQuery({
+    ...uptimeChecksApiOptions({
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
       detectorId: detectorId ?? '',
@@ -45,9 +48,11 @@ export default function GroupUptimeChecks() {
       limit: 50,
       start: since.toISOString(),
       end: until.toISOString(),
-    },
-    {enabled: canFetchUptimeChecks}
-  );
+    }),
+    enabled: canFetchUptimeChecks,
+    select: selectJsonWithHeaders,
+  });
+  const uptimeChecks = data?.json;
 
   if (isGroupError) {
     return <LoadingError onRetry={refetchGroup} />;
@@ -57,7 +62,7 @@ export default function GroupUptimeChecks() {
     return <LoadingIndicator />;
   }
 
-  const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
+  const links = parseLinkHeader(data?.headers.Link ?? '');
   const previousDisabled = links?.previous?.results === false;
   const nextDisabled = links?.next?.results === false;
   const pageCount = uptimeChecks.length;

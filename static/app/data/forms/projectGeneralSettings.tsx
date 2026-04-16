@@ -142,7 +142,7 @@ export const fields = {
         <Hovercard
           body={
             <CodeBlock hideCopyButton>
-              {`https://example.com\n*.example.com\n*:80\n*`}
+              {'https://example.com\n*.example.com\n*:80\n*'}
             </CodeBlock>
           }
         >

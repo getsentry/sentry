@@ -30,8 +30,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+const userFeedbackFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the User Feedback experience?'),
+  tags: {
+    ['feedback.source']: 'feedback-list',
+  },
+};
 
 export default function FeedbackListPage() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const pageFilters = usePageFilters();
@@ -151,39 +161,61 @@ export default function FeedbackListPage() {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Flex gap="lg">
-                <FeedbackButton
-                  size="sm"
-                  feedbackOptions={{
-                    messagePlaceholder: t(
-                      'How can we improve the User Feedback experience?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'feedback-list',
-                    },
-                  }}
-                />
-                <LinkButton
-                  size="sm"
-                  icon={<IconSiren />}
-                  to={{
-                    pathname: makeAlertsPathname({
-                      path: '/new/issue/',
-                      organization,
-                    }),
-                    query: {
-                      alert_option: 'issues',
-                      referrer: 'feedback-list-page',
-                      detectorType: 'metric_issue',
-                      ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
-                    },
-                  }}
-                >
-                  {t('Create Alert')}
-                </LinkButton>
-              </Flex>
-            </Layout.HeaderActions>
+            {hasPageFrameFeature ? (
+              <Fragment>
+                <TopBar.Slot name="actions">
+                  <LinkButton
+                    icon={<IconSiren />}
+                    to={{
+                      pathname: makeAlertsPathname({
+                        path: '/new/issue/',
+                        organization,
+                      }),
+                      query: {
+                        alert_option: 'issues',
+                        referrer: 'feedback-list-page',
+                        detectorType: 'metric_issue',
+                        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+                      },
+                    }}
+                  >
+                    {t('Create Alert')}
+                  </LinkButton>
+                </TopBar.Slot>
+                <TopBar.Slot name="feedback">
+                  <FeedbackButton size="sm" feedbackOptions={userFeedbackFeedbackOptions}>
+                    {null}
+                  </FeedbackButton>
+                </TopBar.Slot>
+              </Fragment>
+            ) : (
+              <Layout.HeaderActions>
+                <Flex gap="lg">
+                  <FeedbackButton
+                    size="sm"
+                    feedbackOptions={userFeedbackFeedbackOptions}
+                  />
+                  <LinkButton
+                    size="sm"
+                    icon={<IconSiren />}
+                    to={{
+                      pathname: makeAlertsPathname({
+                        path: '/new/issue/',
+                        organization,
+                      }),
+                      query: {
+                        alert_option: 'issues',
+                        referrer: 'feedback-list-page',
+                        detectorType: 'metric_issue',
+                        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+                      },
+                    }}
+                  >
+                    {t('Create Alert')}
+                  </LinkButton>
+                </Flex>
+              </Layout.HeaderActions>
+            )}
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>

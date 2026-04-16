@@ -2,7 +2,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
-  getGenAiOperationTypeFromSpanOp,
+  getGenAiOperationTypeFromSpanName,
   getIsAiAgentSpan,
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -57,16 +57,18 @@ export function ensureAttributeObject(
 
 /**
  * Returns the `gen_ai.operation.type` for a given trace node.
- * If the attribute is not present it will deduce it from the `span.op`
+ * If the attribute is not present it will deduce it from the `span.name`
  *
- * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.op` on the old data model.
+ * **Note:** To keep the complexity manageable, this logic does not work for the edge case of transactions without `span.name` on the old data model.
  */
 export function getGenAiOpType(node: BaseNode): string | undefined {
   const attributeObject = node.attributes;
 
   return (
     (attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
-    getGenAiOperationTypeFromSpanOp(node.op)
+    getGenAiOperationTypeFromSpanName(
+      node.value && 'name' in node.value ? (node.value.name as string) : undefined
+    )
   );
 }
 
@@ -136,6 +138,40 @@ export function getNumberAttr(node: AITraceSpanNode, field: string): number | un
     const num = Number(val);
     return Number.isFinite(num) ? num : undefined;
   }
+  return undefined;
+}
+
+const MAX_TOOL_INPUT_PREVIEW_LENGTH = 80;
+
+/**
+ * Parses tool input JSON and returns the value of the first key.
+ * Used to show a preview of the tool input next to the tool name.
+ */
+export function getFirstToolInputValue(node: AITraceSpanNode): string | undefined {
+  const toolInput =
+    getStringAttr(node, 'gen_ai.tool.call.arguments') ||
+    getStringAttr(node, 'gen_ai.tool.input');
+  if (!toolInput) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(toolInput);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      const firstKey = Object.keys(parsed)[0];
+      if (firstKey !== undefined) {
+        const value = parsed[firstKey];
+        const str = typeof value === 'string' ? value : JSON.stringify(value);
+        if (str.length > MAX_TOOL_INPUT_PREVIEW_LENGTH) {
+          return str.slice(0, MAX_TOOL_INPUT_PREVIEW_LENGTH) + '\u2026';
+        }
+        return str;
+      }
+    }
+  } catch {
+    // Invalid JSON, return undefined
+  }
+
   return undefined;
 }
 

@@ -46,7 +46,7 @@ type FetchOrgAuthTokenResponse = OrgAuthToken;
 
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
   [
-    getApiUrl(`/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
       path: {organizationIdOrSlug: orgSlug, tokenId},
     }),
   ] as const;

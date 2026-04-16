@@ -120,7 +120,7 @@ describe('useSpanSamples', () => {
           project: [],
           dataset: 'spans',
           sampling: 'NORMAL',
-          query: `span.group:221aa7ebd216 release:0.0.1`,
+          query: 'span.group:221aa7ebd216 release:0.0.1',
           referrer: 'api-spec',
           statsPeriod: '10d',
           environment: ['prod'],

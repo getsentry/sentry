@@ -1,5 +1,6 @@
 import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -10,13 +11,14 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 
 interface OpenPeriodDisplayData {
@@ -46,17 +48,21 @@ function IssueOpenPeriodsList() {
   const location = useLocation();
   const params = useParams<{groupId: string}>();
   const {
-    data: openPeriods = [],
+    data: response,
     isPending,
     error,
-    getResponseHeader,
-  } = useOpenPeriods({
-    groupId: params.groupId,
-    cursor: location.query?.cursor as string | undefined,
-    limit: 10,
+  } = useQuery({
+    ...openPeriodsApiOptions({
+      organization,
+      groupId: params.groupId,
+      cursor: location.query?.cursor,
+      limit: 10,
+    }),
+    select: selectJsonWithHeaders,
   });
+  const openPeriods = response?.json ?? [];
 
-  const data: OpenPeriodDisplayData[] = openPeriods.flatMap(period => {
+  const data = openPeriods.flatMap(period => {
     const periodActivities = orderBy(
       period.activities.filter(activity => activity.type !== 'closed'),
       'dateCreated',
@@ -99,8 +105,8 @@ function IssueOpenPeriodsList() {
     return <AlignLeft>{dataRow[column]}</AlignLeft>;
   };
 
-  const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
-  const totalCount = getResponseHeader?.('X-Hits') ?? undefined;
+  const links = parseLinkHeader(response?.headers.Link ?? '');
+  const totalCount = response?.headers['X-Hits'];
   const previousDisabled = links.previous?.results === false;
   const nextDisabled = links.next?.results === false;
 

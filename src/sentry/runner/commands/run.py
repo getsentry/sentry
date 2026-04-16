@@ -136,9 +136,18 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
 @run.command()
 @click.option(
+    "--push-mode", help="Whether to run in PUSH or PULL mode.", default=False, is_flag=True
+)
+@click.option(
     "--rpc-host",
-    help="The hostname and port for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
+    help="The hostname and port for the taskbroker gRPC server. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
     default="127.0.0.1:50051",
+)
+@click.option(
+    "--worker-rpc-port",
+    help="Port for the taskworker gRPC server to listen on when it is running in push mode.",
+    default=50052,
+    type=int,
 )
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
@@ -198,6 +207,8 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
+    push_mode: bool,
+    worker_rpc_port: int,
     rpc_host: str,
     num_brokers: int | None,
     rpc_host_list: str | None,
@@ -233,6 +244,8 @@ def run_taskworker(
             processing_pool_name=processing_pool_name,
             health_check_file_path=health_check_file_path,
             health_check_sec_per_touch=health_check_sec_per_touch,
+            grpc_port=worker_rpc_port,
+            push_mode=push_mode,
             **options,
         )
         exitcode = worker.start()

@@ -149,7 +149,7 @@ export function ToolCallsWidget() {
               ],
               groupBy: ['gen_ai.tool.name'],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

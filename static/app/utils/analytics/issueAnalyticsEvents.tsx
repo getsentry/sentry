@@ -72,6 +72,7 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
+  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -121,6 +122,10 @@ export type IssueEventParameters = {
   };
   'issue_details.issue_status_docs_clicked': Record<string, unknown>;
   'issue_details.issue_tags_click': Record<string, unknown>;
+  'issue_details.merged_issues.drawer_opened': {
+    group_id: string;
+    project_id: string;
+  };
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -136,6 +141,10 @@ export type IssueEventParameters = {
     parent_group_id?: string;
     project_id?: string;
     shouldBeGrouped?: string;
+  };
+  'issue_details.similar_issues.drawer_opened': {
+    group_id: string;
+    project_id: string;
   };
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
     groupId: string;
@@ -323,6 +332,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue.engaged_view': 'Issue: Engaged View',
+  'issue_details.similar_issues.drawer_opened':
+    'Issue Details: Similar Issues Drawer Opened',
+  'issue_details.merged_issues.drawer_opened':
+    'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
@@ -388,6 +401,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue-details.android-tombstones-cta-dismiss':
+    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

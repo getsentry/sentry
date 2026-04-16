@@ -22,8 +22,8 @@ function partialTransaction(
     'transaction.status': 'loading-status',
     generation: 0,
     project_slug: '',
-    event_id: `event_id`,
-    transaction: `transaction`,
+    event_id: 'event_id',
+    transaction: 'transaction',
     children: [],
     ...partial,
   };

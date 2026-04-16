@@ -27,7 +27,7 @@ function DisabledPerformancePage({
   ...props
 }: Props) {
   const requiredPlan = tct(
-    `You'll need to migrate to a new plan with [strong:Transactions] to access Performance.`,
+    "You'll need to migrate to a new plan with [strong:Transactions] to access Performance.",
     {
       strong: <strong />,
     }

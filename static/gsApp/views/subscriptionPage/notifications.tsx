@@ -74,7 +74,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
     isError,
   } = useApiQuery<ThresholdsType>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/spend-notifications/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/spend-notifications/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

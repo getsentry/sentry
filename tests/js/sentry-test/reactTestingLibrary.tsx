@@ -22,7 +22,7 @@ import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';

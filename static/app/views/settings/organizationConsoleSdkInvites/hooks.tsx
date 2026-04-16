@@ -36,7 +36,7 @@ interface UseRevokeConsoleSdkPlatformInviteParams {
 export function useConsoleSdkInvites(orgSlug: string) {
   return useApiQuery<ConsoleSdkInviteUser[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/console-sdk-invites/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
     ],

@@ -1641,7 +1641,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
         other_org = self.create_organization()
@@ -1665,7 +1665,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
         # Tests the create path (no OrganizationOption row exists yet): sending null
@@ -2234,7 +2234,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
-        invite_url_regex = re.compile(r"http://.*/accept/[0-9]+/[a-f0-9]+/")
+        invite_url_regex = re.compile(r"http://.*/accept/[^/]+/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:

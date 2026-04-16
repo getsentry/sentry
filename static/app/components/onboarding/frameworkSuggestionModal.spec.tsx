@@ -52,7 +52,7 @@ describe('Framework suggestion modal', () => {
 
     expect(screen.getByText(languageDescriptions.javascript!)).toBeInTheDocument();
 
-    expect(screen.getByRole('radio', {name: `Nope, Vanilla`})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Nope, Vanilla'})).toBeChecked();
 
     const frameworks = platforms.filter(
       platform => platform.type === 'framework' && platform.language === 'javascript'

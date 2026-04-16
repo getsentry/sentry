@@ -177,7 +177,7 @@ function menuIsOpen({
   return openState && totalOptions > hiddenOptions.size;
 }
 
-function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
+function useHiddenItems({
   items,
   filterValue,
   maxOptions,
@@ -185,7 +185,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   showAskSeerOption,
 }: {
   filterValue: string;
-  items: T[];
+  items: Array<SelectOptionOrSectionWithKey<string>>;
   showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;

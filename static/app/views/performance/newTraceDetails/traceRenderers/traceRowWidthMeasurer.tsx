@@ -24,10 +24,7 @@ export class TraceRowWidthMeasurer<T> {
     'row measure end': new Set(),
   };
 
-  once<K extends keyof TraceRowWidthMeasurerEvents<T>>(
-    event: K,
-    cb: (max: number) => void
-  ) {
+  once(event: keyof TraceRowWidthMeasurerEvents<T>, cb: (max: number) => void) {
     const listener = (...args: any[]) => {
       cb(...(args as ArgumentTypes<typeof cb>));
       this.off(event, listener);

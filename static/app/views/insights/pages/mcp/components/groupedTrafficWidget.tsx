@@ -153,7 +153,7 @@ export function GroupedTrafficWidget(props: GroupedTrafficWidgetProps) {
               ],
               groupBy: [props.groupBy],
               query: fullQuery,
-              sort: `-count(span.duration)`,
+              sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

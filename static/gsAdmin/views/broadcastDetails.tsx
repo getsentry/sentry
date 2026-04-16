@@ -36,7 +36,7 @@ export function BroadcastDetails() {
 
   const {data, isPending, isError, refetch} = useApiQuery<any>(
     [
-      getApiUrl(`/broadcasts/$broadcastId/`, {
+      getApiUrl('/broadcasts/$broadcastId/', {
         path: {broadcastId},
       }),
     ],
@@ -67,7 +67,7 @@ export function BroadcastDetails() {
       setApiQueryData<Record<string, unknown>>(
         queryClient,
         [
-          getApiUrl(`/broadcasts/$broadcastId/`, {
+          getApiUrl('/broadcasts/$broadcastId/', {
             path: {broadcastId},
           }),
         ],

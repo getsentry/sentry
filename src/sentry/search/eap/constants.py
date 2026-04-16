@@ -20,6 +20,7 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
     SupportedTraceItemType.ATTACHMENTS: TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
     SupportedTraceItemType.PROCESSING_ERRORS: TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+    SupportedTraceItemType.OCCURRENCES: TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
 }
 
 SUPPORTED_STATS_TYPES = {"attributeDistributions"}
@@ -136,6 +137,7 @@ VALID_GRANULARITIES = frozenset(
         2 * 3600,
         3 * 3600,
         4 * 3600,
+        6 * 3600,
         12 * 3600,
         24 * 3600,  # hours
     }

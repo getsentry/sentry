@@ -239,6 +239,132 @@ class TestDerivedCodeMappings(TestCase):
         ]
         assert matches == expected_matches
 
+    def test_generate_code_mappings_same_repo_multiple_java_source_roots(self) -> None:
+        repo_tree = RepoTree(
+            self.foo_repo,
+            files=[
+                "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+            ],
+        )
+        helper = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
+
+        code_mappings = helper.generate_code_mappings(
+            [{"module": "io.sentry.graphql.GraphQLFetcher", "abs_path": "GraphQLFetcher.java"}],
+            platform="java",
+        )
+
+        assert sorted(code_mappings) == sorted(
+            [
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/graphql/",
+                    source_path="sentry-graphql/src/main/java/io/sentry/graphql/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/graphql/",
+                    source_path="sentry-graphql-core/src/main/java/io/sentry/graphql/",
+                ),
+            ]
+        )
+
+    def test_generate_code_mappings_realistic_java_monorepo_layout(self) -> None:
+        repo_tree = RepoTree(
+            self.foo_repo,
+            files=[
+                "sentry-opentelemetry/sentry-opentelemetry-agent/src/main/java/io/sentry/opentelemetry/agent/AgentMain.java",
+                "sentry-opentelemetry/sentry-opentelemetry-agentcustomization/src/main/java/io/sentry/opentelemetry/AgentCustomizer.java",
+                "sentry-opentelemetry/sentry-opentelemetry-agentless/src/main/java/io/sentry/opentelemetry/agent/AgentlessMain.java",
+                "sentry-opentelemetry/sentry-opentelemetry-agentless-spring/src/main/java/io/sentry/opentelemetry/agent/AgentlessSpringMain.java",
+                "sentry-opentelemetry/sentry-opentelemetry-bootstrap/src/main/java/io/sentry/opentelemetry/BootstrapMain.java",
+                "sentry-opentelemetry/sentry-opentelemetry-core/src/main/java/io/sentry/opentelemetry/CoreMain.java",
+                "sentry-opentelemetry/sentry-opentelemetry-otlp/src/main/java/io/sentry/opentelemetry/otlp/OtlpMain.java",
+            ],
+        )
+        helper = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
+
+        code_mappings = helper.generate_code_mappings(
+            [
+                {"module": "io.sentry.opentelemetry.agent.AgentMain", "abs_path": "AgentMain.java"},
+                {
+                    "module": "io.sentry.opentelemetry.AgentCustomizer",
+                    "abs_path": "AgentCustomizer.java",
+                },
+                {
+                    "module": "io.sentry.opentelemetry.agent.AgentlessMain",
+                    "abs_path": "AgentlessMain.java",
+                },
+                {
+                    "module": "io.sentry.opentelemetry.agent.AgentlessSpringMain",
+                    "abs_path": "AgentlessSpringMain.java",
+                },
+                {
+                    "module": "io.sentry.opentelemetry.BootstrapMain",
+                    "abs_path": "BootstrapMain.java",
+                },
+                {"module": "io.sentry.opentelemetry.CoreMain", "abs_path": "CoreMain.java"},
+                {"module": "io.sentry.opentelemetry.otlp.OtlpMain", "abs_path": "OtlpMain.java"},
+            ],
+            platform="java",
+        )
+
+        assert sorted(code_mappings) == sorted(
+            [
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/agent/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-agent/src/main/java/io/sentry/opentelemetry/agent/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-agentcustomization/src/main/java/io/sentry/opentelemetry/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/agent/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-agentless/src/main/java/io/sentry/opentelemetry/agent/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/agent/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-agentless-spring/src/main/java/io/sentry/opentelemetry/agent/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-bootstrap/src/main/java/io/sentry/opentelemetry/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-core/src/main/java/io/sentry/opentelemetry/",
+                ),
+                CodeMapping(
+                    repo=self.foo_repo,
+                    stacktrace_root="io/sentry/opentelemetry/otlp/",
+                    source_path="sentry-opentelemetry/sentry-opentelemetry-otlp/src/main/java/io/sentry/opentelemetry/otlp/",
+                ),
+            ]
+        )
+
+    def test_multiple_matches_with_java_source_markers_do_not_enable_path_based_frames(
+        self,
+    ) -> None:
+        repo_tree = RepoTree(
+            self.foo_repo,
+            files=[
+                "module-a/src/main/java/foo/bar.py",
+                "module-b/src/main/java/foo/bar.py",
+            ],
+        )
+        helper = CodeMappingTreesHelper({self.foo_repo.name: repo_tree})
+
+        code_mappings = helper.generate_code_mappings([{"filename": "foo/bar.py"}])
+
+        assert code_mappings == []
+
     def test_find_roots_starts_with_period_slash(self) -> None:
         stacktrace_root, source_path = find_roots(
             create_frame_info({"filename": "./app/foo.tsx"}), "static/app/foo.tsx"
@@ -339,6 +465,107 @@ class TestDerivedCodeMappings(TestCase):
         )
         assert stacktrace_root == "C:\\Program Files\\MyApp\\"
         assert source_path == "frontend/"
+
+
+class TestFindRootsJavaSourceRootMarkers(TestCase):
+    """Tests for find_roots detecting Gradle-style Java/Kotlin source roots."""
+
+    def test_find_roots_java_source_root(self) -> None:
+        frame = create_frame_info(
+            {"module": "io.sentry.android.core.SentryAndroid", "abs_path": "SentryAndroid.java"},
+            "java",
+        )
+        stack_root, source_root = find_roots(
+            frame,
+            "sentry-android-core/src/main/java/io/sentry/android/core/SentryAndroid.java",
+            [
+                "sentry-android-core/src/main/java/io/sentry/android/core/SentryAndroid.java",
+                "sentry-android-core/src/main/java/io/sentry/android/core/SentryFrameMetrics.java",
+            ],
+        )
+        assert stack_root == "io/sentry/android/core/"
+        assert source_root == "sentry-android-core/src/main/java/io/sentry/android/core/"
+
+    def test_find_roots_java_deep_module(self) -> None:
+        frame = create_frame_info(
+            {
+                "module": "io.sentry.spring.boot.jakarta.SentryAutoConfiguration",
+                "abs_path": "SentryAutoConfiguration.java",
+            },
+            "java",
+        )
+        stack_root, source_root = find_roots(
+            frame,
+            "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryAutoConfiguration.java",
+            [
+                "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryAutoConfiguration.java",
+                "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryWebFilter.java",
+            ],
+        )
+        assert stack_root == "io/sentry/spring/boot/jakarta/"
+        assert (
+            source_root == "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/"
+        )
+
+    def test_find_roots_kotlin_source_root(self) -> None:
+        frame = create_frame_info(
+            {"module": "io.sentry.test.TestHelper", "abs_path": "TestHelper.kt"},
+            "java",
+        )
+        stack_root, source_root = find_roots(
+            frame,
+            "sentry-test-support/src/main/kotlin/io/sentry/test/TestHelper.kt",
+            [
+                "sentry-test-support/src/main/kotlin/io/sentry/TestLogger.kt",
+                "sentry-test-support/src/main/kotlin/io/sentry/test/TestHelper.kt",
+            ],
+        )
+        assert stack_root == "io/sentry/"
+        assert source_root == "sentry-test-support/src/main/kotlin/io/sentry/"
+
+    def test_find_roots_no_marker_falls_back(self) -> None:
+        frame = create_frame_info(
+            {"module": "io.sentry.android.core.SentryAndroid", "abs_path": "SentryAndroid.java"},
+            "java",
+        )
+        stack_root, source_root = find_roots(
+            frame,
+            "src/io/sentry/android/core/SentryAndroid.java",
+        )
+        # Falls back to frame_filename.stack_root which is "io/sentry/android/core/"
+        assert stack_root == "io/sentry/android/core/"
+        assert source_root == "src/io/sentry/android/core/"
+
+    def test_find_roots_non_java_source_root_marker_uses_generic_fallback(self) -> None:
+        frame = create_frame_info({"filename": "foo/bar.py"})
+        stack_root, source_root = find_roots(
+            frame,
+            "pkg/src/main/java/foo/bar.py",
+            ["pkg/src/main/java/foo/bar.py"],
+        )
+        assert stack_root == "foo/"
+        assert source_root == "pkg/src/main/java/foo/"
+
+    def test_find_roots_java_generates_correct_code_mapping(self) -> None:
+        frame = create_frame_info(
+            {
+                "module": "io.sentry.spring.boot.jakarta.SentryAutoConfiguration",
+                "abs_path": "SentryAutoConfiguration.java",
+            },
+            "java",
+        )
+        stack_root, source_root = find_roots(
+            frame,
+            "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryAutoConfiguration.java",
+            [
+                "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryAutoConfiguration.java",
+                "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryWebFilter.java",
+            ],
+        )
+        assert (
+            frame.raw_path.replace(stack_root, source_root, 1)
+            == "sentry-spring-boot-jakarta/src/main/java/io/sentry/spring/boot/jakarta/SentryAutoConfiguration.java"
+        )
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):

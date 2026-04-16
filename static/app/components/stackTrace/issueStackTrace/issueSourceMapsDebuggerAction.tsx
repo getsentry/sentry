@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
   prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebuggerData,
+  useSourceMapDebugQuery,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS} from 'sentry/components/stackTrace/frame/actions/utils';
@@ -24,7 +24,11 @@ export function IssueSourceMapsDebuggerAction() {
   const {exceptionIndex, hideSourceMapDebugger, project} = useStackTraceContext();
   const organization = useOrganization({allowNull: true});
 
-  const sourceMapDebuggerData = useSourceMapDebuggerData(event, project?.slug ?? '');
+  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
+    project?.slug ?? '',
+    event.id,
+    event.sdk?.name ?? null
+  );
   const debuggerFrame =
     exceptionIndex === undefined
       ? undefined

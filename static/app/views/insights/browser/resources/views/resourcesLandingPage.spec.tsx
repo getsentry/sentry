@@ -37,7 +37,7 @@ describe('ResourcesLandingPage', () => {
       pathname: `/organizations/${organization.slug}/insights/frontend/assets/`,
       query: {statsPeriod: '10d'},
     },
-    route: `/organizations/:orgId/insights/frontend/assets/`,
+    route: '/organizations/:orgId/insights/frontend/assets/',
   };
 
   beforeEach(() => {
@@ -266,7 +266,7 @@ const setupMockRequests = (organization: Organization) => {
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     method: 'GET',
     match: [
       MockApiClient.matchQuery({

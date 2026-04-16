@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from io import BytesIO
 from typing import Any
 
@@ -53,6 +54,7 @@ def compare_preprod_artifact_size_analysis(
     project_id: int,
     org_id: int,
     artifact_id: int,
+    triggered_at: str,
     **kwargs: Any,
 ) -> None:
     logger.info(
@@ -266,7 +268,9 @@ def compare_preprod_artifact_size_analysis(
             except (ValueError, AttributeError, TypeError):
                 artifact_type_name = "unknown"
 
-            e2e_size_analysis_compare_duration = timezone.now() - artifact.date_added
+            e2e_size_analysis_compare_duration = timezone.now() - datetime.fromisoformat(
+                triggered_at
+            )
             metrics.distribution(
                 "preprod.size_analysis.compare.results_e2e",
                 e2e_size_analysis_compare_duration.total_seconds(),

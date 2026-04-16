@@ -7,7 +7,7 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
@@ -54,7 +54,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -242,10 +242,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     @track_slo_response("workflow")
     def get(self, request: Request, organization: Organization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
-        try:
-            start, end = get_date_range_from_stats_period(request.GET)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_stats_period(request.GET)
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])

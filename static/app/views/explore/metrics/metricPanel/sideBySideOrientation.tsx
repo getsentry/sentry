@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -9,10 +9,7 @@ import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMe
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
-import {
-  SAMPLES_PANEL_MIN_WIDTH,
-  WIDTH_WITH_TELEMETRY_ICONS_VISIBLE,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
+import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -33,6 +30,7 @@ export function SideBySideOrientation({
   infoContentHidden,
   setInfoContentHidden,
   isMetricOptionsEmpty,
+  title,
 }: {
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
@@ -41,18 +39,39 @@ export function SideBySideOrientation({
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  title?: string;
 }) {
   const organization = useOrganization();
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
+  if (hasMetricsUIRefresh) {
+    return (
+      <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
+        <Container minWidth="0">
+          <MetricsGraph
+            timeseriesResult={timeseriesResult}
+            orientation={orientation}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
+          />
+        </Container>
+        <Container minWidth="0">
+          <MetricInfoTabs
+            traceMetric={traceMetric}
+            orientation={orientation}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
+          />
+        </Container>
+      </Grid>
+    );
+  }
+
   const hasSize = width > 0;
   // Default split is 65% of the available width but not less than MIN_LEFT_WIDTH
-  // while also accommodating the desired right panel width to show all of the telemetry icons.
-  const rightPanelDesiredWidth = hasMetricsUIRefresh
-    ? SAMPLES_PANEL_MIN_WIDTH
-    : WIDTH_WITH_TELEMETRY_ICONS_VISIBLE;
+  // while also accommodating the desired right panel width.
+  const rightPanelDesiredWidth = SAMPLES_PANEL_MIN_WIDTH;
   const defaultSplit = Math.min(
     Math.max(width * 0.65, MIN_LEFT_WIDTH),
     width - (rightPanelDesiredWidth + PADDING_SIZE + DIVIDER_WIDTH)
@@ -82,6 +101,7 @@ export function SideBySideOrientation({
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
+          title={title}
         />
       </div>
     );
@@ -98,6 +118,7 @@ export function SideBySideOrientation({
                 timeseriesResult={timeseriesResult}
                 orientation={orientation}
                 isMetricOptionsEmpty={isMetricOptionsEmpty}
+                title={title}
               />
             ),
             default: defaultSplit,

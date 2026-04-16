@@ -405,6 +405,7 @@ export default typescript.config([
       'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
+      quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
       radix: 'error',
       'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
@@ -458,8 +459,10 @@ export default typescript.config([
     rules: {
       '@sentry/no-digits-in-tn': 'error',
       '@sentry/no-dynamic-translations': 'error',
+      '@sentry/no-flag-comments': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-styled-shortcut': 'error',
+      '@sentry/no-unnecessary-use-callback': 'error',
     },
   },
   {
@@ -608,6 +611,7 @@ export default typescript.config([
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-template-expression': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+          '@typescript-eslint/no-unnecessary-type-parameters': 'error',
           '@typescript-eslint/switch-exhaustiveness-check': [
             'error',
             {considerDefaultExhaustiveForUnions: true},
@@ -754,7 +758,7 @@ export default typescript.config([
     plugins: {'@emotion': emotion},
     rules: {
       '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
-      '@emotion/jsx-import': 'off', // Not needed, handled by babel
+      '@emotion/jsx-import': 'off', // Not needed, handled by swc
       '@emotion/no-vanilla': 'error',
       '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',

@@ -14,6 +14,7 @@ import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actio
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {
   StackTraceViewStateProvider,
   useStackTraceContext,
@@ -343,7 +344,7 @@ function makeLongPathAndFunctionStackTraceData(): StackTraceStoryData {
         ...frame,
         function:
           `very_long_function_name_for_exception_debugging_pipeline_stage_${index}` +
-          `__with_additional_context_and_nested_handler_resolution_chain`,
+          '__with_additional_context_and_nested_handler_resolution_chain',
         inApp: true,
       })),
     } as StacktraceWithFrames,
@@ -628,7 +629,7 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
       context: [
         [lineNo - 2, `def ${func}():`],
         [lineNo - 1, '    try:'],
-        [lineNo, `        raise ExceptionGroup("group", errors)`],
+        [lineNo, '        raise ExceptionGroup("group", errors)'],
         [lineNo + 1, '    except Exception:'],
         [lineNo + 2, '        pass'],
       ],
@@ -1001,6 +1002,41 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
+  story('StackTraceProvider - No Filename', () => {
+    const event = makeEvent({platform: 'javascript', projectID: '1'});
+    const stacktrace: StacktraceWithFrames = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: {},
+      frames: [
+        makeFrame({
+          filename: null,
+          module: null,
+          absPath: null,
+          function: 'eval',
+          lineNo: 5,
+          colNo: 20,
+          inApp: true,
+        }),
+      ],
+    };
+
+    return (
+      <Fragment>
+        <p>
+          Frames with no filename or module (e.g. browser <code>eval</code>) show a muted{' '}
+          <code>{'<unknown>'}</code> in the path slot.
+        </p>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
+        </StoryStackTraceProvider>
+      </Fragment>
+    );
+  });
+
   story('StackTraceProvider - Raw Function and Package', () => {
     const {event, stacktrace} = makeRawFunctionAndPackageStackTraceData();
 
@@ -1243,14 +1279,7 @@ export default Storybook.story('StackTrace', story => {
     return (
       <Flex align="center" justify="center">
         <WideHovercard
-          body={
-            <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames
-                frameContextComponent={FrameContent}
-                frameActionsComponent={StoryFrameActions}
-              />
-            </StoryStackTraceProvider>
-          }
+          body={<IssueStackTracePreview event={event} stacktrace={stacktrace} />}
         >
           Hovercard Trigger
         </WideHovercard>

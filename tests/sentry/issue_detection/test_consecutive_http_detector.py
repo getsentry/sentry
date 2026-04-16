@@ -399,7 +399,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         assert len(problems) == 0
 
     def test_ignores_http_spans_with_gen_ai_parent(self) -> None:
-        """Test that HTTP spans with gen_ai.chat parent spans are ignored."""
+        """Test that HTTP spans with gen_ai.* parent spans are ignored."""
         span_duration = 2000
 
         # Create a gen_ai.chat span first

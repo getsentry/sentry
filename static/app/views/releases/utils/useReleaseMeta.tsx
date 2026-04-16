@@ -7,7 +7,7 @@ export function useReleaseMeta({release}: {release: string}) {
   const organization = useOrganization();
   return useApiQuery<ReleaseMeta>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/releases/$version/meta/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/meta/', {
         path: {organizationIdOrSlug: organization.slug, version: release},
       }),
       {

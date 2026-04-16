@@ -149,7 +149,7 @@ describe('GroupMetaRow', () => {
 
     expect(screen.getByRole('link', {name: '14'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/groupId/activity/?filter=comments`
+      '/organizations/org-slug/issues/groupId/activity/?filter=comments'
     );
   });
 });

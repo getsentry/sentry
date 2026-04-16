@@ -20,6 +20,7 @@ import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -31,7 +32,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
-import {useAddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
@@ -326,7 +326,7 @@ export default function IntegrationOrganizationLink() {
     const target_url = `https://github.com/${installationData?.account.login}`;
 
     const alertText = tct(
-      `GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.`,
+      'GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.',
       {
         account_type: <strong>{installationData?.account.type}</strong>,
         account_login: (
@@ -421,7 +421,7 @@ function AddIntegrationButton({
   provider: IntegrationProvider;
   installationId?: string;
 }) {
-  const {startFlow} = useAddIntegration({provider, organization, onInstall});
+  const {startFlow} = useAddIntegration();
 
   return (
     <ButtonWrapper>
@@ -430,7 +430,12 @@ function AddIntegrationButton({
         disabled={!hasAccess || disabled}
         onClick={() =>
           installationId
-            ? startFlow({installation_id: installationId})
+            ? startFlow({
+                provider,
+                organization,
+                onInstall,
+                urlParams: {installation_id: installationId},
+              })
             : finishInstallation()
         }
       >

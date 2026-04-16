@@ -4,6 +4,7 @@ from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
 
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.discover.arithmetic import is_equation
 from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.utils.dates import parse_stats_period, validate_interval
 
@@ -222,9 +223,17 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
                     raise serializers.ValidationError(
                         "Metric field is only allowed for metrics dataset"
                     )
-                if data["dataset"] == "metrics" and "metric" not in q:
+
+                # the metrics field is only required for non-equation queries
+                y_axes = [
+                    y_axis
+                    for aggregate_field in q.get("aggregateField") or []
+                    for y_axis in aggregate_field.get("yAxes") or []
+                ]
+                is_equations = len(y_axes) > 0 and all(is_equation(y_axis) for y_axis in y_axes)
+                if data["dataset"] == "metrics" and not is_equations and "metric" not in q:
                     raise serializers.ValidationError(
-                        "Metric field is required for metrics dataset"
+                        "Metric field is required for non-equation queries on the metrics dataset"
                     )
                 inner_query = {}
                 for key in inner_query_keys:

@@ -107,7 +107,6 @@ def update_alert_rule(
             status=status.HTTP_400_BAD_REQUEST,
         )
     data = request.data
-    current_owner = alert_rule.owner
     validator = DrfAlertRuleSerializer(
         context={
             "organization": organization,
@@ -117,7 +116,6 @@ def update_alert_rule(
             "installations": app_service.installations_for_organization(
                 organization_id=organization.id
             ),
-            "current_owner": current_owner,
         },
         instance=alert_rule,
         data=data,
@@ -155,7 +153,7 @@ def remove_alert_rule(
         try:
             remove_detector(request, organization, target)
             try:
-                ard = AlertRuleDetector.objects.get(detector_id=target.id)
+                ard = AlertRuleDetector.objects_for_deletion.get(detector_id=target.id)
                 target = AlertRule.objects.get(id=ard.alert_rule_id, organization=organization)
                 delete_alert_rule(
                     target,

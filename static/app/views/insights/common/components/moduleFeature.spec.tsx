@@ -24,7 +24,7 @@ describe('ModulePageProviders', () => {
       }
     );
 
-    await screen.findByText(`You don't have access to this feature`);
+    await screen.findByText("You don't have access to this feature");
   });
 
   it('renders module content if module is enabled', async () => {
@@ -39,6 +39,6 @@ describe('ModulePageProviders', () => {
       }
     );
 
-    await screen.findByText(`Module Content`);
+    await screen.findByText('Module Content');
   });
 });

@@ -48,19 +48,19 @@ function setUpTests() {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/projects/`,
+    url: '/organizations/org-slug/projects/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/teams/`,
+    url: '/organizations/org-slug/teams/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/customers/org-slug/`,
+    url: '/customers/org-slug/',
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/`,
+    url: '/organizations/org-slug/',
     body: {},
   });
 
@@ -1197,7 +1197,7 @@ describe('GSBanner', () => {
       screen.getByRole('button', {name: /update payment information/i})
     ).toHaveAttribute(
       'href',
-      `/settings/past-due/billing/details/?referrer=banner-billing-failure`
+      '/settings/past-due/billing/details/?referrer=banner-billing-failure'
     );
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
 
@@ -1211,7 +1211,7 @@ describe('GSBanner', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: `/settings/past-due/billing/details/`,
+          pathname: '/settings/past-due/billing/details/',
           query: {
             referrer: 'banner-billing-failure',
           },

@@ -117,7 +117,7 @@ export function DurationChart({
         size="sm"
         position="top"
         title={t(
-          `Duration Breakdown reflects transaction durations by percentile over time.`
+          'Duration Breakdown reflects transaction durations by percentile over time.'
         )}
       />
     </HeaderTitleLegend>

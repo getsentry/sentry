@@ -36,6 +36,10 @@ describe('DetectorsList', () => {
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
@@ -273,6 +277,10 @@ describe('DetectorsList', () => {
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
+      });
       // Set up multiple detectors with different states
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
@@ -497,7 +505,7 @@ describe('DetectorsList', () => {
 
         const testUser = UserFixture({id: '2', email: 'test@example.com'});
         // Mock the filtered search results - this will be used when search is applied
-        const filteredDetectors = Array.from({length: 20}, (_, i) =>
+        const filteredDetectors = Array.from({length: 3}, (_, i) =>
           MetricDetectorFixture({
             id: `filtered-${i}`,
             name: `Assigned Detector ${i + 1}`,
@@ -509,7 +517,7 @@ describe('DetectorsList', () => {
           url: '/organizations/org-slug/detectors/',
           body: filteredDetectors,
           headers: {
-            'X-Hits': '50',
+            'X-Hits': '10',
           },
           match: [
             MockApiClient.matchQuery({
@@ -540,9 +548,9 @@ describe('DetectorsList', () => {
         await userEvent.click(masterCheckbox);
 
         // Should show alert with option to select all query results
-        expect(screen.getByText(/20 monitors on this page selected/)).toBeInTheDocument();
+        expect(screen.getByText(/3 monitors on this page selected/)).toBeInTheDocument();
         const selectAllForQuery = screen.getByRole('button', {
-          name: /Select all 50 monitors that match this search query/,
+          name: /Select all 10 monitors that match this search query/,
         });
         await userEvent.click(selectAllForQuery);
 

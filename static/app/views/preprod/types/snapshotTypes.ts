@@ -36,6 +36,7 @@ export interface SnapshotApprover {
 export interface SnapshotApprovalInfo {
   approvers: SnapshotApprover[];
   status: 'approved' | 'requires_approval';
+  is_auto_approved?: boolean;
 }
 
 export interface SnapshotDetailsApiResponse {
@@ -50,6 +51,8 @@ export interface SnapshotDetailsApiResponse {
   comparison_run_info?: SnapshotComparisonRunInfo | null;
 
   approval_info?: SnapshotApprovalInfo | null;
+
+  diff_threshold?: number | null;
 
   // Diff fields
   added: SnapshotImage[];

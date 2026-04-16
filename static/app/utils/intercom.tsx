@@ -24,6 +24,7 @@ interface IntercomJwtResponse {
 
 let hasBooted = false;
 let bootPromise: Promise<void> | null = null;
+let bootedOrgSlug: string | null = null;
 
 /**
  * Initialize Intercom with identity verification.
@@ -69,6 +70,7 @@ async function initIntercom(orgSlug: string): Promise<void> {
       });
 
       hasBooted = true;
+      bootedOrgSlug = orgSlug;
     } catch (error) {
       // Reset so user can retry on next click
       bootPromise = null;
@@ -80,10 +82,33 @@ async function initIntercom(orgSlug: string): Promise<void> {
 }
 
 /**
+ * Shutdown Intercom and clear session data.
+ * Call this when user logs out or switches organizations.
+ */
+export async function shutdownIntercom(): Promise<void> {
+  if (!hasBooted) {
+    return;
+  }
+
+  const {shutdown} = await import('@intercom/messenger-js-sdk');
+  shutdown();
+
+  hasBooted = false;
+  bootPromise = null;
+  bootedOrgSlug = null;
+}
+
+/**
  * Show the Intercom Messenger.
  * Lazily initializes Intercom on first call.
+ * If already booted for a different org, shuts down first and re-initializes.
  */
 export async function showIntercom(orgSlug: string): Promise<void> {
+  // If booted for a different org, shutdown first to re-initialize with new org context
+  if (hasBooted && bootedOrgSlug !== orgSlug) {
+    await shutdownIntercom();
+  }
+
   await initIntercom(orgSlug);
   const {show} = await import('@intercom/messenger-js-sdk');
   show();

@@ -92,7 +92,7 @@ export function TransactionsTable(props: Props) {
                       size="xs"
                       position="top"
                       title={t(
-                        `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
+                        'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
                       )}
                     />
                   </Fragment>

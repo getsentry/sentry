@@ -1,22 +1,24 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {parseCursor} from 'sentry/utils/cursor';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 const DEFAULT_DETECTORS_PER_PAGE = 10;
 
@@ -80,46 +82,35 @@ export function ConnectedMonitorsList({
   projectIds,
   ...props
 }: Props) {
+  const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
 
-  const {
-    data: detectors,
-    isLoading,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useDetectorsQuery(
-    {
+  const {data, isLoading, isError, isSuccess} = useQuery({
+    ...detectorListApiOptions(organization, {
       ids: detectorIds ?? undefined,
       limit: limit ?? undefined,
       cursor,
       query,
       includeIssueStreamDetectors: true,
       projects: projectIds,
-    },
-    {enabled: detectorIds === null || detectorIds.length > 0}
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled: detectorIds === null || detectorIds.length > 0,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const detectors = data?.json;
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
-  const paginationCaption = useMemo(() => {
-    if (isLoading || !detectors || detectors?.length === 0 || limit === null) {
-      return undefined;
-    }
-
-    const currentCursor = parseCursor(cursor);
-    const offset = currentCursor?.offset ?? 0;
-    const startCount = offset * limit + 1;
-    const endCount = startCount + detectors.length - 1;
-
-    return tct('[start]-[end] of [total]', {
-      start: startCount.toLocaleString(),
-      end: endCount.toLocaleString(),
-      total: totalCountInt.toLocaleString(),
-    });
-  }, [detectors, isLoading, cursor, limit, totalCountInt]);
+  const paginationCaption =
+    isLoading || !detectors || limit === null
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit,
+          pageLength: detectors.length,
+          total: totalCountInt,
+        });
 
   return (
     <Container {...props}>
@@ -148,13 +139,13 @@ export function ConnectedMonitorsList({
           />
         )}
         {isError && <LoadingError />}
-        {((isSuccess && detectors.length === 0) ||
+        {((isSuccess && detectors?.length === 0) ||
           (detectorIds !== null && detectorIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
           (detectorIds === null || detectorIds.length > 0) &&
-          detectors.map(detector => (
+          detectors?.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>
                 <DetectorLink detector={detector} openInNewTab={openInNewTab} />
@@ -184,7 +175,7 @@ export function ConnectedMonitorsList({
         <Pagination
           onCursor={onCursor}
           pageLinks={pageLinks}
-          caption={totalCountInt > limit ? paginationCaption : null}
+          caption={paginationCaption}
         />
       )}
     </Container>

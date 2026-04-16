@@ -61,8 +61,8 @@ export function AutomationsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to enable this %s alert?`,
-      `Are you sure you want to enable these %s alerts?`,
+      'Are you sure you want to enable this %s alert?',
+      'Are you sure you want to enable these %s alerts?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -77,39 +77,27 @@ export function AutomationsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to disable this %s alert?`,
-      `Are you sure you want to disable these %s alerts?`,
+      'Are you sure you want to disable this %s alert?',
+      'Are you sure you want to disable these %s alerts?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleUpdate = useCallback(
-    ({enabled}: {enabled: boolean}) => {
-      openConfirmModal({
-        message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
-        confirmText: enabled ? t('Enable') : t('Disable'),
-        priority: 'danger',
-        onConfirm: async () => {
-          if (allInQuerySelected) {
-            await updateAutomations({enabled, query, projects: selection.projects});
-          } else {
-            await updateAutomations({enabled, ids: Array.from(selected)});
-          }
-          togglePageSelected(false);
-        },
-      });
-    },
-    [
-      selected,
-      allInQuerySelected,
-      updateAutomations,
-      getEnableConfirmMessage,
-      getDisableConfirmMessage,
-      togglePageSelected,
-      selection.projects,
-      query,
-    ]
-  );
+  const handleUpdate = ({enabled}: {enabled: boolean}) => {
+    openConfirmModal({
+      message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
+      confirmText: enabled ? t('Enable') : t('Disable'),
+      priority: 'danger',
+      onConfirm: async () => {
+        if (allInQuerySelected) {
+          await updateAutomations({enabled, query, projects: selection.projects});
+        } else {
+          await updateAutomations({enabled, ids: Array.from(selected)});
+        }
+        togglePageSelected(false);
+      },
+    });
+  };
 
   const getDeleteConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
@@ -121,13 +109,13 @@ export function AutomationsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to delete this %s automation?`,
-      `Are you sure you want to delete these %s automations?`,
+      'Are you sure you want to delete this %s automation?',
+      'Are you sure you want to delete these %s automations?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     openConfirmModal({
       message: getDeleteConfirmMessage(),
       confirmText: t('Delete'),
@@ -141,15 +129,7 @@ export function AutomationsTableActions({
         togglePageSelected(false);
       },
     });
-  }, [
-    selected,
-    allInQuerySelected,
-    deleteAutomations,
-    getDeleteConfirmMessage,
-    togglePageSelected,
-    selection.projects,
-    query,
-  ]);
+  };
 
   return (
     <Fragment>

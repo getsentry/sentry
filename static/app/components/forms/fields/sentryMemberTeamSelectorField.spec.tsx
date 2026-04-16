@@ -25,15 +25,15 @@ describe('SentryMemberTeamSelectorField', () => {
     OrganizationStore.onUpdate(org, {replace: true});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/user-teams/`,
+      url: '/organizations/org-slug/user-teams/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       body: [],
     });
   });

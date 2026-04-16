@@ -79,35 +79,35 @@ export function getDemoModeGuides(): GuidesContent {
           title: t('Projects'),
           target: 'projects',
           description: t(
-            `Create a project for any type of application you want to monitor.`
+            'Create a project for any type of application you want to monitor.'
           ),
         },
         {
           title: t('Issues'),
           target: 'issues',
           description: t(
-            `Here's a list of what's broken and slow. Sentry automatically groups similar events together into an issue.`
+            "Here's a list of what's broken and slow. Sentry automatically groups similar events together into an issue."
           ),
         },
         {
           title: t('Performance'),
           target: 'performance',
           description: t(
-            `Keep a pulse on crash rates, throughput, and latency issues across projects.`
+            'Keep a pulse on crash rates, throughput, and latency issues across projects.'
           ),
         },
         {
           title: t('Releases'),
           target: 'releases',
           description: t(
-            `Track the health of every release, see differences between releases from crash analytics to adoption rates.`
+            'Track the health of every release, see differences between releases from crash analytics to adoption rates.'
           ),
         },
         {
           title: t('Discover'),
           target: 'discover',
           description: t(
-            `Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.`
+            'Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.'
           ),
           nextText: t('Got it'),
         },

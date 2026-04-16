@@ -267,7 +267,7 @@ function ThumbsUpDownButton({
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       tooltipProps={{
-        title: type === 'positive' ? t('I like this') : t(`I don't like this`),
+        title: type === 'positive' ? t('I like this') : t("I don't like this"),
       }}
       size="xs"
       disabled={disabled}

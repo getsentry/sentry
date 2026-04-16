@@ -141,7 +141,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'url',
-          code: `https://github.com/getsentry/sentry-cocoa.git`,
+          code: 'https://github.com/getsentry/sentry-cocoa.git',
         },
         {
           type: 'text',

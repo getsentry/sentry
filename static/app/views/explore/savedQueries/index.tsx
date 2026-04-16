@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useNavigate} from 'react-router-dom';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -14,11 +15,14 @@ import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
   const hasLogsFeature = isLogsEnabled(organization);
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const items = [
     {
@@ -46,42 +50,83 @@ export default function SavedQueriesView() {
           <Layout.HeaderContent>
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <FeedbackButton />
-              {hasLogsFeature ? (
-                <DropdownMenu
-                  items={items}
-                  trigger={triggerProps => (
-                    <Button
-                      {...triggerProps}
-                      priority="primary"
-                      icon={<IconAdd />}
-                      size="sm"
-                      aria-label={t('Save as')}
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="actions">
+                {hasLogsFeature ? (
+                  <DropdownMenu
+                    items={items}
+                    trigger={triggerProps => (
+                      <Button
+                        {...triggerProps}
+                        priority="primary"
+                        icon={<IconAdd />}
+                        size="sm"
+                        aria-label={t('Save as')}
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
 
-                        triggerProps.onClick?.(e);
-                      }}
-                    >
-                      {t('Create Query')}
-                    </Button>
-                  )}
-                />
-              ) : (
-                <LinkButton
-                  priority="primary"
-                  icon={<IconAdd />}
-                  size="sm"
-                  to={getExploreUrl({organization, visualize: []})}
-                >
-                  {t('Create Query')}
-                </LinkButton>
-              )}
-            </Grid>
-          </Layout.HeaderActions>
+                          triggerProps.onClick?.(e);
+                        }}
+                      >
+                        {t('Create Query')}
+                      </Button>
+                    )}
+                  />
+                ) : (
+                  <LinkButton
+                    priority="primary"
+                    icon={<IconAdd />}
+                    size="sm"
+                    to={getExploreUrl({organization, visualize: []})}
+                  >
+                    {t('Create Query')}
+                  </LinkButton>
+                )}
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton>{null}</FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <FeedbackButton />
+                {hasLogsFeature ? (
+                  <DropdownMenu
+                    items={items}
+                    trigger={triggerProps => (
+                      <Button
+                        {...triggerProps}
+                        priority="primary"
+                        icon={<IconAdd />}
+                        size="sm"
+                        aria-label={t('Save as')}
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
+
+                          triggerProps.onClick?.(e);
+                        }}
+                      >
+                        {t('Create Query')}
+                      </Button>
+                    )}
+                  />
+                ) : (
+                  <LinkButton
+                    priority="primary"
+                    icon={<IconAdd />}
+                    size="sm"
+                    to={getExploreUrl({organization, visualize: []})}
+                  >
+                    {t('Create Query')}
+                  </LinkButton>
+                )}
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
         <Layout.Body>
           <Layout.Main width="full">

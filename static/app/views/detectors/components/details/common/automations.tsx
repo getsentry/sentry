@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -10,7 +11,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
-import {Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
@@ -20,16 +21,16 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {parseCursor} from 'sentry/utils/cursor';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
+import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
@@ -97,43 +98,32 @@ function DetectorAutomationsTable({
   const priorityDetector =
     triggeredBySort === 'desc' ? detectorId : (issueStreamDetectorId ?? detectorId);
 
-  const {
-    data: automations,
-    isPending,
-    isError,
-    isSuccess,
-    getResponseHeader,
-  } = useAutomationsQuery(
-    {
+  const org = useOrganization();
+  const {data, isPending, isError, isSuccess} = useQuery({
+    ...automationsApiOptions(org, {
       detector: detectorIds.filter(defined),
       limit: AUTOMATIONS_PER_PAGE,
       cursor,
       query: searchQuery || undefined,
       priorityDetector,
-    },
-    {enabled: !issueStreamDetectorsPending}
-  );
+    }),
+    select: selectJsonWithHeaders,
+    enabled: !issueStreamDetectorsPending,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
-  const totalCount = getResponseHeader?.('X-Hits');
-  const totalCountInt = totalCount ? parseInt(totalCount, 10) : 0;
+  const automations = data?.json;
+  const pageLinks = data?.headers.Link;
+  const totalCountInt = data?.headers['X-Hits'] ?? 0;
 
-  const paginationCaption = useMemo(() => {
-    if (!automations || automations.length === 0 || isPending) {
-      return undefined;
-    }
-
-    const currentCursor = parseCursor(cursor);
-    const offset = currentCursor?.offset ?? 0;
-    const startCount = offset * AUTOMATIONS_PER_PAGE + 1;
-    const endCount = startCount + automations.length - 1;
-
-    return tct('[start]-[end] of [total]', {
-      start: startCount.toLocaleString(),
-      end: endCount.toLocaleString(),
-      total: totalCountInt.toLocaleString(),
-    });
-  }, [automations, isPending, cursor, totalCountInt]);
+  const paginationCaption =
+    isPending || !automations
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit: AUTOMATIONS_PER_PAGE,
+          pageLength: automations.length,
+          total: totalCountInt,
+        });
 
   return (
     <Container>
@@ -161,11 +151,11 @@ function DetectorAutomationsTable({
           </SimpleTable.Header>
           {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
           {isError && <LoadingError />}
-          {isSuccess && automations.length === 0 && (
+          {isSuccess && automations?.length === 0 && (
             <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
           )}
           {isSuccess &&
-            automations.map(automation => (
+            automations?.map(automation => (
               <SimpleTable.Row
                 key={automation.id}
                 variant={automation.enabled ? 'default' : 'faded'}
@@ -211,7 +201,7 @@ function DetectorAutomationsTable({
       <Pagination
         onCursor={setCursor}
         pageLinks={pageLinks}
-        caption={totalCountInt > AUTOMATIONS_PER_PAGE ? paginationCaption : null}
+        caption={paginationCaption}
       />
     </Container>
   );
@@ -222,6 +212,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
   const queryClient = useQueryClient();
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {mutate: updateDetector} = useUpdateDetector();
+  const project = useProjectFromId({project_id: detector.projectId});
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
     projectId: detector.projectId,
   });
@@ -239,17 +230,13 @@ export function DetectorDetailsAutomations({detector}: Props) {
             addSuccessMessage(t('Connected alerts updated'));
             // Invalidate the Connected Alerts table query
             queryClient.invalidateQueries({
-              queryKey: [
-                getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-                  path: {organizationIdOrSlug: organization.slug},
-                }),
-              ],
+              queryKey: automationsApiOptions(organization).queryKey,
             });
           },
         }
       );
     },
-    [detector.id, updateDetector, queryClient, organization.slug]
+    [detector.id, updateDetector, queryClient, organization]
   );
 
   const toggleDrawer = () => {
@@ -304,8 +291,8 @@ export function DetectorDetailsAutomations({detector}: Props) {
           detectorId={detector.id}
           projectId={detector.projectId}
           emptyMessage={
-            <Stack gap="xl" align="center">
-              <Stack gap="sm" align="center">
+            project ? (
+              <ConnectedAlertsEmptyState project={project}>
                 <Button
                   size="sm"
                   onClick={toggleDrawer}
@@ -326,8 +313,10 @@ export function DetectorDetailsAutomations({detector}: Props) {
                 >
                   {t('Create a New Alert')}
                 </LinkButton>
-              </Stack>
-            </Stack>
+              </ConnectedAlertsEmptyState>
+            ) : (
+              t('No alerts connected')
+            )
           }
         />
       </ErrorBoundary>

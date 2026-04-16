@@ -10,6 +10,7 @@ import {
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
+  type SampleTableColumnKey,
   type TraceMetricFieldKey,
 } from 'sentry/views/explore/metrics/types';
 
@@ -72,37 +73,44 @@ export const TRACEMETRICS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   TRACEMETRICS_FILTERS,
 ];
 
-export const TraceSamplesTableStatColumns: VirtualTableSampleColumnKey[] = [
-  VirtualTableSampleColumnKey.LOGS,
-  VirtualTableSampleColumnKey.SPANS,
-  VirtualTableSampleColumnKey.ERRORS,
-];
-
 export const TraceSamplesTableColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
-  TraceMetricKnownFieldKey.TIMESTAMP,
   TraceMetricKnownFieldKey.TRACE,
-  ...TraceSamplesTableStatColumns,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
 export const TraceSamplesTableEmbeddedColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
-  TraceMetricKnownFieldKey.TIMESTAMP,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
-export const NoPaddingColumns: VirtualTableSampleColumnKey[] = [
-  VirtualTableSampleColumnKey.EXPAND_ROW,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
-];
+const VIRTUAL_SAMPLE_COLUMNS = new Set<string>(
+  Object.values(VirtualTableSampleColumnKey)
+);
+
+function isVirtualSampleColumn(
+  column: SampleTableColumnKey
+): column is VirtualTableSampleColumnKey {
+  return VIRTUAL_SAMPLE_COLUMNS.has(column);
+}
+
+export function getTraceSamplesTableFields(
+  columns: SampleTableColumnKey[]
+): TraceMetricFieldKey[] {
+  return columns.filter(
+    (column): column is TraceMetricFieldKey => !isVirtualSampleColumn(column)
+  );
+}
 
 export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
   counter: [

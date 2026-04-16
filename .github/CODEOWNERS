@@ -172,7 +172,6 @@ pyproject.toml                                           @getsentry/owners-pytho
 vercel.json                                              @getsentry/owners-js-build
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
-babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
@@ -276,6 +275,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
 src/sentry/api/endpoints/organization_attribute_mappings.py                 @getsentry/data-browsing
 
+/src/sentry/integrations/slack/unfurl/explore.py                           @getsentry/data-browsing
+
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
@@ -354,6 +355,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
 /static/app/components/charts/                                            @getsentry/data-browsing
+/static/app/chartcuterie/timeseries.tsx                                   @getsentry/data-browsing
 
 /static/app/views/insights/                                               @getsentry/dashboards
 
@@ -439,6 +441,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/loading/                @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
+/static/app/components/featureShowcase.mdx     @getsentry/app-frontend
+/static/app/components/featureShowcase.spec.tsx @getsentry/app-frontend
+/static/app/components/featureShowcase.tsx     @getsentry/app-frontend
 /static/app/components/markdownTextArea.tsx    @getsentry/app-frontend
 /static/app/locale.tsx                         @getsentry/app-frontend
 ## End of Frontend
@@ -692,7 +697,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
 /static/app/components/stackTrace/                          @getsentry/issue-workflow
-/static/app/components/stream/supergroupRow.tsx             @getsentry/issue-detection-frontend
+/static/app/components/stream/supergroups/                  @getsentry/issue-detection-frontend
 /static/app/views/issueList/                                @getsentry/issue-workflow
 /static/app/views/issueList/issueListSeerComboBox.tsx       @getsentry/issue-workflow @getsentry/machine-learning-ai
 /static/app/views/issueList/pages/supergroups.tsx           @getsentry/issue-detection-frontend
@@ -832,6 +837,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/core/                          @getsentry/design-engineering
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/components/pageFilters/                   @getsentry/design-engineering
+/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering

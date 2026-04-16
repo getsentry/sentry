@@ -44,7 +44,7 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sdks/`,
+    url: '/organizations/org-slug/sdks/',
     body: {},
   });
 }

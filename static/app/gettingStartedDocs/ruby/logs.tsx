@@ -93,7 +93,7 @@ logger.info("Sentry test log from stdlib logger")`,
         {
           type: 'code',
           language: 'ruby',
-          code: `Sentry.logger.info("Test log from %{test_source}", test_source: "Sentry")`,
+          code: 'Sentry.logger.info("Test log from %{test_source}", test_source: "Sentry")',
         },
       ],
     },

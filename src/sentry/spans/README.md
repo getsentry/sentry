@@ -83,14 +83,9 @@ event types are limited in terms of frequency.
     breaks the structure of the trace as the missing spans may be anywhere in
     the tree.
 
-  - As we extract the subsegments and reassemble them, if the segment is too big
-    we either drop it or chunk it depending on the
-    `spans.buffer.chunk-oversized-segments` option:
-    - **Default (disabled)**: The segment is dropped entirely and an `invalid`
-      outcome is recorded.
-    - **Enabled**: The segment is kept and split into multiple Kafka messages,
-      each within `max-segment-bytes`, and every chunk is sent with the flag
-      `skip_enrichment=True`.
+  - As we extract the subsegments and reassemble them, if the segment size exceeds
+    the `max-segment-bytes` limit, we chunk it into multiple Kafka messages, each within
+    the above size limit, and every chunk is sent with the flag `skip_enrichment=True`.
 
 ### Flushing segments
 

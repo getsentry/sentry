@@ -16,6 +16,7 @@ class SnapshotDiffSection(StrEnum):
     CHANGED = "changed"
     UNCHANGED = "unchanged"
     ERRORED = "errored"
+    SKIPPED = "skipped"
 
 
 # GET response
@@ -59,6 +60,7 @@ class SnapshotApprover(BaseModel):
 class SnapshotApprovalInfo(BaseModel):
     status: Literal["approved", "requires_approval"]
     approvers: list[SnapshotApprover] = []
+    is_auto_approved: bool = False
 
 
 class SnapshotDetailsApiResponse(BaseModel):
@@ -92,9 +94,14 @@ class SnapshotDetailsApiResponse(BaseModel):
     errored: list[SnapshotDiffPair] = []
     errored_count: int = 0
 
+    skipped: list[SnapshotImageResponse] = []
+    skipped_count: int = 0
+
     comparison_run_info: SnapshotComparisonRunInfo | None = None
 
     approval_info: SnapshotApprovalInfo | None = None
+
+    diff_threshold: float | None = None
 
 
 # TODO: POST request in the future when we migrate away from current schemas

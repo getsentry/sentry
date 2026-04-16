@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/forwarding/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/forwarding/', {
     path: {organizationIdOrSlug: params.orgSlug},
   }),
 ];
@@ -40,7 +40,7 @@ const makeDataForwarderMutationQueryKey = (params: {
   dataForwarderId: string;
   orgSlug: string;
 }): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/forwarding/$dataForwarderId/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/forwarding/$dataForwarderId/', {
     path: {organizationIdOrSlug: params.orgSlug, dataForwarderId: params.dataForwarderId},
   }),
 ];

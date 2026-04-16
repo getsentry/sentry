@@ -63,7 +63,7 @@ describe('InvoiceDetails', () => {
           location: {
             pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
-          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
         },
       });
 
@@ -91,7 +91,7 @@ describe('InvoiceDetails', () => {
           location: {
             pathname: `/organizations/${mockOrg.slug}/invoices/de/${invoice.id}/`,
           },
-          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
         },
       });
 
@@ -120,7 +120,7 @@ describe('InvoiceDetails', () => {
           location: {
             pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
-          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
         },
       });
 
@@ -157,7 +157,7 @@ describe('InvoiceDetails', () => {
           location: {
             pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
-          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
         },
       });
 
@@ -185,7 +185,7 @@ describe('InvoiceDetails', () => {
           location: {
             pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
-          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+          route: '/organizations/:orgId/invoices/:region/:invoiceId/',
         },
       });
 

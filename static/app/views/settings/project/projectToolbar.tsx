@@ -47,7 +47,7 @@ export default function ProjectToolbarSettings() {
         />
         <TextBlock>
           {t(
-            `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
+            'Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.'
           )}
         </TextBlock>
         <ProjectPermissionAlert project={project} />

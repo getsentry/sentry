@@ -182,9 +182,25 @@ function AgentNameForm({
         <Stack gap="md">
           <field.Layout.Row
             label={t('Default Preferred Coding Agent')}
-            hintText={t(
-              'For new projects, select which coding agent to use when proposing code changes.'
-            )}
+            hintText={
+              <Text>
+                {tct(
+                  'For new projects, select which coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
+                  {
+                    manageLink: (
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/integrations/`,
+                          query: {category: 'coding agent'},
+                        }}
+                      >
+                        {t('Manage Coding Agent Integrations')}
+                      </Link>
+                    ),
+                  }
+                )}
+              </Text>
+            }
           >
             <Container flexGrow={1}>
               {preferredAgent.isPending || codingAgentSelectOptions.isPending ? (

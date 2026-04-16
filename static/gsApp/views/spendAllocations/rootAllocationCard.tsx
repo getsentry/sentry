@@ -97,7 +97,7 @@ export function RootAllocationCard({
               </Container>
               <Container padding="md">
                 {tct(
-                  `The un-allocated pool represents the remaining Reserved Volume available for your projects. Excess project consumption will first consume events from your un-allocated pool, and then from your [pricingLink] volume, if available`,
+                  'The un-allocated pool represents the remaining Reserved Volume available for your projects. Excess project consumption will first consume events from your un-allocated pool, and then from your [pricingLink] volume, if available',
                   {
                     pricingLink: (
                       <ExternalLink href="https://docs.sentry.io/pricing/">

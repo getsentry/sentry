@@ -4,6 +4,7 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {
   fetchMutation,
   useMutation,
@@ -114,7 +115,7 @@ export function useUpdateBulkAutofixAutomationSettings(
       return fetchMutation({
         method: 'POST',
         url: getApiUrl(
-          `/organizations/$organizationIdOrSlug/autofix/automation-settings/`,
+          '/organizations/$organizationIdOrSlug/autofix/automation-settings/',
           {
             path: {organizationIdOrSlug: organization.slug},
           }
@@ -140,20 +141,16 @@ export function useUpdateBulkAutofixAutomationSettings(
         }
         // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
         queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                projectIdOrSlug: project.slug,
-              },
-            }),
-          ],
+          queryKey: makeDetailedProjectQueryKey({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+          }),
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
         queryClient.invalidateQueries({
           queryKey: [
             getApiUrl(
-              `/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/`,
+              '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
               {
                 path: {
                   organizationIdOrSlug: organization.slug,

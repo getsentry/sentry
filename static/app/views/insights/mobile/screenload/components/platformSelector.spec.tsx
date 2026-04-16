@@ -12,7 +12,7 @@ describe('PlatformSelector', () => {
       pathname: '/organizations/org-slug/insights/mobile/screen-loads/',
       query: {},
     },
-    route: `/organizations/:orgId/insights/mobile/screen-loads/`,
+    route: '/organizations/:orgId/insights/mobile/screen-loads/',
   };
 
   it('renders with iOS and Android options', () => {

@@ -1,8 +1,9 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -11,6 +12,7 @@ import {
   isBaseVisualize,
   isVisualize,
   Visualize,
+  VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
@@ -36,6 +38,7 @@ function isTraceMetric(value: unknown): value is TraceMetric {
 export interface BaseMetricQuery {
   metric: TraceMetric;
   queryParams: ReadableQueryParams;
+  label?: string;
 }
 
 export interface MetricQuery extends BaseMetricQuery {
@@ -67,6 +70,8 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   const groupBys = parseGroupBys(json.aggregateFields);
   const aggregateFields = [...visualizes, ...groupBys];
   const aggregateSortBys = parseAggregateSortBys(json.aggregateSortBys, aggregateFields);
+  const fields = defaultFields();
+  const sortBys = parseSortBys(json.sortBys, fields);
 
   return {
     metric,
@@ -76,8 +81,8 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
       query,
 
       cursor: '',
-      fields: defaultFields(),
-      sortBys: defaultSortBys(defaultFields()),
+      fields,
+      sortBys,
 
       aggregateCursor: '',
       aggregateFields,
@@ -99,16 +104,21 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
       return field;
     }),
     aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
+    sortBys: metricQuery.queryParams.sortBys,
     mode: metricQuery.queryParams.mode,
   });
 }
 
-export function defaultMetricQuery(): BaseMetricQuery {
+export function defaultMetricQuery({
+  type = 'aggregate',
+}: {type?: 'aggregate' | 'equation'} = {}): BaseMetricQuery {
+  const newFields =
+    type === 'equation' ? [defaultAggregateEquation()] : defaultAggregateFields();
   return {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.SAMPLES,
+      mode: type === 'equation' ? Mode.AGGREGATE : Mode.SAMPLES,
       query: defaultQuery(),
 
       cursor: '',
@@ -116,8 +126,8 @@ export function defaultMetricQuery(): BaseMetricQuery {
       sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
-      aggregateFields: defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
+      aggregateFields: newFields,
+      aggregateSortBys: defaultAggregateSortBys(newFields),
     }),
   };
 }
@@ -162,6 +172,10 @@ function defaultGroupBys(): GroupBy[] {
 
 export function defaultAggregateFields(): AggregateField[] {
   return [defaultVisualize(), ...defaultGroupBys()];
+}
+
+function defaultAggregateEquation() {
+  return new VisualizeEquation(EQUATION_PREFIX);
 }
 
 export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
@@ -218,4 +232,27 @@ function parseAggregateSortBys(
   }
 
   return value;
+}
+
+function parseSortBys(value: unknown, fields: string[]): Sort[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return defaultSortBys(fields);
+  }
+
+  const isValid = value.every(
+    (v: unknown) =>
+      v !== null &&
+      typeof v === 'object' &&
+      'field' in v &&
+      typeof v.field === 'string' &&
+      SORTABLE_SAMPLE_COLUMNS.has(v.field) &&
+      'kind' in v &&
+      (v.kind === 'asc' || v.kind === 'desc')
+  );
+
+  if (!isValid) {
+    return defaultSortBys(fields);
+  }
+
+  return value as Sort[];
 }

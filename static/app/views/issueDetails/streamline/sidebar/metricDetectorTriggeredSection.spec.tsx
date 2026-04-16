@@ -6,7 +6,10 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection';
@@ -270,6 +273,46 @@ describe('MetricDetectorTriggeredSection', () => {
     });
 
     await screen.findByRole('link', {name: 'RequestError'});
+  });
+
+  it('selects the condition with the highest conditionResult', async () => {
+    const lowCondition: MetricCondition = {
+      id: 'cond-low',
+      type: DataConditionType.GREATER,
+      comparison: 50,
+      conditionResult: DetectorPriorityLevel.LOW,
+    };
+    const highCondition: MetricCondition = {
+      id: 'cond-high',
+      type: DataConditionType.GREATER,
+      comparison: 200,
+      conditionResult: DetectorPriorityLevel.HIGH,
+    };
+
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [lowCondition, highCondition],
+          dataSources: [dataSource],
+          value: 250,
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    // Should show the HIGH condition (Above 200), not LOW (Above 50)
+    expect(await screen.findByRole('cell', {name: 'Above 200'})).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: 'Above 50'})).not.toBeInTheDocument();
   });
 
   it('renders boolean logic error when query contains OR', async () => {

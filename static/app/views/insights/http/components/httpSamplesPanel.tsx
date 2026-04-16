@@ -214,7 +214,7 @@ export function HTTPSamplesPanel() {
   } = useFetchSpanTimeSeries(
     {
       query: search,
-      yAxis: [`avg(span.self_time)`],
+      yAxis: ['avg(span.self_time)'],
       enabled: isPanelOpen && query.panel === 'duration',
     },
     Referrer.SAMPLES_PANEL_DURATION_CHART
@@ -390,21 +390,21 @@ export function HTTPSamplesPanel() {
 
               <MetricReadout
                 title={t('3XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
+                value={domainTransactionMetrics?.[0]?.['http_response_rate(3)']}
                 unit="percentage"
                 isLoading={areDomainTransactionMetricsFetching}
               />
 
               <MetricReadout
                 title={t('4XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
+                value={domainTransactionMetrics?.[0]?.['http_response_rate(4)']}
                 unit="percentage"
                 isLoading={areDomainTransactionMetricsFetching}
               />
 
               <MetricReadout
                 title={t('5XXs')}
-                value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
+                value={domainTransactionMetrics?.[0]?.['http_response_rate(5)']}
                 unit="percentage"
                 isLoading={areDomainTransactionMetricsFetching}
               />

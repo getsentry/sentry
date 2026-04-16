@@ -414,11 +414,19 @@ export function useStagedCompactSelect<Value extends SelectKey>({
           : null;
       setModifierActive(!!keyRef.current);
     };
+    // Reset modifier state when the window loses focus so that held keys
+    // released outside the browser don't leave the state stuck.
+    const onBlur = () => {
+      keyRef.current = null;
+      setModifierActive(false);
+    };
     window.addEventListener('keydown', onKeyChange);
     window.addEventListener('keyup', onKeyChange);
+    window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('keydown', onKeyChange);
       window.removeEventListener('keyup', onKeyChange);
+      window.removeEventListener('blur', onBlur);
     };
   }, []);
 

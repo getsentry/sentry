@@ -20,8 +20,8 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
       search: queryString,
       enabled: !isReleasesLoading,
       fields: [
-        `avg(measurements.time_to_initial_display)`,
-        `avg(measurements.time_to_full_display)`,
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
         'count()',
       ],
     },

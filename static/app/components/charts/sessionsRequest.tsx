@@ -82,7 +82,6 @@ export class SessionsRequest extends Component<Props, State> {
       query,
       groupBy,
       interval,
-      organization,
     } = this.props;
 
     return {
@@ -96,10 +95,7 @@ export class SessionsRequest extends Component<Props, State> {
       end,
       interval: interval
         ? interval
-        : getSessionsInterval(
-            {start, end, period: statsPeriod},
-            {highFidelity: organization.features.includes('minute-resolution-sessions')}
-          ),
+        : getSessionsInterval({start, end, period: statsPeriod}),
     };
   }
 

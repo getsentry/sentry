@@ -28,15 +28,15 @@ describe('useOwners', () => {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/user-teams/`,
+      url: '/organizations/org-slug/user-teams/',
       body: [],
     });
     teamsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       body: [],
     });
     membersRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       body: [],
     });
   });
@@ -61,11 +61,11 @@ describe('useOwners', () => {
     const teams = [TeamFixture({id: '4', slug: 'other-slug'})];
 
     teamsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/teams/`,
+      url: '/organizations/org-slug/teams/',
       body: teams,
     });
     membersRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       body: members,
     });
 

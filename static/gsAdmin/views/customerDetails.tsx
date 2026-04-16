@@ -90,7 +90,7 @@ const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
   return [
-    getApiUrl(`/customers/$organizationIdOrSlug/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: orgId},
     }),
   ];
@@ -98,7 +98,7 @@ function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
 
 function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: orgId},
     }),
     {query: {detailed: 0, include_feature_flags: 1}},
@@ -107,7 +107,7 @@ function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
   return [
-    getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
       path: {organizationIdOrSlug: orgId},
     }),
     {query: {tier: 'all'}},

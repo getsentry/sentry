@@ -35,7 +35,7 @@ interface AssigneeSelectorProps {
   showLabel?: boolean;
 }
 
-export type OnAssignCallback = (
+type OnAssignCallback = (
   type: Actor['type'],
   assignee: User | Actor,
   suggestedAssignee?: SuggestedAssignee

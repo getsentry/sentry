@@ -115,7 +115,7 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: 'test test',
         },
         expected: {
-          query: `span.description:"*test*test*"`,
+          query: 'span.description:"*test*test*"',
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -157,10 +157,10 @@ describe('replaceFreeTextTokens', () => {
           'when there is already a replace token present with a different operator',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `span.description:test other value`,
+          currentQuery: 'span.description:test other value',
         },
         expected: {
-          query: `span.description:test span.description:"*other*value*"`,
+          query: 'span.description:test span.description:"*other*value*"',
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -168,10 +168,10 @@ describe('replaceFreeTextTokens', () => {
         description: 'when the value contains an asterisks, it sets to is',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `span.description:test te*st`,
+          currentQuery: 'span.description:test te*st',
         },
         expected: {
-          query: `span.description:test span.description:te*st`,
+          query: 'span.description:test span.description:te*st',
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -179,10 +179,10 @@ describe('replaceFreeTextTokens', () => {
         description: 'when the value contains a space and asterisks, it sets to is',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `te*st test`,
+          currentQuery: 'te*st test',
         },
         expected: {
-          query: `span.description:"te*st test"`,
+          query: 'span.description:"te*st test"',
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -191,10 +191,10 @@ describe('replaceFreeTextTokens', () => {
           'when the value contains multiple spaces, it removes them and will replace them with a single space, and apply fuzzy matching',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `test  test`,
+          currentQuery: 'test  test',
         },
         expected: {
-          query: `span.description:"*test*test*"`,
+          query: 'span.description:"*test*test*"',
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -202,7 +202,7 @@ describe('replaceFreeTextTokens', () => {
         description: 'when the value is an aggregate filter token, it ignores it',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `p75(span.duration):>300ms test`,
+          currentQuery: 'p75(span.duration):>300ms test',
         },
         expected: {
           query: `p75(span.duration):>300ms span.description:${WildcardOperators.CONTAINS}test`,

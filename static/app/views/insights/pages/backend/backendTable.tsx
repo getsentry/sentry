@@ -81,7 +81,7 @@ const COLUMN_ORDER: Column[] = [
     tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
-    key: `p50(span.duration)`,
+    key: 'p50(span.duration)',
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.p50,

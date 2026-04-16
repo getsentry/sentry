@@ -79,7 +79,7 @@ export default function ProjectServiceHooks() {
     refetch,
   } = useApiQuery<ServiceHook[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
       }),
     ],
@@ -108,7 +108,7 @@ export default function ProjectServiceHooks() {
       setApiQueryData<ServiceHook[]>(
         queryClient,
         [
-          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/`, {
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/', {
             path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
           }),
         ],

@@ -80,7 +80,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
       formData.set('promo_code', promoCode);
     }
     try {
-      const result = await api.requestPromise(`/relocations/`, {
+      const result = await api.requestPromise('/relocations/', {
         method: 'POST',
         host: regionUrl,
         data: formData,

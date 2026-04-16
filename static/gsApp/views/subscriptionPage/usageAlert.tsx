@@ -136,7 +136,7 @@ export function UsageAlert({subscription, usage}: Props) {
               <h3>{t('Projected Overage')}</h3>
               <Description>
                 {tct(
-                  `Based on your previous usage, we predict your organization will need at least [totals].`,
+                  'Based on your previous usage, we predict your organization will need at least [totals].',
                   {totals: oxfordizeArray(projectedOverages)}
                 )}{' '}
                 {getActionSentence()}
@@ -223,7 +223,7 @@ export function UsageAlert({subscription, usage}: Props) {
               <h3>{t('Usage Exceeded')}</h3>
               <Description>
                 {tct(
-                  `Your organization has depleted its [quotasExceeded] capacity for the current usage period.`,
+                  'Your organization has depleted its [quotasExceeded] capacity for the current usage period.',
                   {quotasExceeded}
                 )}{' '}
                 {getActionSentence()}

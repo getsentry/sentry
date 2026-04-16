@@ -31,7 +31,7 @@ describe('Screens Landing Page', () => {
         project: project.id,
       },
     },
-    route: `/organizations/:orgId/insights/mobile-vitals/`,
+    route: '/organizations/:orgId/insights/mobile-vitals/',
   };
 
   ProjectsStore.loadInitialData([project]);

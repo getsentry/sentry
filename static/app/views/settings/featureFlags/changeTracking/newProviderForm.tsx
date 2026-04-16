@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -68,11 +67,11 @@ export function NewProviderForm({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = () => {
     navigate(
       normalizeUrl(`/settings/${organization.slug}/feature-flags/change-tracking/`)
     );
-  }, [organization.slug, navigate]);
+  };
 
   const mutation = useMutation({
     mutationFn: ({provider, secret}: CreateSecretData) => {

@@ -44,7 +44,7 @@ export function ScreenLoadEventSamples({
   const searchQuery = useMemo(() => {
     const baseFilters = [
       'span.op:[ui.load,navigation]',
-      `is_transaction:true`,
+      'is_transaction:true',
       `transaction:${transaction}`,
     ];
 

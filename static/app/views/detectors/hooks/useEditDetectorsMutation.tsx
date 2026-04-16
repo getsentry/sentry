@@ -4,6 +4,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {allDetectorListsQueryKey} from 'sentry/views/detectors/hooks';
 
 /** Bulk update detectors. Currently supports enabling/disabling detectors. */
 export function useUpdateDetectorsMutation() {
@@ -29,7 +30,7 @@ export function useUpdateDetectorsMutation() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/detectors/`],
+        queryKey: allDetectorListsQueryKey(org),
       });
       addSuccessMessage(
         variables.enabled ? t('Monitors enabled') : t('Monitors disabled')

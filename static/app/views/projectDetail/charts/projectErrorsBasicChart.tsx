@@ -37,7 +37,7 @@ export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props)
     isSuccess,
   } = useApiQuery<Project[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

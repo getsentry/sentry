@@ -91,7 +91,7 @@ export function ScreenSummaryContentPage() {
       `count_if(release,equals,${primaryRelease})`,
     ];
   } else {
-    fields = [`avg(span.duration)`, `count()`];
+    fields = ['avg(span.duration)', 'count()'];
   }
 
   return (

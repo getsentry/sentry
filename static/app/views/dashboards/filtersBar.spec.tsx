@@ -58,7 +58,7 @@ describe('FiltersBar', () => {
         [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
           dataset: WidgetType.SPANS,
           tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
-          value: `browser.name:[Chrome]`,
+          value: 'browser.name:[Chrome]',
         } satisfies GlobalFilter),
       },
     });
@@ -75,7 +75,7 @@ describe('FiltersBar', () => {
         [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
           dataset: WidgetType.SPANS,
           tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
-          value: `browser.name:[Chrome]`,
+          value: 'browser.name:[Chrome]',
         } satisfies GlobalFilter),
       },
     });
@@ -91,7 +91,7 @@ describe('FiltersBar', () => {
         [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
           dataset: WidgetType.SPANS,
           tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
-          value: `browser.name:[Chrome]`,
+          value: 'browser.name:[Chrome]',
           isTemporary: true,
         } satisfies GlobalFilter),
       },
@@ -110,12 +110,12 @@ describe('FiltersBar', () => {
     const savedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
-      value: `os.name:[Windows]`,
+      value: 'os.name:[Windows]',
     };
     const urlFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
-      value: `browser.name:[Chrome]`,
+      value: 'browser.name:[Chrome]',
     };
     const newLocation = LocationFixture({
       query: {
@@ -145,7 +145,7 @@ describe('FiltersBar', () => {
     const urlFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
-      value: `browser.name:[Chrome]`,
+      value: 'browser.name:[Chrome]',
     };
     const newLocation = LocationFixture({
       query: {
@@ -173,7 +173,7 @@ describe('FiltersBar', () => {
     const savedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
-      value: `os.name:[Windows]`,
+      value: 'os.name:[Windows]',
     };
     // Empty string simulates cleared filters (handleChangeFilter stores [''])
     const newLocation = LocationFixture({
@@ -206,7 +206,7 @@ describe('FiltersBar', () => {
         [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
           dataset: WidgetType.SPANS,
           tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
-          value: `browser.name:[Chrome]`,
+          value: 'browser.name:[Chrome]',
         } satisfies GlobalFilter),
       },
     });
@@ -234,7 +234,7 @@ const mockNetworkRequests = () => {
     body: TagsFixture(),
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/measurements-meta/`,
+    url: '/organizations/org-slug/measurements-meta/',
     body: {
       'measurements.custom.measurement': {
         functions: ['p99'],
@@ -269,13 +269,13 @@ const mockNetworkRequests = () => {
   ];
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/trace-items/attributes/browser.name/values/`,
+    url: '/organizations/org-slug/trace-items/attributes/browser.name/values/',
     body: mockSearchResponse,
     match: [MockApiClient.matchQuery({attributeType: 'string'})],
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/trace-items/attributes/os.name/values/`,
+    url: '/organizations/org-slug/trace-items/attributes/os.name/values/',
     body: [
       {
         key: 'os.name',

@@ -53,7 +53,7 @@ export function TeamUnresolvedIssues({
     refetch,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {

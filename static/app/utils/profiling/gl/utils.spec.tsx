@@ -51,7 +51,7 @@ describe('upperBound', () => {
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
-  ])(`inserts %p`, (args, target, insert) => {
+  ])('inserts %p', (args, target, insert) => {
     expect(
       upperBound(
         target,
@@ -77,7 +77,7 @@ describe('lowerBound', () => {
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
-  ])(`inserts %p`, (args, target, insert) => {
+  ])('inserts %p', (args, target, insert) => {
     expect(
       lowerBound(
         target,
@@ -171,7 +171,7 @@ describe('createShader', () => {
   it('successfully compiles', () => {
     const shader: WebGLShader = {};
     const type = 0;
-    const shaderSource = `vec4(1.0, 0.0, 0.0, 1.0)`;
+    const shaderSource = 'vec4(1.0, 0.0, 0.0, 1.0)';
 
     const ctx: Partial<WebGLRenderingContext> = {
       createShader: jest.fn().mockImplementation(() => shader),
@@ -192,7 +192,7 @@ describe('createShader', () => {
   it('deletes shader if compilation fails', () => {
     const shader: WebGLShader = {};
     const type = 0;
-    const shaderSource = `vec4(1.0, 0.0, 0.0, 1.0)`;
+    const shaderSource = 'vec4(1.0, 0.0, 0.0, 1.0)';
 
     const ctx: Partial<WebGLRenderingContext> = {
       createShader: jest.fn().mockImplementation(() => shader),
@@ -493,7 +493,7 @@ describe('computeHighlightedBounds', () => {
     },
   ];
 
-  it.each(testTable)(`$name`, ({args, expected}) => {
+  it.each(testTable)('$name', ({args, expected}) => {
     const value = computeHighlightedBounds(args.bounds as Fuse.RangeTuple, args.trim);
     expect(value).toEqual(expected);
   });

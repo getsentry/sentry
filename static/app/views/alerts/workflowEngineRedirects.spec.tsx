@@ -132,7 +132,6 @@ describe('workflowEngineRedirects', () => {
     it('redirects metric issue notification links to issue details', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-metric-issue-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -165,29 +164,6 @@ describe('workflowEngineRedirects', () => {
         alert: 'alert-1',
         notification_uuid: 'notification-uuid',
       });
-    });
-
-    it('does not redirect without workflow-engine-metric-issue-ui flag', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-        features: [],
-      });
-
-      const Wrapped = withMetricIssueRedirect(TestComponent);
-      const initialRouterConfig: RouterConfig = {
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/`,
-          query: {alert: 'alert-1', notification_uuid: 'notification-uuid'},
-        },
-      };
-
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
-
-      // Path stays the same and we render the wrapped component
-      await screen.findByText('Wrapped content');
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/alerts/`
-      );
     });
   });
 

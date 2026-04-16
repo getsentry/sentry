@@ -623,7 +623,7 @@ const Documentation = styled('span')`
   white-space: pre;
 `;
 
-const DropdownFooter = styled(`div`)`
+const DropdownFooter = styled('div')`
   width: 100%;
   min-height: 45px;
   background-color: ${p => p.theme.tokens.background.secondary};

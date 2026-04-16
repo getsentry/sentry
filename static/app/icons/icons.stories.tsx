@@ -1866,7 +1866,7 @@ function IconCard(props: IconCardProps) {
   };
   snippets.all = `${snippets.import}\n\n${snippets.element}`;
   const labels = {
-    import: `import statement`,
+    import: 'import statement',
     element: props.icon.id,
   };
   const action: keyof typeof snippets = shift ? 'import' : 'element';

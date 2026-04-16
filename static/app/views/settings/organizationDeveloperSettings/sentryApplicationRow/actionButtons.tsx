@@ -53,7 +53,7 @@ export function ActionButtons({
   ) : null;
 
   const deleteConfirmMessage = t(
-    `Deleting %s will also delete any and all of its installations. This is a permanent action. Do you wish to continue?`,
+    'Deleting %s will also delete any and all of its installations. This is a permanent action. Do you wish to continue?',
     app.slug
   );
   const deleteButton = showDelete ? (

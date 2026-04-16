@@ -1,12 +1,8 @@
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Variables extends Partial<Project> {}
@@ -32,7 +28,7 @@ export function useUpdateProject(project: Project) {
 
   return useMutation<Project, Error, Variables, Context>({
     onMutate: (data: Variables) => {
-      const fromCache = queryClient.getQueryData<Project>(queryKey);
+      const fromCache = queryClient.getQueryData<ApiResponse<Project>>(queryKey)?.json;
       const fromStore = ProjectsStore.getById(project.id);
       const fromProp = project;
 
@@ -64,7 +60,10 @@ export function useUpdateProject(project: Project) {
 
       // Update caches optimistically
       ProjectsStore.onUpdateSuccess(updatedProject);
-      setApiQueryData<Project>(queryClient, queryKey, updatedProject);
+      queryClient.setQueryData<ApiResponse<Project>>(queryKey, prev => ({
+        headers: prev?.headers ?? {},
+        json: updatedProject,
+      }));
 
       return {previousProject};
     },
@@ -78,7 +77,10 @@ export function useUpdateProject(project: Project) {
     onError: (_error, _variables, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
-        queryClient.setQueryData(queryKey, context.previousProject);
+        queryClient.setQueryData<ApiResponse<Project>>(queryKey, prev => ({
+          headers: prev?.headers ?? {},
+          json: context.previousProject,
+        }));
       }
     },
     onSettled: () => {

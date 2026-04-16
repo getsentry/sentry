@@ -261,6 +261,7 @@ export const githubIntegrationPipeline = {
   provider: 'github',
   actionTitle: t('Installing GitHub Integration'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
   steps: [
     {
       stepId: 'oauth_login',

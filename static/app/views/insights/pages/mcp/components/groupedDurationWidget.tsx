@@ -150,7 +150,7 @@ export function GroupedDurationWidget(props: GroupedDurationWidgetProps) {
               ],
               groupBy: [props.groupBy],
               query: fullQuery,
-              sort: `-avg(span.duration)`,
+              sort: '-avg(span.duration)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

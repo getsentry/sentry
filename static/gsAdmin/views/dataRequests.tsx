@@ -45,7 +45,7 @@ export function DataRequests() {
 
   const {data: eventsData = [], isLoading: isLoadingEvents} = useApiQuery<any[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
         path: {organizationIdOrSlug: queryFromRouterOrgSlug},
       }),
       {query: {query: 'user.email:' + queryFromRouterEmail}},

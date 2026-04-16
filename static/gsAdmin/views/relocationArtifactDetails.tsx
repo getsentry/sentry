@@ -25,7 +25,7 @@ export function RelocationArtifactDetails() {
 
   const {data, isPending, isError} = useApiQuery<RelocationData>(
     [
-      getApiUrl(`/relocations/$relocationUuid/artifacts/$artifactKind/$fileName`, {
+      getApiUrl('/relocations/$relocationUuid/artifacts/$artifactKind/$fileName', {
         path: {relocationUuid, artifactKind, fileName},
       }),
       {

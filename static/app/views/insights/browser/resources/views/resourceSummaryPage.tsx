@@ -146,7 +146,7 @@ function ResourceSummary() {
                       spanMetrics?.[0]?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`] ?? 0
                     }
                     avgDuration={spanMetrics?.[0]?.[`avg(${SPAN_SELF_TIME})`] ?? 0}
-                    throughput={spanMetrics?.[0]?.[`epm()`] ?? 0}
+                    throughput={spanMetrics?.[0]?.['epm()'] ?? 0}
                     timeSpentTotal={spanMetrics?.[0]?.[`sum(${SPAN_SELF_TIME})`] ?? 0}
                   />
                 </HeaderContainer>

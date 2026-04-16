@@ -213,6 +213,25 @@ describe('SeerDrawerNextStep', () => {
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
     });
 
+    it('shows coding agent dropdown with Add Integration CTA when no integrations exist', async () => {
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      const addIntegrationLink = screen.getByRole('button', {name: 'Add Integration'});
+      expect(addIntegrationLink).toHaveAttribute(
+        'href',
+        '/settings/org-slug/integrations/?category=coding%20agent'
+      );
+    });
+
     it('shows coding agent dropdown when integrations exist', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',

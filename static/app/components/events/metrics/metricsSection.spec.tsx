@@ -60,7 +60,7 @@ describe('MetricsSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/`,
+      url: '/projects/',
       body: [project],
     });
 

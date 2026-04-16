@@ -22,8 +22,8 @@ from sentry.relocation.models.relocationtransfer import (
     RelocationTransferState,
 )
 from sentry.relocation.services.relocation_export.service import (
+    CellRelocationExportService,
     ControlRelocationExportService,
-    RegionRelocationExportService,
 )
 from sentry.relocation.tasks.process import fulfill_cross_region_export_request, uploading_complete
 from sentry.relocation.tasks.transfer import process_relocation_transfer_control
@@ -33,7 +33,7 @@ from sentry.utils.db import atomic_transaction
 logger = logging.getLogger("sentry.relocation")
 
 
-class DBBackedRelocationExportService(RegionRelocationExportService):
+class DBBackedRelocationExportService(CellRelocationExportService):
     def request_new_export(
         self,
         *,
@@ -52,11 +52,11 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         }
         logger.info("SaaS -> SaaS request received in exporting region", extra=logger_data)
 
-        # This task will do the actual work of performing the export and saving it to this regions
+        # This task will do the actual work of performing the export and saving it to this cell's
         # "relocation" GCS bucket. It is annotated with the appropriate retry, back-off etc logic
         # for robustness' sake. The last action performed by this task is to call an instance of
         # `ControlRelocationExportService.reply_with_export` via a manually-scheduled
-        # `RegionOutbox`, which will handle the task of asynchronously delivering the encrypted,
+        # `CellOutbox`, which will handle the task of asynchronously delivering the encrypted,
         # newly-exported bytes.
         fulfill_cross_region_export_request.apply_async(
             args=[
@@ -184,7 +184,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         logger.info("SaaS -> SaaS reply received on proxy", extra=logger_data)
 
         # Save the payload into the control silo's "relocation" GCS bucket. This bucket is only used
-        # for temporary storage of `encrypted_bytes` being shuffled between regions like this.
+        # for temporary storage of `encrypted_bytes` being shuffled between cells like this.
         path = f"runs/{relocation_uuid}/saas_to_saas_export/{org_slug}.tar"
         relocation_storage = get_relocation_storage()
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
@@ -192,7 +192,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         relocation_storage.save(path, fp)
         logger.info("SaaS -> SaaS export contents retrieved", extra=logger_data)
 
-        # Save transfer record so we can push state to the requesting region
+        # Save transfer record so we can push state to the requesting cell
         transfer = ControlRelocationTransfer.objects.create(
             relocation_uuid=relocation_uuid,
             org_slug=org_slug,

@@ -22,7 +22,7 @@ describe('SetupReplaysCTA', () => {
     expect(createBtn).toBeInTheDocument();
     expect(createBtn).toHaveAttribute(
       'href',
-      `/organizations/org-slug/insights/projects/new/`
+      '/organizations/org-slug/insights/projects/new/'
     );
   });
 

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.shared_integrations.exceptions import ApiError
 
 from ...mixins.issues import IssueSyncIntegration
@@ -109,16 +110,17 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
 
         result = integration_service.organization_contexts(integration_id=integration.id)
         for oi in result.organization_integrations:
-            install = integration.get_installation(organization_id=oi.organization_id)
-            if isinstance(install, IssueSyncIntegration):
-                install.sync_status_inbound(
-                    issue_key, {"changelog": changelog, "issue": data["issue"]}
-                )
-            else:
-                lifecycle.record_halt(
-                    ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
-                    extra=log_context,
-                )
+            with webhook_viewer_context(oi.organization_id):
+                install = integration.get_installation(organization_id=oi.organization_id)
+                if isinstance(install, IssueSyncIntegration):
+                    install.sync_status_inbound(
+                        issue_key, {"changelog": changelog, "issue": data["issue"]}
+                    )
+                else:
+                    lifecycle.record_halt(
+                        ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
+                        extra=log_context,
+                    )
 
 
 def handle_jira_api_error(error: ApiError, message: str = "") -> Mapping[str, str] | None:

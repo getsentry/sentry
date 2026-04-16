@@ -8,17 +8,22 @@ import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFl
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import {Footer} from 'sentry/components/footer';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
+import Hook from 'sentry/components/hook';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import SystemAlerts from 'sentry/views/app/systemAlerts';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -71,39 +76,50 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   const hasPageFrame = useHasPageFrameFeature();
+  const showSuperuserWarning =
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   return (
     <PrimaryNavigationContextProvider>
-      <Flex
-        flex="1"
-        minWidth="0"
-        direction={{sm: 'column', md: 'row'}}
-        position="relative"
-      >
-        <Navigation />
-        {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <ContentStack
-          id="main"
-          tabIndex={-1}
+      <Stack flex="1" minWidth="0" minHeight="100dvh">
+        {hasPageFrame && showSuperuserWarning && (
+          <Hook name="component:superuser-warning" organization={organization} />
+        )}
+        {hasPageFrame && <SystemAlerts className="messages-container" />}
+        <Flex
           flex="1"
           minWidth="0"
-          background={hasPageFrame ? 'secondary' : undefined}
+          minHeight="0"
+          direction={{sm: 'column', md: 'row'}}
+          position="relative"
         >
-          <DemoHeader />
-          <AppBodyContent>
-            {organization && <OrganizationHeader organization={organization} />}
-            <OrganizationDetailsBody>
-              <TopBar.Slot.Provider>
-                <TopBar />
-                <Layout.Page>
-                  <Outlet />
-                  <Footer />
-                </Layout.Page>
-              </TopBar.Slot.Provider>
-            </OrganizationDetailsBody>
-          </AppBodyContent>
-        </ContentStack>
-      </Flex>
+          <Navigation />
+          {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+          <ContentStack
+            id="main"
+            tabIndex={-1}
+            flex="1"
+            minWidth="0"
+            background={hasPageFrame ? 'secondary' : undefined}
+          >
+            <DemoHeader />
+            <AppBodyContent>
+              {organization && <OrganizationHeader organization={organization} />}
+              <OrganizationDetailsBody>
+                <TopBar.Slot.Provider>
+                  <TopBar />
+                  <Layout.Page>
+                    <Outlet />
+                    <Footer />
+                  </Layout.Page>
+                </TopBar.Slot.Provider>
+              </OrganizationDetailsBody>
+            </AppBodyContent>
+          </ContentStack>
+        </Flex>
+      </Stack>
       {organization ? <AppDrawers /> : null}
     </PrimaryNavigationContextProvider>
   );

@@ -6,7 +6,7 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {Kbd} from './kbd';
 import {resolveKeyGlyph} from './keyMappings';
 
-export interface HotkeyProps {
+interface HotkeyProps {
   /**
    * Key combination string(s) in the same format as `useHotkeys` match strings.
    * Keys are separated by `+`. For example: `"command+k"`, `"shift+enter"`.

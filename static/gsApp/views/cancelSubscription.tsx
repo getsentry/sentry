@@ -18,7 +18,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -102,7 +101,7 @@ function CancelSubscriptionForm() {
   const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -273,9 +272,7 @@ function CancelSubscriptionForm() {
               </Button>
               <Button
                 onClick={() => {
-                  browserHistory.push(
-                    normalizeUrl(`/settings/${organization.slug}/billing/`)
-                  );
+                  navigate(normalizeUrl(`/settings/${organization.slug}/billing/`));
                 }}
               >
                 {t('Never Mind')}

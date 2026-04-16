@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   fieldAlignment,
+  isEquation,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
@@ -193,7 +194,7 @@ function makeCellActions({
   }
 
   // Do not render context menu buttons for the equation fields until we can query on them
-  if (isEquationAlias(column.name)) {
+  if (isEquationAlias(column.name) || isEquation(column.key as string)) {
     return null;
   }
 

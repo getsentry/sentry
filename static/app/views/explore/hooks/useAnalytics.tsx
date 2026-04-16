@@ -39,7 +39,11 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   combineConfidenceForSeries,
@@ -98,7 +102,7 @@ function useTrackAnalytics({
     queryType === 'aggregate'
       ? (aggregatesTableResult.result.error?.message ?? '')
       : queryType === 'traces'
-        ? (tracesTableResult?.result.error?.message ?? '')
+        ? (tracesTableResult?.error?.message ?? '')
         : (spansTableResult.result.error?.message ?? '');
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
@@ -401,7 +405,7 @@ function useTrackAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.json?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
@@ -417,7 +421,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: tracesTableResult.result.data?.data?.length || 0,
+      result_length: tracesTableResult.result.data?.json?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -452,7 +456,7 @@ function useTrackAnalytics({
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
-    tracesTableResult?.result.data?.data,
+    tracesTableResult?.result.data?.json?.data,
     tracesTableResult?.result?.isPending,
     tracesTableResultDefined,
     visualizes,
@@ -841,7 +845,13 @@ export function useMetricsPanelAnalytics({
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualize = useMetricVisualize();
-  const aggregateFunctionBox = useBox(visualize.parsedFunction?.name ?? '');
+  const aggregateFunctionBox = useBox(
+    isVisualizeFunction(visualize)
+      ? (visualize.parsedFunction?.name ?? '')
+      : isVisualizeEquation(visualize)
+        ? visualize.expression.text
+        : ''
+  );
 
   const tableError =
     mode === Mode.AGGREGATE

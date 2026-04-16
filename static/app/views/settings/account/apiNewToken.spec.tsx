@@ -27,7 +27,7 @@ describe('ApiNewToken', () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     render(<ApiNewToken />);
@@ -80,7 +80,7 @@ describe('ApiNewToken', () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     render(<ApiNewToken />);
@@ -118,7 +118,7 @@ describe('ApiNewToken', () => {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     render(<ApiNewToken />);

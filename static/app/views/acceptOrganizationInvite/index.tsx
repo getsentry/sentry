@@ -204,30 +204,22 @@ function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) 
 
 function AcceptOrganizationInvite() {
   const api = useApi({persistInFlight: true});
-  const params = useParams<{memberId: string; token: string; orgId?: string}>();
-
-  const orgSlug = params.orgId || ConfigStore.get('customerDomain')?.subdomain || null;
+  const params = useParams<{memberId: string; orgId: string; token: string}>();
 
   const {
     data: inviteDetails,
     isPending,
     isError,
   } = useApiQuery<InviteDetails>(
-    orgSlug
-      ? [
-          getApiUrl('/accept-invite/$organizationIdOrSlug/$memberId/$token/', {
-            path: {
-              organizationIdOrSlug: orgSlug,
-              memberId: params.memberId,
-              token: params.token,
-            },
-          }),
-        ]
-      : [
-          getApiUrl('/accept-invite/$memberId/$token/', {
-            path: {memberId: params.memberId, token: params.token},
-          }),
-        ],
+    [
+      getApiUrl('/accept-invite/$organizationIdOrSlug/$memberId/$token/', {
+        path: {
+          organizationIdOrSlug: params.orgId,
+          memberId: params.memberId,
+          token: params.token,
+        },
+      }),
+    ],
     {
       staleTime: Infinity,
       retry: false,
@@ -241,9 +233,7 @@ function AcceptOrganizationInvite() {
   } = useMutation({
     mutationFn: () =>
       api.requestPromise(
-        orgSlug
-          ? `/accept-invite/${orgSlug}/${params.memberId}/${params.token}/`
-          : `/accept-invite/${params.memberId}/${params.token}/`,
+        `/accept-invite/${params.orgId}/${params.memberId}/${params.token}/`,
         {
           method: 'POST',
         }
@@ -273,7 +263,10 @@ function AcceptOrganizationInvite() {
                     data-test-id="existing-member-link"
                     onClick={e => {
                       e.preventDefault();
-                      logout(api, `/accept/${params.memberId}/${params.token}/`);
+                      logout(
+                        api,
+                        `/accept/${params.orgId}/${params.memberId}/${params.token}/`
+                      );
                     }}
                   />
                 ),

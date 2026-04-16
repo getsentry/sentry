@@ -45,6 +45,7 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
     IntegrationResponse,
 )
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -434,18 +435,19 @@ class MsTeamsWebhookEndpoint(Endpoint):
         )
         if len(org_integrations) > 0:
             for org_integration in org_integrations:
-                create_audit_entry(
-                    request=request,
-                    organization_id=org_integration.organization_id,
-                    target_object=integration.id,
-                    event=audit_log.get_event_id("INTEGRATION_REMOVE"),
-                    actor_label="Teams User",
-                    data={
-                        "provider": integration.provider,
-                        "name": integration.name,
-                        "team_id": team_id,
-                    },
-                )
+                with webhook_viewer_context(org_integration.organization_id):
+                    create_audit_entry(
+                        request=request,
+                        organization_id=org_integration.organization_id,
+                        target_object=integration.id,
+                        event=audit_log.get_event_id("INTEGRATION_REMOVE"),
+                        actor_label="Teams User",
+                        data={
+                            "provider": integration.provider,
+                            "name": integration.name,
+                            "team_id": team_id,
+                        },
+                    )
 
         integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
@@ -584,60 +586,61 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        idp = identity_service.get_provider(
-            provider_type=IntegrationProviderSlug.MSTEAMS.value, provider_ext_id=team_id
-        )
-        if idp is None:
-            logger.info(
-                "msteams.action.invalid-team-id",
-                extra={
-                    "team_id": team_id,
-                    "integration_id": integration.id,
-                    "organization_id": group.organization.id,
-                },
+        with webhook_viewer_context(group.organization.id):
+            idp = identity_service.get_provider(
+                provider_type=IntegrationProviderSlug.MSTEAMS.value, provider_ext_id=team_id
             )
-            return self.respond(status=404)
+            if idp is None:
+                logger.info(
+                    "msteams.action.invalid-team-id",
+                    extra={
+                        "team_id": team_id,
+                        "integration_id": integration.id,
+                        "organization_id": group.organization.id,
+                    },
+                )
+                return self.respond(status=404)
 
-        identity = identity_service.get_identity(
-            filter={"provider_id": idp.id, "identity_ext_id": user_id}
-        )
-        if identity is None:
-            associate_url = build_linking_url(
-                integration, group.organization, user_id, team_id, tenant_id
+            identity = identity_service.get_identity(
+                filter={"provider_id": idp.id, "identity_ext_id": user_id}
             )
+            if identity is None:
+                associate_url = build_linking_url(
+                    integration, group.organization, user_id, team_id, tenant_id
+                )
 
-            card = build_linking_card(associate_url)
-            user_conversation_id = client.get_user_conversation_id(user_id, tenant_id)
-            client.send_card(user_conversation_id, card)
-            return self.respond(status=201)
+                card = build_linking_card(associate_url)
+                user_conversation_id = client.get_user_conversation_id(user_id, tenant_id)
+                client.send_card(user_conversation_id, card)
+                return self.respond(status=201)
 
-        # update the state of the issue
-        issue_change_response = self._issue_state_change(group, identity, data["value"])
+            # update the state of the issue
+            issue_change_response = self._issue_state_change(group, identity, data["value"])
 
-        # get the rules from the payload
-        rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
+            # get the rules from the payload
+            rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
 
-        # pull the event based off our payload
-        event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
-        if event is None:
-            logger.info(
-                "msteams.action.event-missing",
-                extra={
-                    "team_id": team_id,
-                    "integration_id": integration.id,
-                    "organization_id": group.organization.id,
-                    "event_id": payload["eventId"],
-                    "project_id": group.project_id,
-                },
-            )
-            return self.respond(status=404)
+            # pull the event based off our payload
+            event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
+            if event is None:
+                logger.info(
+                    "msteams.action.event-missing",
+                    extra={
+                        "team_id": team_id,
+                        "integration_id": integration.id,
+                        "organization_id": group.organization.id,
+                        "event_id": payload["eventId"],
+                        "project_id": group.project_id,
+                    },
+                )
+                return self.respond(status=404)
 
-        # refresh issue and update card
-        group.refresh_from_db()
-        card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_group_card()
-        client.update_card(conversation_id, activity_id, card)
+            # refresh issue and update card
+            group.refresh_from_db()
+            card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_group_card()
+            client.update_card(conversation_id, activity_id, card)
 
-        return issue_change_response
+            return issue_change_response
 
     def _handle_channel_message(self, request: Request) -> Response:
         data = request.data

@@ -42,7 +42,7 @@ describe('TeamMisery', () => {
     }));
 
     const weekMisery = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         meta,
         data: [
@@ -62,7 +62,7 @@ describe('TeamMisery', () => {
       match: [MockApiClient.matchQuery({statsPeriod: '7d'})],
     });
     const periodMisery = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       body: {
         meta,
         data: [
@@ -127,7 +127,7 @@ describe('TeamMisery', () => {
 
   it('should render empty state on error', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       statusCode: 500,
       body: {},
     });

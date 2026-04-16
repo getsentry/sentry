@@ -46,7 +46,7 @@ function SharedGroupDetails() {
     refetch,
   } = useApiQuery<Group>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/shared/issues/$shareId/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/shared/issues/$shareId/', {
         path: {organizationIdOrSlug: orgSlug!, shareId},
       }),
     ],

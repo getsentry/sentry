@@ -11,7 +11,7 @@ describe('slot', () => {
     expect(SlotModule.Fallback).toBeDefined();
   });
 
-  it('renders children in place when no Outlet is registered', () => {
+  it('renders nothing when no Outlet is registered', () => {
     const SlotModule = slot(['header'] as const);
 
     render(
@@ -22,7 +22,7 @@ describe('slot', () => {
       </SlotModule.Provider>
     );
 
-    expect(screen.getByText('inline content')).toBeInTheDocument();
+    expect(screen.queryByText('inline content')).not.toBeInTheDocument();
   });
 
   it('portals children to the Outlet element', () => {
@@ -44,7 +44,7 @@ describe('slot', () => {
     );
   });
 
-  it('multiple slot consumers render their children independently', () => {
+  it('multiple slot consumers render nothing independently when no Outlet is registered', () => {
     const SlotModule = slot(['a', 'b'] as const);
 
     render(
@@ -58,8 +58,8 @@ describe('slot', () => {
       </SlotModule.Provider>
     );
 
-    expect(screen.getByText('slot a content')).toBeInTheDocument();
-    expect(screen.getByText('slot b content')).toBeInTheDocument();
+    expect(screen.queryByText('slot a content')).not.toBeInTheDocument();
+    expect(screen.queryByText('slot b content')).not.toBeInTheDocument();
   });
 
   it('consumer throws when rendered outside provider', () => {

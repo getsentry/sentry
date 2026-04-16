@@ -230,7 +230,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
 
     const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol(`tableFetchID`);
+    const tableFetchID = Symbol('tableFetchID');
     const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(this.props);
 
     this.setState({isLoading: true, tableFetchID});

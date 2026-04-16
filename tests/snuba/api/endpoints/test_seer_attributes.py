@@ -43,8 +43,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "fields": {
                 "string": [
                     "span.description",
-                    "project",
                     "transaction",
+                    "device.class",
+                    "span.module",
+                    "project",
                 ],
                 "number": ["span.duration"],
             },

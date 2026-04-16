@@ -11,7 +11,6 @@ import {
 import * as Sentry from '@sentry/react';
 import uniqBy from 'lodash/uniqBy';
 
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -19,6 +18,7 @@ import type {
 } from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {useInfiniteQuery} from 'sentry/utils/queryClient';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
@@ -91,7 +91,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   const hasInitializedCodeReviewMap = useRef(false);
 
   const repositoriesResult = useInfiniteQuery({
-    ...organizationRepositoriesInfiniteOptions({
+    ...organizationRepositoriesWithSettingsInfiniteOptions({
       organization,
       query: {per_page: 100},
     }),

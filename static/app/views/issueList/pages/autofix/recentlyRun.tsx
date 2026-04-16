@@ -6,7 +6,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueListContainer} from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
-const QUERY = `is:unresolved has:issue.seer_last_run`;
+const QUERY = 'is:unresolved has:issue.seer_last_run';
 const label = t('Recently Run');
 
 export default function AutofixRecentlyRunPage() {

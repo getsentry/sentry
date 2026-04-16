@@ -15,7 +15,7 @@ describe('WhatsNew', () => {
       method: 'PUT',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [],
     });
@@ -32,7 +32,7 @@ describe('WhatsNew', () => {
 
   it('does not show the unread indicator when all broadcasts are seen', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({id: '1', hasSeen: true}),
@@ -53,7 +53,7 @@ describe('WhatsNew', () => {
 
   it('renders broadcasts even when all have been seen', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Seen Broadcast 1', hasSeen: true}),
@@ -76,7 +76,7 @@ describe('WhatsNew', () => {
     jest.useFakeTimers();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({
@@ -115,7 +115,7 @@ describe('WhatsNew', () => {
     jest.useFakeTimers();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Seen Broadcast 1', hasSeen: true}),
@@ -148,7 +148,7 @@ describe('WhatsNew', () => {
     jest.useFakeTimers();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({
@@ -203,7 +203,7 @@ describe('WhatsNew', () => {
     jest.useFakeTimers();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({
@@ -251,7 +251,7 @@ describe('WhatsNew', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [broadcast],
     });
@@ -281,7 +281,7 @@ describe('WhatsNew', () => {
 
   it('filters out duplicate titles and only shows the first occurrence', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Duplicate Title', hasSeen: true}),
@@ -303,7 +303,7 @@ describe('WhatsNew', () => {
     jest.useFakeTimers();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Duplicate Title', hasSeen: false}),
@@ -341,7 +341,7 @@ describe('WhatsNew', () => {
 
   it('renders broadcast items for each category type', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/broadcasts/`,
+      url: '/organizations/org-slug/broadcasts/',
       match: [MockApiClient.matchQuery({show: 'latest', limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Broadcast 1', category: 'announcement'}),

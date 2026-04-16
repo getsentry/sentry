@@ -1,5 +1,6 @@
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import seerConfigMainBg from 'sentry-images/spot/seer-config-main-bg.svg';
 
@@ -9,15 +10,17 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 export function SeerWizardSetupBanner() {
   const organization = useOrganization();
   const theme = useInvertedTheme();
 
-  const {data, isFetched, isError} = useSeerOnboardingCheck();
+  const {data, isFetched, isError} = useQuery(
+    getSeerOnboardingCheckQueryOptions({organization})
+  );
 
   if (!isFetched || isError) {
     return null;

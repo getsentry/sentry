@@ -14,9 +14,12 @@ from typing import Any, Literal
 
 from django import forms
 from django.conf import settings as django_settings
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
+from rest_framework.fields import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -32,6 +35,8 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.utils.imports import import_string
@@ -76,7 +81,16 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     environment_id: str | None = None
     workspace_name: str | None = "default"
     agent_id: str | None = None
-    agent_version: str | None = None
+    agent_version: int | None = None
+    model: str | None = None
+
+    @validator("agent_version", pre=True)
+    def coerce_agent_version(cls, v: object) -> int | None:
+        # Old SDK stored version as a timestamp string — drop it so the agent is recreated.
+        # New versions come from the API as integers, so any string value is stale.
+        if isinstance(v, str):
+            return None
+        return v  # type: ignore[return-value]
 
 
 metadata = IntegrationMetadata(
@@ -144,6 +158,29 @@ class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
         pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
 
 
+class ClaudeCodeApiKeySerializer(CamelSnakeSerializer):
+    api_key = CharField(required=True, max_length=255)
+
+
+class ClaudeCodeApiKeyApiStep:
+    step_name = "api_key_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return ClaudeCodeApiKeySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("api_key", validated_data["api_key"])
+        return PipelineStepResult.advance()
+
+
 class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     """
     Integration provider for Claude Code Agent.
@@ -159,6 +196,9 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     def get_pipeline_views(self):
         return [ClaudeCodeApiKeyPipelineView()]
 
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [ClaudeCodeApiKeyApiStep()]
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state.get("api_key")
         if not api_key:
@@ -173,15 +213,20 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 raise IntegrationConfigurationError(
                     "Invalid Anthropic API key. Please check your credentials."
                 )
+        except IntegrationConfigurationError:
+            raise
+        except ValueError as e:
+            # e.g. valid key but GET /v1/models lists no model we support (getsentry client).
+            self.get_logger().warning(
+                "claude_code.build_integration.no_supported_model",
+                extra={"error": str(e)},
+            )
+            raise IntegrationConfigurationError(str(e)) from e
         except Exception as e:
-            if isinstance(e, IntegrationConfigurationError):
-                raise
             self.get_logger().exception(
                 "claude_code.build_integration.validation_failed",
             )
-            raise IntegrationConfigurationError(
-                "Unable to validate Anthropic API key. Please check your credentials."
-            ) from e
+            raise IntegrationConfigurationError("Unable to validate Anthropic API key.") from e
 
         environment_id = None
         workspace_name = "default"
@@ -191,6 +236,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
             api_key=api_key,
             environment_id=environment_id,
             workspace_name=workspace_name,
+            model=getattr(client, "model", None),
         )
 
         return {
@@ -289,6 +335,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             workspace_name=metadata.workspace_name,
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
+            model=metadata.model,
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:

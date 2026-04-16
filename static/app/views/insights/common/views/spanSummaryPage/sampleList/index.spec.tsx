@@ -19,7 +19,7 @@ describe('SampleList', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-timeseries/`,
+      url: '/organizations/org-slug/events-timeseries/',
       method: 'GET',
       body: [],
     });

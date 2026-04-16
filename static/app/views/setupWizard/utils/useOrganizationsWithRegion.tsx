@@ -16,7 +16,7 @@ export function useOrganizationsWithRegion() {
       const results = await Promise.all(
         regions.map<Promise<[Region, Organization[]]>>(async region => [
           region,
-          await api.requestPromise(`/organizations/`, {
+          await api.requestPromise('/organizations/', {
             host: region.url,
             // Authentication errors can happen as we span regions.
             allowAuthError: true,

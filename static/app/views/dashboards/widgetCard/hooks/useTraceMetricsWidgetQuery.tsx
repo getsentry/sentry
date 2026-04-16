@@ -117,7 +117,7 @@ export function useTraceMetricsSeriesQuery(
 
       // Build the API query key for events-timeseries endpoint
       return [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events-timeseries/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {
@@ -303,7 +303,7 @@ export function useTraceMetricsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {

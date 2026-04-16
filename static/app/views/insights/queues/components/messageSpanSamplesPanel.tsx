@@ -192,7 +192,7 @@ export function MessageSpanSamplesPanel() {
   } = useFetchSpanTimeSeries(
     {
       query: timeseriesFilters,
-      yAxis: [`avg(span.duration)`],
+      yAxis: ['avg(span.duration)'],
       enabled: isPanelOpen,
     },
     timeseriesReferrer

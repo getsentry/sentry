@@ -50,7 +50,7 @@ describe('useMultiQueryTable', () => {
     ['aggregate', useMultiQueryTableAggregateMode],
     ['sample', useMultiQueryTableSampleMode],
   ])(
-    `triggers the high accuracy request when there is no data and a partial scan for %s mode`,
+    'triggers the high accuracy request when there is no data and a partial scan for %s mode',
     async (_mode, hook) => {
       jest.mocked(useReadQueriesFromLocation).mockReturnValue([
         {

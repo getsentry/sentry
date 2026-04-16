@@ -12,7 +12,7 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 describe('OrganizationAuditLog', () => {
   it('renders', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: AuditLogsFixture(),
@@ -41,7 +41,7 @@ describe('OrganizationAuditLog', () => {
     ProjectsStore.loadInitialData(projects);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: [
@@ -115,7 +115,7 @@ describe('OrganizationAuditLog', () => {
 
   it('Handles absolute date range', async () => {
     const absoluteDateMockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: AuditLogsFixture(),

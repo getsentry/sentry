@@ -29,6 +29,8 @@ import {
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export type Props = {
   domainBaseUrl: string;
@@ -60,6 +62,7 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
@@ -133,12 +136,23 @@ export function DomainViewHeader({
           {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton feedbackOptions={feedbackOptions} />
-            {additonalHeaderActions}
-          </Grid>
-        </Layout.HeaderActions>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            {additonalHeaderActions && (
+              <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
+            )}
+            <TopBar.Slot name="feedback">
+              <FeedbackButton feedbackOptions={feedbackOptions}>{null}</FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton feedbackOptions={feedbackOptions} />
+              {additonalHeaderActions}
+            </Grid>
+          </Layout.HeaderActions>
+        )}
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList>

@@ -251,13 +251,13 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       ];
     }, []);
 
-  const onResetZoom = useCallback(() => {
+  const onResetZoom = () => {
     props.scheduler.dispatch('reset zoom');
     trackAnalytics('profiling_views.aggregate_flamegraph.zoom.reset', {
       organization,
       profile_type: 'transaction aggregate flamegraph',
     });
-  }, [props.scheduler, organization]);
+  };
 
   const onFrameFilterChange = useCallback(
     (value: {value: 'application' | 'system' | 'all'}) => {
@@ -322,8 +322,8 @@ const CollapseExpandButton = styled(Button)`
 function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   return (
     <Flex>
-      <IconChevron style={{marginRight: `-3px`}} {...props} />
-      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+      <IconChevron style={{marginRight: '-3px'}} {...props} />
+      <IconChevron style={{marginLeft: '-3px'}} {...props} />
     </Flex>
   );
 }

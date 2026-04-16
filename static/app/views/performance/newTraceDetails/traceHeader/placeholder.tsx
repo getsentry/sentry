@@ -8,9 +8,19 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {TraceHeaderComponents} from './styles';
+
+const traceViewFeedbackOptions = {
+  messagePlaceholder: t('How can we make the trace view better for you?'),
+  tags: {
+    ['feedback.source']: 'trace-view',
+    ['feedback.owner']: 'performance',
+  },
+};
 
 export function PlaceHolder({
   organization,
@@ -21,6 +31,7 @@ export function PlaceHolder({
   traceSlug: string;
   project?: Project;
 }) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
@@ -40,16 +51,15 @@ export function PlaceHolder({
             })}
           />
           <Grid flow="column" align="center" gap="md">
-            <FeedbackButton
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('How can we make the trace view better for you?'),
-                tags: {
-                  ['feedback.source']: 'trace-view',
-                  ['feedback.owner']: 'performance',
-                },
-              }}
-            />
+            {hasPageFrameFeature ? (
+              <TopBar.Slot name="feedback">
+                <FeedbackButton feedbackOptions={traceViewFeedbackOptions}>
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+            ) : (
+              <FeedbackButton size="xs" feedbackOptions={traceViewFeedbackOptions} />
+            )}
           </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>

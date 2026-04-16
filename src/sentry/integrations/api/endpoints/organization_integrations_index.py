@@ -125,7 +125,11 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         def on_results(results: Sequence[OrganizationIntegration]) -> Sequence[Mapping[str, Any]]:
             if feature_filters:
                 results = filter_by_features(results, feature_filters)
-            return serialize(results, request.user, include_config=include_config)
+            return [
+                item
+                for item in serialize(results, request.user, include_config=include_config)
+                if item is not None
+            ]
 
         return self.paginate(
             queryset=queryset,

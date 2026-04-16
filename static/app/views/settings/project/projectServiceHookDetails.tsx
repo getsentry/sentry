@@ -44,7 +44,7 @@ function HookStats() {
     refetch,
   } = useApiQuery<Array<{total: number; ts: number}>>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
@@ -123,7 +123,7 @@ export default function ProjectServiceHookDetails() {
     refetch,
   } = useApiQuery<ServiceHook>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/', {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,

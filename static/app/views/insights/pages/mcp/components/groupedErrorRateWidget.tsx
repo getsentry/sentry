@@ -150,7 +150,7 @@ export function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProps) {
               ],
               groupBy: [props.groupBy],
               query: fullQuery,
-              sort: `-failure_rate()`,
+              sort: '-failure_rate()',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

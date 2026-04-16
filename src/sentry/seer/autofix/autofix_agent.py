@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -25,6 +25,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixTriageStartedEvent,
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -43,6 +44,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     get_project_seer_preferences,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
@@ -98,12 +100,14 @@ class StepConfig:
         artifact_schema: type[BaseModel] | None,
         prompt_fn: Callable[..., str],
         enable_coding: bool = False,
+        reasoning_effort: Literal["low", "medium", "high"] | None = None,
         started_event: type[AiAutofixPhaseEvent] | None = None,
         completed_event: type[AiAutofixPhaseEvent] | None = None,
     ):
         self.artifact_schema = artifact_schema
         self.prompt_fn = prompt_fn
         self.enable_coding = enable_coding
+        self.reasoning_effort = reasoning_effort
         self.started_event = started_event
         self.completed_event = completed_event
 
@@ -113,6 +117,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
     AutofixStep.ROOT_CAUSE: StepConfig(
         artifact_schema=RootCauseArtifact,
         prompt_fn=root_cause_prompt,
+        reasoning_effort="medium",
         started_event=AiAutofixRootCauseStartedEvent,
         completed_event=AiAutofixRootCauseCompletedEvent,
     ),
@@ -203,7 +208,8 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
 
 def get_autofix_explorer_client(
     group: Group,
-    intelligence_level: Literal["low", "medium", "high"] = "low",
+    intelligence_level: Literal["low", "medium", "high"] = "medium",
+    reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
 ) -> SeerExplorerClient:
     from sentry.seer.autofix.on_completion_hook import (
@@ -217,6 +223,7 @@ def get_autofix_explorer_client(
         category_key="autofix",
         category_value=str(group.id),
         intelligence_level=intelligence_level,
+        reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
     )
@@ -228,7 +235,7 @@ def trigger_autofix_explorer(
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "low",
+    intelligence_level: Literal["low", "medium", "high"] = "medium",
     user_context: str | None = None,
     insert_index: int | None = None,
 ) -> int:
@@ -259,6 +266,7 @@ def trigger_autofix_explorer(
     client = get_autofix_explorer_client(
         group,
         intelligence_level=intelligence_level,
+        reasoning_effort=config.reasoning_effort,
         enable_coding=config.enable_coding,
     )
 
@@ -448,6 +456,30 @@ def _get_relevant_repo(
     return repo_definitions[0]
 
 
+def _resolve_coding_agent_name(
+    organization_id: int, integration_id: int | None, provider: str | None
+) -> str | None:
+    """Resolve a human-readable coding agent name for analytics."""
+    if provider:
+        return provider
+    if integration_id is not None:
+        try:
+            integration = integration_service.get_integration(
+                integration_id=integration_id,
+            )
+            if integration:
+                return integration.provider
+        except Exception:
+            logger.exception(
+                "autofix.resolve_coding_agent_name.error",
+                extra={
+                    "organization_id": organization_id,
+                    "integration_id": integration_id,
+                },
+            )
+    return None
+
+
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
@@ -479,21 +511,27 @@ def trigger_coding_agent_handoff(
 
     auto_create_pr = False
     repo_definitions: list[SeerRepoDefinition] = []
-    try:
-        preference_response = get_project_seer_preferences(group.project_id)
-        if preference_response and preference_response.preference:
-            repo_definitions = list(preference_response.preference.repositories)
-            if preference_response.preference.automation_handoff:
-                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
-    except Exception:
-        logger.exception(
-            "autofix.coding_agent_handoff.get_preferences_error",
-            extra={
-                "organization_id": group.organization.id,
-                "run_id": run_id,
-                "project_id": group.project_id,
-            },
-        )
+    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
+        preference = read_preference_from_sentry_db(group.project)
+        repo_definitions = preference.repositories
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
+    else:
+        try:
+            pref = get_project_seer_preferences(group.project_id).preference
+            if pref:
+                repo_definitions = pref.repositories
+                if pref.automation_handoff:
+                    auto_create_pr = pref.automation_handoff.auto_create_pr
+        except Exception:
+            logger.exception(
+                "autofix.coding_agent_handoff.get_preferences_error",
+                extra={
+                    "organization_id": group.organization.id,
+                    "run_id": run_id,
+                    "project_id": group.project_id,
+                },
+            )
 
     if not repo_definitions:
         return {
@@ -542,18 +580,26 @@ def trigger_coding_agent_handoff(
         auto_create_pr=auto_create_pr,
     )
 
+    coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
+
     analytics.record(
         AiAutofixAgentHandoffEvent(
             organization_id=group.organization.id,
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            coding_agent=coding_agent_name,
+            initiator="automation.explorer",
         )
     )
 
     metrics.incr(
         "autofix.explorer.trigger",
-        tags={"step": "coding_agent_handoff", "referrer": referrer.value},
+        tags={
+            "step": "coding_agent_handoff",
+            "referrer": referrer.value,
+            "coding_agent": coding_agent_name or "unknown",
+        },
     )
 
     return coding_agents

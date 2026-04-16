@@ -1,16 +1,40 @@
 import dataclasses
+import logging
 import re
-from collections import OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence
 from ipaddress import ip_address, ip_interface, ip_network
-from typing import Callable
+from typing import Any, Callable
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.events.grouping")
+
+
+# Counter for logging a set amount of example data. Not meant to be used directly. (Use the
+# `_log_example_data` helper instead.)
+LOGGING_COUNTER: Counter[str] = Counter()
 
 # Function parameterization regexes can specify to provide a customized replacement string. Can also
 # be used to do conditional replacement, by returning the original value in cases where replacement
 # shouldn't happen.
 ParameterizationReplacementFunction = Callable[[str], str]
+
+
+# Log examples, up to the given limit.
+def _log_example_data(
+    key: str,  # Key used for tracking log count and in logger `event` string
+    extra: dict[str, Any],  # Extra data to add to the log (should include example data)
+    limit: int = 100,  # Number of logs to be gathered per deployment
+) -> None:
+    # Note: In a multi-threaded environment, it's possible to run into a race condition where
+    # multiple threads are simultaneously logging what should theoretically be the last example. As
+    # result, we may end up logging a few more examples than the given limit. To fix this, we'd need
+    # to wrap everything here in a lock, but given that a few extra logs don't hurt anything, it's
+    # not worth blocking ingest by doing so.
+    if LOGGING_COUNTER[key] < limit:
+        logger.info(f"grouping.parameterization.{key}", extra=extra)
+        LOGGING_COUNTER[key] += 1
 
 
 @dataclasses.dataclass
@@ -179,6 +203,29 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="mac_addr",
+        raw_pattern=r"""
+            (
+                # 6 sets of 2 hex characters, separated by colons, dashes, or spaces
+                \b
+                (
+                    ([0-9A-Fa-f]{2}:){5} | # 5 sets of two hex digits, each followed by a colon
+                    ([0-9A-Fa-f]{2}-){5} | # 5 sets of two hex digits, each followed by a dash
+                    ([0-9A-Fa-f]{2}\s){5} # 5 sets of two hex digits, each followed by a space
+                )
+                [0-9A-Fa-f]{2} # Final set of two hex digits
+                \b
+            )|
+            (
+                # 3 sets of 4 hex characters, separate by dots
+                \b
+                ([0-9A-Fa-f]{4}\.){2}  # 2 sets of four hex digits, each followed by a period
+                [0-9A-Fa-f]{4} # Final set of four hex digits
+                \b
+            )
+        """,
+    ),
     # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
     # IPv6 addresses
     ParameterizationRegex(
@@ -206,20 +253,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # two things:
             #   - Cases where the initial or end characters are all valid, but there are too many of
             #     them. (IOW, we don't want to match `2345:...` inside of an otherwise-invalid IP
-            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.)
+            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.
+            #     Similar logic applies to initial and final colons - we don't want `:::1` to turn
+            #     into `:<ip>` because it's matching on just the second and third colons.)
             #   - Cases where `::` (which is a valid IPv6 address) appears inside of expressions
             #     like `SomeClass::someMethod()`, especially when the characters bordering the `::`
             #     are valid hex, like `Space::explore()`.
             # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
             # 5 characters on either side, but those are presumably pretty rare.
-            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (?<![\w:]) # Negative lookbehind (match can't start immediately after these)
             (
+                (?!:::) # Negative lookahead to prevent starting with three colons
+                (?!:[^:]) # Negative lookahead to prevent starting with a single colon
                 ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
                 [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (?<![^:]:) # Negative lookbehind to prevent ending with a single colon
+                (?<!:::) # Negative lookbehind to prevent ending with three colons
+
                 (%\S+)? # Optional zone ID
                 (/\d{1,3})? # Optional CIDR suffix
             )
-            (?![0-9a-zA-Z]) # Negative lookahead
+            (?![\w:]) # Negative lookahead (match can't end immediately before these)
         """,
         # Validate that the matched string actually is an IP address before replacing it. If not,
         # leave it alone.
@@ -444,6 +498,10 @@ class Parameterizer:
                     # to see how often our maybe-matches pan out to be actual matches.
                     metrics.incr(
                         "grouping.parameterization_false_positive", tags={"key": matched_key}
+                    )
+                    # TODO: Remove this once we have enough sample data
+                    _log_example_data(
+                        "ip_false_positive", extra={"input_str": input_str, "value": orig_value}
                     )
 
             return replacement_string

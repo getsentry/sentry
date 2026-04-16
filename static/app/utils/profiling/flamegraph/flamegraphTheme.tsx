@@ -234,7 +234,7 @@ export const makeLightFlamegraphTheme = (theme: Theme): FlamegraphTheme => {
 
       // Special states
       FOCUSED_FRAME_BORDER_COLOR: theme.tokens.focus.default,
-      HIGHLIGHTED_LABEL_COLOR: `rgba(240, 240, 0, 1)`,
+      HIGHLIGHTED_LABEL_COLOR: 'rgba(240, 240, 0, 1)',
       HOVERED_FRAME_BORDER_COLOR: theme.tokens.border.transparent.neutral.vibrant,
       SELECTED_FRAME_BORDER_COLOR: theme.tokens.graphics.accent.vibrant,
 

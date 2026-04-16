@@ -2,12 +2,13 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -32,7 +33,9 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {Breadcrumb, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {getCrumbs, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -72,6 +75,7 @@ export function TransactionHeader({
 }: Props) {
   const {isInDomainView, view} = useDomainViewFilters();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -256,67 +260,145 @@ export function TransactionHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumb
-          organization={organization}
-          location={location}
-          transaction={{
-            project: projectId,
-            name: transactionName,
-          }}
-        />
-        <Layout.Title>
-          {project && (
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={getCrumbs({
+                organization,
+                location,
+                transaction: {project: projectId, name: transactionName},
+              }).concat({
+                label: (
+                  <Flex align="center" gap="sm">
+                    {project && (
+                      <IdBadge
+                        project={project}
+                        avatarSize={16}
+                        hideName
+                        avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                      />
+                    )}
+                    <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                      <TransactionName>{transactionName}</TransactionName>
+                    </Tooltip>
+                  </Flex>
+                ),
+              })}
             />
-          )}
-          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-            <TransactionName>{transactionName}</TransactionName>
-          </Tooltip>
-        </Layout.Title>
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <Grid flow="column" align="center" gap="md">
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature &&
-              !metricsCardinality?.isLoading &&
-              !deprecateTransactionAlerts(organization) ? (
-                <CreateAlertFromViewButton
-                  size="sm"
-                  eventView={eventView}
-                  organization={organization}
-                  projects={projects}
-                  onClick={handleCreateAlertSuccess}
-                  referrer="performance"
-                  alertType="trans_duration"
-                  aria-label={t('Create Alert')}
-                  disableMetricDataset={
-                    metricsCardinality?.outcome?.forceTransactionsOnly
-                  }
+          </TopBar.Slot>
+        ) : (
+          <Fragment>
+            <Breadcrumbs
+              crumbs={getCrumbs({
+                organization,
+                location,
+                transaction: {project: projectId, name: transactionName},
+              })}
+            />
+            <Layout.Title>
+              {project && (
+                <IdBadge
+                  project={project}
+                  avatarSize={28}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
                 />
-              ) : null
-            }
-          </Feature>
-          <TeamKeyTransactionButton
-            transactionName={transactionName}
-            eventView={eventView}
-            organization={organization}
-          />
-          <GuideAnchor target="project_transaction_threshold_override" position="bottom">
-            <TransactionThresholdButton
-              organization={organization}
+              )}
+              <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                <TransactionName>{transactionName}</TransactionName>
+              </Tooltip>
+            </Layout.Title>
+          </Fragment>
+        )}
+      </Layout.HeaderContent>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <Feature organization={organization} features="incidents">
+              {({hasFeature}) =>
+                hasFeature &&
+                !metricsCardinality?.isLoading &&
+                !deprecateTransactionAlerts(organization) ? (
+                  <CreateAlertFromViewButton
+                    eventView={eventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={handleCreateAlertSuccess}
+                    referrer="performance"
+                    alertType="trans_duration"
+                    aria-label={t('Create Alert')}
+                    disableMetricDataset={
+                      metricsCardinality?.outcome?.forceTransactionsOnly
+                    }
+                  />
+                ) : null
+              }
+            </Feature>
+            <TeamKeyTransactionButton
               transactionName={transactionName}
               eventView={eventView}
-              onChangeThreshold={onChangeThreshold}
+              organization={organization}
             />
-          </GuideAnchor>
-          <FeedbackButton />
-        </Grid>
-      </Layout.HeaderActions>
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <Feature organization={organization} features="incidents">
+              {({hasFeature}) =>
+                hasFeature &&
+                !metricsCardinality?.isLoading &&
+                !deprecateTransactionAlerts(organization) ? (
+                  <CreateAlertFromViewButton
+                    size="sm"
+                    eventView={eventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={handleCreateAlertSuccess}
+                    referrer="performance"
+                    alertType="trans_duration"
+                    aria-label={t('Create Alert')}
+                    disableMetricDataset={
+                      metricsCardinality?.outcome?.forceTransactionsOnly
+                    }
+                  />
+                ) : null
+              }
+            </Feature>
+            <TeamKeyTransactionButton
+              transactionName={transactionName}
+              eventView={eventView}
+              organization={organization}
+            />
+            <GuideAnchor
+              target="project_transaction_threshold_override"
+              position="bottom"
+            >
+              <TransactionThresholdButton
+                organization={organization}
+                transactionName={transactionName}
+                eventView={eventView}
+                onChangeThreshold={onChangeThreshold}
+              />
+            </GuideAnchor>
+            <FeedbackButton />
+          </Grid>
+        </Layout.HeaderActions>
+      )}
       <TabList
         outerWrapStyles={{
           gridColumn: '1 / -1',

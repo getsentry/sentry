@@ -76,7 +76,7 @@ function createAISummaryQueryKey(
 ): ApiQueryKey {
   return [
     getApiUrl(
-      `/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/`,
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/',
       {
         path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, replayId},
       }

@@ -37,7 +37,7 @@ export type Params = DocsParams<PlatformOptions>;
 const getIntegrations = (params: Params): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration({ router })`);
+    integrations.push('Sentry.browserTracingIntegration({ router })');
   }
 
   if (params.isReplaySelected) {
@@ -47,7 +47,7 @@ const getIntegrations = (params: Params): string[] => {
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isFeedbackSelected) {

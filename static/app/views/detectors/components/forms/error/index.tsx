@@ -141,6 +141,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
     <EditLayout
       formProps={{
         initialData: {
+          projectId: detector.projectId,
           workflowIds: detector.workflowIds,
         },
         onSubmit: handleFormSubmit,

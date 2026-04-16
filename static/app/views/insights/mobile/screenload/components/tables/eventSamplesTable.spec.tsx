@@ -14,7 +14,7 @@ describe('EventSamplesTable', () => {
         statsPeriod: '99d',
       },
     },
-    route: `/organizations/:orgId/insights/mobile/screen-loads/`,
+    route: '/organizations/:orgId/insights/mobile/screen-loads/',
   };
 
   const mockLocation = LocationFixture({
@@ -36,7 +36,7 @@ describe('EventSamplesTable', () => {
     mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       method: 'GET',
       match: [
         MockApiClient.matchQuery({

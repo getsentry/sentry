@@ -14,7 +14,15 @@ from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
+from sentry.issues.grouptype import (
+    AIDetectedCodeHealthGroupType,
+    AIDetectedDBGroupType,
+    AIDetectedGeneralGroupType,
+    AIDetectedHTTPGroupType,
+    AIDetectedRuntimePerformanceGroupType,
+    AIDetectedSecurityGroupType,
+    GroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
@@ -81,11 +89,8 @@ class DetectedIssue(BaseModel):
     explanation: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     impact: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     evidence: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    missing_telemetry: str | None = Field(None, max_length=MAX_LLM_FIELD_LENGTH)
     offender_span_ids: list[str]
     transaction_name: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    category: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
-    subcategory: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     verification_reason: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     group_for_fingerprint: str = Field(..., max_length=MAX_LLM_FIELD_LENGTH)
     project_id: int | None = None
@@ -149,6 +154,34 @@ def get_base_platform(platform: str | None) -> str | None:
     return None
 
 
+TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Degraded Database Operation": AIDetectedDBGroupType,
+    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Potential Security Leak": AIDetectedSecurityGroupType,
+    "Potential Security Risk": AIDetectedSecurityGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
+    "Deprecation Warning": AIDetectedCodeHealthGroupType,
+}
+
+GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
+    AIDetectedHTTPGroupType: "ai_detected_http_enabled",
+    AIDetectedDBGroupType: "ai_detected_db_enabled",
+    AIDetectedRuntimePerformanceGroupType: "ai_detected_runtime_performance_enabled",
+    AIDetectedSecurityGroupType: "ai_detected_security_enabled",
+    AIDetectedCodeHealthGroupType: "ai_detected_code_health_enabled",
+    AIDetectedGeneralGroupType: "ai_detected_general_enabled",
+}
+
+
+def get_group_type_for_title(title: str) -> type[GroupType]:
+    return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     project: Project,
@@ -156,6 +189,13 @@ def create_issue_occurrence_from_detection(
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
+    group_type = get_group_type_for_title(detected_issue.title)
+    setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
+    if setting_key:
+        perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+        if not perf_settings.get(setting_key, True):
+            return
+
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
@@ -171,7 +211,6 @@ def create_issue_occurrence_from_detection(
         "explanation": detected_issue.explanation,
         "impact": detected_issue.impact,
         "evidence": detected_issue.evidence,
-        "missing_telemetry": detected_issue.missing_telemetry,
         "offender_span_ids": detected_issue.offender_span_ids,
     }
 
@@ -191,7 +230,7 @@ def create_issue_occurrence_from_detection(
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupTypeV2,
+        type=get_group_type_for_title(detected_issue.title),
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",
@@ -282,6 +321,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         organization.get_option("sentry:hide_ai_features")
     )
     if not has_access:
+        return
+
+    perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+    if not perf_settings.get("ai_issue_detection_enabled", True):
         return
 
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(

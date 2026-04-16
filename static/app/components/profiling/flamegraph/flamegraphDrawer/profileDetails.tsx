@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -67,13 +67,13 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     p => p.id === String(props.profileGroup.metadata.projectID)
   );
 
-  const onEnvironmentTabClick = useCallback(() => {
+  const onEnvironmentTabClick = () => {
     setDetailsTab('environment');
-  }, []);
+  };
 
-  const onTransactionTabClick = useCallback(() => {
+  const onTransactionTabClick = () => {
     setDetailsTab('transaction');
-  }, []);
+  };
 
   const flamegraphPreferences = useFlamegraphPreferences();
   const isResizableDetailsBar =
@@ -96,7 +96,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       }
 
       if (isSidebarLayout) {
-        detailsBarRef.current.style.width = `100%`;
+        detailsBarRef.current.style.width = '100%';
         detailsBarRef.current.style.height = `${maybeOldSize ?? newSize}px`;
       } else {
         detailsBarRef.current.style.height = '';

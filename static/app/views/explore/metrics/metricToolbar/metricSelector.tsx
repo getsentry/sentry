@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {useComboBox} from '@react-aria/combobox';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {useListBox, useOption} from '@react-aria/listbox';
+import {useOption} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
-import {useListState, type ListState} from '@react-stately/list';
+import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
@@ -32,10 +33,7 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {
-  canUseMetricsSidePanelUI,
-  canUseMetricsUIRefresh,
-} from 'sentry/views/explore/metrics/metricsFlags';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -44,6 +42,7 @@ import {
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 
 export const NONE_UNIT = 'none';
+const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 
 function nextFrameCallback(cb: () => void) {
   if ('requestAnimationFrame' in window) {
@@ -106,10 +105,10 @@ export function MetricSelector({
   const organization = useOrganization();
   const hasMetricUnitsUI = useHasMetricUnitsUI();
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listElementRef = useRef<HTMLUListElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const [searchInputValue, setSearchInputValue] = useState('');
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
@@ -117,58 +116,6 @@ export function MetricSelector({
     search: debouncedSearch,
   });
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
-
-  const {
-    isOpen,
-    state: overlayState,
-    triggerProps,
-    overlayProps,
-    triggerRef,
-    overlayRef,
-    update: updateOverlay,
-  } = useOverlay({
-    type: 'listbox',
-    position: 'bottom-start',
-    offset: 6,
-    isDismissable: true,
-    shouldApplyMinWidth: true,
-    disableTrigger: isFetching && !traceMetric.name,
-    onOpenChange: open => {
-      nextFrameCallback(() => {
-        if (open) {
-          updateOverlay?.();
-          if (searchRef.current) {
-            searchRef.current.focus();
-            return;
-          }
-
-          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-            'li[role="option"][aria-selected="true"]'
-          );
-          if (firstSelectedOption) {
-            firstSelectedOption.focus();
-            return;
-          }
-
-          overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
-          return;
-        }
-
-        setSearchInputValue('');
-        if (
-          document.activeElement === document.body ||
-          wrapperRef.current?.contains(document.activeElement)
-        ) {
-          nextFrameCallback(() => {
-            const triggerElement =
-              triggerRef.current ??
-              wrapperRef.current?.querySelector<HTMLButtonElement>('button');
-            triggerElement?.focus();
-          });
-        }
-      });
-    },
-  });
 
   const metricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
@@ -293,60 +240,115 @@ export function MetricSelector({
     [displayedOptions]
   );
 
-  const handleSelect = useCallback(
-    (option: MetricSelectOption) => {
-      onChange({
-        name: option.metricName,
-        type: option.metricType,
-        unit: hasMetricUnitsUI ? option.metricUnit : undefined,
-      });
-      overlayState.close();
-    },
-    [onChange, hasMetricUnitsUI, overlayState]
-  );
-
   const displayedOptionsMap = useMemo(
     () => new Map(displayedOptions.map(option => [option.value, option])),
     [displayedOptions]
   );
 
-  const listState = useListState<MetricSelectOption>({
+  function handleOverlayOpenChange(open: boolean) {
+    if (open) {
+      nextFrameCallback(() => {
+        updateOverlay?.();
+        if (scrollElementRef.current) {
+          scrollElementRef.current.scrollTop = 0;
+        }
+      });
+      return;
+    }
+
+    setSearchInputValue('');
+    comboBoxState.selectionManager.setFocused(false);
+    comboBoxState.selectionManager.setFocusedKey(null);
+    nextFrameCallback(() => {
+      if (
+        document.activeElement === document.body ||
+        triggerRef.current?.contains(document.activeElement) ||
+        popoverRef.current?.contains(document.activeElement)
+      ) {
+        nextFrameCallback(() => {
+          triggerRef.current?.focus();
+        });
+      }
+    });
+  }
+
+  const comboBoxState = useComboBoxState<MetricSelectOption>({
+    children: (item: MetricSelectOption) => <Item key={item.value}>{item.label}</Item>,
     items: displayedOptions,
-    selectionMode: 'single',
-    selectedKeys: traceMetric.name ? [traceMetricSelectValue] : [],
-    allowDuplicateSelectionEvents: true,
-    disallowEmptySelection: true,
-    onSelectionChange: selection => {
-      if (selection === 'all') {
+    allowsEmptyCollection: true,
+    shouldCloseOnBlur: false,
+    menuTrigger: 'manual',
+    defaultFilter: () => true,
+    inputValue: searchInputValue,
+    onInputChange: setSearchInputValue,
+    selectedKey: traceMetric.name ? traceMetricSelectValue : null,
+    onSelectionChange: key => {
+      if (!key) {
         return;
       }
-      const selectedKey = Array.from(selection)[0];
-      if (!selectedKey) {
-        return;
-      }
-      const selectedOption = displayedOptionsMap.get(String(selectedKey));
+      const selectedOption = displayedOptionsMap.get(String(key));
       if (selectedOption) {
-        handleSelect(selectedOption);
+        onChange({
+          name: selectedOption.metricName,
+          type: selectedOption.metricType,
+          unit: hasMetricUnitsUI ? selectedOption.metricUnit : undefined,
+        });
+        // Close via toggle() instead of close() because the combobox
+        // overrides close with commitValue which re-fires onSelectionChange
+        // with the stale previous key, reverting the selection.
+        comboBoxState.toggle();
       }
     },
-    children: (item: MetricSelectOption) => <Item key={item.value}>{item.label}</Item>,
+    onOpenChange: handleOverlayOpenChange,
   });
 
-  const {listBoxProps} = useListBox(
-    {
-      shouldFocusWrap: true,
-      shouldSelectOnPressUp: true,
-      'aria-labelledby': triggerId,
+  const {
+    isOpen,
+    state: overlayState,
+    triggerProps,
+    overlayProps,
+    triggerRef,
+    update: updateOverlay,
+  } = useOverlay({
+    type: 'listbox',
+    position: 'bottom-start',
+    offset: 6,
+    isOpen: comboBoxState.isOpen,
+    isDismissable: true,
+    isKeyboardDismissDisabled: true,
+    shouldApplyMinWidth: true,
+    disableTrigger: isFetching && !traceMetric.name,
+    onOpenChange: open => {
+      if (open === comboBoxState.isOpen) {
+        return;
+      }
+
+      if (open) {
+        comboBoxState.open();
+      } else {
+        // close() commits the current selected key before dismissing, which
+        // spuriously re-fires onSelectionChange during outside dismissals.
+        comboBoxState.toggle();
+      }
     },
-    listState,
-    listElementRef
+  });
+
+  const {inputProps: comboBoxInputProps, listBoxProps} = useComboBox<MetricSelectOption>(
+    {
+      'aria-labelledby': triggerId,
+      listBoxRef: listElementRef,
+      inputRef: searchRef,
+      popoverRef,
+      shouldFocusWrap: true,
+    },
+    comboBoxState
   );
 
   const collectionItems = useMemo(
-    () => [...listState.collection],
-    [listState.collection]
+    () => [...comboBoxState.collection],
+    [comboBoxState.collection]
   );
-  const focusedKey = listState.selectionManager.focusedKey;
+  const focusedKey = comboBoxState.selectionManager.focusedKey;
 
   const virtualizer = useVirtualizer({
     count: collectionItems.length,
@@ -370,36 +372,9 @@ export function MetricSelector({
     },
   });
 
-  // The search input sits outside the listbox, so useListBox's shouldFocusWrap
-  // never sees these keystrokes. Bridge ArrowDown from the search field into the
-  // list; once focus is inside the list, shouldFocusWrap takes over.
-  const {keyboardProps: searchKeyboardProps} = useKeyboard({
-    onKeyDown: e => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const firstKey = listState.collection.getFirstKey();
-        if (firstKey) {
-          listState.selectionManager.setFocused(true);
-          listState.selectionManager.setFocusedKey(firstKey);
-        }
-        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
-      }
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-      }
-
-      e.continuePropagation();
-    },
-  });
-
   const mergedTriggerProps = mergeProps(triggerProps, triggerKeyboardProps, {
     id: triggerId,
   });
-
-  const onSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchInputValue(e.target.value);
-  }, []);
 
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -418,7 +393,7 @@ export function MetricSelector({
         }));
 
   return (
-    <Container width="100%" position="relative" ref={wrapperRef}>
+    <Container width="100%" position="relative">
       <OverlayTrigger.Button
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
@@ -435,7 +410,14 @@ export function MetricSelector({
         style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
       >
         {isOpen ? (
-          <Overlay style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+          <Overlay
+            ref={popoverRef}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
             <FocusScope contain>
               <Flex direction={{xs: 'column', sm: 'row'}}>
                 <Stack
@@ -459,18 +441,19 @@ export function MetricSelector({
                           paddingLeft="2xs"
                           align="center"
                           justify="center"
-                          style={{transform: 'translateY(1px) translateX(1px)'}}
+                          style={{
+                            transform: 'translateY(1px) translateX(1px)',
+                          }}
                         >
                           <IconSearch size="xs" variant="muted" />
                         </Flex>
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
+                        {...comboBoxInputProps}
                         placeholder={t('Search metrics\u2026')}
-                        value={searchInputValue}
-                        onChange={onSearchChange}
                         size="xs"
+                        autoFocus
                         ref={searchRef}
-                        {...searchKeyboardProps}
                       />
                     </InputGroup>
                   </Container>
@@ -527,11 +510,11 @@ export function MetricSelector({
                           }}
                         >
                           <ListWrap
-                            {...listBoxProps}
-                            style={{
-                              ...listBoxProps.style,
-                              padding: 0,
-                            }}
+                            id={listBoxProps.id}
+                            aria-label={listBoxProps['aria-label']}
+                            aria-labelledby={listBoxProps['aria-labelledby']}
+                            role="listbox"
+                            style={{padding: 0}}
                             ref={listElementRef}
                           >
                             {itemsToRender.map(virtualRow => {
@@ -544,7 +527,7 @@ export function MetricSelector({
                                 <MetricListBoxOption
                                   key={item.key}
                                   item={item}
-                                  listState={listState}
+                                  listState={comboBoxState}
                                   size="md"
                                   dataIndex={virtualRow.index}
                                   measureRef={virtualizer.measureElement}
@@ -557,14 +540,12 @@ export function MetricSelector({
                     )}
                   </Container>
                 </Stack>
-                {canUseMetricsSidePanelUI(organization) ? (
-                  <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
-                    <MetricDetailPanel
-                      metric={highlightedOption ?? optionFromTraceMetric}
-                      hasMetricUnitsUI={hasMetricUnitsUI}
-                    />
-                  </Container>
-                ) : null}
+                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
+                  <MetricDetailPanel
+                    metric={highlightedOption ?? optionFromTraceMetric}
+                    hasMetricUnitsUI={hasMetricUnitsUI}
+                  />
+                </Container>
               </Flex>
             </FocusScope>
           </Overlay>
@@ -577,7 +558,7 @@ export function MetricSelector({
 interface MetricListBoxOptionProps {
   dataIndex: number;
   item: Node<MetricSelectOption>;
-  listState: ListState<MetricSelectOption>;
+  listState: ComboBoxState<MetricSelectOption>;
   size: MenuListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
 }
@@ -592,7 +573,12 @@ function MetricListBoxOption({
   const ref = useRef<HTMLLIElement>(null);
   const option = item.value!;
   const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
-    {key: item.key, 'aria-label': option.label},
+    {
+      key: item.key,
+      'aria-label': option.label,
+      shouldUseVirtualFocus: true,
+      shouldSelectOnPressUp: true,
+    },
     listState,
     ref
   );
@@ -600,6 +586,10 @@ function MetricListBoxOption({
     onMouseEnter: () => {
       listState.selectionManager.setFocused(true);
       listState.selectionManager.setFocusedKey(item.key);
+    },
+    onMouseLeave: () => {
+      listState.selectionManager.setFocused(false);
+      listState.selectionManager.setFocusedKey(null);
     },
   });
 
@@ -611,7 +601,7 @@ function MetricListBoxOption({
       ref={mergeRefs(ref, measureRef)}
       size={size}
       label={option.label}
-      isFocused={listState.selectionManager.isFocused && isFocused}
+      isFocused={isFocused}
       isSelected={isSelected}
       isPressed={isPressed}
       disabled={isDisabled}
@@ -695,23 +685,29 @@ function MetricAttributesSection({
   metricName: string;
   metricType: string;
 }) {
-  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
+  const traceMetricFilter = createTraceMetricFilter({
+    name: metricName,
+    type: metricType,
+  });
+
+  const debouncedTraceMetricFilter = useDebouncedValue(
+    traceMetricFilter,
+    METRIC_ATTRIBUTES_DEBOUNCE_DURATION
+  );
+
+  const isDebouncingAttributes = debouncedTraceMetricFilter !== traceMetricFilter;
+  const metricAttributeQuery = {
+    enabled: Boolean(debouncedTraceMetricFilter),
+    query: debouncedTraceMetricFilter,
+    staleTime: Infinity,
+  };
 
   const {attributes: stringAttrs, isLoading: stringLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'string'
-    );
+    useTraceMetricItemAttributes(metricAttributeQuery, 'string');
   const {attributes: numberAttrs, isLoading: numberLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'number'
-    );
+    useTraceMetricItemAttributes(metricAttributeQuery, 'number');
   const {attributes: booleanAttrs, isLoading: booleanLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'boolean'
-    );
+    useTraceMetricItemAttributes(metricAttributeQuery, 'boolean');
 
   const attributeKeys = useMemo(() => {
     const keys = new Set([
@@ -724,7 +720,7 @@ function MetricAttributesSection({
       .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
   }, [stringAttrs, numberAttrs, booleanAttrs]);
 
-  if (stringLoading || numberLoading || booleanLoading) {
+  if (isDebouncingAttributes || stringLoading || numberLoading || booleanLoading) {
     return (
       <Stack gap="xs">
         <Text size="md">{t('Attributes')}:</Text>

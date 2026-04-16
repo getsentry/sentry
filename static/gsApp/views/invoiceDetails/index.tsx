@@ -35,7 +35,7 @@ function InvoiceDetails() {
     refetch: billingDetailsRefetch,
   } = useApiQuery<BillingDetails>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -51,7 +51,7 @@ function InvoiceDetails() {
     refetch: invoiceRefetch,
   } = useApiQuery<Invoice>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/invoices/$invoiceId/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
         path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
       }),
     ],

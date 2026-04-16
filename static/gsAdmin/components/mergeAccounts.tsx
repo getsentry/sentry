@@ -34,7 +34,7 @@ export function MergeAccountsModal(props: Props) {
   const queryClient = useQueryClient();
 
   const makeMergeAccountsQueryKey = (): ApiQueryKey => [
-    getApiUrl(`/users/$userId/merge-accounts/`, {
+    getApiUrl('/users/$userId/merge-accounts/', {
       path: {userId},
     }),
   ];

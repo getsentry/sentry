@@ -1,6 +1,7 @@
 from typing import Literal, TypedDict
 
 import sentry_sdk
+from django.db.models import Exists, OuterRef
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
@@ -20,6 +21,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     DebugIdArtifactBundle,
+    ProjectArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
 )
@@ -179,11 +181,6 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
             has_uploaded_artifact_bundle_with_release = ReleaseArtifactBundle.objects.filter(
                 organization_id=project.organization_id, release_name=release.version
             ).exists()
-        has_uploaded_some_artifact_with_a_debug_id = DebugIdArtifactBundle.objects.filter(
-            organization_id=project.organization_id,
-            artifact_bundle__projectartifactbundle__project_id=project.id,
-        ).exists()
-
         debug_images = get_path(event_data, "debug_meta", "images")
         debug_images = debug_images if debug_images is not None else []
 
@@ -211,6 +208,23 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                 == SourceFileType.SOURCE_MAP
             ):
                 debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
+
+        has_uploaded_some_artifact_with_a_debug_id = bool(
+            debug_ids_with_uploaded_source_file or debug_ids_with_uploaded_source_map
+        ) or (
+            DebugIdArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+            )
+            .filter(
+                Exists(
+                    ProjectArtifactBundle.objects.filter(
+                        artifact_bundle_id=OuterRef("artifact_bundle_id"),
+                        project_id=project.id,
+                    )
+                )
+            )
+            .exists()
+        )
 
         # Get all abs paths and query for their existence so that we can match release artifacts
         release_process_abs_path_data = {}

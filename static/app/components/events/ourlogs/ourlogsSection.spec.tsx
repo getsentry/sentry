@@ -132,7 +132,7 @@ describe('OurlogsSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/`,
+      url: '/projects/',
       body: [project],
     });
 

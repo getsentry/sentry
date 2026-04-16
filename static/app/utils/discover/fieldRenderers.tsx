@@ -1193,7 +1193,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       <TimeSpentCell
         percentage={data[fieldName]}
         total={data[`sum(${column})`]}
-        op={data[`span.op`]}
+        op={data['span.op']}
       />
     );
   },

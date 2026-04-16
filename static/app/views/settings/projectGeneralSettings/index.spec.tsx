@@ -1,4 +1,3 @@
-import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -37,7 +36,6 @@ describe('projectGeneralSettings', () => {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = GroupingConfigsFixture();
   let putMock: jest.Mock;
   const mockOnChangeSlug = jest.fn();
 
@@ -50,11 +48,6 @@ describe('projectGeneralSettings', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/grouping-configs/`,
-      method: 'GET',
-      body: groupingConfigs,
-    });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
@@ -472,17 +465,12 @@ describe('projectGeneralSettings', () => {
       mockOnChangeSlug.mockClear();
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/grouping-configs/`,
-        method: 'GET',
-        body: groupingConfigs,
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/environments/`,
+        url: '/projects/org-slug/project-slug/environments/',
         method: 'GET',
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/users/`,
+        url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
       });

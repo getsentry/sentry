@@ -33,6 +33,7 @@ import {DashboardState} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
@@ -625,9 +626,41 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
+    it('renders the linked dashboard breadcrumb in the top bar when page frame is enabled', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'page-frame'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
+      expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/dashboards/'
+      );
+      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
+      expect(within(breadcrumbs).getAllByRole('img')).toHaveLength(1);
+      expect(
+        screen.queryByRole('heading', {name: 'Custom Errors'})
+      ).not.toBeInTheDocument();
+    });
+
     it('hides add widget option', async () => {
-      // @ts-expect-error this is assigning to readonly property...
-      types.MAX_WIDGETS = 1;
+      jest.spyOn(types, 'MAX_WIDGETS', 'get').mockReturnValue(1 as 30);
 
       render(
         <OrganizationContext value={initialData.organization}>

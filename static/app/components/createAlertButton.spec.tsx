@@ -151,14 +151,14 @@ describe('CreateAlertFromViewButton', () => {
           location: {
             pathname: '/organizations/org-slug/issues/alerts/wizard/',
           },
-          route: `/organizations/:orgId/issues/alerts/wizard/`,
+          route: '/organizations/:orgId/issues/alerts/wizard/',
         },
       }
     );
     await userEvent.click(screen.getByRole('button'));
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/alerts/wizard/`,
+        pathname: '/organizations/org-slug/issues/alerts/wizard/',
         query: {},
       })
     );
@@ -202,7 +202,7 @@ describe('CreateAlertFromViewButton', () => {
     await userEvent.click(screen.getByRole('button'));
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/organizations/org-slug/issues/alerts/new/metric/`,
+        pathname: '/organizations/org-slug/issues/alerts/new/metric/',
         query: expect.objectContaining({
           query: 'event.type:error ',
           project: 'project-slug',

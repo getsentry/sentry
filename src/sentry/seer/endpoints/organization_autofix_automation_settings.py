@@ -25,12 +25,14 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     SeerAutofixSettingsSerializer,
     bulk_get_project_preferences,
+    bulk_read_preferences_from_sentry_db,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
     default_seer_project_preference,
     resolve_repository_ids,
 )
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
 
@@ -66,6 +68,14 @@ class RepositorySerializer(CamelSnakeSerializer):
     instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
+
+    def validate_provider(self, value):
+        if value not in SEER_SUPPORTED_SCM_PROVIDERS:
+            supported = ", ".join(sorted(SEER_SUPPORTED_SCM_PROVIDERS))
+            raise serializers.ValidationError(
+                f'"{value}" is not a supported Seer provider. Supported providers: {supported}'
+            )
+        return value
 
     def validate_branch_overrides(self, value):
         if not value:
@@ -183,14 +193,23 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         autofix_automation_tuning_map = ProjectOption.objects.get_value_bulk(
             projects, "sentry:autofix_automation_tuning"
         )
-        seer_preferences_map = bulk_get_project_preferences(organization.id, project_ids_list) or {}
+
+        if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+            preferences = bulk_read_preferences_from_sentry_db(organization.id, project_ids_list)
+            preferences_map = {
+                str(project_id): preference.dict() if preference else None
+                for project_id, preference in preferences.items()
+            }
+        else:
+            preferences_map = bulk_get_project_preferences(organization.id, project_ids_list) or {}
+
         results = []
         for project in projects:
             autofix_automation_tuning = (
                 autofix_automation_tuning_map.get(project)
                 or AutofixAutomationTuningSettings.OFF.value
             )
-            seer_pref = seer_preferences_map.get(str(project.id)) or {}
+            seer_pref = preferences_map.get(str(project.id)) or {}
             results.append(
                 {
                     "projectId": project.id,
@@ -294,9 +313,18 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
         preferences_to_set: list[dict[str, Any]] = []
 
         if automated_run_stopping_point or filtered_repo_mappings:
-            existing_preferences = bulk_get_project_preferences(
-                organization.id, list(projects_by_id.keys())
-            )
+            if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+                existing_preferences = bulk_read_preferences_from_sentry_db(
+                    organization.id, list(projects_by_id.keys())
+                )
+                existing_preferences_map = {
+                    str(project_id): preference.dict() if preference else None
+                    for project_id, preference in existing_preferences.items()
+                }
+            else:
+                existing_preferences_map = bulk_get_project_preferences(
+                    organization.id, list(projects_by_id.keys())
+                )
 
             for proj_id, project in projects_by_id.items():
                 has_stopping_point_update = automated_run_stopping_point is not None
@@ -306,7 +334,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     continue
 
                 project_id_str = str(proj_id)
-                existing_pref = existing_preferences.get(project_id_str) or {}
+                existing_pref = existing_preferences_map.get(project_id_str) or {}
 
                 pref_update: dict[str, Any] = {
                     **default_seer_project_preference(project).dict(),

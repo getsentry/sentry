@@ -90,7 +90,7 @@ describe('EventTraceView', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-facets/`,
+      url: '/organizations/org-slug/events-facets/',
       method: 'GET',
       asyncDelay: 1,
       body: {},

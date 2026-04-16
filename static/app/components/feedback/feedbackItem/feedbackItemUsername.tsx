@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useId, type CSSProperties} from 'react';
+import {type CSSProperties, Fragment, useId} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -35,14 +35,14 @@ export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
 
   const userNodeId = useId();
 
-  const handleSelectText = useCallback(() => {
+  const handleSelectText = () => {
     const node = document.getElementById(userNodeId);
     if (!node) {
       return;
     }
 
     selectText(node);
-  }, [userNodeId]);
+  };
 
   const {copy} = useCopyToClipboard();
 
@@ -97,12 +97,12 @@ export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
         </Tooltip>
       </Flex>
       {email ? (
-        <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
+        <Tooltip title={t('Email %s', user)} containerDisplayMode="flex">
           <LinkButton
             href={mailToHref}
             external
             icon={<IconMail variant="muted" />}
-            aria-label={t(`Email %s`, user)}
+            aria-label={t('Email %s', user)}
             priority="transparent"
             size="zero"
           />

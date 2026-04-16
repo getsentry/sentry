@@ -26,7 +26,7 @@ interface Props {
 export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
   const {id} = uptimeDetector;
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({

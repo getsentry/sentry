@@ -104,8 +104,8 @@ export function getImport(
 
 function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
   return defaultMode === 'esm'
-    ? `import { nodeProfilingIntegration } from "@sentry/profiling-node";`
-    : `const { nodeProfilingIntegration } = require("@sentry/profiling-node");`;
+    ? 'import { nodeProfilingIntegration } from "@sentry/profiling-node";'
+    : 'const { nodeProfilingIntegration } = require("@sentry/profiling-node");';
 }
 
 /**

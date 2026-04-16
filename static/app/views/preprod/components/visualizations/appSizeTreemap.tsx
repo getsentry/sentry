@@ -288,7 +288,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       type: 'treemap',
       animationEasing: 'quarticOut',
       animationDuration: 300,
-      height: `calc(100% - 22px)`,
+      height: 'calc(100% - 22px)',
       width: '100%',
       top: '22px',
       // Controls how many levels deep to render at once.

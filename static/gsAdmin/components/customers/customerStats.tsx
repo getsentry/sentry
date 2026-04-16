@@ -476,7 +476,7 @@ export const CustomerStats = memo(
       };
     }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
-    const statsEndpointUrl = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+    const statsEndpointUrl = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
       path: {organizationIdOrSlug: orgSlug},
     });
 

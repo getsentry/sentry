@@ -305,7 +305,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
           .join(''),
         '</div>',
         `<div class="tooltip-footer tooltip-footer-centered">${time}</div>`,
-        `<div class="tooltip-arrow"></div>`,
+        '<div class="tooltip-arrow"></div>',
       ].join('');
     },
   });
@@ -751,7 +751,7 @@ export function ProductUsageChart({
               position: 'insideStartBottom',
               formatter:
                 displayMode === 'usage'
-                  ? t(`Plan Quota (%s)`, yAxisQuotaLineLabel)
+                  ? t('Plan Quota (%s)', yAxisQuotaLineLabel)
                   : t('Max Spend'),
               color: theme.tokens.content.secondary,
               backgroundColor: theme.tokens.background.primary,

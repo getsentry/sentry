@@ -32,7 +32,7 @@ export function PromoCodeDetails() {
   const {codeId} = useParams<{codeId: string}>();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const ENDPOINT = getApiUrl(`/promocodes/$code/`, {path: {code: codeId}});
+  const ENDPOINT = getApiUrl('/promocodes/$code/', {path: {code: codeId}});
 
   const {
     data: promoCode,

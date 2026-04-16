@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.incidents.charts import (
     build_metric_alert_chart,
     fetch_metric_issue_open_periods,
@@ -30,7 +31,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import DetectorGroup
+from sentry.workflow_engine.models import Detector, DetectorGroup
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 
 now = "2022-05-16T20:00:00"
@@ -271,6 +272,37 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert created_activity_resp["incidentIdentifier"] == str(incident.identifier)
         assert created_activity_resp["type"] == IncidentActivityType.CREATED.value
         assert created_activity_resp["dateCreated"] == created_activity.date_added
+
+    @freeze_time(frozen_time)
+    @with_feature("organizations:incidents")
+    def test_pending_deletion_detector_not_resolved_to_alert_rule(self) -> None:
+        self.create_detector()  # dummy so detector ID != alert rule ID
+        detector = self.create_detector(project=self.project)
+        alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
+        incident = self.create_incident(
+            date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
+            status=IncidentStatus.CRITICAL.value,
+            alert_rule=alert_rule,
+        )
+        self.create_incident_activity(
+            incident,
+            IncidentActivityType.DETECTED.value,
+            date_added=incident.date_started,
+        )
+
+        time_period = incident_date_range(60, incident.date_started, incident.date_closed)
+
+        # Mark the detector as pending deletion (bypass custom manager)
+        Detector.objects_for_deletion.filter(id=detector.id).update(
+            status=ObjectStatus.PENDING_DELETION
+        )
+
+        # The AlertRuleDetector lookup should skip the deleted detector,
+        # so the detector ID won't be mapped to the alert rule ID and
+        # no incidents will be found
+        chart_data = fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
+        assert len(chart_data) == 0
 
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")

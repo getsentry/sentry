@@ -17,6 +17,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 )
 from sentry.workflow_engine.models import DataCondition, WorkflowDataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -218,3 +219,17 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         assert serialized_warning_condition["alertRuleId"] == str(alert_rule.id)
         assert len(serialized_warning_condition["actions"]) == 1
         assert serialized_warning_condition["actions"][0]["id"] == str(warning_action.id)
+
+    def test_missing_resolve_condition(self) -> None:
+        # Delete the resolve condition created during setUp
+        DataCondition.objects.filter(
+            condition_group=self.critical_detector_trigger.condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        ).delete()
+
+        serialized = serialize(
+            self.critical_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        assert serialized["resolveThreshold"] is None

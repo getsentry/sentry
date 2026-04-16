@@ -47,7 +47,7 @@ function getReleaseTokenQueryKey(
   projectSlug: string
 ): ApiQueryKey {
   return [
-    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/`, {
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/', {
       path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
     }),
   ];
@@ -74,7 +74,7 @@ export default function ProjectReleaseTracking() {
 
   const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
     [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/', {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
       }),
     ],

@@ -34,7 +34,7 @@ describe('useSetAutomaticName', () => {
 
   const renderDetectorForm = (detector?: Detector, initialFormData = {}) => {
     return render(
-      <DetectorFormProvider detectorType="error" project={project} detector={detector}>
+      <DetectorFormProvider detectorType="error" detector={detector}>
         <NewDetectorLayout
           detectorType="error"
           formDataToEndpointPayload={data => data as any}

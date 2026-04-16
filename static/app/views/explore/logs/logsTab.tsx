@@ -321,7 +321,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
     aggregateSortBys,
   });
 
-  const refreshTable = useCallback(async () => {
+  const refreshTable = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(
       tableData.queryKey,
@@ -337,7 +337,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
       }
     );
     await tableData.refetch();
-  }, [tableData, queryClient]);
+  };
 
   const onColumnsChange = useCallback(
     (newFields: string[]) => {
@@ -350,7 +350,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
     [setFields, setPersistentParams]
   );
 
-  const openColumnEditor = useCallback(() => {
+  const openColumnEditor = () => {
     openModal(
       modalProps => (
         <ColumnEditorModal
@@ -369,20 +369,17 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [booleanAttributes, fields, numberAttributes, onColumnsChange, stringAttributes]);
+  };
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
-  const setTableTab = useCallback(
-    (tab: 'aggregates' | 'logs') => {
-      if (tab === 'aggregates') {
-        setSidebarOpen(true);
-        setMode(Mode.AGGREGATE);
-      } else {
-        setMode(Mode.SAMPLES);
-      }
-    },
-    [setSidebarOpen, setMode]
-  );
+  const setTableTab = (tab: 'aggregates' | 'logs') => {
+    if (tab === 'aggregates') {
+      setSidebarOpen(true);
+      setMode(Mode.AGGREGATE);
+    } else {
+      setMode(Mode.SAMPLES);
+    }
+  };
 
   /**
    * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 hour.

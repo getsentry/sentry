@@ -14,6 +14,12 @@ interface JsonFormAdapterBase {
   help?: string;
   placeholder?: string;
   required?: boolean;
+  /**
+   * When true, changing this field triggers a re-fetch of the form config
+   * from the backend with the new value as a query parameter.
+   * Used by BackendJsonSubmitForm to support dynamic form fields.
+   */
+  updatesForm?: boolean;
 }
 
 interface JsonFormAdapterBoolean extends JsonFormAdapterBase {
@@ -33,6 +39,15 @@ interface JsonFormAdapterSecret extends JsonFormAdapterBase {
 interface JsonFormAdapterSelect extends JsonFormAdapterBase {
   type: 'select' | 'choice';
   choices?: Array<[value: string, label: string]>;
+  /**
+   * When true, allows selecting multiple values.
+   */
+  multiple?: boolean;
+  /**
+   * URL for async select fields. When set, options are fetched from this
+   * endpoint as the user types instead of using static `choices`.
+   */
+  url?: string;
 }
 
 interface JsonFormAdapterNumber extends JsonFormAdapterBase {
@@ -95,6 +110,14 @@ interface JsonFormAdapterProjectMapper extends JsonFormAdapterBase {
   }>;
 }
 
+/**
+ * A blank field is used to signal errors in the form config.
+ * It renders nothing but can be detected to disable form submission.
+ */
+interface JsonFormAdapterBlank extends JsonFormAdapterBase {
+  type: 'blank';
+}
+
 export type JsonFormAdapterFieldConfig =
   | JsonFormAdapterBoolean
   | JsonFormAdapterString
@@ -103,7 +126,8 @@ export type JsonFormAdapterFieldConfig =
   | JsonFormAdapterNumber
   | JsonFormAdapterChoiceMapper
   | JsonFormAdapterTable
-  | JsonFormAdapterProjectMapper;
+  | JsonFormAdapterProjectMapper
+  | JsonFormAdapterBlank;
 
 /**
  * Maps a field config type to the shape of its value.
@@ -123,4 +147,6 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
               ? Array<Record<string, unknown>>
               : T extends JsonFormAdapterProjectMapper
                 ? Array<[number, string]>
-                : unknown;
+                : T extends JsonFormAdapterBlank
+                  ? never
+                  : unknown;

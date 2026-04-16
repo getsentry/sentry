@@ -71,7 +71,8 @@ def handle_empty_organization_id_or_slug(
 
 def get_invite_state(
     member_id: int,
-    organization_id_or_slug: int | str | None,
+    # TODO(cells): Remove None once AcceptOrganizationInviteRedirectView is deleted
+    organization_id_or_slug: str | None,
     user_id: int | None,
     request: HttpRequest,
 ) -> RpcUserInviteContext | None:
@@ -79,7 +80,7 @@ def get_invite_state(
         return handle_empty_organization_id_or_slug(member_id, user_id, request)
 
     else:
-        if str(organization_id_or_slug).isdecimal():
+        if organization_id_or_slug.isdecimal():
             invite_context = organization_service.get_invite_by_id(
                 organization_id=organization_id_or_slug,
                 organization_member_id=member_id,
@@ -107,9 +108,9 @@ class AcceptOrganizationInvite(Endpoint):
     def convert_args(
         self,
         request: Request,
-        member_id: int,
+        member_id: str,
         token: str,
-        organization_id_or_slug: int | str | None = None,
+        organization_id_or_slug: str,
         *args,
         **kwargs,
     ):
@@ -143,7 +144,7 @@ class AcceptOrganizationInvite(Endpoint):
     def get(
         self,
         request: Request,
-        member_id: int,
+        member_id: str,
         token: str,
         invite_context: RpcUserInviteContext,
         **kwargs,
@@ -204,7 +205,14 @@ class AcceptOrganizationInvite(Endpoint):
             # When SSO is required do *not* set a next_url to return to accept
             # invite. The invite will be accepted after SSO is completed.
             url = (
-                reverse("sentry-accept-invite", args=[member_id, token])
+                reverse(
+                    "sentry-organization-accept-invite",
+                    kwargs={
+                        "organization_slug": invite_context.organization.slug,
+                        "member_id": member_id,
+                        "token": token,
+                    },
+                )
                 if not auth_provider
                 else "/"
             )
@@ -260,7 +268,7 @@ class AcceptOrganizationInvite(Endpoint):
             response = Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "member already exists"}
             )
-        elif not request.user.is_authenticated or not helper.valid_request:
+        elif not helper.valid_request:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={"details": "unable to accept organization invite"},

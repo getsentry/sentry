@@ -155,7 +155,7 @@ class SentryAppFormModel extends FormModel {
 
 const makeSentryAppQueryKey = (appSlug: string): ApiQueryKey => {
   return [
-    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
       path: {sentryAppIdOrSlug: appSlug},
     }),
   ];
@@ -163,7 +163,7 @@ const makeSentryAppQueryKey = (appSlug: string): ApiQueryKey => {
 
 const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
   return [
-    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/api-tokens/`, {
+    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
       path: {sentryAppIdOrSlug: appSlug},
     }),
   ];

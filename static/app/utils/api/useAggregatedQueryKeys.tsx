@@ -4,11 +4,9 @@ import type {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, QueryObserver, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 
 const BUFFER_WAIT_MS = 20;
-
-type Subscription = () => void;
 
 interface Props<AggregatableQueryKey, Data> {
   /**
@@ -49,8 +47,8 @@ interface Props<AggregatableQueryKey, Data> {
   onError?: (error: Error) => void;
 }
 
-function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[]) {
-  return ({queryKey}: any) => queryList.includes(queryKey[4] as AggregatableQueryKey);
+function isQueryKeyInList(queryList: unknown[]) {
+  return ({queryKey}: any) => queryList.includes(queryKey[4]);
 }
 
 /**
@@ -89,14 +87,6 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   const cache = queryClient.getQueryCache();
 
   const key = getQueryKey([]).at(0);
-
-  const subscriptions = useRef<Subscription[]>([]);
-  useEffect(() => {
-    const subs = subscriptions.current;
-    return () => {
-      subs.forEach(unsubscribe => unsubscribe());
-    };
-  }, []);
 
   // The query keys that this instance cares about
   const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);
@@ -148,19 +138,17 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       });
 
       const queryKey = getQueryKey(queuedAggregatableBatch);
-      queryClient.fetchQuery({
-        queryKey,
-        queryFn: fetchDataQuery,
-      });
-
-      const observer = new QueryObserver(queryClient, {queryKey});
-      const unsubscribe = observer.subscribe(_result => {
-        queryClient.removeQueries({
-          queryKey: ['aggregate', cacheKey, key, 'inFlight'],
-          predicate: isQueryKeyInBatch,
+      queryClient
+        .fetchQuery({
+          queryKey,
+          queryFn: fetchDataQuery,
+        })
+        .finally(() => {
+          queryClient.removeQueries({
+            queryKey: ['aggregate', cacheKey, key, 'inFlight'],
+            predicate: isQueryKeyInBatch,
+          });
         });
-      });
-      subscriptions.current.push(unsubscribe);
 
       if (allQueuedQueries.length > queuedQueriesBatch.length) {
         fetchData();

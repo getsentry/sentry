@@ -59,7 +59,7 @@ export function useCrashFreeSessions({pageFilters}: {pageFilters?: PageFilters})
           })),
           meta: {
             fields: {
-              [`crash_free_session_rate`]: 'percentage' as const,
+              ['crash_free_session_rate']: 'percentage' as const,
               time: 'date' as const,
             },
             units: {},

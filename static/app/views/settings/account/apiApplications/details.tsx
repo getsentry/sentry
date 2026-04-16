@@ -39,7 +39,7 @@ const PAGE_TITLE = t('Application Details');
 
 function getAppQueryKey(appId: string): ApiQueryKey {
   return [
-    getApiUrl(`/api-applications/$appId/`, {
+    getApiUrl('/api-applications/$appId/', {
       path: {appId},
     }),
   ];

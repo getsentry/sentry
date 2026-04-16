@@ -18,44 +18,10 @@ from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
-
-
-class BackgroundGroupingTest(TestCase):
-    @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
-    @patch("sentry.grouping.ingest.hashing._calculate_background_grouping")
-    def test_background_grouping_sample_rate(
-        self, mock_calc_background_grouping: MagicMock
-    ) -> None:
-        with override_options({"store.background-grouping-sample-rate": 0.0}):
-            save_new_event({"message": "Dogs are great! 1231"}, self.project)
-            assert mock_calc_background_grouping.call_count == 0
-
-        with override_options({"store.background-grouping-sample-rate": 1.0}):
-            save_new_event({"message": "Dogs are great! 1121"}, self.project)
-            assert mock_calc_background_grouping.call_count == 1
-
-    @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
-    @override_options({"store.background-grouping-sample-rate": 1.0})
-    @patch("sentry_sdk.capture_exception")
-    def test_handles_errors_with_background_grouping(
-        self, mock_capture_exception: MagicMock
-    ) -> None:
-        background_grouping_error = Exception("nope")
-
-        with patch(
-            "sentry.grouping.ingest.hashing._calculate_background_grouping",
-            side_effect=background_grouping_error,
-        ):
-            event = save_new_event({"message": "Dogs are great! 1231"}, self.project)
-
-            mock_capture_exception.assert_called_with(background_grouping_error)
-            # This proves the background grouping crash didn't crash the overall grouping process
-            assert event.group
 
 
 class SecondaryGroupingTest(TestCase):

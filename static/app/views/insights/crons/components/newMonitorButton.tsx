@@ -11,7 +11,7 @@ export function NewMonitorButton(props: Props) {
 
   return (
     <LinkButton
-      to={makeAlertsPathname({path: `/new/crons/`, organization})}
+      to={makeAlertsPathname({path: '/new/crons/', organization})}
       priority="primary"
       {...props}
     >

@@ -3,7 +3,6 @@ from typing import TypedDict
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializer,
-    GroupSearchViewSerializerResponse,
 )
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
@@ -28,13 +27,14 @@ class GroupSearchViewStarredSerializer(Serializer):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewStarredSerializerResponse:
-        serialized_view: GroupSearchViewSerializerResponse = serialize(
-            obj.group_search_view,
+    def get_attrs(self, item_list, user, **kwargs):
+        views = [item.group_search_view for item in item_list]
+        serialized_views = serialize(
+            views,
             user,
-            serializer=GroupSearchViewSerializer(
-                organization=self.organization,
-            ),
+            serializer=GroupSearchViewSerializer(organization=self.organization),
         )
+        return dict(zip(item_list, serialized_views))
 
-        return serialized_view
+    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewStarredSerializerResponse:
+        return attrs

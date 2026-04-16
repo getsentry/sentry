@@ -22,6 +22,7 @@ class IntegrationRepository(TypedDict):
     identifier: str
     isInstalled: bool
     defaultBranch: str | None
+    externalId: str
 
 
 @cell_silo_endpoint
@@ -71,7 +72,11 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
             try:
-                repositories = install.get_repositories(search, accessible_only=accessible_only)
+                repositories = install.get_repositories(
+                    search,
+                    accessible_only=accessible_only,
+                    use_cache=accessible_only and bool(search),
+                )
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
@@ -85,6 +90,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     identifier=repo["identifier"],
                     defaultBranch=repo.get("default_branch"),
                     isInstalled=repo["identifier"] in installed_repo_names,
+                    externalId=repo["external_id"],
                 )
                 for repo in repositories
                 if not installable_only or repo["identifier"] not in installed_repo_names

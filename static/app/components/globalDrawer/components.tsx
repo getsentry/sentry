@@ -9,6 +9,8 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {
   DEFAULT_WIDTH_PERCENT,
@@ -126,6 +128,7 @@ export function DrawerHeader({
   hideCloseButton = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Header
@@ -133,6 +136,7 @@ export function DrawerHeader({
       className={className}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
+      height={hasPageFrameFeature ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
     >
       {!hideCloseButton && (
         <Fragment>
@@ -160,7 +164,11 @@ const HeaderBar = styled('div')`
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
+const Header = styled('header')<{
+  height?: string;
+  hideBar?: boolean;
+  hideCloseButton?: boolean;
+}>`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.drawer + 1};
@@ -175,6 +183,16 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
+  ${p =>
+    p.height &&
+    `
+    --drawer-header-height: ${p.height};
+    height: var(--drawer-header-height);
+    box-sizing: border-box;
+    align-items: center;
+    box-shadow: none;
+    border-bottom: 1px solid ${p.theme.tokens.border.primary};
+  `}
 `;
 
 export const DrawerBody = styled('aside')`

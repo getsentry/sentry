@@ -159,10 +159,10 @@ export default function AccountSecurityEnroll() {
   const [sendingCode, setSendingCode] = useState(false);
   const [isMutationPending, setIsMutationPending] = useState(false);
 
-  const authenticatorEndpoint = getApiUrl(`/users/$userId/authenticators/$authId/`, {
+  const authenticatorEndpoint = getApiUrl('/users/$userId/authenticators/$authId/', {
     path: {userId: 'me', authId},
   });
-  const enrollEndpoint = getApiUrl(`/users/$userId/authenticators/$interfaceId/enroll/`, {
+  const enrollEndpoint = getApiUrl('/users/$userId/authenticators/$interfaceId/enroll/', {
     path: {userId: 'me', interfaceId: authId},
   });
 

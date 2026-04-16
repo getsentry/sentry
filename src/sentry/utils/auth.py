@@ -404,6 +404,13 @@ def is_user_signed_request(request: Request) -> bool:
         return False
 
 
+def is_user_from_viewer_context(request: Request) -> bool:
+    """
+    This function returns True if the request was authenticated via viewer context.
+    """
+    return bool(getattr(request, "user_from_viewer_context", False))
+
+
 def set_active_org(request: HttpRequest, org_slug: str) -> None:
     # even if the value being set is the same this will trigger a session
     # modification and reset the users expiry, so check if they are different first.

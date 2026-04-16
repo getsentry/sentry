@@ -48,14 +48,14 @@ const getQueryString = (
 const fields = [
   SpanFields.PROJECT_ID,
   SpanFields.TRANSACTION,
-  `count()`,
+  'count()',
   'avg(measurements.app_start_cold)',
   'avg(measurements.app_start_warm)',
-  `avg(measurements.time_to_initial_display)`,
-  `avg(measurements.time_to_full_display)`,
-  `division(mobile.slow_frames,mobile.total_frames)`,
-  `division(mobile.frozen_frames,mobile.total_frames)`,
-  `avg(mobile.frames_delay)`,
+  'avg(measurements.time_to_initial_display)',
+  'avg(measurements.time_to_full_display)',
+  'division(mobile.slow_frames,mobile.total_frames)',
+  'division(mobile.frozen_frames,mobile.total_frames)',
+  'avg(mobile.frames_delay)',
 ] as const satisfies SpanProperty[];
 
 export function ScreensOverview() {

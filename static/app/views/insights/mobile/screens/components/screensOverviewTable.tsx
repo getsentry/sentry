@@ -48,23 +48,23 @@ export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Pr
 
   const columnNameMap = {
     transaction: t('Screen'),
-    [`count()`]: t('Screen Loads'),
-    [`division(mobile.slow_frames,mobile.total_frames)`]: t('Slow Frame Rate'),
-    [`division(mobile.frozen_frames,mobile.total_frames)`]: t('Frozen Frame Rate'),
-    [`avg(mobile.frames_delay)`]: t('Frame Delay'),
-    [`avg(measurements.time_to_initial_display)`]: t('TTID'),
-    [`avg(measurements.time_to_full_display)`]: t('TTFD'),
+    ['count()']: t('Screen Loads'),
+    ['division(mobile.slow_frames,mobile.total_frames)']: t('Slow Frame Rate'),
+    ['division(mobile.frozen_frames,mobile.total_frames)']: t('Frozen Frame Rate'),
+    ['avg(mobile.frames_delay)']: t('Frame Delay'),
+    ['avg(measurements.time_to_initial_display)']: t('TTID'),
+    ['avg(measurements.time_to_full_display)']: t('TTFD'),
     ['avg(measurements.app_start_warm)']: t('Warm Start'),
     ['avg(measurements.app_start_cold)']: t('Cold Start'),
   };
   const columnTooltipMap = {
     ['avg(measurements.app_start_cold)']: t('Average Cold Start duration'),
-    [`avg(measurements.app_start_warm)`]: t('Average Warm Start duration'),
-    [`division(mobile.slow_frames,mobile.total_frames)`]: t('Slow Frame Rate'),
-    [`division(mobile.frozen_frames,mobile.total_frames)`]: t('Frozen Frame Rate'),
-    [`avg(mobile.frames_delay)`]: t('Average Frame Delay'),
-    [`avg(measurements.time_to_initial_display)`]: t('Average Time to Initial Display'),
-    [`avg(measurements.time_to_full_display)`]: t('Average Time to Full Display'),
+    ['avg(measurements.app_start_warm)']: t('Average Warm Start duration'),
+    ['division(mobile.slow_frames,mobile.total_frames)']: t('Slow Frame Rate'),
+    ['division(mobile.frozen_frames,mobile.total_frames)']: t('Frozen Frame Rate'),
+    ['avg(mobile.frames_delay)']: t('Average Frame Delay'),
+    ['avg(measurements.time_to_initial_display)']: t('Average Time to Initial Display'),
+    ['avg(measurements.time_to_full_display)']: t('Average Time to Full Display'),
   };
 
   function renderBodyCell(column: any, row: any): React.ReactNode | null {
@@ -85,7 +85,7 @@ export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Pr
       return (
         <Fragment>
           <OverflowEllipsisTextContainer>
-            <Link to={link} style={{display: `block`, width: `100%`}}>
+            <Link to={link} style={{display: 'block', width: '100%'}}>
               {row.transaction}
             </Link>
           </OverflowEllipsisTextContainer>
@@ -134,16 +134,16 @@ export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Pr
         'transaction',
         'avg(measurements.app_start_cold)',
         'avg(measurements.app_start_warm)',
-        `division(mobile.slow_frames,mobile.total_frames)`,
-        `division(mobile.frozen_frames,mobile.total_frames)`,
-        `avg(mobile.frames_delay)`,
-        `avg(measurements.time_to_initial_display)`,
-        `avg(measurements.time_to_full_display)`,
-        `count()`,
+        'division(mobile.slow_frames,mobile.total_frames)',
+        'division(mobile.frozen_frames,mobile.total_frames)',
+        'avg(mobile.frames_delay)',
+        'avg(measurements.time_to_initial_display)',
+        'avg(measurements.time_to_full_display)',
+        'count()',
       ]}
       defaultSort={[
         {
-          key: `count()`,
+          key: 'count()',
           order: 'desc',
         },
       ]}

@@ -7,7 +7,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
-import type {PipelineDefinition, PipelineStepProps} from './types';
+import type {
+  PipelineCompletionProps,
+  PipelineDefinition,
+  PipelineStepProps,
+} from './types';
 import {pipelineComplete} from './types';
 
 function DummyStepOne({
@@ -63,11 +67,26 @@ type DummyCompletionData = {
   result: string;
 };
 
+function DummyCompletionView({
+  data,
+  finish,
+}: PipelineCompletionProps<DummyCompletionData>) {
+  return (
+    <Stack gap="md">
+      <Text>{data.result}</Text>
+      <Button size="sm" priority="primary" onClick={finish}>
+        {t('Done')}
+      </Button>
+    </Stack>
+  );
+}
+
 export const dummyIntegrationPipeline = {
   type: 'integration',
   provider: 'dummy',
   actionTitle: t('Dummy Integration Pipeline'),
   getCompletionData: pipelineComplete<DummyCompletionData>,
+  completionView: DummyCompletionView,
   steps: [
     {
       stepId: 'step_one',

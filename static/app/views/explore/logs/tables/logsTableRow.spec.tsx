@@ -99,7 +99,7 @@ describe('logsTableRow', () => {
         [LOGS_SORT_BYS_KEY]: '-timestamp',
       },
     },
-    route: `/organizations/:orgId/explore/logs/`,
+    route: '/organizations/:orgId/explore/logs/',
   };
 
   const initialRouterConfigWithCodeFilePath = {

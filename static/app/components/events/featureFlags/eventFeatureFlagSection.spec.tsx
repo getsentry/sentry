@@ -51,7 +51,7 @@ describe('EventFeatureFlagList', () => {
       body: {data: {dismissed_ts: null}},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: TagsFixture(),
     });
   });

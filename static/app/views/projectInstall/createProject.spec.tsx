@@ -90,7 +90,7 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/`,
+      url: '/organizations/org-slug/integrations/',
       body: [integration],
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });

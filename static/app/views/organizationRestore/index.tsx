@@ -36,7 +36,7 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
-  const endpoint = getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
     path: {organizationIdOrSlug: orgSlug},
   });
   const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {

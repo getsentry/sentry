@@ -29,7 +29,7 @@ export function useValidateChannel({
   const queryKey: ApiQueryKey = useMemo(
     () => [
       getApiUrl(
-        `/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/`,
+        '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

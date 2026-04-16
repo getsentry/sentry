@@ -17,7 +17,7 @@ class DartPlugin(Plugin2):
         return False
 
     def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
-        sdk_name = data.get("sdk", {}).get("name", "")
+        sdk_name = (data.get("sdk") or {}).get("name", "")
         if sdk_name not in ("sentry.dart", "sentry.dart.flutter"):
             return []
 

@@ -71,7 +71,7 @@ function metricOptionsQueryKey({
   }
 
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: orgSlug!},
     }),
     {query},

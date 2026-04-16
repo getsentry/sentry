@@ -115,7 +115,10 @@ def _process_message(
     try:
         value = message.payload.value
         segment = orjson.loads(value)
-        processed = process_segment(segment["spans"], skip_produce=skip_produce)
+        skip_enrichment = segment.get("skip_enrichment", False)
+        processed = process_segment(
+            segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
+        )
         return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         logger.exception("segments.invalid-message")

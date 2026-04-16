@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {BackendJsonFormAdapter} from './';
+import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 
 const org = OrganizationFixture();
 const mutationOptions = {
@@ -12,7 +12,7 @@ const mutationOptions = {
 describe('ChoiceMapperAdapter', () => {
   it('renders choice_mapper with empty value showing only Add button', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -56,7 +56,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('renders choice_mapper table with existing values', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -110,7 +110,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper add row does not immediately submit', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -150,7 +150,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper add row then fill select triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -200,7 +200,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper does not submit until all columns in every row are filled', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -263,7 +263,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper remove row triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -303,7 +303,7 @@ describe('ChoiceMapperAdapter', () => {
 
   it('choice_mapper update cell value triggers mutation', async () => {
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -356,7 +356,7 @@ describe('ChoiceMapperAdapter', () => {
     });
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -417,7 +417,7 @@ describe('ChoiceMapperAdapter', () => {
     });
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',
@@ -469,7 +469,7 @@ describe('ChoiceMapperAdapter', () => {
     };
 
     render(
-      <BackendJsonFormAdapter
+      <BackendJsonAutoSaveForm
         field={{
           name: 'status_mapping',
           type: 'choice_mapper',

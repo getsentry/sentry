@@ -40,7 +40,7 @@ describe('useAggregatedQueryKeys', () => {
 
   it('should convert multiple buffer calls into one fetch request after a timeout', async () => {
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
       body: {
         '1111': 5,
         '2222': 7,
@@ -61,7 +61,7 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     expect(mockRequest).toHaveBeenCalledWith(
-      `/api-tokens/`,
+      '/api-tokens/',
       expect.objectContaining({
         query: expect.arrayContaining(['1111', '2222', '3333']),
       })
@@ -70,7 +70,7 @@ describe('useAggregatedQueryKeys', () => {
 
   it('should send a fetch request immediatly if the buffer is full', async () => {
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
 
     const {result} = renderHook(useAggregatedQueryKeys, {
@@ -92,7 +92,7 @@ describe('useAggregatedQueryKeys', () => {
   it('should return cached data right away, if it exists in the cache', async () => {
     const queryClient = makeTestQueryClient();
     MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
       body: {
         '1111': 5,
         '2222': 7,
@@ -139,7 +139,7 @@ describe('useAggregatedQueryKeys', () => {
       '1111': 5,
     };
     MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
       body: mockResponse,
     });
 
@@ -165,7 +165,7 @@ describe('useAggregatedQueryKeys', () => {
   it('should separate callsites that have different cacheKeys', async () => {
     const wrapper = makeWrapper(makeTestQueryClient());
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api-tokens/`,
+      url: '/api-tokens/',
     });
     const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
       return {

@@ -14,7 +14,7 @@ export function useUserViewedReplays() {
       getApiUrl('/organizations/$organizationIdOrSlug/replays/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {query: {query: `viewed_by_me:true`}},
+      {query: {query: 'viewed_by_me:true'}},
     ],
     {staleTime: 0}
   );

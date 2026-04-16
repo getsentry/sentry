@@ -16,6 +16,8 @@ import {
 } from 'sentry/views/explore/errors/body';
 import {ErrorsFilterSection} from 'sentry/views/explore/errors/filterContent';
 import {useControlSectionExpanded} from 'sentry/views/explore/hooks/useControlSectionExpanded';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export default function ErrorsContent() {
   const organization = useOrganization();
@@ -37,6 +39,7 @@ export default function ErrorsContent() {
 }
 
 function ErrorsHeader() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
@@ -45,7 +48,13 @@ function ErrorsHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <FeedbackButton />
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="feedback">
+            <FeedbackButton>{null}</FeedbackButton>
+          </TopBar.Slot>
+        ) : (
+          <FeedbackButton />
+        )}
       </Layout.HeaderActions>
     </Layout.Header>
   );

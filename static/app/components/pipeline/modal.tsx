@@ -26,19 +26,31 @@ interface PipelineModalProps<
 > extends ModalRenderProps {
   provider: P;
   type: T;
+  initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
 }
 
 function PipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
->({Header, Body, closeModal, type, provider, onComplete}: PipelineModalProps<T, P>) {
+>({
+  Header,
+  Body,
+  closeModal,
+  type,
+  provider,
+  initialData,
+  onComplete,
+}: PipelineModalProps<T, P>) {
   const handleComplete = (data: CompletionDataFor<T, P>) => {
     onComplete?.(data);
     closeModal();
   };
 
-  const pipeline = usePipeline(type, provider, {onComplete: handleComplete});
+  const pipeline = usePipeline(type, provider, {
+    onComplete: handleComplete,
+    initialData,
+  });
   const {stepDefinition} = pipeline;
 
   const stepText = (
@@ -61,49 +73,51 @@ function PipelineModal<
       </Header>
       <Body>
         <Stack gap="2xl">
-          <Grid columns="1fr max-content">
-            <Flex gap="md" align="center">
-              <ProgressRing
-                maxValue={pipeline.totalSteps}
-                value={pipeline.stepIndex + 1}
-                text={pipeline.stepIndex + 1}
-                animate
-              />
-              <Grid>
-                <AnimatePresence>
-                  <motion.div
-                    key={stepDefinition?.stepId}
-                    initial={pipeline.stepIndex === 0 ? {} : {y: -15, opacity: 0}}
-                    animate={{y: 0, opacity: 1}}
-                    exit={{y: 15, opacity: 0}}
-                    transition={{duration: 0.2}}
-                    style={{gridColumn: 1, gridRow: 1}}
-                  >
-                    {stepText}
-                  </motion.div>
-                </AnimatePresence>
-              </Grid>
-            </Flex>
-            <Flex gap="md" align="center">
-              {loading && (
-                <LoadingIndicator
-                  mini
-                  size={20}
-                  style={{margin: 0, height: 20, width: 20}}
+          {!pipeline.isComplete && (
+            <Grid columns="1fr max-content">
+              <Flex gap="md" align="center">
+                <ProgressRing
+                  maxValue={pipeline.totalSteps}
+                  value={pipeline.stepIndex + 1}
+                  text={pipeline.stepIndex + 1}
+                  animate
                 />
-              )}
-              {pipeline.stepIndex !== 0 && (
-                <Button
-                  size="zero"
-                  priority="transparent"
-                  onClick={pipeline.restart}
-                  icon={<IconRefresh size="xs" variant="muted" />}
-                  tooltipProps={{title: t('Restart flow')}}
-                  aria-label={t('Restart flow')}
-                />
-              )}
-            </Flex>
-          </Grid>
+                <Grid>
+                  <AnimatePresence>
+                    <motion.div
+                      key={stepDefinition?.stepId}
+                      initial={pipeline.stepIndex === 0 ? {} : {y: -15, opacity: 0}}
+                      animate={{y: 0, opacity: 1}}
+                      exit={{y: 15, opacity: 0}}
+                      transition={{duration: 0.2}}
+                      style={{gridColumn: 1, gridRow: 1}}
+                    >
+                      {stepText}
+                    </motion.div>
+                  </AnimatePresence>
+                </Grid>
+              </Flex>
+              <Flex gap="md" align="center">
+                {loading && (
+                  <LoadingIndicator
+                    mini
+                    size={20}
+                    style={{margin: 0, height: 20, width: 20}}
+                  />
+                )}
+                {pipeline.stepIndex !== 0 && (
+                  <Button
+                    size="zero"
+                    priority="transparent"
+                    onClick={pipeline.restart}
+                    icon={<IconRefresh size="xs" variant="muted" />}
+                    tooltipProps={{title: t('Restart flow')}}
+                    aria-label={t('Restart flow')}
+                  />
+                )}
+              </Flex>
+            </Grid>
+          )}
 
           {pipeline.error && (
             <Alert
@@ -112,7 +126,7 @@ function PipelineModal<
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
             >
-              {pipeline.error.message}
+              {pipeline.error}
             </Alert>
           )}
           {pipeline.view}
@@ -128,6 +142,7 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
+  initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
 }
@@ -135,10 +150,16 @@ interface OpenPipelineModalOptions<
 export function openPipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
->({type, provider, onComplete, onClose}: OpenPipelineModalOptions<T, P>) {
+>({type, provider, initialData, onComplete, onClose}: OpenPipelineModalOptions<T, P>) {
   openModal(
     deps => (
-      <PipelineModal {...deps} type={type} provider={provider} onComplete={onComplete} />
+      <PipelineModal
+        {...deps}
+        type={type}
+        provider={provider}
+        initialData={initialData}
+        onComplete={onComplete}
+      />
     ),
     {onClose, closeEvents: 'none'}
   );

@@ -15,6 +15,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import (
+    RCASource,
     SeerViewerContext,
     SupergroupsByGroupIdsResponse,
     make_supergroups_get_by_group_ids_request,
@@ -77,8 +78,16 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_404_NOT_FOUND,
             )
 
+        rca_source = (
+            RCASource.LIGHTWEIGHT
+            if features.has(
+                "organizations:supergroups-lightweight-rca-clustering-read", organization
+            )
+            else RCASource.EXPLORER
+        )
+
         response = make_supergroups_get_by_group_ids_request(
-            {"organization_id": organization.id, "group_ids": group_ids},
+            {"organization_id": organization.id, "group_ids": group_ids, "rca_source": rca_source},
             SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
             timeout=10,
         )

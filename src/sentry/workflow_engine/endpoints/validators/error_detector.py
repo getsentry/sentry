@@ -16,7 +16,14 @@ from sentry.workflow_engine.models.detector import Detector
 class ErrorDetectorValidator(BaseDetectorTypeValidator):
     data_source_required = False
 
+    # TODO - Update the Error Detector to store grouping rules in the DataCondition
+    condition_group = serializers.DictField(
+        required=False,
+        allow_null=True,
+    )  # type: ignore[assignment]  # Intentionally overrides nested serializer to accept empty dicts
+
     fingerprinting_rules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
     resolve_age = EmptyIntegerField(
         required=False,
         allow_null=True,
@@ -31,11 +38,12 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         return type
 
     def validate_condition_group(self, value: Any) -> Any:
-        if value is not None:
+        if value:
             raise serializers.ValidationError(
                 "Condition group is not supported for error detectors"
             )
-        return value
+
+        return None
 
     def validate_name(self, value: Any) -> str:
         # if name is different from existing, raise an error

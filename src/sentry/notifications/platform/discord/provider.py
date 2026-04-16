@@ -142,9 +142,14 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         cls, *, data: NotificationData, category: NotificationCategory
     ) -> type[NotificationRenderer[DiscordRenderable]]:
         from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
+        from sentry.notifications.platform.discord.renderers.metric_alert import (
+            DiscordMetricAlertRenderer,
+        )
 
         if category == NotificationCategory.ISSUE:
             return IssueDiscordRenderer
+        if category == NotificationCategory.METRIC_ALERT:
+            return DiscordMetricAlertRenderer
         return cls.default_renderer
 
     @classmethod

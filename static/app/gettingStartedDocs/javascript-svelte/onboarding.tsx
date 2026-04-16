@@ -26,7 +26,7 @@ const getVerifySnippet = (params: DocsParams, isVersion5: boolean) => {
   const errorCode =
     logsCode || metricsCode
       ? `${logsCode}${metricsCode}    throw new Error("This is your first error!");`
-      : `throw new Error("This is your first error!")`;
+      : 'throw new Error("This is your first error!")';
 
   return isVersion5
     ? `

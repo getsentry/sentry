@@ -441,14 +441,14 @@ export function EditHighlightsModal({
                 {
                   onError: () => {
                     addErrorMessage(
-                      tct(`Failed to update '[projectName]' project`, {
+                      tct("Failed to update '[projectName]' project", {
                         projectName: project.name,
                       })
                     );
                   },
                   onSuccess: () => {
                     addSuccessMessage(
-                      tct(`Successfully updated '[projectName]' project`, {
+                      tct("Successfully updated '[projectName]' project", {
                         projectName: project.name,
                       })
                     );

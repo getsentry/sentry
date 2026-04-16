@@ -19,7 +19,7 @@ describe('PageOverview', () => {
       pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
       query: {},
     },
-    route: `/organizations/:orgId/insights/frontend/pageloads/overview/`,
+    route: '/organizations/:orgId/insights/frontend/pageloads/overview/',
   };
 
   let eventsMock: jest.Mock;
@@ -116,13 +116,13 @@ describe('PageOverview', () => {
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
             'performance_score(measurements.score.cls)',
-            `performance_score(measurements.score.inp)`,
+            'performance_score(measurements.score.inp)',
             'performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.total)',
             'avg(measurements.score.weight.lcp)',
             'avg(measurements.score.weight.fcp)',
             'avg(measurements.score.weight.cls)',
-            `avg(measurements.score.weight.inp)`,
+            'avg(measurements.score.weight.inp)',
             'avg(measurements.score.weight.ttfb)',
             'count()',
             'count_scores(measurements.score.total)',
@@ -130,7 +130,7 @@ describe('PageOverview', () => {
             'count_scores(measurements.score.fcp)',
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.ttfb)',
-            `count_scores(measurements.score.inp)`,
+            'count_scores(measurements.score.inp)',
           ],
           query:
             'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]',

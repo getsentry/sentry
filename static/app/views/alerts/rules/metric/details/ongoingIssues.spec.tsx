@@ -11,7 +11,7 @@ describe('MetricAlertOngoingIssues', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/users/`,
+      url: '/organizations/org-slug/users/',
       body: [],
     });
   });

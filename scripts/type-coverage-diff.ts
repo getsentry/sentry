@@ -529,7 +529,7 @@ async function main() {
 
     console.log(
       colors.dim(
-        `\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff`
+        '\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff'
       )
     );
 

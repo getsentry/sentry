@@ -4917,7 +4917,7 @@ describe('SearchQueryBuilder', () => {
 
         expect(
           screen.getByRole('row', {
-            name: `span.description:*random*value*`,
+            name: 'span.description:*random*value*',
           })
         ).toBeInTheDocument();
       });
@@ -5009,7 +5009,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('randomValue');
         await userEvent.click(document.body);
 
-        expect(screen.getByRole('row', {name: `randomValue`})).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'randomValue'})).toBeInTheDocument();
         expect(getLastInput()).toHaveFocus();
       });
     });
@@ -5125,7 +5125,7 @@ describe('SearchQueryBuilder', () => {
     describe('user clicks on ask seer button', () => {
       it('renders the seer combobox', async () => {
         MockApiClient.addMockResponse({
-          url: `/organizations/org-slug/prompts-activity/`,
+          url: '/organizations/org-slug/prompts-activity/',
           method: 'PUT',
         });
         MockApiClient.addMockResponse({
@@ -5174,7 +5174,7 @@ describe('SearchQueryBuilder', () => {
                     status: string;
                     unsupported_reason: string | null;
                   }>({
-                    url: `/organizations/org-slug/trace-explorer-ai/query/`,
+                    url: '/organizations/org-slug/trace-explorer-ai/query/',
                     method: 'POST',
                     data: {},
                   });

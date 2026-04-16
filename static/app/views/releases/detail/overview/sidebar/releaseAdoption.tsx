@@ -256,7 +256,7 @@ export function ReleaseAdoption({
                   </Tag>
                 </Tooltip>
                 <AdoptionEnvironment>
-                  {tct(`in [environment]`, {environment})}
+                  {tct('in [environment]', {environment})}
                 </AdoptionEnvironment>
               </div>
             ) : (

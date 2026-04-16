@@ -75,7 +75,7 @@ describe('ExploreContent', () => {
       body: [project],
     });
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       method: 'GET',
       body: [],
     });

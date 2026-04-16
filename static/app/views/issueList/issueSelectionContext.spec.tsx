@@ -109,6 +109,30 @@ describe('IssueSelectionContext', () => {
     expect(result.current.lastSelected).toBe('14');
   });
 
+  it('sets selection for a subset of ids', () => {
+    const {result} = renderSelectionHook({
+      visibleGroupIds: ['1', '2', '3', '4'],
+    });
+
+    act(() => result.current.setSelectionForIds(['2', '3'], true));
+    expect(result.current.records.get('1')).toBe(false);
+    expect(result.current.records.get('2')).toBe(true);
+    expect(result.current.records.get('3')).toBe(true);
+    expect(result.current.records.get('4')).toBe(false);
+
+    act(() => result.current.setSelectionForIds(['2', '3'], false));
+    expect(result.current.records.get('2')).toBe(false);
+    expect(result.current.records.get('3')).toBe(false);
+  });
+
+  it('ignores unknown ids in setSelectionForIds', () => {
+    const {result} = renderSelectionHook({visibleGroupIds: ['1', '2']});
+
+    act(() => result.current.setSelectionForIds(['1', 'unknown'], true));
+    expect(result.current.records.get('1')).toBe(true);
+    expect(result.current.records.has('unknown')).toBe(false);
+  });
+
   it('resets all-in-query selection when selection changes', () => {
     const {result} = renderSelectionHook({visibleGroupIds: ['1', '2']});
 

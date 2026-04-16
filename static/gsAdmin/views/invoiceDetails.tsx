@@ -42,7 +42,7 @@ export function InvoiceDetails() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const QUERY_KEY: ApiQueryKey = [
-    getApiUrl(`/_admin/cells/$region/admin-invoices/$invoiceId/`, {
+    getApiUrl('/_admin/cells/$region/admin-invoices/$invoiceId/', {
       path: {region, invoiceId},
     }),
     {

@@ -38,8 +38,8 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
+    "spans.buffer.enforce-segment-size": False,
     "spans.process-segments.schema-validation": 1.0,
-    "spans.buffer.chunk-oversized-segments": False,
 }
 
 
@@ -837,56 +837,30 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
         buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=11)
 
-    # The entire segment should be dropped because it exceeds max_segment_bytes.
+    # The segment is kept even though it exceeds max_segment_bytes,
+    # because oversized segments are chunked at the message level.
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    assert segment.spans == []
+    assert len(segment.spans) == 5
 
 
 @mock.patch("sentry.spans.buffer.Project")
-@mock.patch("sentry.spans.buffer.track_outcome")
-@mock.patch("sentry.spans.buffer.metrics.timing")
-def test_dropped_spans_emit_outcomes(
-    mock_metrics, mock_track_outcome, mock_project_model, buffer: SpansBuffer
-) -> None:
-    """Test that outcomes are emitted when Redis drops spans due to size limit."""
-    from sentry.constants import DataCategory
-    from sentry.utils.outcomes import Outcome
-
-    # Mock the project lookup
+def test_max_segment_bytes_detaches_over_limit(mock_project_model, buffer: SpansBuffer) -> None:
+    """When a segment's cumulative ingested bytes exceed max-segment-bytes, subsequent
+    subsegments are written to a detached (salted) key so that overflow spans are not lost."""
     mock_project = mock.Mock()
     mock_project.id = 1
     mock_project.organization_id = 100
     mock_project_model.objects.get_from_cache.return_value = mock_project
 
-    payload_a = _payload("a" * 16)
-    payload_b = _payload("b" * 16)
-    payload_c = _payload("c" * 16)
-    payload_d = _payload("d" * 16)
-    payload_e = _payload("e" * 16)
-    payload_f = _payload("f" * 16)
-
-    # Create a segment with many spans that will exceed the Redis memory limit
+    # Each payload is ~30 bytes. With limit=40, the Lua script detaches on
+    # the 3rd batch (cumulative 60 > 40). The flusher also enforces the limit,
+    # so the normal segment (60 bytes) is dropped, but the detached segment
+    # (30 bytes) is kept.
     batch1 = [
         Span(
-            payload=payload_b,
+            payload=_payload("b" * 16),
             trace_id="a" * 32,
             span_id="b" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=payload_c,
-            trace_id="a" * 32,
-            span_id="c" * 16,
-            parent_span_id="a" * 16,
-            segment_id=None,
-            project_id=1,
-        ),
-        Span(
-            payload=payload_d,
-            trace_id="a" * 32,
-            span_id="d" * 16,
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
@@ -894,83 +868,101 @@ def test_dropped_spans_emit_outcomes(
     ]
     batch2 = [
         Span(
-            payload=payload_e,
+            payload=_payload("c" * 16),
             trace_id="a" * 32,
-            span_id="e" * 16,
+            span_id="c" * 16,
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
         ),
+    ]
+    batch3 = [
         Span(
-            payload=payload_f,
+            payload=_payload("d" * 16),
             trace_id="a" * 32,
-            span_id="f" * 16,
+            span_id="d" * 16,
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-        ),
-        Span(
-            payload=payload_a,
-            trace_id="a" * 32,
-            span_id="a" * 16,
-            parent_span_id=None,
-            project_id=1,
-            segment_id=None,
-            is_segment_span=True,
         ),
     ]
 
-    expected_bytes = sum(
-        len(p) for p in [payload_a, payload_b, payload_c, payload_d, payload_e, payload_f]
-    )
-
-    # Set a very small max-segment-bytes to force Redis to drop spans
-    with override_options({"spans.buffer.max-segment-bytes": 100}):
+    with override_options(
+        {"spans.buffer.max-segment-bytes": 70, "spans.buffer.enforce-segment-size": True}
+    ):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
-        buffer.flush_segments(now=11)
+        buffer.process_spans(batch3, now=0)
+        rv = buffer.flush_segments(now=61)
 
-    # Verify that track_outcome was called
-    assert mock_track_outcome.called, "track_outcome should be called when spans are dropped"
+    assert len(rv) == 2
 
-    # Find the call with INVALID outcome
-    outcome_calls = [
-        call
-        for call in mock_track_outcome.call_args_list
-        if call.kwargs.get("outcome") == Outcome.INVALID
+    normal_key = _segment_id(1, "a" * 32, "a" * 16)
+    normal_segment = rv.get(normal_key)
+    assert normal_segment is not None
+    assert len(normal_segment.spans) == 2
+
+    # The new segment (salt) contains the overflow span
+    detached_keys = [k for k in rv if k != normal_key]
+    assert len(detached_keys) == 1
+    detached_segment = rv[detached_keys[0]]
+    assert len(detached_segment.spans) == 1
+    assert detached_segment.spans[0].payload["span_id"] == "d" * 16
+
+
+@mock.patch("sentry.spans.buffer.Project")
+def test_max_segment_bytes_under_limit_merges_normally(
+    mock_project_model, buffer: SpansBuffer
+) -> None:
+    """When a segment is within max-segment-bytes, subsegments merge normally."""
+    mock_project = mock.Mock()
+    mock_project.id = 1
+    mock_project.organization_id = 100
+    mock_project_model.objects.get_from_cache.return_value = mock_project
+
+    batch1 = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
     ]
-    assert len(outcome_calls) > 0, "Should have at least one INVALID outcome"
-
-    # Verify the outcome details
-    outcome_call = outcome_calls[0]
-    assert outcome_call.kwargs["org_id"] == 100
-    assert outcome_call.kwargs["project_id"] == 1
-    assert outcome_call.kwargs["outcome"] == Outcome.INVALID
-    assert outcome_call.kwargs["reason"] == "segment_too_large"
-    assert outcome_call.kwargs["category"] == DataCategory.SPAN_INDEXED
-    assert outcome_call.kwargs["quantity"] > 0, "Should have dropped at least some spans"
-
-    # Verify ingested span count and byte count metrics were emitted
-    ingested_spans_timing_calls = [
-        call
-        for call in mock_metrics.call_args_list
-        if call.args and call.args[0] == "spans.buffer.flush_segments.ingested_spans_per_segment"
+    batch2 = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
     ]
-    assert len(ingested_spans_timing_calls) == 1, "Should emit ingested_spans_per_segment metric"
-    assert ingested_spans_timing_calls[0].args[1] == 6, "Should have ingested 6 spans"
 
-    ingested_bytes_timing_calls = [
-        call
-        for call in mock_metrics.call_args_list
-        if call.args and call.args[0] == "spans.buffer.flush_segments.ingested_bytes_per_segment"
-    ]
-    assert len(ingested_bytes_timing_calls) == 1, "Should emit ingested_bytes_per_segment metric"
-    assert ingested_bytes_timing_calls[0].args[1] == expected_bytes
+    # Large limit so both batches fit
+    with override_options(
+        {
+            "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
+            "spans.buffer.enforce-segment-size": True,
+        }
+    ):
+        buffer.process_spans(batch1, now=0)
+        buffer.process_spans(batch2, now=0)
+        rv = buffer.flush_segments(now=61)
+
+    # Both spans merged into a single segment
+    assert len(rv) == 1
+    segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
+    assert len(segment.spans) == 2
+    span_ids = {s.payload["span_id"] for s in segment.spans}
+    assert span_ids == {"b" * 16, "c" * 16}
 
 
 @mock.patch("sentry.spans.buffer.Project")
 def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> None:
-    """When chunk-oversized-segments is enabled, oversized segments are kept instead of dropped."""
+    """Test that oversized segments are kept instead of dropped."""
     mock_project = mock.Mock()
     mock_project.id = 1
     mock_project.organization_id = 100
@@ -1022,9 +1014,7 @@ def test_flush_oversized_segments(mock_project_model, buffer: SpansBuffer) -> No
         ),
     ]
 
-    with override_options(
-        {"spans.buffer.max-segment-bytes": 100, "spans.buffer.chunk-oversized-segments": True}
-    ):
+    with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=11)
@@ -1060,7 +1050,6 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     with override_options(
         {
             **DEFAULT_OPTIONS,
-            "spans.buffer.chunk-oversized-segments": True,
             "spans.buffer.max-segment-bytes": 10000,
         }
     ):
@@ -1106,7 +1095,6 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
     with override_options(
         {
             **DEFAULT_OPTIONS,
-            "spans.buffer.chunk-oversized-segments": True,
             "spans.buffer.max-segment-bytes": 500,
         }
     ):
@@ -1136,32 +1124,12 @@ def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
     with override_options(
         {
             **DEFAULT_OPTIONS,
-            "spans.buffer.chunk-oversized-segments": True,
             "spans.buffer.max-segment-bytes": 10,
         }
     ):
         messages = segment.to_messages()
     assert len(messages) == 1
     assert messages[0]["skip_enrichment"] is True
-
-
-def test_to_messages_no_chunking_when_option_disabled(buffer: SpansBuffer) -> None:
-    """When chunk-oversized-segments is disabled, always returns a single message."""
-    segment = FlushedSegment(
-        queue_key=b"test",
-        spans=[OutputSpan(payload={"span_id": "a" * 16})],
-        project_id=1,
-    )
-    with override_options(
-        {
-            **DEFAULT_OPTIONS,
-            "spans.buffer.chunk-oversized-segments": False,
-            "spans.buffer.max-segment-bytes": 10,
-        }
-    ):
-        messages = segment.to_messages()
-    assert len(messages) == 1
-    assert "skip_enrichment" not in messages[0]
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:

@@ -19,7 +19,7 @@ describe('PagePerformanceTable', () => {
       pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
       query: {},
     },
-    route: `/organizations/:orgId/insights/frontend/pageloads/overview/`,
+    route: '/organizations/:orgId/insights/frontend/pageloads/overview/',
   };
 
   let eventsMock: jest.Mock;

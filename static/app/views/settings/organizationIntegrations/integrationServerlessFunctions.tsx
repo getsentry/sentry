@@ -31,7 +31,7 @@ export function IntegrationServerlessFunctions({
   const queryClient = useQueryClient();
   const queryKey: ApiQueryKey = [
     getApiUrl(
-      `/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/`,
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
       {
         path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
       }

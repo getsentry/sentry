@@ -17,6 +17,7 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {Form} from 'sentry/components/forms/form';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionHandlerGroupType,
@@ -37,6 +38,7 @@ describe('AutomateSection', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -130,8 +132,8 @@ describe('AutomateSection', () => {
 
   it('can connect an existing automation', async () => {
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
-        <Form>
+      <DetectorFormProvider detectorType="metric_issue">
+        <Form initialData={{projectId: project.id}}>
           <AutomateSection />
         </Form>
       </DetectorFormProvider>
@@ -165,8 +167,8 @@ describe('AutomateSection', () => {
 
   it('can disconnect an existing automation', async () => {
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
-        <Form initialData={{workflowIds: [automation1.id]}}>
+      <DetectorFormProvider detectorType="metric_issue">
+        <Form initialData={{projectId: project.id, workflowIds: [automation1.id]}}>
           <AutomateSection />
         </Form>
       </DetectorFormProvider>
@@ -217,8 +219,8 @@ describe('AutomateSection', () => {
     });
 
     render(
-      <DetectorFormProvider detectorType="metric_issue" project={project}>
-        <Form>
+      <DetectorFormProvider detectorType="metric_issue">
+        <Form initialData={{projectId: project.id}}>
           <AutomateSection />
         </Form>
       </DetectorFormProvider>

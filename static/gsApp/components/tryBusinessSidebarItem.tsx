@@ -20,7 +20,7 @@ type Props = Parameters<Hooks['sidebar:try-business']>[0] & {
   subscription: Subscription;
 };
 
-const TRY_BUSINESS_SEEN_KEY = `sidebar-new-seen:try-business-v1`;
+const TRY_BUSINESS_SEEN_KEY = 'sidebar-new-seen:try-business-v1';
 
 function TryBusinessNavigationItem({
   organization,

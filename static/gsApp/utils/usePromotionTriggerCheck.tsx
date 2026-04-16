@@ -6,7 +6,7 @@ import type {PromotionData} from 'getsentry/types';
 
 export function createPromotionCheckQueryKey(orgSlug: string): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/promotions/trigger-check/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/promotions/trigger-check/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
     {method: 'POST'},

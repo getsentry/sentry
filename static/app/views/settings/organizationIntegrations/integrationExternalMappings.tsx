@@ -81,7 +81,7 @@ export function IntegrationExternalMappings(props: Props) {
     refetch,
   } = useApiQuery<CodeOwnersAssociationMappings>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/codeowners-associations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {provider: integration.provider.key}},

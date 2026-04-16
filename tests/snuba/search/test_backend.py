@@ -8,7 +8,6 @@ from django.utils import timezone
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,
@@ -3488,28 +3487,6 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             project_id=self.project.id,
         )
         self.error_group_2 = error_event_2.group
-
-    def test_no_feature(self) -> None:
-        event_id = uuid.uuid4().hex
-
-        with self.feature(MetricIssue.build_ingest_feature_name()):
-            _, group_info = self.process_occurrence(
-                event_id=event_id,
-                project_id=self.project.id,
-                type=MetricIssue.type_id,
-                fingerprint=["some perf issue"],
-                event_data={
-                    "title": "some problem",
-                    "platform": "python",
-                    "tags": {"my_tag": "1"},
-                    "timestamp": before_now(minutes=1).isoformat(),
-                    "received": before_now(minutes=1).isoformat(),
-                },
-            )
-            assert group_info is not None
-
-        results = self.make_query(search_filter_query="issue.category:metric_alert my_tag:1")
-        assert list(results) == []
 
     def test_generic_query(self) -> None:
         results = self.make_query(search_filter_query="issue.category:performance my_tag:1")

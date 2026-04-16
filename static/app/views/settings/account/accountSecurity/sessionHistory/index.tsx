@@ -55,7 +55,7 @@ export default function SessionHistory() {
         ? 'sessionHistory'
         : 'settings';
 
-  const routePrefix = `/settings/account/security/`;
+  const routePrefix = '/settings/account/security/';
   return (
     <SentryDocumentTitle title={t('Session History')}>
       <SettingsPageHeader

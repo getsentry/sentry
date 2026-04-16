@@ -93,7 +93,7 @@ export function SizeCompareMainContent() {
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
     [
       getApiUrl(
-        `/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/`,
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
         {
           path: {
             organizationIdOrSlug: organization.slug,

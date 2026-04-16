@@ -7,7 +7,7 @@ import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 
-const STRIP_SINGLE_BINARY = `strip -rSTx AppBinary -o AppBinaryStripped`;
+const STRIP_SINGLE_BINARY = 'strip -rSTx AppBinary -o AppBinaryStripped';
 
 const STRIP_BUILD_SCRIPT = `#!/bin/bash
 set -e

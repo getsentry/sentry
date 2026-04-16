@@ -90,7 +90,7 @@ const SORTABLE_FIELDS = [
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `sum(span.duration)`,
+  'sum(span.duration)',
   'trace_status_rate(ok)',
 ] as const;
 

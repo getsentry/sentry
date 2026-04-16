@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -76,6 +77,8 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
+
+        sentry_sdk.set_tag("query.dataSource", serialized["dataSource"])
 
         with handle_query_errors():
             executor = FlamegraphExecutor(

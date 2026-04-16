@@ -60,7 +60,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects?.length) {
     return makeProjectsPathname({
-      path: `/:projectId/getting-started/`,
+      path: '/:projectId/getting-started/',
       organization,
     });
   }
@@ -70,7 +70,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
     return makeProjectsPathname({
-      path: `/:projectId/getting-started/`,
+      path: '/:projectId/getting-started/',
       organization,
     });
   }

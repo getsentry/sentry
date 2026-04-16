@@ -16,7 +16,7 @@ const ruleTester = new RuleTester({
 ruleTester.run('no-default-exports', noDefaultExports, {
   valid: [
     {
-      code: `export function MyComponent() { return <div />; }`,
+      code: 'export function MyComponent() { return <div />; }',
       filename: 'valid.tsx',
     },
     {
@@ -27,11 +27,11 @@ export default wrap(MyComponentInner);
       filename: 'valid.tsx',
     },
     {
-      code: `export const MyComponent = () => <div />;`,
+      code: 'export const MyComponent = () => <div />;',
       filename: 'valid.tsx',
     },
     {
-      code: `export const util = () => null;`,
+      code: 'export const util = () => null;',
       filename: 'valid.tsx',
     },
     {
@@ -42,23 +42,23 @@ export default wrap(MyComponentInner);
       filename: 'valid.tsx',
     },
     {
-      code: `export class MyClass {}`,
+      code: 'export class MyClass {}',
       filename: 'valid.tsx',
     },
     {
-      code: `const x = 1;`,
+      code: 'const x = 1;',
       filename: 'valid.tsx',
     },
     {
-      code: `export default withConfig(MyComponent);`,
+      code: 'export default withConfig(MyComponent);',
       filename: 'valid.tsx',
     },
     {
-      code: `export default styled(MyComponent)\`color: red;\`;`,
+      code: 'export default styled(MyComponent)`color: red;`;',
       filename: 'valid.tsx',
     },
     {
-      code: `export default withConfig(MyComponent) as React.FC;`,
+      code: 'export default withConfig(MyComponent) as React.FC;',
       filename: 'valid.tsx',
     },
   ],
@@ -175,24 +175,24 @@ export default wrap(MyComponentInner);
       filename: 'invalid.tsx',
     },
     {
-      code: `export default function myFunction() { return 1; }`,
-      output: `export function myFunction() { return 1; }`,
+      code: 'export default function myFunction() { return 1; }',
+      output: 'export function myFunction() { return 1; }',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default class MyClass {}`,
-      output: `export class MyClass {}`,
+      code: 'export default class MyClass {}',
+      output: 'export class MyClass {}',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default function() { return 1; }`,
+      code: 'export default function() { return 1; }',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default class {}`,
+      code: 'export default class {}',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
@@ -219,27 +219,27 @@ export default wrap(MyComponentInner);
       filename: 'invalid.tsx',
     },
     {
-      code: `export default { key: "value" };`,
+      code: 'export default { key: "value" };',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default [1, 2, 3];`,
+      code: 'export default [1, 2, 3];',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default "hello";`,
+      code: 'export default "hello";',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default 42;`,
+      code: 'export default 42;',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
     {
-      code: `export default () => null;`,
+      code: 'export default () => null;',
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },

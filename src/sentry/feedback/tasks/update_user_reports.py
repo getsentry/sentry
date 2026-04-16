@@ -9,6 +9,7 @@ from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_den
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -90,7 +91,9 @@ def update_user_reports(
             )
             try:
                 events_chunk = eventstore.backend.get_events(
-                    filter=snuba_filter, referrer=Referrer.TASKS_UPDATE_USER_REPORTS.value
+                    filter=snuba_filter,
+                    eap_conditions=build_event_id_in_filter(event_id_chunk),
+                    referrer=Referrer.TASKS_UPDATE_USER_REPORTS.value,
                 )
                 events.extend(events_chunk)
             except Exception:

@@ -42,7 +42,7 @@ import type {
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
-import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
+import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -232,7 +232,7 @@ function VisualizationWidgetContent({
       }
 
       const {timeSeries, label, seriesName, widgetQuery} = transformed;
-      const plottable = createPlottableFromTimeSeries(
+      const plottable = createPlottableFromTimeSeriesAndWidget(
         timeSeries,
         widget,
         label,

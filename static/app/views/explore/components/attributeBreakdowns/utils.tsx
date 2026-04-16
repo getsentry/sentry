@@ -69,7 +69,7 @@ function createActionButton(
 ): string {
   return [
     '  <div',
-    `    class="attribute-breakdowns-tooltip-action-button"`,
+    '    class="attribute-breakdowns-tooltip-action-button"',
     `    data-tooltip-action="${action}"`,
     `    data-tooltip-action-key="${escapedAttributeName}"`,
     `    data-tooltip-action-value="${escapedValue}"`,

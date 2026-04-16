@@ -58,9 +58,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def setUp(self) -> None:
         super().setUp()
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query, features=None):
         if features is None:
@@ -3340,18 +3338,17 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         transaction_data["tags"].append(("faketag", "foo"))
         self.store_event(transaction_data, self.project.id)
 
-        with self.feature({"organizations:mep-use-default-tags": True}):
-            response = self.do_request(
-                {
-                    "field": [
-                        "faketag",
-                        "count()",
-                    ],
-                    "query": "event.type:transaction",
-                    "dataset": "metricsEnhanced",
-                    "per_page": 50,
-                }
-            )
+        response = self.do_request(
+            {
+                "field": [
+                    "faketag",
+                    "count()",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+        )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]

@@ -98,9 +98,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     options: {placeholderData: keepPreviousData},
   });
 
-  const attachmentPagination = parseLinkHeader(
-    attachments.getResponseHeader?.('Link') ?? null
-  );
+  const attachmentPagination = parseLinkHeader(attachments.pageLinks);
   // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;

@@ -4,8 +4,10 @@ import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -20,8 +22,14 @@ export function useMergedIssuesDrawer({
   const {baseUrl} = useGroupDetailsRoute();
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const openMergedIssuesDrawer = useCallback(() => {
+    trackAnalytics('issue_details.merged_issues.drawer_opened', {
+      organization,
+      group_id: group.id,
+      project_id: project.id,
+    });
     openDrawer(() => <MergedIssuesDrawer group={group} project={project} />, {
       ariaLabel: t('Merged Issues'),
       shouldCloseOnInteractOutside: () => false,
@@ -39,7 +47,7 @@ export function useMergedIssuesDrawer({
         );
       },
     });
-  }, [openDrawer, group, project, baseUrl, navigate, location.query]);
+  }, [openDrawer, group, project, baseUrl, navigate, location.query, organization]);
 
   return {openMergedIssuesDrawer};
 }

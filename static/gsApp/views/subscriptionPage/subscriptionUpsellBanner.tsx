@@ -37,7 +37,7 @@ const getSubscriptionBannerText = (
           ? t('Try Sentry Business for Free')
           : t('Try Performance for Free'),
         tct(
-          `Activate your trial to take advantage of Sentry's [featuresName] features.`,
+          "Activate your trial to take advantage of Sentry's [featuresName] features.",
           {featuresName}
         ),
       ];

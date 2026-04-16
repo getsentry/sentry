@@ -19,7 +19,7 @@ function TestComponent({other}: {other: string}) {
 
 function mockMeasurementsMeta() {
   return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/measurements-meta/`,
+    url: '/organizations/org-slug/measurements-meta/',
     body: {
       'measurements.custom.measurement': {
         functions: ['p99'],

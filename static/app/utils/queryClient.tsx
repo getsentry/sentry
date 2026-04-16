@@ -7,7 +7,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
-import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import type {ApiResult, ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
@@ -120,34 +120,6 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   return queryResult as UseApiQueryResult<TResponseData, TError>;
 }
 
-export function useApiQueries<TResponseData, TError = RequestError>(
-  queryKeys: ApiQueryKey[],
-  options: UseApiQueryOptions<TResponseData, TError>
-): Array<UseApiQueryResult<TResponseData, TError>> {
-  const results = useQueries({
-    queries: queryKeys.map(queryKey => {
-      return {
-        queryKey,
-        queryFn: fetchDataQuery<TResponseData>,
-        ...options,
-      };
-    }),
-  });
-
-  return results.map(({data, ...rest}) => {
-    const queryResult = {
-      data: data?.[0],
-      getResponseHeader: data?.[2]?.getResponseHeader,
-      ...rest,
-    };
-
-    // XXX: We need to cast here because unwrapping `data` breaks the type returned by
-    //      useQuery above. The react-query library's UseQueryResult is a union type and
-    //      too complex to recreate here so casting the entire object is more appropriate.
-    return queryResult as UseApiQueryResult<TResponseData, TError>;
-  });
-}
-
 /**
  * This method can be used as a default `queryFn` with `useApiQuery`
  * or even the raw `useQuery` hook.
@@ -174,6 +146,7 @@ export function fetchDataQuery<TResponseData = unknown>(
  * response data. This does not include the ApiResult type. For that you can
  * manually call queryClient.getQueryData.
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey

@@ -10,7 +10,7 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -42,10 +42,7 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {
-  FilterSelectorTrigger,
-  FilterValueTruncated,
-} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   getFieldDefinitionForDataset,
   getFilterToken,
@@ -187,7 +184,10 @@ export function FilterSelector({
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {
-      const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
+      const result = await searchBarData.getTagValues({
+        tag: ctx.queryKey[1],
+        searchQuery: ctx.queryKey[3],
+      });
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -376,11 +376,9 @@ export function FilterSelector({
           </Flex>
         )}
         trigger={triggerProps => (
-          <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
-            <OverlayTrigger.Button {...triggerProps}>
-              {renderFilterSelectorTrigger(activeFilterValues)}
-            </OverlayTrigger.Button>
-          </Container>
+          <OverlayTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(activeFilterValues)}
+          </OverlayTrigger.Button>
         )}
       />
     );
@@ -470,11 +468,9 @@ export function FilterSelector({
         </Flex>
       )}
       trigger={triggerProps => (
-        <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
-          <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
-          </OverlayTrigger.Button>
-        </Container>
+        <OverlayTrigger.Button {...triggerProps}>
+          {renderFilterSelectorTrigger(activeFilterValues)}
+        </OverlayTrigger.Button>
       )}
     />
   );
@@ -496,8 +492,6 @@ const translateKnownFilterOptions = (
   return options;
 };
 
-export const FILTER_SELECTOR_MAX_WIDTH = '300px';
-
 export const MenuTitleWrapper = styled('span')`
   display: inline-block;
   padding-top: ${p => p.theme.space.xs};
@@ -515,4 +509,13 @@ const WildcardButton = styled(Flex)`
 const SubText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
+`;
+
+const FilterValueTruncated = styled('div')`
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  width: min-content;
 `;

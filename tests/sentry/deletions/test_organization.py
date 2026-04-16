@@ -15,6 +15,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -367,6 +368,36 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             .exclude(environment=None)
             .exists()
         )
+
+    def test_orphan_group_environment_cleanup(self) -> None:
+        # Regression test: GroupEnvironment rows orphaned after group deletion (e.g. groups
+        # deleted via a path that didn't cascade to GroupEnvironment) must not block
+        # Environment deletion. Without the explicit GroupEnvironment child relation in
+        # OrganizationDeletionTask, Django's ORM cascade from environment.delete() fires a
+        # post_delete signal per GroupEnvironment row, which causes timeouts at scale.
+        from django.db import connection
+
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        env = Environment.objects.create(organization_id=org.id, name="production")
+        group = Group.objects.create(project=project)
+        group_env = GroupEnvironment.objects.create(group=group, environment=env)
+
+        # Delete the group via raw SQL to bypass Django's ORM cascade, leaving the
+        # GroupEnvironment row orphaned (no parent group) — this is the production scenario.
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM sentry_groupedmessage WHERE id = %s", [group.id])
+        assert GroupEnvironment.objects.filter(id=group_env.id).exists()
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(id=env.id).exists()
+        assert not GroupEnvironment.objects.filter(id=group_env.id).exists()
 
     def test_workflow_engine_cleanup(self) -> None:
         org = self.create_organization(name="test")

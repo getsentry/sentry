@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {createMockTraceItemAttributesResponse} from 'sentry-fixture/traceItemAttributeKeys';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -48,7 +49,7 @@ describe('Data Scrubbing', () => {
         screen.getByRole('link', {name: 'full documentation on data scrubbing'})
       ).toHaveAttribute(
         'href',
-        `https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/`
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
       // Body
@@ -57,7 +58,7 @@ describe('Data Scrubbing', () => {
       // Actions
       expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
         'href',
-        `https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/`
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });
@@ -260,13 +261,7 @@ describe('Data Scrubbing', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
-        body: [
-          {key: 'user.email', name: 'user.email', kind: 'tag'},
-          {key: 'user.id', name: 'user.id', kind: 'tag'},
-          {key: 'custom.field', name: 'custom.field', kind: 'tag'},
-          {key: 'request.method', name: 'request.method', kind: 'tag'},
-          {key: 'response.status', name: 'response.status', kind: 'tag'},
-        ],
+        body: createMockTraceItemAttributesResponse(),
       });
     });
 

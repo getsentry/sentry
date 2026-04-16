@@ -82,7 +82,7 @@ function generateMockTickData(
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
-    const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+    const {width: timelineWidth} = useDimensions({elementRef});
     const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
     const [secondsGap, setSecondsGap] = useState(60);

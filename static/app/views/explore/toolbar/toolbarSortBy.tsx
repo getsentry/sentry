@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
@@ -58,19 +58,16 @@ export function ToolbarSortBy() {
     mode,
   });
 
-  const setSortField = useCallback(
-    (i: number, {value}: SelectOption<SelectKey>) => {
-      if (sorts[i] && typeof value === 'string') {
-        setSorts([
-          {
-            field: value,
-            kind: sorts[i].kind,
-          },
-        ]);
-      }
-    },
-    [setSorts, sorts]
-  );
+  const setSortField = (i: number, {value}: SelectOption<SelectKey>) => {
+    if (sorts[i] && typeof value === 'string') {
+      setSorts([
+        {
+          field: value,
+          kind: sorts[i].kind,
+        },
+      ]);
+    }
+  };
 
   const kindOptions: Array<SelectOption<Sort['kind']>> = useMemo(() => {
     return [
@@ -87,19 +84,16 @@ export function ToolbarSortBy() {
     ];
   }, []);
 
-  const setSortKind = useCallback(
-    (i: number, {value}: SelectOption<SelectKey>) => {
-      if (sorts[i]) {
-        setSorts([
-          {
-            field: sorts[i].field,
-            kind: value as Sort['kind'],
-          },
-        ]);
-      }
-    },
-    [setSorts, sorts]
-  );
+  const setSortKind = (i: number, {value}: SelectOption<SelectKey>) => {
+    if (sorts[i]) {
+      setSorts([
+        {
+          field: sorts[i].field,
+          kind: value as Sort['kind'],
+        },
+      ]);
+    }
+  };
 
   let toolbarRow = (
     <ToolbarRow>

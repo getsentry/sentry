@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -101,10 +100,7 @@ export default function OrganizationDataForwarding() {
       <Flex direction="column" gap="lg">
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
-            <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Data Forwarding')}</Heading>
-              <FeatureBadge type="new" />
-            </Flex>
+            <Heading as="h1">{t('Data Forwarding')}</Heading>
             <Text variant="muted">
               {tct(
                 'Pipe your Sentry error events into other business intelligence tools. Learn more about this feature in our [link:docs].',

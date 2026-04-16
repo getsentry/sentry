@@ -139,7 +139,7 @@ export function CodeOwnerErrors({
             message={`The following users are not on a team that has access to the project: ${projectSlug}`}
             values={values}
             linkFunction={email => `/settings/${orgSlug}/members/?query=${email}`}
-            linkValueFunction={() => `Configure Member Settings`}
+            linkValueFunction={() => 'Configure Member Settings'}
           />
         );
       default:

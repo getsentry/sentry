@@ -9,7 +9,7 @@ const SUPPORTS_LOCAL_STORAGE = window && 'localStorage' in window;
 // Attempt to parse JSON. If it fails, swallow the error and return null.
 // As an improvement, we should maybe allow users to intercept here or possibly use
 // a different parsing function from JSON.parse
-function tryParseStorage<T>(jsonEncodedValue: string): T | null {
+function tryParseStorage(jsonEncodedValue: string): unknown {
   try {
     return JSON.parse(jsonEncodedValue);
   } catch (e) {
@@ -83,7 +83,7 @@ function initializeStorage<S>(
   }
 
   // We may have failed to parse the value, so just pass it down raw to the initializer
-  const decodedValue = tryParseStorage<S>(jsonEncodedValue);
+  const decodedValue = tryParseStorage(jsonEncodedValue) as S | null;
   if (decodedValue === null) {
     return defaultOrInitializer(defaultValueOrInitializeFn, undefined, jsonEncodedValue);
   }

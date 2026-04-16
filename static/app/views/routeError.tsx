@@ -112,7 +112,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
             </ListItem>
           )}
           <ListItem>
-            {tct(`Give it a few seconds and [link:reload the page].`, {
+            {tct('Give it a few seconds and [link:reload the page].', {
               link: (
                 <a
                   onClick={() => {
@@ -124,7 +124,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
           </ListItem>
           <ListItem>
             {tct(
-              `Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.`,
+              'Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.',
               {
                 link: (
                   <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22088541158555-Why-Sentry-io-is-not-loading" />
@@ -135,7 +135,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
         </List>
         <p style={{marginTop: '1em', marginBottom: 0}}>
           {tct(
-            `If the guide does not help, [link:contact support] — include as many of these details as you can:`,
+            'If the guide does not help, [link:contact support] — include as many of these details as you can:',
             {
               link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us" />,
             }

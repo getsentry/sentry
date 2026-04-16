@@ -41,7 +41,7 @@ export function BilledSeats({
   const shouldShowBilledSeats =
     selectedProduct === AddOnCategory.SEER && defined(billedCategory) && isEnabled;
   const billedSeatsQueryKey = [
-    getApiUrl(`/customers/$organizationIdOrSlug/billing-seats/current/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/billing-seats/current/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
     {query: {billingMetric: billedCategory}},

@@ -22,6 +22,7 @@ type ParamKeys =
   | 'broadcastId'
   | 'clientID'
   | 'codeId'
+  | 'conversationId'
   | 'dashboardId'
   | 'dataExportId'
   | 'dataForwarderId'
@@ -75,6 +76,7 @@ type ParamKeys =
  * const params = useParams<{projectId: string}>();
  * ```
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
   const contextParams = useReactRouter6Params() as P;
 

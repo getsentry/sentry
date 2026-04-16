@@ -206,12 +206,10 @@ describe('ExplorerPanel', () => {
           startNewSession: jest.fn(),
           isPolling: false,
           isError: true, // isError
-          isPending: false,
           deletedFromIndex: null,
           interruptRun: jest.fn(),
           interruptRequested: false,
           wasJustInterrupted: false,
-          clearWasJustInterrupted: jest.fn(),
           switchToRun: jest.fn(),
           respondToUserInput: jest.fn(),
           createPR: jest.fn(),
@@ -269,12 +267,10 @@ describe('ExplorerPanel', () => {
         startNewSession: jest.fn(),
         isPolling: false,
         isError: false,
-        isPending: false,
         deletedFromIndex: null,
         interruptRun: jest.fn(),
         interruptRequested: false,
         wasJustInterrupted: false,
-        clearWasJustInterrupted: jest.fn(),
         runId: null,
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),
@@ -451,7 +447,7 @@ describe('ExplorerPanel', () => {
       });
     });
 
-    function mockSessionResponse(ownerUserId: number | null | undefined) {
+    function mockSessionResponse({ownerUserId}: {ownerUserId?: number}) {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
         method: 'GET',
@@ -467,24 +463,9 @@ describe('ExplorerPanel', () => {
       });
     }
 
-    it('should have disabled input section when useUser returns none', async () => {
-      ConfigStore.set('user', undefined as any);
-      mockSessionResponse(2);
-
-      renderWithPanelContext(<ExplorerPanel />, true, {organization});
-
-      const textarea = await screen.findByTestId('seer-explorer-input');
-
-      expect(textarea).toBeDisabled();
-      expect(textarea).toHaveAttribute(
-        'placeholder',
-        'This conversation is owned by another user and is read-only'
-      );
-    });
-
     it('should have disabled input section when explorer owner differs', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      mockSessionResponse(2);
+      mockSessionResponse({ownerUserId: 2});
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
@@ -497,9 +478,9 @@ describe('ExplorerPanel', () => {
       );
     });
 
-    it('enables input when owner id is null', async () => {
+    it('enables input when owner id matches', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      mockSessionResponse(null);
+      mockSessionResponse({ownerUserId: 1});
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
@@ -512,9 +493,9 @@ describe('ExplorerPanel', () => {
       );
     });
 
-    it('enables input when owner id matches', async () => {
+    it('enables input when owner id is undefined', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
-      mockSessionResponse(1);
+      mockSessionResponse({ownerUserId: undefined});
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 

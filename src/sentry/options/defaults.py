@@ -656,6 +656,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for expanding the unreal report in the endpoint rather than during processing
+register(
+    "relay.unreal-report-expansion.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
@@ -727,18 +735,6 @@ register(
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
 register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# if a region is in this list, it's safe to forward to codecov
-register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-# GitHub owners whose webhooks we skip forwarding to Codecov (payload is still deleted)
-register(
-    "codecov.forward-webhooks.skip-github-owners",
-    type=Sequence,
-    default=["getsentry"],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1373,13 +1369,41 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Supergroups / Lightweight RCA
 register(
-    "supergroups.lightweight-enabled-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.issues_per_org",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.supergroups_backfill_lightweight.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.supergroups_backfill_lightweight.batch_size",
+    type=Int,
+    default=40,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.supergroups_backfill_lightweight.inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.supergroups_backfill_lightweight.max_failures_per_batch",
+    type=Int,
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
@@ -1469,16 +1493,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Run an experimental grouping config in background for performance analysis
-register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Fraction of events that will pass through background grouping
-register(
-    "store.background-grouping-sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1502,43 +1516,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
-# In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
-register(
-    "relay.cardinality-limiter.mode",
-    default="disabled",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Override to set a list of limits into passive mode by organization.
-#
-# In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
-#
-# Example: `{'1': ["transactions"]}`
-# Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
-register(
-    "relay.cardinality-limiter.passive-limits-by-org",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Sample rate for Cardinality Limiter Sentry errors.
-#
-# Rate needs to be between `0.0` and `1.0`.
-# If set to `1.0` all cardinality limiter rejections will be logged as a Sentry error.
-register(
-    "relay.cardinality-limiter.error-sample-rate",
-    default=0.00,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# List of additional cardinality limits and selectors.
-#
-# ```
-# {
-#   "rollout_rate": 0.001,
-#   "limit": { .. Cardinality Limit .. }
-# }
-# ```
-register("relay.cardinality-limiter.limits", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Controls the encoding used in Relay for encoding distributions and sets
 # when writing to Kafka.
@@ -2335,13 +2312,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
-register(
-    "performance.use_metrics.orgs_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Used for the z-score when calculating the margin of error in performance
 register(
     "performance.extrapolation.confidence.z-score",
@@ -2349,8 +2319,6 @@ register(
     default=1.96,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
-register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -3204,6 +3172,13 @@ register(
 # When enabled, oversized segments are split into chunks instead of being dropped.
 register(
     "spans.buffer.chunk-oversized-segments",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether to enforce max-segment-bytes during ingestion via the Lua script.
+register(
+    "spans.buffer.enforce-segment-size",
+    type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -132,7 +132,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Data Forwarding'),
           description: t('Manage data forwarding across your organization'),
           id: 'data-forwarding',
-          badge: () => <FeatureBadge type="new" />,
           recordAnalytics: true,
         },
         {
@@ -140,12 +139,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
           id: 'relay',
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/repos/`,
-          title: t('Repositories'),
-          description: t('Manage repositories connected to the organization'),
-          id: 'repos',
         },
         {
           path: `${organizationSettingsPathPrefix}/early-features/`,
@@ -175,7 +168,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
         {
@@ -205,6 +197,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
           id: 'integrations',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/repos/`,
+          title: t('Repositories'),
+          description: t('Manage repositories connected to the organization'),
+          id: 'repos',
           recordAnalytics: true,
         },
         {

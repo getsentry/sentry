@@ -9,8 +9,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
@@ -20,6 +20,7 @@ const PROMO_CODE_ERROR_MSG =
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.';
 
 function RelocationForm() {
+  const navigate = useNavigate();
   // Use our own api client to initialize, since we need to be careful with the headers when using multipart/form-data
   const api = useApi({
     api: new Client({headers: {Accept: 'application/json; charset=utf-8'}}),
@@ -60,14 +61,14 @@ function RelocationForm() {
       }
 
       // Start the relocation.
-      const response = await api.requestPromise(`/relocations/`, {
+      const response = await api.requestPromise('/relocations/', {
         method: 'POST',
         host: region.url,
         data: formData,
       });
 
       addSuccessMessage('The relocation job has started!');
-      browserHistory.push(`/_admin/relocations/${region.name}/${response.uuid}/`);
+      navigate(`/_admin/relocations/${region.name}/${response.uuid}/`);
     } catch (error: any) {
       if (error.responseJSON) {
         addErrorMessage(error.responseJSON.detail);

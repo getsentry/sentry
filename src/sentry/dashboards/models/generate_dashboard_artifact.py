@@ -38,7 +38,7 @@ WidgetType: TypeAlias = Literal[tuple(_ALLOWED_WIDGET_TYPES)]  # type: ignore[va
 Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
-FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count"}
+FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
 
 
 class GeneratedWidgetQuery(BaseModel):
@@ -75,6 +75,36 @@ class GeneratedWidgetQuery(BaseModel):
         func_name = v.split("(")[0]
         if func_name in FUNCTION_BLOCKLIST:
             raise ValueError(f"Function '{func_name}' is not allowed in generated dashboards")
+        return v
+
+
+Polarity = Literal["+", "-"]
+
+
+class GeneratedWidgetThresholds(BaseModel):
+    """Color-coded thresholds for big_number, line, and area chart widgets. max1 and max2 define thresholds for three zones whose color meaning depends on preferred_polarity."""
+
+    max_values: dict[str, float] = Field(
+        ...,
+        description="Threshold boundaries. Must contain keys 'max1' and 'max2' where max1 < max2. Both values must be non-negative.",
+    )
+    unit: str | None = Field(
+        default=None,
+        description="Display unit for threshold values (e.g. 'millisecond', 'percent'). Null means use the widget's default unit.",
+    )
+    preferred_polarity: Polarity = Field(
+        description="Determines color meaning: '+' means higher is better (green above max2), '-' means lower is better (green below max1). Must be '+' or '-'.",
+    )
+
+    @validator("max_values")
+    def validate_max_values(cls, v: dict[str, float]) -> dict[str, float]:
+        allowed_keys = {"max1", "max2"}
+        if set(v.keys()) != allowed_keys:
+            raise ValueError("max_values must contain exactly 'max1' and 'max2'")
+        if v["max1"] < 0 or v["max2"] < 0:
+            raise ValueError("Threshold values must be non-negative")
+        if v["max1"] >= v["max2"]:
+            raise ValueError("max1 must be less than max2")
         return v
 
 
@@ -147,6 +177,10 @@ class GeneratedWidget(BaseModel):
         description="For charts with group by columns, the maximum number series that can be displayed. For table widgets, the maximum number of rows that can be displayed. Categorical bar charts have a maximum limit of 25. For any other chart type, the maximum limit is 10. Default value is 5.",
     )
     interval: Intervals = Field(default="1h")
+    thresholds: GeneratedWidgetThresholds | None = Field(
+        default=None,
+        description="Color-coded thresholds for big_number, line, and area chart widgets. Defines two boundaries (max1 < max2) that split the value into three color zones.",
+    )
 
     @root_validator
     def check_text_widget_constraints(cls, values: dict[str, Any]) -> dict[str, Any]:
