@@ -14,9 +14,15 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
+// Known triage strategies; keep in sync with TRIAGE_STRATEGIES in
+// src/sentry/tasks/seer/night_shift/strategies.py.
+const NIGHT_SHIFT_STRATEGIES = ['agentic_triage'] as const;
+
 export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState<string>('');
   const [dryRun, setDryRun] = useState<boolean>(false);
+  const [strategy, setStrategy] = useState<string>('');
+  const [maxCandidates, setMaxCandidates] = useState<string>('');
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
 
@@ -25,7 +31,12 @@ export function SeerAdminPage() {
       return fetchMutation({
         url: '/internal/seer/night-shift/trigger/',
         method: 'POST',
-        data: {organization_id: parseInt(organizationId, 10), dry_run: dryRun},
+        data: {
+          organization_id: parseInt(organizationId, 10),
+          dry_run: dryRun,
+          ...(strategy ? {strategy} : {}),
+          ...(maxCandidates ? {max_candidates: parseInt(maxCandidates, 10)} : {}),
+        },
         options: {host: region?.url},
       });
     },
@@ -99,6 +110,34 @@ export function SeerAdminPage() {
                   value={organizationId}
                   onChange={e => setOrganizationId(e.target.value)}
                   placeholder="Enter organization ID"
+                />
+                <label htmlFor="strategy">
+                  <Text bold>Strategy (optional):</Text>
+                </label>
+                <CompactSelect
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix="Strategy">
+                      {strategy || 'Default'}
+                    </OverlayTrigger.Button>
+                  )}
+                  value={strategy}
+                  options={[
+                    {label: 'Default', value: ''},
+                    ...NIGHT_SHIFT_STRATEGIES.map(s => ({label: s, value: s})),
+                  ]}
+                  onChange={opt => setStrategy(String(opt.value))}
+                />
+                <label htmlFor="maxCandidates">
+                  <Text bold>Max candidates (optional, 1-50):</Text>
+                </label>
+                <Input
+                  type="number"
+                  name="maxCandidates"
+                  min={1}
+                  max={50}
+                  value={maxCandidates}
+                  onChange={e => setMaxCandidates(e.target.value)}
+                  placeholder="Leave blank to use default"
                 />
                 <Flex as="label" gap="sm" align="center">
                   <input
