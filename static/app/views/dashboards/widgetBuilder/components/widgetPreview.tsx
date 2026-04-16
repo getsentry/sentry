@@ -129,7 +129,7 @@ export function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
-      tableItemLimit={widget.limit}
+      tableItemLimit={widget.limit ?? undefined}
       showConfidenceWarning={
         widget.widgetType === WidgetType.SPANS ||
         widget.widgetType === WidgetType.TRACEMETRICS ||

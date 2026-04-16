@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -9,8 +11,7 @@ import {PreviewFeature} from 'sentry/components/previewFeature';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -33,16 +34,7 @@ function ProjectExpectCtReports() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ProjectKey[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery(projectKeysApiOptions({orgSlug: organization.slug, projSlug: projectId}));
 
   if (isPending) {
     return <LoadingIndicator />;

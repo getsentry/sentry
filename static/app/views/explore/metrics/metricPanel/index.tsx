@@ -1,4 +1,5 @@
 import {Activity, Fragment, useRef, useState} from 'react';
+import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
@@ -44,6 +45,7 @@ interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   queryIndex: number;
   queryLabel: string;
   traceMetric: TraceMetric;
+  dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   isAnyDragging?: boolean;
   isDragging?: boolean;
@@ -63,6 +65,7 @@ export function MetricPanel({
   isDragging,
   style,
   ref,
+  dragAttributes,
   referencedMetricLabels,
   onEquationLabelsChange,
   ...rest
@@ -137,6 +140,7 @@ export function MetricPanel({
                 queryLabel={queryLabel}
                 referenceMap={referenceMap}
                 dragListeners={dragListeners}
+                dragAttributes={dragAttributes}
                 referencedMetricLabels={referencedMetricLabels}
                 onEquationLabelsChange={onEquationLabelsChange}
               />

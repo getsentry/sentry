@@ -401,8 +401,8 @@ export default function ReleasesList() {
   );
 
   const getTagValues = useCallback<GetTagValues>(
-    async (tag, currentQuery) => {
-      const values = await tagValueLoader(tag.key, currentQuery);
+    async ({tag, searchQuery}) => {
+      const values = await tagValueLoader(tag.key, searchQuery);
       return values.map(({value}) => value);
     },
     [tagValueLoader]

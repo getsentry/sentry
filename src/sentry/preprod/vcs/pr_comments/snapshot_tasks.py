@@ -76,7 +76,7 @@ def create_preprod_snapshot_pr_comment_task(
         )
         return
 
-    if not artifact.project.get_option(ENABLED_OPTION_KEY, default=True):
+    if not artifact.project.get_option(ENABLED_OPTION_KEY):
         logger.info(
             "preprod.snapshot_pr_comments.create.project_disabled",
             extra={"artifact_id": artifact.id, "project_id": artifact.project.id},

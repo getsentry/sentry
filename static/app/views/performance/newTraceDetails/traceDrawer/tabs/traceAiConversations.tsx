@@ -1,0 +1,259 @@
+import {type Key, useCallback, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {t} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {
+  ConversationDetailPanel,
+  ConversationLeftPanel,
+  ConversationSplitLayout,
+  ConversationViewSkeleton,
+} from 'sentry/views/insights/pages/conversations/components/conversationLayout';
+import {ConversationAggregatesBar} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
+import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
+import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useConversationSelection} from 'sentry/views/insights/pages/conversations/hooks/useConversationSelection';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
+import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+
+interface TraceAiConversationsProps {
+  allAiNodes: AITraceSpanNode[];
+  conversationIds: string[];
+  traceSlug: string;
+}
+
+export function TraceAiConversations({
+  conversationIds,
+  allAiNodes,
+  traceSlug,
+}: TraceAiConversationsProps) {
+  const organization = useOrganization();
+  const [activeSubTab, setActiveSubTab] = useState(`chat-${conversationIds[0]}`);
+  const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
+
+  const handleTabChange = useCallback((key: Key) => {
+    setActiveSubTab(String(key));
+    setSelectedSpanId(null);
+  }, []);
+
+  const handleSelectSpan = useCallback((spanId: string) => {
+    setSelectedSpanId(spanId);
+  }, []);
+
+  const activeConversationId = activeSubTab.startsWith('chat-')
+    ? activeSubTab.slice('chat-'.length)
+    : null;
+
+  const {
+    nodes: conversationNodes,
+    nodeTraceMap,
+    isLoading,
+    error,
+  } = useConversation({
+    conversationId: activeConversationId ?? '',
+  });
+
+  const traceNodes = useMemo(
+    () => conversationNodes.filter(n => nodeTraceMap.get(n.id) === traceSlug),
+    [conversationNodes, nodeTraceMap, traceSlug]
+  );
+
+  const tabItems = useMemo(() => {
+    const items: Array<{conversationId: string | null; key: string; label: string}> =
+      conversationIds.map(id => ({
+        key: `chat-${id}`,
+        label: conversationIds.length === 1 ? t('Chat') : t('Chat %s', id.slice(0, 8)),
+        conversationId: id,
+      }));
+    items.push({key: 'spans', label: t('Spans'), conversationId: null});
+    return items;
+  }, [conversationIds]);
+
+  const conversationUrl = activeConversationId
+    ? normalizeUrl(
+        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${activeConversationId}/${selectedSpanId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
+      )
+    : null;
+
+  return (
+    <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
+      <Flex direction="column" height="100%">
+        {activeConversationId && conversationUrl && (
+          <TraceConversationHeader
+            conversationId={activeConversationId}
+            conversationUrl={conversationUrl}
+            nodes={traceNodes}
+            isLoading={isLoading}
+          />
+        )}
+        <StyledTabs value={activeSubTab} onChange={handleTabChange}>
+          <Container borderBottom="primary">
+            <TabList>
+              {tabItems.map(item => (
+                <TabList.Item key={item.key}>{item.label}</TabList.Item>
+              ))}
+            </TabList>
+          </Container>
+          <FullHeightTabPanels>
+            {tabItems.map(item =>
+              item.conversationId ? (
+                <TabPanels.Item key={item.key}>
+                  <TraceConversationChat
+                    nodes={traceNodes}
+                    nodeTraceMap={nodeTraceMap}
+                    isLoading={isLoading}
+                    error={error}
+                    conversationId={item.conversationId}
+                    selectedSpanId={selectedSpanId}
+                    onSelectSpan={handleSelectSpan}
+                  />
+                </TabPanels.Item>
+              ) : (
+                <TabPanels.Item key={item.key}>
+                  <AiSpansSplitView nodes={allAiNodes} traceSlug={traceSlug} />
+                </TabPanels.Item>
+              )
+            )}
+          </FullHeightTabPanels>
+        </StyledTabs>
+      </Flex>
+    </Container>
+  );
+}
+
+function TraceConversationHeader({
+  conversationId,
+  conversationUrl,
+  nodes,
+  isLoading,
+}: {
+  conversationId: string;
+  conversationUrl: string;
+  isLoading: boolean;
+  nodes: AITraceSpanNode[];
+}) {
+  return (
+    <Container padding="md lg" borderBottom="primary">
+      <Flex align="center" justify="between" gap="md">
+        <ConversationAggregatesBar
+          nodes={nodes}
+          conversationId={conversationId}
+          isLoading={isLoading}
+        />
+        <Flex flexShrink={0}>
+          <LinkButton size="xs" to={conversationUrl}>
+            {t('Show full conversation')}
+          </LinkButton>
+        </Flex>
+      </Flex>
+    </Container>
+  );
+}
+
+function TraceConversationChat({
+  conversationId,
+  nodes,
+  nodeTraceMap,
+  isLoading,
+  error,
+  selectedSpanId,
+  onSelectSpan,
+}: {
+  conversationId: string;
+  error: boolean;
+  isLoading: boolean;
+  nodeTraceMap: Map<string, string>;
+  nodes: AITraceSpanNode[];
+  onSelectSpan: (spanId: string) => void;
+  selectedSpanId: string | null;
+}) {
+  const organization = useOrganization();
+
+  const {selectedNode, handleSelectNode} = useConversationSelection({
+    nodes,
+    selectedSpanId,
+    onSelectSpan,
+    isLoading,
+  });
+
+  if (isLoading) {
+    return <ConversationViewSkeleton />;
+  }
+
+  if (error) {
+    return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
+  }
+
+  if (nodes.length === 0) {
+    const conversationUrl = normalizeUrl(
+      `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${conversationId}/`
+    );
+    return (
+      <EmptyMessage
+        action={
+          <LinkButton size="sm" to={conversationUrl}>
+            {t('Show full conversation')}
+          </LinkButton>
+        }
+      >
+        {t('No chat messages in this portion of the conversation')}
+      </EmptyMessage>
+    );
+  }
+
+  return (
+    <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+      <ConversationSplitLayout
+        sizeStorageKey="trace-conversation-split-size"
+        left={
+          <ConversationLeftPanel>
+            <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
+              <MessagesPanel
+                nodes={nodes}
+                selectedNodeId={selectedNode?.id ?? null}
+                onSelectNode={handleSelectNode}
+              />
+            </Flex>
+          </ConversationLeftPanel>
+        }
+        right={
+          <ConversationDetailPanel
+            selectedNode={selectedNode}
+            nodeTraceMap={nodeTraceMap}
+          />
+        }
+      />
+    </TraceStateProvider>
+  );
+}
+
+const StyledTabs = styled(Tabs)`
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const FullHeightTabPanels = styled(TabPanels)`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+
+  > [role='tabpanel'] {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+`;

@@ -319,22 +319,27 @@ export function useUpdateAutomationsMutation() {
   });
 }
 
+interface SendTestNotificationVariables {
+  actions: Array<Omit<Action, 'id'>>;
+  projectSlug?: string;
+}
+
 export function useSendTestNotification(
-  options?: UseMutationOptions<void, RequestError, Array<Omit<Action, 'id'>>>
+  options?: UseMutationOptions<void, RequestError, SendTestNotificationVariables>
 ) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<void, RequestError, Array<Omit<Action, 'id'>>>({
-    mutationFn: data =>
+  return useMutation<void, RequestError, SendTestNotificationVariables>({
+    mutationFn: ({actions, projectSlug}) =>
       api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
           path: {organizationIdOrSlug: org.slug},
         }),
         {
           method: 'POST',
-          data: {actions: data},
+          data: {actions, projectSlug},
         }
       ),
     ...options,
@@ -343,14 +348,14 @@ export function useSendTestNotification(
         queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(
-        tn('Notification fired!', 'Notifications sent!', variables.length)
+        tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );
       options?.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ||
-          tn('Notification failed', 'Notifications failed', variables.length)
+          tn('Notification failed', 'Notifications failed', variables.actions.length)
       );
       options?.onError?.(error, variables, onMutateResult, context);
     },

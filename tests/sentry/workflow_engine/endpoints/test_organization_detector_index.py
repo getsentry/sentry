@@ -501,6 +501,73 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert "query" in response.data
         assert "Invalid key for this search: tpe" in str(response.data["query"])
 
+    def test_query_by_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        workflow_2 = self.create_workflow(organization_id=self.organization.id)
+        detector_a = self.create_detector(
+            project=self.project, name="Detector A", type=MetricIssue.slug
+        )
+        detector_b = self.create_detector(
+            project=self.project, name="Detector B", type=MetricIssue.slug
+        )
+        self.create_detector(project=self.project, name="Detector C", type=MetricIssue.slug)
+        self.create_detector_workflow(detector=detector_a, workflow=workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=workflow_2)
+
+        # Filter by single workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"workflow:{workflow.id}"},
+        )
+        assert {d["name"] for d in response.data} == {detector_a.name, detector_b.name}
+
+        # Filter by a different workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"workflow:{workflow_2.id}"},
+        )
+        assert {d["name"] for d in response.data} == {detector_b.name}
+
+        # Filter by multiple workflows (IN)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "query": f"workflow:[{workflow.id}, {workflow_2.id}]",
+            },
+        )
+        assert [d["name"] for d in response.data].count(detector_b.name) == 1
+        assert {d["name"] for d in response.data} == {detector_a.name, detector_b.name}
+
+        # Negation
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": f"!workflow:{workflow.id}"},
+        )
+        returned_names = {d["name"] for d in response.data}
+        assert detector_a.name not in returned_names
+        assert detector_b.name not in returned_names
+
+        # Negation with list (!IN)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "query": f"!workflow:[{workflow.id}, {workflow_2.id}]",
+            },
+        )
+        returned_names = {d["name"] for d in response.data}
+        assert detector_a.name not in returned_names
+        assert detector_b.name not in returned_names
+
+    def test_query_by_workflow_invalid_value(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "workflow:abc"},
+            status_code=400,
+        )
+
     def test_query_by_assignee_user_email(self) -> None:
         user = self.create_user(email="assignee@example.com")
         self.create_member(organization=self.organization, user=user)

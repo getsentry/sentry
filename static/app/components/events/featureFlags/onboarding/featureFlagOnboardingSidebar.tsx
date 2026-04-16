@@ -294,7 +294,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       <div>
         {tct(
-          'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python and JavaScript projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
+          'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python, JavaScript, and Node.js projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />

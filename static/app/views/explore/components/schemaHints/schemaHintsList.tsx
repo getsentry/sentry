@@ -9,8 +9,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -432,9 +432,25 @@ export function SchemaHintsList({
 
   if (isLoading) {
     return (
-      <Flex justify="center" align="center" height="24px">
-        <LoadingIndicator mini />
-      </Flex>
+      <SchemaHintsContainer
+        aria-label={t('Schema Hints List')}
+        style={{overflow: 'hidden'}}
+      >
+        <Placeholder width="8%" height="28px" />
+        <Placeholder width="10%" height="28px" />
+        <Placeholder width="9%" height="28px" />
+        <Placeholder width="11%" height="28px" />
+        <Placeholder width="8%" height="28px" />
+        <Placeholder width="10%" height="28px" />
+        <Placeholder width="9%" height="28px" />
+        <Placeholder width="8%" height="28px" />
+        <Placeholder width="11%" height="28px" />
+        <Placeholder width="9%" height="28px" />
+        <Placeholder width="8%" height="28px" />
+        <Placeholder width="10%" height="28px" />
+        <Placeholder width="9%" height="28px" />
+        <Placeholder width="8%" height="28px" />
+      </SchemaHintsContainer>
     );
   }
 

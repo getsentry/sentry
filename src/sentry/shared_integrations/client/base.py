@@ -90,10 +90,11 @@ class BaseApiClient:
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
+        tags: dict[str, str | int] = {self.integration_type: self.name, "status": code}
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
-            tags={self.integration_type: self.name, "status": code},
+            tags=tags,
         )
 
         log_params = {
@@ -174,7 +175,9 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: Literal[True] = ...,
+        endpoint: str | None = None,
     ) -> Response: ...
 
     @overload
@@ -192,7 +195,9 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: bool = ...,
+        endpoint: str | None = None,
     ) -> Any: ...
 
     def _request(
@@ -209,7 +214,9 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: bool = False,
+        endpoint: str | None = None,
     ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
@@ -222,10 +229,11 @@ class BaseApiClient:
 
         full_url = self.build_url(path)
 
+        request_tags: dict[str, str] = {self.integration_type: self.name}
         metrics.incr(
             f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
-            tags={self.integration_type: self.name},
+            tags=request_tags,
         )
 
         if self.integration_type:
@@ -246,6 +254,11 @@ class BaseApiClient:
         # It shouldn't be possible for integration_type to be null.
         if self.integration_type:
             extra[self.integration_type] = self.name
+        integration_id = getattr(self, "integration_id", None)
+        if integration_id is not None:
+            extra["integration_id"] = str(integration_id)
+        if endpoint is not None:
+            extra["endpoint"] = endpoint
 
         try:
             with self.build_session() as session:
@@ -253,7 +266,7 @@ class BaseApiClient:
                 environment_settings = session.merge_environment_settings(
                     url=finalized_request.url,
                     proxies={},
-                    stream=None,
+                    stream=stream,
                     verify=self.verify_ssl,
                     cert=None,
                 )

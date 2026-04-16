@@ -66,8 +66,8 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 detector_search_config = SearchConfig.create_from(
     default_config,
-    text_operator_keys={"name", "type"},
-    allowed_keys={"name", "type", "assignee"},
+    text_operator_keys={"name", "type", "workflow"},
+    allowed_keys={"name", "type", "assignee", "workflow"},
     allow_boolean=False,
     free_text_key="query",
 )
@@ -218,6 +218,24 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)
+                    case SearchFilter(
+                        key=SearchKey("workflow"),
+                        operator=("=" | "IN" | "!=" | "NOT IN"),
+                    ):
+                        workflow_ids = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        workflow_ids = to_valid_int_id_list("workflow", workflow_ids)
+                        if filter.operator in ("!=", "NOT IN"):
+                            queryset = queryset.exclude(
+                                detectorworkflow__workflow_id__in=workflow_ids
+                            )
+                        else:
+                            queryset = queryset.filter(
+                                detectorworkflow__workflow_id__in=workflow_ids
+                            ).distinct()
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.

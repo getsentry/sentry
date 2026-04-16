@@ -10,25 +10,32 @@ export function useGetTraceItemAttributeTagKeys({
   itemType,
   projects,
   extraTags,
+  query,
+  hiddenKeys,
 }: {
   itemType: TraceItemDataset;
   extraTags?: TagCollection;
+  hiddenKeys?: string[];
   projects?: PageFilters['projects'];
+  query?: string;
 }): GetTagKeys {
   const getStringKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    query,
   });
   const getNumberKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     type: 'number',
     projectIds: projects,
+    query,
   });
   const getBooleanKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     type: 'boolean',
     projectIds: projects,
+    query,
   });
 
   return useCallback(
@@ -38,13 +45,17 @@ export function useGetTraceItemAttributeTagKeys({
         getNumberKeys(searchQuery),
         getBooleanKeys(searchQuery),
       ]);
+      const hiddenKeySet = hiddenKeys ? new Set(hiddenKeys) : undefined;
       const fetched = [...Object.values(s), ...Object.values(n), ...Object.values(b)];
-      const fetchedKeySet = new Set(fetched.map(t => t.key));
+      const filteredFetched = hiddenKeySet
+        ? fetched.filter(t => !hiddenKeySet.has(t.key))
+        : fetched;
+      const fetchedKeySet = new Set(filteredFetched.map(t => t.key));
       return [
-        ...fetched,
+        ...filteredFetched,
         ...Object.values(extraTags ?? []).filter(t => !fetchedKeySet.has(t.key)),
       ];
     },
-    [getStringKeys, getNumberKeys, getBooleanKeys, extraTags]
+    [getStringKeys, getNumberKeys, getBooleanKeys, extraTags, hiddenKeys]
   );
 }

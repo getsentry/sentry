@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -18,8 +19,9 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
+import {useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,27 +46,21 @@ export default function ProjectKeys() {
   const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
 
   const {
-    data: fetchedKeyList,
+    data: keyListResponse,
     isPending,
     isError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<ProjectKey[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-      {
-        query: {
-          cursor: decodeScalar(location.query.cursor),
-          per_page: 5,
-        },
+  } = useQuery({
+    ...projectKeysApiOptions({
+      orgSlug: organization.slug,
+      projSlug: project.slug,
+      query: {
+        cursor: decodeScalar(location.query.cursor),
+        per_page: 5,
       },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   /**
    * Optimistically remove key
@@ -148,7 +144,7 @@ export default function ProjectKeys() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const keyList = keyListState ? keyListState : fetchedKeyList;
+  const keyList = keyListState ? keyListState : keyListResponse.json;
 
   const renderEmpty = () => {
     return (
@@ -182,7 +178,7 @@ export default function ProjectKeys() {
             params={params}
           />
         ))}
-        <Pagination pageLinks={getResponseHeader?.('Link')} />
+        <Pagination pageLinks={keyListResponse.headers.Link} />
       </Fragment>
     );
   };
