@@ -78,6 +78,7 @@ export function replayListApiOptions(props: Props) {
   );
 }
 
+/** @internal exported for stories */
 export function replayListInfiniteApiOptions(props: Props) {
   const query = getQueryForReplaysList(props);
 
