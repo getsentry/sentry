@@ -237,7 +237,7 @@ def _launch_agents_for_repos(
         try:
             project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
             preference = read_preference_from_sentry_db(project)
-            if preference and preference.automation_handoff:
+            if preference.automation_handoff:
                 auto_create_pr = preference.automation_handoff.auto_create_pr
         except Project.DoesNotExist:
             logger.exception(
@@ -250,9 +250,9 @@ def _launch_agents_for_repos(
             )
     else:
         try:
-            preference = get_project_seer_preferences(autofix_state.request.project_id).preference
-            if preference and preference.automation_handoff:
-                auto_create_pr = preference.automation_handoff.auto_create_pr
+            pref = get_project_seer_preferences(autofix_state.request.project_id).preference
+            if pref and pref.automation_handoff:
+                auto_create_pr = pref.automation_handoff.auto_create_pr
         except (SeerApiError, SeerApiResponseValidationError):
             logger.exception(
                 "coding_agent.get_project_seer_preferences_error",

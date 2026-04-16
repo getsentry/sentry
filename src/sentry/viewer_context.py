@@ -103,6 +103,15 @@ def get_viewer_context() -> ViewerContext | None:
     return _viewer_context_var.get()
 
 
+def set_viewer_context_organization(organization_id: int) -> None:
+    """Update the current ``ViewerContext`` with a resolved organization id."""
+    ctx = get_viewer_context()
+    if ctx is None or ctx.organization_id == organization_id:
+        return
+
+    _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+
+
 # ---------------------------------------------------------------------------
 # JWT encoding / decoding for cross-service propagation
 # ---------------------------------------------------------------------------

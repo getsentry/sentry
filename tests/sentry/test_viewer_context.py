@@ -10,6 +10,7 @@ from sentry.viewer_context import (
     ActorType,
     ViewerContext,
     get_viewer_context,
+    set_viewer_context_organization,
     viewer_context_scope,
 )
 
@@ -125,3 +126,22 @@ class TestViewerContextScope:
 
         assert inside is ctx
         assert outside is None
+
+    def test_set_organization_updates_current_context(self):
+        ctx = ViewerContext(user_id=1, actor_type=ActorType.USER)
+
+        with viewer_context_scope(ctx):
+            set_viewer_context_organization(42)
+            updated = get_viewer_context()
+
+            assert updated is not None
+            assert updated.organization_id == 42
+            assert updated.user_id == ctx.user_id
+            assert updated.actor_type is ctx.actor_type
+
+        assert get_viewer_context() is None
+
+    def test_set_organization_is_noop_without_context(self):
+        set_viewer_context_organization(42)
+
+        assert get_viewer_context() is None

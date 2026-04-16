@@ -15,11 +15,12 @@ T = TypeVar("T", bound=BaseModel)
 class ToolCall(BaseModel):
     """A tool call in a message."""
 
+    id: str | None = None
     function: str
     args: str
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class Message(BaseModel):
@@ -27,11 +28,12 @@ class Message(BaseModel):
 
     role: Literal["user", "assistant", "tool_use"]
     content: str | None = None
+    thinking_content: str | None = None
     tool_calls: list[ToolCall] | None = None
     metadata: dict[str, str] | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class Artifact(BaseModel):
@@ -42,7 +44,7 @@ class Artifact(BaseModel):
     reason: str
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class FilePatch(BaseModel):
@@ -65,7 +67,7 @@ class ExplorerFilePatch(BaseModel):
     diff: str = ""
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class RepoPRState(BaseModel):
@@ -83,7 +85,38 @@ class RepoPRState(BaseModel):
     description: str | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
+
+
+class TodoItem(BaseModel):
+    """A todo item tracked by the agent."""
+
+    content: str
+    status: Literal["pending", "in_progress", "completed"]
+
+    class Config:
+        extra = "ignore"
+
+
+class ToolLink(BaseModel):
+    """A link to a Sentry resource referenced by a tool call."""
+
+    kind: str
+    params: dict[str, Any]
+
+    class Config:
+        extra = "ignore"
+
+
+class ToolResult(BaseModel):
+    """The result of a tool call execution."""
+
+    tool_call_id: str
+    tool_call_function: str
+    content: str
+
+    class Config:
+        extra = "ignore"
 
 
 class MemoryBlock(BaseModel):
@@ -101,9 +134,12 @@ class MemoryBlock(BaseModel):
     pr_commit_shas: dict[str, str] | None = (
         None  # repository name -> commit SHA. Used to track which commit was associated with each repo's PR at the time this block was created.
     )
+    todos: list[TodoItem] | None = None
+    tool_links: list[ToolLink | None] | None = None
+    tool_results: list[ToolResult | None] | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class PendingUserInput(BaseModel):
@@ -114,7 +150,7 @@ class PendingUserInput(BaseModel):
     data: dict[str, Any]
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class CodingAgentResult(BaseModel):
@@ -126,7 +162,7 @@ class CodingAgentResult(BaseModel):
     pr_url: str | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class ExplorerCodingAgentState(BaseModel):
@@ -142,7 +178,7 @@ class ExplorerCodingAgentState(BaseModel):
     integration_id: int | None = None
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class Usage(BaseModel):
@@ -158,7 +194,7 @@ class Usage(BaseModel):
     model: str = ""
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class UsageAccumulator(BaseModel):
@@ -167,7 +203,7 @@ class UsageAccumulator(BaseModel):
     usages: list[Usage] = Field(default_factory=list)
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
     @property
     def total_dollar_cost(self) -> float:
@@ -185,14 +221,15 @@ class SeerRunState(BaseModel):
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error", "awaiting_user_input"]
     updated_at: str
+    owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
-    metadata: dict[str, Any] | None = None
-    coding_agents: dict[str, ExplorerCodingAgentState] = Field(default_factory=dict)
-    usage: UsageAccumulator = Field(default_factory=UsageAccumulator)
+    metadata: dict[str, Any] | None = Field(default=None, exclude=True)
+    coding_agents: dict[str, ExplorerCodingAgentState] = Field(default_factory=dict, exclude=True)
+    usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
     def get_artifacts(self) -> dict[str, Artifact]:
         """
