@@ -7,7 +7,6 @@ import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {
   getTraceItemTagCollection,
   traceItemAttributeKeysOptions,
-  type AttributeType,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
@@ -27,7 +26,6 @@ export function useGetTraceItemAttributeKeys({
 
   const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
     mutationFn: async (queryString?: string): Promise<TagCollection> => {
-      let result: AttributeType[];
       try {
         const {json} = await queryClient.fetchQuery({
           ...traceItemAttributeKeysOptions({
@@ -41,12 +39,10 @@ export function useGetTraceItemAttributeKeys({
             staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
           }),
         });
-        result = json;
+        return getTraceItemTagCollection(json, type);
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
-
-      return getTraceItemTagCollection(result, type);
     },
   });
 
