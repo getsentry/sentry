@@ -47,23 +47,17 @@ logger = logging.getLogger(__name__)
 
 
 def _take_dashboard_snapshot(
-    organization: Organization,
-    dashboard: Dashboard | dict[Any, Any] | None,
+    dashboard: Dashboard,
     user: Any,
 ) -> dict[str, Any] | None:
     """
-    Serialize the current dashboard state as a snapshot, or return None if the
-    revisions feature is disabled, the dashboard has no DB record to snapshot,
-    or serialization fails.
+    Serialize the current dashboard state as a snapshot, or return None if
+    serialization fails.
 
     Must be called outside any transaction.atomic block because the serializer
     makes hybrid-cloud RPC calls (user_service.serialize_many) that cannot run
     inside a transaction.
     """
-    if not isinstance(dashboard, Dashboard):
-        return None
-    if not features.has(REVISIONS_FEATURE, organization, actor=user):
-        return None
     try:
         return serialize(dashboard, user)
     except Exception:
@@ -244,11 +238,15 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                     {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
                 )
 
-        snapshot = _take_dashboard_snapshot(organization, dashboard, request.user)
+        snapshot = None
+        if isinstance(dashboard, Dashboard) and features.has(
+            REVISIONS_FEATURE, organization, actor=request.user
+        ):
+            snapshot = _take_dashboard_snapshot(dashboard, request.user)
 
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
-                if snapshot is not None and isinstance(dashboard, Dashboard):
+                if snapshot is not None:
                     DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
                 serializer.save()
                 if tombstone:
