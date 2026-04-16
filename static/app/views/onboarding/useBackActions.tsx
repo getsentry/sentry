@@ -36,6 +36,7 @@ export function useBackActions({
   const onboardingContext = useOnboardingContext();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
+    reportExposure: false,
   });
   const currentStep = onboardingSteps[stepIndex];
 
