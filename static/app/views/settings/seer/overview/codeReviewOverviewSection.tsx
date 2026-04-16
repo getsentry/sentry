@@ -17,6 +17,7 @@ import {IconSettings} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {fetchMutation, useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -137,7 +138,7 @@ export function CodeReviewOverviewSection({
     );
   };
 
-  const handleChangeTriggers = (newTriggers: string[]) => {
+  const handleChangeTriggers = (newTriggers: CodeReviewTrigger[]) => {
     mutateRepositorySettings(
       {
         codeReviewTriggers: newTriggers,
@@ -285,7 +286,7 @@ export function CodeReviewOverviewSection({
                 busy={isPending}
                 disabled={!canWrite}
                 onClick={() => {
-                  handleChangeTriggers(field.state.value);
+                  handleChangeTriggers(field.state.value as CodeReviewTrigger[]);
                 }}
               >
                 {tn(

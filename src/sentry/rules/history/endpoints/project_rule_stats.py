@@ -66,5 +66,5 @@ class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
         Note that results are returned in hourly buckets.
         """
         start, end = get_date_range_from_params(request.GET)
-        results = fetch_rule_hourly_stats(rule, start, end)
+        results = fetch_rule_hourly_stats(rule, start, end, project_id=project.id)
         return Response(serialize(results, request.user, TimeSeriesValueSerializer()))

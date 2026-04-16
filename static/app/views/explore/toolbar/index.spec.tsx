@@ -51,36 +51,38 @@ describe('ExploreToolbar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
       body: [
         {
+          attributeType: 'number',
+          key: 'span.duration',
+          name: 'span.duration',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'number',
+          key: 'span.self_time',
+          name: 'span.self_time',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
           key: 'span.op',
           name: 'span.op',
           attributeSource: {source_type: 'sentry'},
         },
         {
+          attributeType: 'string',
           key: 'span.description',
           name: 'span.description',
           attributeSource: {source_type: 'sentry'},
         },
         {
+          attributeType: 'string',
           key: 'project',
           name: 'project',
           attributeSource: {source_type: 'sentry'},
         },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'boolean'})],
     });
   });
 

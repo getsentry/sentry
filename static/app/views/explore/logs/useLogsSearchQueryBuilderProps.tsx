@@ -9,6 +9,7 @@ import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
 import {
   useQueryParamsFields,
   useQueryParamsSearch,
@@ -86,6 +87,7 @@ export function useLogsSearchQueryBuilderProps({
       onCaseInsensitiveClick: setCaseInsensitive,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
       matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
+      hiddenAttributeKeys: HiddenLogSearchFields,
     }),
     [
       booleanAttributes,

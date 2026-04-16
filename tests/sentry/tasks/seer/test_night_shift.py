@@ -353,7 +353,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             self.feature("organizations:seer-project-settings-read-from-sentry"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
-                return_value=[],
+                return_value=([], None),
             ),
         ):
             run_night_shift_for_org(org.id)
@@ -392,7 +392,7 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
                 project, f"null-{i}", seer_fixability_score=None, times_seen=100
             )
 
-        result = fixability_score_strategy([project])
+        result = fixability_score_strategy([project], max_candidates=10)
 
         assert result[0].group.id == high.id
         assert result[0].fixability == 0.9
