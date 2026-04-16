@@ -259,16 +259,15 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
                 "choices": choices,
             },
             {
-                "name": "workspace_name",
-                "type": "text",
-                "label": _("Workspace Name"),
+                "name": "workspace_is_default",
+                "type": "boolean",
+                "label": _("I am using the default workspace"),
                 "help": _(
-                    "Your Anthropic workspace name (from platform.claude.com URL), used to link to session details. "
-                    "Defaults to 'default' — override this if your workspace has a different name."
+                    "Check this if your Anthropic workspace is named 'default'. "
+                    "When checked, an 'Open in Claude' link to the session is shown. "
+                    "Uncheck if you use a custom workspace name — the link will be hidden."
                 ),
                 "required": False,
-                "placeholder": "default",
-                "formatMessageValue": False,
             },
         ]
 
@@ -282,8 +281,8 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         if "environment_id" in data:
             metadata.environment_id = data["environment_id"] or None
 
-        if "workspace_name" in data:
-            metadata.workspace_name = data["workspace_name"] or None
+        if "workspace_is_default" in data:
+            metadata.workspace_name = "default" if data["workspace_is_default"] else None
 
         self._persist_metadata(metadata)
         super().update_organization_config({})
@@ -292,7 +291,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         metadata = self._get_metadata()
         return {
             "environment_id": metadata.environment_id or "",
-            "workspace_name": metadata.workspace_name or "",
+            "workspace_is_default": metadata.workspace_name == "default",
         }
 
     def get_client(self) -> Any:

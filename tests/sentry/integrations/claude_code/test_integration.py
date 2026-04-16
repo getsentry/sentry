@@ -308,36 +308,53 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert installation.model.metadata["environment_id"] is None
 
-    def test_update_organization_config_sets_workspace_name(self) -> None:
-        installation = self._create_installation()
-        installation.update_organization_config({"workspace_name": "my-workspace"})
+    def test_update_organization_config_workspace_is_default_true(self) -> None:
+        installation = self._create_installation(workspace_name=None)
+        installation.update_organization_config({"workspace_is_default": True})
 
-        assert installation.model.metadata["workspace_name"] == "my-workspace"
+        assert installation.model.metadata["workspace_name"] == "default"
 
-    def test_update_organization_config_clears_workspace_name(self) -> None:
-        installation = self._create_installation(workspace_name="old-ws")
-        installation.update_organization_config({"workspace_name": ""})
+    def test_update_organization_config_workspace_is_default_false(self) -> None:
+        installation = self._create_installation(workspace_name="default")
+        installation.update_organization_config({"workspace_is_default": False})
 
         assert installation.model.metadata["workspace_name"] is None
 
     # ── get_config_data ──────────────────────────────────────────────
 
-    def test_get_config_data(self) -> None:
+    def test_get_config_data_workspace_is_default_true_when_default(self) -> None:
         installation = self._create_installation(
             environment_id="env-cfg",
-            workspace_name="ws-cfg",
+            workspace_name="default",
         )
         data = installation.get_config_data()
 
         assert data["environment_id"] == "env-cfg"
-        assert data["workspace_name"] == "ws-cfg"
+        assert data["workspace_is_default"] is True
 
-    def test_get_config_data_defaults_to_empty_strings_except_workspace(self) -> None:
-        installation = self._create_installation()
+    def test_get_config_data_workspace_is_default_false_when_custom(self) -> None:
+        installation = self._create_installation(workspace_name="my-custom-ws")
         data = installation.get_config_data()
 
-        assert data["environment_id"] == ""
-        assert data["workspace_name"] == "default"
+        assert data["workspace_is_default"] is False
+
+    def test_get_config_data_workspace_is_default_false_when_none(self) -> None:
+        installation = self._create_installation(workspace_name=None)
+        data = installation.get_config_data()
+
+        assert data["workspace_is_default"] is False
+
+    def test_get_organization_config_workspace_is_boolean_field(self) -> None:
+        installation = self._create_installation()
+        mock_cls, mock_client = _mock_client_class()
+        mock_client.list_environments.return_value = []
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            fields = {f["name"]: f for f in installation.get_organization_config()}
+
+        assert "workspace_is_default" in fields
+        assert fields["workspace_is_default"]["type"] == "boolean"
+        assert "workspace_name" not in fields
 
     # ── launch ───────────────────────────────────────────────────────
 
