@@ -56,17 +56,19 @@ export default function InstallPage() {
                     </Flex>
                   </Container>
                   <Container padding="2xl">
-                    <InstallDetailsContent
-                      artifactId={artifactId}
-                      size="lg"
-                      projectSlug={buildDetailsQuery.data?.project_slug}
-                      distributionErrorCode={
-                        buildDetailsQuery.data?.distribution_info?.error_code
-                      }
-                      distributionErrorMessage={
-                        buildDetailsQuery.data?.distribution_info?.error_message
-                      }
-                    />
+                    {buildDetailsQuery.data && (
+                      <InstallDetailsContent
+                        artifactId={artifactId}
+                        size="lg"
+                        projectSlug={buildDetailsQuery.data.project_slug}
+                        distributionErrorCode={
+                          buildDetailsQuery.data.distribution_info?.error_code
+                        }
+                        distributionErrorMessage={
+                          buildDetailsQuery.data.distribution_info?.error_message
+                        }
+                      />
+                    )}
                   </Container>
                 </Container>
                 {buildDetailsQuery.data && (

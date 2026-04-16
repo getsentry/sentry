@@ -12,7 +12,7 @@ import {InstallDetailsContent} from 'sentry/views/preprod/components/installDeta
 interface InstallModalProps {
   artifactId: string;
   closeModal: () => void;
-  projectSlug?: string;
+  projectSlug: string;
 }
 
 function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) {
@@ -44,7 +44,7 @@ function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) 
   );
 }
 
-export function openInstallModal(artifactId: string, projectSlug?: string) {
+export function openInstallModal(artifactId: string, projectSlug: string) {
   openModal(
     ({closeModal}) => (
       <InstallModal

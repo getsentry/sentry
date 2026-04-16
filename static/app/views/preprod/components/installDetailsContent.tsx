@@ -44,9 +44,9 @@ export function getDistributionErrorTooltip(
 
 interface InstallDetailsContentProps {
   artifactId: string;
+  projectSlug: string;
   distributionErrorCode?: string | null;
   distributionErrorMessage?: string | null;
-  projectSlug?: string;
   size?: 'sm' | 'lg';
 }
 
@@ -107,20 +107,16 @@ export function InstallDetailsContent({
         <Flex direction="column" align="center" gap={outerGap}>
           <Text>{t('Build distribution is not enabled')}</Text>
           <Text size="sm" variant="muted" align="center">
-            {projectSlug
-              ? tct(
-                  'The installable file is not available for this build. Enable build distribution in your [link:project settings].',
-                  {
-                    link: (
-                      <Link
-                        to={`/settings/${organization.slug}/projects/${projectSlug}/mobile-builds/?tab=distribution`}
-                      />
-                    ),
-                  }
-                )
-              : t(
-                  'The installable file is not available for this build. Enable build distribution in your project settings.'
-                )}
+            {tct(
+              'The installable file is not available for this build. Enable build distribution in your [link:project settings].',
+              {
+                link: (
+                  <Link
+                    to={`/settings/${organization.slug}/projects/${projectSlug}/mobile-builds/?tab=distribution`}
+                  />
+                ),
+              }
+            )}
           </Text>
         </Flex>
       );
@@ -293,38 +289,33 @@ export function InstallDetailsContent({
       </Flex>
     );
   } else {
-    if (installDetails.is_code_signature_valid === false) {
-      let errors = null;
-      if (
-        installDetails.code_signature_errors &&
-        installDetails.code_signature_errors.length > 0
-      ) {
-        errors = (
-          <CodeSignatureInfo>
-            <Stack gap="sm">
-              {installDetails.code_signature_errors.map((e, index) => (
-                <Text key={index}>{e}</Text>
-              ))}
-            </Stack>
-          </CodeSignatureInfo>
-        );
-      }
-      body = (
-        <Flex direction="column" align="center" gap={outerGap}>
-          <Text>{'Code signature is invalid'}</Text>
-          {errors}
-        </Flex>
+    let message: string;
+    if (distributionErrorCode) {
+      message = getDistributionErrorTooltip(
+        distributionErrorCode,
+        distributionErrorMessage
       );
+    } else if (installDetails.is_code_signature_valid === false) {
+      message = t('Code signature is invalid');
     } else {
-      const message = distributionErrorCode
-        ? getDistributionErrorTooltip(distributionErrorCode, distributionErrorMessage)
-        : t('No install download link available');
-      body = (
-        <Flex direction="column" align="center" gap={outerGap}>
-          <Text>{message}</Text>
-        </Flex>
-      );
+      message = t('No install download link available');
     }
+
+    body = (
+      <Flex direction="column" align="center" gap={outerGap}>
+        <Text>{message}</Text>
+        {installDetails.code_signature_errors &&
+          installDetails.code_signature_errors.length > 0 && (
+            <CodeSignatureInfo>
+              <Stack gap="sm">
+                {installDetails.code_signature_errors.map((e, index) => (
+                  <Text key={index}>{e}</Text>
+                ))}
+              </Stack>
+            </CodeSignatureInfo>
+          )}
+      </Flex>
+    );
   }
 
   return body;
