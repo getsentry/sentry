@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -32,7 +32,6 @@ import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
-  extractTraceMetricFromAggregates,
   extractTraceMetricFromColumn,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -85,30 +84,13 @@ function TraceMetricsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const {state: widgetBuilderState} = useWidgetBuilderContext();
-  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
-
-  const aggregateSource = getTraceMetricAggregateSource(
-    widgetBuilderState.displayType,
-    widgetBuilderState.yAxis,
-    widgetBuilderState.fields
-  );
-  const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
-
-  const hasMultipleMetrics = hasMultipleMetricsSelected(
-    traceMetrics,
-    hasMultiMetricSelection
-  );
+  const {attributeQuery, hasMultipleMetrics, traceMetrics} = useTraceMetricsSearchScope();
 
   // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: attributeQuery,
         enabled: defined(traceMetrics[0]), // Only enable if there is at least one metric
       },
       'string',
@@ -117,10 +99,7 @@ function TraceMetricsSearchBar({
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: attributeQuery,
         enabled: defined(traceMetrics[0]),
       },
       'number',
@@ -129,10 +108,7 @@ function TraceMetricsSearchBar({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
-        query:
-          !hasMultipleMetrics && traceMetrics[0]
-            ? createTraceMetricFilter(traceMetrics[0])
-            : undefined,
+        query: attributeQuery,
         enabled: defined(traceMetrics[0]),
       },
       'boolean',
@@ -158,6 +134,8 @@ function TraceMetricsSearchBar({
       }}
       namespace={hasMultipleMetrics ? undefined : traceMetrics?.[0]?.name}
       disableRecentSearches={hasMultipleMetrics}
+      hiddenAttributeKeys={HiddenTraceMetricSearchFields}
+      attributeQuery={attributeQuery}
     />
   );
 }
@@ -166,26 +144,25 @@ function useTraceMetricsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
-  const {state: widgetBuilderState} = useWidgetBuilderContext();
-
-  const aggregateSource = getTraceMetricAggregateSource(
-    widgetBuilderState.displayType,
-    widgetBuilderState.yAxis,
-    widgetBuilderState.fields
-  );
-  const traceMetric = extractTraceMetricFromAggregates(aggregateSource) ?? {
-    name: '',
-    type: '',
-  };
+  const {attributeQuery, traceMetrics} = useTraceMetricsSearchScope();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
+    useTraceMetricItemAttributes(
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      'string',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'number');
+    useTraceMetricItemAttributes(
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      'number',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
-      'boolean'
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      'boolean',
+      HiddenTraceMetricSearchFields
     );
 
   const {filterKeys, filterKeySections, getTagValues} =
@@ -200,6 +177,8 @@ function useTraceMetricsSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: widgetQuery?.conditions ?? '',
       projects: pageFilters.projects,
+      hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+      attributeQuery,
     });
 
   return {
@@ -207,6 +186,29 @@ function useTraceMetricsSearchBarDataProvider(
     getFilterKeys: () => filterKeys,
     getTagValues,
   };
+}
+
+function useTraceMetricsSearchScope() {
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
+
+  const aggregateSource = getTraceMetricAggregateSource(
+    widgetBuilderState.displayType,
+    widgetBuilderState.yAxis,
+    widgetBuilderState.fields
+  );
+  const traceMetrics =
+    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+  const hasMultipleMetrics = hasMultipleMetricsSelected(
+    traceMetrics,
+    hasMultiMetricSelection
+  );
+  const attributeQuery =
+    !hasMultipleMetrics && traceMetrics[0]
+      ? createTraceMetricFilter(traceMetrics[0])
+      : undefined;
+
+  return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
 
 export function formatTraceMetricsFunction(
@@ -251,6 +253,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
       searchSource: 'dashboards',
       initialQuery: '',
       projects: pageFilters.projects,
+      hiddenAttributeKeys: HiddenTraceMetricSearchFields,
     });
 
   return {

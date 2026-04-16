@@ -26,6 +26,7 @@ interface TraceItemAttributeValue {
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
   datetime?: PageFilters['datetime'];
   projectIds?: PageFilters['projects'];
+  query?: string;
 }
 
 function traceItemAttributeValuesQueryKey({
@@ -36,12 +37,14 @@ function traceItemAttributeValuesQueryKey({
   datetime,
   traceItemType,
   type = 'string',
+  query: filterQuery,
 }: {
   attributeKey: string;
   orgSlug: string;
   traceItemType: TraceItemDataset;
   datetime?: PageFilters['datetime'];
   projectIds?: number[];
+  query?: string;
   search?: string;
   type?: 'string' | 'number' | 'boolean';
 }): ApiQueryKey {
@@ -49,6 +52,10 @@ function traceItemAttributeValuesQueryKey({
     itemType: traceItemType,
     attributeType: type,
   };
+
+  if (filterQuery) {
+    query.query = filterQuery;
+  }
 
   if (search) {
     query.substringMatch = search;
@@ -86,6 +93,7 @@ export function useGetTraceItemAttributeValues({
   projectIds,
   datetime,
   type = 'string',
+  query: filterQuery,
 }: UseGetTraceItemAttributeValuesProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -107,6 +115,7 @@ export function useGetTraceItemAttributeValues({
         datetime: datetime ?? selection.datetime,
         traceItemType,
         type,
+        query: filterQuery,
       });
 
       try {

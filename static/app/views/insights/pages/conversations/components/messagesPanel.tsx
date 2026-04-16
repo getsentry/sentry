@@ -78,6 +78,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
       padding="lg lg md md"
       background="secondary"
       minHeight="100%"
+      width="100%"
     >
       <Stack gap="md" width="100%">
         {messages.map((message, index) => {

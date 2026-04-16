@@ -13,6 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -90,6 +91,94 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   };
 }
 
+/**
+ * Aggregate metrics row for a conversation (LLM Calls, Errors, Tokens, Cost, Tools).
+ * Used standalone in the trace AI tab, and as part of ConversationSummary on the detail page.
+ */
+export function ConversationAggregatesBar({
+  nodes,
+  conversationId,
+  isLoading,
+  lastMessageDate,
+}: {
+  conversationId: string;
+  nodes: AITraceSpanNode[];
+  isLoading?: boolean;
+  lastMessageDate?: Date | null;
+}) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+
+  const errorsUrl = getExploreUrl({
+    organization,
+    selection,
+    query: `gen_ai.conversation.id:${conversationId} span.status:internal_error`,
+  });
+
+  return (
+    <Flex align="center" gap="lg" minWidth={0}>
+      <AggregateItem
+        label={t('LLM Calls')}
+        value={<Count value={aggregates.llmCalls} />}
+        isLoading={isLoading}
+      />
+      <AggregateItem
+        label={t('Errors')}
+        value={<Count value={aggregates.errorCount} />}
+        to={aggregates.errorCount > 0 ? errorsUrl : undefined}
+        isLoading={isLoading}
+      />
+      <AggregateItem
+        label={t('Tokens')}
+        value={<Count value={aggregates.totalTokens} />}
+        isLoading={isLoading}
+      />
+      <AggregateItem
+        label={t('Cost')}
+        value={formatLLMCosts(aggregates.totalCost)}
+        isLoading={isLoading}
+      />
+      {lastMessageDate !== undefined && (
+        <AggregateItem
+          label={t('Last message')}
+          value={
+            lastMessageDate ? (
+              <TimeSince date={lastMessageDate} />
+            ) : (
+              <Text size="sm" variant="muted">
+                {'\u2014'}
+              </Text>
+            )
+          }
+          isLoading={isLoading}
+        />
+      )}
+      {isLoading ? (
+        <Flex align="center" gap="xs" flexShrink={0}>
+          <Text size="sm" bold variant="muted">
+            {t('Used Tools')}
+          </Text>
+          <Placeholder width="60px" height="14px" />
+        </Flex>
+      ) : (
+        aggregates.toolNames.length > 0 && (
+          <ToolTagsRow>
+            <Text size="sm" bold variant="muted" wrap="nowrap">
+              {t('Used Tools')}
+            </Text>
+            {aggregates.toolNames.map(name => (
+              <Tag key={name} variant="info">
+                {name}
+              </Tag>
+            ))}
+          </ToolTagsRow>
+        )
+      )}
+    </Flex>
+  );
+}
+
 export function ConversationSummary({
   nodes,
   conversationId,
@@ -97,8 +186,25 @@ export function ConversationSummary({
   nodeTraceMap,
 }: ConversationSummaryProps) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const lastMessageDate = useMemo(() => {
+    if (nodes.length === 0) {
+      return null;
+    }
+
+    let endTimestamp = Number.NEGATIVE_INFINITY;
+
+    for (const node of nodes) {
+      if (typeof node.endTimestamp === 'number') {
+        endTimestamp = Math.max(endTimestamp, node.endTimestamp);
+      }
+    }
+
+    if (!Number.isFinite(endTimestamp)) {
+      return null;
+    }
+
+    return new Date(endTimestamp * 1e3);
+  }, [nodes]);
 
   const handleCopyConversationId = () => {
     copyToClipboard(conversationId, {
@@ -118,12 +224,6 @@ export function ConversationSummary({
     }
     return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
   }, [nodeTraceMap]);
-
-  const errorsUrl = getExploreUrl({
-    organization,
-    selection,
-    query: `gen_ai.conversation.id:${conversationId} span.status:internal_error`,
-  });
 
   return (
     <Flex direction="column" gap="md" flex={1}>
@@ -164,50 +264,12 @@ export function ConversationSummary({
           </Flex>
         )}
       </Flex>
-      <Flex align="center" gap="lg" minWidth={0}>
-        <AggregateItem
-          label={t('LLM Calls')}
-          value={<Count value={aggregates.llmCalls} />}
-          isLoading={isLoading}
-        />
-        <AggregateItem
-          label={t('Errors')}
-          value={<Count value={aggregates.errorCount} />}
-          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
-          isLoading={isLoading}
-        />
-        <AggregateItem
-          label={t('Tokens')}
-          value={<Count value={aggregates.totalTokens} />}
-          isLoading={isLoading}
-        />
-        <AggregateItem
-          label={t('Cost')}
-          value={formatLLMCosts(aggregates.totalCost)}
-          isLoading={isLoading}
-        />
-        {isLoading ? (
-          <Flex align="center" gap="xs" flexShrink={0}>
-            <Text size="sm" bold variant="muted">
-              {t('Used Tools')}
-            </Text>
-            <Placeholder width="60px" height="14px" />
-          </Flex>
-        ) : (
-          aggregates.toolNames.length > 0 && (
-            <ToolTagsRow>
-              <Text size="sm" bold variant="muted" style={{whiteSpace: 'nowrap'}}>
-                {t('Used Tools')}
-              </Text>
-              {aggregates.toolNames.map(name => (
-                <Tag key={name} variant="info">
-                  {name}
-                </Tag>
-              ))}
-            </ToolTagsRow>
-          )
-        )}
-      </Flex>
+      <ConversationAggregatesBar
+        nodes={nodes}
+        conversationId={conversationId}
+        isLoading={isLoading}
+        lastMessageDate={lastMessageDate}
+      />
     </Flex>
   );
 }

@@ -67,24 +67,25 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   );
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
+  const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
+    query: attributeQuery,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
+    query: attributeQuery,
   });
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
-    query: skipTraceMetricFilter ? undefined : traceMetricFilter,
+    query: attributeQuery,
   });
 
   const visibleNumberTags = useMemo(() => {
@@ -155,6 +156,8 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
         onSearch: setQuery,
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
+        attributeQuery,
+        hiddenAttributeKeys: HiddenTraceMetricSearchFields,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -167,6 +170,7 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
       visibleNumberTags,
       visibleStringTags,
       traceMetric.name,
+      attributeQuery,
       skipTraceMetricFilter,
     ]);
 
