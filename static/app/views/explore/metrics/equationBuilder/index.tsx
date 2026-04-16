@@ -23,7 +23,7 @@ export function EquationBuilder({
   onReferenceLabelsChange,
 }: {
   expression: string;
-  handleExpressionChange: (expression: Expression) => void;
+  handleExpressionChange: (resolved: Expression, internalText: string) => void;
   onReferenceLabelsChange?: (labels: string[]) => void;
   referenceMap?: Record<string, string>;
 }) {
@@ -49,7 +49,10 @@ export function EquationBuilder({
     (newExpression: Expression) => {
       startTransition(() => {
         if (newExpression.isValid) {
-          handleExpressionChange(resolveExpression(newExpression, referenceMap));
+          handleExpressionChange(
+            resolveExpression(newExpression, referenceMap),
+            newExpression.text
+          );
         }
       });
     },
