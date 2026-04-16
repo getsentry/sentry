@@ -359,13 +359,7 @@ function WidgetCard(props: Props) {
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
-    // Only pass legend selection when there's explicit URL state.
-    // getWidgetSelectionState returns a default that hides Releases for
-    // LINE/AREA widgets, which was appropriate for the old overlay-line
-    // rendering but not for the new bubble markers.
-    const legendSelectionForWidget = location.query.unselectedSeries
-      ? widgetLegendState.getWidgetSelectionState(widget)
-      : undefined;
+    const legendSelectionForWidget = widgetLegendState.getWidgetSelectionState(widget);
 
     const handleLegendSelectionChange = (legendState: LegendSelection) => {
       widgetLegendState.setWidgetSelectionState(legendState, widget);
