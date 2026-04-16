@@ -61,7 +61,7 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : (metricHistory?.prepaid ?? 0) > 0 ||
+          : (metricHistory?.prepaid ?? 0) !== 0 ||
             !!metricHistory?.softCapType ||
             (!!metricHistory && subscription.hasSoftCap) ||
             !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
