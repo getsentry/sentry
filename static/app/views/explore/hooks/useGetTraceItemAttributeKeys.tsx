@@ -1,14 +1,9 @@
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
-import type {
-  TraceItemDataset,
-  UseTraceItemAttributeBaseProps,
-} from 'sentry/views/explore/types';
+import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {
   getTraceItemTagCollection,
   traceItemAttributeKeysOptions,
@@ -20,51 +15,6 @@ interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBasePro
   query?: string;
 }
 
-type TraceItemAttributeKeyOptions = Pick<
-  ReturnType<typeof normalizeDateTimeParams>,
-  'end' | 'start' | 'statsPeriod' | 'utc'
-> & {
-  attributeType: 'string' | 'number' | 'boolean';
-  itemType: TraceItemDataset;
-  project?: string[];
-  query?: string;
-  substringMatch?: string;
-};
-
-const QUERY_KEY = 'use-get-trace-item-attribute-keys';
-function normalizeSubstringMatch(search?: string) {
-  return search || undefined;
-}
-
-export function makeTraceItemAttributeKeysQueryOptions({
-  traceItemType,
-  type,
-  datetime,
-  projectIds,
-  search,
-  query,
-}: {
-  datetime: PageFilters['datetime'];
-  traceItemType: TraceItemDataset;
-  type: 'string' | 'number' | 'boolean';
-  projectIds?: Array<string | number>;
-  query?: string;
-  search?: string;
-}): TraceItemAttributeKeyOptions {
-  const substringMatch = normalizeSubstringMatch(search);
-  const options: TraceItemAttributeKeyOptions = {
-    itemType: traceItemType,
-    attributeType: type,
-    project: projectIds?.map(String),
-    query,
-    ...normalizeDateTimeParams(datetime),
-    ...(substringMatch === undefined ? {} : {substringMatch}),
-  };
-
-  // environment left out intentionally as it's not supported
-
-  return options;
-}
 export function useGetTraceItemAttributeKeys({
   traceItemType,
   type,
