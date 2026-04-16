@@ -307,11 +307,11 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
 
 
 explore_traces_link_regex = re.compile(
-    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/traces/"
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/traces/(?!trace/)"
 )
 
 customer_domain_explore_traces_link_regex = re.compile(
-    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/traces/"
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/traces/(?!trace/)"
 )
 
 explore_logs_link_regex = re.compile(
