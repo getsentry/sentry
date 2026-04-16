@@ -11,9 +11,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class OrganizationAvatarReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_avatar_id = HybridCloudForeignKey(
-        "sentry.OrganizationAvatar", on_delete="CASCADE", unique=True
-    )
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE", unique=True)
     avatar_type = models.PositiveSmallIntegerField(default=0)
     avatar_ident = models.CharField(max_length=32)
