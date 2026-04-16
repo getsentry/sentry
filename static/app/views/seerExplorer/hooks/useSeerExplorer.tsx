@@ -110,12 +110,13 @@ const isSessionComplete = (sessionData: SeerExplorerResponse['session'] | undefi
  */
 const isPolling = (
   runId: number | null,
-  sessionData: SeerExplorerResponse['session'] | undefined
+  sessionData: SeerExplorerResponse['session'] | undefined,
+  isMutatePending: boolean
 ) => {
   if (!runId) {
     return false;
   }
-  return !isSessionComplete(sessionData);
+  return !isSessionComplete(sessionData) || isMutatePending;
 };
 
 export const useSeerExplorer = () => {
@@ -171,7 +172,13 @@ export const useSeerExplorer = () => {
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        if (isPolling(runId, query.state.data?.[0]?.session)) {
+        if (
+          isPolling(
+            runId,
+            query.state.data?.[0]?.session,
+            isPendingSendMessage || isPendingUserInput || isPendingCreatePR
+          )
+        ) {
           return POLL_INTERVAL;
         }
         return false;
@@ -616,11 +623,11 @@ export const useSeerExplorer = () => {
 
   return {
     sessionData: filteredSessionData,
-    isPolling:
-      isPolling(runId, apiData?.session) ||
-      isPendingSendMessage ||
-      isPendingUserInput ||
-      isPendingCreatePR,
+    isPolling: isPolling(
+      runId,
+      apiData?.session,
+      isPendingSendMessage || isPendingUserInput || isPendingCreatePR
+    ),
     isError,
     sendMessage,
     runId,
