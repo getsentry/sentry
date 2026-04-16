@@ -115,7 +115,6 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               <DetailSection title={t('Connected Monitors')}>
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectorIds={null}
                     workflowId={automation.id}
                     cursor={monitorListCursor}
                     onCursor={setMonitorListCursor}
