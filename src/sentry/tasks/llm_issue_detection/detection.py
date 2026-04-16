@@ -331,7 +331,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
     budget_response = make_signed_seer_api_request(
         seer_issue_detection_connection_pool,
-        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}?organization_id={organization_id}",
+        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{organization_id}",
         body=b"",
         method="GET",
         timeout=SEER_TIMEOUT_S,
