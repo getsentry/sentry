@@ -20,8 +20,32 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
+export function getDistributionErrorTooltip(
+  errorCode?: string | null,
+  errorMessage?: string | null
+): string {
+  if (errorCode === 'NO_QUOTA') {
+    return t('Distribution quota exceeded');
+  }
+  if (errorCode === 'SKIPPED') {
+    if (errorMessage === 'invalid_signature') {
+      return t('Code signature is invalid');
+    }
+    if (errorMessage === 'simulator') {
+      return t('Simulator builds cannot be distributed');
+    }
+    return t('Distribution was skipped');
+  }
+  if (errorCode === 'PROCESSING_ERROR') {
+    return t('Distribution failed due to a processing error');
+  }
+  return t('Not installable');
+}
+
 interface InstallDetailsContentProps {
   artifactId: string;
+  distributionErrorCode?: string | null;
+  distributionErrorMessage?: string | null;
   projectSlug?: string;
   size?: 'sm' | 'lg';
 }
@@ -30,6 +54,8 @@ export function InstallDetailsContent({
   artifactId,
   projectSlug,
   size = 'sm',
+  distributionErrorCode,
+  distributionErrorMessage,
 }: InstallDetailsContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -267,13 +293,7 @@ export function InstallDetailsContent({
       </Flex>
     );
   } else {
-    if (installDetails.is_code_signature_valid) {
-      body = (
-        <Flex direction="column" align="center" gap={outerGap}>
-          <Text>{t('No install download link available')}</Text>
-        </Flex>
-      );
-    } else {
+    if (installDetails.is_code_signature_valid === false) {
       let errors = null;
       if (
         installDetails.code_signature_errors &&
@@ -293,6 +313,15 @@ export function InstallDetailsContent({
         <Flex direction="column" align="center" gap={outerGap}>
           <Text>{'Code signature is invalid'}</Text>
           {errors}
+        </Flex>
+      );
+    } else {
+      const message = distributionErrorCode
+        ? getDistributionErrorTooltip(distributionErrorCode, distributionErrorMessage)
+        : t('No install download link available');
+      body = (
+        <Flex direction="column" align="center" gap={outerGap}>
+          <Text>{message}</Text>
         </Flex>
       );
     }
