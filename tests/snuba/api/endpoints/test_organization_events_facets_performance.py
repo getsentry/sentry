@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -161,6 +162,10 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "blue"
 
+    @pytest.mark.skip(
+        reason="test pollution: MaxSnowflakeRetryError from concurrent xdist workers saturating "
+        "the Redis snowflake sequence counter during project creation in setUp"
+    )
     def test_multiple_projects_not_allowed(self) -> None:
         response = self.do_request(
             {

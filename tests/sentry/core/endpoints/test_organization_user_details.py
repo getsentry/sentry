@@ -25,7 +25,9 @@ class OrganizationUserDetailsTest(APITestCase):
         self.get_error_response(self.org.slug, user.id, status_code=404)
 
     def test_bad_user_id(self) -> None:
-        self.get_error_response(self.org.slug, 123, status_code=404)
+        # Use 0: Postgres auto-increment sequences start at 1, so 0 can never
+        # be a real user ID and won't collide with users created by prior tests.
+        self.get_error_response(self.org.slug, 0, status_code=404)
         self.get_error_response(self.org.slug, "not_valid", status_code=400)
 
     def test_does_not_expose_secondary_emails(self) -> None:
