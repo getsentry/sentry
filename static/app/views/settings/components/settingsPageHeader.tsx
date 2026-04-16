@@ -58,7 +58,18 @@ function UnstyledSettingsPageHeader({
   if (hasPageFrame) {
     return (
       <Fragment>
-        {typeof title === 'string' && <BreadcrumbTitle routes={routes} title={title} />}
+        {typeof title === 'string' ? (
+          <BreadcrumbTitle routes={routes} title={title} />
+        ) : (
+          title && (
+            <TitleWrapper>
+              {icon && <Icon>{icon}</Icon>}
+              <Title tabs={tabs} styled={noTitleStyles}>
+                <Layout.Title>{title}</Layout.Title>
+              </Title>
+            </TitleWrapper>
+          )
+        )}
         {action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
         {body && <BodyWrapper>{body}</BodyWrapper>}
         {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
