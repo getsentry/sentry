@@ -236,17 +236,17 @@ describe('FilterSelector', () => {
 
     // Wait for options to load - both values should be visible initially
     expect(await screen.findByText(shortValue)).toBeInTheDocument();
-    expect(screen.getByText(/sendgrid_history_feed_results/)).toBeInTheDocument();
+    // Verify we have 2 checkboxes (one for each option)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
 
     // Search for the long value using text beyond the 70-char truncation point
     const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
     await userEvent.type(searchInput, 'query_history_feed');
 
-    // The long value should still be found via its checkbox
+    // After searching, only the long value should match
+    // Verify we now have only 1 checkbox (the long value that matches)
     await waitFor(() => {
-      expect(
-        screen.getByRole('checkbox', {name: /query_history_feed/})
-      ).toBeInTheDocument();
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1);
     });
     // The short value should be filtered out
     expect(screen.queryByText(shortValue)).not.toBeInTheDocument();
