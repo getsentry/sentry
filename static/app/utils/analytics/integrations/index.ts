@@ -33,6 +33,11 @@ type SingleIntegrationEventParams = {
   // include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
   integration_tab?: 'configurations' | 'overview' | 'features';
+  // true when the integration is a source-code-management provider (derived
+  // from provider.metadata.features containing the `commits` featureGate).
+  // Populated on install events so experiment queries do not need to
+  // maintain a hardcoded slug list of SCM providers.
+  is_scm?: boolean;
   plan?: string;
 } & IntegrationView;
 

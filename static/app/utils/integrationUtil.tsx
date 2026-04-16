@@ -25,6 +25,7 @@ import type {
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationProvider,
   IntegrationType,
   PluginWithProjectList,
   SentryApp,
@@ -141,6 +142,15 @@ export function isDocIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocIntegration {
   return integration.hasOwnProperty('isDraft');
+}
+
+/**
+ * True when the provider exposes the `commits` feature gate, which is the
+ * canonical marker for source-code-management integrations (GitHub, GitLab,
+ * Bitbucket, Azure DevOps, and their enterprise/server variants).
+ */
+export function isScmProvider(provider: IntegrationProvider): boolean {
+  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
 }
 
 export function isExternalActorMapping(

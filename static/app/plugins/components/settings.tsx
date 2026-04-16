@@ -60,6 +60,7 @@ export class PluginSettings<
     trackIntegrationAnalytics(eventKey, {
       integration: this.props.plugin.id,
       integration_type: 'plugin',
+      is_scm: false,
       view: 'plugin_details',
       already_installed: this.state.wasConfiguredOnPageLoad,
       organization: this.props.organization,

@@ -221,6 +221,7 @@ export function PluginConfig({
         trackAnalytics('integrations.installation_start', {
           integration: plugin.id,
           integration_type: 'plugin',
+          is_scm: false,
           view: 'plugin_details',
           already_installed: false,
           organization,
@@ -246,6 +247,7 @@ export function PluginConfig({
         trackAnalytics('integrations.installation_complete', {
           integration: plugin.id,
           integration_type: 'plugin',
+          is_scm: false,
           view: 'plugin_details',
           already_installed: false,
           organization,

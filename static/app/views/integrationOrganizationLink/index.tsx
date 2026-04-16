@@ -23,6 +23,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
+  isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -65,6 +66,7 @@ function trackExternalAnalytics({
     {
       integration_type: 'first_party',
       integration: provider.key,
+      is_scm: isScmProvider(provider),
       // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
       already_installed: false,
       view: 'external_install',
