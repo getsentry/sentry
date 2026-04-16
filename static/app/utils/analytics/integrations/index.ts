@@ -105,7 +105,7 @@ export type IntegrationEventParameters = {
   'project_ownership.saved': ProjectOwnershipModalParams;
 } & PlatformEventParameters;
 
-export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
+type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 // Event key to name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
