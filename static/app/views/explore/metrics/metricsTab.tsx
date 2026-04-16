@@ -53,8 +53,10 @@ type MetricsTabProps = {
 };
 
 function MetricsTabContentRefreshLayout({datePageFilterProps}: MetricsTabProps) {
+  const organization = useOrganization();
+  const hasEquations = canUseMetricsEquations(organization);
   return (
-    <MultiMetricsQueryParamsProvider>
+    <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
       <MetricsTabContentRefreshInner datePageFilterProps={datePageFilterProps} />
     </MultiMetricsQueryParamsProvider>
   );
@@ -91,8 +93,10 @@ export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
 }
 
 function MetricsTabContentDefaultLayout({datePageFilterProps}: MetricsTabProps) {
+  const organization = useOrganization();
+  const hasEquations = canUseMetricsEquations(organization);
   return (
-    <MultiMetricsQueryParamsProvider>
+    <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
       <MetricsTabContentDefaultInner datePageFilterProps={datePageFilterProps} />
     </MultiMetricsQueryParamsProvider>
   );
