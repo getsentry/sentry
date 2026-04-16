@@ -294,7 +294,7 @@ export function InputSection({
             onClick={onInputClick}
             placeholder={
               isTimedOut
-                ? 'The request timed out. Please try again.'
+                ? t('The request timed out. Please try again.')
                 : t('Type your message or / command and press Enter ↵')
             }
             rows={1}
