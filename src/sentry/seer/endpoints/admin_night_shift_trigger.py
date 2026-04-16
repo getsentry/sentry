@@ -8,8 +8,6 @@ from sentry.api.permissions import StaffPermission
 from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
 from sentry.tasks.seer.night_shift.strategies import TRIAGE_STRATEGIES
 
-MAX_CANDIDATES_CEILING = 50
-
 
 @internal_cell_silo_endpoint
 class SeerAdminNightShiftTriggerEndpoint(Endpoint):
@@ -49,7 +47,6 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
                 max_candidates = int(max_candidates_raw)
             except (ValueError, TypeError):
                 return Response({"detail": "max_candidates must be a valid integer"}, status=400)
-            max_candidates = max(1, min(max_candidates, MAX_CANDIDATES_CEILING))
 
         run_night_shift_for_org.apply_async(
             args=[organization_id],

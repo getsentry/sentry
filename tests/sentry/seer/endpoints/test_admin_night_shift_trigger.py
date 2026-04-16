@@ -54,19 +54,6 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
             kwargs={"dry_run": True, "strategy": "agentic_triage", "max_candidates": 3},
         )
 
-    def test_trigger_clamps_max_candidates(self) -> None:
-        with patch(
-            "sentry.seer.endpoints.admin_night_shift_trigger.run_night_shift_for_org"
-        ) as mock_task:
-            response = self.get_success_response(
-                organization_id=self.organization.id,
-                max_candidates=500,
-                status_code=200,
-            )
-
-        assert response.data["max_candidates"] == 50
-        mock_task.apply_async.assert_called_once()
-
     def test_trigger_rejects_unknown_strategy(self) -> None:
         response = self.get_response(
             organization_id=self.organization.id,
