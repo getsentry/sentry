@@ -28,39 +28,28 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["organization_id"] == self.organization.id
-        assert response.data["strategy"] is None
         assert response.data["max_candidates"] is None
         mock_task.apply_async.assert_called_once_with(
             args=[self.organization.id],
-            kwargs={"dry_run": False, "strategy": None, "max_candidates": None},
+            kwargs={"dry_run": False, "max_candidates": None},
         )
 
-    def test_trigger_with_overrides(self) -> None:
+    def test_trigger_with_max_candidates_override(self) -> None:
         with patch(
             "sentry.seer.endpoints.admin_night_shift_trigger.run_night_shift_for_org"
         ) as mock_task:
             response = self.get_success_response(
                 organization_id=self.organization.id,
-                strategy="agentic_triage",
                 max_candidates=3,
                 dry_run=True,
                 status_code=200,
             )
 
-        assert response.data["strategy"] == "agentic_triage"
         assert response.data["max_candidates"] == 3
         mock_task.apply_async.assert_called_once_with(
             args=[self.organization.id],
-            kwargs={"dry_run": True, "strategy": "agentic_triage", "max_candidates": 3},
+            kwargs={"dry_run": True, "max_candidates": 3},
         )
-
-    def test_trigger_rejects_unknown_strategy(self) -> None:
-        response = self.get_response(
-            organization_id=self.organization.id,
-            strategy="nonexistent_v99",
-        )
-        assert response.status_code == 400
-        assert "unknown strategy" in response.data["detail"]
 
     def test_trigger_rejects_invalid_max_candidates(self) -> None:
         response = self.get_response(

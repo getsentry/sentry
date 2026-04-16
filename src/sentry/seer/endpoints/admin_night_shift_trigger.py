@@ -6,7 +6,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
-from sentry.tasks.seer.night_shift.strategies import TRIAGE_STRATEGIES
 
 
 @internal_cell_silo_endpoint
@@ -29,15 +28,6 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
 
         dry_run = bool(request.data.get("dry_run", False))
 
-        strategy = request.data.get("strategy") or None
-        if strategy is not None and strategy not in TRIAGE_STRATEGIES:
-            return Response(
-                {
-                    "detail": f"unknown strategy {strategy!r}; valid options: {sorted(TRIAGE_STRATEGIES)}"
-                },
-                status=400,
-            )
-
         max_candidates_raw = request.data.get("max_candidates")
         max_candidates: int | None
         if max_candidates_raw in (None, ""):
@@ -50,11 +40,7 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
 
         run_night_shift_for_org.apply_async(
             args=[organization_id],
-            kwargs={
-                "dry_run": dry_run,
-                "strategy": strategy,
-                "max_candidates": max_candidates,
-            },
+            kwargs={"dry_run": dry_run, "max_candidates": max_candidates},
         )
 
         return Response(
@@ -62,7 +48,6 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
                 "success": True,
                 "organization_id": organization_id,
                 "dry_run": dry_run,
-                "strategy": strategy,
                 "max_candidates": max_candidates,
             }
         )

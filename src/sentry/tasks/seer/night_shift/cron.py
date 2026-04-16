@@ -25,8 +25,8 @@ from sentry.seer.autofix.utils import bulk_read_preferences
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.strategies import resolve_triage_strategy
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -90,7 +90,6 @@ def schedule_night_shift() -> None:
 def run_night_shift_for_org(
     organization_id: int,
     dry_run: bool = False,
-    strategy: str | None = None,
     max_candidates: int | None = None,
 ) -> None:
     try:
@@ -131,7 +130,6 @@ def run_night_shift_for_org(
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
 
-    triage_strategy, strategy_fn = resolve_triage_strategy(strategy)
     resolved_max_candidates = (
         max_candidates
         if max_candidates is not None
@@ -139,12 +137,12 @@ def run_night_shift_for_org(
     )
     run = SeerNightShiftRun.objects.create(
         organization=organization,
-        triage_strategy=triage_strategy,
+        triage_strategy="agentic_triage",
     )
 
     agent_run_id = None
     try:
-        candidates, agent_run_id = strategy_fn(
+        candidates, agent_run_id = agentic_triage_strategy(
             eligible_projects, organization, resolved_max_candidates
         )
 

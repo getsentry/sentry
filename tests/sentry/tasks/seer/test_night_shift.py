@@ -253,14 +253,11 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        def boom(projects, organization, max_candidates):
-            raise RuntimeError("boom")
-
         with (
             self.feature("organizations:seer-project-settings-read-from-sentry"),
-            patch.dict(
-                "sentry.tasks.seer.night_shift.strategies.TRIAGE_STRATEGIES",
-                {"agentic_triage": boom},
+            patch(
+                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+                side_effect=RuntimeError("boom"),
             ),
         ):
             run_night_shift_for_org(org.id)
@@ -354,9 +351,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         with (
             self.feature("organizations:seer-project-settings-read-from-sentry"),
-            patch.dict(
-                "sentry.tasks.seer.night_shift.strategies.TRIAGE_STRATEGIES",
-                {"agentic_triage": lambda projects, organization, max_candidates: ([], None)},
+            patch(
+                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+                return_value=([], None),
             ),
         ):
             run_night_shift_for_org(org.id)
