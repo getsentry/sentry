@@ -2,11 +2,9 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -65,19 +63,9 @@ export default function SeerAutomationAdvancedSettings() {
             {field => (
               <field.Layout.Row
                 label={t('Enable Seer Context in Alerts')}
-                hintText={
-                  <Flex gap="sm">
-                    <span>
-                      {t('Seer will provide extra context in supported alerts.')}
-                    </span>
-                    <QuestionTooltip
-                      size="xs"
-                      title={t(
-                        'Enable Seer to include Agent output in alerts when available. Agent output may include code snippets, explanations, and more.'
-                      )}
-                    />
-                  </Flex>
-                }
+                hintText={t(
+                  'Enable Seer to include Agent output in alerts when available. This may include code snippets, explanations, and more.'
+                )}
               >
                 <field.Switch
                   checked={field.state.value}
@@ -96,26 +84,14 @@ export default function SeerAutomationAdvancedSettings() {
             {field => (
               <field.Layout.Row
                 label={t('Enable Code Generation')}
-                hintText={
-                  <Flex gap="sm">
-                    <span>
-                      {tct(
-                        'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
-                        {
-                          docs: (
-                            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation" />
-                          ),
-                        }
-                      )}
-                    </span>
-                    <QuestionTooltip
-                      size="xs"
-                      title={t(
-                        'This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input.'
-                      )}
-                    />
-                  </Flex>
-                }
+                hintText={tct(
+                  'Allow Seer to create PRs or branches in your repositories. This does not impact chat sessions where Seer Agent can always suggest code snippets or give examples. [docs:Read the docs] to learn more.',
+                  {
+                    docs: (
+                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation" />
+                    ),
+                  }
+                )}
               >
                 <field.Switch
                   checked={field.state.value}
