@@ -747,19 +747,20 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_back_from_setup_docs_control_active_project_no_changes(self) -> None:
         """Control path: active project survives back-nav; Continue reuses it (no duplicate)."""
-        with self.feature(
-            {
-                "organizations:onboarding-scm-experiment": True,
-                "organizations:onboarding-scm-project-details-experiment": False,
-            }
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": False,
+                }
+            ),
+            self.projects_born_active(),
         ):
             self.start_onboarding()
             self.skip_to_setup_docs_control("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project = Project.objects.get(organization=self.org)
-
-            Project.objects.filter(id=project.id).update(first_event=timezone.now())
 
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
@@ -774,19 +775,20 @@ class ScmOnboardingTest(AcceptanceTestCase):
 
     def test_scm_back_from_setup_docs_control_active_project_platform_changed(self) -> None:
         """Control path: active project survives back-nav; changing platform creates a new project."""
-        with self.feature(
-            {
-                "organizations:onboarding-scm-experiment": True,
-                "organizations:onboarding-scm-project-details-experiment": False,
-            }
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": False,
+                }
+            ),
+            self.projects_born_active(),
         ):
             self.start_onboarding()
             self.skip_to_setup_docs_control("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project1 = Project.objects.get(organization=self.org)
-
-            Project.objects.filter(id=project1.id).update(first_event=timezone.now())
 
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
