@@ -789,7 +789,6 @@ function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
     display: {
       details: node.display.details,
       label: t('See all'),
-      icon: <IconArrow direction="right" />,
     },
   };
 }
@@ -882,7 +881,7 @@ function makeMenuItemFromAction(
       action.display.label
     ),
     details: action.display.details,
-    leadingItems: isSeeMoreAction(action.key) ? null : (
+    leadingItems: (
       <Flex
         height="100%"
         align="start"
