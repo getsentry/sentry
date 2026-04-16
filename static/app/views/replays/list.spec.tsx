@@ -1,7 +1,8 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -12,6 +13,7 @@ import {
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/replays/list';
 
@@ -51,6 +53,19 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
   });
 
   return mockOrg;
+}
+
+function TopBarActionsWrapper({children}: {children: ReactNode}) {
+  return (
+    <SecondaryNavigationContextProvider>
+      <TopBar.Slot.Provider>
+        <TopBar.Slot.Outlet name="actions">
+          {props => <div {...props} data-test-id="topbar-actions-slot" />}
+        </TopBar.Slot.Outlet>
+        {children}
+      </TopBar.Slot.Provider>
+    </SecondaryNavigationContextProvider>
+  );
 }
 
 describe('ReplayList', () => {
@@ -226,5 +241,38 @@ describe('ReplayList', () => {
       await screen.findByText("You don't have access to this feature")
     ).toBeInTheDocument();
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
+  });
+
+  it('renders Save as inline and Hide Widgets in the top bar when page frame is enabled', async () => {
+    const mockOrg = getMockOrganizationFixture({
+      features: [...AM2_FEATURES, 'page-frame'],
+    });
+    mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
+      fetching: false,
+      hasSentOneReplay: true,
+    });
+    mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
+      isFetching: false,
+      needsUpdate: false,
+      data: [],
+    });
+
+    render(<ListPage />, {
+      organization: mockOrg,
+      additionalWrapper: TopBarActionsWrapper,
+    });
+
+    await screen.findByTestId('replay-table');
+
+    const topbarActions = screen.getByTestId('topbar-actions-slot');
+    expect(
+      within(topbarActions).getByRole('button', {name: 'Hide Widgets'})
+    ).toBeInTheDocument();
+    expect(
+      within(topbarActions).queryByRole('button', {name: 'Save as'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Save as'})).toHaveLength(1);
+    expect(screen.getAllByRole('button', {name: 'Hide Widgets'})).toHaveLength(1);
   });
 });

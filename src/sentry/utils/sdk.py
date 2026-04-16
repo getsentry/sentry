@@ -30,6 +30,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -683,6 +684,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     scope = sentry_sdk.get_isolation_scope()
+    set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.start_span(op="other", name="bind_organization_context"):
