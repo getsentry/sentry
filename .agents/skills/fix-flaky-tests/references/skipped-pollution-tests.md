@@ -102,6 +102,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - `GroupTagExportTest::test_rate_limit` — rate limit counter reset mid-test by a concurrent xdist worker's `clear_caches` fixture calling `cache.clear()`; the 11th request sees counter=1 instead of 11 and returns 200 instead of 429
 
+## tests/sentry/tsdb/test_redis.py
+
+- `RedisTSDBTest::test_simple` — concurrent xdist worker's `tearDown` calls `flushdb()` on shared Redis DBs 6-8; erases project 2 data mid-test so the post-merge count for project 1 returns 4 instead of 8
+
 ## tests/sentry/tasks/test_reprocessing2.py
 
 - `test_basic` (parametrized, module-level) — Snuba event data from prior test contaminates query results, leaving `old_events` empty; 'not enough values to unpack' on group_id

@@ -77,6 +77,11 @@ class RedisTSDBTest(TestCase):
         result = self.db.get_model_key("我爱啤酒")
         assert result == "26f980fbe1e8a9d3a0123d2049f95f28"
 
+    @pytest.mark.skip(
+        reason="test pollution: concurrent xdist worker's tearDown calls flushdb() on shared "
+        "Redis DBs 6-8; the flush erases project 2 data mid-test so the post-merge count "
+        "for project 1 returns 4 instead of 8"
+    )
     def test_simple(self) -> None:
         now = datetime.now(timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
