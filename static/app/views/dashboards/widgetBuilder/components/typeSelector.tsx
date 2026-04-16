@@ -57,39 +57,39 @@ export function WidgetBuilderTypeSelector({
     {
       type: DisplayType.AREA,
       label: t('Area'),
-      details: t('Show proportions over time'),
+      details: t('Compare relative contributions over time.'),
     },
     {
       type: DisplayType.BAR,
       label: t('Bar (Time Series)'),
-      details: t('Summarize data across time intervals'),
+      details: t('Compare one or more measurements over time using bars.'),
     },
     {
       type: DisplayType.CATEGORICAL_BAR,
       label: t('Bar (Categorical)'),
-      details: t('Compare values across different categories'),
+      details: t('Compare measurements across categories.'),
     },
     {
       type: DisplayType.LINE,
       label: t('Line'),
-      details: t('Plot multiple data series over time'),
+      details: t('Compare one or more measurements over time.'),
     },
     {
       type: DisplayType.TABLE,
       label: t('Table'),
-      details: t('Show key fields and related aggregates'),
+      details: t('Display filtered fields and aggregations in a table.'),
     },
     {
       type: DisplayType.BIG_NUMBER,
       label: t('Big Number'),
-      details: t('Display a high-level aggregate'),
+      details: t('Show a single aggregated value over the selected time range.'),
     },
     ...(hasTextWidget
       ? [
           {
             type: DisplayType.TEXT,
             label: t('Text (Markdown)'),
-            details: t('Add markdown to your dashboard'),
+            details: t('Display rich text and formatted markdown.'),
           },
         ]
       : []),
@@ -98,7 +98,7 @@ export function WidgetBuilderTypeSelector({
           {
             type: DisplayType.DETAILS,
             label: t('Details'),
-            details: t("Rendered example of the event you've filtered for"),
+            details: t('Show a representative example of the filtered event data.'),
           },
         ]
       : []),

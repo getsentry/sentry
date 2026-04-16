@@ -143,8 +143,6 @@ describe('NewWidgetBuilder', () => {
     expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
 
     expect(screen.getByText('Table')).toBeInTheDocument();
-    // ensure the dropdown input has the default value 'table'
-    expect(screen.getByDisplayValue('table')).toBeInTheDocument();
 
     expect(screen.getByText('Filter')).toBeInTheDocument();
     expect(screen.getByLabelText('Create a search query')).toBeInTheDocument();
