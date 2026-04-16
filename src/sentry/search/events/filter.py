@@ -429,7 +429,8 @@ def _semver_build_filter_converter(
     organization_id: int = params["organization_id"]
     project_ids = params.get("project_id")
     raw_build = search_filter.value.raw_value
-    assert isinstance(raw_build, str)
+    if not isinstance(raw_build, str):
+        raise InvalidSearchQuery("Invalid value for release.build condition.")
     build: str = raw_build
 
     operator, negated = handle_operator_negation(search_filter.operator)
