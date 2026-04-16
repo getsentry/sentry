@@ -62,7 +62,14 @@ export class WidgetLegendSelectionState {
         !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
         Object.values(selected).filter(value => value === false).length === 1;
 
-      if (thisWidgetWithReleasesWasSelected || thisWidgetWithoutReleasesWasSelected) {
+      // For new-path widgets the default is nothing hidden, so any toggle
+      // should update the URL. The two conditions above only cover old-path
+      // widgets where Releases-hidden was the implicit default state.
+      if (
+        thisWidgetWithReleasesWasSelected ||
+        thisWidgetWithoutReleasesWasSelected ||
+        !this.widgetRequiresLegendUnselection(widget)
+      ) {
         navigate(
           {
             ...location,
