@@ -107,12 +107,22 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
-              <DetailSection title={t('Connected Projects')}>
+              <DetailSection
+                title={t('Connected Projects')}
+                description={t(
+                  'All issues belonging to a connected project will trigger this alert when conditions are met.'
+                )}
+              >
                 <ErrorBoundary mini>
                   <ConnectedProjectsList automationId={automation.id} />
                 </ErrorBoundary>
               </DetailSection>
-              <DetailSection title={t('Connected Monitors')}>
+              <DetailSection
+                title={t('Connected Monitors')}
+                description={t(
+                  'Issues created by a connected monitor will trigger this alert when conditions are met.'
+                )}
+              >
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
                     workflowId={automation.id}
