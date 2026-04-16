@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -13,15 +14,13 @@ import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {
   MIN_DEAD_RAGE_CLICK_SDK,
   MIN_REPLAY_CLICK_SDK,
 } from 'sentry/utils/replays/sdkVersions';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -36,7 +35,7 @@ import {DeadRageSelectorCards} from 'sentry/views/replays/selectors/deadRageSele
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  error: RequestError | null | undefined;
+  error: Error | null | undefined;
   hasMoreResults: boolean;
   isPending: boolean;
   queryKey: ApiQueryKey;
