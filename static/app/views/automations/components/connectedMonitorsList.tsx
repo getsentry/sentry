@@ -36,6 +36,10 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   projectIds?: number[];
   query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
+  /**
+   * When provided, filters detectors by workflow ID instead of detector IDs.
+   */
+  workflowId?: string;
 };
 
 function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
@@ -80,22 +84,27 @@ export function ConnectedMonitorsList({
   query,
   openInNewTab,
   projectIds,
+  workflowId,
   ...props
 }: Props) {
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
 
+  const workflowQuery = workflowId
+    ? [query, `workflow:${workflowId}`].filter(Boolean).join(' ')
+    : query;
+
   const {data, isLoading, isError, isSuccess} = useQuery({
     ...detectorListApiOptions(organization, {
-      ids: detectorIds ?? undefined,
+      ids: workflowId ? undefined : (detectorIds ?? undefined),
       limit: limit ?? undefined,
       cursor,
-      query,
+      query: workflowQuery,
       includeIssueStreamDetectors: true,
       projects: projectIds,
     }),
     select: selectJsonWithHeaders,
-    enabled: detectorIds === null || detectorIds.length > 0,
+    enabled: workflowId ? true : detectorIds === null || detectorIds.length > 0,
   });
 
   const detectors = data?.json;

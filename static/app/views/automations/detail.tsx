@@ -34,6 +34,7 @@ import {AutomationHistoryList} from 'sentry/views/automations/components/automat
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
@@ -106,12 +107,19 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
+              <DetailSection title={t('Connected Projects')}>
+                <ErrorBoundary mini>
+                  <ConnectedProjectsList automationId={automation.id} />
+                </ErrorBoundary>
+              </DetailSection>
               <DetailSection title={t('Connected Monitors')}>
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectorIds={automation.detectorIds}
+                    detectorIds={null}
+                    workflowId={automation.id}
                     cursor={monitorListCursor}
                     onCursor={setMonitorListCursor}
+                    query="!type:issue_stream"
                   />
                 </ErrorBoundary>
               </DetailSection>
