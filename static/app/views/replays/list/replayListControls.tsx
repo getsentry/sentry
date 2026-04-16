@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 import {Flex} from '@sentry/scraps/layout';
 
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -23,13 +25,17 @@ export function ReplayListControls({
     <Flex gap="md" wrap="wrap">
       <ReplaysFilters />
       <ReplaysSearch />
-      {hasPageFrameFeature ? null : <SaveReplayQueryButton />}
-      {hasPageFrameFeature ? null : showDeadRageClickCards ? (
-        <ReplayWidgetsToggleButton
-          onClick={onToggleWidgets}
-          widgetIsOpen={widgetIsOpen}
-        />
-      ) : null}
+      {hasPageFrameFeature ? null : (
+        <React.Fragment>
+          <SaveReplayQueryButton />
+          {showDeadRageClickCards ? (
+            <ReplayWidgetsToggleButton
+              onClick={onToggleWidgets}
+              widgetIsOpen={widgetIsOpen}
+            />
+          ) : null}
+        </React.Fragment>
+      )}
     </Flex>
   );
 }
