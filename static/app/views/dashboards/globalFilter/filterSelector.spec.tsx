@@ -251,17 +251,17 @@ describe('FilterSelector', () => {
 
     // Search by the translated name, not the code
     const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
-    await userEvent.type(searchInput, 'Northern Europe');
+    await userEvent.type(searchInput, 'North America');
 
-    // After searching, only 1 option should match (Northern Europe)
+    // After searching, only 1 option should match (North America)
     await waitFor(() => {
       expect(screen.getAllByRole('checkbox')).toHaveLength(1);
     });
     // Verify it's the correct option by checking the checkbox aria-label
-    expect(screen.getByRole('checkbox', {name: /Northern Europe/})).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: /North America/})).toBeInTheDocument();
     // Other options should be filtered out
     expect(
-      screen.queryByRole('gridcell', {name: /North America/})
+      screen.queryByRole('gridcell', {name: /Northern Europe/})
     ).not.toBeInTheDocument();
   });
 
