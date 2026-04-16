@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {type ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -16,7 +16,6 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -198,37 +197,16 @@ function useTraceMetricsSearchScope() {
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
-  const traceMetrics = useMemo(
-    () => aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [],
-    [aggregateSource]
-  );
+  const traceMetrics =
+    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
   const hasMultipleMetrics = hasMultipleMetricsSelected(
     traceMetrics,
     hasMultiMetricSelection
   );
-  const attributeQuery = useMemo(() => {
-    if (traceMetrics.length === 1 && traceMetrics[0]) {
-      return createTraceMetricFilter(traceMetrics[0]);
-    }
-
-    const search = new MutableSearch('');
-    for (let i = 0; i < traceMetrics.length; i++) {
-      const metric = traceMetrics[i];
-      if (!metric) {
-        continue;
-      }
-
-      search.addOp('(');
-      search.addStringMultiFilter(createTraceMetricFilter(metric) ?? '');
-      search.addOp(')');
-
-      if (i < traceMetrics.length - 1) {
-        search.addOp('OR');
-      }
-    }
-
-    return search.formatString() || undefined;
-  }, [traceMetrics]);
+  const attributeQuery =
+    !hasMultipleMetrics && traceMetrics[0]
+      ? createTraceMetricFilter(traceMetrics[0])
+      : undefined;
 
   return {attributeQuery, hasMultipleMetrics, traceMetrics};
 }
