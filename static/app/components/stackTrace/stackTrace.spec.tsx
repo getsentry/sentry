@@ -724,6 +724,37 @@ describe('Core StackTrace', () => {
     expect(screen.queryByText('MainActivity.java')).not.toBeInTheDocument();
   });
 
+  it('renders <unknown> with line number when frame has no filename or module', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: null,
+              module: null,
+              absPath: null,
+              function: 'eval',
+              lineNo: 5,
+              colNo: 20,
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findByText('<unknown>')).toBeInTheDocument();
+    expect(screen.queryByText(':5:20')).not.toBeInTheDocument();
+  });
+
   it('does not render line number when lineNo is zero', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;

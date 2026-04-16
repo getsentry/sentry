@@ -8,7 +8,7 @@ import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
@@ -44,6 +44,11 @@ export function ProjectAnrScoreCard({
 }: Props) {
   const {environments, projects, datetime} = selection;
   const {start, end, period} = datetime;
+
+  const doubledPeriod = getPeriod(
+    {period, start: undefined, end: undefined},
+    {shouldDoublePeriod: true}
+  ).statsPeriod;
 
   const api = useApi();
 
@@ -96,20 +101,10 @@ export function ProjectAnrScoreCard({
         includeSeries: false,
       };
 
-      const {start: previousStart} = parseStatsPeriod(
-        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
-          .statsPeriod!
-      );
-
-      const {start: previousEnd} = parseStatsPeriod(
-        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
-          .statsPeriod!
-      );
-
       doSessionsRequest(api, {
         ...requestData,
-        start: previousStart,
-        end: previousEnd,
+        statsPeriodStart: doubledPeriod,
+        statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
       }).then(([response]) => {
         if (unmounted) {
           return;
@@ -123,7 +118,17 @@ export function ProjectAnrScoreCard({
     return () => {
       unmounted = true;
     };
-  }, [start, end, period, api, organization.slug, environments, projects, query]);
+  }, [
+    start,
+    end,
+    period,
+    doubledPeriod,
+    api,
+    organization.slug,
+    environments,
+    projects,
+    query,
+  ]);
 
   const value = sessionsData?.groups?.[0]?.totals['anr_rate()'] ?? null;
   const previousValue = previousSessionData?.groups?.[0]?.totals['anr_rate()'] ?? null;

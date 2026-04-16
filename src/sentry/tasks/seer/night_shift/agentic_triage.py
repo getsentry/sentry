@@ -131,7 +131,6 @@ def _triage_candidates(
 
 
 POLL_INTERVAL = 2.0
-POLL_TIMEOUT = 120.0
 
 
 def _poll_with_logging(
@@ -191,10 +190,6 @@ def _poll_with_logging(
                 },
             )
             return state
-
-        elapsed = time.monotonic() - start_time
-        if elapsed >= POLL_TIMEOUT:
-            raise TimeoutError(f"Explorer run {run_id} timed out after {POLL_TIMEOUT}s")
 
         time.sleep(POLL_INTERVAL)
 
