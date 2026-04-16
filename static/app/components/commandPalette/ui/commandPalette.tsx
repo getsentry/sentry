@@ -655,7 +655,7 @@ function flattenActions(
   const rootBestScore = new Map<string, CommandPaletteScore>();
   for (const [key, score] of scores) {
     const node = nodeMap.get(key);
-    if (node && node.parent === null && node.children.length === 0) continue;
+    if (node?.parent === null && node.children.length === 0) continue;
     const rootKey = nodeRootKey.get(key);
     if (rootKey === undefined) continue;
     const current = rootBestScore.get(rootKey);
