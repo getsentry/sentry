@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
@@ -8,7 +8,13 @@ from sentry.seer.signed_seer_api import (
 )
 
 
-def export_explorer_indexes(*, org_id: int) -> dict[str, Any]:
+class ExplorerExportIndexesResponse(TypedDict):
+    org_id: int
+    version: int
+    tables: dict[str, list[dict[str, Any]]]
+
+
+def export_explorer_indexes(*, org_id: int) -> ExplorerExportIndexesResponse:
     """Export all explorer index rows for an org from Seer's database.
 
     Intended for local eval DB seeding — calls the Seer export endpoint and
