@@ -2399,16 +2399,17 @@ class GitHubPipelineAdvancerTest(IntegrationTestCase):
         assert resp["Location"] == self._get_expected_redirect()
 
     @responses.activate
-    def test_api_pipeline_redirects_to_org_picker(self) -> None:
-        """When an API pipeline is active, redirect to the org picker instead
-        of rendering the trampoline (which would leave the user stuck since
-        there is no opener window)."""
+    def test_api_pipeline_renders_trampoline(self) -> None:
+        """When an API pipeline is active, render the trampoline page. If the
+        popup has an opener it will postMessage back; if not (e.g. GitHub
+        direct install) the trampoline JS will redirect to the org picker."""
         self.pipeline.set_api_mode()
         self.save_session()
 
         resp = self.client.get(self._get_setup_install_url())
-        assert resp.status_code == 302
-        assert resp["Location"] == self._get_expected_redirect()
+        assert resp.status_code == 200
+        assert b"window.opener" in resp.content
+        assert b"extensions/external-install" in resp.content
 
     @responses.activate
     def test_legacy_pipeline_does_not_redirect(self) -> None:
