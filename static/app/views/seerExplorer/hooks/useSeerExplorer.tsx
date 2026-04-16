@@ -164,28 +164,7 @@ export const useSeerExplorer = () => {
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
-  // State queries and mutations
-  const {data: apiData, isError} = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(orgSlug || '', runId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: !!runId && !!orgSlug,
-      refetchInterval: query => {
-        if (
-          isPolling(
-            runId,
-            query.state.data?.[0]?.session,
-            isPendingSendMessage || isPendingUserInput || isPendingCreatePR
-          )
-        ) {
-          return POLL_INTERVAL;
-        }
-        return false;
-      },
-    } as UseApiQueryOptions<SeerExplorerResponse, RequestError>
-  );
-
+  // Queries and mutations
   const {mutate: sendMessageMutate, isPending: isPendingSendMessage} = useMutation<
     SeerExplorerChatResponse,
     RequestError,
@@ -352,6 +331,27 @@ export const useSeerExplorer = () => {
       addErrorMessage('Failed to interrupt');
     },
   });
+
+  const {data: apiData, isError} = useApiQuery<SeerExplorerResponse>(
+    makeSeerExplorerQueryKey(orgSlug || '', runId),
+    {
+      staleTime: 0,
+      retry: false,
+      enabled: !!runId && !!orgSlug,
+      refetchInterval: query => {
+        if (
+          isPolling(
+            runId,
+            query.state.data?.[0]?.session,
+            isPendingSendMessage || isPendingUserInput || isPendingCreatePR
+          )
+        ) {
+          return POLL_INTERVAL;
+        }
+        return false;
+      },
+    } as UseApiQueryOptions<SeerExplorerResponse, RequestError>
+  );
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
