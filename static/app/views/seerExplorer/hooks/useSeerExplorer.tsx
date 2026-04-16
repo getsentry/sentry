@@ -146,6 +146,8 @@ export const useSeerExplorer = () => {
     timeMs: POLLING_TIMEOUT_MS,
     onTimeout: () => {
       setIsTimedOut(true);
+      setWaitingForResponse(false);
+      setWaitingForInterrupt(false);
     },
   });
 
@@ -532,30 +534,20 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
-  // On full response load or timeout
+  // On full response load
   const isLoaded =
     filteredSessionData &&
     filteredSessionData.status !== 'processing' &&
     filteredSessionData.blocks.every((block: Block) => !block.loading);
 
   useEffect(() => {
-    if (isLoaded || isTimedOut) {
-      // Reset waiting state and timeout
+    if (isLoaded) {
+      // Reset waiting states and timeout
       setWaitingForResponse(false);
+      setWaitingForInterrupt(false);
       cancelPollingTimeout();
-
-      if (waitingForInterrupt) {
-        // Clear waiting for interrupt state and set persistent UI flag until next request
-        setWaitingForInterrupt(false);
-      }
     }
-  }, [
-    waitingForResponse,
-    waitingForInterrupt,
-    isLoaded,
-    isTimedOut,
-    cancelPollingTimeout,
-  ]);
+  }, [isLoaded, cancelPollingTimeout]);
 
   // Detect PR creation errors and show error messages
   useEffect(() => {
