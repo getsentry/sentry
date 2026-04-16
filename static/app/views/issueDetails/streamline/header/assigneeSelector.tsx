@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
+import {TeamAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
@@ -201,13 +202,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
           key={`team-${team.id}`}
           display={{
             label: `#${team.slug}`,
-            icon: (
-              <ActorAvatar
-                actor={{id: buildTeamId(team.id), name: team.slug, type: 'team'}}
-                size={16}
-                hasTooltip={false}
-              />
-            ),
+            icon: <TeamAvatar team={team} size={16} hasTooltip={false} />,
           }}
           onAction={() =>
             handleAssigneeChange({
@@ -226,7 +221,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
             icon: (
               <ActorAvatar
                 actor={{
-                  id: owner.type === 'team' ? buildTeamId(owner.id) : owner.id,
+                  id: owner.id,
                   name: owner.name,
                   type: owner.type,
                 }}
