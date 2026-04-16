@@ -1,155 +1,57 @@
-import {useCallback} from 'react';
-
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
-import {useApi} from 'sentry/utils/useApi';
+import type {TagCollection} from 'sentry/types/group';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  TraceItemDataset,
+import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
+import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
+import {
+  getTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+
+interface UseGetTraceItemAttributeKeysProps extends Omit<
   UseTraceItemAttributeBaseProps,
-} from 'sentry/views/explore/types';
-
-interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
+  'type'
+> {
   projectIds?: Array<string | number>;
   query?: string;
-}
-
-type TraceItemAttributeKeyOptions = Pick<
-  ReturnType<typeof normalizeDateTimeParams>,
-  'end' | 'start' | 'statsPeriod' | 'utc'
-> & {
-  attributeType: 'string' | 'number' | 'boolean';
-  itemType: TraceItemDataset;
-  project?: string[];
-  query?: string;
-  substringMatch?: string;
-};
-
-export function makeTraceItemAttributeKeysQueryOptions({
-  traceItemType,
-  type,
-  datetime,
-  projectIds,
-  search,
-  query,
-}: {
-  datetime: PageFilters['datetime'];
-  traceItemType: TraceItemDataset;
-  type: 'string' | 'number' | 'boolean';
-  projectIds?: Array<string | number>;
-  query?: string;
-  search?: string;
-}): TraceItemAttributeKeyOptions {
-  const options: TraceItemAttributeKeyOptions = {
-    itemType: traceItemType,
-    attributeType: type,
-    project: projectIds?.map(String),
-    query,
-    substringMatch: search,
-    ...normalizeDateTimeParams(datetime),
-  };
-
-  // environment left out intentionally as it's not supported
-
-  return options;
 }
 
 export function useGetTraceItemAttributeKeys({
   traceItemType,
   projectIds,
-  type,
   query,
 }: UseGetTraceItemAttributeKeysProps) {
-  const api = useApi();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-  const getTraceItemAttributeKeys = useCallback(
-    async (queryString?: string): Promise<TagCollection> => {
-      const options = makeTraceItemAttributeKeysQueryOptions({
-        traceItemType,
-        type,
-        datetime: selection.datetime,
-        projectIds: projectIds ?? selection.projects,
-        search: queryString,
-        query,
-      });
-
-      let result: Tag[];
-
+  const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
+    mutationFn: async (
+      queryString?: string
+    ): Promise<{
+      booleanAttributes: TagCollection;
+      numberAttributes: TagCollection;
+      stringAttributes: TagCollection;
+    }> => {
       try {
-        result = await api.requestPromise(
-          `/organizations/${organization.slug}/trace-items/attributes/`,
-          {
-            method: 'GET',
-            query: options,
-          }
-        );
+        const {json} = await queryClient.fetchQuery({
+          ...traceItemAttributeKeysOptions({
+            organization,
+            selection,
+            traceItemType,
+            projectIds: projectIds ?? selection.projects,
+            search: queryString,
+            query,
+            staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+          }),
+        });
+        return getTraceItemTagCollection(json);
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
-
-      return getTraceItemTagCollection(result, type);
     },
-    [api, organization, selection, traceItemType, projectIds, type, query]
-  );
+  });
 
   return getTraceItemAttributeKeys;
-}
-
-function getTraceItemTagCollection(
-  result: Tag[],
-  type: UseGetTraceItemAttributeKeysProps['type']
-): TagCollection {
-  const attributes: TagCollection = {};
-
-  for (const attribute of result ?? []) {
-    if (isKnownAttribute(attribute)) {
-      continue;
-    }
-
-    // EAP spans contain tags with illegal characters
-    // SnQL forbids `-` but is allowed in RPC. So add it back later
-    if (
-      !/^[\w.:-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:-]+,(number|boolean)\]$/.test(attribute.key)
-    ) {
-      continue;
-    }
-
-    let kind = FieldKind.TAG;
-    if (type === 'number') {
-      kind = FieldKind.MEASUREMENT;
-    } else if (type === 'boolean') {
-      kind = FieldKind.BOOLEAN;
-    }
-
-    attributes[attribute.key] = {
-      key: attribute.key,
-      name: attribute.name,
-      kind,
-      secondaryAliases: attribute?.secondaryAliases ?? [],
-    };
-  }
-
-  return attributes;
-}
-
-function isKnownAttribute(attribute: Tag) {
-  // For now, skip all the sentry. prefixed attributes as they
-  // should be covered by the static attributes that will be
-  // merged with these results.
-
-  // For logs we include sentry.message.* since it contains params etc.
-  if (
-    attribute.key.startsWith('sentry.message.') ||
-    attribute.key.startsWith('tags[sentry.message.')
-  ) {
-    return false;
-  }
-
-  return attribute.key.startsWith('sentry.') || attribute.key.startsWith('tags[sentry.');
 }

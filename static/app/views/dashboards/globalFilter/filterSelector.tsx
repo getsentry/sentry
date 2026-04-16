@@ -184,7 +184,10 @@ export function FilterSelector({
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {
-      const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
+      const result = await searchBarData.getTagValues({
+        tag: ctx.queryKey[1],
+        searchQuery: ctx.queryKey[3],
+      });
       return result ?? [];
     },
     placeholderData: keepPreviousData,

@@ -19,10 +19,12 @@ class ImageMetadata(BaseModel):
 class SnapshotManifest(BaseModel):
     images: dict[str, ImageMetadata]
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
+    selective: bool = False
+    all_image_file_names: list[str] | None = None
 
 
 class ComparisonImageResult(BaseModel):
-    status: Literal["added", "removed", "changed", "unchanged", "errored", "renamed"]
+    status: Literal["added", "removed", "changed", "unchanged", "errored", "renamed", "skipped"]
     head_hash: str | None = None
     base_hash: str | None = None
     changed_pixels: int | None = None
@@ -46,6 +48,7 @@ class ComparisonSummary(BaseModel):
     removed: int
     errored: int
     renamed: int
+    skipped: int = 0
 
 
 class ComparisonManifest(BaseModel):

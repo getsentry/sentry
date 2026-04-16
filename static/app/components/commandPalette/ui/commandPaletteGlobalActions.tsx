@@ -29,6 +29,7 @@ import {
   IconLock,
   IconOpen,
   IconSearch,
+  IconSeer,
   IconSettings,
   IconSiren,
   IconStar,
@@ -36,6 +37,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
@@ -50,6 +52,7 @@ import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 import {CMDKAction} from './cmdk';
@@ -310,6 +313,38 @@ export function GlobalCommandPaletteActions() {
               onAction={() => exitSuperuser()}
             />
           )}
+          <CMDKAction
+            display={{label: t('Night Shift Chats'), icon: <IconSeer />}}
+            keywords={[
+              t('seer'),
+              t('ai'),
+              t('chat'),
+              t('agent'),
+              t('explorer'),
+              t('nightshift'),
+              t('autofix'),
+            ]}
+            limit={10}
+            resource={(): CMDKQueryOptions => {
+              const url = getApiUrl(
+                '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
+                {path: {organizationIdOrSlug: organization.slug}}
+              );
+              const query = {per_page: 10, category_key: 'night_shift', owner: 'false'};
+              return cmdkQueryOptions({
+                queryKey: [url, {query}],
+                queryFn: () => QUERY_API_CLIENT.requestPromise(url, {query}),
+                select: (data: {data: Array<{run_id: number; title: string}>}) =>
+                  data.data.map(session => ({
+                    display: {label: session.title, icon: <IconSeer />},
+                    onAction: () => openSeerExplorer({runId: session.run_id}),
+                  })),
+                staleTime: 30_000,
+              });
+            }}
+          >
+            {data => data.map((item, i) => renderAsyncResult(item, i))}
+          </CMDKAction>
         </CMDKAction>
       )}
 

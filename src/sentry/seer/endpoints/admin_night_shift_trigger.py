@@ -26,11 +26,14 @@ class SeerAdminNightShiftTriggerEndpoint(Endpoint):
         except (ValueError, TypeError):
             return Response({"detail": "organization_id must be a valid integer"}, status=400)
 
-        run_night_shift_for_org.apply_async(args=[organization_id])
+        dry_run = bool(request.data.get("dry_run", False))
+
+        run_night_shift_for_org.apply_async(args=[organization_id], kwargs={"dry_run": dry_run})
 
         return Response(
             {
                 "success": True,
                 "organization_id": organization_id,
+                "dry_run": dry_run,
             }
         )

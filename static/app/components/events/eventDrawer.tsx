@@ -1,3 +1,4 @@
+import type {ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';
@@ -6,6 +7,11 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
+} from 'sentry/views/navigation/constants';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export const Header = styled('h3')`
   display: block;
@@ -31,16 +37,45 @@ export const ShortId = styled('div')`
   line-height: 1;
 `;
 
-export const EventDrawerContainer = styled('div')`
+const EventDrawerContainerRoot = styled('div')<{hasPageFrameFeature: boolean}>`
   height: 100%;
   display: grid;
   grid-template-rows: max-content max-content auto;
+
+  ${p =>
+    p.hasPageFrameFeature &&
+    `
+      /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
+      --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
+      --event-navigator-box-shadow: none;
+      --event-navigator-border-bottom: 1px solid ${p.theme.tokens.border.primary};
+
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
+      }
+    `}
 `;
+
+export function EventDrawerContainer(props: ComponentPropsWithoutRef<'div'>) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  return (
+    <EventDrawerContainerRoot {...props} hasPageFrameFeature={hasPageFrameFeature} />
+  );
+}
 
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;
-  max-height: var(--drawer-header-height, ${MIN_NAV_HEIGHT}px);
-  min-height: var(--drawer-header-height, ${MIN_NAV_HEIGHT}px);
+  /* Height priority: container variable (responsive) → DrawerHeader height prop → default */
+  height: var(--event-drawer-header-height, var(--drawer-header-height, auto));
+  max-height: var(
+    --event-drawer-header-height,
+    var(--drawer-header-height, ${MIN_NAV_HEIGHT}px)
+  );
+  min-height: var(
+    --event-drawer-header-height,
+    var(--drawer-header-height, ${MIN_NAV_HEIGHT}px)
+  );
   align-items: center;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -54,12 +89,17 @@ export const EventNavigator = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.sm} 24px;
+  padding: 0 24px;
   background: ${p => p.theme.tokens.background.primary};
   z-index: 2; /* Just above EventStickyControls */
-  min-height: ${MIN_NAV_HEIGHT}px;
+  height: var(--event-drawer-header-height, auto);
+  min-height: var(--event-drawer-header-height, ${MIN_NAV_HEIGHT}px);
+  border-bottom: var(--event-navigator-border-bottom, 0);
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
+  box-shadow: var(
+    --event-navigator-box-shadow,
+    ${p => `${p.theme.tokens.border.primary} 0 1px`}
+  );
 `;
 
 export const EventStickyControls = styled('div')`

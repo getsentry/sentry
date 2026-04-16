@@ -1,10 +1,7 @@
 from django.conf import settings
+from scm.rate_limit import total_limit_key, usage_count_key
 
-from sentry.scm.private.rate_limit import (
-    RedisRateLimitProvider,
-    total_limit_key,
-    usage_count_key,
-)
+from sentry.scm.private.rate_limit import RedisRateLimitProvider
 from sentry.testutils.cases import TestCase
 from sentry.utils import redis
 

@@ -527,23 +527,22 @@ describe('MetricsTabContent', () => {
   });
 
   it('should switch to aggregate mode when a group by is added', async () => {
-    // Mock the trace-items attributes endpoint for string type attributes
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'test.region', name: 'test.region'},
-        {key: 'test.service', name: 'test.service'},
+        {
+          attributeType: 'string',
+          key: 'test.region',
+          name: 'test.region',
+        },
+        {
+          attributeType: 'string',
+          key: 'test.service',
+          name: 'test.service',
+        },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-
-    // Mock the trace-items attributes endpoint for number type attributes (empty)
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
     });
 
     const {router} = render(

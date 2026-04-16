@@ -19,6 +19,7 @@ class SeerNightShiftRun(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     triage_strategy = models.CharField(max_length=64)
     error_message = models.TextField(null=True)
+    extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
         app_label = "seer"

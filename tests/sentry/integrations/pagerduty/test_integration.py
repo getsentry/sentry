@@ -1,19 +1,24 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import patch
 from urllib.parse import urlencode, urlparse
 
 import orjson
 import pytest
 import responses
+from django.urls import reverse
 
 from sentry import options
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 from sentry.integrations.pagerduty.utils import get_services
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -267,3 +272,94 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
                 }
             ]
         }
+
+
+@control_silo_test
+class PagerDutyApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.app_id = "app_1"
+        options.set("pagerduty.app-id", self.app_id)
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "pagerduty"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _make_config(self, **overrides: Any) -> str:
+        config = {
+            "integration_keys": [
+                {
+                    "integration_key": "key1",
+                    "name": "Super Cool Service",
+                    "id": "PD12345",
+                    "type": "service",
+                },
+            ],
+            "account": {"subdomain": "test-app", "name": "Test App"},
+        }
+        config.update(overrides)
+        return orjson.dumps(config).decode()
+
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "installation_redirect"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "pagerduty"
+        assert "installUrl" in resp.data["data"]
+        install_url = resp.data["data"]["installUrl"]
+        assert "pagerduty.com/install/integration" in install_url
+        assert f"app_id={self.app_id}" in install_url
+
+    def test_missing_config(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    def test_invalid_json_config(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({"config": "not-valid-json"})
+        assert resp.status_code == 400
+
+    def test_full_pipeline_flow(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_redirect"
+
+        resp = self._advance_step({"config": self._make_config()})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="pagerduty")
+        assert integration.external_id == "test-app"
+        assert integration.name == "Test App"
+        assert integration.metadata["services"] == [
+            {
+                "integration_key": "key1",
+                "name": "Super Cool Service",
+                "id": "PD12345",
+                "type": "service",
+            }
+        ]
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()

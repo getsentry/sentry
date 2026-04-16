@@ -60,7 +60,7 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    const searchResults = await result.current(tag, 'search-query');
+    const searchResults = await result.current({tag, searchQuery: 'search-query'});
 
     expect(searchQueryMock).toHaveBeenCalled();
     expect(searchResults).toEqual(['search-result']);
@@ -103,7 +103,7 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    const searchResults = await result.current(tag, 'search-query');
+    const searchResults = await result.current({tag, searchQuery: 'search-query'});
 
     expect(searchQueryMock).not.toHaveBeenCalled();
     expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for numbers
@@ -145,7 +145,7 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    const searchResults = await result.current(tag, 'search-query');
+    const searchResults = await result.current({tag, searchQuery: 'search-query'});
 
     expect(searchQueryMock).not.toHaveBeenCalled();
     expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for booleans

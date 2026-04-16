@@ -129,10 +129,10 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
 
 def translate_internal_to_public_alias(
     internal_alias: str,
-    type: Literal["string", "number", "boolean"],
+    search_type: Literal["string", "number", "boolean"],
     item_type: SupportedTraceItemType,
 ) -> tuple[str | None, str | None, AttributeSource]:
-    mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
+    mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(search_type, {})
     public_alias = mapping.get(internal_alias)
     if public_alias is not None:
         return public_alias, public_alias, {"source_type": AttributeSourceType.SENTRY}
@@ -142,7 +142,7 @@ def translate_internal_to_public_alias(
         # if there is a known public alias with this exact name, it means we need to wrap
         # it in the explicitly typed tags syntax in order for it to reference the correct column
         return (
-            f"tags[{internal_alias},{type}]",
+            f"tags[{internal_alias},{search_type}]",
             internal_alias,
             {"source_type": AttributeSourceType.SENTRY},
         )
@@ -152,7 +152,7 @@ def translate_internal_to_public_alias(
         if definitions.column_to_alias is not None:
             column = definitions.column_to_alias(internal_alias)
             if column is not None:
-                if type == "string":
+                if search_type == "string":
                     return (
                         column,
                         column,
@@ -162,7 +162,7 @@ def translate_internal_to_public_alias(
                         },
                     )
                 return (
-                    f"tags[{column},{type}]",
+                    f"tags[{column},{search_type}]",
                     column,
                     {
                         "source_type": AttributeSourceType.SENTRY,

@@ -132,6 +132,8 @@ export enum AllowedDataScrubbingDatasets {
   DEFAULT = 'default',
   // This is the dataset that is used for data scrubbing. When this is selected, the user will be shown a trace item attribute picker.
   LOGS = 'logs',
+  // Trace metrics dataset. When selected, the user will be shown a trace item attribute picker for metrics.
+  METRICS = 'metrics',
 }
 
 export type PiiConfig =

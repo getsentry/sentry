@@ -14,7 +14,10 @@ import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQu
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 function createWrapper({
   queryParams,
@@ -268,6 +271,46 @@ describe('MetricPanel', () => {
         screen.queryByRole('button', {name: 'Table bottom'})
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+    });
+
+    it('uses the internal expression as the chart title for equations', async () => {
+      const equationQueryParams = new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: '',
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeEquation('equation|sum(value) + avg(value)')],
+        aggregateSortBys: [{field: 'equation|sum(value) + avg(value)', kind: 'desc'}],
+      });
+
+      const equationOrg = {
+        ...organization,
+        features: [...organization.features, 'tracemetrics-equations-in-explore'],
+      };
+
+      render(
+        <MetricPanel
+          traceMetric={traceMetric}
+          queryIndex={0}
+          queryLabel="ƒ1"
+          referenceMap={{A: 'sum(value)', B: 'avg(value)'}}
+        />,
+        {
+          organization: equationOrg,
+          additionalWrapper: createWrapper({
+            queryParams: equationQueryParams,
+            traceMetric,
+          }),
+        }
+      );
+
+      // The chart title should display the unresolved/internal expression (A + B),
+      // not the resolved form (sum(value) + avg(value))
+      expect(await screen.findByText('A + B')).toBeInTheDocument();
+      expect(screen.queryByText('sum(value) + avg(value)')).not.toBeInTheDocument();
     });
   });
 });
