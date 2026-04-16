@@ -198,7 +198,10 @@ const StyledPagination = styled(Pagination)`
   grid-column: 1 / -1;
 `;
 
-function getErrorMessage(fetchError: Error) {
+function getErrorMessage(fetchError: Error | string) {
+  if (typeof fetchError === 'string') {
+    return fetchError;
+  }
   if (fetchError instanceof RequestError) {
     if (typeof fetchError?.responseJSON?.detail === 'string') {
       return fetchError.responseJSON.detail;
