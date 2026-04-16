@@ -355,6 +355,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     ? projects.find(p => p.slug === createdProjectSlug)
     : undefined;
 
+  // When the project-details step is skipped, Continue auto-creates the
+  // project, which needs the teams and projects stores loaded.
+  const autoCreateDataPending =
+    !hasProjectDetailsStep && (isLoadingTeams || !projectsLoaded);
+
   async function handleContinue() {
     // Persist derived defaults to context if user accepted them
     if (currentPlatformKey && !selectedPlatform?.key) {
@@ -366,14 +371,14 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
     if (!hasProjectDetailsStep) {
       // Auto-create project with defaults when SCM_PROJECT_DETAILS step is skipped
-      const platform =
-        selectedPlatform ??
-        (currentPlatformKey
-          ? toSelectedSdk(getPlatformInfo(currentPlatformKey)!)
-          : undefined);
-      if (!platform) {
+      if (!currentPlatformKey) {
         return;
       }
+      const info = getPlatformInfo(currentPlatformKey);
+      if (!info) {
+        return;
+      }
+      const platform = selectedPlatform ?? toSelectedSdk(info);
 
       // If a project was already created for this platform (e.g. the user
       // went back after the project received its first event), reuse it.
@@ -550,9 +555,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               }}
               onClick={handleContinue}
               disabled={
-                !currentPlatformKey ||
-                createProject.isPending ||
-                (!hasProjectDetailsStep && (isLoadingTeams || !projectsLoaded))
+                !currentPlatformKey || createProject.isPending || autoCreateDataPending
               }
               busy={createProject.isPending}
             >
