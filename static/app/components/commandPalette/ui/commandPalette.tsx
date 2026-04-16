@@ -726,10 +726,12 @@ function flattenActions(
           prefixMap.set(child.key, intermediatePath);
         }
         if (seeMore) {
-          // Store the group label so getSourceAction can recover it for the
-          // "See all" item even though the original section header is not emitted.
-          // Use a distinct `:source-label` suffix so this entry is never mistaken
-          // for a render-time prefix by makeMenuItemFromAction.
+          // Render-time prefix for the "See all" item — same path as its siblings.
+          prefixMap.set(`${item.key}:see-more`, intermediatePath);
+          // Source-label hint so getSourceAction can recover the group label for
+          // analytics/navigation even though the original section header is not
+          // emitted. The distinct `:source-label` suffix avoids collision with the
+          // render-time prefix entry above.
           prefixMap.set(`${item.key}:see-more:source-label`, [item.display.label]);
         }
         const sectionHeader = usedSectionHeaders.has(root.key)
