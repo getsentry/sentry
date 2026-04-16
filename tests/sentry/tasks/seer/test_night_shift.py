@@ -253,11 +253,14 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
+        def boom(projects, organization, max_candidates):
+            raise RuntimeError("boom")
+
         with (
             self.feature("organizations:seer-project-settings-read-from-sentry"),
-            patch(
-                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
-                side_effect=RuntimeError("boom"),
+            patch.dict(
+                "sentry.tasks.seer.night_shift.strategies.TRIAGE_STRATEGIES",
+                {"agentic_triage": boom},
             ),
         ):
             run_night_shift_for_org(org.id)
@@ -351,9 +354,9 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         with (
             self.feature("organizations:seer-project-settings-read-from-sentry"),
-            patch(
-                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
-                return_value=([], None),
+            patch.dict(
+                "sentry.tasks.seer.night_shift.strategies.TRIAGE_STRATEGIES",
+                {"agentic_triage": lambda projects, organization, max_candidates: ([], None)},
             ),
         ):
             run_night_shift_for_org(org.id)
@@ -392,7 +395,7 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
                 project, f"null-{i}", seer_fixability_score=None, times_seen=100
             )
 
-        result = fixability_score_strategy([project])
+        result = fixability_score_strategy([project], max_candidates=10)
 
         assert result[0].group.id == high.id
         assert result[0].fixability == 0.9
