@@ -600,8 +600,6 @@ export default typescript.config([
     extends: enableTypeAwareLinting ? [typescript.configs.strictTypeChecked] : [],
     name: 'plugin/typescript-eslint/type-aware-linting',
     ignores: [globMDX],
-    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
-    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
     rules: enableTypeAwareLinting
       ? {
           // Customizations
