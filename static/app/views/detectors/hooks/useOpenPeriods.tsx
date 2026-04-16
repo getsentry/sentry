@@ -66,6 +66,6 @@ export function useEventOpenPeriod(params: {
   return useQuery({
     ...openPeriodsApiOptions({organization, limit: 1, ...params}),
     enabled: defined(params.eventId) && defined(params.groupId),
-    select: ({json}) => json?.[0] ?? null,
+    select: ({json}) => json[0] ?? null,
   });
 }
