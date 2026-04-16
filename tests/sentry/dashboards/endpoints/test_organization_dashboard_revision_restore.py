@@ -118,7 +118,9 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             "-date_added"
         )
         assert new_revisions.count() == initial_revision_count + 1
-        assert new_revisions.first().source == "pre-restore"
+        newest = new_revisions.first()
+        assert newest is not None
+        assert newest.source == "pre-restore"
 
     def test_returns_updated_dashboard(self) -> None:
         revision = self._create_revision(
