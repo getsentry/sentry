@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {parseRepo} from 'sentry/utils/git/parseRepo';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {isScmPlugin, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
@@ -60,7 +60,7 @@ export class PluginSettings<
     trackIntegrationAnalytics(eventKey, {
       integration: this.props.plugin.id,
       integration_type: 'plugin',
-      is_scm: false,
+      is_scm: isScmPlugin(this.props.plugin),
       view: 'plugin_details',
       already_installed: this.state.wasConfiguredOnPageLoad,
       organization: this.props.organization,

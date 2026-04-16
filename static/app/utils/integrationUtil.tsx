@@ -27,6 +27,7 @@ import type {
   IntegrationInstallationStatus,
   IntegrationProvider,
   IntegrationType,
+  PluginNoProject,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -151,6 +152,15 @@ export function isDocIntegration(
  */
 export function isScmProvider(provider: IntegrationProvider): boolean {
   return provider.metadata.features.some(f => f.featureGate.includes('commits'));
+}
+
+/**
+ * True when the plugin declares the `commits` feature gate. The legacy GitHub
+ * and Bitbucket plugins both declare this, so they must not be reported as
+ * non-SCM to analytics.
+ */
+export function isScmPlugin(plugin: PluginNoProject): boolean {
+  return plugin.features.includes('commits');
 }
 
 export function isExternalActorMapping(
