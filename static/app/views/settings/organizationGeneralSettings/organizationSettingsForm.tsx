@@ -564,7 +564,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 </Text>
               </Stack>
               <Container flexGrow={1}>
-                <Text>{`${regionData.flag} ${regionData.displayName}`}</Text>
+                <Text>{`${regionData?.flag ?? ''} ${regionData.displayName}`}</Text>
               </Container>
             </Flex>
           )}
