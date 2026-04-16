@@ -132,8 +132,9 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
         triage_strategy=triage_strategy,
     )
 
+    agent_run_id = None
     try:
-        candidates = agentic_triage_strategy(eligible_projects, organization)
+        candidates, agent_run_id = agentic_triage_strategy(eligible_projects, organization)
 
         if candidates:
             SeerNightShiftRunIssue.objects.bulk_create(
@@ -153,6 +154,7 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
             extra={
                 "organization_id": organization_id,
                 "run_id": run.id,
+                "agent_run_id": agent_run_id,
             },
         )
         run.update(error_message="Night shift run failed")
@@ -169,6 +171,7 @@ def run_night_shift_for_org(organization_id: int, dry_run: bool = False) -> None
             "organization_id": organization_id,
             "organization_slug": organization.slug,
             "run_id": run.id,
+            "agent_run_id": agent_run_id,
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
             "dry_run": dry_run,
