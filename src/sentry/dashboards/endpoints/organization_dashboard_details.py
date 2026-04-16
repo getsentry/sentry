@@ -244,10 +244,16 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         ):
             snapshot = _take_dashboard_snapshot(dashboard, request.user)
 
+        revision_source = request.data.get("revisionSource", "edit")
+        if revision_source not in ("edit", "edit-with-agent"):
+            revision_source = "edit"
+
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 if snapshot is not None and isinstance(dashboard, Dashboard):
-                    DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
+                    DashboardRevision.create_for_dashboard(
+                        dashboard, request.user, snapshot, source=revision_source
+                    )
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(

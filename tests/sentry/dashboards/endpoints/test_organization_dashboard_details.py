@@ -4155,6 +4155,35 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         # No revision should be created for a pre-built dashboard that hasn't been saved yet
         assert DashboardRevision.objects.count() == 0
 
+    def test_put_revision_source_defaults_to_edit(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit"
+
+    def test_put_revision_source_edit_with_agent(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"title": "Updated", "revisionSource": "edit-with-agent"},
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit-with-agent"
+
+    def test_put_revision_source_ignores_unknown_values(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"title": "Updated", "revisionSource": "malicious-value"},
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        assert revision.source == "edit"
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
