@@ -400,13 +400,10 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
-      'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
       radix: 'error',
-      'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -667,9 +664,6 @@ export default typescript.config([
     name: 'plugin/typescript-eslint/custom',
     ignores: [globMDX],
     rules: {
-      'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
-      'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
-
       '@typescript-eslint/naming-convention': [
         'error',
         {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
