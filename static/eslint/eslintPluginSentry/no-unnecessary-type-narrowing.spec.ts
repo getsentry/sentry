@@ -105,6 +105,32 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       `,
       filename: 'valid.ts',
     },
+    {
+      name: 'as unknown as T — double assertion escape hatch (function arg)',
+      code: `
+        declare function accept(x: string): void;
+        declare const value: number;
+        accept(value as unknown as string);
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'as unknown as T — double assertion escape hatch (variable)',
+      code: `
+        declare const value: number;
+        const x: string = value as unknown as string;
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'as any as T — double assertion escape hatch',
+      code: `
+        declare function accept(x: string): void;
+        declare const value: number;
+        accept(value as any as string);
+      `,
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [

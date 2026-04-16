@@ -80,6 +80,21 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
+        // Skip double assertions like `as unknown as T` / `as any as T`
+        // These are deliberate escape hatches via an intermediate widening type
+        if (node.expression.type === 'TSAsExpression') {
+          const innerAssertedType = parserServices.getTypeFromTypeNode(
+            node.expression.typeAnnotation
+          );
+          if (
+            (innerAssertedType.flags &
+              (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) !==
+            0
+          ) {
+            return;
+          }
+        }
+
         // Skip assertions that are arguments to generic function calls without
         // explicit type arguments — the assertion participates in type inference
         // for the generic, so removing it would change the inferred types.
