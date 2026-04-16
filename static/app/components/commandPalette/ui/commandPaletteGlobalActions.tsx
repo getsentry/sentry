@@ -330,7 +330,7 @@ export function GlobalCommandPaletteActions() {
                 '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
                 {path: {organizationIdOrSlug: organization.slug}}
               );
-              const query = {per_page: 10, category_key: 'night_shift'};
+              const query = {per_page: 10, category_key: 'night_shift', owner: 'false'};
               return cmdkQueryOptions({
                 queryKey: [url, {query}],
                 queryFn: () => QUERY_API_CLIENT.requestPromise(url, {query}),
