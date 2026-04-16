@@ -12,6 +12,10 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 
 describe('useAddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();
+  const legacyProvider = GitHubIntegrationProviderFixture({
+    key: 'custom_legacy',
+    slug: 'custom_legacy',
+  });
   const integration = GitHubIntegrationFixture();
   let configState: Config;
 
@@ -58,7 +62,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
@@ -76,7 +80,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
           account: 'my-account',
@@ -96,7 +100,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
           urlParams: {custom_param: 'value'},
@@ -114,7 +118,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall,
         })
@@ -142,7 +146,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
@@ -159,7 +163,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
@@ -176,7 +180,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
@@ -195,7 +199,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall,
         })
@@ -212,6 +216,7 @@ describe('useAddIntegration', () => {
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
       });
+
       expect(onInstall).not.toHaveBeenCalled();
     });
 
@@ -222,7 +227,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall,
         })
@@ -241,7 +246,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
@@ -253,13 +258,11 @@ describe('useAddIntegration', () => {
   });
 
   describe('API pipeline flow', () => {
-    it('opens the pipeline modal when feature flag is enabled', () => {
+    it('opens the pipeline modal for unconditionally API-driven providers', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
       const onInstall = jest.fn();
 
-      const organization = OrganizationFixture({
-        features: ['integration-api-pipeline-github'],
-      });
+      const organization = OrganizationFixture({features: []});
 
       const {result} = renderHookWithProviders(() => useAddIntegration());
 
@@ -282,9 +285,7 @@ describe('useAddIntegration', () => {
     it('passes urlParams as initialData to the pipeline modal', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
 
-      const organization = OrganizationFixture({
-        features: ['integration-api-pipeline-github'],
-      });
+      const organization = OrganizationFixture({features: []});
 
       const {result} = renderHookWithProviders(() => useAddIntegration());
 
@@ -308,9 +309,7 @@ describe('useAddIntegration', () => {
       jest.spyOn(pipelineModal, 'openPipelineModal');
       jest.spyOn(window, 'open');
 
-      const organization = OrganizationFixture({
-        features: ['integration-api-pipeline-github'],
-      });
+      const organization = OrganizationFixture({features: []});
 
       const {result} = renderHookWithProviders(() => useAddIntegration());
 
@@ -325,7 +324,31 @@ describe('useAddIntegration', () => {
       expect(window.open).not.toHaveBeenCalled();
     });
 
-    it('falls back to legacy flow when feature flag is not enabled', () => {
+    it('opens the pipeline modal for other unconditional providers without a flag', () => {
+      const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
+      const organization = OrganizationFixture({features: []});
+      const gitlabProvider = GitHubIntegrationProviderFixture({
+        key: 'gitlab',
+        slug: 'gitlab',
+        name: 'GitLab',
+      });
+
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: gitlabProvider,
+          organization,
+          onInstall: jest.fn(),
+        })
+      );
+
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({provider: 'gitlab'})
+      );
+    });
+
+    it('falls back to legacy flow when the provider is not API driven', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
       jest
         .spyOn(window, 'open')
@@ -337,7 +360,7 @@ describe('useAddIntegration', () => {
 
       act(() =>
         result.current.startFlow({
-          provider,
+          provider: legacyProvider,
           organization,
           onInstall: jest.fn(),
         })

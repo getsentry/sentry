@@ -786,6 +786,9 @@ class Referrer(StrEnum):
     SEER_EXPLORER_INDEX = "seer.explorer_index"
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
+    SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
+        "supergroups_backfill_lightweight.get_latest_events"
+    )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )

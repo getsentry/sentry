@@ -156,9 +156,9 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
 
-        // Disable the recent searches when not using a trace metric filter because
-        // the recent searches for metrics need to be namespaced on the trace metric filter.
-        disableRecentSearches: skipTraceMetricFilter,
+        // Disable the recent searches when not using a trace metric filter or when the metric name
+        // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
+        disableRecentSearches: skipTraceMetricFilter || !traceMetric.name,
       };
     }, [
       query,

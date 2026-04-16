@@ -29,8 +29,7 @@ import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -85,20 +84,14 @@ function AddMemberDropdown({
 }) {
   const [memberQuery, setMemberQuery] = useState('');
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
-  const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useApiQuery<Member[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/members/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: debouncedMemberQuery ? {query: debouncedMemberQuery} : undefined,
-      },
-    ],
-    {
+  const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useQuery({
+    ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: debouncedMemberQuery ? {query: debouncedMemberQuery} : undefined,
       staleTime: 30_000,
-      placeholderData: keepPreviousData,
-    }
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   // members can add other members to a team if the `Open Membership` setting is enabled
   // otherwise, `org:write` or `team:admin` permissions are required
