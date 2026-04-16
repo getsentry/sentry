@@ -3,19 +3,17 @@ import {createContext, useContext, useMemo} from 'react';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformKey} from 'sentry/types/project';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 
 /**
  * Persisted form state from the SCM project details step. Stored so the
  * form can be restored when the user navigates back from setup-docs.
- * `platform` records the platform at creation time so we can detect
- * platform changes when the user navigates back through earlier steps.
+ * Cleared by the platform features step when the platform changes, so
+ * stale inputs don't carry across platform selections.
  */
 export interface ProjectDetailsFormState {
   alertRuleConfig?: AlertRuleOptions;
-  platform?: PlatformKey;
   projectName?: string;
   teamSlug?: string;
 }

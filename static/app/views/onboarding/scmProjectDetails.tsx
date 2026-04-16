@@ -130,7 +130,6 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         projectName: projectNameResolved,
         teamSlug: teamSlugResolved,
         alertRuleConfig,
-        platform: selectedPlatform.key,
       });
 
       trackAnalytics('onboarding.scm_project_details_create_succeeded', {

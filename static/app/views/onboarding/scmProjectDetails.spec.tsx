@@ -313,7 +313,6 @@ describe('ScmProjectDetails', () => {
           projectDetailsForm: {
             projectName: 'my-saved-name',
             teamSlug: teamWithAccess.slug,
-            platform: 'javascript-nextjs',
           },
         }),
       }
@@ -369,7 +368,6 @@ describe('ScmProjectDetails', () => {
       expect.objectContaining({
         projectName: 'javascript-nextjs',
         teamSlug: teamWithAccess.slug,
-        platform: 'javascript-nextjs',
       })
     );
     expect(stored.projectDetailsForm.alertRuleConfig).toBeDefined();
