@@ -8,14 +8,40 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
+
+jest.mock('@sentry/scraps/button', () => ({
+  Button: jest.fn(props => {
+    return (
+      <button
+        aria-busy={props.busy}
+        aria-label={props['aria-label']}
+        disabled={props.disabled}
+        onClick={props.onClick}
+        type={props.type ?? 'button'}
+      >
+        {props.children}
+      </button>
+    );
+  }),
+  LinkButton: jest.fn(props => {
+    return <a href={props.href}>{props.children}</a>;
+  }),
+}));
+
+const mockButton = Button as jest.MockedFunction<typeof Button>;
+const mockLinkButton = LinkButton as jest.MockedFunction<typeof LinkButton>;
 
 describe('SaveReplayQueryButton', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
+    mockButton.mockClear();
+    mockLinkButton.mockClear();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({projects: [1], environments: ['production']})
@@ -43,6 +69,16 @@ describe('SaveReplayQueryButton', () => {
   it('renders the Save as button', () => {
     renderWithProvider();
     expect(screen.getByRole('button', {name: 'Save as'})).toBeInTheDocument();
+  });
+
+  it('renders Save as as a primary button', () => {
+    renderWithProvider();
+
+    const saveAsButtonCall = mockButton.mock.calls.find(
+      call => call[0]?.children === 'Save as'
+    );
+
+    expect(saveAsButtonCall?.[0]).toEqual(expect.objectContaining({priority: 'primary'}));
   });
 
   it('does not disables the button when query is empty', () => {
