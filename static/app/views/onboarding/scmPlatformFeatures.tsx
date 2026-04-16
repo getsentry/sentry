@@ -384,8 +384,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       // went back after the project received its first event), reuse it.
       // If the platform changed, abandon the old project and create a new
       // one — matching legacy onboarding behavior.
+      // `platform` is forwarded because setPlatform's context update has not
+      // propagated to the captured onComplete closure yet, and goNextStep's
+      // SETUP_DOCS guard would otherwise block navigation.
       if (existingProject?.platform === platform.key) {
-        onComplete(undefined, {product: currentFeatures});
+        onComplete(platform, {product: currentFeatures});
         return;
       }
 
@@ -401,7 +404,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           firstTeamSlug: firstAdminTeam?.slug,
         });
         setCreatedProjectSlug(project.slug);
-        onComplete(undefined, {product: currentFeatures});
+        onComplete(platform, {product: currentFeatures});
       } catch (error) {
         addErrorMessage(t('Failed to create project'));
         Sentry.captureException(error);

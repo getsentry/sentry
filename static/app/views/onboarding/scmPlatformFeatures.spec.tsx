@@ -719,7 +719,7 @@ describe('ScmPlatformFeatures', () => {
           })
         );
       });
-      expect(onComplete).toHaveBeenCalledWith(undefined, {
+      expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
     });
@@ -759,7 +759,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(onComplete).toHaveBeenCalledWith(undefined, {
+        expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
           product: [ProductSolution.ERROR_MONITORING],
         });
       });
@@ -807,8 +807,64 @@ describe('ScmPlatformFeatures', () => {
       await waitFor(() => {
         expect(createRequest).toHaveBeenCalled();
       });
-      expect(onComplete).toHaveBeenCalledWith(undefined, {
+      expect(onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
+      });
+    });
+
+    it('forwards the detected platform to onComplete when the user did not click a card', async () => {
+      // Regression: if the user hits Continue without explicitly selecting a
+      // detected platform, selectedPlatform stays undefined in context while
+      // currentPlatformKey falls back to the detected key. Passing undefined
+      // to onComplete here would trip goNextStep's SETUP_DOCS guard because
+      // the captured closure still sees selectedPlatform as undefined.
+      const onComplete = jest.fn();
+      const createdProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture({
+              platform: 'javascript-nextjs',
+              language: 'javascript',
+            }),
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={onComplete}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      await screen.findByRole('radio', {name: /Next.js/});
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalledWith(
+          expect.objectContaining({key: 'javascript-nextjs'}),
+          {product: [ProductSolution.ERROR_MONITORING]}
+        );
       });
     });
   });
