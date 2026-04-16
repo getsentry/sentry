@@ -246,7 +246,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
-                if snapshot is not None:
+                if snapshot is not None and isinstance(dashboard, Dashboard):
                     DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
                 serializer.save()
                 if tombstone:
