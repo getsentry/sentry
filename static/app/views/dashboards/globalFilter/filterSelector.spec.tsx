@@ -240,13 +240,13 @@ describe('FilterSelector', () => {
     // Verify we have 2 checkboxes (one for each option)
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
 
-    // Search for the long value using text beyond the 70-char truncation point
-    // "committers" appears at position 94, well beyond the 70-char limit
+    // Search for the entire long value to test that search works on the full textValue
+    // even though the displayed label is truncated at 70 characters
     const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
-    await userEvent.type(searchInput, 'committers');
+    await userEvent.type(searchInput, longValue);
 
     // After searching, only the long value should match
-    // Verify we now have only 1 checkbox (the long value that matches)
+    // Verify we now have only 1 checkbox (the matching long value)
     await waitFor(() => {
       expect(screen.getAllByRole('checkbox')).toHaveLength(1);
     });
