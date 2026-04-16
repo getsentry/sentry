@@ -58,10 +58,10 @@ export const makeTimeseriesCharts = (
       itemGap: 16,
       top: 6,
       left: 10,
-      truncate: 40,
+      truncate: 20,
       textStyle: {
-        fontSize: FONT_SIZE,
-        lineHeight: FONT_SIZE * 1.4,
+        fontSize: FONT_SIZE * 0.8,
+        lineHeight: FONT_SIZE * 1.1,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
       pageTextStyle: {
