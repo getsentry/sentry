@@ -97,7 +97,7 @@ def run_night_shift_for_org(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        return
+        return None
 
     sentry_sdk.set_tags(
         {
@@ -118,7 +118,7 @@ def run_night_shift_for_org(
                     "organization_slug": organization.slug,
                 },
             )
-            return
+            return None
     except Exception:
         logger.exception(
             "night_shift.failed_to_get_eligible_projects",
@@ -126,7 +126,7 @@ def run_night_shift_for_org(
                 "organization_id": organization_id,
             },
         )
-        return
+        return None
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
 
@@ -168,7 +168,7 @@ def run_night_shift_for_org(
             },
         )
         run.update(error_message="Night shift run failed")
-        return
+        return None
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
     for c in candidates:
