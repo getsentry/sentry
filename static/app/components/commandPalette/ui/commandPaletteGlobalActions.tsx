@@ -53,6 +53,7 @@ import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
@@ -61,7 +62,6 @@ import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
-import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
