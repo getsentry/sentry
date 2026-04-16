@@ -55,7 +55,7 @@ function IssueOpenPeriodsList() {
     ...openPeriodsApiOptions({
       organization,
       groupId: params.groupId,
-      cursor: location.query?.cursor as string | undefined,
+      cursor: location.query?.cursor,
       limit: 10,
     }),
     select: selectJsonWithHeaders,
