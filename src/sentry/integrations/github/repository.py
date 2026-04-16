@@ -86,8 +86,8 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
         name = repo.config["name"]
 
         try:
-            commits = client.get_last_commits(name, end_sha)
-            return self._format_commits(client, name, commits[:20])
+            commits = client.get_last_commits(name, end_sha, per_page=20)
+            return self._format_commits(client, name, commits)
         except Exception as e:
             installation.raise_error(e)
 
