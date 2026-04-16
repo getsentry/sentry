@@ -56,6 +56,7 @@ Items that fail validation are skipped without dispatching the task.
 
 from __future__ import annotations
 
+import bisect
 import logging
 import math
 import time
@@ -202,7 +203,8 @@ class CursoredScheduler[M: Model]:
             )
             return False
 
-        items = [pk for pk in cached_pks if pk > cursor][:batch_size]
+        start = bisect.bisect_right(cached_pks, cursor)
+        items = cached_pks[start : start + batch_size]
 
         if not items:
             self._finalize_cycle()
