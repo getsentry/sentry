@@ -9,14 +9,16 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
-interface UseGetTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
+interface UseGetTraceItemAttributeKeysProps extends Omit<
+  UseTraceItemAttributeBaseProps,
+  'type'
+> {
   projectIds?: Array<string | number>;
   query?: string;
 }
 
 export function useGetTraceItemAttributeKeys({
   traceItemType,
-  type,
   projectIds,
   query,
 }: UseGetTraceItemAttributeKeysProps) {
@@ -25,21 +27,26 @@ export function useGetTraceItemAttributeKeys({
   const queryClient = useQueryClient();
 
   const {mutateAsync: getTraceItemAttributeKeys} = useMutation({
-    mutationFn: async (queryString?: string): Promise<TagCollection> => {
+    mutationFn: async (
+      queryString?: string
+    ): Promise<{
+      booleanAttributes: TagCollection;
+      numberAttributes: TagCollection;
+      stringAttributes: TagCollection;
+    }> => {
       try {
         const {json} = await queryClient.fetchQuery({
           ...traceItemAttributeKeysOptions({
             organization,
             selection,
             traceItemType,
-            type,
             projectIds: projectIds ?? selection.projects,
             search: queryString,
             query,
             staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
           }),
         });
-        return getTraceItemTagCollection(json, type);
+        return getTraceItemTagCollection(json);
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
