@@ -33,6 +33,7 @@ export const preferReduceTypeParameter = ESLintUtils.RuleCreator.withoutDocs({
       description:
         'Prefer passing a type parameter to `.reduce<T>()` instead of using `as` assertions in the initial value',
     },
+    fixable: 'code',
     schema: [],
     messages: {
       preferTypeParameter:
@@ -66,9 +67,30 @@ export const preferReduceTypeParameter = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
         if (containsAsExpression(initialValue)) {
+          const sourceCode = context.sourceCode;
+          // Autofix when the entire initial value is `expr as Type`
+          const fix =
+            initialValue.type === 'TSAsExpression'
+              ? (fixer: Parameters<Exclude<TSESTree.ReportFixFunction, null>>[0]) => {
+                  const typeText = sourceCode.getText(initialValue.typeAnnotation);
+                  const exprText = sourceCode.getText(initialValue.expression);
+                  const reduceProperty =
+                    node.callee.type === 'MemberExpression' ? node.callee.property : null;
+                  if (!reduceProperty) {
+                    return null;
+                  }
+                  return [
+                    // Add <Type> after `reduce`
+                    fixer.insertTextAfter(reduceProperty, `<${typeText}>`),
+                    // Replace `expr as Type` with just `expr`
+                    fixer.replaceText(initialValue, exprText),
+                  ];
+                }
+              : undefined;
           context.report({
             node: initialValue,
             messageId: 'preferTypeParameter',
+            fix,
           });
         }
       },

@@ -58,9 +58,22 @@ ruleTester.run('prefer-reduce-type-parameter', preferReduceTypeParameter, {
       errors: [{messageId: 'preferTypeParameter' as const}],
     },
     {
-      name: 'assertion in array initial value',
+      name: 'assertion in array initial value — autofixed',
       code: `
         const result = items.reduce((acc, item) => acc, [] as string[]);
+      `,
+      output: `
+        const result = items.reduce<string[]>((acc, item) => acc, []);
+      `,
+      errors: [{messageId: 'preferTypeParameter' as const}],
+    },
+    {
+      name: 'assertion on whole object initial value — autofixed',
+      code: `
+        const result = items.reduce((acc, item) => acc, {} as Record<string, any>);
+      `,
+      output: `
+        const result = items.reduce<Record<string, any>>((acc, item) => acc, {});
       `,
       errors: [{messageId: 'preferTypeParameter' as const}],
     },
