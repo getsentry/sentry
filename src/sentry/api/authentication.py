@@ -833,6 +833,10 @@ class ViewerContextAuthentication(BaseAuthentication):
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+        # Viewer context comes from a trusted first-party service. Keep auth
+        # session-like for permission derivation, but mark it so org access can
+        # avoid requiring browser-session SSO state on service callbacks.
+        setattr(request, "user_from_viewer_context", True)
 
         # Return None for auth to match session behavior —
         # determine_access will derive scopes from org membership role.

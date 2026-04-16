@@ -185,7 +185,7 @@ function SupergroupIssueList({
   );
 
   // Search with the stream query to find which ones match
-  const {data: matchedGroups, isPending: matchPending} = useQuery({
+  const {data: matchedGroups} = useQuery({
     ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
@@ -201,21 +201,29 @@ function SupergroupIssueList({
     enabled: !!filterWithCurrentSearch,
   });
 
-  const isPending = allPending || (!!filterWithCurrentSearch && matchPending);
-
-  if (isPending) {
+  if (allPending) {
     return (
-      <PanelContainer>
-        <LoadingHeader>
-          <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
-          <DrawerColumnHeaders />
-        </LoadingHeader>
-        <PanelBody>
-          {pageGroupIds.map(id => (
-            <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
-          ))}
-        </PanelBody>
-      </PanelContainer>
+      <Fragment>
+        {filterWithCurrentSearch && (
+          <Flex align="center" gap="xs" padding="0 0 md 0">
+            <IconFilter size="xs" variant="accent" />
+            <Text size="sm" variant="muted">
+              {t('Matches current filters')}
+            </Text>
+          </Flex>
+        )}
+        <PanelContainer>
+          <LoadingHeader>
+            <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
+            <DrawerColumnHeaders />
+          </LoadingHeader>
+          <PanelBody>
+            {pageGroupIds.map(id => (
+              <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
+            ))}
+          </PanelBody>
+        </PanelContainer>
+      </Fragment>
     );
   }
 
@@ -226,20 +234,13 @@ function SupergroupIssueList({
   const sortedGroups = [...pageGroupIds]
     .map(id => groupMap.get(String(id)))
     .filter((g): g is Group => g !== undefined)
-    .sort((a, b) => {
-      const aMatched = matchedIds.has(a.id);
-      const bMatched = matchedIds.has(b.id);
-      if (aMatched !== bMatched) {
-        return aMatched ? -1 : 1;
-      }
-      return 0;
-    });
+    .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)));
 
   const visibleGroupIds = sortedGroups.map(g => g.id);
 
   return (
     <Fragment>
-      {matchedIds.size > 0 && (
+      {filterWithCurrentSearch && (
         <Flex align="center" gap="xs" padding="0 0 md 0">
           <IconFilter size="xs" variant="accent" />
           <Text size="sm" variant="muted">
@@ -535,22 +536,25 @@ const PanelContainer = styled(Panel)`
   container-type: inline-size;
 `;
 
-const IssueRow = styled('div')`
-  position: relative;
-
-  /* Hide the unread indicator — the filter icon replaces it in this context */
-  [data-test-id='unread-issue-indicator'] {
-    display: none;
-  }
-`;
-
 const MatchedIndicator = styled('div')`
   position: absolute;
-  top: 14px;
+  top: 32px;
   left: 18px;
   z-index: 2;
   color: ${p => p.theme.tokens.graphics.accent.vibrant};
   pointer-events: none;
+`;
+
+const IssueRow = styled('div')`
+  position: relative;
+
+  /* On hover or when checkbox is checked, hide the filter icon so the checkbox shows through */
+  &:hover,
+  &:has(input:checked) {
+    ${MatchedIndicator} {
+      display: none;
+    }
+  }
 `;
 
 const StyledMarkedText = styled(MarkedText)`

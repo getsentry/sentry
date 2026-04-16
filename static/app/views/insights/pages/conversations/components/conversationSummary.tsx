@@ -13,6 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -99,6 +100,25 @@ export function ConversationSummary({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const lastMessageDate = useMemo(() => {
+    if (nodes.length === 0) {
+      return null;
+    }
+
+    let endTimestamp = Number.NEGATIVE_INFINITY;
+
+    for (const node of nodes) {
+      if (typeof node.endTimestamp === 'number') {
+        endTimestamp = Math.max(endTimestamp, node.endTimestamp);
+      }
+    }
+
+    if (!Number.isFinite(endTimestamp)) {
+      return null;
+    }
+
+    return new Date(endTimestamp * 1e3);
+  }, [nodes]);
 
   const handleCopyConversationId = () => {
     copyToClipboard(conversationId, {
@@ -184,6 +204,19 @@ export function ConversationSummary({
         <AggregateItem
           label={t('Cost')}
           value={formatLLMCosts(aggregates.totalCost)}
+          isLoading={isLoading}
+        />
+        <AggregateItem
+          label={t('Last message')}
+          value={
+            lastMessageDate ? (
+              <TimeSince date={lastMessageDate} />
+            ) : (
+              <Text size="sm" variant="muted">
+                {'\u2014'}
+              </Text>
+            )
+          }
           isLoading={isLoading}
         />
         {isLoading ? (

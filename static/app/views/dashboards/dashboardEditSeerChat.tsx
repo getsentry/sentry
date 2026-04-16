@@ -48,6 +48,7 @@ export function DashboardEditSeerChat({
       onSend={sendFollowUpMessage}
       isUpdating={isUpdating}
       isError={isError}
+      showWarningMessage
     />
   );
 }
