@@ -58,6 +58,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
                     category_value=category_value,
                     offset=offset,
                     limit=limit,
+                    only_current_user=category_key is None,
                 )
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e
