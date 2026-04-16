@@ -266,7 +266,7 @@ export function GlobalCommandPaletteActions() {
             <CMDKAction
               key={project.id}
               display={{
-                label: project.name,
+                label: project.slug,
                 icon: <ProjectAvatar project={project} size={16} />,
               }}
               to={`/settings/${organization.slug}/projects/${project.slug}/`}
