@@ -41,12 +41,12 @@ class ProjectPermissionBase(TestCase):
 class ProjectEndpointViewerContextTest(TestCase):
     def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
         endpoint = ProjectEndpoint()
-        request = RequestFactory().get("/")
-        request.session = SessionBase()
-        request.user = self.user
-        request.auth = None
-        request.access = from_request(drf_request_from_request(request), self.organization)
-        request = drf_request_from_request(request)
+        raw_request = RequestFactory().get("/")
+        raw_request.session = SessionBase()
+        raw_request.user = self.user
+        raw_request.auth = None
+        raw_request.access = from_request(drf_request_from_request(raw_request), self.organization)
+        request = drf_request_from_request(raw_request)
         request._request.organization = None
 
         with viewer_context_scope(ViewerContext(user_id=self.user.id)):
