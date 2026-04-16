@@ -12,6 +12,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -61,10 +62,10 @@ export function PrebuiltDashboardRenderer({
       prebuilt_id: prebuiltId,
     });
     navigate(
-      {
+      normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/`,
         query: extractSelectionParameters(location.query),
-      },
+      }),
       {replace: true}
     );
   }, [
