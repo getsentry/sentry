@@ -32,7 +32,8 @@ import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -58,7 +59,7 @@ import {
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
-import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -205,23 +206,18 @@ function ManageDashboards() {
     error,
     refetch: refetchDashboards,
   } = useQuery({
-    ...apiOptions.as<DashboardListItem[]>()(
-      '/organizations/$organizationIdOrSlug/dashboards/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...pick(location.query, ['cursor', 'query']),
-          sort: getActiveSort()!.value,
-          pin: 'favorites',
-          per_page:
-            dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt
-            ? {filter: DashboardFilter.ONLY_PREBUILT}
-            : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
-        },
-        staleTime: 0,
-      }
-    ),
+    ...dashboardsApiOptions(organization, {
+      query: {
+        ...pick(location.query, ['cursor', 'query']),
+        sort: getActiveSort()?.value,
+        pin: 'favorites',
+        per_page:
+          dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
+        ...(isOnlyPrebuilt
+          ? {filter: DashboardFilter.ONLY_PREBUILT}
+          : {filter: DashboardFilter.EXCLUDE_PREBUILT}),
+      },
+    }),
     select: selectJsonWithHeaders,
     enabled:
       (hasProjectAccess || !projectsLoaded) &&

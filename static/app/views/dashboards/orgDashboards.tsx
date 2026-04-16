@@ -9,8 +9,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -60,13 +60,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     isError: isDashboardsError,
     error: dashboardsError,
   } = useQuery({
-    ...apiOptions.as<DashboardListItem[]>()(
-      '/organizations/$organizationIdOrSlug/dashboards/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
-    ),
+    ...dashboardsApiOptions(organization),
     retry: false,
   });
 

@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -16,14 +17,9 @@ export function getStarredDashboardsQueryKey(organization: Organization) {
       }
     ).queryKey;
   }
-  return apiOptions.as<DashboardListItem[]>()(
-    '/organizations/$organizationIdOrSlug/dashboards/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {filter: 'onlyFavorites'},
-      staleTime: Infinity,
-    }
-  ).queryKey;
+  return dashboardsApiOptions(organization, {
+    query: {filter: 'onlyFavorites'},
+  }).queryKey;
 }
 
 export function useGetStarredDashboards() {
@@ -43,14 +39,10 @@ export function useGetStarredDashboards() {
             staleTime: Infinity,
           }
         )
-      : apiOptions.as<DashboardListItem[]>()(
-          '/organizations/$organizationIdOrSlug/dashboards/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            query: {filter: 'onlyFavorites'},
-            staleTime: Infinity,
-          }
-        )),
+      : dashboardsApiOptions(organization, {
+          query: {filter: 'onlyFavorites'},
+        })),
+    staleTime: Infinity,
     enabled: hasProjectAccess || !projectsLoaded,
   });
 }
