@@ -15,11 +15,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {
-  CMDKActionData,
   CMDKCollection,
   CommandPaletteProvider,
+  type CMDKActionData,
 } from 'sentry/components/commandPalette/ui/cmdk';
-import {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
+import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
