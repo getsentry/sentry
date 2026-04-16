@@ -114,8 +114,7 @@ export function ExplorerPanel() {
     respondToUserInput,
     createPR,
     interruptRun,
-    interruptRequested,
-    wasJustInterrupted,
+    waitingForInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
   } = useSeerExplorer();
@@ -716,8 +715,7 @@ export function ExplorerPanel() {
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        interruptRequested={interruptRequested}
-        wasJustInterrupted={wasJustInterrupted}
+        waitingForInterrupt={waitingForInterrupt}
         isMinimized={isMinimized}
         isPolling={isPolling}
         isTimedOut={isTimedOut}

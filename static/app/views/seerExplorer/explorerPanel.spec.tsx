@@ -27,8 +27,7 @@ function mockUseSeerExplorer(
     isTimedOut: false,
     deletedFromIndex: null,
     interruptRun: jest.fn(),
-    interruptRequested: false,
-    wasJustInterrupted: false,
+    waitingForInterrupt: false,
     switchToRun: jest.fn(),
     respondToUserInput: jest.fn(),
     createPR: jest.fn(),
@@ -221,28 +220,7 @@ describe('ExplorerPanel', () => {
     });
 
     it('shows error when hook returns isError=true', async () => {
-      const useSeerExplorerSpy = jest
-        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
-        .mockReturnValue({
-          runId: 123,
-          sessionData: null, // should always be null when isError
-          sendMessage: jest.fn(),
-          deleteFromIndex: jest.fn(),
-          startNewSession: jest.fn(),
-          isPolling: false,
-          isError: true, // isError
-          isTimedOut: false,
-          deletedFromIndex: null,
-          interruptRun: jest.fn(),
-          interruptRequested: false,
-          wasJustInterrupted: false,
-          switchToRun: jest.fn(),
-          respondToUserInput: jest.fn(),
-          createPR: jest.fn(),
-          overrideCtxEngEnable: true,
-          setOverrideCtxEngEnable: jest.fn(),
-        });
-
+      const useSeerExplorerSpy = mockUseSeerExplorer({runId: 123, isError: true});
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
@@ -285,25 +263,9 @@ describe('ExplorerPanel', () => {
       };
 
       // Mock the hook to return our test data
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+      mockUseSeerExplorer({
         sessionData:
           mockSessionData as useSeerExplorerModule.SeerExplorerResponse['session'],
-        sendMessage: jest.fn(),
-        deleteFromIndex: jest.fn(),
-        startNewSession: jest.fn(),
-        isPolling: false,
-        isError: false,
-        isTimedOut: false,
-        deletedFromIndex: null,
-        interruptRun: jest.fn(),
-        interruptRequested: false,
-        wasJustInterrupted: false,
-        runId: null,
-        respondToUserInput: jest.fn(),
-        switchToRun: jest.fn(),
-        createPR: jest.fn(),
-        overrideCtxEngEnable: true,
-        setOverrideCtxEngEnable: jest.fn(),
       });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});

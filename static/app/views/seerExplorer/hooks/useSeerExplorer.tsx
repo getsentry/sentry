@@ -139,8 +139,8 @@ export const useSeerExplorer = () => {
   }, [location, navigate, openExplorerPanel, setRunId]);
 
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
-  const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
-  const [wasJustInterrupted, setWasJustInterrupted] = useState<boolean>(false);
+  const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
+
   const [isTimedOut, setIsTimedOut] = useState<boolean>(false);
   const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
     timeMs: POLLING_TIMEOUT_MS,
@@ -152,16 +152,14 @@ export const useSeerExplorer = () => {
   // Helpers for managing waiting and interrupt state.
   const _onNewRequest = useCallback(() => {
     setWaitingForResponse(true);
-    setInterruptRequested(false);
-    setWasJustInterrupted(false);
+    setWaitingForInterrupt(false);
     setIsTimedOut(false);
     startPollingTimeout();
   }, [startPollingTimeout]);
 
   const _onRequestError = useCallback(() => {
     setWaitingForResponse(false);
-    setInterruptRequested(false);
-    setWasJustInterrupted(false);
+    setWaitingForInterrupt(false);
     setIsTimedOut(false);
     cancelPollingTimeout();
   }, [cancelPollingTimeout]);
@@ -202,8 +200,7 @@ export const useSeerExplorer = () => {
       setOptimistic(null);
       setDeletedFromIndex(null);
       setWaitingForResponse(false);
-      setInterruptRequested(false);
-      setWasJustInterrupted(false);
+      setWaitingForInterrupt(false);
       setIsTimedOut(false);
       cancelPollingTimeout();
 
@@ -356,12 +353,11 @@ export const useSeerExplorer = () => {
   );
 
   const interruptRun = useCallback(async () => {
-    if (!orgSlug || !runId || interruptRequested) {
+    if (!orgSlug || !runId || waitingForInterrupt) {
       return;
     }
 
-    setInterruptRequested(true);
-    setWasJustInterrupted(false);
+    setWaitingForInterrupt(true);
 
     try {
       await api.requestPromise(
@@ -377,9 +373,9 @@ export const useSeerExplorer = () => {
       );
     } catch (e: any) {
       // If the request fails, reset the interrupt state
-      setInterruptRequested(false);
+      setWaitingForInterrupt(false);
     }
-  }, [api, orgSlug, runId, interruptRequested]);
+  }, [api, orgSlug, runId, waitingForInterrupt]);
 
   const respondToUserInput = useCallback(
     async (inputId: string, responseData?: Record<string, any>) => {
@@ -548,15 +544,14 @@ export const useSeerExplorer = () => {
       setWaitingForResponse(false);
       cancelPollingTimeout();
 
-      if (interruptRequested) {
+      if (waitingForInterrupt) {
         // Clear waiting for interrupt state and set persistent UI flag until next request
-        setInterruptRequested(false);
-        setWasJustInterrupted(true);
+        setWaitingForInterrupt(false);
       }
     }
   }, [
     waitingForResponse,
-    interruptRequested,
+    waitingForInterrupt,
     isLoaded,
     isTimedOut,
     cancelPollingTimeout,
@@ -598,9 +593,7 @@ export const useSeerExplorer = () => {
     deleteFromIndex,
     deletedFromIndex,
     interruptRun,
-    interruptRequested,
-    /** True after an interrupt succeeds, until the user sends a new message or switches sessions. */
-    wasJustInterrupted,
+    waitingForInterrupt,
     respondToUserInput,
     createPR,
     overrideCtxEngEnable,

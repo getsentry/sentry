@@ -34,7 +34,6 @@ interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
   inputValue: string;
-  interruptRequested: boolean;
   isPolling: boolean;
   isTimedOut: boolean;
   onClear: () => void;
@@ -47,7 +46,7 @@ interface InputSectionProps {
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
-  wasJustInterrupted: boolean;
+  waitingForInterrupt: boolean;
   fileApprovalActions?: FileApprovalActions;
   isMinimized?: boolean;
   isVisible?: boolean;
@@ -61,8 +60,7 @@ export function InputSection({
   isMinimized = false,
   isPolling,
   isTimedOut,
-  interruptRequested,
-  wasJustInterrupted = false,
+  waitingForInterrupt,
   isVisible = false,
   onCreatePR,
   onInputChange,
@@ -80,15 +78,6 @@ export function InputSection({
   const hasCodeChanges = useMemo(() => {
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
   }, [blocks]);
-  const getPlaceholder = () => {
-    if (isTimedOut) {
-      return 'The request timed out. Please try again.';
-    }
-    if (wasJustInterrupted) {
-      return t('Interrupted. What should Seer do instead?');
-    }
-    return t('Type your message or / command and press Enter ↵');
-  };
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
@@ -269,7 +258,7 @@ export function InputSection({
   }
 
   const renderActionButton = () => {
-    if (interruptRequested) {
+    if (waitingForInterrupt) {
       return (
         <ActionButtonWrapper title={t('Winding down...')} isDanger>
           <LoadingIndicator size={16} />
@@ -296,14 +285,18 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup interrupted={wasJustInterrupted}>
+        <StyledInputGroup isTimedOut={isTimedOut}>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={getPlaceholder()}
+            placeholder={
+              isTimedOut
+                ? 'The request timed out. Please try again.'
+                : t('Type your message or / command and press Enter ↵')
+            }
             rows={1}
             data-test-id="seer-explorer-input"
           />
@@ -338,14 +331,14 @@ const InputRow = styled('div')`
   margin: ${p => p.theme.space.sm};
 `;
 
-const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
+const StyledInputGroup = styled(InputGroup)<{isTimedOut?: boolean}>`
   flex: 1;
 
   textarea {
     resize: none;
 
     &::placeholder {
-      color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
+      color: ${p => (p.isTimedOut ? p.theme.tokens.content.warning : undefined)};
     }
   }
 
