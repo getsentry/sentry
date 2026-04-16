@@ -6,6 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ConfigureReplayCard} from 'sentry/components/replays/header/configureReplayCard';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -37,7 +38,12 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
               />
             </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
             </TopBar.Slot>
           </Fragment>
         ) : (
@@ -68,7 +74,12 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
               />
             </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
             </TopBar.Slot>
           </Fragment>
         ) : (

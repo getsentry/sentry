@@ -17,7 +17,13 @@ export function MonitorFeedbackButton() {
   if (hasPageFrameFeature) {
     return (
       <TopBar.Slot name="feedback">
-        <FeedbackButton feedbackOptions={monitorFeedbackOptions}>{null}</FeedbackButton>
+        <FeedbackButton
+          feedbackOptions={monitorFeedbackOptions}
+          aria-label={t('Feedback')}
+          tooltipProps={{title: t('Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
       </TopBar.Slot>
     );
   }

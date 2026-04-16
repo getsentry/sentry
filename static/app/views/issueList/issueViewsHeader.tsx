@@ -71,6 +71,7 @@ function IssueViewStarButton() {
   const queryClient = useQueryClient();
 
   const {data: groupSearchView} = useSelectedGroupSearchView();
+  const starViewLabel = groupSearchView?.starred ? t('Unstar view') : t('Star view');
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
       setApiQueryData<GroupSearchView>(
@@ -128,7 +129,8 @@ function IssueViewStarButton() {
           }
         );
       }}
-      aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
+      tooltipProps={{title: starViewLabel}}
+      aria-label={starViewLabel}
       icon={
         <IconStar
           isSolid={groupSearchView?.starred}
@@ -146,6 +148,7 @@ function IssueViewEditMenu() {
   const user = useUser();
   const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
+  const moreOptionsLabel = t('More issue view options');
 
   if (!groupSearchView) {
     return null;
@@ -194,8 +197,9 @@ function IssueViewEditMenu() {
         <Button
           size="sm"
           {...props}
+          tooltipProps={{title: moreOptionsLabel}}
           icon={<IconEllipsis />}
-          aria-label={t('More issue view options')}
+          aria-label={moreOptionsLabel}
         />
       )}
       position="bottom-end"
@@ -217,6 +221,17 @@ export function IssueViewsHeader({
   const realtimeLabel = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
+  const realtimeButton = viewId ? null : (
+    <DisableInDemoMode>
+      <Button
+        size="sm"
+        tooltipProps={{title: realtimeLabel}}
+        aria-label={realtimeLabel}
+        icon={realtimeActive ? <IconPause /> : <IconPlay />}
+        onClick={() => onRealtimeChange(!realtimeActive)}
+      />
+    </DisableInDemoMode>
+  );
 
   if (hasPageFrameFeature) {
     return (
@@ -226,17 +241,7 @@ export function IssueViewsHeader({
         </Layout.HeaderContent>
         <TopBar.Slot name="actions">
           {headerActions}
-          {!viewId && (
-            <DisableInDemoMode>
-              <Button
-                size="sm"
-                tooltipProps={{title: realtimeLabel}}
-                aria-label={realtimeLabel}
-                icon={realtimeActive ? <IconPause /> : <IconPlay />}
-                onClick={() => onRealtimeChange(!realtimeActive)}
-              />
-            </DisableInDemoMode>
-          )}
+          {realtimeButton}
           <IssueViewStarButton />
           <IssueViewEditMenu />
         </TopBar.Slot>
@@ -251,17 +256,7 @@ export function IssueViewsHeader({
           <PageTitle title={title} description={description} />
           <Flex align="center" gap="md">
             {headerActions}
-            {!viewId && (
-              <DisableInDemoMode>
-                <Button
-                  size="sm"
-                  tooltipProps={{title: realtimeLabel}}
-                  aria-label={realtimeLabel}
-                  icon={realtimeActive ? <IconPause /> : <IconPlay />}
-                  onClick={() => onRealtimeChange(!realtimeActive)}
-                />
-              </DisableInDemoMode>
-            )}
+            {realtimeButton}
             <IssueViewStarButton />
             <IssueViewEditMenu />
           </Flex>

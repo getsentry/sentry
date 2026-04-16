@@ -117,7 +117,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           <Grid flow="column" align="center" gap="md">
             {hasPageFrameFeature ? (
               <TopBar.Slot name="feedback">
-                <FeedbackButton feedbackOptions={traceViewFeedbackOptions}>
+                <FeedbackButton
+                  feedbackOptions={traceViewFeedbackOptions}
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
                   {null}
                 </FeedbackButton>
               </TopBar.Slot>
