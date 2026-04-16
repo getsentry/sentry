@@ -602,7 +602,7 @@ export default typescript.config([
     ignores: [globMDX],
     rules: enableTypeAwareLinting
       ? {
-          // Customizations
+          // Customization
           '@typescript-eslint/switch-exhaustiveness-check': [
             'error',
             {considerDefaultExhaustiveForUnions: true},
