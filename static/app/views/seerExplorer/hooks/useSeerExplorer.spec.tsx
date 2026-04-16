@@ -106,6 +106,9 @@ describe('useSeerExplorer', () => {
             }),
           })
         );
+
+        // Run ID is set to response.run_id
+        expect(result.current.runId).toBe(123);
       });
     });
 
