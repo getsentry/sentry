@@ -105,16 +105,6 @@ function BaseGuideAnchor({
     [onStepComplete]
   );
 
-  const handleDismiss = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (currentGuide) {
-        dismissGuide(currentGuide.guide, step, orgId);
-      }
-    },
-    [currentGuide, orgId, step]
-  );
-
   if (!active) {
     return children ? children : null;
   }
@@ -133,7 +123,10 @@ function BaseGuideAnchor({
       stepCount={currentStepCount}
       stepTotal={totalStepCount}
       handleDismiss={e => {
-        handleDismiss(e);
+        e.stopPropagation();
+        if (currentGuide) {
+          dismissGuide(currentGuide.guide, step, orgId);
+        }
         window.location.hash = '';
       }}
       actions={

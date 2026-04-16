@@ -21,7 +21,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
             type: 'first_party',
             installStatus: 'Not Installed',
             analyticsParams: {
-              view: 'onboarding',
+              view: 'onboarding_scm',
               already_installed: false,
             },
           }}

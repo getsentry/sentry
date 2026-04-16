@@ -6,14 +6,14 @@
 {% block main %}
   <p>
     Seems like your team could use some new tools. {{ requester_name|sanitize_periods }} from
-    {{ organization_name }} requested the installation of {{ integration_name }}.
+    {{ organization_name|sanitize_periods }} requested the installation of {{ integration_name|sanitize_periods }}.
     {% if message %}
         They've included some additional context:
-        <pre>{{ message }}</pre>
+        <pre>{{ message|sanitize_periods }}</pre>
     {% endif %}
   </p>
   <p>
-    <a href="{{ integration_link }}" class="btn">Install {{ integration_name }}</a>
+    <a href="{{ integration_link }}" class="btn">Install {{ integration_name|sanitize_periods }}</a>
   </p>
   <p>
     If you're not up for installation, you can

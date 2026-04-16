@@ -207,6 +207,7 @@ const CONSTANTS: Record<string, string> = {
   'IssueTaxonomy.ERRORS_AND_OUTAGES': 'errors-outages',
   'IssueTaxonomy.BREACHED_METRICS': 'breached-metrics',
   'IssueTaxonomy.WARNINGS': 'warnings',
+  'IssueTaxonomy.SENTRY_CONFIGURATION': 'sentry-configuration',
 };
 
 function resolveTemplate(expr: string): string {

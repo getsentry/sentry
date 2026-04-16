@@ -104,11 +104,11 @@ export function TraceAiSpans({
 
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
-  const handleViewFullTraceClick = useCallback(() => {
+  const handleViewFullTraceClick = () => {
     trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
       organization,
     });
-  }, [organization]);
+  };
 
   if (isLoading) {
     return <LoadingIndicator />;

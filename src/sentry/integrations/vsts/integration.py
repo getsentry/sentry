@@ -4,20 +4,23 @@ import logging
 import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
+from rest_framework.fields import CharField
+from rest_framework.serializers import Serializer
 
-from sentry import features, http
+from sentry import features, http, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
+from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.identity.vsts.provider import get_user_info
+from sentry.identity.vsts.provider import VSTSNewIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -47,7 +50,8 @@ from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -133,6 +137,30 @@ metadata = IntegrationMetadata(
 )
 
 logger = logging.getLogger("sentry.integrations")
+
+
+def get_account_from_id(
+    account_id: str, accounts: Sequence[Mapping[str, Any]]
+) -> Mapping[str, Any] | None:
+    for account in accounts:
+        if account["accountId"] == account_id:
+            return account
+    return None
+
+
+def get_accounts(access_token: str, user_id: str) -> Any | None:
+    url = f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
+    with http.build_session() as session:
+        response = session.get(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}",
+            },
+        )
+    if response.status_code == 200:
+        return response.json()
+    return None
 
 
 class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
@@ -414,6 +442,74 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             return None
 
 
+class VstsAccountSelectionSerializer(Serializer):
+    account = CharField(required=True)
+
+
+class VstsAccountStepData(TypedDict):
+    accountId: str
+    accountName: str
+
+
+class VstsAccountSelectionStepData(TypedDict):
+    accounts: list[VstsAccountStepData]
+
+
+class VstsAccountSelectionApiStep:
+    step_name = "account_selection"
+
+    def get_serializer_cls(self) -> type:
+        return VstsAccountSelectionSerializer
+
+    def get_step_data(
+        self, pipeline: IntegrationPipeline, request: HttpRequest
+    ) -> VstsAccountSelectionStepData:
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.ACCOUNT_CONFIG,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            VstsIntegrationProvider.key,
+        ).capture() as lifecycle:
+            oauth_data = pipeline.fetch_state("oauth_data") or {}
+            access_token: str = oauth_data["access_token"]
+            user = get_user_info(access_token)
+
+            accounts = get_accounts(access_token, user["uuid"])
+            extra = {
+                "organization_id": pipeline.organization.id if pipeline.organization else None,
+                "user_id": request.user.id,
+                "accounts": accounts,
+            }
+
+            if not accounts or not accounts.get("value"):
+                lifecycle.record_halt(IntegrationPipelineHaltReason.NO_ACCOUNTS, extra=extra)
+                pipeline.bind_state("accounts", [])
+                return {"accounts": []}
+
+            accounts_list = accounts["value"]
+            pipeline.bind_state("accounts", accounts_list)
+            return {
+                "accounts": [
+                    {"accountId": account["accountId"], "accountName": account["accountName"]}
+                    for account in accounts_list
+                ]
+            }
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        account_id = validated_data["account"]
+        state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(key="accounts")
+        account = get_account_from_id(account_id, state_accounts or [])
+        if account is None:
+            return PipelineStepResult.error("Invalid Azure DevOps account")
+
+        pipeline.bind_state("account", account)
+        return PipelineStepResult.advance()
+
+
 class VstsIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
@@ -486,8 +582,34 @@ class VstsIntegrationProvider(IntegrationProvider):
             AccountConfigView(),
         ]
 
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            self._make_oauth_api_step(),
+            VstsAccountSelectionApiStep(),
+        ]
+
+    def _make_oauth_api_step(self) -> OAuth2ApiStep:
+        provider = VSTSNewIdentityProvider(
+            oauth_scopes=sorted(self.get_scopes()),
+            redirect_url=absolute_uri(self.oauth_redirect_url),
+        )
+        extra_authorize_params = {"response_mode": "query"}
+        if options.get("vsts.consent-prompt"):
+            extra_authorize_params["prompt"] = "consent"
+
+        return provider.make_oauth_api_step(
+            bind_key="oauth_data",
+            extra_authorize_params=extra_authorize_params,
+        )
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        data = state["identity"]["data"]
+        # TODO: legacy views write token data to state["identity"]["data"] via
+        # NestedPipelineView. API steps write directly to state["oauth_data"].
+        # Remove the legacy path once the old views are retired.
+        if "oauth_data" in state:
+            data = state["oauth_data"]
+        else:
+            data = state["identity"]["data"]
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
         user = get_user_info(data["access_token"])
@@ -679,7 +801,7 @@ class AccountConfigView:
                 state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
                     key="accounts"
                 )
-                account = self.get_account_from_id(account_id, state_accounts or [])
+                account = get_account_from_id(account_id, state_accounts or [])
                 if account is not None:
                     pipeline.bind_state("account", account)
                     return pipeline.next_step()
@@ -688,7 +810,7 @@ class AccountConfigView:
             access_token = (state or {}).get("data", {}).get("access_token")
             user = get_user_info(access_token)
 
-            accounts = self.get_accounts(access_token, user["uuid"])
+            accounts = get_accounts(access_token, user["uuid"])
             extra = {
                 "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
@@ -709,30 +831,6 @@ class AccountConfigView:
                 context={"form": account_form, "no_accounts": False},
                 request=request,
             )
-
-    def get_account_from_id(
-        self, account_id: str, accounts: Sequence[Mapping[str, Any]]
-    ) -> Mapping[str, Any] | None:
-        for account in accounts:
-            if account["accountId"] == account_id:
-                return account
-        return None
-
-    def get_accounts(self, access_token: str, user_id: int) -> Any | None:
-        url = (
-            f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
-        )
-        with http.build_session() as session:
-            response = session.get(
-                url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {access_token}",
-                },
-            )
-        if response.status_code == 200:
-            return response.json()
-        return None
 
 
 class AccountForm(forms.Form):

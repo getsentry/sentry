@@ -1,29 +1,37 @@
+import {Link} from '@sentry/scraps/link';
+
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
 import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
 import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 
 const TITLE = t('Metric Monitors');
-const DESCRIPTION = t(
-  'Metric monitors track errors based on span attributes and custom metrics.'
-);
 const DOCS_URL =
   'https://docs.sentry.io/product/new-monitors-and-alerts/monitors/#metric-monitor-settings';
 
 export default function MetricDetectorsList() {
+  const organization = useOrganization();
   const detectorListQuery = useDetectorListQuery({
     detectorFilter: 'metric_issue',
   });
+
+  const description = tct(
+    'Metric Monitors automatically create [issuesLink:Issues] when queries meet defined thresholds.',
+    {
+      issuesLink: <Link to={`/organizations/${organization.slug}/issues/`} />,
+    }
+  );
 
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
         actions={<DetectorListActions detectorType="metric_issue" />}
         title={TITLE}
-        description={DESCRIPTION}
+        description={description}
         docsUrl={DOCS_URL}
       >
         <DetectorListHeader showTypeFilter={false} />

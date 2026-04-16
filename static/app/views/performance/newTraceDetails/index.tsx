@@ -120,7 +120,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
-    additionalAttributes: ['thread.id', 'tags[performance.timeOrigin,number]'],
+    additionalAttributes: [
+      'thread.id',
+      'tags[performance.timeOrigin,number]',
+      'gen_ai.operation.type',
+    ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 

@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -28,6 +30,18 @@ type AssignIssueVariables = {
 type AssignIssueContext = {
   changeId: string;
 };
+
+function getAssignIssueSuccessMessage(assignedTo: Group['assignedTo']) {
+  if (!assignedTo) {
+    return t('Issue unassigned');
+  }
+
+  if (assignedTo.type === 'team') {
+    return t('Assigned issue to #%s', assignedTo.name);
+  }
+
+  return t('Assigned issue to %s', assignedTo.name || assignedTo.email);
+}
 
 function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
   switch (actor.type) {
@@ -87,6 +101,7 @@ export function useAssignIssueMutation(
       // Dual-write to GroupStore
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
+      addSuccessMessage(getAssignIssueSuccessMessage(response.assignedTo));
       options.onSuccess?.(response, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {

@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,6 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -168,12 +169,31 @@ export function ConversationSummary({
   nodeTraceMap,
 }: ConversationSummaryProps) {
   const organization = useOrganization();
+  const lastMessageDate = useMemo(() => {
+    if (nodes.length === 0) {
+      return null;
+    }
 
-  const handleCopyConversationId = useCallback(() => {
+    let endTimestamp = Number.NEGATIVE_INFINITY;
+
+    for (const node of nodes) {
+      if (typeof node.endTimestamp === 'number') {
+        endTimestamp = Math.max(endTimestamp, node.endTimestamp);
+      }
+    }
+
+    if (!Number.isFinite(endTimestamp)) {
+      return null;
+    }
+
+    return new Date(endTimestamp * 1e3);
+  }, [nodes]);
+
+  const handleCopyConversationId = () => {
     copyToClipboard(conversationId, {
       successMessage: t('Copied conversation ID to clipboard'),
     });
-  }, [conversationId]);
+  };
 
   const traces = useMemo(() => {
     if (!nodeTraceMap) {
@@ -230,6 +250,19 @@ export function ConversationSummary({
       <ConversationAggregatesBar
         nodes={nodes}
         conversationId={conversationId}
+        isLoading={isLoading}
+      />
+      <AggregateItem
+        label={t('Last message')}
+        value={
+          lastMessageDate ? (
+            <TimeSince date={lastMessageDate} />
+          ) : (
+            <Text size="sm" variant="muted">
+              {'\u2014'}
+            </Text>
+          )
+        }
         isLoading={isLoading}
       />
     </Flex>

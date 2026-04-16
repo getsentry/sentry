@@ -8,10 +8,14 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {useAddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 
 describe('useAddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();
+  const legacyProvider = GitHubIntegrationProviderFixture({
+    key: 'custom_legacy',
+    slug: 'custom_legacy',
+  });
   const integration = GitHubIntegrationFixture();
   let configState: Config;
 
@@ -54,15 +58,15 @@ describe('useAddIntegration', () => {
     });
 
     it('opens a popup window when startFlow is called', () => {
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
       );
-
-      act(() => result.current.startFlow());
 
       expect(window.open).toHaveBeenCalledTimes(1);
       expect(jest.mocked(window.open).mock.calls[0]![0]).toBe(
@@ -72,17 +76,17 @@ describe('useAddIntegration', () => {
     });
 
     it('includes account and modalParams in the popup URL', () => {
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
           account: 'my-account',
           modalParams: {use_staging: '1'},
         })
       );
-
-      act(() => result.current.startFlow());
 
       const calls = jest.mocked(window.open).mock.calls[0]!;
       const url = calls[0] as string;
@@ -92,15 +96,16 @@ describe('useAddIntegration', () => {
     });
 
     it('includes urlParams passed to startFlow', () => {
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
+          urlParams: {custom_param: 'value'},
         })
       );
-
-      act(() => result.current.startFlow({custom_param: 'value'}));
 
       const url = jest.mocked(window.open).mock.calls[0]![0] as string;
       expect(url).toContain('custom_param=value');
@@ -109,15 +114,15 @@ describe('useAddIntegration', () => {
     it('calls onInstall when a success message is received', async () => {
       const onInstall = jest.fn();
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall,
         })
       );
-
-      act(() => result.current.startFlow());
 
       const newIntegration = {
         success: true,
@@ -137,15 +142,15 @@ describe('useAddIntegration', () => {
     it('shows a success indicator on successful installation', async () => {
       const successSpy = jest.spyOn(indicators, 'addSuccessMessage');
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
       );
-
-      act(() => result.current.startFlow());
 
       postMessageFromPopup(popup, {success: true, data: integration});
       await waitFor(() => expect(successSpy).toHaveBeenCalledWith('GitHub added'));
@@ -154,15 +159,15 @@ describe('useAddIntegration', () => {
     it('shows an error indicator when the message has success: false', async () => {
       const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
       );
-
-      act(() => result.current.startFlow());
 
       postMessageFromPopup(popup, {success: false, data: {error: 'OAuth failed'}});
       await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('OAuth failed'));
@@ -171,15 +176,15 @@ describe('useAddIntegration', () => {
     it('shows a generic error when no error message is provided', async () => {
       const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
       );
-
-      act(() => result.current.startFlow());
 
       postMessageFromPopup(popup, {success: false, data: {}});
       await waitFor(() =>
@@ -190,35 +195,43 @@ describe('useAddIntegration', () => {
     it('ignores messages from invalid origins', async () => {
       const onInstall = jest.fn();
 
-      renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall,
         })
       );
 
-      // jsdom's postMessage uses origin '' which won't match any valid origin
-      window.postMessage({success: true, data: integration}, '*');
+      const event = new MessageEvent('message', {
+        data: {success: true, data: integration},
+        origin: 'https://invalid.example.com',
+      });
+      Object.defineProperty(event, 'source', {value: popup});
+
+      window.dispatchEvent(event);
 
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
       });
+
       expect(onInstall).not.toHaveBeenCalled();
     });
 
     it('does not call onInstall when data is empty on success', async () => {
       const onInstall = jest.fn();
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall,
         })
       );
-
-      act(() => result.current.startFlow());
 
       postMessageFromPopup(popup, {success: true, data: null});
 
@@ -229,15 +242,15 @@ describe('useAddIntegration', () => {
     });
 
     it('closes the dialog on unmount', () => {
-      const {result, unmount} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result, unmount} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization: OrganizationFixture(),
           onInstall: jest.fn(),
         })
       );
-
-      act(() => result.current.startFlow());
       unmount();
 
       expect(popup.close).toHaveBeenCalledTimes(1);
@@ -245,23 +258,21 @@ describe('useAddIntegration', () => {
   });
 
   describe('API pipeline flow', () => {
-    it('opens the pipeline modal when feature flag is enabled', () => {
+    it('opens the pipeline modal for unconditionally API-driven providers', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
       const onInstall = jest.fn();
 
-      const organization = OrganizationFixture({
-        features: ['integration-api-pipeline-github'],
-      });
+      const organization = OrganizationFixture({features: []});
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
           provider,
           organization,
           onInstall,
         })
       );
-
-      act(() => result.current.startFlow());
 
       expect(openPipelineModalSpy).toHaveBeenCalledWith({
         type: 'integration',
@@ -274,19 +285,18 @@ describe('useAddIntegration', () => {
     it('passes urlParams as initialData to the pipeline modal', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
 
-      const organization = OrganizationFixture({
-        features: ['integration-api-pipeline-github'],
-      });
+      const organization = OrganizationFixture({features: []});
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
           provider,
           organization,
           onInstall: jest.fn(),
+          urlParams: {installation_id: '12345'},
         })
       );
-
-      act(() => result.current.startFlow({installation_id: '12345'}));
 
       expect(openPipelineModalSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -299,24 +309,46 @@ describe('useAddIntegration', () => {
       jest.spyOn(pipelineModal, 'openPipelineModal');
       jest.spyOn(window, 'open');
 
-      const organization = OrganizationFixture({
-        features: ['integration-api-pipeline-github'],
-      });
+      const organization = OrganizationFixture({features: []});
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
           provider,
           organization,
           onInstall: jest.fn(),
         })
       );
 
-      act(() => result.current.startFlow());
-
       expect(window.open).not.toHaveBeenCalled();
     });
 
-    it('falls back to legacy flow when feature flag is not enabled', () => {
+    it('opens the pipeline modal for other unconditional providers without a flag', () => {
+      const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
+      const organization = OrganizationFixture({features: []});
+      const gitlabProvider = GitHubIntegrationProviderFixture({
+        key: 'gitlab',
+        slug: 'gitlab',
+        name: 'GitLab',
+      });
+
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: gitlabProvider,
+          organization,
+          onInstall: jest.fn(),
+        })
+      );
+
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({provider: 'gitlab'})
+      );
+    });
+
+    it('falls back to legacy flow when the provider is not API driven', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
       jest
         .spyOn(window, 'open')
@@ -324,15 +356,15 @@ describe('useAddIntegration', () => {
 
       const organization = OrganizationFixture({features: []});
 
-      const {result} = renderHookWithProviders(() =>
-        useAddIntegration({
-          provider,
+      const {result} = renderHookWithProviders(() => useAddIntegration());
+
+      act(() =>
+        result.current.startFlow({
+          provider: legacyProvider,
           organization,
           onInstall: jest.fn(),
         })
       );
-
-      act(() => result.current.startFlow());
 
       expect(openPipelineModalSpy).not.toHaveBeenCalled();
       expect(window.open).toHaveBeenCalledTimes(1);

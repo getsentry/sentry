@@ -197,112 +197,97 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     ]
   );
 
-  const applyPlatformSelection = useCallback(
-    (sdk: OnboardingSelectedSDK) => {
-      setSelectedPlatform(sdk);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    },
-    [setSelectedPlatform, setSelectedFeatures]
-  );
+  const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
+    setSelectedPlatform(sdk);
+    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+  };
 
-  const handleManualPlatformSelect = useCallback(
-    async (option: {value: string}) => {
-      const platformKey = option.value as PlatformKey;
-      if (platformKey === selectedPlatform?.key) {
-        return;
-      }
+  const handleManualPlatformSelect = async (option: {value: string}) => {
+    const platformKey = option.value as PlatformKey;
+    if (platformKey === selectedPlatform?.key) {
+      return;
+    }
 
-      // Block disabled gaming/console platforms
-      const platformInfo = getPlatformInfo(platformKey);
-      if (
-        platformInfo &&
-        isDisabledGamingPlatform({
-          platform: platformInfo,
-          enabledConsolePlatforms: organization.enabledConsolePlatforms,
-        })
-      ) {
-        openConsoleModal({
-          organization,
-          selectedPlatform: toSelectedSdk(platformInfo),
-          origin: 'onboarding',
-        });
-        return;
-      }
-
-      // For base languages (JavaScript, Python, etc.), show a modal suggesting
-      // specific frameworks — matching the legacy onboarding behavior.
-      if (platformInfo && shouldSuggestFramework(platformKey)) {
-        const baseSdk = toSelectedSdk(platformInfo);
-
-        const {FrameworkSuggestionModal, modalCss} =
-          await import('sentry/components/onboarding/frameworkSuggestionModal');
-
-        openModal(
-          deps => (
-            <FrameworkSuggestionModal
-              {...deps}
-              organization={organization}
-              selectedPlatform={baseSdk}
-              onConfigure={selectedFramework => {
-                applyPlatformSelection(selectedFramework);
-                trackAnalytics('onboarding.scm_platform_selected', {
-                  organization,
-                  platform: selectedFramework.key,
-                  source: 'manual',
-                });
-                closeModal();
-              }}
-              onSkip={() => {
-                applyPlatformSelection(baseSdk);
-                trackAnalytics('onboarding.scm_platform_selected', {
-                  organization,
-                  platform: platformKey,
-                  source: 'manual',
-                });
-                closeModal();
-              }}
-              newOrg
-            />
-          ),
-          {modalCss}
-        );
-        return;
-      }
-
-      setPlatform(platformKey);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-
-      trackAnalytics('onboarding.scm_platform_selected', {
+    // Block disabled gaming/console platforms
+    const platformInfo = getPlatformInfo(platformKey);
+    if (
+      platformInfo &&
+      isDisabledGamingPlatform({
+        platform: platformInfo,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
+    ) {
+      openConsoleModal({
         organization,
-        platform: platformKey,
-        source: 'manual',
+        selectedPlatform: toSelectedSdk(platformInfo),
+        origin: 'onboarding',
       });
-    },
-    [
-      selectedPlatform?.key,
-      setPlatform,
-      setSelectedFeatures,
-      applyPlatformSelection,
+      return;
+    }
+
+    // For base languages (JavaScript, Python, etc.), show a modal suggesting
+    // specific frameworks — matching the legacy onboarding behavior.
+    if (platformInfo && shouldSuggestFramework(platformKey)) {
+      const baseSdk = toSelectedSdk(platformInfo);
+
+      const {FrameworkSuggestionModal, modalCss} =
+        await import('sentry/components/onboarding/frameworkSuggestionModal');
+
+      openModal(
+        deps => (
+          <FrameworkSuggestionModal
+            {...deps}
+            organization={organization}
+            selectedPlatform={baseSdk}
+            onConfigure={selectedFramework => {
+              applyPlatformSelection(selectedFramework);
+              trackAnalytics('onboarding.scm_platform_selected', {
+                organization,
+                platform: selectedFramework.key,
+                source: 'manual',
+              });
+              closeModal();
+            }}
+            onSkip={() => {
+              applyPlatformSelection(baseSdk);
+              trackAnalytics('onboarding.scm_platform_selected', {
+                organization,
+                platform: platformKey,
+                source: 'manual',
+              });
+              closeModal();
+            }}
+            newOrg
+          />
+        ),
+        {modalCss}
+      );
+      return;
+    }
+
+    setPlatform(platformKey);
+    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+
+    trackAnalytics('onboarding.scm_platform_selected', {
       organization,
-    ]
-  );
+      platform: platformKey,
+      source: 'manual',
+    });
+  };
 
-  const handleSelectDetectedPlatform = useCallback(
-    (platformKey: PlatformKey) => {
-      if (platformKey === selectedPlatform?.key) {
-        return;
-      }
-      setPlatform(platformKey);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+  const handleSelectDetectedPlatform = (platformKey: PlatformKey) => {
+    if (platformKey === selectedPlatform?.key) {
+      return;
+    }
+    setPlatform(platformKey);
+    setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
 
-      trackAnalytics('onboarding.scm_platform_selected', {
-        organization,
-        platform: platformKey,
-        source: 'detected',
-      });
-    },
-    [selectedPlatform?.key, setPlatform, setSelectedFeatures, organization]
-  );
+    trackAnalytics('onboarding.scm_platform_selected', {
+      organization,
+      platform: platformKey,
+      source: 'detected',
+    });
+  };
 
   function handleChangePlatformClick() {
     setShowManualPicker(true);

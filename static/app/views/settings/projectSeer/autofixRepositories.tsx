@@ -177,32 +177,26 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     [updatePreferences]
   );
 
-  const removeRepository = useCallback(
-    (repoId: string) => {
-      setSelectedRepoIds(prevSelectedIds => {
-        const newIds = prevSelectedIds.filter(id => id !== repoId);
-        updatePreferences(newIds);
-        return newIds;
-      });
-    },
-    [updatePreferences]
-  );
+  const removeRepository = (repoId: string) => {
+    setSelectedRepoIds(prevSelectedIds => {
+      const newIds = prevSelectedIds.filter(id => id !== repoId);
+      updatePreferences(newIds);
+      return newIds;
+    });
+  };
 
-  const updateRepoSettings = useCallback(
-    (repoId: string, settings: RepoSettings) => {
-      setRepoSettings(prev => {
-        const newSettings = {
-          ...prev,
-          [repoId]: settings,
-        };
+  const updateRepoSettings = (repoId: string, settings: RepoSettings) => {
+    setRepoSettings(prev => {
+      const newSettings = {
+        ...prev,
+        [repoId]: settings,
+      };
 
-        updatePreferences(undefined, newSettings);
+      updatePreferences(undefined, newSettings);
 
-        return newSettings;
-      });
-    },
-    [updatePreferences]
-  );
+      return newSettings;
+    });
+  };
 
   const {unselectedRepositories, filteredSelectedRepositories} = useMemo(() => {
     if (!repositories || repositories.length === 0) {
@@ -231,7 +225,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
   const isRepoLimitReached = selectedRepoIds.length >= MAX_REPOS_LIMIT;
 
-  const openAddRepoModal = useCallback(() => {
+  const openAddRepoModal = () => {
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
@@ -239,7 +233,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         onSave={handleSaveModalSelections}
       />
     ));
-  }, [selectedRepoIds, handleSaveModalSelections]);
+  };
 
   return (
     <Panel>

@@ -178,23 +178,20 @@ export function MetricsVisualize() {
     [updateFormAggregate, traceMetric]
   );
 
-  const handleMetricChange = useCallback(
-    (option: MetricSelectOption) => {
-      const newMetric: TraceMetric = {
-        name: option.metricName,
-        type: option.metricType,
-        unit: hasMetricUnitsUI ? (option.metricUnit ?? NONE_UNIT) : undefined,
-      };
-      const newMetricType = option.metricType?.toLowerCase() ?? '';
-      const validOperations = OPTIONS_BY_TYPE[newMetricType] ?? [];
-      const newAggregation = validOperations[0]?.value ?? 'avg';
+  const handleMetricChange = (option: MetricSelectOption) => {
+    const newMetric: TraceMetric = {
+      name: option.metricName,
+      type: option.metricType,
+      unit: hasMetricUnitsUI ? (option.metricUnit ?? NONE_UNIT) : undefined,
+    };
+    const newMetricType = option.metricType?.toLowerCase() ?? '';
+    const validOperations = OPTIONS_BY_TYPE[newMetricType] ?? [];
+    const newAggregation = validOperations[0]?.value ?? 'avg';
 
-      updateFormAggregate(
-        makeMetricsAggregate({aggregate: newAggregation, traceMetric: newMetric})
-      );
-    },
-    [updateFormAggregate, hasMetricUnitsUI]
-  );
+    updateFormAggregate(
+      makeMetricsAggregate({aggregate: newAggregation, traceMetric: newMetric})
+    );
+  };
 
   // Auto-select the first metric when options load and none is selected
   useEffect(() => {

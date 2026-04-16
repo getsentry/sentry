@@ -545,7 +545,20 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Metrics category when tracemetrics-enabled feature flag is enabled', async () => {
+  it('shows Metrics category when tracemetrics-enabled and explore-dev-features flags are enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled', 'explore-dev-features'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
+  });
+
+  it('does not show Metrics category without explore-dev-features flag', async () => {
     const newOrg = OrganizationFixture({
       features: ['team-insights', 'tracemetrics-enabled'],
     });
@@ -555,7 +568,35 @@ describe('OrganizationStats', () => {
     });
 
     await userEvent.click(await screen.findByText('Category'));
-    expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
+  });
+
+  it('shows Application Metrics category when tracemetrics-stats-bytes-ui flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats-bytes-ui'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Application Metrics'})).toBeInTheDocument();
+  });
+
+  it('does not show Application Metrics category without tracemetrics-stats-bytes-ui flag', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.queryByRole('option', {name: 'Application Metrics'})
+    ).not.toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {
