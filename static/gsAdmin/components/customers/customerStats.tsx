@@ -108,7 +108,7 @@ function getAbuseData(
   intervals: Array<string | number>,
   groups: StatsGroup[]
 ): AbuseData {
-  const abuseByInterval = new Array(intervals.length).fill(0) as number[];
+  const abuseByInterval = Array.from({length: intervals.length}).fill(0) as number[];
 
   for (const group of groups) {
     if (isAbuseWithoutReason(group.by)) {
@@ -199,7 +199,7 @@ function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   const numberOfIntervals = Math.ceil((end - start) / 86400);
 
   if (numberOfIntervals >= 0) {
-    zero.data = [...new Array(numberOfIntervals).keys()].map(i => ({
+    zero.data = [...Array.from({length: numberOfIntervals}).keys()].map(i => ({
       name: new Date((start + (i + 1) * 86400) * 1000).toString(),
       value: 0,
     }));
