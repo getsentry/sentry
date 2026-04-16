@@ -507,6 +507,11 @@ def test_nodestore_missing(
 
 @django_db_all
 @pytest.mark.snuba
+@pytest.mark.skip(
+    reason="test pollution: ClickHouse event data from prior reprocessing tests is not rolled "
+    "back; get_event_by_id returns None after optimize_snuba_table because the event "
+    "is missing or overwritten by cross-worker Snuba state"
+)
 def test_apply_new_fingerprinting_rules(
     default_project,
     reset_snuba,

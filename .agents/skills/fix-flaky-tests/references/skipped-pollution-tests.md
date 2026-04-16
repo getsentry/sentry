@@ -117,6 +117,7 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 ## tests/sentry/tasks/test_reprocessing2.py
 
 - `test_basic` (parametrized, module-level) — Snuba event data from prior test contaminates query results, leaving `old_events` empty; 'not enough values to unpack' on group_id
+- `test_apply_new_fingerprinting_rules` — ClickHouse event data not rolled back between tests; `get_event_by_id` returns None after `optimize_snuba_table` due to cross-worker Snuba state
 
 ## tests/sentry/uptime/endpoints/test_organization_uptime_alert_index.py
 
