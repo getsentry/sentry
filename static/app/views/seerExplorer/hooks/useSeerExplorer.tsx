@@ -192,6 +192,7 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
+      override_ce_enable: boolean;
       pageName: string;
       query: string;
       runId: number | null;
@@ -211,7 +212,7 @@ export const useSeerExplorer = () => {
           insert_index: params.insertIndex,
           on_page_context: params.screenshot,
           page_name: params.pageName,
-          override_ce_enable: overrideCtxEngEnable,
+          override_ce_enable: params.override_ce_enable,
         },
       });
     },
@@ -450,12 +451,13 @@ export const useSeerExplorer = () => {
       });
 
       sendMessageMutate({
-        insertIndex: calculatedInsertIndex,
         query,
+        insertIndex: calculatedInsertIndex,
         runId: effectiveRunId,
-        screenshot,
         orgSlug,
         pageName,
+        screenshot,
+        override_ce_enable: overrideCtxEngEnable,
       });
     },
     [
@@ -467,6 +469,7 @@ export const useSeerExplorer = () => {
       getLLMContext,
       getPageReferrer,
       organization,
+      overrideCtxEngEnable,
       sendMessageMutate,
     ]
   );
@@ -593,11 +596,11 @@ export const useSeerExplorer = () => {
 
   // On full response load
   useEffect(() => {
-    if (isSessionComplete(apiData?.session)) {
+    if (isSessionComplete(filteredSessionData)) {
       // Clear interrupt and loading states
       setWaitingForInterrupt(false);
     }
-  }, [apiData?.session]);
+  }, [filteredSessionData]);
 
   // Detect PR creation errors and show error messages
   useEffect(() => {
