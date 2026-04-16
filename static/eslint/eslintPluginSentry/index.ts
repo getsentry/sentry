@@ -6,7 +6,6 @@ import {noStaticTranslations} from './no-static-translations';
 import {noStyledShortcut} from './no-styled-shortcut';
 import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
 import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';
-import {preferReduceTypeParameter} from './prefer-reduce-type-parameter';
 
 export const rules = {
   'no-default-exports': noDefaultExports,
@@ -17,5 +16,4 @@ export const rules = {
   'no-styled-shortcut': noStyledShortcut,
   'no-unnecessary-type-annotation': noUnnecessaryTypeAnnotation,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
-  'prefer-reduce-type-parameter': preferReduceTypeParameter,
 };

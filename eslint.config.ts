@@ -463,7 +463,6 @@ export default typescript.config([
       '@sentry/no-static-translations': 'error',
       '@sentry/no-styled-shortcut': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',
-      '@sentry/prefer-reduce-type-parameter': 'error',
     },
   },
   {
@@ -620,6 +619,7 @@ export default typescript.config([
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
+          '@typescript-eslint/prefer-reduce-type-parameter': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
           '@sentry/no-default-exports': 'error',
