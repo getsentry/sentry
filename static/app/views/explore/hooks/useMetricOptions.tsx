@@ -9,7 +9,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import {
   TraceMetricKnownFieldKey,
@@ -73,7 +72,7 @@ function metricOptionsQueryKey({
     {
       path: {organizationIdOrSlug: orgSlug!},
       query,
-      staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+      staleTime: 5 * 60 * 1000,
     }
   );
 }
