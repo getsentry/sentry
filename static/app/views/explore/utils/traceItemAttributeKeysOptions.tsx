@@ -147,21 +147,27 @@ export function getTraceItemTagCollection(
       continue;
     }
 
-    if (type === 'string' || attribute.attributeType === 'string') {
+    const requestedType = Array.isArray(type) ? undefined : type;
+    const attributeType =
+      requestedType === undefined || requestedType === attribute.attributeType
+        ? attribute.attributeType
+        : undefined;
+
+    if (attributeType === 'string') {
       stringAttributes[attribute.key] = {
         key: attribute.key,
         name: attribute.name,
         kind: FieldKind.TAG,
         secondaryAliases: attribute?.secondaryAliases ?? [],
       };
-    } else if (type === 'number' || attribute.attributeType === 'number') {
+    } else if (attributeType === 'number') {
       numberAttributes[attribute.key] = {
         key: attribute.key,
         name: attribute.name,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: attribute?.secondaryAliases ?? [],
       };
-    } else if (type === 'boolean' || attribute.attributeType === 'boolean') {
+    } else if (attributeType === 'boolean') {
       booleanAttributes[attribute.key] = {
         key: attribute.key,
         name: attribute.name,
