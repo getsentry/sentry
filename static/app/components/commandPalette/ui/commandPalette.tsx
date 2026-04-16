@@ -632,15 +632,57 @@ function flattenActions(
     nodeMap.set(item.key, item);
   }
 
-  // Keep the existing top-level search ordering by default, but when we are
-  // inside an expanded group we also sort leaf actions by their own score so
-  // the full result list matches the limited preview ordering.
-  collected.sort((a, b) =>
-    compareCommandPaletteScores(
+  // Pre-compute the root ancestor key for every node. The sort below uses this
+  // as the primary key so all results from the same top-level section stay
+  // grouped together, regardless of how individual sub-groups score.
+  const nodeRootKey = new Map<string, string>();
+  for (const item of collected) {
+    let root: CollectionTreeNode<CMDKActionData> = item;
+    while (root.parent !== null) {
+      const parent = nodeMap.get(root.parent);
+      if (!parent) break;
+      root = parent;
+    }
+    nodeRootKey.set(item.key, root.key);
+  }
+
+  // Best score among all matched descendants for each root section. Used as
+  // the primary sort key so sections are ordered by their top relevance signal.
+  // Root-level leaf nodes (parent === null, no children) are excluded: they are
+  // their own root and inherit the old behaviour of sorting by DFS order rather
+  // than match quality, consistent with getBestItemScore returning undefined for
+  // leaves when sortLeafResults is false.
+  const rootBestScore = new Map<string, CommandPaletteScore>();
+  for (const [key, score] of scores) {
+    const node = nodeMap.get(key);
+    if (node && node.parent === null && node.children.length === 0) continue;
+    const rootKey = nodeRootKey.get(key);
+    if (rootKey === undefined) continue;
+    const current = rootBestScore.get(rootKey);
+    if (current === undefined || compareCommandPaletteScores(score, current) < 0) {
+      rootBestScore.set(rootKey, score);
+    }
+  }
+
+  // Sort with root section as the primary key so every node from the same
+  // top-level section stays together in the output. Within each root, order
+  // groups by their best child score so the most relevant sub-section surfaces
+  // first. When we are inside an expanded group we also sort leaf actions by
+  // their own score so the full result list matches the limited preview ordering.
+  collected.sort((a, b) => {
+    const aRootKey = nodeRootKey.get(a.key)!;
+    const bRootKey = nodeRootKey.get(b.key)!;
+    if (aRootKey !== bRootKey) {
+      return compareCommandPaletteScores(
+        rootBestScore.get(aRootKey),
+        rootBestScore.get(bRootKey)
+      );
+    }
+    return compareCommandPaletteScores(
       getBestItemScore(a, scores, sortLeafResults),
       getBestItemScore(b, scores, sortLeafResults)
-    )
-  );
+    );
+  });
 
   // Track processed keys so children beyond a group's limit cannot resurface as
   // standalone flat items later in the traversal.
