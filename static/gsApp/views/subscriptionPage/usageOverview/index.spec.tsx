@@ -240,6 +240,43 @@ describe('UsageOverview', () => {
     subscription.hasSoftCap = originalHasSoftCap;
   });
 
+  it('selects product from URL when subscription has hasSoftCap=true and category has null softCapType', async () => {
+    jest
+      .spyOn(useMedia, 'useMedia')
+      .mockImplementation(query => query.includes('min-width'));
+    const originalMonitorSeats = subscription.categories.monitorSeats;
+    const originalHasSoftCap = subscription.hasSoftCap;
+    subscription.hasSoftCap = true;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    render(
+      <UsageOverview
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: DataCategory.MONITOR_SEATS},
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    subscription.categories.monitorSeats = originalMonitorSeats;
+    subscription.hasSoftCap = originalHasSoftCap;
+  });
+
   it('can switch panel by clicking table rows', async () => {
     jest
       .spyOn(useMedia, 'useMedia')

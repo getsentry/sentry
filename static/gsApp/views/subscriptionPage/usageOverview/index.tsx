@@ -62,6 +62,8 @@ export function UsageOverview({
           : (subscription.categories[productFromQuery as DataCategory]?.prepaid ?? 0) >
               0 ||
             !!subscription.categories[productFromQuery as DataCategory]?.softCapType ||
+            (!!subscription.categories[productFromQuery as DataCategory] &&
+              subscription.hasSoftCap) ||
             !!getActiveProductTrial(
               subscription.productTrials ?? null,
               productFromQuery as DataCategory

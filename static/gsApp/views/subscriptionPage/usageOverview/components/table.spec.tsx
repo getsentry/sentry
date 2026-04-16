@@ -507,6 +507,50 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
   });
 
+  it('renders hasSoftCap monitors as enabled even when category softCapType is null', async () => {
+    // Legacy soft cap orgs can have hasSoftCap=true on the subscription but
+    // softCapType=null on newer categories (e.g. MONITOR_SEAT, UPTIME)
+    // because create_new_category_histories does not inherit soft_cap_type
+    // from siblings or from the subscription-level soft_cap flag.
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.hasSoftCap = true;
+    sub.categories.monitorSeats = {
+      ...sub.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    sub.categories.uptime = {
+      ...sub.categories.uptime!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.getByTestId('product-row-monitorSeats')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-monitorSeats')
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('product-row-uptime')).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
+  });
+
   it('renders disabled product rows', async () => {
     // both profiling categories are disabled because there is no PAYG
     subscription.onDemandBudgets = {

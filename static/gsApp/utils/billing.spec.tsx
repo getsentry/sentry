@@ -1407,6 +1407,27 @@ describe('productIsEnabled', () => {
     };
     expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
   });
+
+  it('returns true for subscriptions with hasSoftCap=true even when softCapType is null and no prepaid quota', () => {
+    subscription.hasSoftCap = true;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+
+    subscription.categories.uptime = {
+      ...subscription.categories.uptime!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    expect(productIsEnabled(subscription, DataCategory.UPTIME)).toBe(true);
+  });
 });
 
 describe('getSeerTrialCategory', () => {

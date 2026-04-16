@@ -1040,7 +1040,10 @@ export function productIsEnabled(
   if (!metricHistory) {
     return false;
   }
-  const isPaygOnly = (metricHistory.prepaid ?? 0) === 0 && !metricHistory.softCapType;
+  const isPaygOnly =
+    (metricHistory.prepaid ?? 0) === 0 &&
+    !metricHistory.softCapType &&
+    !subscription.hasSoftCap;
   return (
     !isPaygOnly ||
     metricHistory.onDemandBudget > 0 ||
