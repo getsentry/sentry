@@ -1,6 +1,7 @@
 import {dummyIntegrationPipeline} from './pipelineDummyProvider';
 import {awsLambdaIntegrationPipeline} from './pipelineIntegrationAwsLambda';
 import {bitbucketIntegrationPipeline} from './pipelineIntegrationBitbucket';
+import {claudeCodeIntegrationPipeline} from './pipelineIntegrationClaudeCode';
 import {cursorIntegrationPipeline} from './pipelineIntegrationCursor';
 import {discordIntegrationPipeline} from './pipelineIntegrationDiscord';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
@@ -15,6 +16,7 @@ import {vstsIntegrationPipeline} from './pipelineIntegrationVsts';
 export const PIPELINE_REGISTRY = [
   awsLambdaIntegrationPipeline,
   bitbucketIntegrationPipeline,
+  claudeCodeIntegrationPipeline,
   cursorIntegrationPipeline,
   discordIntegrationPipeline,
   dummyIntegrationPipeline,
