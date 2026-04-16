@@ -280,6 +280,22 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             "https://org1.sentry.io/explore/traces/other/?project=1",
             (None, None),
         ),
+        (
+            "https://sentry.io/organizations/org1/explore/logs/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
+        (
+            "https://org1.sentry.io/explore/logs/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/metrics/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
+        (
+            "https://org1.sentry.io/explore/metrics/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
     ],
 )
 def test_match_link(url, expected) -> None:

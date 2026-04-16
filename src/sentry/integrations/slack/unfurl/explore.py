@@ -315,19 +315,19 @@ customer_domain_explore_traces_link_regex = re.compile(
 )
 
 explore_logs_link_regex = re.compile(
-    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/logs/"
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/logs/(?=[?#]|$)"
 )
 
 customer_domain_explore_logs_link_regex = re.compile(
-    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/logs/"
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/logs/(?=[?#]|$)"
 )
 
 explore_metrics_link_regex = re.compile(
-    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/metrics/"
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/metrics/(?=[?#]|$)"
 )
 
 customer_domain_explore_metrics_link_regex = re.compile(
-    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/metrics/"
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/metrics/(?=[?#]|$)"
 )
 
 explore_handler = Handler(
