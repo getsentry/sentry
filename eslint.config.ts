@@ -463,6 +463,7 @@ export default typescript.config([
       '@sentry/no-static-translations': 'error',
       '@sentry/no-styled-shortcut': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',
+      '@sentry/prefer-reduce-type-parameter': 'error',
     },
   },
   {
