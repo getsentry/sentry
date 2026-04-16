@@ -1,22 +1,11 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {cursorIntegrationPipeline} from './pipelineIntegrationCursor';
-import type {PipelineStepProps} from './types';
+import {createMakeStepProps} from './testUtils';
 
 const CursorApiKeyStep = cursorIntegrationPipeline.steps[0].component;
 
-function makeStepProps<D, A>(
-  overrides: Partial<PipelineStepProps<D, A>> & {stepData: D}
-): PipelineStepProps<D, A> {
-  return {
-    advance: jest.fn(),
-    advanceError: null,
-    isAdvancing: false,
-    stepIndex: 0,
-    totalSteps: 1,
-    ...overrides,
-  };
-}
+const makeStepProps = createMakeStepProps({totalSteps: 1});
 
 describe('CursorApiKeyStep', () => {
   it('renders the API key form', () => {
