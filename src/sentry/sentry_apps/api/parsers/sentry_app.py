@@ -169,7 +169,12 @@ class SentryAppParser(Serializer):
             raise ValidationError("Cannot exceed %d characters" % max_length)
 
         if is_spam_display_name(value):
-            extra: dict[str, object] = {"attempted_name": value}
+            extra: dict[str, object] = {"attempted_name": value, "reason": "spam_filter"}
+            request = self.context.get("request")
+            if request is not None:
+                extra["user_id"] = getattr(request.user, "id", None)
+                extra["user_ip"] = request.META.get("REMOTE_ADDR")
+                extra["user_agent"] = request.META.get("HTTP_USER_AGENT")
             if self.instance:
                 extra["sentry_app_id"] = self.instance.id
                 extra["sentry_app_slug"] = self.instance.slug
