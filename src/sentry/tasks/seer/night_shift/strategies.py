@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Sequence
 
-from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
@@ -25,10 +24,10 @@ DEFAULT_TRIAGE_STRATEGY = "agentic_triage"
 
 def resolve_triage_strategy(override: str | None) -> tuple[str, TriageStrategyFn]:
     """
-    Resolve a strategy name using: explicit override -> options -> constant default.
-    If the resolved name isn't in the registry, log and fall back to the default.
+    Resolve a strategy name, falling back to DEFAULT_TRIAGE_STRATEGY when
+    override is None or points at an unknown strategy.
     """
-    name = override or options.get("seer.night_shift.default_strategy") or DEFAULT_TRIAGE_STRATEGY
+    name = override or DEFAULT_TRIAGE_STRATEGY
     fn = TRIAGE_STRATEGIES.get(name)
     if fn is None:
         logger.warning(
