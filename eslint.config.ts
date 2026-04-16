@@ -84,6 +84,9 @@ const enableTypeAwareLinting = (function () {
 // https://github.com/orgs/mdx-js/discussions/2454
 const globMDX = '**/*.mdx';
 
+const CHARTCUTERIE_MESSAGE =
+  'Chartcuterie runs server-side in Node.js. This import is not available.';
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -638,6 +641,40 @@ export default typescript.config([
     ],
     rules: {
       '@sentry/no-default-exports': 'off',
+    },
+  },
+  {
+    name: 'files/chartcuterie-no-browser-imports',
+    files: ['static/app/chartcuterie/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            // Keep global theme restriction
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
+            // Chartcuterie runs server-side in Node.js via the chartcuterie
+            // rendering service. Browser-only APIs are not available.
+            {
+              group: ['sentry/utils/use*', 'sentry/stores/*', 'sentry/actionCreators/*'],
+              message: CHARTCUTERIE_MESSAGE,
+            },
+          ],
+          paths: [
+            ...restrictedImportPaths,
+            {name: 'react', message: CHARTCUTERIE_MESSAGE},
+            {name: 'react-dom', message: CHARTCUTERIE_MESSAGE},
+            {name: 'react-dom/client', message: CHARTCUTERIE_MESSAGE},
+            {name: 'react-dom/server', message: CHARTCUTERIE_MESSAGE},
+            {name: '@sentry/react', message: CHARTCUTERIE_MESSAGE},
+          ],
+        },
+      ],
     },
   },
   {
