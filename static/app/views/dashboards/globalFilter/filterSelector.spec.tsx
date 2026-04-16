@@ -212,6 +212,57 @@ describe('FilterSelector', () => {
     expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
   });
 
+  it('allows searching translated subregion names', async () => {
+    const subregionFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {
+        key: SpanFields.USER_GEO_SUBREGION,
+        name: 'User Geo Subregion',
+        kind: FieldKind.FIELD,
+      },
+      value: '',
+    };
+
+    const subregionSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve(['21', '154', '155']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={subregionFilter}
+        searchBarData={subregionSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: SpanFields.USER_GEO_SUBREGION + ' :',
+    });
+    await userEvent.click(button);
+
+    // Wait for all 3 options to load
+    expect(
+      await screen.findByRole('gridcell', {name: /North America/})
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+
+    // Search by the translated name, not the code
+    const searchInput = screen.getByPlaceholderText('Search or enter a custom value...');
+    await userEvent.type(searchInput, 'Northern Europe');
+
+    // Should find the option by its translated name
+    await waitFor(() => {
+      expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
+    });
+    // Other options should be filtered out
+    expect(
+      screen.queryByRole('gridcell', {name: /North America/})
+    ).not.toBeInTheDocument();
+  });
+
   it('allows searching for values over 70 characters', async () => {
     // Create a long transaction name that exceeds 70 characters
     const longValue =

@@ -485,10 +485,16 @@ const translateKnownFilterOptions = (
   const dataset = globalFilter.dataset;
 
   if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
-    return options.map(option => ({
-      ...option,
-      label: subregionCodeToName[option.value as SubregionCode] || option.label,
-    }));
+    return options.map(option => {
+      const translatedLabel =
+        subregionCodeToName[option.value as SubregionCode] || option.label;
+      return {
+        ...option,
+        label: translatedLabel,
+        textValue:
+          typeof translatedLabel === 'string' ? translatedLabel : option.textValue,
+      };
+    });
   }
   return options;
 };
