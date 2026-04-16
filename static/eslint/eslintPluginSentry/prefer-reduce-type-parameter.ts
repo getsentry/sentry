@@ -1,4 +1,5 @@
 import {ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import type {RuleFixer} from '@typescript-eslint/utils/ts-eslint';
 
 function containsAsExpression(node: TSESTree.Node): boolean {
   if (node.type === 'TSAsExpression') {
@@ -68,25 +69,22 @@ export const preferReduceTypeParameter = ESLintUtils.RuleCreator.withoutDocs({
         }
         if (containsAsExpression(initialValue)) {
           const sourceCode = context.sourceCode;
+          const callee = node.callee;
           // Autofix when the entire initial value is `expr as Type`
-          const fix =
-            initialValue.type === 'TSAsExpression'
-              ? (fixer: Parameters<Exclude<TSESTree.ReportFixFunction, null>>[0]) => {
-                  const typeText = sourceCode.getText(initialValue.typeAnnotation);
-                  const exprText = sourceCode.getText(initialValue.expression);
-                  const reduceProperty =
-                    node.callee.type === 'MemberExpression' ? node.callee.property : null;
-                  if (!reduceProperty) {
-                    return null;
-                  }
-                  return [
-                    // Add <Type> after `reduce`
-                    fixer.insertTextAfter(reduceProperty, `<${typeText}>`),
-                    // Replace `expr as Type` with just `expr`
-                    fixer.replaceText(initialValue, exprText),
-                  ];
-                }
-              : undefined;
+          const canFix =
+            initialValue.type === 'TSAsExpression' && callee.type === 'MemberExpression';
+          const fix = canFix
+            ? (fixer: RuleFixer) => {
+                const typeText = sourceCode.getText(initialValue.typeAnnotation);
+                const exprText = sourceCode.getText(initialValue.expression);
+                return [
+                  // Add <Type> after `reduce`
+                  fixer.insertTextAfterRange(callee.property.range, `<${typeText}>`),
+                  // Replace `expr as Type` with just `expr`
+                  fixer.replaceTextRange(initialValue.range, exprText),
+                ];
+              }
+            : undefined;
           context.report({
             node: initialValue,
             messageId: 'preferTypeParameter',
