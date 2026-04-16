@@ -40,7 +40,6 @@ import {ReplayListControls} from 'sentry/views/replays/list/replayListControls';
 import {ReplayOnboardingPanel} from 'sentry/views/replays/list/replayOnboardingPanel';
 import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
 import {ReplayWidgetsToggleButton} from 'sentry/views/replays/list/replayWidgetsToggleButton';
-import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -102,7 +101,6 @@ function ReplaysHeader({
       {hasPageFrameFeature ? (
         <TopBar.Slot name="actions">
           <ReplayIndexTimestampPrefPicker />
-          <SaveReplayQueryButton />
           {showDeadRageClickCards ? (
             <ReplayWidgetsToggleButton
               onClick={onToggleWidgets}
