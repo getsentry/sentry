@@ -314,8 +314,16 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           <CMDKAction
-            display={{label: t('Resume recent chat'), icon: <IconSeer />}}
-            keywords={[t('seer'), t('ai'), t('chat'), t('agent'), t('explorer')]}
+            display={{label: t('Night Shift Chats'), icon: <IconSeer />}}
+            keywords={[
+              t('seer'),
+              t('ai'),
+              t('chat'),
+              t('agent'),
+              t('explorer'),
+              t('nightshift'),
+              t('autofix'),
+            ]}
             limit={10}
             resource={(): CMDKQueryOptions => {
               const url = getApiUrl(
