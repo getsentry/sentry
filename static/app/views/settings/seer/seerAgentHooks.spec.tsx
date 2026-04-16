@@ -17,7 +17,6 @@ import {
   useMutateCreatePr,
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
-  useSelectedAgentFromProjectSettings,
 } from 'sentry/views/settings/seer/seerAgentHooks';
 
 describe('seerAgentHooks', () => {
@@ -32,63 +31,6 @@ describe('seerAgentHooks', () => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ProjectsStore.reset();
-  });
-
-  describe('useSelectedAgentFromProjectSettings', () => {
-    it('returns "seer" when no automation_handoff integration_id', () => {
-      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
-        initialProps: {
-          preference: {
-            repositories: [],
-          },
-          integrations: [],
-        },
-        organization,
-      });
-
-      expect(result.current).toBe('seer');
-    });
-
-    it('returns "seer" when no automation_handoff integration_id, ignoring autofixAutomationTuning', () => {
-      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
-        initialProps: {
-          preference: {
-            projectId: '1',
-            autofixAutomationTuning: 'off',
-            automatedRunStoppingPoint: 'code_changes',
-            automation_handoff: undefined,
-            repositories: [],
-          },
-          integrations: [],
-        },
-        organization,
-      });
-
-      expect(result.current).toBe('seer');
-    });
-
-    it('returns matching integration when automation_handoff has integration_id', () => {
-      const integrations: CodingAgentIntegration[] = [
-        {id: '99', name: 'Cursor', provider: 'cursor'},
-      ];
-
-      const {result} = renderHookWithProviders(useSelectedAgentFromProjectSettings, {
-        initialProps: {
-          preference: {
-            repositories: [],
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integration_id: 99,
-            },
-          },
-          integrations,
-        },
-        organization,
-      });
-
-      expect(result.current).toMatchObject({id: '99', name: 'Cursor'});
-    });
   });
 
   describe('useSelectedAgentFromBulkSettings', () => {
