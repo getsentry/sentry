@@ -76,7 +76,7 @@ export function AttributeField({
     dataset === AllowedDataScrubbingDatasets.DEFAULT
       ? TraceItemDataset.LOGS
       : datasetToTraceItemType[dataset];
-  const traceItemAttributeStringsResult = useQuery({
+  const traceItemAttributeResult = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
@@ -87,7 +87,7 @@ export function AttributeField({
     select: selectTraceItemTagCollection('string'),
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
-    `advanced-data-scrubbing.suggested-attribute-values:v2:${projectId ? projectId : 'all'}`,
+    `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId ? projectId : 'all'}`,
     {} as TagCollection
   );
 
@@ -96,25 +96,23 @@ export function AttributeField({
 
   useEffect(() => {
     if (
-      traceItemAttributeStringsResult.data &&
-      !traceItemAttributeStringsResult.isLoading &&
-      !traceItemAttributeStringsResult.error
+      traceItemAttributeResult.data &&
+      !traceItemAttributeResult.isLoading &&
+      !traceItemAttributeResult.error
     ) {
       // This limits the attributes you can see when selecting for pii scrubbing, but we have to currently as tags[] syntax is strictly invalid.
       // We should address this ultimately via fixing the trace item keys endpoint to emit the stored/relay-esque syntax at some point, instead of frontend hacks.
-      setSuggestedAttributeValues(
-        elideTagBasedAttributes(traceItemAttributeStringsResult.data)
-      );
+      setSuggestedAttributeValues(elideTagBasedAttributes(traceItemAttributeResult.data));
     }
   }, [
     onChange,
-    traceItemAttributeStringsResult.data,
-    traceItemAttributeStringsResult.isLoading,
-    traceItemAttributeStringsResult.error,
+    traceItemAttributeResult.data,
+    traceItemAttributeResult.isLoading,
+    traceItemAttributeResult.error,
     setSuggestedAttributeValues,
   ]);
 
-  const suggestions = useMemo(() => {
+  const suggestions = useMemo((): AttributeSuggestion[] => {
     if (!suggestedAttributeValues) {
       return [];
     }
@@ -221,7 +219,7 @@ export function AttributeField({
 
   return (
     <Wrapper>
-      {traceItemAttributeStringsResult.isLoading &&
+      {traceItemAttributeResult.isLoading &&
       !Object.keys(suggestedAttributeValues).length ? (
         <LoadingIndicator style={{margin: '0 auto'}} size={20} />
       ) : (
