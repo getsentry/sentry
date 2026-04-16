@@ -253,9 +253,11 @@ function getInsightsModuleBreadcrumbs(
       ),
     });
   } else {
-    crumbs.push({
-      label: t('Insights'),
-    });
+    if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
+      crumbs.push({
+        label: DOMAIN_VIEW_BASE_TITLE,
+      });
+    }
   }
 
   let moduleName: RoutableModuleNames | undefined = undefined;
