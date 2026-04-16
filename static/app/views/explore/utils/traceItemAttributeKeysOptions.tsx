@@ -9,7 +9,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export type AttributeType = {
+type AttributeType = {
   attributeSource: {
     source_type: string;
   };

@@ -1,17 +1,8 @@
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
 
-type AttributeResult = {
-  data: TagCollection;
-  error: Error | null;
-  isLoading: boolean;
-};
-
-type AttributeResults = Record<AllowedDataScrubbingDatasets, AttributeResult | null>;
-
-export type MockTraceItemAttributeResponse = {
+type MockTraceItemAttributeResponse = {
   attributeType: 'string' | 'number' | 'boolean';
   key: string;
   name: string;
@@ -46,51 +37,6 @@ export function createMockTraceItemAttributesResponse(
     {attributeType: 'string', key: 'request.method', name: 'request.method'},
     {attributeType: 'string', key: 'response.status', name: 'response.status'},
   ];
-}
-
-export function createMockAttributeResults(empty = false): AttributeResults {
-  const mockAttributes: TagCollection = Object.fromEntries(
-    createMockTraceItemAttributesResponse().map(attribute => [
-      attribute.key,
-      {
-        key: attribute.key,
-        name: attribute.name,
-        secondaryAliases: attribute.secondaryAliases,
-        kind:
-          attribute.attributeType === 'number'
-            ? FieldKind.MEASUREMENT
-            : attribute.attributeType === 'boolean'
-              ? FieldKind.BOOLEAN
-              : FieldKind.TAG,
-      },
-    ])
-  );
-
-  const mockTraceItemAttributeKeysResult: AttributeResult = {
-    data: mockAttributes,
-    isLoading: false,
-    error: null,
-  };
-
-  const mockTraceItemAttributeKeysEmptyResult: AttributeResult = {
-    data: {},
-    isLoading: false,
-    error: null,
-  };
-
-  if (empty) {
-    return {
-      [AllowedDataScrubbingDatasets.DEFAULT]: null,
-      [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysEmptyResult,
-      [AllowedDataScrubbingDatasets.METRICS]: mockTraceItemAttributeKeysEmptyResult,
-    };
-  }
-
-  return {
-    [AllowedDataScrubbingDatasets.DEFAULT]: null,
-    [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysResult,
-    [AllowedDataScrubbingDatasets.METRICS]: mockTraceItemAttributeKeysResult,
-  };
 }
 
 export function mockTraceItemAttributeKeysApi(
