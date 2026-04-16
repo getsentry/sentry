@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import logging
 from collections.abc import Callable, Sequence
 
@@ -10,16 +11,21 @@ from sentry.tasks.seer.night_shift.models import TriageResult
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
+
+class TriageStrategyName(enum.StrEnum):
+    AGENTIC_TRIAGE = "agentic_triage"
+
+
 TriageStrategyFn = Callable[
     [Sequence[Project], Organization, int],
     tuple[list[TriageResult], int | None],
 ]
 
 TRIAGE_STRATEGIES: dict[str, TriageStrategyFn] = {
-    "agentic_triage": agentic_triage_strategy,
+    TriageStrategyName.AGENTIC_TRIAGE: agentic_triage_strategy,
 }
 
-DEFAULT_TRIAGE_STRATEGY = "agentic_triage"
+DEFAULT_TRIAGE_STRATEGY = TriageStrategyName.AGENTIC_TRIAGE
 
 
 def resolve_triage_strategy(override: str | None) -> tuple[str, TriageStrategyFn]:
