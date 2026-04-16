@@ -714,7 +714,7 @@ def _flatten_conditions(cond: list[Any]) -> list[Any]:
 
 
 def format_search_filter(
-    term: SearchFilter | AggregateFilter, params: FilterConvertParams | None
+    term: SearchFilter | AggregateFilter, params: FilterConvertParams
 ) -> tuple[list[Sequence[Any]], list[int], list[Any] | None]:
     projects_to_filter = []  # Used to avoid doing multiple conditions on project ID
     conditions = []
@@ -726,7 +726,7 @@ def format_search_filter(
         if term.operator == "=" and value == "":
             raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")
         slugs = to_list(value)
-        project_id_filter = params.get("project_id", []) if params else []
+        project_id_filter = params.get("project_id", [])
         projects = {
             p.slug: p.id for p in Project.objects.filter(id__in=project_id_filter, slug__in=slugs)
         }
