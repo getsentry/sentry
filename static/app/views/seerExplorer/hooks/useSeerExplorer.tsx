@@ -140,6 +140,16 @@ export const useSeerExplorer = () => {
 
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
+  const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
+  const [optimistic, setOptimistic] = useState<{
+    assistantBlockId: string;
+    assistantContent: string;
+    baselineUpdatedAt: string | undefined;
+    insertIndex: number;
+    userBlockId: string;
+    userQuery: string;
+  } | null>(null);
+  const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   const [isTimedOut, setIsTimedOut] = useState<boolean>(false);
   const {start: startPollingTimeout, cancel: cancelPollingTimeout} = useTimeout({
@@ -148,6 +158,8 @@ export const useSeerExplorer = () => {
       setIsTimedOut(true);
       setWaitingForResponse(false);
       setWaitingForInterrupt(false);
+      setOptimistic(null);
+      setDeletedFromIndex(null);
     },
   });
 
@@ -165,17 +177,6 @@ export const useSeerExplorer = () => {
     setIsTimedOut(false);
     cancelPollingTimeout();
   }, [cancelPollingTimeout]);
-
-  const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
-  const [optimistic, setOptimistic] = useState<{
-    assistantBlockId: string;
-    assistantContent: string;
-    baselineUpdatedAt: string | undefined;
-    insertIndex: number;
-    userBlockId: string;
-    userQuery: string;
-  } | null>(null);
-  const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
   const {data: apiData, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', runId),
@@ -542,9 +543,11 @@ export const useSeerExplorer = () => {
 
   useEffect(() => {
     if (isLoaded) {
-      // Reset waiting states and timeout
+      // Reset waiting states, insert index, and timeout
       setWaitingForResponse(false);
       setWaitingForInterrupt(false);
+      setOptimistic(null);
+      setDeletedFromIndex(null);
       cancelPollingTimeout();
     }
   }, [isLoaded, cancelPollingTimeout]);
