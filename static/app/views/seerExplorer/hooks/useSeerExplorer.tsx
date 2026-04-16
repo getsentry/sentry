@@ -91,19 +91,6 @@ const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse =
   },
 });
 
-/** Determines if we should poll for updates */
-const isPolling = (
-  sessionData: SeerExplorerResponse['session'],
-  waitingForResponse: boolean
-) => {
-  // Check if any PR is being created
-  const anyPRCreating = Object.values(sessionData?.repo_pr_states ?? {}).some(
-    state => state.pr_creation_status === 'creating'
-  );
-
-  return anyPRCreating || waitingForResponse;
-};
-
 export const useSeerExplorer = () => {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -138,7 +125,7 @@ export const useSeerExplorer = () => {
     }
   }, [location, navigate, openExplorerPanel, setRunId]);
 
-  const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
+  const [isPolling, setIsPolling] = useState<boolean>(true); // true on mount, set to false when response loaded or timeout.
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<{
@@ -156,7 +143,7 @@ export const useSeerExplorer = () => {
     timeMs: POLLING_TIMEOUT_MS,
     onTimeout: () => {
       setIsTimedOut(true);
-      setWaitingForResponse(false);
+      setIsPolling(false);
       setWaitingForInterrupt(false);
       setOptimistic(null);
       setDeletedFromIndex(null);
@@ -165,14 +152,14 @@ export const useSeerExplorer = () => {
 
   // Helpers for managing waiting and interrupt state.
   const _onNewRequest = useCallback(() => {
-    setWaitingForResponse(true);
+    setIsPolling(true);
     setWaitingForInterrupt(false);
     setIsTimedOut(false);
     startPollingTimeout();
   }, [startPollingTimeout]);
 
   const _onRequestError = useCallback(() => {
-    setWaitingForResponse(false);
+    setIsPolling(false);
     setWaitingForInterrupt(false);
     setIsTimedOut(false);
     cancelPollingTimeout();
@@ -184,12 +171,7 @@ export const useSeerExplorer = () => {
       staleTime: 0,
       retry: false,
       enabled: !!runId && !!orgSlug,
-      refetchInterval: query => {
-        if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
-          return POLL_INTERVAL;
-        }
-        return false;
-      },
+      refetchInterval: () => (isPolling ? POLL_INTERVAL : false),
     } as UseApiQueryOptions<SeerExplorerResponse, RequestError>
   );
 
@@ -202,7 +184,7 @@ export const useSeerExplorer = () => {
       // Clear any optimistic state from previous run
       setOptimistic(null);
       setDeletedFromIndex(null);
-      setWaitingForResponse(false);
+      setIsPolling(false);
       setWaitingForInterrupt(false);
       setIsTimedOut(false);
       cancelPollingTimeout();
@@ -451,10 +433,9 @@ export const useSeerExplorer = () => {
   );
 
   // Apply deletedFromIndex and optimistic state before any other processing
-  const sessionData = apiData?.session ?? null;
-
   const filteredSessionData = useMemo(() => {
-    const realBlocks = sessionData?.blocks || [];
+    const rawSessionData = apiData?.session ?? null;
+    const realBlocks = rawSessionData?.blocks || [];
 
     // Respect rewound/deleted index first for the real blocks view
     const baseBlocks =
@@ -483,7 +464,7 @@ export const useSeerExplorer = () => {
         optimisticThinkingBlock,
       ];
 
-      const baseSession = sessionData ?? {
+      const baseSession = rawSessionData ?? {
         run_id: runId ?? undefined,
         blocks: [],
         status: 'processing',
@@ -494,18 +475,18 @@ export const useSeerExplorer = () => {
         ...baseSession,
         blocks: visibleBlocks,
         status: 'processing',
-      } as NonNullable<typeof sessionData>;
+      } as NonNullable<typeof rawSessionData>;
     }
 
-    if (sessionData && deletedFromIndex !== null) {
+    if (rawSessionData && deletedFromIndex !== null) {
       return {
-        ...sessionData,
+        ...rawSessionData,
         blocks: baseBlocks,
-      } as NonNullable<typeof sessionData>;
+      } as NonNullable<typeof rawSessionData>;
     }
 
-    return sessionData;
-  }, [sessionData, deletedFromIndex, optimistic, runId]);
+    return rawSessionData;
+  }, [apiData?.session, deletedFromIndex, optimistic, runId]);
 
   // On partial response load - clear optimistic blocks and deletedFromIndex once the server has
   // persisted the user message and produced a real assistant response after the insert point.
@@ -539,12 +520,15 @@ export const useSeerExplorer = () => {
   const isLoaded =
     filteredSessionData &&
     filteredSessionData.status !== 'processing' &&
-    filteredSessionData.blocks.every((block: Block) => !block.loading);
+    filteredSessionData.blocks.every((block: Block) => !block.loading) &&
+    Object.values(filteredSessionData?.repo_pr_states ?? {}).every(
+      state => state.pr_creation_status !== 'creating'
+    );
 
   useEffect(() => {
     if (isLoaded) {
       // Reset waiting states, insert index, and timeout
-      setWaitingForResponse(false);
+      setIsPolling(false);
       setWaitingForInterrupt(false);
       setOptimistic(null);
       setDeletedFromIndex(null);
@@ -554,7 +538,7 @@ export const useSeerExplorer = () => {
 
   // Detect PR creation errors and show error messages
   useEffect(() => {
-    const currentPRStates = sessionData?.repo_pr_states ?? {};
+    const currentPRStates = filteredSessionData?.repo_pr_states ?? {};
     const previousPRStates = previousPRStatesRef.current;
 
     // Check each repo for errors
@@ -572,11 +556,11 @@ export const useSeerExplorer = () => {
     }
 
     previousPRStatesRef.current = currentPRStates;
-  }, [sessionData?.repo_pr_states]);
+  }, [filteredSessionData?.repo_pr_states]);
 
   return {
     sessionData: filteredSessionData,
-    isPolling: isPolling(filteredSessionData, waitingForResponse),
+    isPolling,
     isError,
     isTimedOut,
     sendMessage,
