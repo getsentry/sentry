@@ -86,7 +86,7 @@ function TraceMetricsSearchBar({
   } = usePageFilters();
   const {attributeQuery, hasMultipleMetrics, traceMetrics} = useTraceMetricsSearchScope();
 
-  // Attribute lookups should be scoped to the currently selected metric set.
+  // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
       {
