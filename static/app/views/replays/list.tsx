@@ -145,7 +145,7 @@ export default function ReplaysListContainer() {
     'replay-dead-rage-widget-open',
     true
   );
-  const toggleWidgets = () => setWidgetIsOpen(!widgetIsOpen);
+  const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
 
   useRouteAnalyticsParams({
     hasSessionReplay,
