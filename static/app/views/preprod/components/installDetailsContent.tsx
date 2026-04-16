@@ -59,7 +59,7 @@ export function InstallDetailsContent({
     {
       staleTime: 0,
       retry: (failureCount, apiError) => {
-        if ((apiError as RequestError)?.status === 404) {
+        if (apiError?.status === 404) {
           return false;
         }
         return failureCount < 2;
