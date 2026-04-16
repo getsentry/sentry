@@ -272,7 +272,6 @@ describe('ReplayList', () => {
     expect(
       within(topbarActions).queryByRole('button', {name: 'Save as'})
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save as'})).toBeInTheDocument();
     expect(screen.getAllByRole('button', {name: 'Save as'})).toHaveLength(1);
     expect(screen.getAllByRole('button', {name: 'Hide Widgets'})).toHaveLength(1);
   });
