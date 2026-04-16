@@ -6,6 +6,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
+from re import Match
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -24,6 +25,7 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.incidents import tasks
 from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
@@ -1848,12 +1850,15 @@ EAP_FUNCTIONS = [
 
 
 def get_column_from_aggregate(
-    aggregate: str, allow_mri: bool, allow_eap: bool = False
+    aggregate: str,
+    allow_mri: bool,
+    allow_eap: bool = False,
+    match: Match[str] | None = None,
 ) -> str | None:
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
-    match = is_function(aggregate)
+    match = is_function(aggregate) if match is None else match
     if match and (
         match.group("function") in SPANS_METRICS_FUNCTIONS
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
@@ -1900,21 +1905,29 @@ def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
-    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
-    match = is_function(aggregate)
-    function = match.group("function") if match else None
-    return (
-        column is None
-        or is_measurement(column)
-        or column in SUPPORTED_COLUMNS
-        or column in TRANSLATABLE_COLUMNS
-        or (is_mri(column) and allow_mri)
-        or (
-            isinstance(function, str)
-            and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
-        )
-        or allow_eap
-    )
+    if is_equation(aggregate):
+        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+    else:
+        terms = [aggregate]
+
+    for term in terms:
+        match = is_function(term)
+        column = get_column_from_aggregate(term, allow_mri, allow_eap, match)
+        function = match.group("function") if match else None
+        if not (
+            column is None
+            or is_measurement(column)
+            or column in SUPPORTED_COLUMNS
+            or column in TRANSLATABLE_COLUMNS
+            or (is_mri(column) and allow_mri)
+            or (
+                isinstance(function, str)
+                and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
+            )
+            or allow_eap
+        ):
+            return False
+    return True
 
 
 def translate_aggregate_field(

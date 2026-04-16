@@ -285,6 +285,95 @@ describe('MultiMetricsQueryParamsProvider', () => {
     ]);
   });
 
+  it('updates dependent equations in the same metric update', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {
+            metric: [
+              JSON.stringify({
+                metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+                query: '',
+                aggregateFields: [
+                  new VisualizeFunction(
+                    'sum(value,metricA,distribution,none)'
+                  ).serialize(),
+                ],
+                aggregateSortBys: [],
+                mode: 'samples',
+              }),
+              JSON.stringify({
+                metric: {name: 'metricB', type: 'distribution', unit: 'none'},
+                query: '',
+                aggregateFields: [
+                  new VisualizeFunction(
+                    'sum(value,metricB,distribution,none)'
+                  ).serialize(),
+                ],
+                aggregateSortBys: [],
+                mode: 'samples',
+              }),
+              JSON.stringify({
+                metric: {name: 'metricC', type: 'distribution', unit: 'none'},
+                query: '',
+                aggregateFields: [
+                  new VisualizeFunction(
+                    'sum(value,metricC,distribution,none)'
+                  ).serialize(),
+                ],
+                aggregateSortBys: [],
+                mode: 'samples',
+              }),
+              JSON.stringify({
+                metric: {name: '', type: ''},
+                query: '',
+                aggregateFields: [
+                  new VisualizeEquation(
+                    'equation|sum(value,metricA,distribution,none) + sum(value,metricB,distribution,none)'
+                  ).serialize(),
+                ],
+                aggregateSortBys: [],
+                mode: 'aggregate',
+              }),
+              JSON.stringify({
+                metric: {name: '', type: ''},
+                query: '',
+                aggregateFields: [
+                  new VisualizeEquation(
+                    'equation|sum(value,metricA,distribution,none) - sum(value,metricC,distribution,none)'
+                  ).serialize(),
+                ],
+                aggregateSortBys: [],
+                mode: 'aggregate',
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    act(() =>
+      result.current[0]!.setTraceMetric({
+        name: 'newSelectedMetric',
+        type: 'gauge',
+        unit: 'none',
+      })
+    );
+
+    expect(result.current[3]!.queryParams.aggregateFields).toEqual([
+      new VisualizeEquation(
+        'equation|avg(value,newSelectedMetric,gauge,none) + sum(value,metricB,distribution,none)'
+      ),
+    ]);
+    expect(result.current[4]!.queryParams.aggregateFields).toEqual([
+      new VisualizeEquation(
+        'equation|avg(value,newSelectedMetric,gauge,none) - sum(value,metricC,distribution,none)'
+      ),
+    ]);
+  });
+
   describe('stable labels', () => {
     it('preserves label B when A is deleted from [A, B]', () => {
       const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {

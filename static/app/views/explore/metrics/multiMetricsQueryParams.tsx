@@ -11,6 +11,8 @@ import {
   DEFAULT_YAXIS_BY_TYPE,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
+import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {
   getNextLabel,
   useStableLabels,
@@ -33,6 +35,24 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 
 export const MAX_METRICS_ALLOWED = 8;
+
+function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
+  return metricQueries
+    .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+    .filter(defined)
+    .filter(Boolean);
+}
+
+function syncUpdatedMetricQueries(
+  previousMetricQueries: BaseMetricQuery[],
+  nextMetricQueries: BaseMetricQuery[]
+): BaseMetricQuery[] {
+  return syncEquationMetricQueries(
+    nextMetricQueries,
+    getMetricReferences(previousMetricQueries),
+    getMetricReferences(nextMetricQueries)
+  );
+}
 
 interface MultiMetricsQueryParamsContextValue {
   insertLabelAtIndex: (position: number, label: string) => void;
@@ -74,12 +94,16 @@ export function MultiMetricsQueryParamsProvider({
       label: labels.getLabel(i),
     }));
 
+    function navigateToMetricQueries(nextMetricQueries: BaseMetricQuery[]) {
+      const target = {...location, query: {...location.query}};
+      target.query.metric = encodeMetricQueries(nextMetricQueries);
+      navigate(target);
+    }
+
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
-        const target = {...location, query: {...location.query}};
-
-        const newMetricQueries = metricQueries
-          .map((metricQuery: BaseMetricQuery, j: number) => {
+        const newMetricQueries = metricQueries.map(
+          (metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
               return metricQuery;
             }
@@ -88,21 +112,18 @@ export function MultiMetricsQueryParamsProvider({
               queryParams: newQueryParams,
               label: metricQuery.label,
             };
-          })
-          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-          .filter(defined)
-          .filter(Boolean);
-        target.query.metric = newMetricQueries;
-
-        navigate(target);
+          }
+        );
+        navigateToMetricQueries(
+          syncUpdatedMetricQueries(metricQueries, newMetricQueries)
+        );
       };
     }
 
     function setTraceMetricForIndex(i: number) {
       return function (newTraceMetric: TraceMetric) {
-        const target = {...location, query: {...location.query}};
-        target.query.metric = metricQueries
-          .map((metricQuery: BaseMetricQuery, j: number) => {
+        const newMetricQueries = metricQueries.map(
+          (metricQuery: BaseMetricQuery, j: number) => {
             if (i !== j) {
               return metricQuery;
             }
@@ -140,12 +161,11 @@ export function MultiMetricsQueryParamsProvider({
               metric: newTraceMetric,
               label: metricQuery.label,
             };
-          })
-          .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
-          .filter(defined)
-          .filter(Boolean);
-
-        navigate(target);
+          }
+        );
+        navigateToMetricQueries(
+          syncUpdatedMetricQueries(metricQueries, newMetricQueries)
+        );
       };
     }
 
@@ -159,16 +179,7 @@ export function MultiMetricsQueryParamsProvider({
         // Update labels before navigating so they stay stable
         labels.remove(i);
 
-        const target = {...location, query: {...location.query}};
-
-        const newMetricQueries = metricQueries
-          .filter((_, j) => i !== j)
-          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-          .filter(defined)
-          .filter(Boolean);
-        target.query.metric = newMetricQueries;
-
-        navigate(target);
+        navigateToMetricQueries(metricQueries.filter((_, j) => i !== j));
       };
     }
 
@@ -247,10 +258,7 @@ export function useAddMetricQuery({
 
     const baseQueries: BaseMetricQuery[] = metricQueries;
     const newMetricQueries = baseQueries.toSpliced(insertAt, 0, newQuery);
-    target.query.metric = newMetricQueries
-      .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-      .filter(defined)
-      .filter(Boolean);
+    target.query.metric = encodeMetricQueries(newMetricQueries);
 
     navigate(target);
   };
@@ -268,10 +276,7 @@ export function useReorderMetricQueries() {
       reorderLabels(oldIndex, newIndex);
 
       const target = {...location, query: {...location.query}};
-      target.query.metric = reorderedQueries
-        .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-        .filter(defined)
-        .filter(Boolean);
+      target.query.metric = encodeMetricQueries(reorderedQueries);
 
       navigate(target);
     },

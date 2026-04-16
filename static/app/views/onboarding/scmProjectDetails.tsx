@@ -33,8 +33,13 @@ const PROJECT_DETAILS_WIDTH = '285px';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
   const organization = useOrganization();
-  const {selectedPlatform, selectedFeatures, setCreatedProjectSlug} =
-    useOnboardingContext();
+  const {
+    selectedPlatform,
+    selectedFeatures,
+    setCreatedProjectSlug,
+    projectDetailsForm,
+    setProjectDetailsForm,
+  } = useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
   useEffect(() => {
@@ -44,15 +49,20 @@ export function ScmProjectDetails({onComplete}: StepProps) {
   const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
-  // State tracks user edits; derived values fall back to defaults from context/teams
-  const [projectName, setProjectName] = useState<string | null>(null);
-  const [teamSlug, setTeamSlug] = useState<string | null>(null);
+  // State tracks user edits. When the user navigates back from setup-docs
+  // the persisted projectDetailsForm restores their previous inputs.
+  const [projectName, setProjectName] = useState<string | null>(
+    projectDetailsForm?.projectName ?? null
+  );
+  const [teamSlug, setTeamSlug] = useState<string | null>(
+    projectDetailsForm?.teamSlug ?? null
+  );
 
   const projectNameResolved = projectName ?? defaultName;
   const teamSlugResolved = teamSlug ?? firstAdminTeam?.slug ?? '';
 
   const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>(
-    DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
+    projectDetailsForm?.alertRuleConfig ?? DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
   );
 
   function handleAlertChange<K extends keyof AlertRuleOptions>(
@@ -116,6 +126,11 @@ export function ScmProjectDetails({onComplete}: StepProps) {
       // the project via useRecentCreatedProject without corrupting
       // selectedPlatform.key (which the platform features step needs).
       setCreatedProjectSlug(project.slug);
+      setProjectDetailsForm({
+        projectName: projectNameResolved,
+        teamSlug: teamSlugResolved,
+        alertRuleConfig,
+      });
 
       trackAnalytics('onboarding.scm_project_details_create_succeeded', {
         organization,

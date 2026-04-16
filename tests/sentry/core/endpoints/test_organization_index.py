@@ -272,6 +272,19 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             )
             self.get_error_response(name="http://evil.com", slug="legit-slug-2", status_code=400)
 
+    def test_name_with_spam_signals_rejected(self) -> None:
+        response = self.get_error_response(
+            name="Win $50 ETH bit.ly/offer Claim Now",
+            slug="spam-org",
+            status_code=400,
+        )
+        assert "disallowed content" in str(response.data)
+
+    def test_name_with_single_signal_allowed(self) -> None:
+        response = self.get_success_response(name="BTC Analytics", slug="btc-analytics")
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.name == "BTC Analytics"
+
     def test_name_with_periods_allowed(self) -> None:
         response = self.get_success_response(name="Acme Inc.", slug="acme-inc")
         org = Organization.objects.get(id=response.data["id"])

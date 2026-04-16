@@ -15,11 +15,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
-import {
-  CrumbContainer,
-  NavigationCrumbs,
-  ShortId,
-} from 'sentry/components/events/eventDrawer';
+import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
@@ -79,18 +75,7 @@ export function SupergroupDetailDrawer({
       <DrawerHeader hideBar>
         <Flex justify="between" align="center" gap="md" flexGrow={1}>
           <Flex align="center" gap="sm">
-            <NavigationCrumbs
-              crumbs={[
-                {label: t('Issue Groups')},
-                {
-                  label: (
-                    <CrumbContainer>
-                      <ShortId>{`SG-${supergroup.id}`}</ShortId>
-                    </CrumbContainer>
-                  ),
-                },
-              ]}
-            />
+            <NavigationCrumbs crumbs={[{label: t('Issue Groups')}]} />
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
         </Flex>

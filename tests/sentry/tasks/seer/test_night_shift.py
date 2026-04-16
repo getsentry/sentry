@@ -353,7 +353,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             self.feature("organizations:seer-project-settings-read-from-sentry"),
             patch(
                 "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
-                return_value=[],
+                return_value=([], None),
             ),
         ):
             run_night_shift_for_org(org.id)
