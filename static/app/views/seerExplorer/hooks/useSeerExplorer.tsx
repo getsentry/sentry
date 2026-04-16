@@ -94,6 +94,9 @@ const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse =
   },
 });
 
+/**
+ * Checks if session is in a terminal state where the agent is done processing.
+ */
 const isSessionComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   sessionData &&
   sessionData.status !== 'processing' &&
@@ -102,6 +105,9 @@ const isSessionComplete = (sessionData: SeerExplorerResponse['session'] | undefi
     state => state.pr_creation_status !== 'creating'
   );
 
+/**
+ * Checks if we should poll for state updates.
+ */
 const isPolling = (
   runId: number | null,
   sessionData: SeerExplorerResponse['session'] | undefined
