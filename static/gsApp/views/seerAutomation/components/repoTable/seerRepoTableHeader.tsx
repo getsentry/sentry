@@ -107,15 +107,15 @@ export function SeerRepoTableHeader({
   }, [selectedRepos]);
 
   const currentTriggersValue = useMemo((): CodeReviewTrigger[] => {
-    const someOnReadyForReview = selectedRepos.every(repo =>
+    const everyOnReadyForReview = selectedRepos.every(repo =>
       repo?.settings?.codeReviewTriggers?.includes('on_ready_for_review')
     );
-    const someOnNewCommit = selectedRepos.every(repo =>
+    const everyOnNewCommit = selectedRepos.every(repo =>
       repo?.settings?.codeReviewTriggers?.includes('on_new_commit')
     );
     return [
-      ...(someOnReadyForReview ? ['on_ready_for_review' as const] : []),
-      ...(someOnNewCommit ? ['on_new_commit' as const] : []),
+      ...(everyOnReadyForReview ? ['on_ready_for_review' as const] : []),
+      ...(everyOnNewCommit ? ['on_new_commit' as const] : []),
     ];
   }, [selectedRepos]);
 
