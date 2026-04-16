@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -136,7 +137,12 @@ export function usePipeline<
   const {enabled = true, initialData} = options;
 
   const pipelineName = getBackendPipelineType(type);
-  const apiUrl = `/organizations/${organization.slug}/pipeline/${pipelineName}/`;
+  const apiUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/pipeline/$pipelineName/',
+    {
+      path: {organizationIdOrSlug: organization.slug, pipelineName},
+    }
+  );
 
   const definition = useMemo(
     () => getPipelineDefinition(type, provider),
