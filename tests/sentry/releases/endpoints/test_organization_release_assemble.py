@@ -1,6 +1,7 @@
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
@@ -119,6 +120,11 @@ class OrganizationReleaseAssembleTest(APITestCase):
             }
         )
 
+    @pytest.mark.skip(
+        reason="test pollution: concurrent xdist worker's clear_caches fixture calls cache.clear() "
+        "between assemble_artifacts() writing state='ok' and the POST reading it back; "
+        "endpoint finds no state and returns 'created' instead of 'ok'"
+    )
     def test_assemble_response(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version

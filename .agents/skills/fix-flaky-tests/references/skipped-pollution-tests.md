@@ -106,6 +106,10 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 
 - `RedisTSDBTest::test_simple` — concurrent xdist worker's `tearDown` calls `flushdb()` on shared Redis DBs 6-8; erases project 2 data mid-test so the post-merge count for project 1 returns 4 instead of 8
 
+## tests/sentry/releases/endpoints/test_organization_release_assemble.py
+
+- `OrganizationReleaseAssembleTest::test_assemble_response` — concurrent xdist worker's `clear_caches` fixture calls `cache.clear()` between `assemble_artifacts()` writing state=`'ok'` and the POST reading it back; endpoint finds no state and returns `'created'`
+
 ## tests/sentry/tasks/test_reprocessing2.py
 
 - `test_basic` (parametrized, module-level) — Snuba event data from prior test contaminates query results, leaving `old_events` empty; 'not enough values to unpack' on group_id
