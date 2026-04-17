@@ -334,7 +334,8 @@ def _semver_filter_converter(
     project_ids = params.get("project_id")
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     raw_version = search_filter.value.raw_value
-    assert isinstance(raw_version, str)
+    if not isinstance(raw_version, str):
+        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
     version: str = raw_version
     operator: str = search_filter.operator
 
