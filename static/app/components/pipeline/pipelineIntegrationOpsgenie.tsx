@@ -37,8 +37,9 @@ function OpsgenieInstallationConfigStep({
   advance,
   advanceError,
   isAdvancing,
+  isInitializing,
 }: PipelineStepProps<InstallationConfigStepData, InstallationConfigAdvanceData>) {
-  const choices = stepData.baseUrlChoices ?? [];
+  const choices = stepData?.baseUrlChoices ?? [];
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -114,7 +115,7 @@ function OpsgenieInstallationConfigStep({
           )}
         </form.AppField>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing}>
+          <form.SubmitButton disabled={isAdvancing || isInitializing}>
             {isAdvancing ? t('Submitting...') : t('Continue')}
           </form.SubmitButton>
         </Flex>

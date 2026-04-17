@@ -382,11 +382,7 @@ describe('autofixOverviewSection', () => {
 
     function renderSection(
       projectsWithPreferredAgent: AutofixAutomationSettings[],
-      {
-        projects = [ProjectFixture()],
-        org = organization,
-        projectsWithCreatePr = [] as AutofixAutomationSettings[],
-      } = {}
+      {projects = [ProjectFixture()], org = organization, projectsWithCreatePr = []} = {}
     ) {
       ProjectsStore.loadInitialData(projects);
 

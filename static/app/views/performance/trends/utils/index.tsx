@@ -7,7 +7,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
-import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/fields';
+import type {Field, Sort} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -195,12 +195,7 @@ function generateTrendFunctionAsString(
 ): string {
   return generateFieldAsString({
     kind: 'function',
-    function: [
-      trendFunction as AggregationKeyWithAlias,
-      trendParameter,
-      undefined,
-      undefined,
-    ],
+    function: [trendFunction, trendParameter, undefined, undefined],
   });
 }
 
@@ -295,7 +290,7 @@ export function normalizeTrends(
       ...row,
       received_at,
       transaction: row.transaction,
-    } as NormalizedTrendsTransaction;
+    };
   });
 }
 

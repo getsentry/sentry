@@ -25,7 +25,7 @@ import type {
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 
-export type ArtifactData = Record<string, unknown>;
+type ArtifactData = Record<string, unknown>;
 
 /**
  * Get the colored icon for an artifact type.

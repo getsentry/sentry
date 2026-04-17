@@ -2,7 +2,7 @@ import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
+import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

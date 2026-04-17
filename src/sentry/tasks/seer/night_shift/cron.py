@@ -91,13 +91,13 @@ def run_night_shift_for_org(
     organization_id: int,
     dry_run: bool = False,
     max_candidates: int | None = None,
-) -> None:
+) -> int | None:
     try:
         organization = Organization.objects.get(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        return
+        return None
 
     sentry_sdk.set_tags(
         {
@@ -118,7 +118,7 @@ def run_night_shift_for_org(
                     "organization_slug": organization.slug,
                 },
             )
-            return
+            return None
     except Exception:
         logger.exception(
             "night_shift.failed_to_get_eligible_projects",
@@ -126,7 +126,7 @@ def run_night_shift_for_org(
                 "organization_id": organization_id,
             },
         )
-        return
+        return None
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
 
@@ -168,7 +168,7 @@ def run_night_shift_for_org(
             },
         )
         run.update(error_message="Night shift run failed")
-        return
+        return None
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
     for c in candidates:
@@ -204,6 +204,8 @@ def run_night_shift_for_org(
                 if _trigger_autofix_for_candidate(c.group, organization, stopping_point):
                     autofix_triggered += 1
     sentry_sdk.metrics.count("night_shift.autofix_triggered", autofix_triggered)
+
+    return agent_run_id
 
 
 def _get_eligible_orgs_from_batch(
@@ -274,11 +276,20 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences(organization, list(project_map))
 
-    projects = [
+    candidates = [
         project_map[pid]
         for pid, pref in preferences.items()
         if pref is not None
         and pref.repositories
         and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+    ]
+    if not candidates:
+        return [], preferences
+
+    flag_result = features.batch_has(["projects:seer-night-shift"], projects=candidates)
+    projects = [
+        p
+        for p in candidates
+        if (flag_result or {}).get(f"project:{p.id}", {}).get("projects:seer-night-shift", False)
     ]
     return projects, preferences

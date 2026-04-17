@@ -52,9 +52,10 @@ function InstallationConfigStep({
   advance,
   advanceError,
   isAdvancing,
+  isInitializing,
 }: PipelineStepProps<InstallationConfigStepData, InstallationConfigAdvanceData>) {
-  const defaults = stepData.defaults ?? {};
-  const setupValues = stepData.setupValues ?? [];
+  const defaults = stepData?.defaults ?? {};
+  const setupValues = stepData?.setupValues ?? [];
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -200,7 +201,7 @@ function InstallationConfigStep({
           }
         </form.Subscribe>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing}>
+          <form.SubmitButton disabled={isAdvancing || isInitializing}>
             {isAdvancing ? t('Submitting...') : t('Continue')}
           </form.SubmitButton>
         </Flex>
@@ -273,7 +274,7 @@ function GitLabOAuthLoginStep({
 
   return (
     <OAuthLoginStep
-      oauthUrl={stepData.oauthUrl}
+      oauthUrl={stepData?.oauthUrl}
       isLoading={isAdvancing}
       serviceName="GitLab"
       onOAuthCallback={handleOAuthCallback}

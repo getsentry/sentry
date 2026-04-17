@@ -97,9 +97,10 @@ describe('WidgetLegend functions util', () => {
     });
 
     it('gives updated query param when widget change submitted', () => {
+      // New-path widgets (ERRORS + AREA) don't default-hide Releases,
+      // so no default entries are generated.
       expect(legendFunctions.setMultipleWidgetSelectionStateURL(dashboard)).toEqual([
         `12345${WIDGET_ID_DELIMITER}Releases`,
-        `23456${WIDGET_ID_DELIMITER}Releases`,
       ]);
     });
   });

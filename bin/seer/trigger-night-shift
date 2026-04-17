@@ -7,6 +7,8 @@ configure()
 import argparse
 import sys
 
+from sentry import options
+from sentry.models.organization import Organization
 from sentry.tasks.seer.night_shift.cron import run_night_shift_for_org
 
 
@@ -17,10 +19,30 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
+def _get_explorer_url(org_id: int, run_id: int) -> str | None:
+    url_prefix = options.get("system.url-prefix")
+    if not url_prefix:
+        return None
+
+    try:
+        slug = Organization.objects.values_list("slug", flat=True).get(id=org_id)
+    except Organization.DoesNotExist:
+        return None
+
+    return f"{url_prefix}/organizations/{slug}/issues/?explorerRunId={run_id}"
+
+
 def main(org_id: int, max_candidates: int | None) -> None:
     sys.stdout.write(f"> Running night shift for organization {org_id}...\n")
-    run_night_shift_for_org(org_id, max_candidates=max_candidates)
+    agent_run_id = run_night_shift_for_org(org_id, max_candidates=max_candidates)
     sys.stdout.write("> Done.\n")
+
+    if agent_run_id is not None:
+        explorer_url = _get_explorer_url(org_id, agent_run_id)
+        if explorer_url:
+            sys.stdout.write(f"> Explorer run: {explorer_url}\n")
+        else:
+            sys.stdout.write(f"> Explorer run ID: {agent_run_id}\n")
 
 
 if __name__ == "__main__":

@@ -497,7 +497,7 @@ export function toggleSeerExplorerPanel(): void {
     metaKey: isMac,
     ctrlKey: !isMac,
     bubbles: true,
-  } as KeyboardEventInit);
+  });
   document.dispatchEvent(keyboardEvent);
 }
 

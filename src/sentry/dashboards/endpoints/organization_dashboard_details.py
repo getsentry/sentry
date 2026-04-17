@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import logging
 from typing import Any
 
 import sentry_sdk
@@ -30,6 +33,7 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
+    DashboardRevision,
     DashboardTombstone,
 )
 from sentry.models.organization import Organization
@@ -37,6 +41,32 @@ from sentry.models.organizationmember import OrganizationMember
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
+REVISIONS_FEATURE = "organizations:dashboards-revisions"
+
+logger = logging.getLogger(__name__)
+
+
+def _take_dashboard_snapshot(
+    dashboard: Dashboard,
+    user: Any,
+) -> dict[str, Any] | None:
+    """
+    Serialize the current dashboard state as a snapshot, or return None if
+    serialization fails.
+
+    Must be called outside any transaction.atomic block because the serializer
+    makes hybrid-cloud RPC calls (user_service.serialize_many) that cannot run
+    inside a transaction.
+    """
+    try:
+        return serialize(dashboard, user)
+    except Exception:
+        # Snapshot failures must not block the dashboard save. Log and skip.
+        logger.exception(
+            "Failed to serialize dashboard snapshot; proceeding without creating revision",
+            extra={"dashboard_id": dashboard.id},
+        )
+        return None
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
@@ -208,8 +238,16 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                     {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
                 )
 
+        snapshot = None
+        if isinstance(dashboard, Dashboard) and features.has(
+            REVISIONS_FEATURE, organization, actor=request.user
+        ):
+            snapshot = _take_dashboard_snapshot(dashboard, request.user)
+
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
+                if snapshot is not None and isinstance(dashboard, Dashboard):
+                    DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(

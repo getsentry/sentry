@@ -4,13 +4,7 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -117,6 +111,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
+  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
@@ -183,7 +178,7 @@ export const useSeerExplorer = () => {
         }
         return false;
       },
-    } as UseApiQueryOptions<SeerExplorerResponse, RequestError>
+    }
   );
 
   /** Switches to a different run and fetches its latest state. */
@@ -295,6 +290,7 @@ export const useSeerExplorer = () => {
             on_page_context: screenshot,
             page_name: getPageReferrer(),
             override_ce_enable: overrideCtxEngEnable,
+            override_code_mode_enable: overrideCodeModeEnable,
           },
         })) as SeerExplorerChatResponse;
 
@@ -336,6 +332,7 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideCtxEngEnable,
+      overrideCodeModeEnable,
     ]
   );
 
@@ -479,22 +476,22 @@ export const useSeerExplorer = () => {
       const baseSession = sessionData ?? {
         run_id: runId ?? undefined,
         blocks: [],
-        status: 'processing',
+        status: 'processing' as const,
         updated_at: new Date().toISOString(),
       };
 
       return {
         ...baseSession,
         blocks: visibleBlocks,
-        status: 'processing',
-      } as NonNullable<typeof sessionData>;
+        status: 'processing' as const,
+      };
     }
 
     if (sessionData && deletedFromIndex !== null) {
       return {
         ...sessionData,
         blocks: baseBlocks,
-      } as NonNullable<typeof sessionData>;
+      };
     }
 
     return sessionData;
@@ -598,5 +595,7 @@ export const useSeerExplorer = () => {
     createPR,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    overrideCodeModeEnable,
+    setOverrideCodeModeEnable,
   };
 };
