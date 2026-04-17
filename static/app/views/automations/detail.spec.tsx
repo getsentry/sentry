@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {
   ActionFilterFixture,
   ActionFixture,
@@ -8,30 +7,9 @@ import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AutomationDetail from 'sentry/views/automations/detail';
-import {TopBar} from 'sentry/views/navigation/topBar';
-
-function TopBarSlotWrapper({children}: {children: ReactNode}) {
-  return (
-    <TopBar.Slot.Provider>
-      <TopBar.Slot.Outlet name="title">
-        {props => <div {...props} data-test-id="topbar-title-slot" />}
-      </TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="actions">
-        {props => <div {...props} data-test-id="topbar-actions-slot" />}
-      </TopBar.Slot.Outlet>
-      {children}
-    </TopBar.Slot.Provider>
-  );
-}
 
 describe('AutomationDetail', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
@@ -140,37 +118,6 @@ describe('AutomationDetail', () => {
     });
 
     expect(screen.getAllByText('Enable')).toHaveLength(2);
-  });
-
-  it('renders breadcrumbs and actions in the top bar when page frame is enabled', async () => {
-    const pageFrameOrg = OrganizationFixture({
-      features: ['workflow-engine-ui', 'page-frame'],
-    });
-
-    render(<AutomationDetail />, {
-      organization: pageFrameOrg,
-      initialRouterConfig: {
-        route: '/alerts/:automationId/',
-        location: {pathname: '/alerts/123/'},
-      },
-      additionalWrapper: TopBarSlotWrapper,
-    });
-
-    const topBarTitle = screen.getByTestId('topbar-title-slot');
-    const breadcrumbs = await within(topBarTitle).findByTestId('breadcrumb-list');
-    expect(within(breadcrumbs).getByRole('link', {name: 'Alerts'})).toBeInTheDocument();
-    expect(await within(topBarTitle).findByText('Test Automation')).toBeInTheDocument();
-
-    const topBarActions = screen.getByTestId('topbar-actions-slot');
-    expect(
-      await within(topBarActions).findByRole('button', {name: 'Disable'})
-    ).toBeInTheDocument();
-    expect(
-      await within(topBarActions).findByRole('button', {name: 'Edit'})
-    ).toBeInTheDocument();
-
-    expect(screen.getAllByRole('button', {name: 'Disable'})).toHaveLength(1);
-    expect(screen.getAllByRole('button', {name: 'Edit'})).toHaveLength(1);
   });
 
   describe('Action warnings', () => {

@@ -44,10 +44,10 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-function AutomationDetailBreadcrumbs({automation}: {automation: Automation}) {
+function AutomationDetailHeaderContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-
-  return (
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const breadcrumbs = (
     <Breadcrumbs
       crumbs={[
         {
@@ -58,22 +58,14 @@ function AutomationDetailBreadcrumbs({automation}: {automation: Automation}) {
       ]}
     />
   );
-}
-
-function AutomationDetailHeaderContent({automation}: {automation: Automation}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   if (hasPageFrameFeature) {
-    return (
-      <TopBar.Slot name="title">
-        <AutomationDetailBreadcrumbs automation={automation} />
-      </TopBar.Slot>
-    );
+    return <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>;
   }
 
   return (
     <DetailLayout.HeaderContent>
-      <AutomationDetailBreadcrumbs automation={automation} />
+      {breadcrumbs}
       <DetailLayout.Title title={automation.name} />
     </DetailLayout.HeaderContent>
   );
