@@ -22,8 +22,6 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import type {EntrySpans, EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -49,6 +47,7 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
+import type {TransactionSpan} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
@@ -66,6 +65,7 @@ import {
 } from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {SpanFields} from 'sentry/views/insights/types';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {
   useProfiles,
@@ -82,39 +82,21 @@ import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
 const PROFILE_TYPE = 'continuous profile' as const;
 
-function collectAllSpanEntriesFromTransaction(
-  transaction: EventTransaction
-): EntrySpans['data'] {
-  if (!transaction.entries.length) {
-    return [];
-  }
-
-  const spans = transaction.entries.filter(
-    (e): e is EntrySpans => e.type === EntryType.SPANS
-  );
-
-  let allSpans: EntrySpans['data'] = [];
-
-  for (const span of spans) {
-    allSpans = allSpans.concat(span.data);
-  }
-
-  return allSpans;
-}
-
 function getMaxConfigSpace(
   profileGroup: ProfileGroup,
-  transaction: EventTransaction | null,
+  transactionSpan: TransactionSpan | undefined,
   unit: ProfilingFormatterUnit | string,
   [start, end]: readonly [number, number] | readonly [null, null]
 ): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   const spaceDuration = start !== null && end !== null ? end - start : 0;
 
-  if (transaction) {
+  if (transactionSpan) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
-    const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
+    const transactionDuration =
+      transactionSpan[SpanFields.PRECISE_FINISH_TS] -
+      transactionSpan[SpanFields.PRECISE_START_TS];
     // On most platforms, profile duration < transaction duration, however
     // there is one beloved platform where that is not true; android.
     // Hence, we should take the max of the two to ensure both the transaction
@@ -144,16 +126,16 @@ function getProfileOffset(
 }
 
 function getTransactionOffset(
-  transaction: EventTransaction | null,
+  transactionSpan: TransactionSpan | undefined,
   profileTimestamp: number,
   startedAtMs: number | null
 ): Rect {
-  if (!transaction || !startedAtMs) {
+  if (!transactionSpan || !startedAtMs) {
     return Rect.Empty();
   }
 
   return new Rect(
-    transaction.startTimestamp * 1e3 - profileTimestamp - startedAtMs,
+    transactionSpan[SpanFields.PRECISE_START_TS] * 1e3 - profileTimestamp - startedAtMs,
     0,
     0,
     0
@@ -256,7 +238,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
   const profiles = useProfiles();
   const profileGroup = useProfileGroup();
-  const segment = useProfileTransaction();
+  const transactionResult = useProfileTransaction();
 
   const profileTimestamp = useMemo(() => {
     return (
@@ -335,22 +317,18 @@ export function ContinuousFlamegraph(): ReactElement {
   }, [profileGroup, flamegraphProfiles.threadId]);
 
   const spanTree = useMemo(() => {
-    if (segment.type === 'empty') {
-      return null;
-    }
-
-    if (segment.type === 'resolved' && segment.data) {
+    if (!transactionResult.isPending && transactionResult.data.transactionSpan) {
       return new SpanTree(
-        segment.data,
-        collectAllSpanEntriesFromTransaction(segment.data)
+        transactionResult.data.transactionSpan,
+        transactionResult.data.childSpans
       );
     }
 
     return LOADING_OR_FALLBACK_SPAN_TREE;
-  }, [segment]);
+  }, [transactionResult]);
 
   const spanChart = useMemo(() => {
-    if (!profile || !spanTree) {
+    if (!profile || !spanTree || !transactionResult.isEnabled) {
       return null;
     }
 
@@ -358,12 +336,12 @@ export function ContinuousFlamegraph(): ReactElement {
       unit: profile.unit,
       configSpace: getMaxConfigSpace(
         profileGroup,
-        segment.type === 'resolved' ? segment.data : null,
+        transactionResult.data.transactionSpan,
         profile.unit,
         configSpaceQueryParam
       ),
     });
-  }, [spanTree, profile, profileGroup, segment, configSpaceQueryParam]);
+  }, [spanTree, profile, profileGroup, transactionResult, configSpaceQueryParam]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -392,7 +370,7 @@ export function ContinuousFlamegraph(): ReactElement {
       sort: sorting,
       configSpace: getMaxConfigSpace(
         profileGroup,
-        segment.type === 'resolved' ? segment.data : null,
+        transactionResult.data.transactionSpan,
         profile.unit,
         configSpaceQueryParam
       ),
@@ -407,7 +385,7 @@ export function ContinuousFlamegraph(): ReactElement {
     sorting,
     flamegraphProfiles.threadId,
     view,
-    segment,
+    transactionResult,
     configSpaceQueryParam,
   ]);
 
@@ -692,7 +670,7 @@ export function ContinuousFlamegraph(): ReactElement {
       flamegraphCanvas,
       flamegraphTheme,
       profile,
-      segment,
+      transactionResult,
       configSpaceQueryParam,
     ]
   );
@@ -884,7 +862,7 @@ export function ContinuousFlamegraph(): ReactElement {
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
           configSpaceTransform: getTransactionOffset(
-            segment.type === 'resolved' ? segment.data : null,
+            transactionResult.data.transactionSpan,
             profileTimestamp,
             configSpaceQueryParam[0]
           ),
@@ -906,7 +884,7 @@ export function ContinuousFlamegraph(): ReactElement {
       flamegraphTheme.SIZES,
       profileTimestamp,
       configSpaceQueryParam,
-      segment,
+      transactionResult,
     ]
   );
 
@@ -1554,7 +1532,7 @@ export function ContinuousFlamegraph(): ReactElement {
               setSpansCanvasRef={setSpansCanvasRef}
               canvasPoolManager={canvasPoolManager}
               spansView={spansView}
-              spansRequestState={segment}
+              spansRequestState={transactionResult}
             />
           ) : null
         }
@@ -1596,7 +1574,6 @@ export function ContinuousFlamegraph(): ReactElement {
         }
         flamegraphDrawer={
           <FlamegraphDrawer
-            profileTransaction={null}
             profileGroup={profileGroup}
             getFrameColor={getFrameColor}
             referenceNode={referenceNode}
