@@ -49,7 +49,9 @@ const rightAlignColumns = new Set([
 export function McpResourcesTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`);
+  const query = useCombinedQuery(
+    `span.name:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`
+  );
   const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
@@ -155,7 +157,7 @@ function McpResourceCell({resource}: {resource: string}) {
   const {selection} = usePageFilters();
 
   const search = new MutableSearch('');
-  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.NAME, 'mcp.server');
   search.addFilterValue(SpanFields.MCP_RESOURCE_URI, resource);
 
   const link = getExploreUrl({
@@ -168,7 +170,7 @@ function McpResourceCell({resource}: {resource: string}) {
         yAxes: ['count(span.duration)'],
       },
     ],
-    field: ['span.description', 'span.status', 'span.duration', 'timestamp'],
+    field: ['span.name', 'span.status', 'span.duration', 'timestamp'],
     query: search.formatString(),
     sort: '-count(span.duration)',
   });

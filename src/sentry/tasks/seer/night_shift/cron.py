@@ -9,13 +9,24 @@ import sentry_sdk
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import (
+    AutofixAutomationTuningSettings,
+    SeerAutomationSource,
+)
+from sentry.seer.autofix.issue_summary import (
+    _trigger_autofix_task,
+    auto_run_source_map,
+    referrer_map,
+)
+from sentry.seer.autofix.utils import bulk_read_preferences
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
-from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
+from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -76,13 +87,17 @@ def schedule_night_shift() -> None:
     namespace=seer_tasks,
     processing_deadline_duration=5 * 60,
 )
-def run_night_shift_for_org(organization_id: int) -> None:
+def run_night_shift_for_org(
+    organization_id: int,
+    dry_run: bool = False,
+    max_candidates: int | None = None,
+) -> int | None:
     try:
         organization = Organization.objects.get(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        return
+        return None
 
     sentry_sdk.set_tags(
         {
@@ -93,27 +108,43 @@ def run_night_shift_for_org(organization_id: int) -> None:
 
     start_time = time.monotonic()
 
-    eligible_projects = _get_eligible_projects(organization)
-    if not eligible_projects:
-        logger.info(
-            "night_shift.no_eligible_projects",
+    try:
+        eligible_projects, preferences = _get_eligible_projects(organization)
+        if not eligible_projects:
+            logger.info(
+                "night_shift.no_eligible_projects",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_slug": organization.slug,
+                },
+            )
+            return None
+    except Exception:
+        logger.exception(
+            "night_shift.failed_to_get_eligible_projects",
             extra={
                 "organization_id": organization_id,
-                "organization_slug": organization.slug,
             },
         )
-        return
+        return None
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
 
-    triage_strategy = "agentic_triage"
+    resolved_max_candidates = (
+        max_candidates
+        if max_candidates is not None
+        else options.get("seer.night_shift.issues_per_org")
+    )
     run = SeerNightShiftRun.objects.create(
         organization=organization,
-        triage_strategy=triage_strategy,
+        triage_strategy="agentic_triage",
     )
 
+    agent_run_id = None
     try:
-        candidates = agentic_triage_strategy(eligible_projects, organization)
+        candidates, agent_run_id = agentic_triage_strategy(
+            eligible_projects, organization, resolved_max_candidates
+        )
 
         if candidates:
             SeerNightShiftRunIssue.objects.bulk_create(
@@ -133,10 +164,11 @@ def run_night_shift_for_org(organization_id: int) -> None:
             extra={
                 "organization_id": organization_id,
                 "run_id": run.id,
+                "agent_run_id": agent_run_id,
             },
         )
         run.update(error_message="Night shift run failed")
-        return
+        return None
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
     for c in candidates:
@@ -149,8 +181,10 @@ def run_night_shift_for_org(organization_id: int) -> None:
             "organization_id": organization_id,
             "organization_slug": organization.slug,
             "run_id": run.id,
+            "agent_run_id": agent_run_id,
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
+            "dry_run": dry_run,
             "candidates": [
                 {
                     "group_id": c.group.id,
@@ -160,6 +194,18 @@ def run_night_shift_for_org(organization_id: int) -> None:
             ],
         },
     )
+
+    autofix_triggered = 0
+    if not dry_run:
+        for c in candidates:
+            if c.action == TriageAction.AUTOFIX:
+                pref = preferences.get(c.group.project_id)
+                stopping_point = pref.automated_run_stopping_point if pref else None
+                if _trigger_autofix_for_candidate(c.group, organization, stopping_point):
+                    autofix_triggered += 1
+    sentry_sdk.metrics.count("night_shift.autofix_triggered", autofix_triggered)
+
+    return agent_run_id
 
 
 def _get_eligible_orgs_from_batch(
@@ -184,20 +230,66 @@ def _get_eligible_orgs_from_batch(
     return eligible
 
 
-def _get_eligible_projects(organization: Organization) -> list[Project]:
-    """Return active projects that have automation enabled and connected repos."""
-    projects_with_repos = set(
-        SeerProjectRepository.objects.filter(
-            project__organization=organization,
-            project__status=ObjectStatus.ACTIVE,
-        ).values_list("project_id", flat=True)
-    )
-    if not projects_with_repos:
-        return []
+def _trigger_autofix_for_candidate(
+    group: Group, organization: Organization, stopping_point: str | None
+) -> bool:
+    """Trigger autofix for a single candidate identified as fixable by night shift triage.
 
-    projects = Project.objects.filter(id__in=projects_with_repos)
-    return [
-        p
-        for p in projects
-        if p.get_option("sentry:autofix_automation_tuning") != AutofixAutomationTuningSettings.OFF
+    Returns True if the autofix task was dispatched.
+    """
+    try:
+        event = group.get_latest_event()
+        if not event:
+            logger.warning(
+                "night_shift.no_event_for_autofix",
+                extra={"group_id": group.id, "organization_id": organization.id},
+            )
+            return False
+
+        _trigger_autofix_task.delay(
+            group_id=group.id,
+            event_id=event.event_id,
+            user_id=None,
+            auto_run_source=auto_run_source_map[SeerAutomationSource.NIGHT_SHIFT],
+            referrer=referrer_map[SeerAutomationSource.NIGHT_SHIFT],
+            stopping_point=stopping_point,
+        )
+        return True
+    except Exception:
+        logger.exception(
+            "night_shift.autofix_trigger_failed",
+            extra={"group_id": group.id, "organization_id": organization.id},
+        )
+        return False
+
+
+def _get_eligible_projects(
+    organization: Organization,
+) -> tuple[list[Project], dict[int, SeerProjectPreference | None]]:
+    """Return active projects that have automation enabled and connected repos."""
+    project_map = {
+        p.id: p
+        for p in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    }
+    if not project_map:
+        return [], {}
+
+    preferences = bulk_read_preferences(organization, list(project_map))
+
+    candidates = [
+        project_map[pid]
+        for pid, pref in preferences.items()
+        if pref is not None
+        and pref.repositories
+        and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
     ]
+    if not candidates:
+        return [], preferences
+
+    flag_result = features.batch_has(["projects:seer-night-shift"], projects=candidates)
+    projects = [
+        p
+        for p in candidates
+        if (flag_result or {}).get(f"project:{p.id}", {}).get("projects:seer-night-shift", False)
+    ]
+    return projects, preferences

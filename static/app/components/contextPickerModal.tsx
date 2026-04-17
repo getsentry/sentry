@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
@@ -28,6 +29,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
@@ -135,13 +137,12 @@ function ContextPickerContent({
     return rawProjects.filter(p => slugSet.has(p.slug));
   }, [rawProjects, projectSlugs]);
 
-  const {data: teams = [], isLoading: teamsLoading} = useApiQuery<Team[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
-        path: {organizationIdOrSlug: selectedOrgSlug ?? ''},
-      }),
-    ],
-    {staleTime: Infinity, enabled: !!selectedOrgSlug && needTeam}
+  const {data: teams = [], isLoading: teamsLoading} = useQuery(
+    apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+      path:
+        selectedOrgSlug && needTeam ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+      staleTime: Infinity,
+    })
   );
 
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | null>(null);

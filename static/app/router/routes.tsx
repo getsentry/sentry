@@ -673,6 +673,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/preprod')),
     },
     {
+      path: 'snapshots/',
+      name: t('Snapshots'),
+      component: make(() => import('sentry/views/settings/project/preprod/snapshots')),
+    },
+    {
       path: 'keys/',
       name: t('Client Keys'),
       children: [
@@ -2521,6 +2526,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
+    },
+    {
+      path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
+      component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
       path: 'instrumentation/',

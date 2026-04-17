@@ -248,7 +248,7 @@ function makeSlotProvider<T extends Slot>(
   }
 
   SlotProvider.displayName = 'Slot.Provider';
-  return SlotProvider as (props: SlotProviderProps) => React.ReactNode;
+  return SlotProvider;
 }
 
 function makeUseSlotOutletRef<T extends Slot>(

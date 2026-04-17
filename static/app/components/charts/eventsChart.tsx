@@ -165,7 +165,7 @@ class Chart extends Component<ChartProps, State> {
   handleLegendSelectChanged = (legendChange: any) => {
     const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
-    const seriesSelection = Object.keys(selected).reduce(
+    const seriesSelection = Object.keys(selected).reduce<Record<string, boolean>>(
       (state, key) => {
         // we only want them to be able to disable the Releases&Other series,
         // and not any of the other possible series here
@@ -174,7 +174,7 @@ class Chart extends Component<ChartProps, State> {
         state[key] = disableable ? selected[key] : true;
         return state;
       },
-      {} as Record<string, boolean>
+      {}
     );
 
     // we have to force an update here otherwise ECharts will

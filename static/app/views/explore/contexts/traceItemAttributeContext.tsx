@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
+import {useQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
@@ -18,9 +21,12 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {removeHiddenKeys} from 'sentry/views/explore/utils';
+import {
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type TypedTraceItemAttributes = {
   boolean: TagCollection;
@@ -73,61 +79,42 @@ function useTraceItemAttributeConfig({
   query,
   staleTime,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
   const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemAttributeKeys({
-      enabled,
-      type: 'number',
+  const {data, isLoading: attributesLoading} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
       traceItemType,
       projectIds,
       projects,
       search,
       query,
       staleTime,
-    });
-
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemAttributeKeys({
-      enabled,
-      type: 'string',
-      traceItemType,
-      projectIds,
-      projects,
-      search,
-      query,
-      staleTime,
-    });
-
-  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
-    useTraceItemAttributeKeys({
-      enabled,
-      type: 'boolean',
-      traceItemType,
-      projectIds,
-      projects,
-      search,
-      query,
-      staleTime,
-    });
+    }),
+    enabled,
+    select: selectTraceItemTagCollection(),
+  });
 
   const booleanBaseKeys = useMemo(() => {
     const keys = new Set(getDefaultBooleanAttributes(traceItemType));
-    for (const key of Object.keys(booleanAttributes ?? {})) {
+    for (const key of Object.keys(data?.booleanAttributes ?? {})) {
       keys.add(extractBaseKey(key));
     }
 
     return keys;
-  }, [booleanAttributes, traceItemType]);
+  }, [data?.booleanAttributes, traceItemType]);
 
   const allNumberAttributes = useMemo(() => {
     const shouldRemove = booleanBaseKeys.size > 0;
     const attributes: TagCollection = {};
     const secondaryAliases: TagCollection = {};
 
-    for (const [key, value] of Object.entries(numberAttributes ?? {})) {
+    for (const [key, value] of Object.entries(data?.numberAttributes ?? {})) {
       if (!shouldRemove || !shouldRemoveAttributeKey(key, booleanBaseKeys)) {
         attributes[key] = value;
       }
@@ -158,7 +145,7 @@ function useTraceItemAttributeConfig({
     }
 
     return {attributes, secondaryAliases};
-  }, [numberAttributes, traceItemType, booleanBaseKeys]);
+  }, [data?.numberAttributes, traceItemType, booleanBaseKeys]);
 
   const allStringAttributes = useMemo(() => {
     const tags = getDefaultStringAttributes(traceItemType).map(tag => [
@@ -166,16 +153,16 @@ function useTraceItemAttributeConfig({
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
     const secondaryAliases: TagCollection = Object.fromEntries(
-      Object.values(stringAttributes ?? {})
+      Object.values(data?.stringAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
         .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.TAG}])
     );
 
     return {
-      attributes: {...stringAttributes, ...Object.fromEntries(tags)},
+      attributes: {...data?.stringAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [stringAttributes, traceItemType]);
+  }, [data?.stringAttributes, traceItemType]);
 
   const allBooleanAttributes = useMemo(() => {
     const tags = getDefaultBooleanAttributes(traceItemType).map(tag => [
@@ -183,16 +170,16 @@ function useTraceItemAttributeConfig({
       {key: tag, name: tag, kind: FieldKind.BOOLEAN},
     ]);
     const secondaryAliases: TagCollection = Object.fromEntries(
-      Object.values(booleanAttributes ?? {})
+      Object.values(data?.booleanAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
         .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.BOOLEAN}])
     );
 
     return {
-      attributes: {...booleanAttributes, ...Object.fromEntries(tags)},
+      attributes: {...data?.booleanAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [booleanAttributes, traceItemType]);
+  }, [data?.booleanAttributes, traceItemType]);
 
   return useMemo(
     () => ({
@@ -202,9 +189,9 @@ function useTraceItemAttributeConfig({
       booleanSecondaryAliases: allBooleanAttributes.secondaryAliases,
       numberSecondaryAliases: allNumberAttributes.secondaryAliases,
       stringSecondaryAliases: allStringAttributes.secondaryAliases,
-      booleanAttributesLoading,
-      numberAttributesLoading,
-      stringAttributesLoading,
+      booleanAttributesLoading: attributesLoading,
+      numberAttributesLoading: attributesLoading,
+      stringAttributesLoading: attributesLoading,
     }),
     [
       allBooleanAttributes.attributes,
@@ -213,9 +200,7 @@ function useTraceItemAttributeConfig({
       allNumberAttributes.secondaryAliases,
       allStringAttributes.attributes,
       allStringAttributes.secondaryAliases,
-      booleanAttributesLoading,
-      numberAttributesLoading,
-      stringAttributesLoading,
+      attributesLoading,
     ]
   );
 }

@@ -92,6 +92,13 @@ enum DetectorConfigAdmin {
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
   WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
+  AI_ISSUE_DETECTION_ENABLED = 'ai_issue_detection_enabled',
+  AI_DETECTED_HTTP_ENABLED = 'ai_detected_http_enabled',
+  AI_DETECTED_DB_ENABLED = 'ai_detected_db_enabled',
+  AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED = 'ai_detected_runtime_performance_enabled',
+  AI_DETECTED_SECURITY_ENABLED = 'ai_detected_security_enabled',
+  AI_DETECTED_CODE_HEALTH_ENABLED = 'ai_detected_code_health_enabled',
+  AI_DETECTED_GENERAL_ENABLED = 'ai_detected_general_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -193,6 +200,9 @@ export function ProjectPerformance() {
   });
 
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
+  const hasAIIssueDetection =
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('ai-issue-detection');
 
   const {
     data: threshold,
@@ -589,6 +599,24 @@ export function ProjectPerformance() {
         );
       },
       visible: hasWebVitalsSeerSuggestions,
+    },
+    [IssueTitle.AI_DETECTED_GENERAL]: {
+      name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
+      type: 'boolean',
+      label: IssueTitle.AI_DETECTED_GENERAL,
+      help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            ai_issue_detection_enabled: value,
+          })
+        );
+      },
+      visible: hasAIIssueDetection,
     },
   };
 
@@ -1022,6 +1050,77 @@ export function ProjectPerformance() {
         ],
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
+      {
+        title: IssueTitle.AI_DETECTED_GENERAL,
+        fields: [
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
+            type: 'boolean' as const,
+            label: t('HTTP Issues'),
+            help: t('Allow HTTP issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
+            type: 'boolean' as const,
+            label: t('Database Issues'),
+            help: t('Allow database issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
+            type: 'boolean' as const,
+            label: t('Runtime Performance Issues'),
+            help: t('Allow runtime performance issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
+            type: 'boolean' as const,
+            label: t('Security Issues'),
+            help: t('Allow security issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
+            type: 'boolean' as const,
+            label: t('Code Health Issues'),
+            help: t('Allow code health issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+        ],
+        initiallyCollapsed: issueType !== IssueType.AI_DETECTED_GENERAL,
+      },
     ];
 
     // If the organization can manage detectors, add the admin field to the existing settings
@@ -1034,10 +1133,10 @@ export function ProjectPerformance() {
             ...fieldGroup,
             fields: [
               {
-                ...manageField,
                 help: t(
                   'Controls whether or not Sentry should detect this type of issue.'
                 ),
+                ...manageField,
                 disabled: !hasAccess,
                 disabledReason: t('You do not have permission to manage detectors.'),
               },

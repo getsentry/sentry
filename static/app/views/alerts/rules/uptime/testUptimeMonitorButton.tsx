@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -8,9 +6,9 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  PreviewCheckStatus,
   type PreviewCheckPayload,
   type PreviewCheckResult,
+  PreviewCheckStatus,
   type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
 
@@ -96,7 +94,7 @@ export function TestUptimeMonitorButton({
     },
   });
 
-  const handleTestClick = useCallback(() => {
+  const handleTestClick = () => {
     const formData = getFormData();
 
     if (!formData.url) {
@@ -112,7 +110,7 @@ export function TestUptimeMonitorButton({
       body: formData.body,
       assertion: formData.assertion,
     });
-  }, [getFormData, runPreviewCheck]);
+  };
 
   return (
     <Button onClick={handleTestClick} busy={isPending} disabled={isPending} size={size}>

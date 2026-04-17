@@ -462,6 +462,7 @@ export default typescript.config([
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-styled-shortcut': 'error',
+      '@sentry/no-unnecessary-use-callback': 'error',
     },
   },
   {
@@ -616,12 +617,15 @@ export default typescript.config([
             {considerDefaultExhaustiveForUnions: true},
           ],
           '@typescript-eslint/only-throw-error': 'error',
+          '@typescript-eslint/prefer-as-const': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
+          '@typescript-eslint/prefer-reduce-type-parameter': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
           '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
+          '@sentry/no-unnecessary-type-narrowing': 'error',
         }
       : {},
   },
@@ -782,7 +786,7 @@ export default typescript.config([
       'unicorn/no-invalid-remove-event-listener': 'error',
       'unicorn/no-negated-condition': 'error',
       'unicorn/no-negation-in-equality-check': 'error',
-      'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-new-array': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule

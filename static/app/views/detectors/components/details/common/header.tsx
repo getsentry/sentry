@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
@@ -49,24 +51,35 @@ export function DetectorDetailsDefaultHeaderContent({
   project: Project;
 }) {
   const hasPageFrameFeature = useHasPageFrameFeature();
+
+  if (hasPageFrameFeature) {
+    return (
+      <TopBar.Slot name="title">
+        <DetectorDetailsBreadcrumbs detector={detector} />
+      </TopBar.Slot>
+    );
+  }
+
   return (
     <DetailLayout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <TopBar.Slot name="title">
-          <DetectorDetailsBreadcrumbs detector={detector} />
-        </TopBar.Slot>
-      ) : (
-        <DetectorDetailsBreadcrumbs detector={detector} />
-      )}
-      {!hasPageFrameFeature && (
-        <DetailLayout.Title title={detector.name} project={project} />
-      )}
+      <DetectorDetailsBreadcrumbs detector={detector} />
+      <DetailLayout.Title title={detector.name} project={project} />
     </DetailLayout.HeaderContent>
   );
 }
 
 function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
-  return (
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  return hasPageFrameFeature ? (
+    <Fragment>
+      <TopBar.Slot name="actions">
+        <DisableDetectorAction detector={detector} />
+        <EditDetectorAction detector={detector} />
+      </TopBar.Slot>
+      <MonitorFeedbackButton />
+    </Fragment>
+  ) : (
     <DetailLayout.Actions>
       <MonitorFeedbackButton />
       <DisableDetectorAction detector={detector} />
@@ -76,6 +89,17 @@ function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
 }
 
 export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeaderProps) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+        <DetectorDetailsDefaultActions detector={detector} />
+      </Fragment>
+    );
+  }
+
   return (
     <DetailLayout.Header>
       <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />

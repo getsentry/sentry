@@ -127,15 +127,14 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
   }
 
   const knownEvidence =
-    event?.occurrence?.evidenceDisplay?.reduce(
-      (map, eed) => {
-        if (KnownEvidenceKeys.has(eed.name)) {
-          map[eed.name as KnownEvidence] = eed;
-        }
-        return map;
-      },
-      {} as Record<KnownEvidence, EventEvidenceDisplay>
-    ) ?? ({} as Record<KnownEvidence, EventEvidenceDisplay>);
+    event?.occurrence?.evidenceDisplay?.reduce<
+      Partial<Record<KnownEvidence, EventEvidenceDisplay>>
+    >((map, eed) => {
+      if (KnownEvidenceKeys.has(eed.name)) {
+        map[eed.name as KnownEvidence] = eed;
+      }
+      return map;
+    }, {}) ?? {};
 
   (Object.entries(knownEvidence) as Array<[KnownEvidence, EventEvidenceDisplay]>).forEach(
     ([evidenceKey, evidence]) => {

@@ -260,28 +260,25 @@ export function OnboardingWithoutContext() {
     isRecentCreatedProjectActive: isProjectActive,
   });
 
-  const goNextStep = useCallback(
-    (
-      step: StepDescriptor,
-      platform?: OnboardingSelectedSDK,
-      query?: Record<string, string[]>
-    ) => {
-      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1]!;
+  const goNextStep = (
+    step: StepDescriptor,
+    platform?: OnboardingSelectedSDK,
+    query?: Record<string, string[]>
+  ) => {
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (
-        nextStep.id === OnboardingStepId.SETUP_DOCS &&
-        !platform &&
-        !onboardingContext.selectedPlatform
-      ) {
-        return;
-      }
+    if (
+      nextStep.id === OnboardingStepId.SETUP_DOCS &&
+      !platform &&
+      !onboardingContext.selectedPlatform
+    ) {
+      return;
+    }
 
-      const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
-      navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
-    },
-    [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
-  );
+    const pathname = `/onboarding/${organization.slug}/${nextStep.id}/`;
+    navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
+  };
 
   const genSkipOnboardingLink = () => {
     const source = `targeted-onboarding-${stepId}`;

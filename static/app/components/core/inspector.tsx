@@ -282,36 +282,30 @@ export function SentryComponentInspector() {
   }, [state.trace]);
 
   const {ref: contextMenuRef, ...contextMenuProps} = {...contextMenu.getMenuProps()};
-  const positionContextMenuOnMountRef = useCallback(
-    (ref: HTMLDivElement | null) => {
-      contextMenuRef(ref);
+  const positionContextMenuOnMountRef = (ref: HTMLDivElement | null) => {
+    contextMenuRef(ref);
 
-      if (ref) {
-        const position = computeTooltipPosition(
-          {
-            x: tooltipPositionRef.current?.mouse.x ?? 0,
-            y: tooltipPositionRef.current?.mouse.y ?? 0,
-          },
-          ref
-        );
+    if (ref) {
+      const position = computeTooltipPosition(
+        {
+          x: tooltipPositionRef.current?.mouse.x ?? 0,
+          y: tooltipPositionRef.current?.mouse.y ?? 0,
+        },
+        ref
+      );
 
-        ref.style.left = `${position.left}px`;
-        ref.style.top = `${position.top}px`;
-      }
-    },
-    [contextMenuRef]
-  );
+      ref.style.left = `${position.left}px`;
+      ref.style.top = `${position.top}px`;
+    }
+  };
 
   const storybookFiles = useStoryBookFiles();
   const storybookFilesLookup = useMemo(
     () =>
-      storybookFiles.reduce(
-        (acc, file) => {
-          acc[file] = file;
-          return acc;
-        },
-        {} as Record<string, string>
-      ),
+      storybookFiles.reduce<Record<string, string>>((acc, file) => {
+        acc[file] = file;
+        return acc;
+      }, {}),
     [storybookFiles]
   );
 

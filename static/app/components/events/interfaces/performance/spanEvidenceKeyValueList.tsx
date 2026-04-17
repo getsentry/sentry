@@ -107,15 +107,13 @@ function ConsecutiveHTTPSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          makeRow(
-            'Offending Spans',
-            offendingSpans.map(span => span.description)
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(
+          'Offending Spans',
+          offendingSpans.map(span => span.description)
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -129,17 +127,15 @@ function LargeHTTPPayloadSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
-          makeRow(
-            t('Payload Size'),
-            getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-              getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
+        makeRow(
+          t('Payload Size'),
+          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -154,13 +150,11 @@ function HTTPOverheadSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
 
-          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
-        ].filter(Boolean) as KeyValueListData
-      }
+        makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
+      ].filter(Boolean)}
     />
   );
 }
@@ -425,6 +419,12 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL_V2]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_HTTP]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_DB]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_RUNTIME_PERFORMANCE]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_SECURITY]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_CODE_HEALTH]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_GENERAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -563,9 +563,7 @@ function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
     <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
   );
 
-  return (
-    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
-  );
+  return <PresortedKeyValueList data={[transactionRow].filter(Boolean)} />;
 }
 
 function DefaultSpanEvidence({

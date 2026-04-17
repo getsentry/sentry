@@ -8,7 +8,7 @@ export function McpToolDurationWidget() {
     <GroupedDurationWidget
       groupBy={SpanFields.MCP_TOOL_NAME}
       referrer={MCPReferrer.MCP_TOOL_DURATION_WIDGET}
-      query={`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`}
+      query={`span.name:mcp.server has:${SpanFields.MCP_TOOL_NAME}`}
       title={t('Slowest Tools')}
     />
   );

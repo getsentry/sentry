@@ -13,12 +13,17 @@ from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
 import orjson
+import sentry_sdk
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
+
+# Sentinel for `observe_viewer_context_propagation(ctx=...)`: distinguishes
+# "caller passed None" from "caller didn't pass ctx".
+_OBSERVE_USE_CONTEXTVAR: Any = object()
 
 _viewer_context_var: contextvars.ContextVar[ViewerContext | None] = contextvars.ContextVar(
     "viewer_context", default=None
@@ -101,6 +106,62 @@ def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:
 def get_viewer_context() -> ViewerContext | None:
     """Return the current ``ViewerContext``, or ``None`` if not set."""
     return _viewer_context_var.get()
+
+
+def observe_viewer_context_propagation(
+    point: str,
+    *,
+    ctx: ViewerContext | None | Any = _OBSERVE_USE_CONTEXTVAR,
+    expected: bool = True,
+) -> None:
+    """Emit a ``viewer_context.observation`` counter for the current ViewerContext at *point*.
+
+    Tags: ``point``, ``actor_type``, ``has_user_id``, ``has_org_id``, ``expected``.
+    Cardinality stays bounded: never tag user/org ids themselves, only their presence.
+
+    By default reads the current ContextVar. Pass *ctx* explicitly when the value
+    being observed is a just-resolved override that hasn't entered a scope yet
+    (e.g. the merged result inside ``make_signed_seer_api_request``).
+
+    When ``expected`` is True (the default — most chokepoints expect a viewer)
+    and no ViewerContext is present, also emits a warning log so the offending
+    call site can be identified.
+    """
+    if ctx is _OBSERVE_USE_CONTEXTVAR:
+        ctx = _viewer_context_var.get()
+
+    if ctx is None:
+        actor_type = "none"
+        has_user = False
+        has_org = False
+    else:
+        actor_type = ctx.actor_type.value
+        has_user = ctx.user_id is not None
+        has_org = ctx.organization_id is not None
+
+    sentry_sdk.metrics.count(
+        "viewer_context.observation",
+        1,
+        attributes={
+            "point": point,
+            "actor_type": actor_type,
+            "has_user_id": str(has_user).lower(),
+            "has_org_id": str(has_org).lower(),
+            "expected": str(expected).lower(),
+        },
+    )
+
+    if expected and ctx is None:
+        logger.warning("viewer_context.missing", extra={"point": point})
+
+
+def set_viewer_context_organization(organization_id: int) -> None:
+    """Update the current ``ViewerContext`` with a resolved organization id."""
+    ctx = get_viewer_context()
+    if ctx is None or ctx.organization_id == organization_id:
+        return
+
+    _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
 
 
 # ---------------------------------------------------------------------------

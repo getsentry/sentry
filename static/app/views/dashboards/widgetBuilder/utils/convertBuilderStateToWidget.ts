@@ -136,7 +136,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
     state.displayType ?? DisplayType.TABLE
   )
-    ? undefined
+    ? null
     : state.limit;
 
   return {

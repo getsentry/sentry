@@ -42,7 +42,7 @@ export const pulse = (size: number) => keyframes`
 `;
 
 export const makeShake = (distance = 3) => keyframes`
-${new Array(50)
+${Array.from({length: 50})
   .fill(0)
   .map(
     (_, i) => `${i * 2}% {
@@ -55,7 +55,7 @@ ${new Array(50)
 `;
 
 export const makeOpacityJitter = () => keyframes`
-${new Array(50)
+${Array.from({length: 50})
   .fill(0)
   .map(
     (_, i) => `${i * 2}% {

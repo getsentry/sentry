@@ -62,7 +62,7 @@ export function convertWidgetToQueryParams(
     description,
     dataset,
     displayType: widget.displayType ?? DisplayType.TABLE,
-    limit: widget.limit,
+    limit: widget.limit ?? undefined,
     field,
     yAxis,
     query,

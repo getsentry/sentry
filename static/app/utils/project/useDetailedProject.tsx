@@ -1,31 +1,43 @@
+import type {UseQueryOptions} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
+
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 interface DetailedProjectParameters {
   orgSlug: string;
   projectSlug: string;
 }
 
-export const makeDetailedProjectQueryKey = ({
+type DetailedProjectOptions = Omit<
+  UseQueryOptions<ApiResponse<Project>, Error, Project, ApiQueryKey>,
+  'queryKey' | 'queryFn' | 'select'
+>;
+
+export const makeDetailedProjectApiOptions = ({
   orgSlug,
   projectSlug,
-}: DetailedProjectParameters): ApiQueryKey => [
-  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+}: DetailedProjectParameters) =>
+  apiOptions.as<Project>()('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
     path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-  }),
-];
+    query: {
+      // Skips expensive properties of organization details
+      collapse: 'organization',
+    },
+    staleTime: Infinity,
+  });
+
+export const makeDetailedProjectQueryKey = (params: DetailedProjectParameters) =>
+  makeDetailedProjectApiOptions(params).queryKey;
 
 export function useDetailedProject(
   params: DetailedProjectParameters,
-  options: Partial<UseApiQueryOptions<Project>> = {}
+  options: DetailedProjectOptions = {}
 ) {
-  return useApiQuery<Project>(makeDetailedProjectQueryKey(params), {
-    staleTime: Infinity,
+  return useQuery({
+    ...makeDetailedProjectApiOptions(params),
     retry: false,
     ...options,
   });

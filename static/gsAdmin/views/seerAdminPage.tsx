@@ -16,6 +16,8 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState<string>('');
+  const [dryRun, setDryRun] = useState<boolean>(false);
+  const [maxCandidates, setMaxCandidates] = useState<string>('');
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
 
@@ -24,12 +26,19 @@ export function SeerAdminPage() {
       return fetchMutation({
         url: '/internal/seer/night-shift/trigger/',
         method: 'POST',
-        data: {organization_id: parseInt(organizationId, 10)},
+        data: {
+          organization_id: parseInt(organizationId, 10),
+          dry_run: dryRun,
+          ...(maxCandidates ? {max_candidates: parseInt(maxCandidates, 10)} : {}),
+        },
         options: {host: region?.url},
       });
     },
     onSuccess: () => {
-      addSuccessMessage(`Night shift run triggered for organization ${organizationId}`);
+      const mode = dryRun ? ' (dry run)' : '';
+      addSuccessMessage(
+        `Night shift run triggered for organization ${organizationId}${mode}`
+      );
       setOrganizationId('');
     },
     onError: () => {
@@ -96,6 +105,25 @@ export function SeerAdminPage() {
                   onChange={e => setOrganizationId(e.target.value)}
                   placeholder="Enter organization ID"
                 />
+                <label htmlFor="maxCandidates">
+                  <Text bold>Max candidates (optional):</Text>
+                </label>
+                <Input
+                  type="number"
+                  name="maxCandidates"
+                  min={1}
+                  value={maxCandidates}
+                  onChange={e => setMaxCandidates(e.target.value)}
+                  placeholder="Leave blank to use default"
+                />
+                <Flex as="label" gap="sm" align="center">
+                  <input
+                    type="checkbox"
+                    checked={dryRun}
+                    onChange={e => setDryRun(e.target.checked)}
+                  />
+                  <Text>Dry run (triage only, no autofix triggered)</Text>
+                </Flex>
                 <Button
                   priority="primary"
                   type="submit"

@@ -23,6 +23,7 @@ def find_base_snapshot_artifact(
             commit_comparison__head_repo_name=base_repo_name,
             project_id=project_id,
             preprodsnapshotmetrics__isnull=False,
+            preprodsnapshotmetrics__is_selective=False,
             app_id=app_id,
             artifact_type=artifact_type,
             build_configuration=build_configuration,
