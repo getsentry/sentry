@@ -1,9 +1,5 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
-
-import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
@@ -14,22 +10,16 @@ import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
-import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {type ApiQueryKey, parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {
-  MIN_DEAD_RAGE_CLICK_SDK,
-  MIN_REPLAY_CLICK_SDK,
-} from 'sentry/utils/replays/sdkVersions';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import {BulkDeleteAlert} from 'sentry/views/replays/list/bulkDeleteAlert';
-import {ReplaysFilters} from 'sentry/views/replays/list/filters';
-import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
-import {ReplaysSearch} from 'sentry/views/replays/list/search';
+import {ReplayListControls} from 'sentry/views/replays/list/replayListControls';
 import {useReplayIndexTableColumns} from 'sentry/views/replays/list/useReplayIndexTableColumns';
 import {DeadRageSelectorCards} from 'sentry/views/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -38,16 +28,22 @@ interface Props {
   error: Error | null | undefined;
   hasMoreResults: boolean;
   isPending: boolean;
+  onToggleWidgets: () => void;
   queryKey: ApiQueryKey;
   replays: ReplayListRecord[];
+  showDeadRageClickCards: boolean;
+  widgetIsOpen: boolean;
 }
 
 export function ReplayIndexTable({
   error,
   hasMoreResults,
   isPending,
+  onToggleWidgets,
   queryKey,
   replays,
+  showDeadRageClickCards,
+  widgetIsOpen,
 }: Props) {
   const queryClient = useQueryClient();
 
@@ -57,13 +53,6 @@ export function ReplayIndexTable({
 
   const tableRef = useRef<HTMLDivElement>(null);
   const tableDimensions = useDimensions({elementRef: tableRef});
-
-  const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
-    minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
-    projectId: projects.map(String),
-  });
-  const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
-  const isLoading = hasSentReplays.fetching || rageClicksSdkVersion.isFetching;
 
   const {onSortClick, sortType} = useReplayTableSort();
 
@@ -75,14 +64,6 @@ export function ReplayIndexTable({
     search: options?.query?.query,
   });
 
-  const showDeadRageClickCards =
-    !rageClicksSdkVersion.needsUpdate && !allMobileProj && !isLoading;
-
-  const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
-    'replay-dead-rage-widget-open',
-    true
-  );
-
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays,
   });
@@ -91,16 +72,11 @@ export function ReplayIndexTable({
 
   return (
     <Fragment>
-      <Flex gap="md" wrap="wrap">
-        <ReplaysFilters />
-        <ReplaysSearch />
-        <SaveReplayQueryButton />
-        {showDeadRageClickCards ? (
-          <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
-            {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
-          </Button>
-        ) : null}
-      </Flex>
+      <ReplayListControls
+        onToggleWidgets={onToggleWidgets}
+        showDeadRageClickCards={showDeadRageClickCards}
+        widgetIsOpen={widgetIsOpen}
+      />
       {projects.length === 1 ? (
         <BulkDeleteAlert
           projectId={String(projects[0] ?? '')}

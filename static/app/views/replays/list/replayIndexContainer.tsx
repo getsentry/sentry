@@ -15,7 +15,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplayIndexTable} from 'sentry/views/replays/list/replayIndexTable';
 
-export function ReplayIndexContainer() {
+interface Props {
+  onToggleWidgets: () => void;
+  showDeadRageClickCards: boolean;
+  widgetIsOpen: boolean;
+}
+
+export function ReplayIndexContainer({
+  onToggleWidgets,
+  showDeadRageClickCards,
+  widgetIsOpen,
+}: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
@@ -58,7 +68,10 @@ export function ReplayIndexContainer() {
         isPending={isPending}
         error={error}
         hasMoreResults={Boolean(hasNextResultsPage || hasPrevResultsPage)}
+        onToggleWidgets={onToggleWidgets}
         queryKey={replayListOptions.queryKey}
+        showDeadRageClickCards={showDeadRageClickCards}
+        widgetIsOpen={widgetIsOpen}
       />
       <PaginationNoMargin
         pageLinks={pageLinks}

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
@@ -293,4 +295,77 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
 
 OCCURRENCE_VIRTUAL_CONTEXTS = {
     **project_virtual_contexts(),
+}
+
+OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
+    Literal["string", "number", "boolean"], dict[str, str]
+] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    }
+    | {
+        # sentry.service is the project id as a string, but map to project for convenience
+        "sentry.service": "project",
+    },
+    "boolean": {
+        definition.internal_name: definition.public_alias
+        for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "boolean"
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+        # Include boolean attributes because they're stored as numbers (0 or 1)
+        if not definition.secondary_alias and definition.search_type != "string"
+    },
+}
+
+OCCURRENCE_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
+}
+
+# For dynamic internal attributes (eg. meta information for attributes) we match by the beginning of the key.
+OCCURRENCE_PRIVATE_ATTRIBUTE_PREFIXES: set[str] = {constants.META_PREFIX}
+
+OCCURRENCE_REPLACEMENT_ATTRIBUTES: set[str] = {
+    definition.replacement
+    for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+OCCURRENCE_REPLACEMENT_MAP: dict[str, str] = {
+    definition.public_alias: definition.replacement
+    for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values()
+    if definition.replacement
+}
+
+OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
+
+for definition in OCCURRENCE_ATTRIBUTE_DEFINITIONS.values():
+    if not definition.secondary_alias:
+        continue
+
+    secondary_aliases = OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING.get(
+        definition.internal_name, set()
+    )
+    secondary_aliases.add(definition.public_alias)
+    OCCURRENCE_INTERNAL_TO_SECONDARY_ALIASES_MAPPING[definition.internal_name] = secondary_aliases
+
+# Attributes excluded from stats queries (e.g., attribute distributions)
+# These are typically system-level identifiers that don't provide useful distribution insights
+OCCURRENCE_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS: set[str] = {
+    "id",
+    "trace",
+    "span_id",
+    "group_id",
+    "issue_occurrence_id",
+    "primary_hash",
+    "fingerprint",
+    "resource_id",
+    "profile_id",
+    "replay_id",
 }

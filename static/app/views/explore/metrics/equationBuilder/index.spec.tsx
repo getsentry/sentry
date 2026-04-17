@@ -55,7 +55,8 @@ describe('EquationBuilder', () => {
     expect(handleExpressionChange).toHaveBeenCalledWith(
       expect.objectContaining({
         text: 'count(value,metricA,distribution,none) * 2',
-      })
+      }),
+      'A * 2'
     );
   });
 });

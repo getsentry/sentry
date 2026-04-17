@@ -91,19 +91,16 @@ describe('MetricToolbar', () => {
     expect(await screen.findByRole('button', {name: /Group by/})).toBeInTheDocument();
 
     // The query is left undefined for the attributes request because
-    // we currently don't filter the attributes for equations
-    ['string', 'number', 'boolean'].forEach(attributeType => {
-      expect(mockAttributesRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/trace-items/attributes/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            itemType: 'tracemetrics',
-            attributeType,
-            query: undefined,
-          }),
-        })
-      );
-    });
+    // we currently don't filter the attributes for equations.
+    expect(mockAttributesRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/trace-items/attributes/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          itemType: 'tracemetrics',
+          attributeType: ['string', 'number', 'boolean'],
+        }),
+      })
+    );
   });
 
   it('renders group by selector for function visualizations', async () => {

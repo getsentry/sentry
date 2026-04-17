@@ -77,7 +77,10 @@ import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widg
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
-import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
+import {
+  ALLOWED_CELL_ACTIONS,
+  MISSING_DATA_MESSAGE,
+} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
   TabularData,
@@ -94,6 +97,7 @@ import {
 import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
+import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -819,15 +823,17 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
-  const {tableResults} = props;
+  const {tableResults, loading} = props;
 
   const singleSpan = tableResults?.[0]?.data?.[0] as
     | Pick<SpanResponse, DefaultDetailWidgetFields>
     | undefined;
 
-  // TODO: Handle this case gracefully
   if (!singleSpan) {
-    return null;
+    if (loading) {
+      return null;
+    }
+    return <WidgetError error={MISSING_DATA_MESSAGE} />;
   }
 
   return <DetailsWidgetVisualization span={singleSpan} />;
