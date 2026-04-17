@@ -103,8 +103,8 @@ class TestBulkSeerRepositoryCleanup(TestCase):
         bulk_cleanup_seer_repository_preferences(
             organization_id=self.organization.id,
             repos=[
-                [self.repo1.id, self.repo1.external_id, self.repo1.provider],
-                [self.repo2.id, self.repo2.external_id, self.repo2.provider],
+                (self.repo1.id, self.repo1.external_id, self.repo1.provider),
+                (self.repo2.id, self.repo2.external_id, self.repo2.provider),
             ],
         )
 
@@ -130,8 +130,8 @@ class TestBulkSeerRepositoryCleanup(TestCase):
             bulk_cleanup_seer_repository_preferences(
                 organization_id=self.organization.id,
                 repos=[
-                    [self.repo1.id, self.repo1.external_id, self.repo1.provider],
-                    [self.repo2.id, self.repo2.external_id, self.repo2.provider],
+                    (self.repo1.id, self.repo1.external_id, self.repo1.provider),
+                    (self.repo2.id, self.repo2.external_id, self.repo2.provider),
                 ],
             )
 

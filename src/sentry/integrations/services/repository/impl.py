@@ -140,15 +140,17 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-                transaction.on_commit(
-                    lambda: bulk_cleanup_seer_repository_preferences.apply_async(
-                        kwargs={
-                            "organization_id": organization_id,
-                            "repos": repos,
-                        }
-                    ),
-                    using=router.db_for_write(Repository),
-                )
+                repos_to_clean = [(rid, eid, prov) for rid, eid, prov in repos if eid and prov]
+                if repos_to_clean:
+                    transaction.on_commit(
+                        lambda: bulk_cleanup_seer_repository_preferences.apply_async(
+                            kwargs={
+                                "organization_id": organization_id,
+                                "repos": repos_to_clean,
+                            }
+                        ),
+                        using=router.db_for_write(Repository),
+                    )
 
     def disable_repositories_by_external_ids(
         self,
@@ -172,15 +174,17 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-                transaction.on_commit(
-                    lambda: bulk_cleanup_seer_repository_preferences.apply_async(
-                        kwargs={
-                            "organization_id": organization_id,
-                            "repos": repos,
-                        }
-                    ),
-                    using=router.db_for_write(Repository),
-                )
+                repos_to_clean = [(rid, eid, prov) for rid, eid, prov in repos if eid and prov]
+                if repos_to_clean:
+                    transaction.on_commit(
+                        lambda: bulk_cleanup_seer_repository_preferences.apply_async(
+                            kwargs={
+                                "organization_id": organization_id,
+                                "repos": repos_to_clean,
+                            }
+                        ),
+                        using=router.db_for_write(Repository),
+                    )
 
     def disassociate_organization_integration(
         self,
@@ -198,15 +202,17 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repo_ids = [repo_id for repo_id, _, _ in repos]
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
-                transaction.on_commit(
-                    lambda: bulk_cleanup_seer_repository_preferences.apply_async(
-                        kwargs={
-                            "organization_id": organization_id,
-                            "repos": repos,
-                        }
-                    ),
-                    using=router.db_for_write(Repository),
-                )
+                repos_to_clean = [(rid, eid, prov) for rid, eid, prov in repos if eid and prov]
+                if repos_to_clean:
+                    transaction.on_commit(
+                        lambda: bulk_cleanup_seer_repository_preferences.apply_async(
+                            kwargs={
+                                "organization_id": organization_id,
+                                "repos": repos_to_clean,
+                            }
+                        ),
+                        using=router.db_for_write(Repository),
+                    )
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
             ProjectCodeOwners.objects.filter(

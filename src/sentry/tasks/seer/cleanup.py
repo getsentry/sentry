@@ -44,14 +44,13 @@ def cleanup_seer_repository_preferences(
         response = make_remove_repository_request(body, viewer_context=viewer_context)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
-    except Exception as e:
+    except Exception:
         logger.exception(
             "cleanup_seer_repository_preferences.failed",
             extra={
                 "organization_id": organization_id,
                 "repo_external_id": repo_external_id,
                 "repo_provider": repo_provider,
-                "error": str(e),
             },
         )
         raise
@@ -81,38 +80,35 @@ def cleanup_seer_repository_preferences(
 )
 def bulk_cleanup_seer_repository_preferences(
     organization_id: int,
-    repos: list[list],
+    repos: list[tuple[int, str, str]],
 ) -> None:
     """
-    Removes multiple repositories from Seer project preferences when the repository
-    is deleted from an organization's integration.
+    Remove multiple repositories from Seer project preferences.
 
-    Each repo is a (repo_id, external_id, provider) tuple from Repository.values_list().
+    Each repo is a (repo_id, external_id, provider) tuple. Callers are expected
+    to filter out repos missing external_id or provider before dispatching.
     """
-    repos_to_clean = [
-        RepoIdentifier(repo_provider=provider, repo_external_id=ext_id)
-        for _, ext_id, provider in repos
-        if ext_id and provider
-    ]
-    if repos_to_clean:
-        body = BulkRemoveRepositoriesRequest(
-            organization_id=organization_id, repositories=repos_to_clean
+    body = BulkRemoveRepositoriesRequest(
+        organization_id=organization_id,
+        repositories=[
+            RepoIdentifier(repo_provider=provider, repo_external_id=ext_id)
+            for _, ext_id, provider in repos
+        ],
+    )
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    try:
+        response = make_bulk_remove_repositories_request(body, viewer_context=viewer_context)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except Exception:
+        logger.exception(
+            "bulk_cleanup_seer_repository_preferences.failed",
+            extra={
+                "organization_id": organization_id,
+                "repo_count": len(repos),
+            },
         )
-        viewer_context = SeerViewerContext(organization_id=organization_id)
-        try:
-            response = make_bulk_remove_repositories_request(body, viewer_context=viewer_context)
-            if response.status >= 400:
-                raise SeerApiError("Seer request failed", response.status)
-        except Exception as e:
-            logger.exception(
-                "bulk_cleanup_seer_repository_preferences.failed",
-                extra={
-                    "organization_id": organization_id,
-                    "repo_count": len(repos),
-                    "error": str(e),
-                },
-            )
-            raise
+        raise
 
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
