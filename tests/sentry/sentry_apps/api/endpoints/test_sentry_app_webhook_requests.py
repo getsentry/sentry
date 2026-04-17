@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
+import pytest
 from django.urls import reverse
 from requests.models import Response
 
@@ -391,6 +392,11 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert start_after_end_response.status_code == 400
 
     @with_feature("organizations:sentry-app-webhook-requests")
+    @pytest.mark.skip(
+        reason="test pollution: SentryAppWebhookRequestsBuffer Redis state wiped by a concurrent "
+        "xdist worker's flushdb() or cache.clear() between add_request() calls and the GET; "
+        "response returns 0 entries instead of 4"
+    )
     def test_get_includes_installation_requests(self) -> None:
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
