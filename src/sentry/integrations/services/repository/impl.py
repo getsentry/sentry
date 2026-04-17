@@ -140,7 +140,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-                repos_to_clean = [(rid, eid, prov) for rid, eid, prov in repos if eid and prov]
+
+                repos_to_clean = [
+                    (repo_id, external_id, provider)
+                    for repo_id, external_id, provider in repos
+                    if external_id and provider
+                ]
                 if repos_to_clean:
                     transaction.on_commit(
                         lambda: bulk_cleanup_seer_repository_preferences.apply_async(
@@ -174,7 +179,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
-                repos_to_clean = [(rid, eid, prov) for rid, eid, prov in repos if eid and prov]
+
+                repos_to_clean = [
+                    (repo_id, external_id, provider)
+                    for repo_id, external_id, provider in repos
+                    if external_id and provider
+                ]
                 if repos_to_clean:
                     transaction.on_commit(
                         lambda: bulk_cleanup_seer_repository_preferences.apply_async(
@@ -202,7 +212,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repo_ids = [repo_id for repo_id, _, _ in repos]
             if repo_ids:
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
-                repos_to_clean = [(rid, eid, prov) for rid, eid, prov in repos if eid and prov]
+
+                repos_to_clean = [
+                    (repo_id, external_id, provider)
+                    for repo_id, external_id, provider in repos
+                    if external_id and provider
+                ]
                 if repos_to_clean:
                     transaction.on_commit(
                         lambda: bulk_cleanup_seer_repository_preferences.apply_async(
