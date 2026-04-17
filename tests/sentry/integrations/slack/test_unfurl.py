@@ -13,6 +13,7 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.unfurl.explore import map_explore_query_args
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.search.eap.types import SupportedTraceItemType
@@ -1939,36 +1940,24 @@ class UnfurlTest(TestCase):
         assert api_params["dataset"] == "logs"
         assert api_params["yAxis"] == "sum(payload_size)"
 
-    @patch(
-        "sentry.integrations.slack.unfurl.explore.client.get",
-    )
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_explore_logs_with_query(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+    def test_map_explore_query_args_logs_query_and_sort(self) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsAggregateSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
-        link_type, args = match_link(url)
+        args = map_explore_query_args(url, {"org_slug": self.organization.slug})
+        query = args["query"]
 
-        if not args or not link_type:
-            raise AssertionError("Missing link_type/args")
+        assert args["dataset"] == SupportedTraceItemType.LOGS
+        assert query["query"] == "severity:error"
+        assert query["sort"] == "-timestamp"
+        assert query["yAxis"] == "count(message)"
 
-        assert link_type == LinkType.EXPLORE
-        assert args["dataset"] == "logs"
+    def test_map_explore_query_args_spans_query_and_sort(self) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?visualize=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D&query=span.op%3Ahttp&aggregateSort=-count(span.duration)&project={self.project.id}&statsPeriod=24h"
+        args = map_explore_query_args(url, {"org_slug": self.organization.slug})
+        query = args["query"]
 
-        links = [
-            UnfurlableUrl(url=url, args=args),
-        ]
-
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
-
-        assert len(unfurls) == 1
-        call_kwargs = mock_client_get.call_args[1]
-        api_params = call_kwargs["params"]
-        assert api_params["dataset"] == "logs"
-        assert api_params["query"] == "severity:error"
-        assert api_params["sort"] == "-timestamp"
+        assert args["dataset"] == SupportedTraceItemType.SPANS
+        assert query["query"] == "span.op:http"
+        assert query["sort"] == "-count(span.duration)"
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
