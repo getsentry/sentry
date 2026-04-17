@@ -160,6 +160,7 @@ export function NewWelcomeUI(props: StepProps) {
                 <ScmStepHeader
                   heading={t('Welcome to Sentry')}
                   subtitle={t("Your code is probably broken. Let's fix it faster.")}
+                  subtitleSize="xl"
                 />
               </Container>
             ) : (

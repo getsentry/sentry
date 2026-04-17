@@ -122,14 +122,16 @@ interface ContainerVariableProps {
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
   const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
-  let Component = OnboardingContainer;
-
-  if (newWelcomeUIStep && !props.hasScmOnboarding) {
-    Component = OnboardingContainerNewWelcomeUI;
-  }
+  const Component =
+    newWelcomeUIStep && !props.hasScmOnboarding
+      ? OnboardingContainerNewWelcomeUI
+      : OnboardingContainer;
 
   return (
-    <Component hasFooter={props.hasFooter || newWelcomeUIStep}>
+    <Component
+      hasFooter={props.hasFooter || newWelcomeUIStep}
+      hasScmOnboarding={props.hasScmOnboarding}
+    >
       {props.children}
     </Component>
   );
@@ -448,7 +450,10 @@ function Onboarding() {
   );
 }
 
-const OnboardingContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
+const OnboardingContainerNewWelcomeUI = styled('div')<{
+  hasFooter: boolean;
+  hasScmOnboarding: boolean;
+}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -467,13 +472,16 @@ const OnboardingContainerNewWelcomeUI = styled('div')<{hasFooter: boolean}>`
   }
 `;
 
-const OnboardingContainer = styled('div')<{hasFooter: boolean}>`
+const OnboardingContainer = styled('div')<{
+  hasFooter: boolean;
+  hasScmOnboarding: boolean;
+}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
-  padding: 120px ${p => p.theme.space['2xl']};
+  padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
