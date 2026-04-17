@@ -15,6 +15,10 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointInteractionType,
 )
 from sentry.seer.entrypoints.operator import SeerExplorerOperator
+from sentry.seer.entrypoints.slack.analytics import (
+    SlackSeerAgentConversation,
+    record_seer_slack_event,
+)
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
 from sentry.seer.entrypoints.slack.metrics import (
@@ -45,6 +49,7 @@ def process_mention_for_slack(
     text: str,
     slack_user_id: str,
     bot_user_id: str,
+    conversation_type: SlackSeerAgentConversation,
 ) -> None:
     """
     Process a Slack @mention for Seer Explorer.
@@ -132,6 +137,7 @@ def process_mention_for_slack(
         prompt = extract_prompt(text, bot_user_id)
 
         # Only fetch thread context when actually in a thread.
+        messages: list[dict] = []
         thread_context: str | None = None
         if thread_ts:
             messages = entrypoint.install.get_thread_history(
@@ -140,13 +146,29 @@ def process_mention_for_slack(
             thread_context = build_thread_context(messages) or None
 
         operator = SeerExplorerOperator(entrypoint=entrypoint)
-        operator.trigger_explorer(
+        run_id, prev_run_count = operator.trigger_explorer(
             organization=organization,
             user=user,
             prompt=prompt,
             on_page_context=thread_context,
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
+        )
+
+        if run_id is None:
+            return
+
+        record_seer_slack_event(
+            org_slug=organization.slug,
+            username=user.username,
+            thread_ts=thread_ts,
+            prompt_length=len(prompt),
+            run_id=run_id,
+            integration_id=integration_id,
+            messages_in_thread=len(messages),
+            seer_msgs_in_thread=prev_run_count,
+            unique_users_in_thread=len(set([msg.get("user") for msg in messages])),
+            conversation_type=conversation_type,
         )
 
 

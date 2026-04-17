@@ -465,9 +465,9 @@ class SeerExplorerOperator[CachePayloadT]:
         on_page_context: str | None = None,
         category_key: str,
         category_value: str,
-    ) -> int | None:
+    ) -> tuple[int | None, int]:
         """
-        Start or continue an Explorer run and return the run_id.
+        Start or continue an Explorer run and return the run_id, and how many runs exist for this thread.
         If a run exists for this category (e.g. slack thread), continues it; otherwise starts new.
         Uses the entrypoint's Explorer callbacks for success/error handling.
         """
@@ -502,13 +502,12 @@ class SeerExplorerOperator[CachePayloadT]:
                 ).capture(assume_success=False):
                     self.entrypoint.on_trigger_explorer_error(error=str(e))
                 lifecycle.record_failure(failure_reason=e)
-                return None
+                return None, 0
 
             try:
                 existing_runs = client.get_runs(
                     category_key=category_key,
                     category_value=category_value,
-                    limit=1,
                     only_current_user=False,
                 )
 
@@ -532,7 +531,7 @@ class SeerExplorerOperator[CachePayloadT]:
                 ).capture(assume_success=False):
                     self.entrypoint.on_trigger_explorer_error(error="An unexpected error occurred")
                 lifecycle.record_failure(failure_reason=e)
-                return None
+                return None, 0
 
             lifecycle.add_extra("run_id", str(run_id))
 
@@ -554,7 +553,7 @@ class SeerExplorerOperator[CachePayloadT]:
                 cache_payload=cache_payload,
             )
 
-            return run_id
+            return run_id, len(existing_runs)
 
 
 @instrumented_task(
