@@ -40,7 +40,7 @@ function VstsOAuthLoginStep({
 
   return (
     <OAuthLoginStep
-      oauthUrl={stepData.oauthUrl}
+      oauthUrl={stepData?.oauthUrl}
       isLoading={isAdvancing}
       serviceName="Azure DevOps"
       onOAuthCallback={handleOAuthCallback}
@@ -53,6 +53,10 @@ function VstsAccountSelectionStep({
   advance,
   isAdvancing,
 }: PipelineStepProps<VstsAccountSelectionStepData, VstsAccountSelectionAdvanceData>) {
+  if (stepData === null) {
+    return null;
+  }
+
   const accounts = stepData.accounts ?? [];
 
   if (accounts.length === 0) {

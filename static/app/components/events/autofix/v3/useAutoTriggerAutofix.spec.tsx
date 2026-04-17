@@ -17,7 +17,7 @@ function makeAutofix(
     isLoading: false,
     isPolling: false,
     ...overrides,
-  } as ReturnType<typeof useExplorerAutofix>;
+  };
 }
 
 describe('useAutoTriggerAutofix', () => {

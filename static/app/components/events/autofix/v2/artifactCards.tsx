@@ -18,14 +18,14 @@ import {
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCode, IconFix, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 
-export type ArtifactData = Record<string, unknown>;
+type ArtifactData = Record<string, unknown>;
 
 /**
  * Get the colored icon for an artifact type.

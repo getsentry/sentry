@@ -159,6 +159,7 @@ function SentryAppExternalInstallationContent() {
     trackIntegrationAnalytics('integrations.installation_start', {
       integration_type: 'sentry_app',
       integration: sentryApp.slug,
+      is_scm: false,
       view: 'external_install',
       integration_status: sentryApp.status,
       organization,
@@ -170,6 +171,7 @@ function SentryAppExternalInstallationContent() {
       trackIntegrationAnalytics('integrations.installation_complete', {
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
+        is_scm: false,
         view: 'external_install',
         integration_status: sentryApp.status,
         organization,

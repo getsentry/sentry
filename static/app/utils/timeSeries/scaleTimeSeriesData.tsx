@@ -22,8 +22,7 @@ export function scaleTimeSeriesData(
 ): TimeSeries {
   // TODO: Instead of a fallback, allow this to be `null`, which might happen
   const sourceType =
-    (timeSeries.meta?.valueType as AggregationOutputType) ??
-    (FALLBACK_TYPE as AggregationOutputType);
+    (timeSeries.meta?.valueType as AggregationOutputType) ?? FALLBACK_TYPE;
 
   // Don't bother trying to convert numbers, dates, etc.
   if (!isAUnitConvertibleFieldType(sourceType)) {

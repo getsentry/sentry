@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {BlockComponent} from './blockComponents';
-import type {Block} from './types';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import type {Block} from 'sentry/views/seerExplorer/types';
 
 describe('BlockComponent', () => {
   const mockOnClick = jest.fn();

@@ -13,10 +13,14 @@ describe('Projects ActionCreators', () => {
     });
     expect(mock).not.toHaveBeenCalled();
 
-    _debouncedLoadStats(api, new Set([...new Array(50)].map((_, i) => String(i))), {
-      projectId: project.id,
-      orgId: organization.slug,
-    });
+    _debouncedLoadStats(
+      api,
+      new Set([...Array.from({length: 50})].map((_, i) => String(i))),
+      {
+        projectId: project.id,
+        orgId: organization.slug,
+      }
+    );
 
     expect(mock).toHaveBeenCalledTimes(5);
     expect(mock).toHaveBeenLastCalledWith(

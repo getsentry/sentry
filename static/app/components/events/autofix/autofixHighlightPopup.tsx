@@ -699,7 +699,7 @@ const Container = styled(motion.div, {
   border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   overflow: hidden;
-  box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
+  box-shadow: ${p => (p.isFocused ? p.theme.shadow.high : p.theme.shadow.low)};
   transition: box-shadow 200ms ease;
 
   &:before {
