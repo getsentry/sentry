@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
@@ -65,7 +65,9 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     @patch(
         "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
     )
-    def test_repository_and_identity(self, mock_handoff, mock_repo_cleanup) -> None:
+    def test_repository_and_identity(
+        self, mock_handoff: MagicMock, mock_repo_cleanup: MagicMock
+    ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -108,7 +110,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     @patch(
         "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
     )
-    def test_codeowner_links(self, mock_handoff, mock_repo_cleanup) -> None:
+    def test_codeowner_links(self, mock_handoff: MagicMock, mock_repo_cleanup: MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
