@@ -125,13 +125,13 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.integration_id = 42
 
-    def _mock_db_preference(self, project, integration_id: int) -> None:
+    def _mock_handoff_options(self, project, integration_id: int) -> None:
         project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         project.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
         project.update_option("sentry:seer_automation_handoff_integration_id", integration_id)
         project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-    def _mock_api_preference(self, project, integration_id: int | None) -> SeerProjectPreference:
+    def _mock_preference(self, project, integration_id: int | None) -> SeerProjectPreference:
         handoff = (
             SeerAutomationHandoffConfiguration(
                 handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
@@ -167,133 +167,150 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
     def test_no_affected_projects_returns_early(
         self, mock_read: MagicMock, mock_set: MagicMock
     ) -> None:
-        cleanup_seer_automation_handoff_for_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-        )
+        for read_from_sentry in (True, False):
+            with self.subTest(read_from_sentry=read_from_sentry):
+                mock_read.reset_mock()
+                mock_set.reset_mock()
+                mock_read.return_value = {self.project.id: None}
 
-        mock_read.assert_not_called()
-        mock_set.assert_not_called()
+                with self.feature(
+                    {"organizations:seer-project-settings-read-from-sentry": read_from_sentry}
+                ):
+                    cleanup_seer_automation_handoff_for_integration(
+                        organization_id=self.organization.id,
+                        integration_id=self.integration_id,
+                    )
 
-    @with_feature("organizations:seer-project-settings-dual-write")
-    @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
-    def test_clears_and_pushes_to_seer_with_dual_write(
-        self, mock_read: MagicMock, mock_set: MagicMock
-    ) -> None:
-        self._mock_db_preference(self.project, self.integration_id)
-        mock_read.return_value = {
-            self.project.id: self._mock_api_preference(self.project, self.integration_id)
-        }
-
-        cleanup_seer_automation_handoff_for_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-        )
-
-        mock_set.assert_called_once()
-        pushed_org_id, pushed_preferences = mock_set.call_args[0]
-        assert pushed_org_id == self.organization.id
-        assert len(pushed_preferences) == 1
-        assert pushed_preferences[0]["automation_handoff"] is None
-        self._assert_handoff_options_count(self.project, 0)
+                mock_set.assert_not_called()
 
     @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
-    def test_pushes_to_seer_but_leaves_options_without_dual_write(
-        self, mock_read: MagicMock, mock_set: MagicMock
-    ) -> None:
-        self._mock_db_preference(self.project, self.integration_id)
-        mock_read.return_value = {
-            self.project.id: self._mock_api_preference(self.project, self.integration_id)
-        }
+    def test_clears_handoff(self, mock_read: MagicMock, mock_set: MagicMock) -> None:
+        for read_from_sentry in (True, False):
+            with self.subTest(read_from_sentry=read_from_sentry):
+                mock_read.reset_mock()
+                mock_set.reset_mock()
+                self._mock_handoff_options(self.project, self.integration_id)
+                mock_read.return_value = {
+                    self.project.id: self._mock_preference(self.project, self.integration_id),
+                }
 
-        cleanup_seer_automation_handoff_for_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-        )
+                with self.feature(
+                    {
+                        "organizations:seer-project-settings-read-from-sentry": read_from_sentry,
+                        "organizations:seer-project-settings-dual-write": True,
+                    }
+                ):
+                    cleanup_seer_automation_handoff_for_integration(
+                        organization_id=self.organization.id,
+                        integration_id=self.integration_id,
+                    )
 
-        mock_set.assert_called_once()
-        self._assert_handoff_options_count(self.project, 4)
+                mock_set.assert_called_once()
+                updated_org_id, updated_preferences = mock_set.call_args[0]
+                assert updated_org_id == self.organization.id
+                assert len(updated_preferences) == 1
+                assert updated_preferences[0]["project_id"] == self.project.id
+                assert updated_preferences[0]["automation_handoff"] is None
+                self._assert_handoff_options_count(self.project, 0)
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
-    def test_only_affects_projects_referencing_this_integration(
+    def test_only_affects_preferences_with_this_integration(
         self, mock_read: MagicMock, mock_set: MagicMock
     ) -> None:
         other_project = self.create_project(organization=self.organization)
-        self._mock_db_preference(self.project, self.integration_id)
-        self._mock_db_preference(other_project, 999)
-        mock_read.return_value = {
-            self.project.id: self._mock_api_preference(self.project, self.integration_id)
-        }
+        for read_from_sentry in (True, False):
+            with self.subTest(read_from_sentry=read_from_sentry):
+                mock_read.reset_mock()
+                mock_set.reset_mock()
+                self._mock_handoff_options(self.project, self.integration_id)
+                self._mock_handoff_options(other_project, 999)
+                mock_read.return_value = {
+                    self.project.id: self._mock_preference(self.project, self.integration_id),
+                    other_project.id: self._mock_preference(other_project, 999),
+                }
 
-        cleanup_seer_automation_handoff_for_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-        )
+                with self.feature(
+                    {
+                        "organizations:seer-project-settings-read-from-sentry": read_from_sentry,
+                        "organizations:seer-project-settings-dual-write": True,
+                    }
+                ):
+                    cleanup_seer_automation_handoff_for_integration(
+                        organization_id=self.organization.id,
+                        integration_id=self.integration_id,
+                    )
 
-        _, project_ids_read = mock_read.call_args[0]
-        assert project_ids_read == [self.project.id]
-        self._assert_handoff_options_count(self.project, 0)
-        self._assert_handoff_options_count(other_project, 4)
+                updated_preferences = mock_set.call_args[0][1]
+                assert len(updated_preferences) == 1
+                assert updated_preferences[0]["project_id"] == self.project.id
+                self._assert_handoff_options_count(self.project, 0)
+                self._assert_handoff_options_count(other_project, 4)
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
     def test_only_affects_projects_in_this_organization(
         self, mock_read: MagicMock, mock_set: MagicMock
     ) -> None:
-        other_organization = self.create_organization()
-        other_org_project = self.create_project(organization=other_organization)
-        self._mock_db_preference(self.project, self.integration_id)
-        self._mock_db_preference(other_org_project, self.integration_id)
-        mock_read.return_value = {
-            self.project.id: self._mock_api_preference(self.project, self.integration_id)
-        }
+        other_org = self.create_organization()
+        other_org_project = self.create_project(organization=other_org)
+        for read_from_sentry in (True, False):
+            with self.subTest(read_from_sentry=read_from_sentry):
+                mock_read.reset_mock()
+                mock_set.reset_mock()
+                self._mock_handoff_options(self.project, self.integration_id)
+                self._mock_handoff_options(other_org_project, self.integration_id)
+                mock_read.return_value = {
+                    self.project.id: self._mock_preference(self.project, self.integration_id),
+                }
 
-        cleanup_seer_automation_handoff_for_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-        )
+                with self.feature(
+                    {
+                        "organizations:seer-project-settings-read-from-sentry": read_from_sentry,
+                        "organizations:seer-project-settings-dual-write": True,
+                    }
+                ):
+                    cleanup_seer_automation_handoff_for_integration(
+                        organization_id=self.organization.id,
+                        integration_id=self.integration_id,
+                    )
 
-        _, project_ids_read = mock_read.call_args[0]
-        assert project_ids_read == [self.project.id]
-        self._assert_handoff_options_count(self.project, 0)
-        self._assert_handoff_options_count(other_org_project, 4)
+                updated_preferences = mock_set.call_args[0][1]
+                assert len(updated_preferences) == 1
+                assert updated_preferences[0]["project_id"] == self.project.id
+                self._assert_handoff_options_count(self.project, 0)
+                self._assert_handoff_options_count(other_org_project, 4)
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
     def test_skips_projects_with_none_preference(
         self, mock_read: MagicMock, mock_set: MagicMock
     ) -> None:
         project_with_pref = self.create_project(organization=self.organization)
-        self._mock_db_preference(self.project, self.integration_id)
-        self._mock_db_preference(project_with_pref, self.integration_id)
         mock_read.return_value = {
             self.project.id: None,
-            project_with_pref.id: self._mock_api_preference(project_with_pref, self.integration_id),
+            project_with_pref.id: self._mock_preference(project_with_pref, self.integration_id),
         }
 
-        cleanup_seer_automation_handoff_for_integration(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-        )
+        with self.feature({"organizations:seer-project-settings-dual-write": True}):
+            cleanup_seer_automation_handoff_for_integration(
+                organization_id=self.organization.id,
+                integration_id=self.integration_id,
+            )
 
-        pushed_preferences = mock_set.call_args[0][1]
-        assert len(pushed_preferences) == 1
-        assert pushed_preferences[0]["project_id"] == project_with_pref.id
+        updated_preferences = mock_set.call_args[0][1]
+        assert len(updated_preferences) == 1
+        assert updated_preferences[0]["project_id"] == project_with_pref.id
 
-    @with_feature("organizations:seer-project-settings-dual-write")
+    @with_feature(["organizations:seer-project-settings-dual-write"])
     @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
     def test_seer_read_failure_raises_and_leaves_options(
         self, mock_read: MagicMock, mock_set: MagicMock
     ) -> None:
-        self._mock_db_preference(self.project, self.integration_id)
-        mock_read.side_effect = SeerApiError("boom", 500)
+        self._mock_handoff_options(self.project, self.integration_id)
+        mock_read.side_effect = SeerApiError("error", 500)
 
         with pytest.raises(SeerApiError):
             cleanup_seer_automation_handoff_for_integration(
@@ -304,17 +321,17 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
         mock_set.assert_not_called()
         self._assert_handoff_options_count(self.project, 4)
 
-    @with_feature("organizations:seer-project-settings-dual-write")
+    @with_feature(["organizations:seer-project-settings-dual-write"])
     @patch("sentry.tasks.seer.cleanup.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.cleanup.bulk_read_preferences")
-    def test_seer_write_failure_raises_and_leaves_options(
+    def test_seer_api_set_failure_raises_and_leaves_options(
         self, mock_read: MagicMock, mock_set: MagicMock
     ) -> None:
-        self._mock_db_preference(self.project, self.integration_id)
+        self._mock_handoff_options(self.project, self.integration_id)
         mock_read.return_value = {
-            self.project.id: self._mock_api_preference(self.project, self.integration_id)
+            self.project.id: self._mock_preference(self.project, self.integration_id),
         }
-        mock_set.side_effect = SeerApiError("boom", 500)
+        mock_set.side_effect = SeerApiError("error", 500)
 
         with pytest.raises(SeerApiError):
             cleanup_seer_automation_handoff_for_integration(
