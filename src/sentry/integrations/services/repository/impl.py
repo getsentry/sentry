@@ -219,6 +219,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             )
             repo_ids = [repo_id for repo_id, _, _ in repos]
             if repo_ids:
+                # Disassociate repos from the organization integration being deleted
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
                 repos_to_clean = [

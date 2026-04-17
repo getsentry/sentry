@@ -36,7 +36,7 @@ def cleanup_seer_repository_preferences(
     **kwargs: Any,
 ) -> None:
     """
-    Clean up Seer preferences for a hidden repository.
+    Remove a single repository from all its associated Seer project preferences.
     """
     body = RemoveRepositoryRequest(
         organization_id=organization_id,
@@ -90,7 +90,7 @@ def bulk_cleanup_seer_repository_preferences(
     **kwargs: Any,
 ) -> None:
     """
-    Remove multiple repositories from Seer project preferences.
+    Remove multiple repositories from their associated Seer project preferences.
 
     Each repo is a dict with keys `repo_external_id` and `repo_provider`, and
     optionally `repo_id` (used to clean up local SeerProjectRepository rows).
@@ -105,6 +105,7 @@ def bulk_cleanup_seer_repository_preferences(
             for repo in repos
         ],
     )
+
     viewer_context = SeerViewerContext(organization_id=organization_id)
     try:
         response = make_bulk_remove_repositories_request(body, viewer_context=viewer_context)
