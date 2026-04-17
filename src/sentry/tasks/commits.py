@@ -251,6 +251,12 @@ def fetch_commits(
     github_compare_commits_cache_feature_enabled = features.has(
         GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE, organization, actor=user
     )
+    logger.info(
+        "fetch_commits.github_compare_commits_cache_feature_enabled",
+        extra={
+            "github_compare_commits_cache_feature_enabled": github_compare_commits_cache_feature_enabled
+        },
+    )
 
     for ref in refs:
         resolved = get_repo_and_provider_for_ref(release=release, ref=ref, user_id=user_id)
