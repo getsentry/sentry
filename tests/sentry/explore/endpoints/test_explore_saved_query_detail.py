@@ -96,6 +96,28 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["starred"] is True
         assert response.data["position"] == 1
 
+    def test_get_with_cross_events(self) -> None:
+        self.model.query = {
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+            "crossEvents": [
+                {"query": "span.op:db", "type": "spans"},
+                {"query": "severity:error", "type": "logs"},
+            ],
+        }
+        self.model.save()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {"query": "span.op:db", "type": "spans"},
+            {"query": "severity:error", "type": "logs"},
+        ]
+
     def test_get_changed_reason(self) -> None:
         migrated_query = ExploreSavedQuery.objects.create(
             organization=self.org,
