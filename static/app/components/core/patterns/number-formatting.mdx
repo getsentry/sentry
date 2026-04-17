@@ -41,6 +41,15 @@ TODO: Get more eyes on this and get some consensus.
 - [ ] "Trailing Zeroes" often creates visual misalignment in tables and Y-axes, and is worth reconsidering. Do we want to keep doing this?
 - [ ] "Units" is interesting, is it valuable to fully say "milliseconds"? Maybe we should never do that
 
+### Tradeoff and Considerations
+
+When making decisions about number formatting, it's instructive to think of the outcomes caused by good number formatting, and especially by bad number formatting. This section outlines how the different aspects of
+
+- vertical alignment is better when the number of digits sort of matches
+- units changing in a column is weird but fine
+- enough accuracy to see the value
+- not "Making up" accuracy that isn't there
+
 ## Data Types and Units
 
 Sentry supports several types of data, and they have slightly different concerns. This section explains each data type in detail, and explains its specific quirks if any. All of the data types use a combination of the aspects described above to decide the formatting.
