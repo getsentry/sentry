@@ -14,7 +14,7 @@
  *
  * This configuration uses two complementary approaches for linting imports:
  *
- * 1. `no-restricted-imports` - Applied to 3rd party dependencies
+ * 1. `@typescript-eslint/no-restricted-imports` - Applied to 3rd party dependencies
  *    - Controls which external packages can be imported
  *    - Enforces consistent usage of third-party libraries across the codebase
  *    - Examples: restricting @testing-library/react, lodash, marked, etc.
@@ -303,6 +303,7 @@ export default typescript.config([
    *    or remove the override and rely on the recommended rules again.
    */
   {
+    extends: [eslint.configs.recommended],
     name: 'eslint/rules',
     // https://eslint.org/docs/latest/rules/
     rules: {
@@ -322,7 +323,6 @@ export default typescript.config([
       'no-implied-eval': 'error',
       'no-inner-declarations': 'error',
       'no-lone-blocks': 'error',
-      'no-loop-func': 'error',
       'no-multi-str': 'error',
       'no-native-reassign': 'error',
       'no-new-func': 'error',
@@ -331,20 +331,6 @@ export default typescript.config([
       'no-octal-escape': 'error',
       'no-param-reassign': 'off', // TODO(ryan953): Fix violations and enable this rule
       'no-proto': 'error',
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: restrictedImportPaths,
-        },
-      ],
       'no-restricted-syntax': [
         'error',
         {
@@ -415,21 +401,14 @@ export default typescript.config([
       'vars-on-top': 'off',
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
-
-      // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
-      ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
-      'no-prototype-builtins': 'off',
-      'no-useless-escape': 'error',
     },
   },
   {
     // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
-    ...importPlugin.flatConfigs.recommended,
+    extends: [importPlugin.flatConfigs.recommended],
     name: 'plugin/import',
     rules: {
-      // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
-      ...importPlugin.flatConfigs.recommended.rules,
       'import/no-absolute-path': 'error',
       'import/no-amd': 'error',
       'import/no-anonymous-default-export': 'error',
@@ -551,10 +530,7 @@ export default typescript.config([
   {
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
-    plugins: {
-      ...react.configs.flat.recommended.plugins,
-      ...react.configs.flat['jsx-runtime'].plugins,
-    },
+    extends: [react.configs.flat.recommended, react.configs.flat['jsx-runtime']],
     rules: {
       'react/function-component-definition': 'error',
       'react/jsx-boolean-value': ['error', 'never'],
@@ -567,9 +543,6 @@ export default typescript.config([
       'react/self-closing-comp': 'error',
       'react/sort-comp': 'error',
 
-      // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
-      ...react.configs.flat.recommended.rules,
-      ...react.configs.flat['jsx-runtime'].rules,
       'react/jsx-curly-brace-presence': [
         'error',
         {props: 'never', children: 'ignore', propElementValues: 'always'},
@@ -605,6 +578,7 @@ export default typescript.config([
           '@sentry/no-unnecessary-type-annotation': 'error',
           '@sentry/no-unnecessary-type-narrowing': 'error',
           '@typescript-eslint/consistent-type-exports': 'error',
+          '@typescript-eslint/no-implied-eval': 'error',
           '@typescript-eslint/switch-exhaustiveness-check': [
             'error',
             {considerDefaultExhaustiveForUnions: true},
@@ -702,6 +676,21 @@ export default typescript.config([
       // Customization
       'prefer-spread': 'off',
       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
+      '@typescript-eslint/no-loop-func': 'error',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
       '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
       '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
       '@typescript-eslint/no-unused-vars':
@@ -759,54 +748,34 @@ export default typescript.config([
     // https://github.com/emotion-js/emotion/tree/main/packages/eslint-plugin/docs/rules
     plugins: {'@emotion': emotion},
     rules: {
-      '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
-      '@emotion/jsx-import': 'off', // Not needed, handled by swc
       '@emotion/no-vanilla': 'error',
-      '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',
       '@emotion/syntax-preference': ['error', 'string'],
+
+      '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
+      '@emotion/jsx-import': 'off', // Not needed, handled by swc
+      '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
     },
   },
   {
     name: 'plugin/unicorn',
     // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
-    plugins: {unicorn},
+    extends: [unicorn.configs.unopinionated],
     rules: {
-      // The recommended rules are very opinionated. We don't need to enable them.
-
       'unicorn/custom-error-definition': 'error',
-      'unicorn/error-message': 'error',
+
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/new-for-builtins': 'error',
-      'unicorn/no-abusive-eslint-disable': 'error',
       'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-await-in-promise-methods': 'error',
       'unicorn/no-instanceof-array': 'error',
-      'unicorn/no-invalid-remove-event-listener': 'error',
-      'unicorn/no-negated-condition': 'error',
-      'unicorn/no-negation-in-equality-check': 'error',
-      'unicorn/no-new-array': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-unnecessary-await': 'error',
-      'unicorn/no-useless-fallback-in-spread': 'error',
-      'unicorn/no-useless-length-check': 'error',
       'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-find': 'error',
-      'unicorn/prefer-array-flat-map': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-index-of': 'error',
-      'unicorn/prefer-array-some': 'error',
-      'unicorn/prefer-date-now': 'error',
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-includes': 'error',
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-negative-index': 'error',
-      'unicorn/prefer-node-protocol': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -817,30 +786,26 @@ export default typescript.config([
     name: 'plugin/jest',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/jest-community/eslint-plugin-jest/tree/main/docs/rules
-    plugins: jest.configs['flat/recommended'].plugins,
+    extends: [jest.configs['flat/recommended'], jest.configs['flat/style']],
     rules: {
       'jest/max-nested-describe': 'error',
+      'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
       'jest/no-duplicate-hooks': 'error',
       'jest/no-large-snapshots': ['error', {maxSize: 2000}], // We don't recommend snapshots, but if there are any keep it small
-
-      // https://github.com/jest-community/eslint-plugin-jest/blob/main/src/index.ts
-      ...jest.configs['flat/recommended'].rules,
-      ...jest.configs['flat/style'].rules,
-
-      'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
-      'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
-      'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
       'jest/no-standalone-expect': [
         'error',
         {additionalTestBlockFunctions: ['it.isKnownFlake']},
       ],
+
+      'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
+      'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
     },
   },
   {
     name: 'plugin/jest-dom',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/testing-library/eslint-plugin-jest-dom/tree/main?tab=readme-ov-file#supported-rules
-    ...jestDom.configs['flat/recommended'],
+    extends: [jestDom.configs['flat/recommended']],
   },
   {
     extends: [regexp.configs.recommended],
@@ -860,10 +825,8 @@ export default typescript.config([
     name: 'plugin/testing-library',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/testing-library/eslint-plugin-testing-library/tree/main/docs/rules
-    ...testingLibrary.configs['flat/react'],
+    extends: [testingLibrary.configs['flat/react']],
     rules: {
-      // https://github.com/testing-library/eslint-plugin-testing-library/blob/main/lib/configs/react.ts
-      ...testingLibrary.configs['flat/react'].rules,
       'testing-library/no-unnecessary-act': 'off',
       'testing-library/render-result-naming-convention': 'off',
     },
@@ -871,7 +834,7 @@ export default typescript.config([
   {
     // turn off features that conflict with formatter
     name: 'plugin/prettier',
-    ...prettier,
+    extends: [prettier],
     rules: {
       // import sorting is handled by oxfmt
       'import/order': 'off',
@@ -881,7 +844,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'plugin/you-might-not-need-an-effect',
+    name: 'plugin/react-you-might-not-need-an-effect',
     ...reactYouMightNotNeedAnEffect.configs.recommended,
     rules: {
       'react-you-might-not-need-an-effect/no-derived-state': 'error',
@@ -902,7 +865,6 @@ export default typescript.config([
     languageOptions: {
       globals: globals.node,
     },
-
     rules: {
       'import/no-nodejs-modules': 'off',
     },
@@ -913,7 +875,6 @@ export default typescript.config([
     languageOptions: {
       globals: globals.node,
     },
-
     rules: {
       'no-console': 'off',
       'import/no-nodejs-modules': 'off',
@@ -928,7 +889,6 @@ export default typescript.config([
     },
     rules: {
       'no-console': 'off',
-
       'import/no-nodejs-modules': 'off',
     },
   },
@@ -953,7 +913,7 @@ export default typescript.config([
     name: 'files/insights-chart-widgets',
     files: ['static/app/views/insights/common/components/widgets/*.tsx'],
     rules: {
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           // Allow these imports only in the above widgets directory in `files`
@@ -973,7 +933,7 @@ export default typescript.config([
     name: 'files/components-core',
     files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -994,7 +954,7 @@ export default typescript.config([
     name: 'files/figma-code-connect',
     files: ['**/*.figma.{tsx,jsx}'],
     rules: {
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           // Allow @figma/code-connect only in *.figma.tsx files
@@ -1008,7 +968,7 @@ export default typescript.config([
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in tests
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -1060,20 +1020,6 @@ export default typescript.config([
           allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
         },
       ],
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: restrictedImportPaths,
-        },
-      ],
     },
   },
   {
@@ -1088,7 +1034,7 @@ export default typescript.config([
           allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
         },
       ],
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -1113,16 +1059,15 @@ export default typescript.config([
     files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
       // Allow imports from gsApp into getsentry-test fixtures
-      'no-restricted-imports': 'off',
+      '@typescript-eslint/no-restricted-imports': 'off',
     },
   },
   // MDX Configuration
   {
-    ...mdx.flat,
     name: 'files/mdx',
     files: ['**/*.mdx'],
+    extends: [mdx.flat],
     rules: {
-      ...mdx.flat.rules,
       'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
     },
   },
