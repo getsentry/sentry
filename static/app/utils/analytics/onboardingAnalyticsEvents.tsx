@@ -71,7 +71,7 @@ export type OnboardingEventParameters = {
     team: string;
   };
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;
-  'onboarding.scm_welcome_loaded': Record<string, unknown>;
+  'onboarding.scm_welcome_step_viewed': Record<string, unknown>;
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -157,5 +157,5 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_project_details_team_selected':
     'Onboarding: SCM Project Details Team Selected',
   'onboarding.scm_welcome_continue_clicked': 'Onboarding: SCM Welcome Continue Clicked',
-  'onboarding.scm_welcome_loaded': 'Onboarding: SCM Welcome Loaded',
+  'onboarding.scm_welcome_step_viewed': 'Onboarding: SCM Welcome Step Viewed',
 };

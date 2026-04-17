@@ -15,7 +15,7 @@ export function useWelcomeAnalyticsEffect() {
 
   useEffect(() => {
     if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_welcome_loaded', {organization});
+      trackAnalytics('onboarding.scm_welcome_step_viewed', {organization});
     } else {
       trackAnalytics('growth.onboarding_start_onboarding', {
         organization,

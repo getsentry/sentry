@@ -695,11 +695,11 @@ describe('Onboarding', () => {
       });
     });
 
-    it('fires scm_welcome_loaded on welcome mount and not the legacy event', () => {
+    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
       renderOnboarding('welcome');
 
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'onboarding.scm_welcome_loaded',
+        'onboarding.scm_welcome_step_viewed',
         expect.objectContaining({organization: scmOrganization})
       );
       expect(trackAnalytics).not.toHaveBeenCalledWith(
