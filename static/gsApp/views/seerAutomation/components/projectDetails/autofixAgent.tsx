@@ -105,7 +105,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
             ) : (
               <field.Select
                 disabled={Boolean(disabledReason)}
-                value={field.state.value as CodingAgentIntegration | 'seer'}
+                value={field.state.value}
                 onChange={field.handleChange}
                 options={agentOptions.data}
                 isValueEqual={(a, b) =>

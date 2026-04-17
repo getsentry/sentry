@@ -142,7 +142,7 @@ export function getProjectStoppingPointMutationOptions({
           repositories: preference?.repositories ?? [],
           automated_run_stopping_point: stoppingPointValue,
           automation_handoff: automationHandoff,
-        } as unknown as Record<string, unknown>,
+        },
       });
 
       return Promise.all([projectPromise, preferencesPromise]);

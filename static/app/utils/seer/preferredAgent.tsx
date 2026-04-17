@@ -122,7 +122,7 @@ export function getProjectAgentMutationOptions({
             repositories: preference?.repositories ?? [],
             automated_run_stopping_point: preference?.automated_run_stopping_point,
             automation_handoff: handoff,
-          } as unknown as Record<string, unknown>,
+          },
         }),
       ]);
     },
