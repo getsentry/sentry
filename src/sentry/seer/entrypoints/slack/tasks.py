@@ -146,7 +146,7 @@ def process_mention_for_slack(
             thread_context = build_thread_context(messages) or None
 
         operator = SeerExplorerOperator(entrypoint=entrypoint)
-        run_id, prev_run_count = operator.trigger_explorer(
+        run_id = operator.trigger_explorer(
             organization=organization,
             user=user,
             prompt=prompt,
@@ -167,7 +167,7 @@ def process_mention_for_slack(
             run_id=run_id,
             integration_id=integration_id,
             messages_in_thread=len(messages),
-            seer_msgs_in_thread=prev_run_count,
+            seer_msgs_in_thread=sum(1 for m in messages if m.get("user") == bot_user_id),
             unique_users_in_thread=len(slack_user_ids_in_thread),
             linked_users_in_thread=_count_linked_users(
                 integration=entrypoint.integration,

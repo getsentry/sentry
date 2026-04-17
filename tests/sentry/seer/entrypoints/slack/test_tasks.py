@@ -61,7 +61,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
-        mock_operator.trigger_explorer.return_value = (42, 0)
+        mock_operator.trigger_explorer.return_value = 42
         mock_operator_cls.return_value = mock_operator
 
         mock_count_linked.return_value = 0
@@ -213,12 +213,14 @@ class ProcessMentionForSlackTest(TestCase):
         mock_entrypoint.thread_ts = "1234567890.000001"
         mock_entrypoint.install.get_thread_history.return_value = [
             {"user": "U111", "text": "help me debug this"},
+            {"user": "U0BOT", "text": "let me take a look"},
             {"user": "U222", "text": "sure, what's the error?"},
+            {"user": "U0BOT", "text": "I'm on it"},
         ]
         mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
-        mock_operator.trigger_explorer.return_value = (99, 2)
+        mock_operator.trigger_explorer.return_value = 99
         mock_operator_cls.return_value = mock_operator
 
         mock_count_linked.return_value = 1
@@ -238,7 +240,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert "<@U222>: sure, what's the error?" in call_kwargs["on_page_context"]
 
         mock_count_linked.assert_called_once()
-        assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {"U111", "U222"}
+        assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {"U111", "U222", "U0BOT"}
 
         assert_last_analytics_event(
             mock_record,
@@ -249,9 +251,9 @@ class ProcessMentionForSlackTest(TestCase):
                 prompt_length=len("What is causing this issue?"),
                 run_id=99,
                 integration_id=123,
-                messages_in_thread=2,
+                messages_in_thread=4,
                 seer_msgs_in_thread=2,
-                unique_users_in_thread=2,
+                unique_users_in_thread=3,
                 linked_users_in_thread=1,
                 conversation_type=SlackSeerAgentConversation.AI_ASSISTANT,
             ),
@@ -269,7 +271,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
-        mock_operator.trigger_explorer.return_value = (1, 0)
+        mock_operator.trigger_explorer.return_value = 1
         mock_operator_cls.return_value = mock_operator
 
         self._run_task(thread_ts=None)
@@ -293,7 +295,7 @@ class ProcessMentionForSlackTest(TestCase):
         mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
-        mock_operator.trigger_explorer.return_value = (None, 0)
+        mock_operator.trigger_explorer.return_value = None
         mock_operator_cls.return_value = mock_operator
 
         self._run_task()
