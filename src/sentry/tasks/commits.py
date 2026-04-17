@@ -289,9 +289,8 @@ def fetch_commits_for_ref_with_lifecycle(
             return None
         except Exception as e:
             span = sentry_sdk.get_current_span()
-            if span is None:
-                raise TypeError("No span is currently active right now")
-            span.set_status("unknown_error")
+            if span:
+                span.set_status("unknown_error")
 
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
@@ -351,7 +350,7 @@ def fetch_commits(
         "user_id": user_id,
         "github_compare_commits_cache_feature_enabled": github_compare_commits_cache_feature_enabled,
     }
-    logger.info("fetch_commits.start", extra=extra)
+    logger.info("fetch_commits.config", extra=extra)
 
     for ref in refs:
         repo = get_repo_for_ref(release=release, ref=ref, user_id=user_id)
