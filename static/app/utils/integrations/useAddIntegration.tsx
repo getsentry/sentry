@@ -41,9 +41,13 @@ export interface AddIntegrationParams {
 const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'aws_lambda',
   'bitbucket',
+  'discord',
   'github',
   'gitlab',
+  'opsgenie',
+  'pagerduty',
   'slack',
+  'vsts',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 
 type UnconditionalApiPipelineProvider =
