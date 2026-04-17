@@ -49,7 +49,9 @@ def process_mention_for_slack(
     text: str,
     slack_user_id: str,
     bot_user_id: str,
-    conversation_type: SlackSeerAgentConversation,
+    # Defaulted so tasks enqueued by pre-analytics workers during a rolling
+    # deploy don't fail. Drop the default once the deploy has settled.
+    conversation_type: SlackSeerAgentConversation = SlackSeerAgentConversation.DIRECT_MESSAGE,
 ) -> None:
     """
     Process a Slack @mention for Seer Explorer.
