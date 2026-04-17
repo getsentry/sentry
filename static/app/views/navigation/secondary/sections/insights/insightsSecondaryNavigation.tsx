@@ -117,7 +117,7 @@ export function InsightsSecondaryNavigation() {
                             {tct('See the [link:new Crons page here.]', {
                               link: (
                                 <Link
-                                  to={`${makeMonitorBasePathname(organization.slug)}/crons/`}
+                                  to={`${makeMonitorBasePathname(organization.slug)}crons/`}
                                 />
                               ),
                             })}
@@ -138,7 +138,7 @@ export function InsightsSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   to={
                     hasWorkflowEngineUI
-                      ? `${makeMonitorBasePathname(organization.slug)}/uptime/?insightsRedirect=true`
+                      ? `${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`
                       : `${baseUrl}/uptime/`
                   }
                   analyticsItemName="insights_uptime"
@@ -153,7 +153,7 @@ export function InsightsSecondaryNavigation() {
                               {tct('See the [link:new Uptime page here.]', {
                                 link: (
                                   <Link
-                                    to={`${makeMonitorBasePathname(organization.slug)}/uptime/`}
+                                    to={`${makeMonitorBasePathname(organization.slug)}uptime/`}
                                   />
                                 ),
                               })}
