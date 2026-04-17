@@ -78,18 +78,21 @@ const scmOnboardingSteps: StepDescriptor[] = [
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
     Component: ScmConnect,
+    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Platform & features'),
     Component: ScmPlatformFeatures,
+    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PROJECT_DETAILS,
     title: t('Project details'),
     Component: ScmProjectDetails,
+    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
@@ -112,14 +115,17 @@ function WelcomeVariable(props: StepProps) {
 interface ContainerVariableProps {
   hasFooter: boolean;
   hasNewWelcomeUI: boolean;
+  hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
   const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
-  const Component = newWelcomeUIStep
-    ? OnboardingContainerNewWelcomeUI
-    : OnboardingContainer;
+  let Component = OnboardingContainer;
+
+  if (newWelcomeUIStep && !props.hasScmOnboarding) {
+    Component = OnboardingContainerNewWelcomeUI;
+  }
 
   return (
     <Component hasFooter={props.hasFooter || newWelcomeUIStep}>
@@ -130,12 +136,15 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 
 interface OnboardingStepVariableProps {
   hasNewWelcomeUI: boolean;
+  hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
   const Component =
-    props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME
+    props.hasNewWelcomeUI &&
+    props.id === OnboardingStepId.WELCOME &&
+    !props.hasScmOnboarding
       ? OnboardingStepNewUi
       : OnboardingStep;
 
@@ -329,7 +338,7 @@ export function OnboardingWithoutContext() {
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
-        <LogoSvg />
+        <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
           <StyledStepper
             numSteps={onboardingSteps.length}
@@ -355,11 +364,14 @@ export function OnboardingWithoutContext() {
         hasFooter={containerHasFooter}
         id={stepObj.id}
         hasNewWelcomeUI={hasNewWelcomeUI}
+        hasScmOnboarding={hasScmOnboarding}
       >
-        <AdaptivePageCorners
-          // Controls the current corner variant
-          animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-        />
+        {hasScmOnboarding ? null : (
+          <AdaptivePageCorners
+            // Controls the current corner variant
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+          />
+        )}
         {stepIndex > 0 && (
           <BackMotionDiv
             initial="initial"
@@ -385,7 +397,11 @@ export function OnboardingWithoutContext() {
           </BackMotionDiv>
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStepVariable id={stepObj.id} hasNewWelcomeUI={hasNewWelcomeUI}>
+          <OnboardingStepVariable
+            id={stepObj.id}
+            hasNewWelcomeUI={hasNewWelcomeUI}
+            hasScmOnboarding={hasScmOnboarding}
+          >
             {stepObj.Component && (
               <stepObj.Component
                 data-test-id={`onboarding-step-${stepObj.id}`}
