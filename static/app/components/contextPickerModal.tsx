@@ -30,7 +30,6 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
