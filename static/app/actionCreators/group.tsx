@@ -245,9 +245,11 @@ type FetchIssueTagParameters = {
   tagKey: string;
 };
 
-export function fetchIssueTagApiOptions(parameters: FetchIssueTagParameters) {
+export function fetchIssueTagApiOptions<TData = GroupTag>(
+  parameters: FetchIssueTagParameters
+) {
   return queryOptions({
-    ...apiOptions.as<GroupTag>()(
+    ...apiOptions.as<TData>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/',
       {
         path: {
