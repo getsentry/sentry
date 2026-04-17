@@ -14,9 +14,12 @@ from typing import Any, Literal
 
 from django import forms
 from django.conf import settings as django_settings
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel, validator
+from rest_framework.fields import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -32,6 +35,8 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.utils.imports import import_string
@@ -153,6 +158,29 @@ class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
         pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
 
 
+class ClaudeCodeApiKeySerializer(CamelSnakeSerializer):
+    api_key = CharField(required=True, max_length=255)
+
+
+class ClaudeCodeApiKeyApiStep:
+    step_name = "api_key_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return ClaudeCodeApiKeySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("api_key", validated_data["api_key"])
+        return PipelineStepResult.advance()
+
+
 class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     """
     Integration provider for Claude Code Agent.
@@ -167,6 +195,9 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
     def get_pipeline_views(self):
         return [ClaudeCodeApiKeyPipelineView()]
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [ClaudeCodeApiKeyApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state.get("api_key")

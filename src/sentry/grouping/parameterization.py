@@ -203,6 +203,29 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="mac_addr",
+        raw_pattern=r"""
+            (
+                # 6 sets of 2 hex characters, separated by colons, dashes, or spaces
+                \b
+                (
+                    ([0-9A-Fa-f]{2}:){5} | # 5 sets of two hex digits, each followed by a colon
+                    ([0-9A-Fa-f]{2}-){5} | # 5 sets of two hex digits, each followed by a dash
+                    ([0-9A-Fa-f]{2}\s){5} # 5 sets of two hex digits, each followed by a space
+                )
+                [0-9A-Fa-f]{2} # Final set of two hex digits
+                \b
+            )|
+            (
+                # 3 sets of 4 hex characters, separate by dots
+                \b
+                ([0-9A-Fa-f]{4}\.){2}  # 2 sets of four hex digits, each followed by a period
+                [0-9A-Fa-f]{4} # Final set of four hex digits
+                \b
+            )
+        """,
+    ),
     # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
     # IPv6 addresses
     ParameterizationRegex(

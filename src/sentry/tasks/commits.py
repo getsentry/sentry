@@ -101,13 +101,13 @@ def get_github_compare_commits_cache_key(
     return f"fetch-commits:compare-commits:v1:{digest}"
 
 
-def fetch_compare_commits(
+def fetch_commits_for_compare_range(
     *,
     cache_enabled: bool,
     repo: Repository,
     provider: Any,
     is_integration_repo_provider: bool,
-    start_sha: str | None,
+    start_sha: str,
     end_sha: str,
     user: RpcUser | None,
     lifecycle: Any,
@@ -127,7 +127,11 @@ def fetch_compare_commits(
         lifecycle.add_extra("compare_commits_cache_enabled", False)
 
     if is_integration_repo_provider:
-        repo_commits = provider.compare_commits(repo, start_sha, end_sha)
+        # New method to decouple the provider from the task
+        if hasattr(provider, "fetch_commits_for_compare_range"):
+            repo_commits = provider.fetch_commits_for_compare_range(repo, start_sha, end_sha)
+        else:
+            repo_commits = provider.compare_commits(repo, start_sha, end_sha)
     else:
         # XXX: This only works for plugins that support actor context
         repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
@@ -139,6 +143,23 @@ def fetch_compare_commits(
             GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
         )
     return repo_commits
+
+
+def fetch_recent_commits(
+    *,
+    repo: Repository,
+    provider: Any,
+    is_integration_repo_provider: bool,
+    end_sha: str,
+    user: RpcUser | None,
+) -> list[dict[str, Any]]:
+    if is_integration_repo_provider:
+        if hasattr(provider, "fetch_recent_commits"):
+            return provider.fetch_recent_commits(repo, end_sha)
+        return provider.compare_commits(repo, None, end_sha)
+
+    # XXX: This only works for plugins that support actor context
+    return provider.compare_commits(repo, None, end_sha, actor=user)
 
 
 def get_repo_and_provider_for_ref(
@@ -260,23 +281,31 @@ def fetch_commits(
                 }
             )
             try:
-                provider_name = repo.provider
-                compare_commits_cache_enabled = (
-                    github_compare_commits_cache_feature_enabled
-                    and isinstance(provider_name, str)
-                    and provider_name in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
-                    and start_sha is not None
-                )
-                repo_commits = fetch_compare_commits(
-                    cache_enabled=compare_commits_cache_enabled,
-                    repo=repo,
-                    provider=provider,
-                    is_integration_repo_provider=is_integration_repo_provider,
-                    start_sha=start_sha,
-                    end_sha=end_sha,
-                    user=user,
-                    lifecycle=lifecycle,
-                )
+                if start_sha is None:
+                    repo_commits = fetch_recent_commits(
+                        repo=repo,
+                        provider=provider,
+                        is_integration_repo_provider=is_integration_repo_provider,
+                        end_sha=end_sha,
+                        user=user,
+                    )
+                else:
+                    provider_name = repo.provider
+                    compare_commits_cache_enabled = (
+                        github_compare_commits_cache_feature_enabled
+                        and isinstance(provider_name, str)
+                        and provider_name in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
+                    )
+                    repo_commits = fetch_commits_for_compare_range(
+                        cache_enabled=compare_commits_cache_enabled,
+                        repo=repo,
+                        provider=provider,
+                        is_integration_repo_provider=is_integration_repo_provider,
+                        start_sha=start_sha,
+                        end_sha=end_sha,
+                        user=user,
+                        lifecycle=lifecycle,
+                    )
             except NotImplementedError:
                 pass
             except IntegrationResourceNotFoundError:

@@ -299,6 +299,80 @@ describe('ScmProjectDetails', () => {
     expect(stored.selectedPlatform?.key).toBe('javascript-nextjs');
   });
 
+  it('restores form inputs from persisted projectDetailsForm', async () => {
+    render(
+      <ScmProjectDetails
+        onComplete={jest.fn()}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+          projectDetailsForm: {
+            projectName: 'my-saved-name',
+            teamSlug: teamWithAccess.slug,
+          },
+        }),
+      }
+    );
+
+    const input = await screen.findByPlaceholderText('project-name');
+    expect(input).toHaveValue('my-saved-name');
+  });
+
+  it('persists form state to context on successful creation', async () => {
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({slug: 'javascript-nextjs', name: 'javascript-nextjs'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    const onComplete = jest.fn();
+
+    render(
+      <ScmProjectDetails
+        onComplete={onComplete}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
+
+    const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
+    expect(stored.projectDetailsForm).toEqual(
+      expect.objectContaining({
+        projectName: 'javascript-nextjs',
+        teamSlug: teamWithAccess.slug,
+      })
+    );
+    expect(stored.projectDetailsForm.alertRuleConfig).toBeDefined();
+  });
+
   it('shows error message on project creation failure', async () => {
     const onComplete = jest.fn();
 

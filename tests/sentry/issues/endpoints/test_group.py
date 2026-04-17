@@ -2,6 +2,7 @@ from typing import ContextManager
 
 from rest_framework.views import APIView
 
+from sentry.auth.access import from_request
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group
@@ -9,6 +10,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 
 class GroupAiPermissionTest(TestCase):
@@ -125,3 +127,24 @@ class GroupAiEndpointTest(TestCase):
     def test_permission_classes(self) -> None:
         assert hasattr(self.endpoint, "permission_classes")
         assert self.endpoint.permission_classes == (GroupAiPermission,)
+
+    def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.project.organization,
+            role="member",
+            teams=[self.project.teams.first()],
+        )
+        request = self.make_request(user=user, method="GET")
+        request.access = from_request(drf_request_from_request(request), self.project.organization)
+        request = drf_request_from_request(request)
+        request._request.organization = None
+
+        with viewer_context_scope(ViewerContext(user_id=user.id)):
+            self.endpoint.convert_args(request, str(self.group.id), self.project.organization.slug)
+            ctx = get_viewer_context()
+
+        assert ctx is not None
+        assert ctx.user_id == user.id
+        assert ctx.organization_id == self.project.organization.id

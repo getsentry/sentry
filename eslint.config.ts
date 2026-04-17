@@ -619,6 +619,7 @@ export default typescript.config([
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
+          '@typescript-eslint/prefer-reduce-type-parameter': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
           '@sentry/no-default-exports': 'error',
