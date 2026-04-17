@@ -1075,7 +1075,6 @@ describe('Dashboards > Detail', () => {
       });
       const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
-      await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
       await userEvent.click(screen.getAllByText('Clear')[0]!);
       screen.getByText('All Releases');
@@ -1173,7 +1172,6 @@ describe('Dashboards > Detail', () => {
       });
       const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
-      await screen.findByText('7D');
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.keyboard('{Escape}');
