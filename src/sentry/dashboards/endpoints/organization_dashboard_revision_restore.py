@@ -66,7 +66,7 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
 
         try:
             revision = DashboardRevision.objects.get(id=revision_id, dashboard=dashboard)
-        except DashboardRevision.DoesNotExist:
+        except (DashboardRevision.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         if revision.snapshot_schema_version != DashboardRevision.SNAPSHOT_SCHEMA_VERSION:

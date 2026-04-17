@@ -9,7 +9,7 @@ from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.testutils.cases import APITestCase
 
 
-class PrepareRestoreDataTest:
+class TestPrepareRestoreData:
     def test_strips_widget_ids(self) -> None:
         snapshot = {"widgets": [{"id": 1, "title": "Widget"}, {"id": 2, "title": "Other"}]}
         result = _prepare_restore_data(snapshot)
