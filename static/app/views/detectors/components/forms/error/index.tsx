@@ -17,9 +17,9 @@ import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
@@ -39,9 +39,8 @@ type ErrorDetectorFormData = {
   workflowIds: string[];
 };
 
-function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
+function ErrorDetectorForm({project}: {project: Project}) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
 
   return (
@@ -54,7 +53,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               {
                 link: (
                   <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/issue-grouping/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/issue-grouping/`}
                   />
                 ),
               }
@@ -70,7 +69,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               {
                 link: (
                   <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/ownership/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
                   />
                 ),
               }
@@ -100,7 +99,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               {
                 link: (
                   <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/#resolveAge`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/#resolveAge`}
                   />
                 ),
               }
@@ -125,9 +124,14 @@ export function NewErrorDetectorForm() {
   );
 }
 
-export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetector}) {
+export function EditExistingErrorDetectorForm({
+  detector,
+  project,
+}: {
+  detector: ErrorDetector;
+  project: Project;
+}) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -173,16 +177,10 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
                   label: getDetectorTypeLabel(detector.type),
                   to: makeMonitorTypePathname(organization.slug, detector.type),
                 },
-                ...(project
-                  ? [
-                      {
-                        label: (
-                          <ProjectBadge disableLink project={project} avatarSize={16} />
-                        ),
-                        to: makeMonitorDetailsPathname(organization.slug, detector.id),
-                      },
-                    ]
-                  : []),
+                {
+                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                  to: makeMonitorDetailsPathname(organization.slug, detector.id),
+                },
                 {label: t('Configure')},
               ]}
             />
@@ -204,7 +202,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       )}
 
       <EditLayout.Body>
-        <ErrorDetectorForm detector={detector} />
+        <ErrorDetectorForm project={project} />
       </EditLayout.Body>
 
       <FormContext.Consumer>
