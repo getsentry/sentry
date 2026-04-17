@@ -17,7 +17,7 @@ export const makeFetchGroupSearchViewKey = ({
   }),
 ];
 
-export const useFetchGroupSearchView = (
+export const groupSearchView = (
   parameters: FetchGroupSearchViewsParameters,
   options: Partial<UseApiQueryOptions<GroupSearchView>> = {}
 ) => {

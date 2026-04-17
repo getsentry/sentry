@@ -7,7 +7,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 interface CreateGroupSearchViewData extends Partial<

@@ -1,13 +1,11 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {defined} from 'sentry/utils';
-import {getApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useFetchGroupSearchView} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
-import {
-  GroupSearchViewVisibility,
-  type StarredGroupSearchView,
-} from 'sentry/views/issueList/types';
+import {groupSearchView} from 'sentry/views/issueList/queries/groupSearchView';
+import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
+import {GroupSearchViewVisibility} from 'sentry/views/issueList/types';
 
 // Returns the query for the search view that is currently selected according
 // to the URL.
@@ -17,13 +15,10 @@ export function useSelectedGroupSearchView() {
   const queryClient = useQueryClient();
 
   // The view may have already been loaded by the starred views query,
-  // so load that in `initialData` to avoid an unncessary request.
-  const queryFromStarredViews = getApiQueryData<StarredGroupSearchView[]>(
-    queryClient,
-    makeFetchStarredGroupSearchViewsKey({
-      orgSlug: organization.slug,
-    })
-  );
+  // so load that in `initialData` to avoid an unnecessary request.
+  const queryFromStarredViews = queryClient.getQueryData(
+    starredGroupSearchViewsApiOptions({orgSlug: organization.slug}).queryKey
+  )?.json;
   const matchingView = queryFromStarredViews
     // XXX (malwilley): Issue views without the nav require at least one issue view,
     // so they respond with "fake" issue views that do not have an ID.
@@ -31,7 +26,7 @@ export function useSelectedGroupSearchView() {
     ?.filter(view => defined(view.id))
     ?.find(v => v.id === viewId);
 
-  return useFetchGroupSearchView(
+  return groupSearchView(
     {
       id: viewId ?? 0,
       orgSlug: organization.slug,

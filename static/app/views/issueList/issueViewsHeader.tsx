@@ -24,7 +24,7 @@ import {
 } from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
-import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
+import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/groupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 import {TopBar} from 'sentry/views/navigation/topBar';

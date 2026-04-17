@@ -9,8 +9,8 @@ import {
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/groupSearchView';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewVariables = Pick<

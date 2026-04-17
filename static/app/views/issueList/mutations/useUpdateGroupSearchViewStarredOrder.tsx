@@ -6,8 +6,8 @@ import {defined} from 'sentry/utils';
 import {useMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
+import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewStarredOrderVariables = {
