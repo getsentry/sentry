@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
 import type {QueryClient} from '@tanstack/react-query';
 
@@ -778,6 +779,7 @@ function useAutoFetchWindow({
   fetchNextPage,
 }: AutoFetchWindowOptions) {
   const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
+  const timesFetched = useRef(0);
 
   const queryKeyHash = useMemo(() => {
     const [url, endpointOptions] = queryKey;
@@ -799,9 +801,21 @@ function useAutoFetchWindow({
     }
 
     if (Date.now() >= deadlineMs) {
+      Sentry.metrics.distribution(
+        'explore.logs.flex_time_pages_before_data',
+        timesFetched.current,
+        {attributes: {status: 'out_of_time'}}
+      );
       return;
     }
 
+    Sentry.metrics.distribution(
+      'explore.logs.flex_time_pages_before_data',
+      timesFetched.current,
+      {attributes: {status: 'fetching'}}
+    );
+
+    timesFetched.current += 1;
     fetchNextPage();
   }, [
     canAutoFetchNextPage,
