@@ -285,17 +285,25 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     if group_bys:
         query.setlist("groupBy", group_bys)
 
-    # Copy standard params
-    for param in ("project", "statsPeriod", "start", "end", "query", "environment", "interval"):
+    # Copy standard params (query and sort are handled separately per dataset)
+    for param in ("project", "statsPeriod", "start", "end", "environment", "interval"):
         values = raw_query.getlist(param)
         if values:
             query.setlist(param, values)
 
-    # Explore stores the aggregate sort as "aggregateSort" in the URL;
-    # the events-timeseries endpoint expects it as "sort".
-    aggregate_sort = raw_query.getlist("aggregateSort")
-    if aggregate_sort:
-        query.setlist("sort", aggregate_sort)
+    # Each dataset stores query/sort under different URL param keys.
+    # Map the dataset-specific key to the API's standard "query"/"sort" params.
+    dataset_query_key = "logsQuery" if explore_dataset == SupportedTraceItemType.LOGS else "query"
+    query_values = raw_query.getlist(dataset_query_key)
+    if query_values:
+        query.setlist("query", query_values)
+
+    dataset_sort_key = (
+        "logsSortBys" if explore_dataset == SupportedTraceItemType.LOGS else "aggregateSort"
+    )
+    sort_values = raw_query.getlist(dataset_sort_key)
+    if sort_values:
+        query.setlist("sort", sort_values)
 
     # Metrics stores query and sort inside the metric JSON param
     if metric_query:

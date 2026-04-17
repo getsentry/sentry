@@ -1943,6 +1943,37 @@ class UnfurlTest(TestCase):
         "sentry.integrations.slack.unfurl.explore.client.get",
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_logs_with_query(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == "logs"
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        call_kwargs = mock_client_get.call_args[1]
+        api_params = call_kwargs["params"]
+        assert api_params["dataset"] == "logs"
+        assert api_params["query"] == "severity:error"
+        assert api_params["sort"] == "-timestamp"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_explore_logs_customer_domain(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
