@@ -36,7 +36,6 @@ import {
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
   type TraceMetricEventsResponseItem,
-  type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
@@ -195,11 +194,7 @@ export function SampleTableRow({
   };
 
   const renderMetricTypeCell = () => {
-    return (
-      <MetricTypeBadge
-        metricType={row[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue}
-      />
-    );
+    return <MetricTypeBadge metricType={row[TraceMetricKnownFieldKey.METRIC_TYPE]} />;
   };
 
   const renderProjectCell = () => {

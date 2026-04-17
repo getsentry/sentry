@@ -254,7 +254,7 @@ export function PerformanceScoreRingWithTooltips({
                     {...commonWebVitalLabelProps}
                     key={`webVitalLabel-${key}-${index}`}
                     webVital={webVital}
-                    coordinates={coordinates[webVital] as Coordinates}
+                    coordinates={coordinates[webVital]}
                   />
                 );
               }

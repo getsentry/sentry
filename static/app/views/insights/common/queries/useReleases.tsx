@@ -79,11 +79,11 @@ export function useReleases(
       const {url, options} = parseQueryKey(queryKey);
       return {
         queryKey,
-        queryFn: () => {
+        queryFn: (): Promise<TableData> => {
           return api.requestPromise(url, {
             method: 'GET',
             query: options?.query,
-          }) as Promise<TableData>;
+          });
         },
         staleTime: Infinity,
         enabled: isReady && !releaseResults.isPending,

@@ -286,7 +286,7 @@ export function CodeReviewOverviewSection({
                 busy={isPending}
                 disabled={!canWrite}
                 onClick={() => {
-                  handleChangeTriggers(field.state.value as CodeReviewTrigger[]);
+                  handleChangeTriggers(field.state.value);
                 }}
               >
                 {tn(
