@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
 from typing import Any, ClassVar, Generic, TypedDict, TypeVar, cast
 
@@ -356,8 +356,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         raise NotImplementedError
 
     def get_repository_data(
-        self, organization: Any, config: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+        self, organization: Any, config: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
         """
         Gets the necessary repository data through the integration's API
         """
@@ -399,7 +399,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def compare_commits(
         self, repo: Any, start_sha: str | None, end_sha: str
-    ) -> list[dict[str, Any]]:
+    ) -> Sequence[Mapping[str, Any]]:
         """
         Generate a list of commits between the start & end sha
         Commits should be of the following format:
@@ -417,12 +417,12 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def fetch_recent_commits(
         self, repo: Any, end_sha: str, *, actor: Any | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> Sequence[Mapping[str, Any]]:
         return self.compare_commits(repo, None, end_sha)
 
     def fetch_commits_for_compare_range(
         self, repo: Any, start_sha: str, end_sha: str, *, actor: Any | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> Sequence[Mapping[str, Any]]:
         return self.compare_commits(repo, start_sha, end_sha)
 
     def get_scm_provider_key(self) -> str:

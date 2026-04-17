@@ -44,7 +44,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
-    ) -> Mapping[str, Any]:
+    ) -> MutableMapping[str, Any]:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
 
