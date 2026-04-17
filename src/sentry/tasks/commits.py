@@ -189,6 +189,33 @@ def get_repo_and_provider_for_ref(
     return repo, provider, provider_key
 
 
+def get_start_sha_for_ref(
+    *,
+    ref: Mapping[str, str],
+    release: Release,
+    repo: Repository,
+    prev_release: Release | None,
+) -> str | None:
+    # `previousCommit` comes from release refs payloads (`Release.set_refs`), either
+    # sent explicitly by clients or derived from `previous..current` commit ranges.
+    # Callers typically include it when they know the exact base SHA (for example on
+    # first commit association), before Sentry has a prior release head commit to use.
+    if ref.get("previousCommit"):
+        return ref["previousCommit"]
+
+    if prev_release:
+        try:
+            return ReleaseHeadCommit.objects.filter(
+                organization_id=release.organization_id,
+                release=prev_release,
+                repository_id=repo.id,
+            ).values_list("commit__key", flat=True)[0]
+        except IndexError:
+            pass
+
+    return None
+
+
 @instrumented_task(
     name="sentry.tasks.commits.fetch_commits",
     namespace=issues_tasks,
@@ -231,21 +258,12 @@ def fetch_commits(
             continue
         repo, provider, provider_key = resolved
 
-        # if previous commit isn't provided, try to get from
-        # previous release otherwise, try to get
-        # recent commits from provider api
-        start_sha = None
-        if ref.get("previousCommit"):
-            start_sha = ref["previousCommit"]
-        elif prev_release:
-            try:
-                start_sha = ReleaseHeadCommit.objects.filter(
-                    organization_id=release.organization_id,
-                    release=prev_release,
-                    repository_id=repo.id,
-                ).values_list("commit__key", flat=True)[0]
-            except IndexError:
-                pass
+        start_sha = get_start_sha_for_ref(
+            ref=ref,
+            release=release,
+            repo=repo,
+            prev_release=prev_release,
+        )
 
         end_sha = ref["commit"]
 
