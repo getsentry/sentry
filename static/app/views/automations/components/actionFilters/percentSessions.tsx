@@ -9,7 +9,10 @@ import {
   CountBranch,
   PercentBranch,
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
-import {PERCENT_INTERVAL_CHOICES} from 'sentry/views/automations/components/actionFilters/constants';
+import {
+  COMPARISON_INTERVAL_CHOICES,
+  PERCENT_INTERVAL_CHOICES,
+} from 'sentry/views/automations/components/actionFilters/constants';
 import {
   SubfilterDetailsList,
   SubfiltersList,
@@ -57,7 +60,7 @@ export function PercentSessionsPercentDetails({condition}: {condition: DataCondi
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
           comparisonInterval:
-            PERCENT_INTERVAL_CHOICES.find(
+            COMPARISON_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.comparisonInterval
             )?.label || condition.comparison.comparisonInterval,
           where: hasSubfilters ? t('where') : null,
