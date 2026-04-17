@@ -86,7 +86,6 @@ function resolveStoppingPoint(
         stoppingPointValue: 'root_cause',
         automationHandoff: handoff ? {...handoff, auto_create_pr: false} : undefined,
       };
-    case 'off':
     default:
       return {
         stoppingPointValue: undefined,

@@ -47,22 +47,21 @@ type CodingAgentIntegration = {
 };
 
 // UI-level stopping point values (not sent directly to the API)
-type StoppingPointSelectValue = 'off' | 'root_cause' | 'code';
+type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 ```
 
 `PROVIDER_TO_HANDOFF_TARGET` maps `provider` strings to `CodingAgentProvider` enum values (e.g. `'cursor'` → `CodingAgentProvider.CURSOR_BACKGROUND_AGENT`).
 
 ## Stopping Point: UI Values → API Values
 
-The UI exposes three values that map to two separate API fields:
+The UI exposes four values that map to two separate API fields:
 
-| UI value       | `autofixAutomationTuning` | `automated_run_stopping_point`    |
-| -------------- | ------------------------- | --------------------------------- |
-| `'off'`        | `'off'`                   | _(unchanged — see note below)_    |
-| `'root_cause'` | `'medium'`                | `'root_cause'`                    |
-| `'code'`       | `'medium'`                | `'code_changes'` or `'open_pr'`\* |
-
-\* Use `'open_pr'` when `organization.autoOpenPrs` is true, otherwise `'code_changes'`.
+| UI value       | `autofixAutomationTuning` | `automated_run_stopping_point` |
+| -------------- | ------------------------- | ------------------------------ |
+| `'off'`        | `'off'`                   | _(unchanged — see note below)_ |
+| `'root_cause'` | `'medium'`                | `'root_cause'`                 |
+| `'plan'`       | `'medium'`                | `'code_changes'`               |
+| `'create_pr'`  | `'medium'`                | `'open_pr'`                    |
 
 **Important:** When setting `'off'`, do not update `automated_run_stopping_point` or `automation_handoff`. The tuning value short-circuits execution before those fields are read, so leaving them stale preserves the user's previous configuration when they re-enable.
 
@@ -71,10 +70,11 @@ The UI exposes three values that map to two separate API fields:
 - **Seer selected:** `automation_handoff` is absent/undefined. `autofixAutomationTuning: 'medium'`.
 - **External agent selected:** `automation_handoff` is set with `target`, `integration_id`, and `auto_create_pr`. `autofixAutomationTuning: 'medium'`.
 
-When switching to an external agent, carry over `auto_create_pr` from the current stopping point state:
+When switching to an external agent, carry over `auto_create_pr` from the current state. Check both the stopping point and the existing handoff flag, to correctly handle switching between two external agents:
 
 ```typescript
-auto_create_pr: preference?.automated_run_stopping_point === 'open_pr';
+auto_create_pr: preference?.automated_run_stopping_point === 'open_pr' ||
+  Boolean(preference?.automation_handoff?.auto_create_pr);
 ```
 
 ## Auto-Create PR: Two Storage Locations
@@ -82,7 +82,7 @@ auto_create_pr: preference?.automated_run_stopping_point === 'open_pr';
 The "auto create PR" concept is stored differently depending on the agent:
 
 - **Seer agent:** stored as `automated_run_stopping_point: 'open_pr'` (no handoff object)
-- **External agent:** stored as `automation_handoff.auto_create_pr: true`
+- **External agent:** stored as `automated_run_stopping_point: 'open_pr'` AND `automation_handoff.auto_create_pr: true`
 
 Both are functionally equivalent from the user's perspective.
 

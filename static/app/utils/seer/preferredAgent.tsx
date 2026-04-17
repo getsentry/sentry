@@ -126,13 +126,36 @@ export function getProjectAgentMutationOptions({
         }),
       ]);
     },
-    onMutate: () => {
+    onMutate: ({agent}: {agent: PreferredAgent}) => {
       const previousProject = ProjectsStore.getById(project.id);
       const previousPreference = getApiQueryData<SeerPreferencesResponse>(
         queryClient,
         seerPrefsQueryKey
       );
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: 'medium'});
+      if (previousPreference?.preference) {
+        const handoff: ProjectSeerPreferences['automation_handoff'] =
+          agent === 'seer'
+            ? undefined
+            : {
+                handoff_point: 'root_cause',
+                target: PROVIDER_TO_HANDOFF_TARGET[agent.provider]!,
+                integration_id: Number(agent.id),
+                auto_create_pr:
+                  previousPreference.preference.automated_run_stopping_point ===
+                    'open_pr' ||
+                  Boolean(
+                    previousPreference.preference.automation_handoff?.auto_create_pr
+                  ),
+              };
+        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+          ...previousPreference,
+          preference: {
+            ...previousPreference.preference,
+            automation_handoff: handoff,
+          },
+        });
+      }
       return {previousProject, previousPreference};
     },
     onError: (
