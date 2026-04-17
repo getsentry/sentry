@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 
 import {
   addErrorMessage,
@@ -42,6 +42,11 @@ import {
 /**
  * Available autofix steps that can be triggered via the Explorer.
  */
+export interface CodingAgentError {
+  id: number;
+  message: string;
+}
+
 export type AutofixExplorerStep =
   | 'root_cause'
   | 'solution'
@@ -523,7 +528,14 @@ export function useExplorerAutofix(
    */
   const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
-  const [codingAgentErrors, setCodingAgentErrors] = useState<string[]>([]);
+  const [codingAgentErrors, setCodingAgentErrors] = useState<CodingAgentError[]>([]);
+  const nextCodingAgentErrorId = useRef(0);
+  const appendCodingAgentErrors = useCallback((messages: string[]) => {
+    setCodingAgentErrors(prev => [
+      ...prev,
+      ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
+    ]);
+  }, []);
 
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
@@ -736,12 +748,9 @@ export function useExplorerAutofix(
           }
 
           if (otherFailures.length > 0) {
-            setCodingAgentErrors(prev => [
-              ...prev,
-              ...otherFailures.map(
-                f => f.error_message ?? 'Failed to launch coding agent'
-              ),
-            ]);
+            appendCodingAgentErrors(
+              otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
+            );
           }
         }
 
@@ -755,8 +764,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        setCodingAgentErrors(prev => [
-          ...prev,
+        appendCodingAgentErrors([
           e?.responseJSON?.detail ?? 'Failed to launch coding agent',
         ]);
         throw e;
@@ -765,7 +773,7 @@ export function useExplorerAutofix(
         setWaitingForCodingAgent(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id]
+    [api, orgSlug, groupId, queryClient, organization, user.id, appendCodingAgentErrors]
   );
 
   // Clear waiting state when we get a response
@@ -812,10 +820,10 @@ export function useExplorerAutofix(
      */
     codingAgentErrors,
     /**
-     * Dismiss a single coding agent error by its index in `codingAgentErrors`.
+     * Dismiss a single coding agent error by its id.
      */
-    dismissCodingAgentError: (index: number) =>
-      setCodingAgentErrors(prev => prev.filter((_, i) => i !== index)),
+    dismissCodingAgentError: (id: number) =>
+      setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
   };
 }
 

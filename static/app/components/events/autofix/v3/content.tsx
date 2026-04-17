@@ -63,9 +63,9 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
       {autofix.runState?.status === 'completed' && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
-      {autofix.codingAgentErrors.map((error, i) => (
+      {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
-          key={i}
+          key={id}
           variant="danger"
           trailingItems={
             <Button
@@ -73,11 +73,11 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
               priority="transparent"
               icon={<IconClose size="sm" />}
               aria-label={t('Dismiss error')}
-              onClick={() => autofix.dismissCodingAgentError(i)}
+              onClick={() => autofix.dismissCodingAgentError(id)}
             />
           }
         >
-          {error}
+          {message}
         </Alert>
       ))}
     </Flex>

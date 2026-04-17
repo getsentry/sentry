@@ -492,7 +492,9 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {
-      expect(result.current.codingAgentErrors).toEqual(['first error']);
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'first error',
+      ]);
     });
 
     MockApiClient.clearMockResponses();
@@ -512,7 +514,10 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {
-      expect(result.current.codingAgentErrors).toEqual(['first error', 'second error']);
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'first error',
+        'second error',
+      ]);
     });
   });
 
@@ -531,11 +536,11 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
     ).rejects.toBeDefined();
 
     await waitFor(() => {
-      expect(result.current.codingAgentErrors).toEqual(['boom']);
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['boom']);
     });
   });
 
-  it('dismissCodingAgentError removes the error at the given index', async () => {
+  it('dismissCodingAgentError removes the error with the given id', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
       method: 'POST',
@@ -553,10 +558,15 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {
-      expect(result.current.codingAgentErrors).toEqual(['a', 'b', 'c']);
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'a',
+        'b',
+        'c',
+      ]);
     });
 
-    act(() => result.current.dismissCodingAgentError(1));
-    expect(result.current.codingAgentErrors).toEqual(['a', 'c']);
+    const bId = result.current.codingAgentErrors[1]!.id;
+    act(() => result.current.dismissCodingAgentError(bId));
+    expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['a', 'c']);
   });
 });
