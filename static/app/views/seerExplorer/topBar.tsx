@@ -33,12 +33,15 @@ interface TopBarProps {
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
+  onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
+  overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
   panelSize: 'max' | 'med';
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
+  showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
 }
 
@@ -55,8 +58,11 @@ export function TopBar({
   onCopyLinkClick,
   onSizeToggleClick,
   onOverrideCtxEngEnableToggle,
+  onOverrideCodeModeEnableToggle,
   overrideCtxEngEnable,
+  overrideCodeModeEnable,
   showContextEngineToggle,
+  showCodeModeToggle,
   panelSize,
   isCopySessionEnabled,
   isCopyLinkEnabled,
@@ -112,6 +118,27 @@ export function TopBar({
           tooltipProps={{title: t('Copy link to current chat and web page')}}
           disabled={!isCopyLinkEnabled}
         />
+        {showCodeModeToggle && (
+          <Tooltip
+            title={
+              overrideCodeModeEnable
+                ? t('Code mode enabled (click to disable)')
+                : t('Code mode disabled (click to enable)')
+            }
+          >
+            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+              <Switch
+                size="sm"
+                checked={overrideCodeModeEnable}
+                onChange={onOverrideCodeModeEnableToggle}
+                aria-label={t('Toggle code mode')}
+              />
+              <Text size="sm" variant="muted">
+                {t('CM')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
         {showContextEngineToggle && (
           <Tooltip
             title={

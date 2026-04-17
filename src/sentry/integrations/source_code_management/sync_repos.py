@@ -198,24 +198,29 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         removed_id_list = list(removed_ids)
         restored_id_list = list(restored_ids)
 
-        # TODO: Switch to apply_async once the tasks are deployed to all workers
         for config_batch in chunked(new_repo_configs, SYNC_BATCH_SIZE):
-            create_repos_batch(
-                organization_integration_id=organization_integration_id,
-                repo_configs=config_batch,
+            create_repos_batch.apply_async(
+                kwargs={
+                    "organization_integration_id": organization_integration_id,
+                    "repo_configs": config_batch,
+                }
             )
 
         if _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org):
             for removed_batch in chunked(removed_id_list, SYNC_BATCH_SIZE):
-                disable_repos_batch(
-                    organization_integration_id=organization_integration_id,
-                    external_ids=removed_batch,
+                disable_repos_batch.apply_async(
+                    kwargs={
+                        "organization_integration_id": organization_integration_id,
+                        "external_ids": removed_batch,
+                    }
                 )
 
         for restored_batch in chunked(restored_id_list, SYNC_BATCH_SIZE):
-            restore_repos_batch(
-                organization_integration_id=organization_integration_id,
-                external_ids=restored_batch,
+            restore_repos_batch.apply_async(
+                kwargs={
+                    "organization_integration_id": organization_integration_id,
+                    "external_ids": restored_batch,
+                }
             )
 
 

@@ -608,7 +608,7 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     defaultCodingAgent: str
-    defaultCodingAgentIntegrationId: int | None
+    defaultCodingAgentIntegrationId: str | None
     defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
@@ -696,6 +696,10 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         elif has_dynamic_sampling(obj):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+
+        coding_agent_integration_id = obj.get_option(
+            "sentry:seer_default_coding_agent_integration_id", None
+        )
 
         context: OrganizationSerializerResponse = {
             **base,
@@ -795,8 +799,8 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "defaultCodingAgent": obj.get_option(
                 "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
             ),
-            "defaultCodingAgentIntegrationId": obj.get_option(
-                "sentry:seer_default_coding_agent_integration_id", None
+            "defaultCodingAgentIntegrationId": (
+                str(coding_agent_integration_id) if coding_agent_integration_id else None
             ),
             "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(

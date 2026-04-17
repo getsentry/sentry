@@ -168,8 +168,12 @@ class ProjectContextProvider extends Component<Props, State> {
     }));
 
     if (activeProject && hasAccess) {
+      // TODO: Convert this class component to a functional one and use
+      // `useDetailedProject` so this request shares the same cache and the
+      // `collapse=organization` query option is applied automatically.
       const projectRequest = this.props.api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/`
+        `/projects/${organization.slug}/${projectSlug}/`,
+        {query: {collapse: 'organization'}}
       );
 
       try {

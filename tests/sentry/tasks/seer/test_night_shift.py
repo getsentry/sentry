@@ -392,7 +392,7 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
                 project, f"null-{i}", seer_fixability_score=None, times_seen=100
             )
 
-        result = fixability_score_strategy([project])
+        result = fixability_score_strategy([project], max_candidates=10)
 
         assert result[0].group.id == high.id
         assert result[0].fixability == 0.9

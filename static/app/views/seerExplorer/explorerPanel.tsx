@@ -117,6 +117,8 @@ export function ExplorerPanel() {
     wasJustInterrupted,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    overrideCodeModeEnable,
+    setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
   const copySessionEnabled = Boolean(runId && organization?.slug);
@@ -624,6 +626,11 @@ export function ExplorerPanel() {
           !!organization?.features.includes(
             'seer-explorer-context-engine-fe-override-ui-flag'
           )
+        }
+        overrideCodeModeEnable={overrideCodeModeEnable}
+        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
+        showCodeModeToggle={
+          !!organization?.features.includes('seer-explorer-code-mode-tools')
         }
       />
       {menu}
