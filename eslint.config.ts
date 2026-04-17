@@ -613,7 +613,6 @@ export default typescript.config([
           '@typescript-eslint/no-confusing-void-expression': 'off',
           '@typescript-eslint/no-deprecated': 'off',
           '@typescript-eslint/no-floating-promises': 'off',
-          '@typescript-eslint/no-implied-eval': 'off',
           '@typescript-eslint/no-misused-promises': 'off',
           '@typescript-eslint/no-misused-spread': 'off',
           '@typescript-eslint/no-mixed-enums': 'off',
