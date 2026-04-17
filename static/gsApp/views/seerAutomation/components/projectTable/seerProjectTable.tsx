@@ -140,7 +140,7 @@ export function SeerProjectTable() {
 
   const queryKey = [
     'seer-projects',
-    {query: {query: searchTerm, sort}},
+    {query: {query: searchTerm, sort, agent: agentFilter}},
   ] as unknown as ApiQueryKey;
 
   const sortedProjects = useMemo(() => {
