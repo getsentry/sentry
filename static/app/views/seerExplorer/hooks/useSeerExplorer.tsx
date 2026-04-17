@@ -190,6 +190,9 @@ export const useSeerExplorer = () => {
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
     (newRunId: number | null) => {
+      if (newRunId === runId) {
+        return;
+      }
       // Set the new run ID
       setRunId(newRunId);
 
@@ -207,7 +210,7 @@ export const useSeerExplorer = () => {
         });
       }
     },
-    [orgSlug, queryClient, setRunId]
+    [orgSlug, queryClient, runId, setRunId]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
