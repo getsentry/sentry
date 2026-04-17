@@ -230,8 +230,6 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-  const actionLabel = automation.enabled ? t('Disable') : t('Enable');
-  const editPath = makeAutomationEditPathname(organization.slug, automation.id);
 
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
@@ -252,9 +250,14 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   return (
     <Fragment>
       <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
-        {actionLabel}
+        {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
-      <LinkButton to={editPath} priority="primary" icon={<IconEdit />} size={size}>
+      <LinkButton
+        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        priority="primary"
+        icon={<IconEdit />}
+        size={size}
+      >
         {t('Edit')}
       </LinkButton>
     </Fragment>
