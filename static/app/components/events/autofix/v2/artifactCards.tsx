@@ -18,7 +18,7 @@ import {
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCode, IconFix, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,

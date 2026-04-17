@@ -21,7 +21,7 @@ import {
   SolutionCard,
 } from './autofixCards';
 
-jest.mock('sentry/views/seerExplorer/fileDiffViewer', () => ({
+jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
 }));
 

@@ -5,12 +5,12 @@ import {UserFixture} from 'sentry-fixture/user';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {
   ExplorerPanelProvider,
   useExplorerPanel,
 } from 'sentry/views/seerExplorer/useExplorerPanel';
 
-import * as useSeerExplorerModule from './hooks/useSeerExplorer';
 import {ExplorerPanel} from './explorerPanel';
 
 // Mock createPortal to render content directly
