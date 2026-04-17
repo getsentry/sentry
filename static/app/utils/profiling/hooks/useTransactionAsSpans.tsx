@@ -68,6 +68,11 @@ export function useTransactionAsSpans({
       ],
       pageFilters: startEndToPageFilters({start, end, projectIds}),
       queryWithoutPageFilters: true,
+      // We're querying by specific IDs here and need complete results, so we
+      // can't accept downsampling. The time bounds are already set to the
+      // length of the transaction or profile, so the amount of data we're
+      // scanning should be relatively limited.
+      samplingMode: 'HIGHEST_ACCURACY',
       enabled: enabled && !!search && start !== undefined && end !== undefined,
     },
     'api.profiles.transaction'
