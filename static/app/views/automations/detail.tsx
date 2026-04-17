@@ -44,9 +44,19 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-function AutomationDetailHeaderContent({automation}: {automation: Automation}) {
+function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
+  const {selection} = usePageFilters();
+  const {start, end, period, utc} = selection.datetime;
+
+  const warning = getAutomationActionsWarning(automation);
+  const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
+    undefined
+  );
+  const actionLabel = automation.enabled ? t('Disable') : t('Enable');
+  const editPath = makeAutomationEditPathname(organization.slug, automation.id);
   const breadcrumbs = (
     <Breadcrumbs
       crumbs={[
@@ -59,52 +69,60 @@ function AutomationDetailHeaderContent({automation}: {automation: Automation}) {
     />
   );
 
-  if (hasPageFrameFeature) {
-    return <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>;
-  }
-
-  return (
-    <DetailLayout.HeaderContent>
-      {breadcrumbs}
-      <DetailLayout.Title title={automation.name} />
-    </DetailLayout.HeaderContent>
-  );
-}
-
-function AutomationDetailHeader({automation}: {automation: Automation}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        <AutomationDetailHeaderContent automation={automation} />
-        <Actions automation={automation} />
-      </Fragment>
+  const toggleDisabled = () => {
+    const newEnabled = !automation.enabled;
+    updateAutomation(
+      {
+        id: automation.id,
+        name: automation.name,
+        enabled: newEnabled,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
+        },
+      }
     );
-  }
-
-  return (
-    <DetailLayout.Header>
-      <AutomationDetailHeaderContent automation={automation} />
-      <Actions automation={automation} />
-    </DetailLayout.Header>
-  );
-}
-
-function AutomationDetailContent({automation}: {automation: Automation}) {
-  const {selection} = usePageFilters();
-  const {start, end, period, utc} = selection.datetime;
-
-  const warning = getAutomationActionsWarning(automation);
-
-  const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
-    undefined
-  );
+  };
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <AutomationDetailHeader automation={automation} />
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+            <TopBar.Slot name="actions">
+              <Button priority="default" onClick={toggleDisabled} busy={isUpdating}>
+                {actionLabel}
+              </Button>
+              <LinkButton to={editPath} priority="primary" icon={<IconEdit />}>
+                {t('Edit')}
+              </LinkButton>
+            </TopBar.Slot>
+            <AutomationFeedbackButton />
+          </Fragment>
+        ) : (
+          <DetailLayout.Header>
+            <DetailLayout.HeaderContent>
+              {breadcrumbs}
+              <DetailLayout.Title title={automation.name} />
+            </DetailLayout.HeaderContent>
+            <DetailLayout.Actions>
+              <AutomationFeedbackButton />
+              <Button
+                priority="default"
+                size="sm"
+                onClick={toggleDisabled}
+                busy={isUpdating}
+              >
+                {actionLabel}
+              </Button>
+              <LinkButton to={editPath} priority="primary" icon={<IconEdit />} size="sm">
+                {t('Edit')}
+              </LinkButton>
+            </DetailLayout.Actions>
+          </DetailLayout.Header>
+        )}
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
@@ -240,71 +258,6 @@ export default function AutomationDetail() {
     >
       <AutomationDetailLoadingStates automationId={params.automationId} />
     </VisuallyCompleteWithData>
-  );
-}
-
-function Actions({automation}: {automation: Automation}) {
-  const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-
-  const toggleDisabled = () => {
-    const newEnabled = !automation.enabled;
-    updateAutomation(
-      {
-        id: automation.id,
-        name: automation.name,
-        enabled: newEnabled,
-      },
-      {
-        onSuccess: () => {
-          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
-        },
-      }
-    );
-  };
-
-  const actions = (
-    <Fragment>
-      <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
-        {automation.enabled ? t('Disable') : t('Enable')}
-      </Button>
-      <LinkButton
-        to={makeAutomationEditPathname(organization.slug, automation.id)}
-        priority="primary"
-        icon={<IconEdit />}
-        size="sm"
-      >
-        {t('Edit')}
-      </LinkButton>
-    </Fragment>
-  );
-
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        <TopBar.Slot name="actions">
-          <Button priority="default" onClick={toggleDisabled} busy={isUpdating}>
-            {automation.enabled ? t('Disable') : t('Enable')}
-          </Button>
-          <LinkButton
-            to={makeAutomationEditPathname(organization.slug, automation.id)}
-            priority="primary"
-            icon={<IconEdit />}
-          >
-            {t('Edit')}
-          </LinkButton>
-        </TopBar.Slot>
-        <AutomationFeedbackButton />
-      </Fragment>
-    );
-  }
-
-  return (
-    <DetailLayout.Actions>
-      <AutomationFeedbackButton />
-      {actions}
-    </DetailLayout.Actions>
   );
 }
 
