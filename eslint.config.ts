@@ -617,6 +617,7 @@ export default typescript.config([
             {considerDefaultExhaustiveForUnions: true},
           ],
           '@typescript-eslint/only-throw-error': 'error',
+          '@typescript-eslint/prefer-as-const': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/prefer-reduce-type-parameter': 'error',
@@ -624,6 +625,7 @@ export default typescript.config([
           '@typescript-eslint/no-meaningless-void-operator': 'error',
           '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
+          '@sentry/no-unnecessary-type-narrowing': 'error',
         }
       : {},
   },

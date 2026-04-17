@@ -44,9 +44,7 @@ export function InviteBanner({
     organization.access.includes('org:write') && organization.githubNudgeInvite;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
-  const [missingMembers, setMissingMembers] = useState<MissingMember[]>(
-    [] as MissingMember[]
-  );
+  const [missingMembers, setMissingMembers] = useState<MissingMember[]>([]);
 
   const api = useApi();
   // NOTE: this is currently used for Github only
