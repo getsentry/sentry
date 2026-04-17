@@ -545,11 +545,13 @@ export const useSeerExplorer = () => {
     }
   }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
-  // On full response load
+  // On completed state
   useEffect(() => {
     if (isSessionComplete(apiData?.session)) {
       // Clear interrupt and loading states
       setWaitingForInterrupt(false);
+      setOptimistic(null);
+      setDeletedFromIndex(null);
     }
   }, [apiData?.session]);
 
