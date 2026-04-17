@@ -8,30 +8,30 @@ import {
 } from 'sentry/views/preprod/components/installDetailsContent';
 
 describe('getDistributionErrorTooltip', () => {
-  it('returns quota message for NO_QUOTA', () => {
-    expect(getDistributionErrorTooltip('NO_QUOTA')).toBe('Distribution quota exceeded');
+  it('returns quota message for no_quota', () => {
+    expect(getDistributionErrorTooltip('no_quota')).toBe('Distribution quota exceeded');
   });
 
-  it('returns signature message for SKIPPED with invalid_signature', () => {
-    expect(getDistributionErrorTooltip('SKIPPED', 'invalid_signature')).toBe(
+  it('returns signature message for skipped with invalid_signature', () => {
+    expect(getDistributionErrorTooltip('skipped', 'invalid_signature')).toBe(
       'Code signature is invalid'
     );
   });
 
-  it('returns simulator message for SKIPPED with simulator', () => {
-    expect(getDistributionErrorTooltip('SKIPPED', 'simulator')).toBe(
+  it('returns simulator message for skipped with simulator', () => {
+    expect(getDistributionErrorTooltip('skipped', 'simulator')).toBe(
       'Simulator builds cannot be distributed'
     );
   });
 
-  it('returns generic skipped message for SKIPPED with unknown message', () => {
-    expect(getDistributionErrorTooltip('SKIPPED', 'something_else')).toBe(
+  it('returns generic skipped message for skipped with unknown message', () => {
+    expect(getDistributionErrorTooltip('skipped', 'something_else')).toBe(
       'Distribution was skipped'
     );
   });
 
-  it('returns processing error message for PROCESSING_ERROR', () => {
-    expect(getDistributionErrorTooltip('PROCESSING_ERROR')).toBe(
+  it('returns processing error message for processing_error', () => {
+    expect(getDistributionErrorTooltip('processing_error')).toBe(
       'Distribution failed due to a processing error'
     );
   });
@@ -100,7 +100,7 @@ describe('InstallDetailsContent', () => {
       <InstallDetailsContent
         artifactId="artifact-1"
         projectSlug="my-project"
-        distributionErrorCode="SKIPPED"
+        distributionErrorCode="skipped"
         distributionErrorMessage="simulator"
       />,
       {organization}

@@ -24,10 +24,10 @@ export function getDistributionErrorTooltip(
   errorCode?: string | null,
   errorMessage?: string | null
 ): string {
-  if (errorCode === 'NO_QUOTA') {
+  if (errorCode === 'no_quota') {
     return t('Distribution quota exceeded');
   }
-  if (errorCode === 'SKIPPED') {
+  if (errorCode === 'skipped') {
     if (errorMessage === 'invalid_signature') {
       return t('Code signature is invalid');
     }
@@ -36,7 +36,7 @@ export function getDistributionErrorTooltip(
     }
     return t('Distribution was skipped');
   }
-  if (errorCode === 'PROCESSING_ERROR') {
+  if (errorCode === 'processing_error') {
     return t('Distribution failed due to a processing error');
   }
   return t('Not installable');
