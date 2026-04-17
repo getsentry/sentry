@@ -79,34 +79,6 @@ function ResolveSection({project}: {project: Project}) {
   );
 }
 
-function ErrorDetailsBreadcrumbs({
-  detector,
-  project,
-}: {
-  detector: Detector;
-  project: Project;
-}) {
-  const organization = useOrganization();
-
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Monitors'),
-          to: makeMonitorBasePathname(organization.slug),
-        },
-        {
-          label: getDetectorTypeLabel(detector.type),
-          to: makeMonitorTypePathname(organization.slug, detector.type),
-        },
-        {
-          label: <ProjectBadge disableLink project={project} avatarSize={16} />,
-        },
-      ]}
-    />
-  );
-}
-
 export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsProps) {
   const organization = useOrganization();
   const canEdit = useCanEditDetectorWorkflowConnections({projectId: project.id});
@@ -118,7 +90,21 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="title">
-            <ErrorDetailsBreadcrumbs detector={detector} project={project} />
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Monitors'),
+                  to: makeMonitorBasePathname(organization.slug),
+                },
+                {
+                  label: getDetectorTypeLabel(detector.type),
+                  to: makeMonitorTypePathname(organization.slug, detector.type),
+                },
+                {
+                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                },
+              ]}
+            />
           </TopBar.Slot>
           <TopBar.Slot name="actions">
             <EditDetectorAction detector={detector} canEdit={canEdit} />

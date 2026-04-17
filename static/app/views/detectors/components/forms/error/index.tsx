@@ -17,7 +17,6 @@ import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -126,41 +125,8 @@ export function NewErrorDetectorForm() {
   );
 }
 
-function ErrorEditBreadcrumbs({
-  detector,
-  project,
-}: {
-  detector: ErrorDetector;
-  project?: Project;
-}) {
-  const organization = useOrganization();
-
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Monitors'),
-          to: makeMonitorBasePathname(organization.slug),
-        },
-        {
-          label: getDetectorTypeLabel(detector.type),
-          to: makeMonitorTypePathname(organization.slug, detector.type),
-        },
-        ...(project
-          ? [
-              {
-                label: <ProjectBadge disableLink project={project} avatarSize={16} />,
-                to: makeMonitorDetailsPathname(organization.slug, detector.id),
-              },
-            ]
-          : []),
-        {label: t('Configure')},
-      ]}
-    />
-  );
-}
-
 export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetector}) {
+  const organization = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
@@ -197,7 +163,29 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="title">
-            <ErrorEditBreadcrumbs detector={detector} project={project} />
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Monitors'),
+                  to: makeMonitorBasePathname(organization.slug),
+                },
+                {
+                  label: getDetectorTypeLabel(detector.type),
+                  to: makeMonitorTypePathname(organization.slug, detector.type),
+                },
+                ...(project
+                  ? [
+                      {
+                        label: (
+                          <ProjectBadge disableLink project={project} avatarSize={16} />
+                        ),
+                        to: makeMonitorDetailsPathname(organization.slug, detector.id),
+                      },
+                    ]
+                  : []),
+                {label: t('Configure')},
+              ]}
+            />
           </TopBar.Slot>
           <AutomationFeedbackButton />
         </Fragment>
