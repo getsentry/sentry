@@ -151,23 +151,26 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
         onSubmit: handleFormSubmit,
       }}
     >
-      <EditLayout.Header>
-        <EditLayout.HeaderContent>
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="title">
-              <EditDetectorBreadcrumbs detector={detector} />
-            </TopBar.Slot>
-          ) : (
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <EditDetectorBreadcrumbs detector={detector} />
+          </TopBar.Slot>
+          <AutomationFeedbackButton />
+        </Fragment>
+      ) : (
+        <EditLayout.Header>
+          <EditLayout.HeaderContent>
             <Fragment>
               <EditDetectorBreadcrumbs detector={detector} />
               <EditLayout.Title title={detector.name} project={project} />
             </Fragment>
-          )}
-        </EditLayout.HeaderContent>
-        <EditLayout.Actions>
-          <AutomationFeedbackButton />
-        </EditLayout.Actions>
-      </EditLayout.Header>
+          </EditLayout.HeaderContent>
+          <EditLayout.Actions>
+            <AutomationFeedbackButton />
+          </EditLayout.Actions>
+        </EditLayout.Header>
+      )}
 
       <EditLayout.Body>
         <ErrorDetectorForm detector={detector} />
