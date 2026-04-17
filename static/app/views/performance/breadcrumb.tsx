@@ -27,9 +27,11 @@ export function getCrumbs(props: Props) {
   const crumbs: Crumb[] = [];
   const {organization, location, transaction, spanSlug, eventSlug, traceSlug} = props;
 
-  crumbs.push({
-    label: DOMAIN_VIEW_BASE_TITLE,
-  });
+  if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+    });
+  }
 
   crumbs.push(
     ...getTabCrumbs({

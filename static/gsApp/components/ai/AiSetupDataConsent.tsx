@@ -308,7 +308,7 @@ const SingleCard = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-top: ${p => p.theme.space.xl};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
 `;
 
 const MeetSeerHeader = styled('div')`

@@ -1,3 +1,5 @@
+import {useLayoutEffect} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -9,8 +11,11 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {
@@ -36,9 +41,41 @@ export function PrebuiltDashboardRenderer({
 }: PrebuiltDashboardRendererProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
     useGetPrebuiltDashboard(prebuiltId);
+
+  const dashboardId = populatedPrebuiltDashboard?.id;
+
+  const insightsToDashboardsEnabled = organization.features.includes(
+    'insights-to-dashboards-ui-rollout'
+  );
+
+  useLayoutEffect(() => {
+    if (!dashboardId || !insightsToDashboardsEnabled) {
+      return;
+    }
+    trackAnalytics('dashboards_views.insights_redirect', {
+      organization,
+      dashboard_id: dashboardId,
+      prebuilt_id: prebuiltId,
+    });
+    navigate(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/`,
+        query: extractSelectionParameters(location.query),
+      }),
+      {replace: true}
+    );
+  }, [
+    dashboardId,
+    insightsToDashboardsEnabled,
+    organization,
+    prebuiltId,
+    navigate,
+    location.query,
+  ]);
 
   const {title, filters} = prebuiltDashboard;
   const widgets = populatedPrebuiltDashboard?.widgets ?? prebuiltDashboard.widgets;
@@ -80,8 +117,6 @@ export function PrebuiltDashboardRenderer({
     filters: mergedFilters,
     projects: undefined,
   };
-
-  const dashboardId = populatedPrebuiltDashboard?.id;
 
   const pageFilters = usePageFilters();
   const isSentryEmployee = useIsSentryEmployee();

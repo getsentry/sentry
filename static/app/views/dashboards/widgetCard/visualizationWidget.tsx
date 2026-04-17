@@ -31,10 +31,7 @@ import {
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {
-  MISSING_DATA_MESSAGE,
-  NUMBER_MIN_VALUE,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   TabularColumn,
@@ -368,13 +365,6 @@ function VisualizationWidgetContent({
                 <NegativeCostWarning>
                   {formatBreakdownLegendValue(value, dataType, dataUnit)}
                 </NegativeCostWarning>
-              ) : dataType === 'number' &&
-                value !== null &&
-                value > 0 &&
-                value < NUMBER_MIN_VALUE ? (
-                <Tooltip title={value.toLocaleString()}>
-                  <span>{formatBreakdownLegendValue(value, dataType, dataUnit)}</span>
-                </Tooltip>
               ) : (
                 formatBreakdownLegendValue(value, dataType, dataUnit)
               )}

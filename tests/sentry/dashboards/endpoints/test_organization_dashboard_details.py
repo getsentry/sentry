@@ -16,6 +16,7 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
+    DashboardRevision,
     DashboardTombstone,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -4011,6 +4012,87 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
             assert "queries" in response.data["widgets"][1], response.data
             assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
+
+    def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
+            )
+        assert response.status_code == 200, response.data
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
+
+    def test_put_does_not_create_revision_when_feature_disabled(self) -> None:
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
+        )
+        assert response.status_code == 200, response.data
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 0
+
+    def test_put_snapshot_contains_pre_save_state(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        # Snapshot reflects the state before the update
+        assert revision.snapshot["title"] == self.dashboard.title
+        assert revision.title == self.dashboard.title
+        # The dashboard itself was updated
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "New Title"
+
+    def test_put_snapshot_includes_widgets_and_queries(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        snapshot_widgets = revision.snapshot["widgets"]
+
+        assert len(snapshot_widgets) == 4
+        assert snapshot_widgets[0]["id"] == str(self.widget_1.id)
+        assert snapshot_widgets[0]["title"] == self.widget_1.title
+        assert len(snapshot_widgets[0]["queries"]) == 2
+        assert snapshot_widgets[1]["id"] == str(self.widget_2.id)
+        assert snapshot_widgets[1]["title"] == self.widget_2.title
+        assert len(snapshot_widgets[1]["queries"]) == 1
+        assert snapshot_widgets[2]["id"] == str(self.widget_3.id)
+        assert snapshot_widgets[3]["id"] == str(self.widget_4.id)
+
+    def test_put_snapshot_captures_widget_state_before_widget_edit(self) -> None:
+        original_widget_title = self.widget_1.title
+        with self.feature("organizations:dashboards-revisions"):
+            self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={
+                    "title": self.dashboard.title,
+                    "widgets": [
+                        {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
+                        {"id": str(self.widget_2.id)},
+                        {"id": str(self.widget_3.id)},
+                        {"id": str(self.widget_4.id)},
+                    ],
+                },
+            )
+
+        revision = DashboardRevision.objects.get(dashboard=self.dashboard)
+        snapshot_widget = revision.snapshot["widgets"][0]
+        # Snapshot reflects the widget state before the edit
+        assert snapshot_widget["id"] == str(self.widget_1.id)
+        assert snapshot_widget["title"] == original_widget_title
+        # The widget itself was updated
+        self.widget_1.refresh_from_db()
+        assert self.widget_1.title == "Updated Widget Title"
+
+    def test_put_does_not_create_revision_for_prebuilt_tombstone(self) -> None:
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.do_request(
+                "put",
+                self.url("default-overview"),
+                data={"title": "default-overview"},
+            )
+        assert response.status_code == 200, response.data
+        # No revision should be created for a pre-built dashboard that hasn't been saved yet
+        assert DashboardRevision.objects.count() == 0
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
