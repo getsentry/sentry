@@ -359,12 +359,18 @@ function WidgetCard(props: Props) {
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
-    const legendSelectionForWidget = widgetLegendState.getWidgetSelectionState(widget);
+    // Legend state requires a stable widget ID to persist to the URL.
+    // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
+    const legendSelectionForWidget = widget.id
+      ? widgetLegendState.getWidgetSelectionState(widget)
+      : undefined;
 
-    const handleLegendSelectionChange = (legendState: LegendSelection) => {
-      widgetLegendState.setWidgetSelectionState(legendState, widget);
-      onLegendSelectChanged?.();
-    };
+    const handleLegendSelectionChange = widget.id
+      ? (legendState: LegendSelection) => {
+          widgetLegendState.setWidgetSelectionState(legendState, widget);
+          onLegendSelectChanged?.();
+        }
+      : undefined;
 
     return (
       <ErrorBoundary customComponent={errorBoundaryHandler}>
