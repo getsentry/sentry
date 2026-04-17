@@ -25,7 +25,6 @@ import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -33,7 +32,6 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -102,7 +100,6 @@ export function MetricSelector({
 }) {
   const triggerId = useId();
 
-  const organization = useOrganization();
   const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -115,7 +112,6 @@ export function MetricSelector({
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
   });
-  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
   const metricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
@@ -398,9 +394,7 @@ export function MetricSelector({
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
-        tooltipProps={
-          hasMetricsUIRefresh ? {title: traceMetric.name || t('None')} : undefined
-        }
+        tooltipProps={{title: traceMetric.name || t('None')}}
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>

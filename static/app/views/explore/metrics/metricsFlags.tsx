@@ -24,10 +24,6 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsUIRefresh = (organization: Organization) => {
-  return canUseMetricsUI(organization);
-};
-
 export const canUseMetricsStatsBytesUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
