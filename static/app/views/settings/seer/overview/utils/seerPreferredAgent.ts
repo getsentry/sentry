@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -11,7 +10,6 @@ import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
@@ -19,37 +17,12 @@ import {
   fetchDataQuery,
   fetchMutation,
   useQueryClient,
-  mutationOptions,
   useQuery,
 } from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type PreferredAgent = 'seer' | CodingAgentIntegration;
-
-export function useFetchPreferredAgent({organization}: {organization: Organization}) {
-  const value = organization.defaultCodingAgentIntegrationId
-    ? String(organization.defaultCodingAgentIntegrationId)
-    : organization.defaultCodingAgent;
-
-  const query = useQuery({
-    ...organizationIntegrationsCodingAgents(organization),
-    enabled: value !== null && value !== 'seer',
-    select: data =>
-      data.json.integrations?.find(i => i.id === String(value!)) ?? ('seer' as const),
-  });
-
-  if (value === null || value === 'seer') {
-    return {
-      ...query,
-      data: 'seer' as const,
-      isPending: false,
-      isSuccess: true,
-      status: 'success',
-    };
-  }
-  return query;
-}
 
 export function useFetchAgentOptions({
   organization,
@@ -61,43 +34,17 @@ export function useFetchAgentOptions({
   return useQuery({
     ...organizationIntegrationsCodingAgents(organization),
     enabled,
-    select: data => {
+    select: (data): Array<{label: string; value: PreferredAgent}> => {
       return [
-        {value: 'seer', label: t('Seer Agent')} as SelectValue<PreferredAgent>,
+        {value: 'seer', label: t('Seer Agent')},
         ...(data.json.integrations ?? [])
           .filter(integration => integration.id)
           .map(integration => ({
             value: integration,
             label: integration.name,
           })),
-      ] as const;
+      ];
     },
-  });
-}
-
-export function getPreferredAgentMutationOptions({
-  organization,
-}: {
-  organization: Organization;
-}) {
-  return mutationOptions({
-    mutationFn: ({integration}: {integration: PreferredAgent}) => {
-      return fetchMutation<Organization>({
-        method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
-        data:
-          integration === 'seer'
-            ? {
-                defaultCodingAgent: integration,
-                defaultCodingAgentIntegrationId: null,
-              }
-            : {
-                defaultCodingAgent: integration.provider,
-                defaultCodingAgentIntegrationId: integration.id,
-              },
-      });
-    },
-    onSuccess: updateOrganization,
   });
 }
 

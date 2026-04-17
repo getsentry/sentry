@@ -10,7 +10,6 @@ import {
   useApiQuery,
   useMutation,
   useQueryClient,
-  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -356,7 +355,7 @@ export const useSeerExplorer = () => {
         }
         return false;
       },
-    } as UseApiQueryOptions<SeerExplorerResponse, RequestError>
+    }
   );
 
   /** Switches to a different run and fetches its latest state. */
@@ -611,22 +610,22 @@ export const useSeerExplorer = () => {
       const baseSession = rawSessionData ?? {
         run_id: runId ?? undefined,
         blocks: [],
-        status: 'processing',
+        status: 'processing' as const,
         updated_at: new Date().toISOString(),
       };
 
       return {
         ...baseSession,
         blocks: visibleBlocks,
-        status: 'processing',
-      } as NonNullable<typeof rawSessionData>;
+        status: 'processing' as const,
+      };
     }
 
     if (rawSessionData && deletedFromIndex !== null) {
       return {
         ...rawSessionData,
         blocks: baseBlocks,
-      } as NonNullable<typeof rawSessionData>;
+      };
     }
 
     return rawSessionData;

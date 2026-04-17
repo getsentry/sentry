@@ -364,7 +364,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
 
 function renderHookWithProviders<Result = unknown, Props = unknown>(
   callback: (initialProps: Props) => Result,
-  options: RenderHookWithProvidersOptions<Props> = {} as RenderHookWithProvidersOptions<Props>
+  options: RenderHookWithProvidersOptions<Props> = {}
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 

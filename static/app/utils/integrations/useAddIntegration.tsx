@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {isScmProvider, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {computeCenteredWindow} from 'sentry/utils/window/computeCenteredWindow';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
@@ -41,9 +41,13 @@ export interface AddIntegrationParams {
 const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'aws_lambda',
   'bitbucket',
+  'discord',
   'github',
   'gitlab',
+  'opsgenie',
+  'pagerduty',
   'slack',
+  'vsts',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 
 type UnconditionalApiPipelineProvider =
@@ -130,6 +134,7 @@ export function useAddIntegration() {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: activeProviderRef.current.key,
           integration_type: 'first_party',
+          is_scm: isScmProvider(activeProviderRef.current),
           organization: organizationRef.current,
           ...analyticsParamsRef.current,
         });
@@ -164,10 +169,13 @@ export function useAddIntegration() {
 
     const pipelineProvider = getApiPipelineProvider(organization, provider.key);
 
+    const is_scm = isScmProvider(provider);
+
     if (pipelineProvider !== null) {
       trackIntegrationAnalytics('integrations.installation_start', {
         integration: provider.key,
         integration_type: 'first_party',
+        is_scm,
         organization,
         ...analyticsParams,
       });
@@ -179,6 +187,7 @@ export function useAddIntegration() {
           trackIntegrationAnalytics('integrations.installation_complete', {
             integration: provider.key,
             integration_type: 'first_party',
+            is_scm,
             organization,
             ...analyticsParams,
           });
@@ -193,6 +202,7 @@ export function useAddIntegration() {
     trackIntegrationAnalytics('integrations.installation_start', {
       integration: provider.key,
       integration_type: 'first_party',
+      is_scm,
       organization,
       ...analyticsParams,
     });
