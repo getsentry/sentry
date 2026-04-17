@@ -1874,21 +1874,22 @@ class UnfurlTest(TestCase):
         assert chart_data["type"] == "bar"
 
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
-        # Two charts: avg (first, default line) and count with chartType=2
-        # (area). The later chart's chartType must not leak through.
+        # Two charts: count with chartType=2 (area, first) and avg (second).
+        # The unfurl must render only the first chart and not merge avg's
+        # yAxis into the request.
         url = (
             "https://sentry.io/organizations/org1/explore/traces/"
             "?aggregateField=%7B%22groupBy%22%3A%22%22%7D"
-            "&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
             "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A2%7D"
-            "&project=1&statsPeriod=24h"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            "&aggregateSort=-http.status_code&project=1&query=span.category:http&statsPeriod=24h"
         )
         link_type, args = match_link(url)
 
         assert link_type == LinkType.EXPLORE
         assert args is not None
-        assert args["chart_type"] is None
-        assert args["query"].getlist("yAxis") == ["avg(span.duration)"]
+        assert args["chart_type"] == 2
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
