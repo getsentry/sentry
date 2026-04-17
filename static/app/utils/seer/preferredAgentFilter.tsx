@@ -62,16 +62,13 @@ export function filterCodingAgentQueryOptions({
         return [
           {value: '', label: 'All'},
           {value: 'seer', label: t('Seer Agent')},
-          ...Array.from(
-            new Set(
-              (data.json.integrations ?? [])
-                .filter(integration => integration.id)
-                .map(integration => ({
-                  value: convertAgentNameToCodingAgentProvider(integration.provider),
-                  label: integration.name,
-                }))
-            )
-          ).sort((a, b) => a.label.localeCompare(b.label)),
+          ...(data.json.integrations ?? [])
+            .filter(integration => integration.id)
+            .map(integration => ({
+              value: convertAgentNameToCodingAgentProvider(integration.provider),
+              label: integration.name,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
         ];
       }
       return [];
