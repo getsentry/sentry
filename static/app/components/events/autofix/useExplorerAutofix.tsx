@@ -42,7 +42,7 @@ import {
 /**
  * Available autofix steps that can be triggered via the Explorer.
  */
-export interface CodingAgentError {
+interface CodingAgentError {
   id: number;
   message: string;
 }
