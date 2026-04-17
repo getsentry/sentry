@@ -19,6 +19,7 @@ import {DisabledAlert} from 'sentry/views/detectors/components/details/common/di
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {ErrorDetectorProjectBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -82,7 +83,9 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
     <DetailLayout>
       {hasPageFrameFeature ? (
         <Fragment>
-          <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+          <TopBar.Slot name="title">
+            <ErrorDetectorProjectBreadcrumbs detector={detector} project={project} />
+          </TopBar.Slot>
           <TopBar.Slot name="actions">
             <EditDetectorAction detector={detector} canEdit={canEdit} />
           </TopBar.Slot>
