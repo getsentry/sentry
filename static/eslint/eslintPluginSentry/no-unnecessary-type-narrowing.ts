@@ -20,18 +20,22 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
     const parserServices = getParserServices(context);
     const checker = parserServices.program.getTypeChecker();
 
-    function typeContainsAny(type: ts.Type): boolean {
+    function typeContainsAny(type: ts.Type, seen = new Set<ts.Type>()): boolean {
       if ((type.flags & ts.TypeFlags.Any) !== 0) {
         return true;
       }
+      if (seen.has(type)) {
+        return false;
+      }
+      seen.add(type);
       // Check type arguments (e.g. Promise<any>, Array<any>)
       const typeArgs = checker.getTypeArguments(type as ts.TypeReference);
       if (typeArgs?.length) {
-        return typeArgs.some(arg => typeContainsAny(arg));
+        return typeArgs.some(arg => typeContainsAny(arg, seen));
       }
       // Check union/intersection members
       if (type.isUnionOrIntersection()) {
-        return type.types.some(t => typeContainsAny(t));
+        return type.types.some(t => typeContainsAny(t, seen));
       }
       return false;
     }
