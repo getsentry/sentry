@@ -835,28 +835,11 @@ const darkColors: Colors = {
   },
 };
 
-// @TODO(jonasbadalic): are these final?
-const lightShadows = {
-  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
-  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
-};
-
-// @TODO(jonasbadalic): are these final?
-const darkShadows = {
-  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
-  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
-  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
-
 const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseLightTheme,
-  ...lightShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
@@ -896,7 +879,6 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseDarkTheme,
-  ...darkShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,

@@ -587,7 +587,7 @@ const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
     css`
       border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.tokens.border.primary};
-      box-shadow: ${p.theme.dropShadowMedium};
+      box-shadow: ${p.theme.shadow.medium};
       padding: ${p.theme.space.xl};
     `}
 `;
