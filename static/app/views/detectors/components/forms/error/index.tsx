@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FormContext} from 'sentry/components/forms/formContext';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -156,8 +155,8 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
         <Fragment>
           <TopBar.Slot name="title">
             <EditDetectorBreadcrumbs detector={detector} />
-            {project && <ProjectBadge disableLink project={project} avatarSize={16} />}
           </TopBar.Slot>
+          <Layout.Title>{detector.name}</Layout.Title>
           <AutomationFeedbackButton />
         </Fragment>
       ) : (
