@@ -10,12 +10,13 @@ import type {
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
+import unescape from 'lodash/unescape';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
   useChartXRangeSelection,
@@ -351,7 +352,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        const alias = aliases[seriesName];
+        // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
+        // to ensure the lookup works correctly for series with characters that are escaped.
+        const alias = aliases[unescape(seriesName)];
         if (alias) {
           // The alias value comes from `plottable.label` and is not
           // HTML-escaped. Escape it for safe insertion into raw HTML

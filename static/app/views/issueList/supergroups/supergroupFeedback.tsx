@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -19,19 +19,16 @@ export function SupergroupFeedback({supergroupId}: SupergroupFeedbackProps) {
   const organization = useOrganization();
   const user = useUser();
 
-  const handleFeedback = useCallback(
-    (isAccurate: boolean) => {
-      trackAnalytics('supergroup.feedback_submitted', {
-        choice_selected: isAccurate,
-        supergroup_id: supergroupId,
-        user_id: user.id,
-        organization,
-      });
+  const handleFeedback = (isAccurate: boolean) => {
+    trackAnalytics('supergroup.feedback_submitted', {
+      choice_selected: isAccurate,
+      supergroup_id: supergroupId,
+      user_id: user.id,
+      organization,
+    });
 
-      setFeedbackSubmitted(true);
-    },
-    [supergroupId, organization, user]
-  );
+    setFeedbackSubmitted(true);
+  };
 
   return (
     <FeedbackContainer>

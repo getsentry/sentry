@@ -184,7 +184,10 @@ export function FilterSelector({
   const queryResult = useQuery({
     queryKey,
     queryFn: async ctx => {
-      const result = await searchBarData.getTagValues(ctx.queryKey[1], ctx.queryKey[3]);
+      const result = await searchBarData.getTagValues({
+        tag: ctx.queryKey[1],
+        searchQuery: ctx.queryKey[3],
+      });
       return result ?? [];
     },
     placeholderData: keepPreviousData,
@@ -210,6 +213,7 @@ export function FilterSelector({
       const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
+        textValue: value,
       };
 
       // Only add checkboxes for multi-select mode
@@ -481,10 +485,16 @@ const translateKnownFilterOptions = (
   const dataset = globalFilter.dataset;
 
   if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
-    return options.map(option => ({
-      ...option,
-      label: subregionCodeToName[option.value as SubregionCode] || option.label,
-    }));
+    return options.map(option => {
+      const translatedLabel =
+        subregionCodeToName[option.value as SubregionCode] || option.label;
+      return {
+        ...option,
+        label: translatedLabel,
+        textValue:
+          typeof translatedLabel === 'string' ? translatedLabel : option.textValue,
+      };
+    });
   }
   return options;
 };

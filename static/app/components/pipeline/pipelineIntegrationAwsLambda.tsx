@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {z} from 'zod';
@@ -164,13 +164,13 @@ function CloudFormationStep({
 
   const regionOptions = stepData.regionList.map(r => ({value: r, label: r}));
 
-  const trackCloudFormationClick = useCallback(() => {
+  const trackCloudFormationClick = () => {
     trackIntegrationAnalytics('integrations.cloudformation_link_clicked', {
       integration: 'aws_lambda',
       integration_type: 'first_party',
       organization,
     });
-  }, [organization]);
+  };
 
   const form = useScrapsForm({
     ...defaultFormOptions,

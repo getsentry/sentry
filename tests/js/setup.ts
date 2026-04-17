@@ -3,12 +3,7 @@
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
-import {
-  // @ts-expect-error structuredClone is available in Node 17+ but types don't like it
-  structuredClone as nodeStructuredClone,
-  TextDecoder,
-  TextEncoder,
-} from 'node:util';
+import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -211,7 +206,7 @@ DANGEROUS_SET_TEST_HISTORY({
 beforeEach(closeModal);
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
-  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
   // guaranteed to be in scope
   const ReactActual = require('react');
 
@@ -385,8 +380,12 @@ Object.defineProperty(global.self, 'crypto', {
   },
 });
 
-if (typeof globalThis.structuredClone === 'undefined') {
-  globalThis.structuredClone = nodeStructuredClone;
+if (typeof globalThis.structuredClone !== 'function') {
+  const nodeUtil = require('node:util') as {
+    structuredClone?: typeof globalThis.structuredClone;
+  };
+  globalThis.structuredClone =
+    nodeUtil.structuredClone ?? ((value: unknown) => JSON.parse(JSON.stringify(value)));
 }
 
 if (typeof globalThis.setImmediate === 'undefined') {

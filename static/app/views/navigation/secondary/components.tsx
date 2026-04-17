@@ -181,18 +181,11 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
-  const secondaryNavigation = useSecondaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
-  const {layout} = usePrimaryNavigation();
 
   return (
     <Container
       background="secondary"
-      borderRight={
-        hasPageFrame && secondaryNavigation.view === 'expanded' && layout !== 'mobile'
-          ? undefined
-          : 'primary'
-      }
+      borderRight="primary"
       position="relative"
       height="100%"
     >

@@ -364,13 +364,10 @@ export function sortProfileSamples<S extends SortableProfileSample>(
     return 0;
   });
 
-  const framesMapping = frameIds.reduce(
-    (acc, frameId, idx) => {
-      acc[frameId] = idx;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const framesMapping = frameIds.reduce<Record<string, number>>((acc, frameId, idx) => {
+    acc[frameId] = idx;
+    return acc;
+  }, {});
 
   return [...samples].sort((a, b) => {
     // same stack id, these are the same

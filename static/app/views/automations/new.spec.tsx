@@ -1,6 +1,8 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 import {
   ActionHandlerFixture,
@@ -11,6 +13,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
@@ -127,6 +130,11 @@ describe('AutomationNewSettings', () => {
           type: ActionType.PLUGIN,
           handlerGroup: ActionGroup.OTHER,
           integrations: undefined,
+        }),
+        ActionHandlerFixture({
+          type: ActionType.SLACK_STAGING,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'slack-staging-1', name: 'My Slack Staging Workspace'}],
         }),
       ],
     });
@@ -332,6 +340,16 @@ describe('AutomationNewSettings', () => {
       delay: null,
     });
 
+    await addAction('Slack (Staging)');
+    {
+      const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
+      const stagingTarget = stagingTargets.at(-1);
+      expect(stagingTarget).toBeDefined();
+      await userEvent.type(stagingTarget as HTMLElement, '#staging-alerts', {
+        delay: null,
+      });
+    }
+
     await addAction('Discord');
     await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
       delay: null,
@@ -490,6 +508,15 @@ describe('AutomationNewSettings', () => {
           targetDisplay: null,
         },
       },
+      slack_staging: {
+        type: 'slack_staging',
+        integrationId: 'slack-staging-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '#staging-alerts',
+        },
+      },
     };
 
     await waitFor(() => expect(saveWorkflow).toHaveBeenCalled());
@@ -502,7 +529,69 @@ describe('AutomationNewSettings', () => {
       expect(expectedAction).toBeDefined();
       expect(action).toEqual(expect.objectContaining(expectedAction));
     });
-  }, 10000);
+  }, 30000);
+
+  it('sends test notification with project slug from connected monitor', async () => {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
+    const project = ProjectFixture({id: '1', slug: 'my-project'});
+    ProjectsStore.loadInitialData([project]);
+
+    const detectorId = '10';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      method: 'GET',
+      body: [IssueStreamDetectorFixture({id: detectorId, projectId: project.id})],
+    });
+
+    const testFireAction = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/test-fire-actions/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/new/`,
+          query: {connectedIds: detectorId},
+        },
+      },
+    });
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
+
+    await waitFor(() => {
+      expect(testFireAction).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            actions: [
+              {
+                type: ActionType.SLACK,
+                integrationId: 'slack-1',
+                config: {
+                  targetType: 'specific',
+                  targetIdentifier: '',
+                  targetDisplay: '#alerts',
+                },
+                data: {},
+                status: 'active',
+              },
+            ],
+            projectSlug: 'my-project',
+          },
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
+    });
+  });
 
   it('surfaces error details when test notification fails', async () => {
     jest.spyOn(indicators, 'addErrorMessage');

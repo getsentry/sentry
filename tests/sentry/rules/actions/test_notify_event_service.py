@@ -136,7 +136,7 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert payload["message"] == "こんにちは"
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
-        assert payload["triggering_rules"] == ["error_detector"]
+        assert payload["triggering_rules"] == ["error_workflow"]
 
     @responses.activate
     def test_legacy_webhooks_uneven_dual_write_aci(self) -> None:

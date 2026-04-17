@@ -331,7 +331,7 @@ describe('Performance > Table', () => {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['performance-use-metrics']
+        ['dynamic-sampling']
       );
 
       render(

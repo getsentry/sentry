@@ -242,7 +242,11 @@ def create_preprod_snapshot_status_check_task(
             changes_map,
             approvals_map=approvals_map,
         )
-        if any(changes_map.values()):
+        has_unapproved_changes = any(
+            has_changes and artifact_id not in approvals_map
+            for artifact_id, has_changes in changes_map.items()
+        )
+        if has_unapproved_changes:
             approve_action_identifier = APPROVE_SNAPSHOT_ACTION_IDENTIFIER
 
     completed_at: datetime | None = None

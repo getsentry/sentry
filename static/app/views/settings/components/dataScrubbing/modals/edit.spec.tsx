@@ -1,5 +1,6 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {createMockTraceItemAttributesResponse} from 'sentry-fixture/traceItemAttributeKeys';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
@@ -315,13 +316,7 @@ describe('Edit Modal with ourlogs-enabled', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [
-        {key: 'user.email', name: 'user.email', kind: 'tag'},
-        {key: 'user.id', name: 'user.id', kind: 'tag'},
-        {key: 'custom.field', name: 'custom.field', kind: 'tag'},
-        {key: 'request.method', name: 'request.method', kind: 'tag'},
-        {key: 'response.status', name: 'response.status', kind: 'tag'},
-      ],
+      body: createMockTraceItemAttributesResponse(),
     });
   });
 

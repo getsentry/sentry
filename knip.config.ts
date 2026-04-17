@@ -77,11 +77,8 @@ const config: KnipConfig = {
     'tslib', // subdependency of many packages, declare the latest version
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
-    '@babel/preset-env', // Still used in jest
-    '@babel/preset-react', // Still used in jest
-    '@babel/preset-typescript', // Still used in jest
-    '@emotion/babel-plugin', // Still used in jest
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
+    '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {
     binaries: 'off',

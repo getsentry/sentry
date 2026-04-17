@@ -22,11 +22,11 @@ import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {type QueryKeyEndpointOptions, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {
-  useDeleteReplays,
   type ReplayBulkDeletePayload,
+  useDeleteReplays,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';

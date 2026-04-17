@@ -1,6 +1,17 @@
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
-import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
+
+/**
+ * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
+ * an analytics function.
+ *
+ * This lives here (rather than in analytics.tsx) to avoid a circular dependency:
+ * analytics.tsx imports makeAnalyticsFunction, and makeAnalyticsFunction calls
+ * rawTrackAnalyticsEvent.
+ */
+const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
+  HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 

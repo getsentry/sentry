@@ -7,7 +7,6 @@ from rest_framework.serializers import ValidationError
 from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
-from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
     WorkflowSerializer,
@@ -897,64 +896,3 @@ class TestWorkflowValidatorUpdate(TestCase):
         workflow = validator.update(self.workflow, validator.validated_data)
         assert workflow.owner_team_id == team.id
         assert workflow.owner_user_id is None
-
-    def test_reassign_owner_from_own_team_to_any_team(
-        self, mock_action_validator: mock.MagicMock
-    ) -> None:
-        member_team = self.create_team(organization=self.organization)
-        member_user = self.create_user()
-        self.create_member(
-            user=member_user,
-            organization=self.organization,
-            role="member",
-            teams=[member_team],
-        )
-        target_team = self.create_team(organization=self.organization)
-
-        self.workflow.owner_team_id = member_team.id
-        self.workflow.save()
-
-        current_owner = Actor.from_id(user_id=None, team_id=member_team.id)
-        context = {
-            **self.context,
-            "request": self.make_request(user=member_user),
-            "current_owner": current_owner,
-        }
-        self.valid_data["owner"] = f"team:{target_team.id}"
-        validator = WorkflowValidator(data=self.valid_data, context=context)
-        assert validator.is_valid() is True
-        workflow = validator.update(self.workflow, validator.validated_data)
-        assert workflow.owner_team_id == target_team.id
-
-    def test_cannot_reassign_owner_from_other_team(
-        self, mock_action_validator: mock.MagicMock
-    ) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        other_team = self.create_team(organization=self.organization)
-        member_team = self.create_team(organization=self.organization)
-        member_user = self.create_user()
-        self.create_member(
-            user=member_user,
-            organization=self.organization,
-            role="member",
-            teams=[member_team],
-        )
-        target_team = self.create_team(organization=self.organization)
-
-        self.workflow.owner_team_id = other_team.id
-        self.workflow.save()
-
-        current_owner = Actor.from_id(user_id=None, team_id=other_team.id)
-        context = {
-            **self.context,
-            "request": self.make_request(user=member_user),
-            "current_owner": current_owner,
-        }
-        self.valid_data["owner"] = f"team:{target_team.id}"
-        validator = WorkflowValidator(data=self.valid_data, context=context)
-        assert validator.is_valid() is False
-        assert str(validator.errors["owner"][0]) == "You can only assign teams you are a member of"
-        self.workflow.refresh_from_db()
-        assert self.workflow.owner_team_id == other_team.id

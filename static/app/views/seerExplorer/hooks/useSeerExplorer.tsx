@@ -117,6 +117,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
+  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
@@ -295,6 +296,7 @@ export const useSeerExplorer = () => {
             on_page_context: screenshot,
             page_name: getPageReferrer(),
             override_ce_enable: overrideCtxEngEnable,
+            override_code_mode_enable: overrideCodeModeEnable,
           },
         })) as SeerExplorerChatResponse;
 
@@ -336,6 +338,7 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideCtxEngEnable,
+      overrideCodeModeEnable,
     ]
   );
 
@@ -598,5 +601,7 @@ export const useSeerExplorer = () => {
     createPR,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    overrideCodeModeEnable,
+    setOverrideCodeModeEnable,
   };
 };

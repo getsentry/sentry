@@ -51,7 +51,7 @@ export type Project = {
   isInternal: boolean;
   isMember: boolean;
   name: string;
-  organization: Organization;
+  organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;

@@ -95,7 +95,7 @@ class TestSourcemapDetectorHandler(TestCase):
         assert result is not None
         assert result.priority == DetectorPriorityLevel.HIGH
         assert isinstance(result.result, IssueOccurrence)
-        assert result.result.issue_title == "Broken source maps detected"
+        assert result.result.issue_title == "Source maps are misconfigured"
         assert result.result.evidence_data["error_types"] == ["js_invalid_source", "js_no_source"]
         assert result.result.evidence_data["sample_event_id"] == "test-event-123"
         assert result.event_data is not None

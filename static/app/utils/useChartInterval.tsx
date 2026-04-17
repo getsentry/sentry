@@ -65,26 +65,32 @@ function useChartIntervalImpl({
   intervalOptions: Array<{label: string; value: string}>,
 ] {
   const {datetime} = pagefilters.selection;
-  const intervalOptions = useMemo(
-    () => getIntervalOptionsForPageFilter(datetime),
-    [datetime]
-  );
+
+  const {intervalOptions, defaultInterval} = useMemo(() => {
+    const diffInMinutes = getDiffInMinutes(datetime);
+    const options = getIntervalOptionsForPageFilter(datetime);
+
+    // Compute the default from the ladder-derived options, before appending extras
+    const fallback =
+      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
+        ? options[0]!.value
+        : (options[options.length - 2]?.value ?? options[options.length - 1]!.value);
+
+    if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
+      options.push(ONE_DAY_OPTION);
+    }
+
+    return {intervalOptions: options, defaultInterval: fallback};
+  }, [datetime, unspecifiedStrategy]);
 
   const interval = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
 
-    // Default to the second largest option or largest option
-    const fallbackInterval =
-      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
-        ? intervalOptions[0]!.value
-        : (intervalOptions[intervalOptions.length - 2]?.value ??
-          intervalOptions[intervalOptions.length - 1]!.value);
-
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
-      : fallbackInterval;
-  }, [location.query.interval, unspecifiedStrategy, intervalOptions]);
+      : defaultInterval;
+  }, [location.query.interval, intervalOptions, defaultInterval]);
 
   const setInterval = useCallback(
     (newInterval: string) => {
@@ -138,6 +144,9 @@ const MAXIMUM_INTERVAL = new GranularityLadder([
   [FIVE_MINUTES, '5m'],
   [0, '1m'],
 ]);
+
+const ONE_DAY_OPTION = {value: '1d', label: t('1 day')};
+const MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL = TWO_WEEKS;
 
 export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime']) {
   const diffInMinutes = getDiffInMinutes(datetime);

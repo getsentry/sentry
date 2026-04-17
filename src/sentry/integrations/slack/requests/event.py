@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, NamedTuple
 
+from sentry.constants import ObjectStatus
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
 from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import OrganizationStatus
+from sentry.organizations.services.organization.service import organization_service
+from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerEntrypoint
+from sentry.silo.base import all_silo_function
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
+SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 
 def has_discover_links(links: list[str]) -> bool:
@@ -21,6 +30,11 @@ def has_explore_links(links: list[str]) -> bool:
 
 def is_event_challenge(data: Mapping[str, Any]) -> bool:
     return data.get("type", "") == "url_verification"
+
+
+class SeerResolutionResult(NamedTuple):
+    organization_id: int | None
+    error_reason: SeerSlackHaltReason | None
 
 
 class SlackEventRequest(SlackDMRequest):
@@ -54,6 +68,65 @@ class SlackEventRequest(SlackDMRequest):
     def is_challenge(self) -> bool:
         """We need to call this before validation."""
         return is_event_challenge(self.request.data)
+
+    @property
+    def is_seer_agent_request(self) -> bool:
+        return (
+            self.type == "app_mention"
+            or self.type == "assistant_thread_started"
+            or (self.dm_data.get("type") == "message" and self.has_assistant_scope)
+        )
+
+    @all_silo_function
+    def resolve_seer_organization(self) -> SeerResolutionResult:
+        """
+        Resolve and validate an organization/user for a Seer Slack event.
+
+        We require a linked identity, then search for an active, organization they belong to with
+        Seer Agent access.
+
+        Note: There is a limitation here of only grabbing the first organization belonging to the user
+        with access to Seer. If a Slack installation corresponds to multiple organizations with Seer
+        access, this will not work as expected. This will be revisited.
+        """
+        identity_user = self.get_identity_user()
+        if not identity_user:
+            return SeerResolutionResult(
+                organization_id=None, error_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
+            )
+
+        ois = integration_service.get_organization_integrations(
+            integration_id=self.integration.id,
+            status=ObjectStatus.ACTIVE,
+            providers=SLACK_PROVIDERS,
+        )
+        if not ois:
+            return SeerResolutionResult(
+                organization_id=None, error_reason=SeerSlackHaltReason.NO_VALID_INTEGRATION
+            )
+
+        for oi in ois:
+            organization_id = oi.organization_id
+            ctx = organization_service.get_organization_by_id(
+                id=oi.organization_id, user_id=identity_user.id
+            )
+            if ctx is None:
+                continue
+
+            if ctx.organization.status != OrganizationStatus.ACTIVE:
+                continue
+
+            if not SlackExplorerEntrypoint.has_access(ctx.organization):
+                continue
+
+            if ctx.member is None:
+                continue
+
+            return SeerResolutionResult(organization_id=organization_id, error_reason=None)
+
+        return SeerResolutionResult(
+            organization_id=None, error_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
+        )
 
     @property
     def dm_data(self) -> Mapping[str, Any]:

@@ -38,31 +38,31 @@ describe('LogsToolbar', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'bar', name: 'bar', attributeSource: {source_type: 'custom'}},
-        {key: 'foo', name: 'foo', attributeSource: {source_type: 'custom'}},
-      ],
-      match: [MockApiClient.matchQuery({attributeType: 'number', itemType: 'logs'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
-        {key: 'severity', name: 'severity', attributeSource: {source_type: 'custom'}},
         {
+          attributeType: 'number',
+          key: 'bar',
+          name: 'bar',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'number',
+          key: 'foo',
+          name: 'foo',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
+          key: 'severity',
+          name: 'severity',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
           key: 'custom.string_tag',
           name: 'custom.string_tag',
           attributeSource: {source_type: 'custom'},
         },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string', itemType: 'logs'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'boolean', itemType: 'logs'})],
     });
   });
 
@@ -276,30 +276,18 @@ describe('LogsToolbar', () => {
   });
 
   it('re-fetches attributes on search', async () => {
-    const searchStringMock = MockApiClient.addMockResponse({
+    const searchAttributesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
         {
+          attributeType: 'string',
           key: 'custom.searched_tag',
           name: 'custom.searched_tag',
           attributeSource: {source_type: 'custom'},
         },
-      ],
-      match: [
-        MockApiClient.matchQuery({
-          attributeType: 'string',
-          itemType: 'logs',
-          substringMatch: 'searched',
-        }),
-      ],
-    });
-
-    const searchNumberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
         {
+          attributeType: 'number',
           key: 'searched_number',
           name: 'searched_number',
           attributeSource: {source_type: 'custom'},
@@ -307,20 +295,7 @@ describe('LogsToolbar', () => {
       ],
       match: [
         MockApiClient.matchQuery({
-          attributeType: 'number',
-          itemType: 'logs',
-          substringMatch: 'searched',
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [
-        MockApiClient.matchQuery({
-          attributeType: 'boolean',
+          attributeType: ['string', 'number', 'boolean'],
           itemType: 'logs',
           substringMatch: 'searched',
         }),
@@ -339,8 +314,7 @@ describe('LogsToolbar', () => {
     const searchInput = screen.getByRole('textbox');
     await userEvent.type(searchInput, 'searched');
 
-    await waitFor(() => expect(searchStringMock).toHaveBeenCalled());
-    await waitFor(() => expect(searchNumberMock).toHaveBeenCalled());
+    await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
     expect(
       await screen.findByRole('option', {name: 'custom.searched_tag'})

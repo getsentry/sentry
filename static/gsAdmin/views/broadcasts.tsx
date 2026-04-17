@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -40,11 +39,11 @@ export function Broadcasts() {
   const hasPermission = ConfigStore.get('user').permissions.has('broadcasts.admin');
   const fields = getBroadcastSchema();
 
-  const handleNewBroadcast = useCallback(() => {
+  const handleNewBroadcast = () => {
     openModal(deps => <CreateBroadcastModal {...deps} fields={fields} />, {
       closeEvents: 'escape-key',
     });
-  }, [fields]);
+  };
 
   return (
     <div>

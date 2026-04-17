@@ -3,7 +3,10 @@ from unittest.mock import patch
 from sentry.grouping.ingest.seer import maybe_send_seer_for_new_model_training
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.seer.similarity.config import SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE
+from sentry.seer.similarity.config import (
+    SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE,
+    SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 
@@ -30,6 +33,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
         """Should not send request when no new version is being rolled out"""
         with (
             patch("sentry.seer.similarity.config.SEER_GROUPING_NEW_VERSION", None),
+            patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None),
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer"
             ) as mock_get_similarity_data,
@@ -212,3 +216,26 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
                     "grouphash": self.grouphash.hash,
                 },
             )
+
+    def test_retrains_for_next_model_when_already_trained_for_new(self) -> None:
+        """v2 -> v2.1 transition: grouphash trained for v2, project now on v2.1"""
+        with (
+            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
+            patch(
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=([], "v2.1"),
+            ) as mock_get_similarity_data,
+            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
+        ):
+            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+            metadata.seer_latest_training_model = "v2"
+            metadata.save()
+
+            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
+
+            mock_get_similarity_data.assert_called_once()
+            call_args = mock_get_similarity_data.call_args
+            assert call_args[0][0]["model"].value == "v2.1"
+
+            metadata.refresh_from_db()
+            assert metadata.seer_latest_training_model == "v2.1"

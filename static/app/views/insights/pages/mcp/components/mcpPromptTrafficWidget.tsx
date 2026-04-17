@@ -8,7 +8,7 @@ export function McpPromptTrafficWidget() {
     <GroupedTrafficWidget
       groupBy={SpanFields.MCP_PROMPT_NAME}
       referrer={MCPReferrer.MCP_PROMPT_TRAFFIC_WIDGET}
-      query={`span.op:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`}
+      query={`span.name:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`}
       title={t('Most Used Prompts')}
     />
   );

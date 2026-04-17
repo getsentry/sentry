@@ -168,7 +168,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     needsCursorIntegration,
   ];
 
-  const handleSetupCursorHandoff = useCallback(async () => {
+  const handleSetupCursorHandoff = async () => {
     if (!cursorIntegration?.id) {
       return;
     }
@@ -193,14 +193,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         integration_id: parseInt(cursorIntegration.id, 10),
       },
     });
-  }, [
-    cursorIntegration,
-    project.seerScannerAutomation,
-    project.autofixAutomationTuning,
-    updateProjectAutomation,
-    updateProjectSeerPreferences,
-    preference?.repositories,
-  ]);
+  };
 
   const handleSkipCursorStep = useCallback(() => {
     setCursorStepSkipped(true);

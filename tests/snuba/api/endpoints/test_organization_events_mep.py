@@ -58,9 +58,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def setUp(self) -> None:
         super().setUp()
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query, features=None):
         if features is None:

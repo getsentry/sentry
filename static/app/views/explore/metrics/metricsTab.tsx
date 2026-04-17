@@ -1,6 +1,10 @@
+import {Fragment} from 'react';
+import {closestCenter, DndContext} from '@dnd-kit/core';
+import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -19,8 +23,11 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
+import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
+import {SortableMetricPanel} from 'sentry/views/explore/metrics/metricPanel/sortableMetricPanel';
 import {
   canUseMetricsEquations,
   canUseMetricsUIRefresh,
@@ -38,6 +45,7 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -47,12 +55,28 @@ type MetricsTabProps = {
 function MetricsTabContentRefreshLayout({datePageFilterProps}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
+      <MetricsTabContentRefreshInner datePageFilterProps={datePageFilterProps} />
+    </MultiMetricsQueryParamsProvider>
+  );
+}
+
+function MetricsTabContentRefreshInner({datePageFilterProps}: MetricsTabProps) {
+  const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
+
+  return (
+    <Fragment>
       <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
       <ExploreBodyContent>
-        <MetricsQueryBuilderSection />
-        <MetricsTabBodySection />
+        <MetricsQueryBuilderSection
+          referencedMetricLabels={referencedMetricLabels}
+          onEquationLabelsChange={onEquationLabelsChange}
+        />
+        <MetricsTabBodySection
+          referencedMetricLabels={referencedMetricLabels}
+          onEquationLabelsChange={onEquationLabelsChange}
+        />
       </ExploreBodyContent>
-    </MultiMetricsQueryParamsProvider>
+    </Fragment>
   );
 }
 
@@ -63,12 +87,32 @@ export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
     return <MetricsTabContentRefreshLayout datePageFilterProps={datePageFilterProps} />;
   }
 
+  return <MetricsTabContentDefaultLayout datePageFilterProps={datePageFilterProps} />;
+}
+
+function MetricsTabContentDefaultLayout({datePageFilterProps}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
-      <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
-      <MetricsQueryBuilderSection />
-      <MetricsTabBodySection />
+      <MetricsTabContentDefaultInner datePageFilterProps={datePageFilterProps} />
     </MultiMetricsQueryParamsProvider>
+  );
+}
+
+function MetricsTabContentDefaultInner({datePageFilterProps}: MetricsTabProps) {
+  const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
+
+  return (
+    <Fragment>
+      <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
+      <MetricsQueryBuilderSection
+        referencedMetricLabels={referencedMetricLabels}
+        onEquationLabelsChange={onEquationLabelsChange}
+      />
+      <MetricsTabBodySection
+        referencedMetricLabels={referencedMetricLabels}
+        onEquationLabelsChange={onEquationLabelsChange}
+      />
+    </Fragment>
   );
 }
 
@@ -140,13 +184,21 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   );
 }
 
-function MetricsQueryBuilderSection() {
+interface SectionProps {
+  onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
+  referencedMetricLabels: Set<string>;
+}
+
+function MetricsQueryBuilderSection({
+  referencedMetricLabels,
+  onEquationLabelsChange,
+}: SectionProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
-  const references = useMetricReferences();
+  const referenceMap = useMetricReferences();
 
   if (canUseMetricsUIRefresh(organization)) {
     return null;
@@ -173,7 +225,9 @@ function MetricsQueryBuilderSection() {
               <MetricToolbar
                 traceMetric={metricQuery.metric}
                 queryLabel={metricQuery.label ?? ''}
-                references={references}
+                referenceMap={referenceMap}
+                referencedMetricLabels={referencedMetricLabels}
+                onEquationLabelsChange={onEquationLabelsChange}
               />
             </MetricsQueryParamsProvider>
           );
@@ -197,7 +251,10 @@ function MetricsQueryBuilderSection() {
   );
 }
 
-function MetricsTabBodySection() {
+function MetricsTabBodySection({
+  referencedMetricLabels,
+  onEquationLabelsChange,
+}: SectionProps) {
   const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
@@ -213,7 +270,20 @@ function MetricsTabBodySection() {
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
-  const references = useMetricReferences();
+  const referenceMap = useMetricReferences();
+  const aggregateMetricQueries = useSortableMetricQueries({
+    predicate: metricQuery =>
+      !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!),
+  });
+  const equationMetricQueries = useSortableMetricQueries({
+    predicate: metricQuery => isVisualizeEquation(metricQuery.queryParams.visualizes[0]!),
+  });
+  const isDragging =
+    aggregateMetricQueries.isDragging || equationMetricQueries.isDragging;
+  const showSectionSeparator =
+    isDragging &&
+    aggregateMetricQueries.sortableItems.length > 0 &&
+    equationMetricQueries.sortableItems.length > 0;
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
@@ -225,25 +295,31 @@ function MetricsTabBodySection() {
       <ExploreContentSection>
         <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
-            {metricQueries.map((metricQuery, index) => {
-              return (
-                <MetricsQueryParamsProvider
-                  key={`queryPanel-${metricQuery.label ?? index}`}
-                  queryParams={metricQuery.queryParams}
-                  setQueryParams={metricQuery.setQueryParams}
-                  traceMetric={metricQuery.metric}
-                  setTraceMetric={metricQuery.setTraceMetric}
-                  removeMetric={metricQuery.removeMetric}
-                >
-                  <MetricPanel
-                    traceMetric={metricQuery.metric}
-                    queryIndex={index}
-                    queryLabel={metricQuery.label ?? ''}
-                    references={references}
-                  />
-                </MetricsQueryParamsProvider>
-              );
-            })}
+            <SortableMetricPanelSection
+              dataTestId="aggregate-metric-panels"
+              sortableQueries={aggregateMetricQueries}
+              referenceMap={referenceMap}
+              isAnyDragging={isDragging}
+              referencedMetricLabels={referencedMetricLabels}
+              onEquationLabelsChange={onEquationLabelsChange}
+            />
+            {showSectionSeparator ? (
+              <Container paddingBottom="xl">
+                <Separator
+                  orientation="horizontal"
+                  border="primary"
+                  data-test-id="metric-section-separator"
+                />
+              </Container>
+            ) : null}
+            <SortableMetricPanelSection
+              dataTestId="equation-metric-panels"
+              sortableQueries={equationMetricQueries}
+              referenceMap={referenceMap}
+              isAnyDragging={isDragging}
+              referencedMetricLabels={referencedMetricLabels}
+              onEquationLabelsChange={onEquationLabelsChange}
+            />
             <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
@@ -285,7 +361,9 @@ function MetricsTabBodySection() {
                     traceMetric={metricQuery.metric}
                     queryIndex={index}
                     queryLabel={metricQuery.label ?? ''}
-                    references={references}
+                    referenceMap={referenceMap}
+                    referencedMetricLabels={referencedMetricLabels}
+                    onEquationLabelsChange={onEquationLabelsChange}
                   />
                 </MetricsQueryParamsProvider>
               );
@@ -294,6 +372,69 @@ function MetricsTabBodySection() {
         </Stack>
       </ExploreContentSection>
     </ExploreBodyContent>
+  );
+}
+
+interface SortableMetricPanelSectionProps {
+  dataTestId: string;
+  isAnyDragging: boolean;
+  onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
+  referenceMap: Record<string, string>;
+  referencedMetricLabels: Set<string>;
+  sortableQueries: ReturnType<typeof useSortableMetricQueries>;
+}
+
+function SortableMetricPanelSection({
+  dataTestId,
+  referencedMetricLabels,
+  onEquationLabelsChange,
+  sortableQueries,
+  isAnyDragging,
+  referenceMap,
+}: SortableMetricPanelSectionProps) {
+  const {sortableItems, sensors, onDragStart, onDragEnd, onDragCancel} = sortableQueries;
+
+  if (!sortableItems.length) {
+    return null;
+  }
+
+  return (
+    <Stack data-test-id={dataTestId}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragCancel={onDragCancel}
+      >
+        <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
+          {sortableItems.map(({id, metricQuery, index}) => {
+            return (
+              <MetricsQueryParamsProvider
+                key={id}
+                queryParams={metricQuery.queryParams}
+                setQueryParams={metricQuery.setQueryParams}
+                traceMetric={metricQuery.metric}
+                setTraceMetric={metricQuery.setTraceMetric}
+                removeMetric={metricQuery.removeMetric}
+              >
+                <SortableMetricPanel
+                  referencedMetricLabels={referencedMetricLabels}
+                  onEquationLabelsChange={onEquationLabelsChange}
+                  sortableId={id}
+                  traceMetric={metricQuery.metric}
+                  queryIndex={index}
+                  queryLabel={metricQuery.label ?? ''}
+                  referenceMap={referenceMap}
+                  isAnyDragging={isAnyDragging}
+                  canDrag={sortableItems.length > 1}
+                />
+              </MetricsQueryParamsProvider>
+            );
+          })}
+        </SortableContext>
+      </DndContext>
+    </Stack>
   );
 }
 

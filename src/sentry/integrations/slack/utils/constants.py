@@ -6,8 +6,6 @@ SLACK_RATE_LIMITED_MESSAGE = "Requests to Slack exceeded the rate limit. Please 
 class SlackScope(StrEnum):
     """OAuth scopes for the Slack integration."""
 
-    REACTIONS_WRITE = "reactions:write"
-    """Allows the bot to add and remove reactions to messages."""
     CHANNELS_HISTORY = "channels:history"
     """Allows the bot to read message history in channels."""
     GROUPS_HISTORY = "groups:history"

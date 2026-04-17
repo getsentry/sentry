@@ -95,6 +95,25 @@ export function useStableLabels(queries: BaseMetricQuery[]) {
       remove(position: number) {
         labelsRef.current = labelsRef.current.filter((_, j) => j !== position);
       },
+      move(from: number, to: number) {
+        if (
+          from === to ||
+          from < 0 ||
+          to < 0 ||
+          from >= labelsRef.current.length ||
+          to >= labelsRef.current.length
+        ) {
+          return;
+        }
+
+        const next = [...labelsRef.current];
+        const [label] = next.splice(from, 1);
+        if (!label) {
+          return;
+        }
+        next.splice(to, 0, label);
+        labelsRef.current = next;
+      },
     }),
     []
   );

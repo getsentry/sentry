@@ -13,7 +13,10 @@ import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsCont
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 const METRICS_DATASET = 'metrics';
 
@@ -70,7 +73,7 @@ export function useSaveMetricsMultiQuery() {
               ...groupBys,
               ...(yAxes.length > 0 ? [{yAxes, chartType}] : []),
             ],
-            metric: metricQuery.metric,
+            ...(isVisualizeFunction(visualize) ? {metric: metricQuery.metric} : {}),
             fields: metricQuery.queryParams.fields,
             orderby: metricQuery.queryParams.sortBys[0]
               ? encodeSort(metricQuery.queryParams.sortBys[0])

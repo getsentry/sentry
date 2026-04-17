@@ -47,7 +47,7 @@ class IssueAlertInvocationMixin(TestCase):
             name="Test Detector",
             type=ErrorGroupType.slug,
         )
-        workflow = self.create_workflow(organization=self.organization)
+        workflow = self.create_workflow(organization=self.organization, name="Test Workflow")
         action = self.create_action(
             type=Action.Type.SLACK,
             data={"tags": ", ".join(tags) if tags else "", "notes": notes},
@@ -99,7 +99,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notification_uuid == "test-uuid-123"
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
-        assert result.rule.label == invocation.detector.name
+        assert result.rule.label == "Test Workflow"
         assert result.tags == ["environment", "level"]
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
@@ -164,6 +164,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         workflow_id: int,
         event_id: str,
         title: str = "test event",
+        rule_label: str = "Test Workflow",
         notes: str | None = None,
         tags: list[str] | None = None,
     ) -> SlackRenderable:
@@ -256,7 +257,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
                         "type": "mrkdwn",
                         "text": (
                             f"Project: <{project_url}|{project_slug}>"
-                            f"    Alert: <{alert_url}|Test Detector>"
+                            f"    Alert: <{alert_url}|{rule_label}>"
                             f"    Short ID: {group.qualified_short_id}"
                         ),
                     }

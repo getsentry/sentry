@@ -4,22 +4,40 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   elideTagBasedAttributes,
-  useTraceItemAttributeKeys,
-} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {
   AllowedDataScrubbingDatasets,
   type AttributeSuggestion,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {TraceItemFieldSelector} from 'sentry/views/settings/components/dataScrubbing/utils';
+
+const datasetToTraceItemType: Record<
+  Exclude<AllowedDataScrubbingDatasets, AllowedDataScrubbingDatasets.DEFAULT>,
+  TraceItemDataset
+> = {
+  [AllowedDataScrubbingDatasets.LOGS]: TraceItemDataset.LOGS,
+  [AllowedDataScrubbingDatasets.METRICS]: TraceItemDataset.TRACEMETRICS,
+};
+
+const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
+  Record<AllowedDataScrubbingDatasets, Set<string>>
+> = {
+  [AllowedDataScrubbingDatasets.METRICS]: new Set(['metric.name']),
+};
 
 type FieldProps = {
   'aria-describedby': string;
@@ -48,18 +66,28 @@ export function AttributeField({
   projectId,
 }: Props) {
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
   const project = projects.find(p => p.id === projectId);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
 
-  const traceItemAttributeStringsResult = useTraceItemAttributeKeys({
-    enabled: true,
-    type: 'string',
-    traceItemType: TraceItemDataset.LOGS,
-    projects: project ? [project] : undefined,
+  const traceItemType =
+    dataset === AllowedDataScrubbingDatasets.DEFAULT
+      ? TraceItemDataset.LOGS
+      : datasetToTraceItemType[dataset];
+  const traceItemAttributeResult = useQuery({
+    ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
+      traceItemType,
+      type: 'string',
+      projects: project ? [project] : undefined,
+    }),
+    select: selectTraceItemTagCollection('string'),
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
-    `advanced-data-scrubbing.suggested-attribute-values:v2:${projectId ? projectId : 'all'}`,
+    `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId ? projectId : 'all'}`,
     {} as TagCollection
   );
 
@@ -68,25 +96,23 @@ export function AttributeField({
 
   useEffect(() => {
     if (
-      traceItemAttributeStringsResult.attributes &&
-      !traceItemAttributeStringsResult.isLoading &&
-      !traceItemAttributeStringsResult.error
+      traceItemAttributeResult.data &&
+      !traceItemAttributeResult.isLoading &&
+      !traceItemAttributeResult.error
     ) {
       // This limits the attributes you can see when selecting for pii scrubbing, but we have to currently as tags[] syntax is strictly invalid.
       // We should address this ultimately via fixing the trace item keys endpoint to emit the stored/relay-esque syntax at some point, instead of frontend hacks.
-      setSuggestedAttributeValues(
-        elideTagBasedAttributes(traceItemAttributeStringsResult.attributes)
-      );
+      setSuggestedAttributeValues(elideTagBasedAttributes(traceItemAttributeResult.data));
     }
   }, [
     onChange,
-    traceItemAttributeStringsResult.attributes,
-    traceItemAttributeStringsResult.isLoading,
-    traceItemAttributeStringsResult.error,
+    traceItemAttributeResult.data,
+    traceItemAttributeResult.isLoading,
+    traceItemAttributeResult.error,
     setSuggestedAttributeValues,
   ]);
 
-  const suggestions = useMemo(() => {
+  const suggestions = useMemo((): AttributeSuggestion[] => {
     if (!suggestedAttributeValues) {
       return [];
     }
@@ -100,16 +126,21 @@ export function AttributeField({
       return [];
     }
 
+    const hidden = HIDDEN_SCRUBBING_ATTRIBUTES[dataset];
+
     return [
       ...TraceItemFieldSelector.getAllStaticFields(dataset).map(staticField => ({
         value: staticField.fieldName,
         label: staticField.fieldName,
       })),
-      ...traceItemFields.map(field => ({
-        value: field.label,
-        label:
-          TraceItemFieldSelector.fromField(dataset, field.key)?.toLabel() ?? field.label,
-      })),
+      ...traceItemFields
+        .filter(field => !hidden?.has(field.key))
+        .map(field => ({
+          value: field.label,
+          label:
+            TraceItemFieldSelector.fromField(dataset, field.key)?.toLabel() ??
+            field.label,
+        })),
     ];
   }, [dataset, suggestedAttributeValues]);
 
@@ -188,7 +219,7 @@ export function AttributeField({
 
   return (
     <Wrapper>
-      {traceItemAttributeStringsResult.isLoading &&
+      {traceItemAttributeResult.isLoading &&
       !Object.keys(suggestedAttributeValues).length ? (
         <LoadingIndicator style={{margin: '0 auto'}} size={20} />
       ) : (

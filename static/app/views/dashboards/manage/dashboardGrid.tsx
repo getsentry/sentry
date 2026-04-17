@@ -225,7 +225,7 @@ function DashboardGrid({
           rowCount * columnCount > numDashboards &&
           new Array(rowCount * columnCount - numDashboards)
             .fill(0)
-            .map((_, index) => <Placeholder key={index} height="210px" />)}
+            .map((_, index) => <Placeholder key={index} height="208px" />)}
       </DashboardGridContainer>
     );
   }

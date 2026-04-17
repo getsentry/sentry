@@ -108,7 +108,7 @@ export function TeamUnresolvedIssues({
     )
   );
   // Total by day for all projects
-  const totalByDay = allData.reduce(
+  const totalByDay = allData.reduce<Record<string, number>>(
     (acc, [bucket, unresolved]) => {
       if (acc[bucket] === undefined) {
         acc[bucket] = 0;
@@ -116,7 +116,7 @@ export function TeamUnresolvedIssues({
       acc[bucket] += unresolved;
       return acc;
     },
-    {} as Record<string, number>
+    {}
   );
 
   const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
