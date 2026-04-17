@@ -8,10 +8,11 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import IncidentActivity, IncidentActivityType, IncidentStatus
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -282,6 +283,84 @@ class IncidentListDeltaTest(APITestCase):
                     # WE system uses Group.title (the issue title). These are typically different strings.
                     "title",
                 },
+            )
+
+    @freeze_time("2024-12-11 03:21:34")
+    def test_activity_serialization_parity(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        alert_rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+        migrate_metric_data_conditions(trigger)
+        migrate_resolve_threshold_data_condition(alert_rule)
+
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            group = self.create_group(type=MetricIssue.type_id, project=self.project)
+            group.priority = PriorityLevel.HIGH.value
+            group.save()
+            DetectorGroup.objects.create(detector=detector, group=group)
+
+            group_open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+            group_open_period.update(date_started=incident.date_started)
+
+            IncidentGroupOpenPeriod.objects.create(
+                group_open_period=group_open_period,
+                incident_id=incident.id,
+                incident_identifier=incident.identifier,
+            )
+
+            # Legacy activity: STATUS_CHANGE to CRITICAL
+            IncidentActivity.objects.create(
+                incident=incident,
+                type=IncidentActivityType.STATUS_CHANGE.value,
+                value=str(IncidentStatus.CRITICAL.value),
+                previous_value=None,
+            )
+
+            # Matching WE activity: OPENED with HIGH priority (maps to CRITICAL)
+            GroupOpenPeriodActivity.objects.create(
+                group_open_period=group_open_period,
+                type=OpenPeriodActivityType.OPENED,
+                value=PriorityLevel.HIGH,
+                date_added=incident.date_started,
+            )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            old_resp = self.get_success_response(self.organization.slug, expand="activities")
+        old_data = old_resp.data
+        assert len(old_data) > 0
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:workflow-engine-rule-serializers",
+            ]
+        ):
+            new_resp = self.get_success_response(self.organization.slug, expand="activities")
+        new_data = new_resp.data
+        assert len(new_data) == len(old_data)
+
+        for old_incident_data, new_incident_data in zip(old_data, new_data):
+            assert_serializer_parity(
+                old=old_incident_data,
+                new=new_incident_data,
+                known_differences={
+                    "alertRule.resolveThreshold",
+                    "alertRule.triggers.resolveThreshold",
+                    "alertRule.triggers.label",
+                    "title",
+                    # Legacy activities include fields the WE path intentionally omits
+                    "activities.incidentIdentifier",
+                    "activities.user",
+                    "activities.comment",
+                },
+                # Different tables with independent auto-increment sequences
+                unreliable={"activities.id"},
             )
 
 

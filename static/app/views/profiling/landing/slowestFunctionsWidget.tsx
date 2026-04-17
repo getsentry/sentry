@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
@@ -33,11 +34,15 @@ import type {Series} from 'sentry/types/echarts';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getShortEventId} from 'sentry/utils/events';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
-import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {
+  useProfileFunctions,
+  useProfileFunctionsOptions,
+} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -134,7 +139,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     [organization, analyticsSource]
   );
 
-  const functionsQuery = useProfileFunctions<FunctionsField>({
+  const functionsQueryOptions = useProfileFunctionsOptions<FunctionsField>({
     fields: functionsFields.includes(sortFunction as any)
       ? functionsFields
       : [...functionsFields, sortFunction],
@@ -147,8 +152,14 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     limit: MAX_FUNCTIONS,
     cursor: slowFnCursor,
   });
+  const functionsQuery = useQuery({
+    ...functionsQueryOptions,
+    select: selectJsonWithHeaders,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
-  const functionsData = functionsQuery.data?.data || [];
+  const functionsData = functionsQuery.data?.json?.data || [];
 
   const hasFunctions = (functionsData.length || 0) > 0;
 
@@ -156,7 +167,9 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   const projects = functionsQuery.isFetched
     ? [
         ...new Set(
-          (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
+          (functionsQuery.data?.json?.data ?? []).map(
+            func => func['project.id'] as number
+          )
         ),
       ]
     : [];
@@ -240,7 +253,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           </Flex>
         </Subtitle>
         <StyledPagination
-          pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
+          pageLinks={functionsQuery.data?.headers.Link ?? null}
           size="xs"
           onCursor={handleCursor}
           paginationAnalyticsEvent={paginationAnalyticsEvent}

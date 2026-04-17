@@ -14,8 +14,9 @@ import {
   setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -30,10 +31,13 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
@@ -415,10 +419,13 @@ function OrganizationMembershipSettingsBase({
 export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
+  const regionData =
+    getRegions().length > 1 ? getRegionDataFromOrganization(organization) : null;
 
   const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
 
@@ -544,6 +551,23 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
               </field.Layout.Row>
             )}
           </AutoSaveForm>
+
+          {/* Data Storage Region — read-only, only shown when multiple regions exist */}
+          {hasPageFrameFeature && regionData && (
+            <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
+              <Stack width="50%" gap="xs">
+                <Text>{t('Data Storage Region')}</Text>
+                <Text size="sm" variant="muted">
+                  {tct("Your organization's data storage location. [link:Learn More]", {
+                    link: <ExternalLink href={DATA_STORAGE_DOCS_LINK} />,
+                  })}
+                </Text>
+              </Stack>
+              <Container flexGrow={1}>
+                <Text>{`${regionData?.flag ?? ''} ${regionData.displayName}`}</Text>
+              </Container>
+            </Flex>
+          )}
 
           {/* Early Adopter — hidden for self-hosted errors-only */}
           {!ConfigStore.get('isSelfHostedErrorsOnly') && (

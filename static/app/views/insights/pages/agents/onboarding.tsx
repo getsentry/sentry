@@ -51,8 +51,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
-  LLM_ONBOARDING_INSTRUCTIONS,
-  LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE,
+  LLM_ONBOARDING_COPY_MARKDOWN,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -354,7 +353,7 @@ export function Onboarding() {
                   borderless
                   steps={steps}
                   source="agent_monitoring_onboarding"
-                  postamble={`${LLM_ONBOARDING_INSTRUCTIONS_PREAMBLE}\n\n${LLM_ONBOARDING_INSTRUCTIONS}`}
+                  postamble={LLM_ONBOARDING_COPY_MARKDOWN}
                   onCopy={() => {
                     trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
                       organization,
@@ -382,7 +381,7 @@ function CopyInstructionsButton() {
     <CopyMarkdownButton
       title={t('Copies setup instructions as Markdown, optimized for use with an LLM.')}
       source="agent_monitoring_onboarding"
-      getMarkdown={() => LLM_ONBOARDING_INSTRUCTIONS}
+      getMarkdown={() => LLM_ONBOARDING_COPY_MARKDOWN}
       onCopy={() => {
         trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
           organization,

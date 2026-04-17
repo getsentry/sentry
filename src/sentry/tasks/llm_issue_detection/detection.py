@@ -168,6 +168,15 @@ TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
     "Deprecation Warning": AIDetectedCodeHealthGroupType,
 }
 
+GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
+    AIDetectedHTTPGroupType: "ai_detected_http_enabled",
+    AIDetectedDBGroupType: "ai_detected_db_enabled",
+    AIDetectedRuntimePerformanceGroupType: "ai_detected_runtime_performance_enabled",
+    AIDetectedSecurityGroupType: "ai_detected_security_enabled",
+    AIDetectedCodeHealthGroupType: "ai_detected_code_health_enabled",
+    AIDetectedGeneralGroupType: "ai_detected_general_enabled",
+}
+
 
 def get_group_type_for_title(title: str) -> type[GroupType]:
     return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
@@ -180,6 +189,13 @@ def create_issue_occurrence_from_detection(
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
+    group_type = get_group_type_for_title(detected_issue.title)
+    setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
+    if setting_key:
+        perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+        if not perf_settings.get(setting_key, True):
+            return
+
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
@@ -187,7 +203,9 @@ def create_issue_occurrence_from_detection(
     transaction_name = normalize_description(detected_issue.transaction_name)
     group_for_fingerprint = detected_issue.group_for_fingerprint
 
-    fingerprint = [f"llm-detected-{group_for_fingerprint.strip().lower().replace(' ', '-')}"]
+    fingerprint = [
+        f"1-{group_type.type_id}-{group_for_fingerprint.strip().lower().replace(' ', '-')}"
+    ]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -305,6 +323,10 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         organization.get_option("sentry:hide_ai_features")
     )
     if not has_access:
+        return
+
+    perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+    if not perf_settings.get("ai_issue_detection_enabled", True):
         return
 
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(

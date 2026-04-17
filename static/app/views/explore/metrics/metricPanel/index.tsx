@@ -18,6 +18,7 @@ import {
   getTraceSamplesTableFields,
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
+import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
@@ -89,6 +90,13 @@ export function MetricPanel({
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
 
+  const [title, setTitle] = useState<string | undefined>(() => {
+    if (isVisualizeEquation(visualize)) {
+      return unresolveExpression(visualize.expression.text, referenceMap);
+    }
+    return undefined;
+  });
+
   const areQueriesEnabled = isVisualizeFunction(visualize)
     ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
     : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
@@ -143,6 +151,7 @@ export function MetricPanel({
                 dragAttributes={dragAttributes}
                 referencedMetricLabels={referencedMetricLabels}
                 onEquationLabelsChange={onEquationLabelsChange}
+                onTitleChange={setTitle}
               />
             </Container>
             {visualize.visible ? (
@@ -169,6 +178,7 @@ export function MetricPanel({
                       infoContentHidden={infoContentHidden}
                       setInfoContentHidden={setInfoContentHidden}
                       isMetricOptionsEmpty={isMetricOptionsEmpty}
+                      title={title}
                     />
                   </Container>
                 </Activity>
@@ -192,6 +202,7 @@ export function MetricPanel({
             infoContentHidden={infoContentHidden}
             setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
           />
         ) : (
           <StackedOrientation
@@ -203,6 +214,7 @@ export function MetricPanel({
             infoContentHidden={infoContentHidden}
             setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
           />
         )}
       </PanelBody>

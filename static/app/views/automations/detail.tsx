@@ -41,39 +41,54 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
   const warning = getAutomationActionsWarning(automation);
-
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
+  );
+  const breadcrumbs = (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
+        {label: automation.name},
+      ]}
+    />
   );
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <DetailLayout.Header>
-          <DetailLayout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Alerts'),
-                  to: makeAutomationBasePathname(organization.slug),
-                },
-                {label: automation.name},
-              ]}
-            />
-            <DetailLayout.Title title={automation.name} />
-          </DetailLayout.HeaderContent>
-          <DetailLayout.Actions>
-            <Actions automation={automation} />
-          </DetailLayout.Actions>
-        </DetailLayout.Header>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+            <TopBar.Slot name="actions">
+              <Actions automation={automation} />
+            </TopBar.Slot>
+            <AutomationFeedbackButton />
+          </Fragment>
+        ) : (
+          <DetailLayout.Header>
+            <DetailLayout.HeaderContent>
+              {breadcrumbs}
+              <DetailLayout.Title title={automation.name} />
+            </DetailLayout.HeaderContent>
+            <DetailLayout.Actions>
+              <AutomationFeedbackButton />
+              <Actions automation={automation} size="sm" />
+            </DetailLayout.Actions>
+          </DetailLayout.Header>
+        )}
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
@@ -212,7 +227,7 @@ export default function AutomationDetail() {
   );
 }
 
-function Actions({automation}: {automation: Automation}) {
+function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
@@ -234,15 +249,14 @@ function Actions({automation}: {automation: Automation}) {
 
   return (
     <Fragment>
-      <AutomationFeedbackButton />
-      <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
+      <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
         priority="primary"
         icon={<IconEdit />}
-        size="sm"
+        size={size}
       >
         {t('Edit')}
       </LinkButton>

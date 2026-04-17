@@ -1,14 +1,18 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.tasks.seer.backfill_supergroups_lightweight import (
-    BATCH_SIZE,
     backfill_supergroups_lightweight_for_org,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
+from sentry.utils.snuba import SnubaError
+
+TEST_BATCH_SIZE = 5
 
 
 class BackfillSupergroupsLightweightForOrgTest(TestCase):
@@ -81,7 +85,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         mock_request.return_value = MagicMock(status=200)
 
         # Create enough groups to fill a batch
-        for i in range(BATCH_SIZE):
+        for i in range(TEST_BATCH_SIZE):
             evt = self.store_event(
                 data={
                     "message": f"error {i}",
@@ -94,9 +98,12 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
             evt.group.substatus = GroupSubStatus.NEW
             evt.group.save(update_fields=["substatus"])
 
-        with patch(
-            "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
-        ) as mock_chain:
+        with (
+            self.options({"seer.supergroups_backfill_lightweight.batch_size": TEST_BATCH_SIZE}),
+            patch(
+                "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
+            ) as mock_chain,
+        ):
             backfill_supergroups_lightweight_for_org(self.organization.id)
 
             mock_chain.assert_called_once()
@@ -181,6 +188,39 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         mock_request.assert_not_called()
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch("sentry.utils.retries.time.sleep")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    @patch("sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries")
+    def test_retries_snuba_query_on_failure(self, mock_snuba, mock_request, mock_sleep):
+        mock_request.return_value = MagicMock(status=200)
+        mock_snuba.side_effect = [
+            SnubaError("transient"),
+            SnubaError("transient"),
+            [{"data": [{"event_id": self.event.event_id}]}],
+        ]
+
+        backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        assert mock_snuba.call_count == 3
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch("sentry.utils.retries.time.sleep")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    @patch("sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries")
+    def test_raises_after_snuba_retries_exhausted(self, mock_snuba, mock_request, mock_sleep):
+        mock_snuba.side_effect = SnubaError("persistent")
+
+        with pytest.raises(SnubaError):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        assert mock_snuba.call_count == 3
+        mock_request.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
     @patch(
         "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
     )
@@ -224,8 +264,8 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
     def test_chains_then_completes_on_exact_batch_boundary(self, mock_request):
         mock_request.return_value = MagicMock(status=200)
 
-        # Create exactly BATCH_SIZE groups total (setUp already created 1)
-        for i in range(BATCH_SIZE - 1):
+        # Create exactly TEST_BATCH_SIZE groups total (setUp already created 1)
+        for i in range(TEST_BATCH_SIZE - 1):
             evt = self.store_event(
                 data={
                     "message": f"error {i}",
@@ -239,9 +279,12 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
             evt.group.save(update_fields=["substatus"])
 
         # First call: full batch, chains with same project and group cursor
-        with patch(
-            "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
-        ) as mock_chain:
+        with (
+            self.options({"seer.supergroups_backfill_lightweight.batch_size": TEST_BATCH_SIZE}),
+            patch(
+                "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
+            ) as mock_chain,
+        ):
             backfill_supergroups_lightweight_for_org(self.organization.id)
             mock_chain.assert_called_once()
             next_kwargs = mock_chain.call_args.kwargs["kwargs"]
@@ -250,9 +293,12 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
 
         # Second call: no groups left in project, chains to next project
         mock_request.reset_mock()
-        with patch(
-            "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
-        ) as mock_chain:
+        with (
+            self.options({"seer.supergroups_backfill_lightweight.batch_size": TEST_BATCH_SIZE}),
+            patch(
+                "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
+            ) as mock_chain,
+        ):
             backfill_supergroups_lightweight_for_org(self.organization.id, **next_kwargs)
             mock_request.assert_not_called()
             mock_chain.assert_called_once()

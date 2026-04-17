@@ -348,6 +348,7 @@ class OrganizationMember(ReplicatedCellModel):
 
     def send_invite_email(self, referrer: str | None = None):
         from sentry.utils.email import MessageBuilder
+        from sentry.utils.email.sanitize import sanitize_outbound_name
 
         context = {
             "email": self.email,
@@ -356,7 +357,7 @@ class OrganizationMember(ReplicatedCellModel):
         }
 
         msg = MessageBuilder(
-            subject="Join %s in using Sentry" % self.organization.name,
+            subject="Join %s in using Sentry" % sanitize_outbound_name(self.organization.name),
             template="sentry/emails/member-invite.txt",
             html_template="sentry/emails/member-invite.html",
             type="organization.invite",
@@ -371,6 +372,7 @@ class OrganizationMember(ReplicatedCellModel):
 
     def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
+        from sentry.utils.email.sanitize import sanitize_outbound_name
 
         link_args = {"organization_slug": self.organization.slug}
         context = {
@@ -381,7 +383,7 @@ class OrganizationMember(ReplicatedCellModel):
         }
 
         msg = MessageBuilder(
-            subject=f"Action Required for {self.organization.name}",
+            subject=f"Action Required for {sanitize_outbound_name(self.organization.name)}",
             template="sentry/emails/auth-link-identity.txt",
             html_template="sentry/emails/auth-link-identity.html",
             type="organization.auth_link",
@@ -392,6 +394,7 @@ class OrganizationMember(ReplicatedCellModel):
     def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
         from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
+        from sentry.utils.email.sanitize import sanitize_outbound_name
 
         # Nothing to send if this member isn't associated to a user
         if not self.user_id:
@@ -424,7 +427,7 @@ class OrganizationMember(ReplicatedCellModel):
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
-            subject=f"Action Required for {self.organization.name}",
+            subject=f"Action Required for {sanitize_outbound_name(self.organization.name)}",
             template="sentry/emails/auth-sso-disabled.txt",
             html_template="sentry/emails/auth-sso-disabled.html",
             type="organization.auth_sso_disabled",

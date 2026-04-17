@@ -100,7 +100,7 @@ class DirectMessageTest(BaseEventTest):
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_dm_no_integration(self, mock_apply_async, mock_record):
         with patch(
-            "sentry.integrations.slack.webhooks.event.integration_service.get_organization_integrations",
+            "sentry.integrations.slack.requests.event.integration_service.get_organization_integrations",
             return_value=[],
         ):
             with self.feature(SEER_EXPLORER_FEATURES):

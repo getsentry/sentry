@@ -9,9 +9,8 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -64,23 +63,19 @@ export function useScmRepoSelection({
     // pagination issues with the full list.
     setBusy(true);
     try {
-      const queryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
+      const reposQueryOptions = apiOptions.as<Repository[]>()(
+        '/organizations/$organizationIdOrSlug/repos/',
         {
+          path: {organizationIdOrSlug: organization.slug},
           query: {
             status: 'active',
             integration_id: integration.id,
             query: repo.identifier,
           },
-        },
-      ];
-      const [matches] = await queryClient.fetchQuery({
-        queryKey,
-        queryFn: fetchDataQuery<Repository[]>,
-        staleTime: 0,
-      });
+          staleTime: 0,
+        }
+      );
+      const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
       // The query param above is an icontains filter to narrow results
       // and avoid pagination. The exact match here uses Repository.name
       // against IntegrationRepository.identifier — the same comparison the
