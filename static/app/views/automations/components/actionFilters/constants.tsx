@@ -174,7 +174,6 @@ export const LEVEL_CHOICES = [
 ];
 
 export const INTERVAL_CHOICES = [
-  {value: Interval.ONE_MINUTE, label: t('in one minute')},
   {value: Interval.FIVE_MINUTES, label: t('in 5 minutes')},
   {value: Interval.FIFTEEN_MINUTES, label: t('in 15 minutes')},
   {value: Interval.ONE_HOUR, label: t('in one hour')},
