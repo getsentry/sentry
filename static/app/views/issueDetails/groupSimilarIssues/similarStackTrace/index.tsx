@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -67,13 +67,12 @@ export function SimilarStackTrace({project}: Props) {
         ? '/organizations/$organizationIdOrSlug/issues/$issueId/similar-issues-embeddings/'
         : '/organizations/$organizationIdOrSlug/issues/$issueId/similar/',
       {
-        path: canFetch
-          ? {organizationIdOrSlug: organization.slug, issueId: params.groupId}
-          : skipToken,
+        path: {organizationIdOrSlug: organization.slug, issueId: params.groupId},
         query: hasEmbeddings ? {k: 10, threshold: 0.01} : {...location.query, limit: 50},
         staleTime: 0,
       }
     ),
+    enabled: canFetch,
     select: response => {
       const items = response.json.map(tuple => processSimilarItem(tuple, hasEmbeddings));
       return {
