@@ -158,7 +158,9 @@ def process_mention_for_slack(
         if run_id is None:
             return
 
-        slack_user_ids_in_thread = {msg.get("user") for msg in messages if msg.get("user")}
+        slack_user_ids_in_thread = {
+            msg_user for msg in messages if isinstance(msg_user := msg.get("user"), str)
+        }
         record_seer_slack_event(
             org_slug=organization.slug,
             username=user.username,
