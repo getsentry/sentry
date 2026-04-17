@@ -2,8 +2,11 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
@@ -22,6 +25,11 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {PreferredAgentProvider} from 'sentry/utils/seer/preferredAgentFilter';
+import {
+  preferredAgentFilterParser,
+  filterCodingAgentQueryOptions,
+} from 'sentry/utils/seer/preferredAgentFilter';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -36,6 +44,11 @@ export function SeerProjectTable() {
   const {projects, fetching, fetchError} = useProjects();
 
   const agentOptions = useFetchAgentOptions({organization});
+  const codingAgentCompactSelectOptions = useQuery(
+    filterCodingAgentQueryOptions({
+      organization,
+    })
+  );
 
   const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
     organization,
@@ -108,6 +121,11 @@ export function SeerProjectTable() {
     [autofixAutomationSettings]
   );
 
+  const [agentFilter, setAgentFilter] = useQueryState(
+    'agent',
+    preferredAgentFilterParser
+  );
+
   const [searchTerm, setSearchTerm] = useQueryState(
     'query',
     parseAsString.withDefault('')
@@ -151,20 +169,36 @@ export function SeerProjectTable() {
   }, [projects, sort, autofixSettingsByProjectId]);
 
   const filteredProjects = useMemo(() => {
+    let filtered = sortedProjects;
+
     const lowerCase = searchTerm?.toLowerCase() ?? '';
     if (lowerCase) {
-      return sortedProjects.filter(project =>
+      filtered = filtered.filter(project =>
         project.slug.toLowerCase().includes(lowerCase)
       );
     }
-    return sortedProjects;
-  }, [sortedProjects, searchTerm]);
+
+    if (agentFilter) {
+      filtered = filtered.filter(project => {
+        const settings = autofixSettingsByProjectId.get(project.id);
+        const projectAgentId = settings?.automationHandoff?.target
+          ? String(settings.automationHandoff.target)
+          : 'seer';
+        return projectAgentId === agentFilter;
+      });
+    }
+
+    return filtered;
+  }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
 
   if (fetching) {
     return (
       <ProjectTable
+        agentFilter={agentFilter}
+        codingAgentCompactSelectOptions={codingAgentCompactSelectOptions.data ?? []}
         projects={filteredProjects}
         onSortClick={setSort}
+        setAgentFilter={setAgentFilter}
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -180,8 +214,11 @@ export function SeerProjectTable() {
   if (fetchError) {
     return (
       <ProjectTable
+        agentFilter={agentFilter}
+        codingAgentCompactSelectOptions={codingAgentCompactSelectOptions.data ?? []}
         projects={filteredProjects}
         onSortClick={setSort}
+        setAgentFilter={setAgentFilter}
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -201,8 +238,11 @@ export function SeerProjectTable() {
       queryKey={queryKey}
     >
       <ProjectTable
+        agentFilter={agentFilter}
+        codingAgentCompactSelectOptions={codingAgentCompactSelectOptions.data ?? []}
         projects={filteredProjects}
         onSortClick={setSort}
+        setAgentFilter={setAgentFilter}
         sort={sort}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -211,10 +251,19 @@ export function SeerProjectTable() {
         {filteredProjects.length === 0 ? (
           <SimpleTable.Empty>
             {searchTerm
-              ? tct('No projects found matching [searchTerm]', {
-                  searchTerm: <code>{searchTerm}</code>,
-                })
-              : t('No projects found')}
+              ? agentFilter
+                ? tct('No projects found matching [searchTerm] with [agentFilter]', {
+                    searchTerm: <code>{searchTerm}</code>,
+                    agentFilter: <code>{agentFilter}</code>,
+                  })
+                : tct('No projects found matching [searchTerm]', {
+                    searchTerm: <code>{searchTerm}</code>,
+                  })
+              : agentFilter
+                ? tct('No projects found with [agentFilter]', {
+                    agentFilter: <code>{agentFilter}</code>,
+                  })
+                : t('No projects found')}
           </SimpleTable.Empty>
         ) : (
           filteredProjects.map(project => (
@@ -234,18 +283,27 @@ export function SeerProjectTable() {
 }
 
 function ProjectTable({
+  agentFilter,
+  codingAgentCompactSelectOptions,
   children,
   onSortClick,
   projects,
   searchTerm,
+  setAgentFilter,
   setSearchTerm,
   sort,
   updateBulkAutofixAutomationSettings,
 }: {
+  agentFilter: null | PreferredAgentProvider;
   children: React.ReactNode;
+  codingAgentCompactSelectOptions: Array<{
+    label: React.ReactNode;
+    value: '' | PreferredAgentProvider;
+  }>;
   onSortClick: (sort: Sort) => void;
   projects: Project[];
   searchTerm: string;
+  setAgentFilter: ReturnType<typeof useQueryState<PreferredAgentProvider>>[1];
   setSearchTerm: ReturnType<typeof useQueryState<string>>[1];
   sort: Sort;
   updateBulkAutofixAutomationSettings: ReturnType<
@@ -254,8 +312,24 @@ function ProjectTable({
 }) {
   return (
     <Stack gap="lg">
-      <FiltersContainer>
-        <InputGroup>
+      <Flex gap="md">
+        <CompactSelect<'' | PreferredAgentProvider>
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
+              {agentFilter ? triggerProps.children : t('All')}
+            </OverlayTrigger.Button>
+          )}
+          options={codingAgentCompactSelectOptions}
+          onChange={option => setAgentFilter(option.value || null)}
+          value={agentFilter ?? undefined}
+          footer={
+            <Button size="sm" onClick={() => setAgentFilter(null)}>
+              Reset
+            </Button>
+          }
+        />
+
+        <InputGroup style={{width: '100%'}}>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
           </InputGroup.LeadingItems>
@@ -268,7 +342,7 @@ function ProjectTable({
             }
           />
         </InputGroup>
-      </FiltersContainer>
+      </Flex>
 
       <SimpleTableWithColumns>
         <ProjectTableHeader
@@ -282,11 +356,6 @@ function ProjectTable({
     </Stack>
   );
 }
-
-const FiltersContainer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
-`;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: max-content 3fr minmax(300px, 1fr) repeat(2, max-content);
