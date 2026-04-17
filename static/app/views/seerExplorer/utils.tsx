@@ -487,7 +487,7 @@ export function postProcessLLMMarkdown(text: string | null | undefined): string 
  * Simulates the keyboard shortcut to toggle the Seer Explorer panel.
  * This dispatches a keyboard event that matches the Cmd+/ (Mac) or Ctrl+/ (non-Mac) shortcut.
  */
-export function toggleSeerExplorerPanel(): void {
+export function simulateCmdSlash(): void {
   const isMac = navigator.platform.toUpperCase().includes('MAC');
   const keyboardEvent = new KeyboardEvent('keydown', {
     key: '/',

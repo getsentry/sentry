@@ -7,9 +7,9 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ConfigStore} from 'sentry/stores/configStore';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {
-  ExplorerPanelProvider,
-  useExplorerPanel,
-} from 'sentry/views/seerExplorer/useExplorerPanel';
+  SeerExplorerContextProvider,
+  useSeerExplorerContext,
+} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {ExplorerPanel} from './explorerPanel';
 
@@ -27,7 +27,8 @@ function ExplorerPanelTestWrapper({
   children: React.ReactNode;
   isOpen: boolean;
 }) {
-  const {openExplorerPanel, closeExplorerPanel} = useExplorerPanel();
+  const {openSeerExplorer: openExplorerPanel, closeSeerExplorer: closeExplorerPanel} =
+    useSeerExplorerContext();
   useEffect(() => {
     if (isOpen) {
       openExplorerPanel();
@@ -52,11 +53,11 @@ function renderWithPanelContext(
       setIsOpenRef.current = setIsOpen;
     }, []);
     return (
-      <ExplorerPanelProvider>
+      <SeerExplorerContextProvider>
         <ExplorerPanelTestWrapper isOpen={isOpenState}>
           {children}
         </ExplorerPanelTestWrapper>
-      </ExplorerPanelProvider>
+      </SeerExplorerContextProvider>
     );
   }
 

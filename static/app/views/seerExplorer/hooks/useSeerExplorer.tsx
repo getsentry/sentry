@@ -20,7 +20,7 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   makeSeerExplorerQueryKey,
   RUN_ID_QUERY_PARAM,
@@ -137,7 +137,7 @@ export const useSeerExplorer = () => {
   );
 
   // Support deep links that carry a run id; set it once and clean the URL.
-  const {openExplorerPanel} = useExplorerPanel();
+  const {openSeerExplorer} = useSeerExplorerContext();
   const {getPageReferrer} = usePageReferrer();
   const location = useLocation();
   const navigate = useNavigate();
@@ -149,12 +149,12 @@ export const useSeerExplorer = () => {
     }
     const parsedRunId = Number(paramValue);
     if (!Number.isNaN(parsedRunId)) {
-      openExplorerPanel();
+      openSeerExplorer();
       setRunId(parsedRunId);
       const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
       navigate({...location, query: restQuery}, {replace: true});
     }
-  }, [location, navigate, openExplorerPanel, setRunId]);
+  }, [location, navigate, openSeerExplorer, setRunId]);
 
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);

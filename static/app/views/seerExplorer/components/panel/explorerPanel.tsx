@@ -40,7 +40,7 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getExplorerUrl,
   getLangfuseUrl,
@@ -52,10 +52,10 @@ import {
 export function ExplorerPanel() {
   const {
     isOpen: isVisible,
-    openExplorerPanel,
+    openSeerExplorer,
     isMinimized,
     setIsMinimized,
-  } = useExplorerPanel();
+  } = useSeerExplorerContext();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -775,7 +775,7 @@ export function ExplorerPanel() {
       {!hasPageFrame && (
         <SeerFloatingActionButton
           visible={!isVisible && !isSeerDrawerOpen}
-          onClick={openExplorerPanel}
+          onClick={openSeerExplorer}
         />
       )}
     </Fragment>,
