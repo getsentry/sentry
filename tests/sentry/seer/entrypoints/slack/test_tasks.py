@@ -39,21 +39,32 @@ class ProcessMentionForSlackTest(TestCase):
         process_mention_for_slack(**kwargs)
 
     @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_happy_path(self, mock_resolve_user, mock_explorer_cls, mock_operator_cls, mock_record):
+    def test_happy_path(
+        self,
+        mock_resolve_user,
+        mock_explorer_cls,
+        mock_operator_cls,
+        mock_count_linked,
+        mock_record,
+    ):
         mock_user = MagicMock(id=self.user.id, username="alice")
         mock_resolve_user.return_value = mock_user
 
         mock_explorer_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
+        mock_entrypoint.install.get_thread_history.return_value = []
         mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
         mock_operator.trigger_explorer.return_value = (42, 0)
         mock_operator_cls.return_value = mock_operator
+
+        mock_count_linked.return_value = 0
 
         self._run_task()
 
@@ -78,6 +89,7 @@ class ProcessMentionForSlackTest(TestCase):
                 messages_in_thread=0,
                 seer_msgs_in_thread=0,
                 unique_users_in_thread=0,
+                linked_users_in_thread=0,
                 conversation_type=SlackSeerAgentConversation.APP_MENTION,
             ),
         )
@@ -182,11 +194,17 @@ class ProcessMentionForSlackTest(TestCase):
         assert_halt_metric(mock_record, ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
 
     @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_with_thread_context(
-        self, mock_resolve_user, mock_explorer_cls, mock_operator_cls, mock_record
+        self,
+        mock_resolve_user,
+        mock_explorer_cls,
+        mock_operator_cls,
+        mock_count_linked,
+        mock_record,
     ):
         mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
 
@@ -203,6 +221,8 @@ class ProcessMentionForSlackTest(TestCase):
         mock_operator.trigger_explorer.return_value = (99, 2)
         mock_operator_cls.return_value = mock_operator
 
+        mock_count_linked.return_value = 1
+
         self._run_task(
             thread_ts="1234567890.000001",
             conversation_type=SlackSeerAgentConversation.AI_ASSISTANT,
@@ -217,6 +237,9 @@ class ProcessMentionForSlackTest(TestCase):
         assert "<@U111>: help me debug this" in call_kwargs["on_page_context"]
         assert "<@U222>: sure, what's the error?" in call_kwargs["on_page_context"]
 
+        mock_count_linked.assert_called_once()
+        assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {"U111", "U222"}
+
         assert_last_analytics_event(
             mock_record,
             SeerAgentSlackResponded(
@@ -229,6 +252,7 @@ class ProcessMentionForSlackTest(TestCase):
                 messages_in_thread=2,
                 seer_msgs_in_thread=2,
                 unique_users_in_thread=2,
+                linked_users_in_thread=1,
                 conversation_type=SlackSeerAgentConversation.AI_ASSISTANT,
             ),
         )

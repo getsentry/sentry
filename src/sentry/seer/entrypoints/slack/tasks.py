@@ -158,6 +158,7 @@ def process_mention_for_slack(
         if run_id is None:
             return
 
+        slack_user_ids_in_thread = {msg.get("user") for msg in messages if msg.get("user")}
         record_seer_slack_event(
             org_slug=organization.slug,
             username=user.username,
@@ -167,7 +168,11 @@ def process_mention_for_slack(
             integration_id=integration_id,
             messages_in_thread=len(messages),
             seer_msgs_in_thread=prev_run_count,
-            unique_users_in_thread=len(set([msg.get("user") for msg in messages])),
+            unique_users_in_thread=len(slack_user_ids_in_thread),
+            linked_users_in_thread=_count_linked_users(
+                integration=entrypoint.integration,
+                slack_user_ids=slack_user_ids_in_thread,
+            ),
             conversation_type=conversation_type,
         )
 
@@ -195,6 +200,31 @@ def _resolve_user(
         return None
 
     return user_service.get_user(identity.user_id)
+
+
+def _count_linked_users(
+    *,
+    integration: RpcIntegration,
+    slack_user_ids: set[str],
+) -> int:
+    """Count how many of the given Slack user IDs have a linked Sentry identity."""
+    if not slack_user_ids:
+        return 0
+
+    provider = identity_service.get_provider(
+        provider_type=integration.provider,
+        provider_ext_id=integration.external_id,
+    )
+    if not provider:
+        return 0
+
+    identities = identity_service.get_identities(
+        filter={
+            "provider_id": provider.id,
+            "identity_ext_ids": list(slack_user_ids),
+        }
+    )
+    return len(identities)
 
 
 def _send_link_identity_prompt(

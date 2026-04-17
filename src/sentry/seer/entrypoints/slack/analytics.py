@@ -20,6 +20,7 @@ class SeerAgentSlackResponded(analytics.Event):
     messages_in_thread: int
     seer_msgs_in_thread: int
     unique_users_in_thread: int
+    linked_users_in_thread: int
     conversation_type: SlackSeerAgentConversation
 
 
@@ -34,6 +35,7 @@ def record_seer_slack_event(
     messages_in_thread: int,
     seer_msgs_in_thread: int,
     unique_users_in_thread: int,
+    linked_users_in_thread: int,
     conversation_type: SlackSeerAgentConversation,
 ):
     """Records a Slack event for a Seer Explorer agent."""
@@ -48,6 +50,7 @@ def record_seer_slack_event(
             messages_in_thread=messages_in_thread,
             seer_msgs_in_thread=seer_msgs_in_thread,
             unique_users_in_thread=unique_users_in_thread,
+            linked_users_in_thread=linked_users_in_thread,
             conversation_type=conversation_type,
         )
     )
