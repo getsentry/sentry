@@ -80,7 +80,9 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
         installation = integration.get_installation(organization_id=repo.organization_id)
         return installation, installation.get_client()
 
-    def fetch_recent_commits(self, repo: Repository, end_sha: str) -> Sequence[Mapping[str, Any]]:
+    def fetch_recent_commits(
+        self, repo: Repository, end_sha: str, *, actor: Any | None = None
+    ) -> Sequence[Mapping[str, Any]]:
         installation, client = self._get_installation_and_client(repo)
         # use config name because that is kept in sync via webhooks
         name = repo.config["name"]
@@ -92,7 +94,12 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
             installation.raise_error(e)
 
     def fetch_commits_for_compare_range(
-        self, repo: Repository, start_sha: str, end_sha: str
+        self,
+        repo: Repository,
+        start_sha: str,
+        end_sha: str,
+        *,
+        actor: Any | None = None,
     ) -> Sequence[Mapping[str, Any]]:
         installation, client = self._get_installation_and_client(repo)
         # use config name because that is kept in sync via webhooks

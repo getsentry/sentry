@@ -106,7 +106,6 @@ def fetch_commits_for_compare_range(
     cache_enabled: bool,
     repo: Repository,
     provider: Any,
-    is_integration_repo_provider: bool,
     start_sha: str,
     end_sha: str,
     user: RpcUser | None,
@@ -127,15 +126,7 @@ def fetch_commits_for_compare_range(
         if cached_repo_commits is not None:
             return cached_repo_commits
 
-    if is_integration_repo_provider:
-        # New method to decouple the provider from the task
-        if hasattr(provider, "fetch_commits_for_compare_range"):
-            repo_commits = provider.fetch_commits_for_compare_range(repo, start_sha, end_sha)
-        else:
-            repo_commits = provider.compare_commits(repo, start_sha, end_sha)
-    else:
-        # XXX: This only works for plugins that support actor context
-        repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
+    repo_commits = provider.fetch_commits_for_compare_range(repo, start_sha, end_sha, actor=user)
 
     if cache_enabled:
         cache.set(
@@ -150,17 +141,10 @@ def fetch_recent_commits(
     *,
     repo: Repository,
     provider: Any,
-    is_integration_repo_provider: bool,
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
-    if is_integration_repo_provider:
-        if hasattr(provider, "fetch_recent_commits"):
-            return provider.fetch_recent_commits(repo, end_sha)
-        return provider.compare_commits(repo, None, end_sha)
-
-    # XXX: This only works for plugins that support actor context
-    return provider.compare_commits(repo, None, end_sha, actor=user)
+    return provider.fetch_recent_commits(repo, end_sha, actor=user)
 
 
 def get_repo_and_provider_for_ref(
@@ -168,7 +152,7 @@ def get_repo_and_provider_for_ref(
     release: Release,
     ref: Mapping[str, str],
     user_id: int,
-) -> tuple[Repository, Any, bool, str] | None:
+) -> tuple[Repository, Any, str] | None:
     repo = (
         Repository.objects.filter(
             organization_id=release.organization_id,
@@ -189,9 +173,10 @@ def get_repo_and_provider_for_ref(
         )
         return None
 
-    is_integration_repo_provider = is_integration_provider(repo.provider)
     binding_key = (
-        "integration-repository.provider" if is_integration_repo_provider else "repository.provider"
+        "integration-repository.provider"
+        if repo.has_integration_provider()
+        else "repository.provider"
     )
     try:
         provider_cls = bindings.get(binding_key).get(repo.provider)
@@ -199,11 +184,9 @@ def get_repo_and_provider_for_ref(
         return None
 
     provider = provider_cls(id=repo.provider)
-    provider_key = (
-        provider_cls.repo_provider if is_integration_repo_provider else provider_cls.auth_provider
-    )
+    provider_key = provider.get_scm_provider_key() or provider.id
 
-    return repo, provider, is_integration_repo_provider, provider_key
+    return repo, provider, provider_key
 
 
 @instrumented_task(
@@ -246,7 +229,7 @@ def fetch_commits(
         resolved = get_repo_and_provider_for_ref(release=release, ref=ref, user_id=user_id)
         if resolved is None:
             continue
-        repo, provider, is_integration_repo_provider, provider_key = resolved
+        repo, provider, provider_key = resolved
 
         # if previous commit isn't provided, try to get from
         # previous release otherwise, try to get
@@ -287,7 +270,6 @@ def fetch_commits(
                     repo_commits = fetch_recent_commits(
                         repo=repo,
                         provider=provider,
-                        is_integration_repo_provider=is_integration_repo_provider,
                         end_sha=end_sha,
                         user=user,
                     )
@@ -302,7 +284,6 @@ def fetch_commits(
                         cache_enabled=compare_commits_cache_enabled,
                         repo=repo,
                         provider=provider,
-                        is_integration_repo_provider=is_integration_repo_provider,
                         start_sha=start_sha,
                         end_sha=end_sha,
                         user=user,
@@ -407,10 +388,6 @@ def fetch_commits(
 
     for deploy_id in pending_notifications:
         Deploy.notify_if_ready(deploy_id, fetch_complete=True)
-
-
-def is_integration_provider(provider: str | None) -> bool:
-    return bool(provider and provider.startswith("integrations:"))
 
 
 def get_emails_for_user_or_org(user: RpcUser | None, orgId: int) -> list[str]:
