@@ -14,6 +14,7 @@ function s(partial: Partial<SpanNodeData> = {}): SpanNodeData {
     [SpanFields.SPAN_ID]: '',
     [SpanFields.TRACE_PARENT_SPAN]: '',
     [SpanFields.TRACE]: '',
+    [SpanFields.TRACE_STATUS]: '',
     [SpanFields.TRANSACTION_EVENT_ID]: '',
     ...partial,
   };

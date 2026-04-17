@@ -48,6 +48,7 @@ export function useTransactionAsSpans({
         SpanFields.IS_TRANSACTION,
         SpanFields.SPAN_OP,
         SpanFields.SPAN_DESCRIPTION,
+        SpanFields.TRACE_STATUS,
         SpanFields.PRECISE_START_TS,
         SpanFields.PRECISE_FINISH_TS,
         SpanFields.SPAN_SELF_TIME,

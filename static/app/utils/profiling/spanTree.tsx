@@ -26,6 +26,7 @@ export type SpanNodeData = Pick<
   | 'span_id'
   | 'trace'
   | 'trace.parent_span'
+  | 'trace.status'
   | 'transaction.event_id'
 >;
 
@@ -66,6 +67,7 @@ export class SpanTreeNode {
         [SpanFields.TRACE_PARENT_SPAN]: '',
         [SpanFields.SPAN_ID]: '<root>',
         [SpanFields.TRACE]: '',
+        [SpanFields.TRACE_STATUS]: '',
         [SpanFields.TRANSACTION_EVENT_ID]: '',
         ...partial,
       },
@@ -163,6 +165,7 @@ class SpanTree {
                 [SpanFields.SPAN_ID]: uuid4(),
                 [SpanFields.TRACE]: span[SpanFields.TRACE],
                 [SpanFields.TRACE_PARENT_SPAN]: '',
+                [SpanFields.TRACE_STATUS]: '',
                 [SpanFields.TRANSACTION_EVENT_ID]: '',
               },
               parent

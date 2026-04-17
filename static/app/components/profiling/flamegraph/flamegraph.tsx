@@ -307,7 +307,7 @@ function Flamegraph(): ReactElement {
 
     // Wait for the transaction to finish loading, regardless of the results.
     // Otherwise, the rendered profile will probably shift once the transaction loads.
-    if (transactionResult.isLoading) {
+    if (transactionResult.isEnabled && transactionResult.isPending) {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 

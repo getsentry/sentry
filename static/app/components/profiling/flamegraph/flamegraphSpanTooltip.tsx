@@ -65,6 +65,9 @@ export function FlamegraphSpanTooltip({
         {hoveredNode.node.span[SpanFields.SPAN_OP]
           ? `${t('op')}:${hoveredNode.node.span[SpanFields.SPAN_OP]} `
           : null}
+        {hoveredNode.node.span[SpanFields.TRACE_STATUS]
+          ? `${t('status')}:${hoveredNode.node.span[SpanFields.TRACE_STATUS]}`
+          : null}
       </FlamegraphTooltipTimelineInfo>
       <FlamegraphTooltipTimelineInfo>
         {spansRenderer.spanChart.timelineFormatter(spanInConfigSpace.left)} {' \u2014 '}
