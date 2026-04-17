@@ -164,7 +164,7 @@ export function SeerAutomationSettings() {
                               {
                                 settings: (
                                   <Link
-                                    to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                    to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
                                   />
                                 ),
                               }

@@ -34,9 +34,9 @@ export default function SeerAutomationAdvancedSettings() {
 
   return (
     <SeerSettingsPageWrapper>
-      <SentryDocumentTitle title={t('Seer Overview')} />
+      <SentryDocumentTitle title={t('Advanced Settings')} />
       <SettingsPageHeader
-        title={t('Seer Overview')}
+        title={t('Advanced Settings')}
         subtitle={tct(
           'Configure how Seer works with your codebase. Seer includes [autofix:Autofix] and [code_review:Code Review]. Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [docs:Read the docs] to learn what Seer can do.',
           {
