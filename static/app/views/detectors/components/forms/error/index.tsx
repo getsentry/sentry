@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import {Observer} from 'mobx-react-lite';
@@ -157,9 +158,11 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
               <EditDetectorBreadcrumbs detector={detector} />
             </TopBar.Slot>
           ) : (
-            <EditDetectorBreadcrumbs detector={detector} />
+            <Fragment>
+              <EditDetectorBreadcrumbs detector={detector} />
+              <EditLayout.Title title={detector.name} project={project} />
+            </Fragment>
           )}
-          <EditLayout.Title title={detector.name} project={project} />
         </EditLayout.HeaderContent>
         <EditLayout.Actions>
           <AutomationFeedbackButton />
