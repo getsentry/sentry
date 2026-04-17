@@ -15,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -34,6 +35,10 @@ export function FirstEventFooter({
   isLast,
 }: FirstEventFooterProps) {
   const {activateSidebar} = useOnboardingSidebar();
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
 
   const {data: issues} = useApiQuery<Group[]>(
     [
@@ -56,21 +61,25 @@ export function FirstEventFooter({
 
   return (
     <GridFooter>
-      <SkipOnboardingLink
-        onClick={() => {
-          trackAnalytics('growth.onboarding_clicked_skip', {
-            organization,
-            source,
-          });
-          activateSidebar({
-            userClicked: false,
-            source: 'targeted_onboarding_first_event_footer_skip',
-          });
-        }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
-      >
-        {t('Skip Onboarding')}
-      </SkipOnboardingLink>
+      {hasScmOnboarding ? (
+        <div />
+      ) : (
+        <SkipOnboardingLink
+          onClick={() => {
+            trackAnalytics('growth.onboarding_clicked_skip', {
+              organization,
+              source,
+            });
+            activateSidebar({
+              userClicked: false,
+              source: 'targeted_onboarding_first_event_footer_skip',
+            });
+          }}
+          to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
+        >
+          {t('Skip Onboarding')}
+        </SkipOnboardingLink>
+      )}
       <StatusWrapper
         initial="initial"
         animate="animate"

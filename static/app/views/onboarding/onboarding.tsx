@@ -35,6 +35,7 @@ import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
+import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
@@ -353,12 +354,13 @@ export function OnboardingWithoutContext() {
             }}
           />
         )}
-        <UpsellWrapper>
+        <HeaderActions>
+          {hasScmOnboarding && <OnboardingSkipButton stepId={stepObj.id} />}
           <Hook
             name="onboarding:targeted-onboarding-header"
             source="targeted-onboarding"
           />
-        </UpsellWrapper>
+        </HeaderActions>
       </Header>
       <ContainerVariable
         hasFooter={containerHasFooter}
@@ -525,9 +527,12 @@ const SkipOnboardingLink = styled(Link)`
   margin: auto ${p => p.theme.space['3xl']};
 `;
 
-const UpsellWrapper = styled('div')`
+const HeaderActions = styled('div')`
   grid-column: 3;
-  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: ${p => p.theme.space.md};
 `;
 
 export default Onboarding;

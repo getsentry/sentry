@@ -220,7 +220,9 @@ export function NewWelcomeUI(props: StepProps) {
         </Flex>
         <GenericFooter>
           <Flex align="center" padding="0 3xl">
-            <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
+            {hasScmOnboarding ? null : (
+              <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
+            )}
           </Flex>
 
           <Flex align="center" padding="0 3xl">
