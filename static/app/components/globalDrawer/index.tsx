@@ -72,6 +72,10 @@ export interface DrawerOptions {
    * If true (default), closes the drawer when the location changes
    */
   shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
+  /**
+   * If true (default), locks the page scroll when the drawer is open
+   */
+  shouldLockScroll?: boolean;
   //
   // Custom framer motion transition for the drawer
   //
@@ -123,7 +127,9 @@ export function GlobalDrawer({children}: any) {
   const scrollLock = useScrollLock(document.body);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
     (renderer, options) => {
-      scrollLock.acquire();
+      if (options.shouldLockScroll ?? true) {
+        scrollLock.acquire();
+      }
       overwriteDrawerConfig({renderer, options});
       options.onOpen?.();
     },

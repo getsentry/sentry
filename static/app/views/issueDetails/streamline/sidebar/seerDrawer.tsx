@@ -60,9 +60,8 @@ export const useOpenSeerDrawer = ({
         max-height: 100%;
       `,
       resizable: true,
-      shouldCloseOnInteractOutside: () => {
-        return false;
-      },
+      closeOnOutsideClick: false,
+      shouldLockScroll: false,
       onClose: () => {
         navigate(
           {
