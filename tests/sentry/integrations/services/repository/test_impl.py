@@ -6,9 +6,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository.service import repository_service
 from sentry.models.repository import Repository
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 
 
@@ -170,10 +168,8 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_cleans_up_seer_preferences(self, mock_cleanup: MagicMock) -> None:
-        project = self.create_project(organization=self.organization)
+    def test_dispatches_seer_cleanup_task(self, mock_cleanup: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -182,7 +178,6 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
             integration_id=self.integration.id,
             status=ObjectStatus.ACTIVE,
         )
-        SeerProjectRepository.objects.create(project=project, repository_id=repo.id)
 
         repository_service.disable_repositories_by_external_ids(
             organization_id=self.organization.id,
@@ -191,14 +186,10 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
             external_ids=["100"],
         )
 
-        repo.refresh_from_db()
-        assert repo.status == ObjectStatus.DISABLED
-
-        assert not SeerProjectRepository.objects.filter(repository_id=repo.id).exists()
         mock_cleanup.apply_async.assert_called_once_with(
             kwargs={
                 "organization_id": self.organization.id,
-                "repos": [{"repo_external_id": "100", "repo_provider": self.provider}],
+                "repos": [(repo.id, "100", self.provider)],
             }
         )
 
@@ -233,10 +224,8 @@ class DisableRepositoriesForIntegrationTest(TestCase):
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.DISABLED
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_cleans_up_seer_preferences(self, mock_cleanup: MagicMock) -> None:
-        project = self.create_project(organization=self.organization)
+    def test_dispatches_seer_cleanup_task(self, mock_cleanup: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -245,7 +234,6 @@ class DisableRepositoriesForIntegrationTest(TestCase):
             integration_id=self.integration.id,
             status=ObjectStatus.ACTIVE,
         )
-        SeerProjectRepository.objects.create(project=project, repository_id=repo.id)
 
         repository_service.disable_repositories_for_integration(
             organization_id=self.organization.id,
@@ -253,14 +241,10 @@ class DisableRepositoriesForIntegrationTest(TestCase):
             provider=self.provider,
         )
 
-        repo.refresh_from_db()
-        assert repo.status == ObjectStatus.DISABLED
-
-        assert not SeerProjectRepository.objects.filter(repository_id=repo.id).exists()
         mock_cleanup.apply_async.assert_called_once_with(
             kwargs={
                 "organization_id": self.organization.id,
-                "repos": [{"repo_external_id": "100", "repo_provider": self.provider}],
+                "repos": [(repo.id, "100", self.provider)],
             }
         )
 
@@ -297,10 +281,8 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         assert repo.integration_id is None
         mock_cleanup.apply_async.assert_called_once()
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_cleans_up_seer_preferences(self, mock_cleanup: MagicMock) -> None:
-        project = self.create_project(organization=self.organization)
+    def test_dispatches_seer_cleanup_task(self, mock_cleanup: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -309,7 +291,6 @@ class DisassociateOrganizationIntegrationTest(TestCase):
             integration_id=self.integration.id,
             status=ObjectStatus.ACTIVE,
         )
-        SeerProjectRepository.objects.create(project=project, repository_id=repo.id)
 
         repository_service.disassociate_organization_integration(
             organization_id=self.organization.id,
@@ -317,13 +298,10 @@ class DisassociateOrganizationIntegrationTest(TestCase):
             integration_id=self.integration.id,
         )
 
-        repo.refresh_from_db()
-        assert repo.integration_id is None
-        assert not SeerProjectRepository.objects.filter(repository_id=repo.id).exists()
         mock_cleanup.apply_async.assert_called_once_with(
             kwargs={
                 "organization_id": self.organization.id,
-                "repos": [{"repo_external_id": "100", "repo_provider": self.provider}],
+                "repos": [(repo.id, "100", self.provider)],
             }
         )
 
