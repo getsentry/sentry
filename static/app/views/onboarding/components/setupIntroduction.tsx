@@ -3,6 +3,7 @@ import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import type {PlatformKey} from 'sentry/types/project';
+import {useExperiment} from 'sentry/utils/useExperiment';
 
 import {StepHeading} from './stepHeading';
 
@@ -11,9 +12,14 @@ type Props = {
   stepHeaderText: string;
 };
 export function SetupIntroduction({stepHeaderText, platform}: Props) {
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
+
   return (
     <TitleContainer>
-      <StepHeading step={2}>{stepHeaderText}</StepHeading>
+      <StepHeading step={hasScmOnboarding ? undefined : 2}>{stepHeaderText}</StepHeading>
       <IconWrapper
         variants={{
           initial: {opacity: 0, x: 20},

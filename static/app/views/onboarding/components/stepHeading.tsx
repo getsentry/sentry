@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 export const StepHeading = styled(
-  (props: React.ComponentProps<typeof motion.h2> & {step: number}) => (
+  (props: React.ComponentProps<typeof motion.h2> & {step?: number}) => (
     <motion.h2
       variants={{
         initial: {clipPath: 'inset(0% 100% 0% 0%)', opacity: 1},
@@ -16,23 +16,25 @@ export const StepHeading = styled(
     />
   )
 )`
-  margin-left: calc(-${p => p.theme.space.xl} - 30px);
+  ${p => p.step !== undefined && `margin-left: calc(-${p.theme.space.xl} - 30px);`}
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content auto;
   gap: ${p => p.theme.space.xl};
   align-items: center;
 
-  &:before {
-    content: '${p => p.step}';
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    background-color: ${p => p.theme.tokens.background.warning.vibrant};
-    border-radius: 50%;
-    color: ${p => p.theme.tokens.content.onVibrant.dark};
-    font-size: 1rem;
-  }
+  ${p =>
+    p.step !== undefined &&
+    `&:before {
+      content: '${p.step}';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background-color: ${p.theme.tokens.background.warning.vibrant};
+      border-radius: 50%;
+      color: ${p.theme.tokens.content.onVibrant.dark};
+      font-size: 1rem;
+    }`}
 `;
