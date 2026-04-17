@@ -57,6 +57,16 @@ describe('ProjectSelectStep', () => {
 
     expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
   });
+
+  it('disables submit button when isInitializing', () => {
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+
+    render(
+      <ProjectSelectStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
 });
 
 describe('CloudFormationStep', () => {

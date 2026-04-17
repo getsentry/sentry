@@ -472,12 +472,18 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Use workflow engine exclusively for legacy issue alert rule.get results.
     # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
     manager.add("organizations:workflow-engine-issue-alert-endpoints-get", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Use workflow engine exclusively for legacy issue alert rule.delete
+    # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
+    manager.add("organizations:workflow-engine-issue-alert-endpoints-delete", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use workflow engine exclusively for OrganizationIncidentIndexEndpoint.get results.
     # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
     manager.add("organizations:workflow-engine-orgincidentindex-get", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use workflow engine exclusively for OrganizationAlertRuleDetailsEndpoint.get results.
     # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
     manager.add("organizations:workflow-engine-orgalertruledetails-get", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Use workflow engine exclusively for OrganizationAlertRuleDetailsEndpoint.delete.
+    # See src/sentry/workflow_engine/docs/legacy_backport.md for context.
+    manager.add("organizations:workflow-engine-orgalertruledetails-delete", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use workflow engine exclusively for OrganizationAlertRuleIndexEndpoint.get results.

@@ -73,6 +73,14 @@ describe('GitHubOAuthLoginStep', () => {
 
     expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
   });
+
+  it('disables authorize button when isInitializing', () => {
+    render(
+      <GitHubOAuthLoginStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Authorize GitHub'})).toBeDisabled();
+  });
 });
 
 describe('OrgSelectionStep', () => {

@@ -78,4 +78,12 @@ describe('DiscordOAuthLoginStep', () => {
 
     expect(screen.getByRole('button', {name: 'Authorize Discord'})).toBeDisabled();
   });
+
+  it('disables authorize button when isInitializing', () => {
+    render(
+      <DiscordOAuthLoginStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Authorize Discord'})).toBeDisabled();
+  });
 });

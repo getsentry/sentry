@@ -310,7 +310,10 @@ export function usePipeline<
       return <CompletionView data={state.data} finish={finish} />;
     }
 
-    if (!stepDefinition || state.status !== 'active') {
+    if (
+      !stepDefinition ||
+      (state.status !== 'active' && state.status !== 'initializing')
+    ) {
       return null;
     }
 
@@ -319,16 +322,28 @@ export function usePipeline<
     const Component: React.ComponentType<PipelineStepProps<any, any>> =
       stepDefinition.component;
 
-    return (
-      <Component
-        stepIndex={state.stepInfo.stepIndex}
-        totalSteps={state.stepInfo.totalSteps}
-        stepData={state.stepData}
-        advance={advanceMutate}
-        isAdvancing={isAdvancePending}
-        advanceError={advanceError}
-      />
-    );
+    const stepProps: PipelineStepProps<any, any> =
+      state.status === 'active'
+        ? {
+            stepIndex: state.stepInfo.stepIndex,
+            totalSteps: state.stepInfo.totalSteps,
+            stepData: state.stepData,
+            advance: advanceMutate,
+            isAdvancing: isAdvancePending,
+            isInitializing: false,
+            advanceError,
+          }
+        : {
+            stepIndex: 0,
+            totalSteps: definition.steps.length,
+            stepData: null,
+            advance: advanceMutate,
+            isAdvancing: false,
+            isInitializing: true,
+            advanceError: null,
+          };
+
+    return <Component {...stepProps} />;
   }, [
     state,
     stepDefinition,

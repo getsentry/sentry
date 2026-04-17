@@ -32,4 +32,12 @@ describe('CursorApiKeyStep', () => {
 
     expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
   });
+
+  it('disables submit button when isInitializing', () => {
+    render(
+      <CursorApiKeyStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
 });

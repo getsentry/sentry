@@ -76,4 +76,12 @@ describe('VercelOAuthLoginStep', () => {
 
     expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toBeDisabled();
   });
+
+  it('disables authorize button when isInitializing', () => {
+    render(
+      <VercelOAuthLoginStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toBeDisabled();
+  });
 });

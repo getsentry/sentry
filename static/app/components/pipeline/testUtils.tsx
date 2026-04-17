@@ -23,6 +23,7 @@ export function createMakeStepProps(
       advance: jest.fn(),
       advanceError: null,
       isAdvancing: false,
+      isInitializing: false,
       stepIndex: 0,
       ...defaults,
       ...overrides,

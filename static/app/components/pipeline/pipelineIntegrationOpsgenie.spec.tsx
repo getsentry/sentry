@@ -78,4 +78,14 @@ describe('OpsgenieInstallationConfigStep', () => {
 
     expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
   });
+
+  it('disables submit button when isInitializing', () => {
+    render(
+      <OpsgenieInstallationConfigStep
+        {...makeStepProps({stepData: null, isInitializing: true})}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
 });
