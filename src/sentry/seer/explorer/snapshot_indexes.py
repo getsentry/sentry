@@ -25,4 +25,12 @@ def export_explorer_indexes(*, org_id: int) -> ExplorerExportIndexesResponse:
     response = make_explorer_export_indexes_request(body, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer export-indexes request failed", response.status)
-    return response.json()
+import logging
+from sentry.utils.json import JSONDecodeError
+
+logger = logging.getLogger(__name__)
+    try:
+        return response.json()
+    except JSONDecodeError:
+        logger.exception("Failed to parse Seer export-indexes response")
+        raise SeerApiError("Seer returned invalid JSON response", response.status)
