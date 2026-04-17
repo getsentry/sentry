@@ -129,6 +129,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
+  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
@@ -174,7 +175,8 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
-      override_ce_enable: boolean;
+      overrideCodeModeEnable: boolean;
+      overrideCtxEngEnable: boolean;
       pageName: string;
       query: string;
       runId: number | null;
@@ -194,7 +196,8 @@ export const useSeerExplorer = () => {
           insert_index: params.insertIndex,
           on_page_context: params.screenshot,
           page_name: params.pageName,
-          override_ce_enable: params.override_ce_enable,
+          override_ce_enable: params.overrideCtxEngEnable,
+          override_code_mode_enable: params.overrideCodeModeEnable,
         },
       });
     },
@@ -460,7 +463,8 @@ export const useSeerExplorer = () => {
         orgSlug,
         pageName,
         screenshot,
-        override_ce_enable: overrideCtxEngEnable,
+        overrideCtxEngEnable,
+        overrideCodeModeEnable,
       });
     },
     [
@@ -473,6 +477,7 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideCtxEngEnable,
+      overrideCodeModeEnable,
       sendMessageMutate,
     ]
   );
@@ -649,5 +654,7 @@ export const useSeerExplorer = () => {
     createPR,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    overrideCodeModeEnable,
+    setOverrideCodeModeEnable,
   };
 };
