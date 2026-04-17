@@ -5,12 +5,12 @@ import {UserFixture} from 'sentry-fixture/user';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {
-  ExplorerPanelProvider,
-  useExplorerPanel,
-} from 'sentry/views/seerExplorer/useExplorerPanel';
+  SeerExplorerContextProvider,
+  useSeerExplorerContext,
+} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-import * as useSeerExplorerModule from './hooks/useSeerExplorer';
 import {ExplorerPanel} from './explorerPanel';
 
 // Mock createPortal to render content directly
@@ -27,7 +27,8 @@ function ExplorerPanelTestWrapper({
   children: React.ReactNode;
   isOpen: boolean;
 }) {
-  const {openExplorerPanel, closeExplorerPanel} = useExplorerPanel();
+  const {openSeerExplorer: openExplorerPanel, closeSeerExplorer: closeExplorerPanel} =
+    useSeerExplorerContext();
   useEffect(() => {
     if (isOpen) {
       openExplorerPanel();
@@ -52,11 +53,11 @@ function renderWithPanelContext(
       setIsOpenRef.current = setIsOpen;
     }, []);
     return (
-      <ExplorerPanelProvider>
+      <SeerExplorerContextProvider>
         <ExplorerPanelTestWrapper isOpen={isOpenState}>
           {children}
         </ExplorerPanelTestWrapper>
-      </ExplorerPanelProvider>
+      </SeerExplorerContextProvider>
     );
   }
 
@@ -208,8 +209,7 @@ describe('ExplorerPanel', () => {
           isError: true, // isError
           deletedFromIndex: null,
           interruptRun: jest.fn(),
-          interruptRequested: false,
-          wasJustInterrupted: false,
+          waitingForInterrupt: false,
           switchToRun: jest.fn(),
           respondToUserInput: jest.fn(),
           createPR: jest.fn(),
@@ -271,8 +271,7 @@ describe('ExplorerPanel', () => {
         isError: false,
         deletedFromIndex: null,
         interruptRun: jest.fn(),
-        interruptRequested: false,
-        wasJustInterrupted: false,
+        waitingForInterrupt: false,
         runId: null,
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),

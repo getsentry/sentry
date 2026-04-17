@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconOpen, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {MenuItemProps} from 'sentry/views/seerExplorer/explorerMenu';
+import type {MenuItemProps} from 'sentry/views/seerExplorer/components/explorerMenu';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface PRWidgetProps {

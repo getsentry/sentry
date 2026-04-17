@@ -153,6 +153,28 @@ test-backend-ci-with-coverage:
 		-o junit_suite_name=pytest
 	@echo ""
 
+test-selective:
+	@echo "--> Running selective tests based on branch changes"
+	python3 .github/workflows/scripts/selective-testing/fetch-coverage.py \
+		--output .cache/coverage.db
+	mkdir -p .cache && > .cache/selected-tests.txt
+	python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
+		--coverage-db .cache/coverage.db \
+		--changed-files "$$(git diff --name-only $$(git merge-base origin/master HEAD))" \
+		--output .cache/selected-tests.txt
+	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
+		.cache/selected-tests.txt
+	SELECTED_TESTS_FILE=.cache/selected-tests.txt \
+	python3 -b -m pytest \
+		tests \
+		--reuse-db \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
+		-svv
+	@echo ""
+
 # it's not possible to change settings.DATABASE after django startup, so
 # unfortunately these tests must be run in a separate pytest process. References:
 #   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
