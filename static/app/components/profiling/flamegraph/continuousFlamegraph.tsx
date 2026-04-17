@@ -354,6 +354,12 @@ export function ContinuousFlamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
+    // Wait for the transaction to finish loading, regardless of the results.
+    // Otherwise, the rendered profile will probably shift once the transaction loads.
+    if (transactionResult.isEnabled && transactionResult.isPending) {
+      return LOADING_OR_FALLBACK_FLAMEGRAPH;
+    }
+
     const span = Sentry.withScope(scope => {
       scope.setTag('sorting', sorting.split(' ').join('_'));
       scope.setTag('view', view.split(' ').join('_'));
