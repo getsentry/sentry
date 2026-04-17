@@ -47,7 +47,6 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const hasPageFrameFeature = useHasPageFrameFeature();
-  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
@@ -55,8 +54,6 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
   );
-  const actionLabel = automation.enabled ? t('Disable') : t('Enable');
-  const editPath = makeAutomationEditPathname(organization.slug, automation.id);
   const breadcrumbs = (
     <Breadcrumbs
       crumbs={[
@@ -69,22 +66,6 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     />
   );
 
-  const toggleDisabled = () => {
-    const newEnabled = !automation.enabled;
-    updateAutomation(
-      {
-        id: automation.id,
-        name: automation.name,
-        enabled: newEnabled,
-      },
-      {
-        onSuccess: () => {
-          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
-        },
-      }
-    );
-  };
-
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
@@ -92,12 +73,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
           <Fragment>
             <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
             <TopBar.Slot name="actions">
-              <Button priority="default" onClick={toggleDisabled} busy={isUpdating}>
-                {actionLabel}
-              </Button>
-              <LinkButton to={editPath} priority="primary" icon={<IconEdit />}>
-                {t('Edit')}
-              </LinkButton>
+              <Actions automation={automation} />
             </TopBar.Slot>
             <AutomationFeedbackButton />
           </Fragment>
@@ -109,17 +85,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             </DetailLayout.HeaderContent>
             <DetailLayout.Actions>
               <AutomationFeedbackButton />
-              <Button
-                priority="default"
-                size="sm"
-                onClick={toggleDisabled}
-                busy={isUpdating}
-              >
-                {actionLabel}
-              </Button>
-              <LinkButton to={editPath} priority="primary" icon={<IconEdit />} size="sm">
-                {t('Edit')}
-              </LinkButton>
+              <Actions automation={automation} size="sm" />
             </DetailLayout.Actions>
           </DetailLayout.Header>
         )}
@@ -258,6 +224,40 @@ export default function AutomationDetail() {
     >
       <AutomationDetailLoadingStates automationId={params.automationId} />
     </VisuallyCompleteWithData>
+  );
+}
+
+function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
+  const organization = useOrganization();
+  const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
+  const actionLabel = automation.enabled ? t('Disable') : t('Enable');
+  const editPath = makeAutomationEditPathname(organization.slug, automation.id);
+
+  const toggleDisabled = () => {
+    const newEnabled = !automation.enabled;
+    updateAutomation(
+      {
+        id: automation.id,
+        name: automation.name,
+        enabled: newEnabled,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
+        },
+      }
+    );
+  };
+
+  return (
+    <Fragment>
+      <Button priority="default" size={size} onClick={toggleDisabled} busy={isUpdating}>
+        {actionLabel}
+      </Button>
+      <LinkButton to={editPath} priority="primary" icon={<IconEdit />} size={size}>
+        {t('Edit')}
+      </LinkButton>
+    </Fragment>
   );
 }
 
