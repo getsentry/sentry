@@ -3,6 +3,8 @@ import {Fragment} from 'react';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -19,8 +21,12 @@ import {DisabledAlert} from 'sentry/views/detectors/components/details/common/di
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
-import {ErrorDetectorProjectBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -73,6 +79,34 @@ function ResolveSection({project}: {project: Project}) {
   );
 }
 
+function ErrorDetailsBreadcrumbs({
+  detector,
+  project,
+}: {
+  detector: Detector;
+  project: Project;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          label: getDetectorTypeLabel(detector.type),
+          to: makeMonitorTypePathname(organization.slug, detector.type),
+        },
+        {
+          label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+        },
+      ]}
+    />
+  );
+}
+
 export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsProps) {
   const organization = useOrganization();
   const canEdit = useCanEditDetectorWorkflowConnections({projectId: project.id});
@@ -84,7 +118,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="title">
-            <ErrorDetectorProjectBreadcrumbs detector={detector} project={project} />
+            <ErrorDetailsBreadcrumbs detector={detector} project={project} />
           </TopBar.Slot>
           <TopBar.Slot name="actions">
             <EditDetectorAction detector={detector} canEdit={canEdit} />
