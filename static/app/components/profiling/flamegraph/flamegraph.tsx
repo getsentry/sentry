@@ -280,7 +280,7 @@ function Flamegraph(): ReactElement {
   }, [transactionResult]);
 
   const spanChart = useMemo(() => {
-    if (!profile) {
+    if (!profile || !transactionResult.isEnabled) {
       return null;
     }
 
