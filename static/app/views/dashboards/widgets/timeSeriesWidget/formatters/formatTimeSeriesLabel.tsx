@@ -1,5 +1,11 @@
 import {t} from 'sentry/locale';
-import {maybeEquationAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  AGGREGATE_BASE,
+  maybeEquationAlias,
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -32,6 +38,15 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
   }
 
   let {yAxis: seriesName} = timeSeries;
+
+  // Prettify aggregate function names, e.g. count(span.duration) → count(spans)
+  const functionMatch = seriesName.match(AGGREGATE_BASE);
+  if (functionMatch?.[0] && parseFunction(functionMatch[0])) {
+    seriesName = seriesName.replace(
+      functionMatch[0],
+      prettifyParsedFunction(parseFunction(functionMatch[0])!)
+    );
+  }
 
   // Attempt to parse the `seriesName` as a version. A correct `TimeSeries`
   // would have a `yAxis` like `p50(span.duration)` with a `groupBy` like
