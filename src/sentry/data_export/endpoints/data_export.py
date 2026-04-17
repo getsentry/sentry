@@ -67,7 +67,10 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             dataset = dataset or "discover"
             if dataset not in SUPPORTED_DATASETS:
                 raise serializers.ValidationError(f"{dataset} is not supported for exports")
-        elif query_type == ExportQueryType.EXPLORE_STR:
+        elif query_type in (
+            ExportQueryType.EXPLORE_STR,
+            ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+        ):
             if not dataset:
                 raise serializers.ValidationError(
                     f"Please specify dataset. Supported datasets for this query type are {str(SUPPORTED_TRACE_ITEM_DATASETS.keys())}."
@@ -78,27 +81,20 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         query_info["dataset"] = dataset
         return query_info
 
-    def _validate_query_info(
-        self, query_type: str, query_info: dict[str, Any], *, export_format: str
-    ) -> dict[str, Any]:
+    def _validate_query_info(self, query_type: str, query_info: dict[str, Any]) -> dict[str, Any]:
         base_fields = query_info.get("field")
         if base_fields is None:
             base_fields = []
         elif not isinstance(base_fields, list):
             base_fields = [base_fields]
 
-        is_jsonl_trace_item_full_export = (
-            query_type == ExportQueryType.EXPLORE_STR
-            and export_format == OutputMode.JSONL.value
-            and len(base_fields) == 0
-        )
+        is_jsonl_trace_item_full_export = query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
 
         if len(base_fields) > MAX_FIELDS:
             detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
             raise serializers.ValidationError(detail)
-        elif len(base_fields) == 0:
-            if not is_jsonl_trace_item_full_export:
-                raise serializers.ValidationError("at least one field is required to export")
+        elif len(base_fields) == 0 and not is_jsonl_trace_item_full_export:
+            raise serializers.ValidationError("at least one field is required to export")
 
         if "query" not in query_info:
             if is_jsonl_trace_item_full_export:
@@ -136,7 +132,10 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         query_info["start"] = start.isoformat()
         query_info["end"] = end.isoformat()
 
-        if query_type == ExportQueryType.EXPLORE_STR:
+        if (
+            query_type == ExportQueryType.EXPLORE_STR
+            or query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
+        ):
             sort = query_info.get("sort", [])
             if sort and isinstance(sort, str):
                 sort = [sort]
@@ -173,9 +172,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         export_format = data.get("format", OutputMode.CSV.value)
 
         if query_type == ExportQueryType.DISCOVER_STR:
-            query_info = self._validate_query_info(
-                query_type, query_info, export_format=export_format
-            )
+            query_info = self._validate_query_info(query_type, query_info)
             query_info = self._validate_dataset(query_type, query_info)
             dataset = query_info["dataset"]
 
@@ -210,43 +207,44 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 raise serializers.ValidationError("Invalid search query.")
 
         elif query_type == ExportQueryType.EXPLORE_STR:
-            query_info = self._validate_query_info(
-                query_type, query_info, export_format=export_format
-            )
+            query_info = self._validate_query_info(query_type, query_info)
             query_info = self._validate_dataset(query_type, query_info)
             explore_output_mode = OutputMode.from_value(export_format)
-            is_full_jsonl_trace_item_export = (
-                export_format == OutputMode.JSONL.value and len(query_info.get("field", [])) == 0
-            )
-            if not is_full_jsonl_trace_item_export:
-                try:
-                    explore_processor = ExploreProcessor(
-                        explore_query=query_info,
-                        organization=organization,
-                        output_mode=explore_output_mode,
-                    )
-                    sort = query_info.get("sort", [])
-                    orderby = [sort] if isinstance(sort, str) else sort
+            try:
+                explore_processor = ExploreProcessor(
+                    explore_query=query_info,
+                    organization=organization,
+                    output_mode=explore_output_mode,
+                )
+                sort = query_info.get("sort", [])
+                orderby = [sort] if isinstance(sort, str) else sort
 
-                    explore_processor.validate_export_query(
-                        rpc_dataset_common.TableQuery(
-                            query_string=query_info["query"],
-                            selected_columns=query_info["field"],
-                            orderby=orderby,
-                            offset=0,
-                            limit=1,
-                            referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-                            sampling_mode=explore_processor.sampling_mode,
-                            resolver=explore_processor.search_resolver,
-                            equations=query_info.get("equations", []),
-                        )
+                explore_processor.validate_export_query(
+                    rpc_dataset_common.TableQuery(
+                        query_string=query_info["query"],
+                        selected_columns=query_info["field"],
+                        orderby=orderby,
+                        offset=0,
+                        limit=1,
+                        referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
+                        sampling_mode=explore_processor.sampling_mode,
+                        resolver=explore_processor.search_resolver,
+                        equations=query_info.get("equations", []),
                     )
-                except InvalidSearchQuery as err:
-                    sentry_sdk.capture_exception(err)
-                    raise serializers.ValidationError("Invalid table query.")
+                )
+            except InvalidSearchQuery as err:
+                sentry_sdk.capture_exception(err)
+                raise serializers.ValidationError("Invalid table query.")
+        elif query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR:
+            query_info = self._validate_query_info(query_type, query_info)
+            query_info = self._validate_dataset(query_type, query_info)
+            explore_output_mode = OutputMode.from_value(export_format)
+            if explore_output_mode != OutputMode.JSONL:
+                raise serializers.ValidationError("For full export, output mode must be JSONL.")
 
         elif data["query_type"] == ExportQueryType.ISSUES_BY_TAG_STR:
             issues_by_tag_validate(query_info)
+        data["query_info"] = query_info
         return data
 
 
@@ -287,7 +285,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         run_sync = (
             limit is not None
             and limit <= MAX_SYNC_LIMIT
-            and data["query_type"] == ExportQueryType.EXPLORE_STR
+            and data["query_type"] == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
             and data["query_info"].get("dataset") == "logs"
         )
         return limit, run_sync
@@ -308,7 +306,10 @@ class DataExportEndpoint(OrganizationEndpoint):
         # The data export feature is only available alongside `discover-query` (except for explore).
         # So to export issue tags, they must have have `discover-query`
         if not features.has("organizations:discover-query", organization):
-            if request.data.get("query_type") != ExportQueryType.EXPLORE_STR:
+            if request.data.get("query_type") not in {
+                ExportQueryType.EXPLORE_STR,
+                ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            }:
                 return Response(status=404)
 
         # Get environment_id and limit if available

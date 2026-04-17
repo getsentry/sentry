@@ -1268,9 +1268,13 @@ class TestReadPreferenceFromSentryDb(TestCase):
             name="test-org/other-repo",
         )
 
-    def test_unconfigured_project_returns_none(self):
+    def test_unconfigured_project_returns_default_preference(self):
         result = read_preference_from_sentry_db(self.project)
-        assert result is None
+        assert result is not None
+        assert result.repositories == []
+        assert result.automated_run_stopping_point == "code_changes"
+        assert result.automation_handoff is None
+        assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_project_with_repos_only(self):
         spr = SeerProjectRepository.objects.create(
@@ -1470,9 +1474,14 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [])
         assert result == {}
 
-    def test_unconfigured_project_returns_none(self):
+    def test_unconfigured_project_returns_default_preference(self):
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
-        assert result == {self.project1.id: None}
+        pref = result[self.project1.id]
+        assert pref is not None
+        assert pref.repositories == []
+        assert pref.automated_run_stopping_point == "code_changes"
+        assert pref.automation_handoff is None
+        assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_bulk_returns_correct_preferences(self):
         SeerProjectRepository.objects.create(
@@ -1526,7 +1535,9 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert pref1 is not None
         assert pref1.autofix_automation_tuning == AutofixAutomationTuningSettings.HIGH
 
-        assert result[self.project2.id] is None
+        pref2 = result[self.project2.id]
+        assert pref2 is not None
+        assert pref2.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
     def test_autofix_automation_tuning_defaults_to_off(self):
         SeerProjectRepository.objects.create(

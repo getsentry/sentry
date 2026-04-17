@@ -138,13 +138,12 @@ function ContextPickerContent({
     return rawProjects.filter(p => slugSet.has(p.slug));
   }, [rawProjects, projectSlugs]);
 
-  const {data: teams = [], isLoading: teamsLoading} = useApiQuery<Team[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
-        path: {organizationIdOrSlug: selectedOrgSlug ?? ''},
-      }),
-    ],
-    {staleTime: Infinity, enabled: !!selectedOrgSlug && needTeam}
+  const {data: teams = [], isLoading: teamsLoading} = useQuery(
+    apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+      path:
+        selectedOrgSlug && needTeam ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+      staleTime: Infinity,
+    })
   );
 
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | null>(null);

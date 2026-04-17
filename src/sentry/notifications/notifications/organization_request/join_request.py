@@ -5,6 +5,7 @@ from sentry.analytics.events.inapp_request import JoinRequestSentEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.class_manager import register
 from sentry.types.actor import Actor
+from sentry.utils.email.sanitize import sanitize_outbound_name
 
 from .abstract_invite_request import AbstractInviteRequestNotification
 
@@ -31,4 +32,4 @@ class JoinRequestNotification(AbstractInviteRequestNotification):
         return "Request to Join"
 
     def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
-        return f"{self.pending_member.email} is requesting to join {self.organization.name}"
+        return f"{self.pending_member.email} is requesting to join {sanitize_outbound_name(self.organization.name)}"

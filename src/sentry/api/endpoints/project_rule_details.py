@@ -150,6 +150,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             )
             serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
         else:
+            report_used_legacy_models()
             # Serialize Rule object
             rule_serializer = RuleSerializer(
                 expand=request.GET.getlist("expand", []),
@@ -246,6 +247,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 status=200,
             )
 
+        report_used_legacy_models()
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id

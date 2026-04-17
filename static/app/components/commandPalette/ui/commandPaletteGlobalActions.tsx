@@ -29,12 +29,15 @@ import {
   IconLock,
   IconOpen,
   IconSearch,
+  IconSeer,
   IconSettings,
+  IconSiren,
   IconStar,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
@@ -49,6 +52,7 @@ import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 import {CMDKAction} from './cmdk';
@@ -91,6 +95,10 @@ export function GlobalCommandPaletteActions() {
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
+  const hasInsightsRollout = organization.features.includes(
+    'insights-to-dashboards-ui-rollout'
+  );
+  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
 
   return (
     <CommandPaletteSlot name="global">
@@ -170,39 +178,78 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        {organization.features.includes('performance-view') && (
-          <CMDKAction display={{label: t('Insights'), icon: <IconGraph type="area" />}}>
+        {/* Hide the entire Insights section only when both migrations are active.
+            During partial rollout, individual items are gated: domain links
+            (Frontend, Backend, etc.) by insights-to-dashboards-ui-rollout,
+            and Crons/Uptime by workflow-engine-ui. */}
+        {organization.features.includes('performance-view') &&
+          !(hasInsightsRollout && hasWorkflowEngineUI) && (
             <CMDKAction
-              display={{label: t('Frontend')}}
-              to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('Backend')}}
-              to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('Mobile')}}
-              to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction
-              display={{label: t('MCP')}}
-              to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
-            />
-            <CMDKAction display={{label: t('Crons')}} to={`${prefix}/insights/crons/`} />
+              display={{
+                label: t('Insights'),
+                icon: <IconGraph type="area" />,
+              }}
+            >
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Frontend')}}
+                  to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Backend')}}
+                  to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Mobile')}}
+                  to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('Agents')}}
+                  to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('MCP')}}
+                  to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
+                />
+              )}
+              {!hasWorkflowEngineUI && (
+                <CMDKAction
+                  display={{label: t('Crons')}}
+                  to={`${prefix}/insights/crons/`}
+                />
+              )}
+              {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
+                <CMDKAction
+                  display={{label: t('Uptime')}}
+                  to={`${prefix}/insights/uptime/`}
+                />
+              )}
+              {!hasInsightsRollout && (
+                <CMDKAction
+                  display={{label: t('All Projects')}}
+                  to={`${prefix}/insights/projects/`}
+                />
+              )}
+            </CMDKAction>
+          )}
+
+        {hasWorkflowEngineUI && (
+          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}}>
+            <CMDKAction display={{label: t('Crons')}} to={`${prefix}/monitors/crons/`} />
             {organization.features.includes('uptime') && (
               <CMDKAction
                 display={{label: t('Uptime')}}
-                to={`${prefix}/insights/uptime/`}
+                to={`${prefix}/monitors/uptime/`}
               />
             )}
-            <CMDKAction
-              display={{label: t('All Projects')}}
-              to={`${prefix}/insights/projects/`}
-            />
           </CMDKAction>
         )}
 
@@ -266,6 +313,38 @@ export function GlobalCommandPaletteActions() {
               onAction={() => exitSuperuser()}
             />
           )}
+          <CMDKAction
+            display={{label: t('Night Shift Chats'), icon: <IconSeer />}}
+            keywords={[
+              t('seer'),
+              t('ai'),
+              t('chat'),
+              t('agent'),
+              t('explorer'),
+              t('nightshift'),
+              t('autofix'),
+            ]}
+            limit={10}
+            resource={(): CMDKQueryOptions => {
+              const url = getApiUrl(
+                '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
+                {path: {organizationIdOrSlug: organization.slug}}
+              );
+              const query = {per_page: 10, category_key: 'night_shift', owner: 'false'};
+              return cmdkQueryOptions({
+                queryKey: [url, {query}],
+                queryFn: () => QUERY_API_CLIENT.requestPromise(url, {query}),
+                select: (data: {data: Array<{run_id: number; title: string}>}) =>
+                  data.data.map(session => ({
+                    display: {label: session.title, icon: <IconSeer />},
+                    onAction: () => openSeerExplorer({runId: session.run_id}),
+                  })),
+                staleTime: 30_000,
+              });
+            }}
+          >
+            {data => data.map((item, i) => renderAsyncResult(item, i))}
+          </CMDKAction>
         </CMDKAction>
       )}
 

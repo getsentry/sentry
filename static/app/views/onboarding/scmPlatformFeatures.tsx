@@ -84,6 +84,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
+    setProjectDetailsForm,
   } = useOnboardingContext();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
@@ -200,6 +201,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
     setSelectedPlatform(sdk);
     setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
   };
 
   const handleManualPlatformSelect = async (option: {value: string}) => {
@@ -267,6 +269,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
     setPlatform(platformKey);
     setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
 
     trackAnalytics('onboarding.scm_platform_selected', {
       organization,
@@ -281,6 +284,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     }
     setPlatform(platformKey);
     setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
 
     trackAnalytics('onboarding.scm_platform_selected', {
       organization,
@@ -303,6 +307,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     if (detectedPlatformKey) {
       setPlatform(detectedPlatformKey);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+      setProjectDetailsForm(undefined);
     }
   }
 

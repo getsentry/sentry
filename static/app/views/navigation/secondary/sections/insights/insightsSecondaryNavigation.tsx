@@ -36,6 +36,9 @@ export function InsightsSecondaryNavigation() {
 
   const shouldRedirectToMonitors =
     organization.features.includes('workflow-engine-ui') && !user?.isStaff;
+  const hasInsightsToDashboards = organization.features.includes(
+    'insights-to-dashboards-ui-rollout'
+  );
 
   return (
     <Fragment>
@@ -121,7 +124,7 @@ export function InsightsSecondaryNavigation() {
             </Feature>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {!organization.features.includes('workflow-engine-ui') && (
+        {!hasInsightsToDashboards && (
           <Fragment>
             <SecondaryNavigation.Separator />
             <ProjectsNavigationItems

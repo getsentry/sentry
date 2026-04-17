@@ -51,6 +51,7 @@ class _ImageDiffResult(NamedTuple):
     matched: set[str]
     head_by_name: dict[str, str]
     base_by_name: dict[str, str]
+    skipped: set[str]
 
 
 def categorize_image_diff(
@@ -60,9 +61,21 @@ def categorize_image_diff(
     head_by_name = {key: (meta.content_hash or key) for key, meta in head_manifest.images.items()}
     base_by_name = {key: (meta.content_hash or key) for key, meta in base_manifest.images.items()}
 
+    all_image_file_names = head_manifest.all_image_file_names
+
     matched = head_by_name.keys() & base_by_name.keys()
     added = head_by_name.keys() - base_by_name.keys()
-    removed = base_by_name.keys() - head_by_name.keys()
+
+    if all_image_file_names is not None:
+        all_names_set = set(all_image_file_names)
+        removed = base_by_name.keys() - all_names_set
+        skipped = (all_names_set - head_by_name.keys()) & base_by_name.keys()
+    elif head_manifest.selective:
+        removed = set()
+        skipped = base_by_name.keys() - head_by_name.keys()
+    else:
+        removed = base_by_name.keys() - head_by_name.keys()
+        skipped = set()
 
     added_hash_to_names: dict[str, list[str]] = {}
     for name in added:
@@ -84,8 +97,25 @@ def categorize_image_diff(
     for new_name, old_name in renamed_pairs:
         added.discard(new_name)
         removed.discard(old_name)
+        added_hash_to_names.pop(head_by_name[new_name], None)
 
-    return _ImageDiffResult(renamed_pairs, added, removed, matched, head_by_name, base_by_name)
+    if skipped:
+        skipped_hash_to_names: dict[str, list[str]] = {}
+        for name in skipped:
+            h = base_by_name[name]
+            skipped_hash_to_names.setdefault(h, []).append(name)
+
+        for h in added_hash_to_names.keys() & skipped_hash_to_names.keys():
+            a_names = added_hash_to_names[h]
+            s_names = skipped_hash_to_names[h]
+            if len(a_names) == 1 and len(s_names) == 1:
+                renamed_pairs.append((a_names[0], s_names[0]))
+                added.discard(a_names[0])
+                skipped.discard(s_names[0])
+
+    return _ImageDiffResult(
+        renamed_pairs, added, removed, matched, head_by_name, base_by_name, skipped
+    )
 
 
 def _image_name_to_path_stem(name: str) -> str:
@@ -124,7 +154,7 @@ class ImageFingerprint(NamedTuple):
 def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFingerprint]:
     fingerprints: set[ImageFingerprint] = set()
     for name, image in manifest.images.items():
-        if image.status == "unchanged":
+        if image.status in ("unchanged", "skipped"):
             continue
         if image.status in ("changed", "added"):
             if not image.head_hash:
@@ -629,6 +659,17 @@ def compare_snapshots(
                 "before_height": base_meta.height,
             }
 
+        skipped = categories.skipped
+        for name in sorted(skipped):
+            base_hash = base_by_name[name]
+            base_meta = base_meta_by_hash[base_hash]
+            image_results[name] = {
+                "status": "skipped",
+                "base_hash": base_hash,
+                "before_width": base_meta.width,
+                "before_height": base_meta.height,
+            }
+
         for new_name, old_name in sorted(renamed_pairs):
             content_hash = head_by_name[new_name]
             image_results[new_name] = {
@@ -641,13 +682,14 @@ def compare_snapshots(
             head_artifact_id=head_artifact_id,
             base_artifact_id=base_artifact_id,
             summary=ComparisonSummary(
-                total=len(matched) + len(added) + len(removed) + len(renamed_pairs),
+                total=len(matched) + len(added) + len(removed) + len(renamed_pairs) + len(skipped),
                 changed=changed_count,
                 unchanged=unchanged_count,
                 added=len(added),
                 removed=len(removed),
                 errored=error_count,
                 renamed=len(renamed_pairs),
+                skipped=len(skipped),
             ),
             images=image_results,
         )
@@ -668,6 +710,7 @@ def compare_snapshots(
         comparison.images_added = len(added)
         comparison.images_removed = len(removed)
         comparison.images_renamed = len(renamed_pairs)
+        comparison.images_skipped = len(skipped)
         extras = comparison.extras or {}
         # EME-896: Could become a proper column on PreprodSnapshotComparison
         extras["comparison_key"] = comparison_key
@@ -682,6 +725,7 @@ def compare_snapshots(
                 "images_added",
                 "images_removed",
                 "images_renamed",
+                "images_skipped",
                 "extras",
                 "date_updated",
             ]

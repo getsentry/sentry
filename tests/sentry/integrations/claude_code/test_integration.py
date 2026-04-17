@@ -9,6 +9,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.urls import reverse
 
 from sentry.integrations.claude_code.integration import (
     PROVIDER_KEY,
@@ -16,8 +17,13 @@ from sentry.integrations.claude_code.integration import (
     ClaudeCodeAgentIntegration,
     ClaudeCodeAgentIntegrationProvider,
 )
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import control_silo_test
 
 MOCK_GET_CLIENT_CLASS = "sentry.integrations.claude_code.integration._get_client_class"
 
@@ -493,3 +499,66 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert installation.model.metadata["environment_id"] == "env-new"
         assert installation.model.metadata["agent_id"] == "agent-new"
         assert installation.model.metadata["agent_version"] == 2
+
+
+@control_silo_test
+class ClaudeCodeApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "claude_code"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    @with_feature("organizations:integrations-claude-code")
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "api_key_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "claude_code"
+
+    @with_feature("organizations:integrations-claude-code")
+    def test_missing_api_key(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @with_feature("organizations:integrations-claude-code")
+    def test_full_pipeline_flow(self) -> None:
+        mock_cls, _ = _mock_client_class()
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "api_key_config"
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            resp = self._advance_step({"apiKey": "sk-ant-test-key-123"})
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="claude_code")
+        assert integration.name == PROVIDER_NAME
+        assert integration.metadata["api_key"] == "sk-ant-test-key-123"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()

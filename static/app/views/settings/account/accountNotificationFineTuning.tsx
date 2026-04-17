@@ -49,8 +49,8 @@ function AccountNotificationsByProject({
 
   return (
     <Fragment>
-      {Object.values(projectsByOrg).map(org =>
-        org.projects.map((project, i) => {
+      {Object.values(projectsByOrg).map(orgProjects =>
+        orgProjects.map((project, i) => {
           const schema = z.object({[project.id]: z.string()});
           return (
             <Fragment key={project.id}>

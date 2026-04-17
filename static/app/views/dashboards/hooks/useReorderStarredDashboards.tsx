@@ -1,9 +1,4 @@
-import {
-  fetchMutation,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -23,7 +18,9 @@ export function useReorderStarredDashboards() {
         },
       }),
     onMutate: dashboards => {
-      setApiQueryData<DashboardListItem[]>(queryClient, queryKey, dashboards);
+      queryClient.setQueryData(queryKey, prev =>
+        prev ? {...prev, json: dashboards} : prev
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey});

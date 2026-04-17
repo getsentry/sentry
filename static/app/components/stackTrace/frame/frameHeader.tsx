@@ -141,8 +141,16 @@ function FrameLocation({
       <FrameLocationTooltip frame={frame} frameDisplayPath={frameDisplayPath}>
         <Path>
           <span>
-            <span>{frameDisplayPath}</span>
-            {frameLocationSuffix ? <span>{frameLocationSuffix}</span> : null}
+            {frameDisplayPath ? (
+              <span>{frameDisplayPath}</span>
+            ) : (
+              <Text as="span" variant="muted">
+                {t('<unknown>')}
+              </Text>
+            )}
+            {frameDisplayPath && frameLocationSuffix ? (
+              <span>{frameLocationSuffix}</span>
+            ) : null}
           </span>
         </Path>
       </FrameLocationTooltip>

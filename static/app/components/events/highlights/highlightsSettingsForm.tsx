@@ -9,11 +9,12 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -42,13 +43,13 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
     apiMethod: 'PUT',
     apiEndpoint: `/projects/${organization.slug}/${projectSlug}/`,
     onSubmitSuccess: (updatedProject: Project) => {
-      setApiQueryData<Project>(
-        queryClient,
+      queryClient.setQueryData<ApiResponse<Project>>(
         makeDetailedProjectQueryKey({
           orgSlug: organization.slug,
           projectSlug: project.slug,
         }),
-        data => (updatedProject ? updatedProject : data)
+        prev =>
+          updatedProject ? {headers: prev?.headers ?? {}, json: updatedProject} : prev
       );
       trackAnalytics('highlights.project_settings.updated_manually', {organization});
       addSuccessMessage(`Successfully updated highlights for '${project.name}'`);

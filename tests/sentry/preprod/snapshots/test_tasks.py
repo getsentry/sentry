@@ -70,3 +70,106 @@ class TestCategorizeImageDiff:
         rename_dict = dict(result.renamed_pairs)
         assert rename_dict["new_a.png"] == "old_a.png"
         assert rename_dict["new_b.png"] == "old_b.png"
+
+
+class TestCategorizeImageDiffSelective:
+    def test_selective_all_categories(self) -> None:
+        head = SnapshotManifest(
+            images={"new.png": _meta("h_new"), "matched.png": _meta("h1")},
+            selective=True,
+            all_image_file_names=["new.png", "matched.png", "skipped.png"],
+        )
+        base = SnapshotManifest(
+            images={
+                "matched.png": _meta("h1"),
+                "skipped.png": _meta("h2"),
+                "deleted.png": _meta("h3"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert result.added == {"new.png"}
+        assert result.matched == {"matched.png"}
+        assert result.skipped == {"skipped.png"}
+        assert result.removed == {"deleted.png"}
+
+    def test_selective_none_is_full_build(self) -> None:
+        head = SnapshotManifest(images={"a.png": _meta("h1")})
+        base = SnapshotManifest(images={"a.png": _meta("h1"), "b.png": _meta("h2")})
+
+        result = categorize_image_diff(head, base)
+
+        assert result.removed == {"b.png"}
+        assert result.skipped == set()
+
+    def test_selective_rename_old_name_not_in_list(self) -> None:
+        head = SnapshotManifest(
+            images={"new.png": _meta("shared")},
+            selective=True,
+            all_image_file_names=["new.png"],
+        )
+        base = SnapshotManifest(images={"old.png": _meta("shared")})
+
+        result = categorize_image_diff(head, base)
+
+        assert result.renamed_pairs == [("new.png", "old.png")]
+        assert result.removed == set()
+
+    def test_selective_rename_old_name_in_list(self) -> None:
+        head = SnapshotManifest(
+            images={"new.png": _meta("shared")},
+            selective=True,
+            all_image_file_names=["new.png", "old.png"],
+        )
+        base = SnapshotManifest(images={"old.png": _meta("shared")})
+
+        result = categorize_image_diff(head, base)
+
+        assert result.renamed_pairs == [("new.png", "old.png")]
+        assert result.skipped == set()
+
+    def test_selective_rename_same_hash_in_removed_and_skipped(self) -> None:
+        head = SnapshotManifest(
+            images={"new.png": _meta("shared")},
+            selective=True,
+            all_image_file_names=["new.png", "in_list.png"],
+        )
+        base = SnapshotManifest(
+            images={
+                "not_in_list.png": _meta("shared"),
+                "in_list.png": _meta("shared"),
+            }
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert len(result.renamed_pairs) == 1
+        assert result.renamed_pairs[0] == ("new.png", "not_in_list.png")
+        assert result.skipped == {"in_list.png"}
+        assert result.added == set()
+        assert result.removed == set()
+
+    def test_selective_empty_subset(self) -> None:
+        head = SnapshotManifest(images={}, selective=True, all_image_file_names=["a.png", "b.png"])
+        base = SnapshotManifest(images={"a.png": _meta("h1"), "b.png": _meta("h2")})
+
+        result = categorize_image_diff(head, base)
+
+        assert result.skipped == {"a.png", "b.png"}
+        assert result.removed == set()
+
+    def test_selective_without_names_all_missing_are_skipped(self) -> None:
+        head = SnapshotManifest(
+            images={"a.png": _meta("h1")},
+            selective=True,
+        )
+        base = SnapshotManifest(
+            images={"a.png": _meta("h1"), "b.png": _meta("h2"), "c.png": _meta("h3")}
+        )
+
+        result = categorize_image_diff(head, base)
+
+        assert result.skipped == {"b.png", "c.png"}
+        assert result.removed == set()
+        assert result.matched == {"a.png"}

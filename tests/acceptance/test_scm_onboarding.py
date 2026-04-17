@@ -2,15 +2,13 @@ from unittest import mock
 
 import pytest
 
-from sentry.api.serializers import serialize
+from sentry.integrations.github.integration import GitHubOAuthLoginResult
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
-from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -157,7 +155,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             )
 
     def test_scm_onboarding_with_integration_install(self) -> None:
-        """Install flow: welcome → install GitHub → repo search → detected platform → create project."""
+        """Install flow: welcome → install GitHub via API pipeline → repo search → detected platform → create project."""
         mock_repos = [
             {
                 "name": "sentry",
@@ -176,6 +174,18 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "priority": 1,
             }
         ]
+
+        mock_installation_response = {
+            "id": "12345",
+            "app_id": "1",
+            "account": {
+                "login": "getsentry",
+                "avatar_url": "https://example.com/avatar.png",
+                "html_url": "https://github.com/getsentry",
+                "type": "Organization",
+                "id": 67890,
+            },
+        }
 
         with (
             self.feature(
@@ -196,44 +206,77 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
                 return_value=mock_platforms,
             ),
+            mock.patch(
+                "sentry.integrations.github.integration.exchange_github_oauth",
+                return_value=GitHubOAuthLoginResult(
+                    authenticated_user="testuser",
+                    installation_info=[],
+                ),
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegrationProvider.get_installation_info",
+                return_value=mock_installation_response,
+            ),
         ):
             self.start_onboarding()
 
             # SCM Connect: no integration installed, provider pills are shown.
-            # Override window.open so that AddIntegration stores `window` as the
-            # dialog reference.  When we later inject a postMessage from the same
-            # window, `message.source === this.dialog` passes.
+            # Override window.open so the pipeline popup steps (OAuth and app
+            # install) return `window` as the popup reference. This lets us
+            # inject postMessage from the same window and pass the
+            # `event.source === popupRef.current` check.
             self.browser.driver.execute_script(
                 """
-                window.__testOpenCalled = false;
-                window.open = function() {
-                    window.__testOpenCalled = true;
+                window.__testOpenUrl = null;
+                window.open = function(url) {
+                    window.__testOpenUrl = url;
                     return window;
                 };
                 """
             )
 
             # Wait for the providers to load, then click Install GitHub.
+            # This opens the API-driven pipeline modal (not a popup).
             self.browser.wait_until(xpath='//button[contains(., "GitHub")]')
             self.browser.click(xpath='//button[contains(., "GitHub")]')
-            assert self.browser.driver.execute_script("return window.__testOpenCalled")
 
-            # Simulate the OAuth pipeline: create the integration in the DB,
-            # then serialize it with the same code path as IntegrationPipeline._dialog_response
-            # to avoid mock-drift between the test data and the real serializer.
-            integration = self.create_github_integration()
-            org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization_id=self.org.id
+            # Step 1: OAuth Login — the modal shows "Authorize GitHub".
+            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
+
+            # The OAuth popup was intercepted. Extract the state parameter from
+            # the captured URL and send a postMessage callback.
+            oauth_url = self.browser.driver.execute_script("return window.__testOpenUrl")
+            assert oauth_url is not None
+            state = dict(pair.split("=") for pair in oauth_url.split("?")[1].split("&")).get(
+                "state", ""
             )
-            # Resolve Django lazy objects (translations, datetimes) so
-            # Selenium can JSON-serialize the data for execute_script.
-            serialized = json.loads(json.dumps(serialize(org_integration, self.user)))
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
-                {"success": True, "data": serialized},
+                {
+                    "_pipeline_source": "sentry-pipeline",
+                    "code": "fake_oauth_code",
+                    "state": state,
+                },
             )
 
-            # Wait for the component to process the message and show connected state.
+            # Step 2: Org Selection — fresh install, shows "Install GitHub App".
+            self.browser.wait_until(xpath='//button[contains(., "Install GitHub App")]')
+            self.browser.driver.execute_script("window.__testOpenUrl = null;")
+            self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
+
+            # The install popup was intercepted. Send a postMessage callback
+            # with the installation_id. The backend validates and completes
+            # the pipeline, creating the integration.
+            self.browser.driver.execute_script(
+                "window.postMessage(arguments[0], window.location.origin);",
+                {
+                    "_pipeline_source": "sentry-pipeline",
+                    "installation_id": "12345",
+                },
+            )
+
+            # Wait for the pipeline modal to close and the connected state.
             self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
 
             # Repo search (same flow as happy path from here on).
