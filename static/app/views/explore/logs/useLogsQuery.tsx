@@ -788,6 +788,7 @@ function useAutoFetchWindow({
 
   useEffect(() => {
     setDeadlineMs(null);
+    timesFetched.current = 0;
   }, [queryKeyHash]);
 
   useEffect(() => {
