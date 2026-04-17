@@ -102,6 +102,9 @@ def wait(timeout: int = TIMEOUT) -> None:
         "--format",
         "{{(index .IPAM.Config 0).Gateway}}",
     )
+    if r.returncode != 0:
+        log(f"::error::docker network inspect bridge failed: {r.stderr.strip()}")
+        sys.exit(1)
     gateway = r.stdout.strip()
     github_env = os.environ.get("GITHUB_ENV")
     if github_env:
