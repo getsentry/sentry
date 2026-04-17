@@ -25,7 +25,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider["VstsIntegrationType"
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
-    ) -> Mapping[str, str]:
+    ) -> MutableMapping[str, Any]:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
 
@@ -137,5 +137,5 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider["VstsIntegrationType"
             for c in commit_list
         ]
 
-    def repository_external_slug(self, repo: Repository) -> str | None:
-        return repo.external_id
+    def repository_external_slug(self, repo: Repository) -> str:
+        return repo.external_id or repo.name
