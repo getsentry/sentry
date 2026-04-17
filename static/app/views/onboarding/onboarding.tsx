@@ -376,6 +376,7 @@ export function OnboardingWithoutContext() {
         )}
         {stepIndex > 0 && (
           <BackMotionDiv
+            hasScmOnboarding={hasScmOnboarding}
             initial="initial"
             animate="visible"
             variants={{
@@ -513,10 +514,22 @@ const StyledStepper = styled(Stepper)`
   }
 `;
 
-const BackMotionDiv = styled(motion.div)`
-  position: absolute;
-  top: 40px;
-  left: 20px;
+const BackMotionDiv = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'hasScmOnboarding',
+})<{hasScmOnboarding: boolean}>`
+  ${p =>
+    p.hasScmOnboarding
+      ? `
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 101;
+  `
+      : `
+    position: absolute;
+    top: 40px;
+    left: 20px;
+  `}
 
   button {
     font-size: ${p => p.theme.font.size.sm};
