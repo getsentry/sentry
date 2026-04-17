@@ -315,7 +315,7 @@ function RepoRow({
           {node.repo.url || node.integration.domainName ? (
             <ExternalLink
               href={
-                node.repo.url ??
+                node.repo.url ||
                 `https://${node.integration.domainName}/${node.repo.name}`
               }
             >
