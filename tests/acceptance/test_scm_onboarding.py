@@ -223,6 +223,22 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
 
+    def test_scm_onboarding_header_skip_onboarding(self) -> None:
+        """Header skip on scm-platform-features navigates to issues with step-specific referrer."""
+        with self.feature({"organizations:onboarding-scm-experiment": True}):
+            self.start_onboarding()
+
+            # SCM Connect: skip for now to advance to platform features
+            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+
+            # Click the header "Skip onboarding" button
+            self.browser.click(xpath='//a[contains(., "Skip onboarding")]')
+
+            # Navigation leaves the onboarding step and carries the step-specific referrer
+            self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
+            assert "onboarding-scm-platform-features-skip" in self.browser.current_url
+
     def test_scm_onboarding_with_integration_install(self) -> None:
         """Install flow: welcome → install GitHub via API pipeline → repo search → detected platform → create project."""
         mock_repos = [
