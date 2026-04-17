@@ -315,16 +315,18 @@ function ProjectTable({
   return (
     <Stack gap="lg">
       <Flex gap="md">
-        <CompactSelect<'' | PreferredAgentProvider>
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
-              {agentFilter ? triggerProps.children : t('All')}
-            </OverlayTrigger.Button>
-          )}
-          options={codingAgentCompactSelectOptions}
-          onChange={option => setAgentFilter(option.value || null)}
-          value={agentFilter ?? undefined}
-        />
+        {codingAgentCompactSelectOptions.length ? (
+          <CompactSelect<'' | PreferredAgentProvider>
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
+                {agentFilter ? triggerProps.children : t('All')}
+              </OverlayTrigger.Button>
+            )}
+            options={codingAgentCompactSelectOptions}
+            onChange={option => setAgentFilter(option.value || null)}
+            value={agentFilter ?? undefined}
+          />
+        ) : null}
 
         <InputGroup style={{width: '100%'}}>
           <InputGroup.LeadingItems disablePointerEvents>

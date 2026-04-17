@@ -57,15 +57,24 @@ export function filterCodingAgentQueryOptions({
     ...organizationIntegrationsCodingAgents(organization),
     select: (
       data
-    ): Array<{label: React.ReactNode; value: '' | PreferredAgentProvider}> => [
-      {value: '', label: 'All'},
-      {value: 'seer', label: t('Seer Agent')},
-      ...(data.json.integrations ?? [])
-        .filter(integration => integration.id)
-        .map(integration => ({
-          value: convertAgentNameToCodingAgentProvider(integration.provider),
-          label: integration.name,
-        })),
-    ],
+    ): Array<{label: React.ReactNode; value: '' | PreferredAgentProvider}> => {
+      if (data.json.integrations.length) {
+        return [
+          {value: '', label: 'All'},
+          {value: 'seer', label: t('Seer Agent')},
+          ...Array.from(
+            new Set(
+              (data.json.integrations ?? [])
+                .filter(integration => integration.id)
+                .map(integration => ({
+                  value: convertAgentNameToCodingAgentProvider(integration.provider),
+                  label: integration.name,
+                }))
+            )
+          ).sort((a, b) => a.label.localeCompare(b.label)),
+        ];
+      }
+      return [];
+    },
   });
 }
