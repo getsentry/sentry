@@ -103,7 +103,7 @@ export default function FeedbackListPage() {
 
   const largeScreenView = (
     <Fragment>
-      <Stack area="list" gap="md" minHeight="0">
+      <Stack area="list" gap="md">
         <FeedbackSummaryCategories />
         <Container>
           <FeedbackList onItemSelect={() => {}} />
@@ -127,7 +127,7 @@ export default function FeedbackListPage() {
           </AnalyticsArea>
         </Container>
       ) : (
-        <Stack area="content" gap="md" minHeight="0">
+        <Stack area="content" gap="md">
           <FeedbackSummaryCategories />
           <Container>
             <FeedbackList onItemSelect={handleItemSelect} />
@@ -174,14 +174,7 @@ export default function FeedbackListPage() {
   const pageBody = (
     <PageFiltersContainer>
       <ErrorBoundary>
-        <Stack
-          flex={1}
-          minHeight="0"
-          align="stretch"
-          gap="xl"
-          background="primary"
-          overflow="hidden"
-        >
+        <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
           <LayoutGrid hideTop={hideTop}>
             {!hideTop && (
               <Stack
@@ -217,7 +210,7 @@ export default function FeedbackListPage() {
   if (hasPageFrameFeature) {
     return (
       <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
-        <PageFrameViewport flex={1} minHeight="0">
+        <PageFrameViewport flex={1}>
           <FeedbackQueryKeys organization={organization}>
             <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
             <TopBar.Slot name="actions">
