@@ -184,6 +184,19 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
 
   invalid: [
     {
+      name: 'unnecessary narrowing — parenthesized expression preserves closing paren',
+      code: `
+        declare function map(fn: (x: number) => {a: number}): void;
+        map(x => ({a: x}) as {a: number});
+      `,
+      output: `
+        declare function map(fn: (x: number) => {a: number}): void;
+        map(x => ({a: x}));
+      `,
+      errors: [{messageId: 'unnecessary' as const}],
+      filename: 'invalid.ts',
+    },
+    {
       name: 'unnecessary narrowing — original type assignable to parameter type',
       code: `
         declare function accept(x: string | number): void;

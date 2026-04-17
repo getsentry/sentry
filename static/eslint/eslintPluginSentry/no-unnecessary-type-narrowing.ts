@@ -141,8 +141,16 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
             node: node.typeAnnotation,
             messageId: 'unnecessary',
             fix(fixer) {
-              // Remove everything from end of expression to end of the as-expression
-              return fixer.removeRange([node.expression.range[1], node.range[1]]);
+              // Remove ` as Type` — find the `as` keyword in the source to avoid
+              // eating closing parens between the expression and `as`, e.g.
+              // `({...obj}) as T` should become `({...obj})`, not `({...obj}`
+              const source = context.sourceCode.getText();
+              const searchStart = node.expression.range[1];
+              const asIndex = source.indexOf(' as ', searchStart);
+              if (asIndex === -1) {
+                return null;
+              }
+              return fixer.removeRange([asIndex, node.range[1]]);
             },
           });
         }
