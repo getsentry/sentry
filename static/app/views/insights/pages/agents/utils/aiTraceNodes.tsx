@@ -37,14 +37,14 @@ export function ensureAttributeObject(
   attributes?: TraceItemResponseAttribute[]
 ) {
   if (attributes) {
-    return attributes.reduce(
+    return attributes.reduce<Record<string, string | number | boolean>>(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
         // prettifyAttributeName normalizes those
         acc[prettifyAttributeName(attribute.name)] = getAttributeValue(attribute);
         return acc;
       },
-      {} as Record<string, string | number | boolean>
+      {}
     );
   }
 

@@ -681,7 +681,10 @@ export const CustomerStats = memo(
       ),
     ];
 
-    const {legend, subLabels} = chartSeries.reduce(
+    const {legend, subLabels} = chartSeries.reduce<{
+      legend: string[];
+      subLabels: TooltipSubLabel[];
+    }>(
       (acc, serie) => {
         if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
           acc.legend.push(serie.seriesName);
@@ -702,8 +705,8 @@ export const CustomerStats = memo(
         return acc;
       },
       {
-        legend: [] as string[],
-        subLabels: [] as TooltipSubLabel[],
+        legend: [],
+        subLabels: [],
       }
     );
 
