@@ -161,7 +161,7 @@ def process_mention_for_slack(
         record_seer_slack_event(
             org_slug=organization.slug,
             username=user.username,
-            thread_ts=thread_ts,
+            thread_ts=thread_ts or ts,
             prompt_length=len(prompt),
             run_id=run_id,
             integration_id=integration_id,
