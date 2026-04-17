@@ -138,3 +138,31 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
             response = self.client.get(url)
 
         assert response.status_code == 404
+
+    def test_returns_404_for_dashboard_belonging_to_different_org(self) -> None:
+        other_org = self.create_organization()
+        other_dashboard = Dashboard.objects.create(
+            title="Other Org Dashboard",
+            created_by_id=self.user.id,
+            organization=other_org,
+        )
+        other_revision = DashboardRevision.objects.create(
+            dashboard=other_dashboard,
+            created_by_id=self.user.id,
+            title="Other Org Dashboard",
+            source="edit",
+            snapshot={},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        url = reverse(
+            "sentry-api-0-organization-dashboard-revision-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": other_dashboard.id,
+                "revision_id": other_revision.id,
+            },
+        )
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.get(url)
+
+        assert response.status_code == 404
