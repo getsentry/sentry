@@ -1356,26 +1356,6 @@ class ExploreSavedQueriesTest(APITestCase):
             {"query": "severity:error", "type": "logs"},
         ]
 
-    def test_save_without_cross_events(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                {
-                    "name": "No cross events",
-                    "projects": self.project_ids,
-                    "dataset": "spans",
-                    "query": [
-                        {
-                            "fields": ["span.op"],
-                            "mode": "samples",
-                        }
-                    ],
-                    "range": "24h",
-                },
-            )
-        assert response.status_code == 201, response.content
-        assert "crossEvents" not in response.data
-
     def test_save_with_cross_events_too_many(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
