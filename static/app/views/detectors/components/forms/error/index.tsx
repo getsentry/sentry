@@ -23,6 +23,8 @@ import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/c
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type ErrorDetectorFormData = {
   workflowIds: string[];
@@ -118,6 +120,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
   const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   // Error monitors only allow editing workflow connections right now, so that's the only permission we need to check
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -149,7 +152,13 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
     >
       <EditLayout.Header>
         <EditLayout.HeaderContent>
-          <EditDetectorBreadcrumbs detector={detector} />
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="title">
+              <EditDetectorBreadcrumbs detector={detector} />
+            </TopBar.Slot>
+          ) : (
+            <EditDetectorBreadcrumbs detector={detector} />
+          )}
           <EditLayout.Title title={detector.name} project={project} />
         </EditLayout.HeaderContent>
         <EditLayout.Actions>
