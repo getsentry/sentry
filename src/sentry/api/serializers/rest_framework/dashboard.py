@@ -412,7 +412,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         ):
             raise serializers.ValidationError(
                 {
-                    "displayType": f"{DashboardWidgetDisplayTypes.get_type_name(data['display_type'])} is no longer a supported display type."
+                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(data['display_type'])} is no longer a supported display type."
                 }
             )
 
