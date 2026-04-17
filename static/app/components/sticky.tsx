@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {useIsStuck} from 'sentry/utils/useIsStuck';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 /**
  * A component that will become stuck to the top of the page. Once the user has
@@ -21,7 +22,7 @@ function TaggedSticky(props: React.ComponentProps<'div'>) {
 
 const Sticky = styled(TaggedSticky)`
   position: sticky;
-  top: 0;
+  top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
 `;
 
 export {Sticky};
