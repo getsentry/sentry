@@ -70,6 +70,20 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
 
         assert response.status_code == 422
 
+    def test_returns_404_for_non_integer_revision_id(self) -> None:
+        url = reverse(
+            "sentry-api-0-organization-dashboard-revision-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+                "revision_id": "abc",
+            },
+        )
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.get(url)
+
+        assert response.status_code == 404
+
     def test_returns_404_for_nonexistent_revision(self) -> None:
         url = reverse(
             "sentry-api-0-organization-dashboard-revision-details",

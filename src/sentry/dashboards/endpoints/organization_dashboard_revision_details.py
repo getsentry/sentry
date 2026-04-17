@@ -46,7 +46,7 @@ class OrganizationDashboardRevisionDetailsEndpoint(OrganizationDashboardBase):
                 id=revision_id,
                 dashboard=dashboard,
             )
-        except DashboardRevision.DoesNotExist:
+        except (DashboardRevision.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         return args, kwargs
