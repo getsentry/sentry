@@ -1,4 +1,4 @@
-from django.db.models import BigIntegerField, Model, Q, QuerySet
+from django.db.models import BigIntegerField, Exists, Model, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 
 from sentry.api.event_search import SearchFilter
@@ -9,6 +9,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
 
 def exclude_disallowed_metric_detectors(
@@ -22,22 +23,26 @@ def exclude_disallowed_metric_detectors(
     if not disallowed_datasets:
         return queryset
 
-    # Cast DataSource.source_id (string) to int so the subquery can use
-    # the index on QuerySubscription.id.
-    return (
-        queryset.annotate(
-            _ds_source_int=Cast("data_sources__source_id", output_field=BigIntegerField())
+    # Correlated EXISTS subquery that short-circuits on first match per detector.
+    disallowed_ds = (
+        DataSourceDetector.objects.filter(
+            detector_id=OuterRef("pk"),
+            data_source__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
-        .exclude(
-            type=MetricIssue.slug,
-            data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-            _ds_source_int__in=QuerySubscription.objects.filter(
+        # Cast DataSource.source_id (string) to int for type-compatible
+        # comparison against QuerySubscription.id in the IN clause.
+        .annotate(
+            _source_int=Cast("data_source__source_id", output_field=BigIntegerField()),
+        )
+        .filter(
+            _source_int__in=QuerySubscription.objects.filter(
                 snuba_query__dataset__in=disallowed_datasets,
                 project__organization=organization,
-            ).values_list("id", flat=True),
+            ).values("id"),
         )
-        .distinct()
     )
+
+    return queryset.exclude(Q(type=MetricIssue.slug) & Exists(disallowed_ds))
 
 
 def apply_filter[T: Model](
