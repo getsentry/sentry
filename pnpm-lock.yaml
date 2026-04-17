@@ -694,8 +694,8 @@ importers:
         specifier: 6.4.1
         version: 6.4.1
       odiff-bin:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: 4.3.8
+        version: 4.3.8
       oxfmt:
         specifier: ^0.41.0
         version: 0.41.0
@@ -7387,8 +7387,8 @@ packages:
   obuf@1.1.2:
     resolution: {integrity: sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==}
 
-  odiff-bin@4.3.2:
-    resolution: {integrity: sha512-irdWCW/b/b4aQiEfwNolbS0ZYUe2PAK6BKPt9Orzz3mGlko7ZqmEB1oDwCTAd2TQe3RmTpnePyd77xJzvWJHYQ==}
+  odiff-bin@4.3.8:
+    resolution: {integrity: sha512-nEGbO932GgDZUT6KNI30wio+JaNhLHGbeXrDnYQF4UeSmroC55w8wRXqOAYqGJXk2xFK72RxxLnGofofwV+eDQ==}
     hasBin: true
 
   on-finished@2.4.1:
@@ -17492,7 +17492,7 @@ snapshots:
 
   obuf@1.1.2: {}
 
-  odiff-bin@4.3.2: {}
+  odiff-bin@4.3.8: {}
 
   on-finished@2.4.1:
     dependencies:
