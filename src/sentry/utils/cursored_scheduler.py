@@ -5,12 +5,12 @@ spread over time via a scheduled task.
 The framework takes a queryset, a task, a cycle duration, and a schedule key.
 It reads the tick interval from the schedule config, then automatically
 calculates the batch size needed to complete one full cycle within the target
-duration. At cycle start, all matching PKs are snapshotted into cache so that
-batch sizes remain stable even if the queryset grows or shrinks mid-cycle.
-Each invocation, it fetches the next batch of PKs from the cached snapshot
-and dispatches the task for each one. The cursor is stored in cache (Redis)
-so progress persists across invocations. A distributed lock prevents
-overlapping ticks.
+duration. At cycle start, all matching PKs are snapshotted into a Redis list
+so that batch sizes remain stable even if the queryset grows or shrinks
+mid-cycle. Each invocation, it fetches the next page of PKs from the Redis
+list via LRANGE and dispatches the task for each one. The cursor (an integer
+offset into the snapshotted list) is stored in Django's cache so progress
+persists across invocations. A distributed lock prevents overlapping ticks.
 
 Usage:
 
@@ -56,7 +56,6 @@ Items that fail validation are skipped without dispatching the task.
 
 from __future__ import annotations
 
-import bisect
 import logging
 import math
 import time
@@ -69,7 +68,7 @@ from django.db.models import Model, QuerySet
 from taskbroker_client.task import Task
 
 from sentry.locks import locks
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
@@ -83,6 +82,9 @@ LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 # Minimum batch size
 MIN_BATCH_SIZE = 1
+# Max PKs per RPUSH command during cycle init. Keeps each command small so
+# Redis's single-threaded event loop isn't blocked for long.
+RPUSH_CHUNK_SIZE = 1000
 
 
 def _get_tick_interval(schedule_key: str) -> timedelta:
@@ -117,9 +119,9 @@ class CursoredScheduler[M: Model]:
     When all rows have been processed, the cursor resets and a new cycle
     begins on the next tick().
 
-    At cycle start, all matching PKs are snapshotted into cache. Subsequent
-    ticks read from this snapshot, ensuring stable batch sizes even if the
-    underlying queryset changes mid-cycle.
+    At cycle start, all matching PKs are snapshotted into a Redis list.
+    Subsequent ticks read pages from this snapshot via LRANGE, ensuring
+    stable batch sizes even if the underlying queryset changes mid-cycle.
 
     Batch size is auto-calculated at the start of each cycle based on the total
     row count, cycle_duration, and the tick interval from the schedule config,
@@ -195,16 +197,7 @@ class CursoredScheduler[M: Model]:
         else:
             batch_size = self._get_batch_size()
 
-        cached_pks = self._get_cached_pks()
-        if not cached_pks:
-            self._finalize_cycle()
-            metrics.timing(
-                "cursored_scheduler.tick_duration", time.time() - tick_start, tags=self._metric_tags
-            )
-            return False
-
-        start = bisect.bisect_right(cached_pks, cursor)
-        items = cached_pks[start : start + batch_size]
+        items = self._get_cached_pks_page(cursor, batch_size)
 
         if not items:
             self._finalize_cycle()
@@ -222,7 +215,7 @@ class CursoredScheduler[M: Model]:
 
         metrics.gauge("cursored_scheduler.batch_size", dispatched, tags=self._metric_tags)
 
-        self._set_cursor(items[-1])
+        self._set_cursor(cursor + len(items))
 
         metrics.timing(
             "cursored_scheduler.tick_duration", time.time() - tick_start, tags=self._metric_tags
@@ -236,7 +229,16 @@ class CursoredScheduler[M: Model]:
 
     def _initialize_cycle(self) -> int:
         all_pks = list(self.queryset.order_by("pk").values_list("pk", flat=True))
-        self._set_cached_pks(all_pks)
+
+        client = self._get_redis_client()
+        # Clear any stale list from a crashed prior init; the distributed lock
+        # ensures no other tick can race with us here.
+        client.delete(self.pk_list_cache_key)
+        with client.pipeline(transaction=False) as pipe:
+            for i in range(0, len(all_pks), RPUSH_CHUNK_SIZE):
+                pipe.rpush(self.pk_list_cache_key, *all_pks[i : i + RPUSH_CHUNK_SIZE])
+            pipe.expire(self.pk_list_cache_key, self.cache_ttl)
+            pipe.execute()
 
         batch_size = self._calculate_batch_size(len(all_pks))
         cache.set(self.batch_size_cache_key, batch_size, self.cache_ttl)
@@ -244,11 +246,11 @@ class CursoredScheduler[M: Model]:
         return batch_size
 
     def _finalize_cycle(self):
-        """Reset cursor, batch size, and PK cache, starting a new cycle on the next tick."""
+        """Reset cursor, batch size, and PK list, starting a new cycle on the next tick."""
         self._emit_cycle_duration()
         cache.set(self.cache_key, 0, self.cache_ttl)
         cache.set(self.batch_size_cache_key, 0, self.cache_ttl)
-        cache.delete(self.pk_list_cache_key)
+        self._get_redis_client().delete(self.pk_list_cache_key)
         cache.delete(self.cycle_start_cache_key)
         metrics.incr("cursored_scheduler.cycle_complete", tags=self._metric_tags)
 
@@ -290,11 +292,10 @@ class CursoredScheduler[M: Model]:
             return 0
         return int(value)
 
-    def _get_cached_pks(self) -> list[int]:
-        value = cache.get(self.pk_list_cache_key)
-        if value is None:
-            return []
-        return value
+    def _get_cached_pks_page(self, offset: int, count: int) -> list[int]:
+        client = self._get_redis_client()
+        raw = client.lrange(self.pk_list_cache_key, offset, offset + count - 1)
+        return [int(v) for v in raw]
 
-    def _set_cached_pks(self, pks: list[int]) -> None:
-        cache.set(self.pk_list_cache_key, pks, self.cache_ttl)
+    def _get_redis_client(self):
+        return redis.redis_clusters.get("default")

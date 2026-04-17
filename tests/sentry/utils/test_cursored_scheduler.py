@@ -16,6 +16,7 @@ from sentry.utils.cursored_scheduler import (
     CursoredScheduler,
     _get_tick_interval,
 )
+from sentry.utils.redis import redis_clusters
 
 TEST_SCHEDULES = {
     "test-scheduler-beat": {
@@ -40,8 +41,11 @@ class CursoredSchedulerTest(TestCase):
         self.mock_task = MagicMock()
         self.cache_key = f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler"
         self.batch_size_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:test_scheduler"
+        self.pk_list_key = f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler"
+        self.redis_client = redis_clusters.get("default")
         cache.delete(self.cache_key)
         cache.delete(self.batch_size_key)
+        self.redis_client.delete(self.pk_list_key)
 
     _oi_counter = 0
 
@@ -308,15 +312,13 @@ class CursoredSchedulerTest(TestCase):
         assert self.mock_task.delay.call_count == 3
 
     def test_pks_cached_at_cycle_start(self):
-        """PKs are snapshotted into cache at the start of each cycle."""
+        """PKs are snapshotted into the Redis list at the start of each cycle."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
         scheduler.tick()
 
-        cached_pks = cache.get(f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler")
-        assert cached_pks is not None
-        assert len(cached_pks) == 30
+        assert self.redis_client.llen(self.pk_list_key) == 30
 
     def test_cached_pks_stable_mid_cycle(self):
         """Adding items mid-cycle doesn't affect the current cycle's batch size."""
@@ -337,7 +339,7 @@ class CursoredSchedulerTest(TestCase):
         assert len(second_batch) == 10
 
     def test_cached_pks_cleared_after_cycle(self):
-        """PK cache is cleared when cycle completes."""
+        """PK list is cleared when cycle completes."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
@@ -346,8 +348,7 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         scheduler.tick()  # cycle done
 
-        cached_pks = cache.get(f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler")
-        assert cached_pks is None
+        assert self.redis_client.exists(self.pk_list_key) == 0
 
     def test_validate_item_filters_dispatches(self):
         """When validate_item is provided, only items passing validation are dispatched."""
@@ -384,7 +385,7 @@ class CursoredSchedulerTest(TestCase):
 
     def test_validate_item_cursor_advances_past_skipped(self):
         """Cursor advances based on all items in batch, not just dispatched ones."""
-        ois = self._create_org_integrations(30)
+        self._create_org_integrations(30)
 
         scheduler = CursoredScheduler(
             name="test_scheduler",
@@ -404,7 +405,7 @@ class CursoredSchedulerTest(TestCase):
         assert self.mock_task.delay.call_count == 0
         cursor = cache.get(f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler")
         assert cursor is not None
-        assert int(cursor) == ois[9].pk
+        assert int(cursor) == 10
 
 
 @override_settings(TASKWORKER_SCHEDULES=TEST_SCHEDULES)
