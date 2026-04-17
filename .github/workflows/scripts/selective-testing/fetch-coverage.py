@@ -32,7 +32,19 @@ def check_auth() -> None:
     )
     if result.returncode != 0:
         print("Error: Not authenticated with gcloud.", file=sys.stderr)
-        print("Run: gcloud auth login", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("To authenticate, run:", file=sys.stderr)
+        print("  gcloud auth login", file=sys.stderr)
+        print("  gcloud config set project sentry-dev-tooling", file=sys.stderr)
+        print("", file=sys.stderr)
+        print(
+            "You'll need access to the 'sentry-dev-tooling' GCP project.",
+            file=sys.stderr,
+        )
+        print(
+            "Request access in #discuss-dev-infra if you don't have it.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
