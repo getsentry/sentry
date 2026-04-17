@@ -118,27 +118,6 @@ export function TopBar({
           tooltipProps={{title: t('Copy link to current chat and web page')}}
           disabled={!isCopyLinkEnabled}
         />
-        {showCodeModeToggle && (
-          <Tooltip
-            title={
-              overrideCodeModeEnable
-                ? t('Code mode enabled (click to disable)')
-                : t('Code mode disabled (click to enable)')
-            }
-          >
-            <Flex align="center" gap="xs" padding="xs sm" height="100%">
-              <Switch
-                size="sm"
-                checked={overrideCodeModeEnable}
-                onChange={onOverrideCodeModeEnableToggle}
-                aria-label={t('Toggle code mode')}
-              />
-              <Text size="sm" variant="muted">
-                {t('CM')}
-              </Text>
-            </Flex>
-          </Tooltip>
-        )}
         {showContextEngineToggle && (
           <Tooltip
             title={
@@ -156,6 +135,27 @@ export function TopBar({
               />
               <Text size="sm" variant="muted">
                 {t('CE')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
+        {showCodeModeToggle && (
+          <Tooltip
+            title={
+              overrideCodeModeEnable
+                ? t('Code mode enabled (click to disable)')
+                : t('Code mode disabled (click to enable)')
+            }
+          >
+            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+              <Switch
+                size="sm"
+                checked={overrideCodeModeEnable}
+                onChange={onOverrideCodeModeEnableToggle}
+                aria-label={t('Toggle code mode')}
+              />
+              <Text size="sm" variant="muted">
+                {t('CM')}
               </Text>
             </Flex>
           </Tooltip>
