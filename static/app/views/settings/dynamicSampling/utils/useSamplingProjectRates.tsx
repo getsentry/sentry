@@ -90,12 +90,12 @@ export function useUpdateSamplingProjectRates() {
         return;
       }
 
-      const newDataById = data.reduce(
+      const newDataById = data.reduce<Record<number, SamplingProjectRate>>(
         (acc, item) => {
           acc[item.id] = item;
           return acc;
         },
-        {} as Record<number, SamplingProjectRate>
+        {}
       );
 
       queryClient.setQueryData(

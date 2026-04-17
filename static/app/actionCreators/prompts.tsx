@@ -165,17 +165,14 @@ export function usePrompts({
   const queryClient = useQueryClient();
   const isPromptDismissed = useMemo(() => {
     if (prompts.isSuccess) {
-      return features.reduce(
-        (acc, feature) => {
-          const prompt = prompts.data.features?.[feature];
-          acc[feature] = isDismissed(
-            {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
-            daysToSnooze
-          );
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
+      return features.reduce<Record<string, boolean>>((acc, feature) => {
+        const prompt = prompts.data.features?.[feature];
+        acc[feature] = isDismissed(
+          {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
+          daysToSnooze
+        );
+        return acc;
+      }, {});
     }
     return {};
   }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);

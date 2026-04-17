@@ -12,7 +12,12 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.viewer_context import ViewerContext, encode_viewer_context, get_viewer_context
+from sentry.viewer_context import (
+    ViewerContext,
+    encode_viewer_context,
+    get_viewer_context,
+    observe_viewer_context_propagation,
+)
 
 
 class SeerViewerContext(TypedDict, total=False):
@@ -137,6 +142,7 @@ def make_signed_seer_api_request(
     }
 
     resolved = _resolve_viewer_context(viewer_context)
+    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
     if resolved:
         try:
             headers["X-Viewer-Context"] = encode_viewer_context(resolved)

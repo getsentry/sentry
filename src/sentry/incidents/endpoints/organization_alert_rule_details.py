@@ -52,7 +52,10 @@ from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.endpoints.organization_detector_details import remove_detector
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 from sentry.workflow_engine.models import AlertRuleDetector, Detector
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,7 @@ def fetch_alert_rule(
         return Response(serialized)
 
     assert isinstance(alert_rule, AlertRule)
+    report_used_legacy_models()
     serialized_rule = serialize(
         alert_rule,
         request.user,
@@ -106,6 +110,7 @@ def update_alert_rule(
             {"alert_rule": ["Passing a detector through this endpoint is not yet supported"]},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    report_used_legacy_models()
     data = request.data
     validator = DrfAlertRuleSerializer(
         context={
@@ -168,7 +173,7 @@ def remove_alert_rule(
             return Response(
                 "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
             )
-
+    report_used_legacy_models()
     try:
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
         # the user could be removed from the dual write flag for whatever reason, and we need to make sure
