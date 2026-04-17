@@ -333,38 +333,32 @@ export const TraceMetricsConfig: DatasetConfig<
   },
   getFieldHeaderMap: widgetQuery => {
     return (
-      widgetQuery?.aggregates.reduce(
-        (acc, aggregate) => {
-          acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
-          return acc;
-        },
-        {} as Record<string, string>
-      ) ?? {}
+      widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
+        acc[aggregate] = formatTraceMetricsFunction(aggregate) as string;
+        return acc;
+      }, {}) ?? {}
     );
   },
   getSeriesResultType(data, _widgetQuery) {
-    return data.timeSeries.reduce(
+    return data.timeSeries.reduce<Record<string, AggregationOutputType>>(
       (acc, timeSeries) => {
         acc[timeSeries.yAxis] = timeSeries.meta.valueType as AggregationOutputType;
         return acc;
       },
-      {} as Record<string, AggregationOutputType>
+      {}
     );
   },
   getSeriesResultUnit: (data, _widgetQuery) => {
-    return data.timeSeries.reduce(
-      (acc, timeSeries) => {
-        if (timeSeries.yAxis.includes('per_second(')) {
-          acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
-        } else if (timeSeries.yAxis.includes('per_minute(')) {
-          acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
-        } else {
-          acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
-        }
-        return acc;
-      },
-      {} as Record<string, DataUnit>
-    );
+    return data.timeSeries.reduce<Record<string, DataUnit>>((acc, timeSeries) => {
+      if (timeSeries.yAxis.includes('per_second(')) {
+        acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
+      } else if (timeSeries.yAxis.includes('per_minute(')) {
+        acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
+      } else {
+        acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
+      }
+      return acc;
+    }, {});
   },
 };
 

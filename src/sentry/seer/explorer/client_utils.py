@@ -24,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -184,7 +185,8 @@ def get_explorer_state_from_pr_id(
 
 
 def has_seer_explorer_access_with_detail(
-    organization: Organization, actor: SentryUser | AnonymousUser | RpcUser | None = None
+    organization: Organization | RpcOrganization,
+    actor: SentryUser | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Explorer.

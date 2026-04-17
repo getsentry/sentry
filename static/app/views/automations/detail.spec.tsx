@@ -3,12 +3,17 @@ import {
   ActionFixture,
   AutomationFixture,
 } from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  IssueStreamDetectorFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationDetail from 'sentry/views/automations/detail';
 
 describe('AutomationDetail', () => {
@@ -40,7 +45,13 @@ describe('AutomationDetail', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: detectors,
-      match: [MockApiClient.matchQuery({id: ['1', '2']})],
+      match: [MockApiClient.matchQuery({query: '!type:issue_stream workflow:123'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
     });
 
     MockApiClient.addMockResponse({
@@ -208,5 +219,43 @@ describe('AutomationDetail', () => {
         screen.getByText('One or more actions need to be reconfigured in order to run.')
       ).toBeInTheDocument();
     });
+  });
+
+  it('displays connected projects and monitors', async () => {
+    const project = ProjectFixture({id: '10', slug: 'my-project', name: 'My Project'});
+    ProjectsStore.loadInitialData([project]);
+
+    const monitor = MetricDetectorFixture({
+      id: '50',
+      name: 'CPU Usage Monitor',
+      projectId: '10',
+    });
+    const issueStreamDetector = IssueStreamDetectorFixture({
+      id: '60',
+      projectId: '10',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [monitor],
+      match: [MockApiClient.matchQuery({query: '!type:issue_stream workflow:123'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [issueStreamDetector],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    expect(await screen.findByText('my-project')).toBeInTheDocument();
+    expect(await screen.findByText('CPU Usage Monitor')).toBeInTheDocument();
   });
 });

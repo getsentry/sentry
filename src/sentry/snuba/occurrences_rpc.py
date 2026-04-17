@@ -1,8 +1,14 @@
 import logging
+from collections import defaultdict
 from enum import Enum
 from typing import Any
 
 import sentry_sdk
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -13,12 +19,19 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.models.group import Group
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
+from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import and_trace_item_filters
-from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import (
+    AdditionalQueries,
+    EAPResponse,
+    SearchResolverConfig,
+    SupportedTraceItemType,
+)
 from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
+from sentry.utils import snuba_rpc
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger(__name__)
@@ -252,6 +265,87 @@ class Occurrences(rpc_dataset_common.RPCBase):
             results.extend(time_dict.values())
 
         return results
+
+    @classmethod
+    @sentry_sdk.trace
+    def run_stats_query(
+        cls,
+        *,
+        params: SnubaParams,
+        stats_types: set[str],
+        query_string: str,
+        referrer: str,
+        config: SearchResolverConfig,
+        search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
+        skip_translate_internal_to_public_alias: bool = False,
+        occurrence_category: OccurrenceCategory | None = None,
+    ) -> list[dict[str, Any]]:
+        search_resolver = search_resolver or cls.get_resolver(params, config)
+        stats_filter, _, _ = search_resolver.resolve_query(query_string)
+
+        stats_filter = and_trace_item_filters(
+            stats_filter, cls._build_category_filter(occurrence_category)
+        )
+
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=params.sampling_mode,
+        )
+        stats_request = TraceItemStatsRequest(
+            filter=stats_filter,
+            meta=meta,
+            stats_types=[],
+        )
+
+        if not set(stats_types).intersection(SUPPORTED_STATS_TYPES):
+            return []
+
+        if "attributeDistributions" in stats_types:
+            stats_request.stats_types.append(
+                StatsType(
+                    attribute_distributions=AttributeDistributionsRequest(
+                        max_buckets=max_buckets,
+                        attributes=attributes,
+                    )
+                )
+            )
+
+        response = snuba_rpc.trace_item_stats_rpc(stats_request)
+        stats = []
+
+        from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+
+        for result in response.results:
+            if "attributeDistributions" in stats_types and result.HasField(
+                "attribute_distributions"
+            ):
+                attrs: dict[str, list[dict[str, Any]]] = defaultdict(list)
+                for attribute in result.attribute_distributions.attributes:
+                    if not can_expose_attribute(
+                        attribute.attribute_name, SupportedTraceItemType.OCCURRENCES
+                    ):
+                        continue
+
+                    for bucket in attribute.buckets:
+                        if skip_translate_internal_to_public_alias:
+                            attrs[attribute.attribute_name].append(
+                                {"label": bucket.label, "value": bucket.value}
+                            )
+                        else:
+                            public_alias, _, _ = translate_internal_to_public_alias(
+                                attribute.attribute_name,
+                                "string",
+                                SupportedTraceItemType.OCCURRENCES,
+                            )
+                            public_alias = public_alias or attribute.attribute_name
+                            attrs[public_alias].append(
+                                {"label": bucket.label, "value": bucket.value}
+                            )
+                stats.append({"attribute_distributions": {"data": attrs}})
+
+        return stats
 
     @classmethod
     def _fetch_issue_labels(

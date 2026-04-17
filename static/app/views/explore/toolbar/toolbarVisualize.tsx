@@ -278,7 +278,7 @@ export function getVisualizeLabel(labelIndex: number, isEquation: boolean): stri
   return isEquation ? getEquationLabel(labelIndex) : getFunctionLabel(labelIndex);
 }
 
-function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
   const label = visualize.visible ? getFunctionLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;

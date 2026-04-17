@@ -15,6 +15,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerExplorerResponse,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
@@ -420,7 +421,7 @@ class SlackExplorerEntrypoint(
         self.slack_user_id = slack_user_id
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
+    def has_access(organization: Organization | RpcOrganization) -> bool:
         has_seer_slack_feature_flag = features.has(
             "organizations:seer-slack-explorer", organization
         )

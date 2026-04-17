@@ -74,7 +74,7 @@ export function detectorListApiOptions<
     ids,
     type,
     includeIssueStreamDetectors = false,
-  }: UseDetectorsApiOptionsParams<TType> = {} as UseDetectorsApiOptionsParams<TType>
+  }: UseDetectorsApiOptionsParams<TType> = {}
 ) {
   return queryOptions({
     ...apiOptions.as<Array<DetectorByType<TType>>>()(

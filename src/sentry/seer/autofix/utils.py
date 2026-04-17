@@ -734,7 +734,7 @@ def _build_automation_handoff(
     )
 
 
-def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | None:
+def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB.
 
     For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
@@ -749,12 +749,6 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
         if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
     ]
 
-    has_configured_options = any(
-        ProjectOption.objects.isset(project, key) for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
-    )
-    if not repo_definitions and not has_configured_options:
-        return None
-
     return SeerProjectPreference(
         organization_id=project.organization_id,
         project_id=project.id,
@@ -767,7 +761,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
 
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
-) -> dict[int, SeerProjectPreference | None]:
+) -> dict[int, SeerProjectPreference]:
     """Bulk read Seer preferences from Sentry DB.
 
     For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
@@ -793,15 +787,8 @@ def bulk_read_preferences_from_sentry_db(
         for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
     }
 
-    result: dict[int, SeerProjectPreference | None] = {}
+    result: dict[int, SeerProjectPreference] = {}
     for project in projects:
-        has_configured_options = any(
-            project_options[key][project.id] is not None
-            for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
-        )
-        if project.id not in repo_definitions_by_project and not has_configured_options:
-            result[project.id] = None
-            continue
 
         def _get_project_option(key: str) -> Any:
             value = project_options[key][project.id]
@@ -831,7 +818,7 @@ def bulk_read_preferences(
     Always returns ``dict[int, SeerProjectPreference | None]`` regardless of the
     underlying read path (Sentry DB or Seer API)."""
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)
+        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)  # type: ignore[return-value]
 
     raw = bulk_get_project_preferences(organization.id, project_ids)
     tuning_by_id = ProjectOption.objects.get_value_bulk_id(
@@ -887,8 +874,7 @@ def has_project_connected_repos(
 
     has_repos = False
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        preference = read_preference_from_sentry_db(project)
-        has_repos = bool(preference and preference.repositories)
+        has_repos = bool(read_preference_from_sentry_db(project).repositories)
     else:
         try:
             preference = get_project_seer_preferences(project.id).preference

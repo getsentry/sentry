@@ -32,6 +32,10 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
       component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
     },
     {
+      path: 'advanced/',
+      component: make(() => import('getsentry/views/seerAutomation/advanced')),
+    },
+    {
       path: 'onboarding/',
       name: t('Setup Wizard'),
       component: make(

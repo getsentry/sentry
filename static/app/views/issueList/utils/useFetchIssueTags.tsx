@@ -253,10 +253,13 @@ function builtInIssuesFields({
     },
     {}
   );
-  const hasFieldValues = [
-    ...Object.values(currentTags).map(tag => tag.key),
-    ...Object.values(SEMVER_TAGS).map(tag => tag.key),
-  ].sort();
+  const hasFieldValues = Array.from(
+    new Set([
+      ...Object.values(currentTags).map(tag => tag.key),
+      ...Object.values(SEMVER_TAGS).map(tag => tag.key),
+      ...ISSUE_EVENT_PROPERTY_FIELDS,
+    ])
+  ).sort();
 
   const tagCollection: TagCollection = {
     [FieldKey.IS]: {

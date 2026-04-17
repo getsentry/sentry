@@ -24,6 +24,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
+  isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {
@@ -350,6 +351,7 @@ export default function IntegrationDetailedView() {
                   view: 'integrations_directory_integration_detail',
                   integration: integrationSlug,
                   integration_type: integrationType,
+                  is_scm: provider ? isScmProvider(provider) : false,
                   already_installed: installationStatus !== 'Not Installed',
                   organization,
                 });

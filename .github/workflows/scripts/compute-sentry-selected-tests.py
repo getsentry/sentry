@@ -22,6 +22,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from find_test_imports import find_test_imports
+
 # -- Path conventions --
 # The coverage DB stores paths relative to the getsentry rootdir:
 #   sentry sources: ../sentry/src/sentry/...
@@ -210,6 +212,17 @@ def main() -> int:
             except sqlite3.Error as e:
                 print(f"Error querying coverage database: {e}", file=sys.stderr)
                 return 1
+
+            # Union with static import search so files invisible to coverage are still caught.
+            changed_source_files = [f for f in changed if not _is_test(f) and f.endswith(".py")]
+            if changed_source_files:
+                static_tests = find_test_imports(changed_source_files, Path.cwd())
+                static_tests = {
+                    f
+                    for f in static_tests
+                    if _is_test(f) and not any(p.search(f) for p in EXCLUDED_TEST_PATTERNS)
+                }
+                affected_test_files.update(static_tests)
 
             affected_test_files -= EXCLUDED_TEST_FILES
 
