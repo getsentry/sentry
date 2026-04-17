@@ -5,6 +5,7 @@ import logging
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from taskbroker_client.retry import Retry
 
+from sentry import analytics
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -16,8 +17,8 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.operator import SeerExplorerOperator
 from sentry.seer.entrypoints.slack.analytics import (
+    SeerAgentSlackResponded,
     SlackSeerAgentConversation,
-    record_seer_slack_event,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
@@ -161,21 +162,23 @@ def process_mention_for_slack(
         slack_user_ids_in_thread = {
             msg_user for msg in messages if isinstance(msg_user := msg.get("user"), str)
         }
-        record_seer_slack_event(
-            org_slug=organization.slug,
-            username=user.username,
-            thread_ts=thread_ts or ts,
-            prompt_length=len(prompt),
-            run_id=run_id,
-            integration_id=integration_id,
-            messages_in_thread=len(messages),
-            seer_msgs_in_thread=sum(1 for m in messages if m.get("user") == bot_user_id),
-            unique_users_in_thread=len(slack_user_ids_in_thread),
-            linked_users_in_thread=_count_linked_users(
-                integration=entrypoint.integration,
-                slack_user_ids=slack_user_ids_in_thread,
-            ),
-            conversation_type=conversation_type,
+        analytics.record(
+            SeerAgentSlackResponded(
+                org_slug=organization.slug,
+                username=user.username,
+                thread_ts=thread_ts or ts,
+                prompt_length=len(prompt),
+                run_id=run_id,
+                integration_id=integration_id,
+                messages_in_thread=len(messages),
+                seer_msgs_in_thread=sum(1 for m in messages if m.get("user") == bot_user_id),
+                unique_users_in_thread=len(slack_user_ids_in_thread),
+                linked_users_in_thread=_count_linked_users(
+                    integration=entrypoint.integration,
+                    slack_user_ids=slack_user_ids_in_thread,
+                ),
+                conversation_type=conversation_type,
+            )
         )
 
 
