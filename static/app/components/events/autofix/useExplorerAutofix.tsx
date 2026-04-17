@@ -1,6 +1,10 @@
 import {useCallback, useState} from 'react';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
@@ -759,6 +763,7 @@ export function useExplorerAutofix(
         ]);
         throw e;
       } finally {
+        clearIndicators();
         setWaitingForCodingAgent(false);
       }
     },

@@ -6,6 +6,7 @@ import type {
   AutofixSection,
   RootCauseArtifact,
   SolutionArtifact,
+  useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {
   ExplorerCodingAgentState,
@@ -64,7 +65,7 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
   };
 }
 
-const mockAutofix = {
+const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   runState: null,
   isLoading: false,
   isPolling: false,
