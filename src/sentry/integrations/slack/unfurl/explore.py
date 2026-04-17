@@ -246,12 +246,11 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     if metric_json:
         try:
             metric_parsed = json.loads(metric_json)
+            # Each aggregateField with yAxes is a separate chart in Explore,
+            # so take only the first one (along with its chartType).
             for agg_field in metric_parsed.get("aggregateFields", []):
                 if "groupBy" in agg_field and agg_field["groupBy"]:
                     group_bys.append(agg_field["groupBy"])
-                # Each aggregateField with yAxes is its own chart in Explore;
-                # unfurls only render one, so keep just the first entry's
-                # yAxes and chartType.
                 if not y_axes and isinstance(agg_field.get("yAxes"), list):
                     y_axes.extend(agg_field["yAxes"])
                     if isinstance(agg_field.get("chartType"), int):
@@ -265,6 +264,8 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         except (json.JSONDecodeError, TypeError, AttributeError):
             pass
 
+    # Each aggregateField with yAxes is a separate chart in Explore, so take
+    # only the first one (along with its chartType).
     visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
     for field_json in visualize_fields:
         try:
@@ -273,8 +274,6 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
             continue
         if "groupBy" in parsed and parsed["groupBy"]:
             group_bys.append(parsed["groupBy"])
-        # Each aggregateField with yAxes is its own chart in Explore; unfurls
-        # only render one, so keep just the first entry's yAxes and chartType.
         if not y_axes and isinstance(parsed.get("yAxes"), list):
             y_axes.extend(parsed["yAxes"])
             if isinstance(parsed.get("chartType"), int):

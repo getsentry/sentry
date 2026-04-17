@@ -1881,10 +1881,8 @@ class UnfurlTest(TestCase):
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
         mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        # Three aggregateField entries: a groupBy, then two separate charts
-        # (avg is the first chart, count+area is the second). The unfurl must
-        # render only the first chart (avg(span.duration) with its default
-        # line style) and not inherit the second chart's area chartType.
+        # Two charts: avg (first, default line) and count with chartType=2
+        # (area). The later chart's chartType must not leak through.
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
             "?aggregateField=%7B%22groupBy%22%3A%22%22%7D"
@@ -1912,7 +1910,6 @@ class UnfurlTest(TestCase):
         assert api_params.getlist("yAxis") == ["avg(span.duration)"]
 
         chart_data = mock_generate_chart.call_args[0][1]
-        # avg defaults to line; second chart's chartType=2 (area) must not leak through
         assert chart_data["type"] == "line"
 
         assert (
