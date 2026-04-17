@@ -81,7 +81,7 @@ class GitHubAppsProviderTest(TestCase):
     def test_compare_commits_no_start(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
-            "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
+            "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef&per_page=20",
             json=orjson.loads(GET_LAST_COMMITS_EXAMPLE),
         )
         responses.add(
@@ -97,7 +97,7 @@ class GitHubAppsProviderTest(TestCase):
     def test_compare_commits_no_start_failure(self) -> None:
         responses.add(
             responses.GET,
-            "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
+            "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef&per_page=20",
             status=502,
         )
         with pytest.raises(IntegrationError):

@@ -302,13 +302,10 @@ export function SentryComponentInspector() {
   const storybookFiles = useStoryBookFiles();
   const storybookFilesLookup = useMemo(
     () =>
-      storybookFiles.reduce(
-        (acc, file) => {
-          acc[file] = file;
-          return acc;
-        },
-        {} as Record<string, string>
-      ),
+      storybookFiles.reduce<Record<string, string>>((acc, file) => {
+        acc[file] = file;
+        return acc;
+      }, {}),
     [storybookFiles]
   );
 

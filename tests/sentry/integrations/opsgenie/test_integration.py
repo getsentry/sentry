@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
+from django.urls import reverse
 from rest_framework.serializers import ValidationError
 
 from sentry.integrations.models.integration import Integration
@@ -12,6 +16,7 @@ from sentry.integrations.opsgenie.tasks import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
@@ -240,6 +245,114 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             b"At least one feature from this list has to be enabled in order to setup the integration"
             in resp.content
         )
+
+
+@control_silo_test
+class OpsgenieApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "opsgenie"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "installation_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "opsgenie"
+        assert "baseUrlChoices" in resp.data["data"]
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_invalid_base_url(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step(
+            {
+                "baseUrl": "https://evil.example.com/",
+                "provider": "test-app",
+            }
+        )
+        assert resp.status_code == 400
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_full_pipeline_flow(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_config"
+
+        resp = self._advance_step(
+            {
+                "baseUrl": "https://api.opsgenie.com/",
+                "provider": "cool-name",
+                "apiKey": "123-key",
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="opsgenie")
+        assert integration.external_id == "cool-name"
+        assert integration.name == "cool-name"
+        assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_full_pipeline_flow_no_key(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step(
+            {
+                "baseUrl": "https://api.opsgenie.com/",
+                "provider": "cool-name",
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="opsgenie")
+        assert integration.external_id == "cool-name"
+        assert integration.metadata["api_key"] == ""
 
 
 class OpsgenieMigrationIntegrationTest(APITestCase):

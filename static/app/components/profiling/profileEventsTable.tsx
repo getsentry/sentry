@@ -88,10 +88,12 @@ export function ProfileEventsTable<F extends FieldType>(
           rightAlignedColumns: getRightAlignedColumns(props.columns),
           sortableColumns: props.sortableColumns,
         }),
-        renderBodyCell: renderTableBody(
-          props.data?.meta ?? ({fields: {}, units: {}} as EventsResults<F>['meta']),
-          {location, organization, projects, view: domainViewFilters?.view}
-        ),
+        renderBodyCell: renderTableBody(props.data?.meta ?? {fields: {}, units: {}}, {
+          location,
+          organization,
+          projects,
+          view: domainViewFilters?.view,
+        }),
       }}
     />
   );

@@ -47,6 +47,33 @@ class Artifact(BaseModel):
         extra = "ignore"
 
 
+class DiffLine(BaseModel):
+    """A single line in a diff hunk."""
+
+    diff_line_no: int | None = None
+    source_line_no: int | None = None
+    target_line_no: int | None = None
+    line_type: Literal["+", "-", " "]
+    value: str
+
+    class Config:
+        extra = "ignore"
+
+
+class Hunk(BaseModel):
+    """A hunk in a file patch."""
+
+    source_start: int
+    source_length: int
+    target_start: int
+    target_length: int
+    section_header: str
+    lines: list[DiffLine]
+
+    class Config:
+        extra = "ignore"
+
+
 class FilePatch(BaseModel):
     """A file patch from code editing."""
 
@@ -54,9 +81,12 @@ class FilePatch(BaseModel):
     type: Literal["A", "M", "D"]  # A=add, M=modify, D=delete
     added: int
     removed: int
+    source_file: str = ""
+    target_file: str = ""
+    hunks: list[Hunk] = []
 
     class Config:
-        extra = "allow"
+        extra = "ignore"
 
 
 class ExplorerFilePatch(BaseModel):
@@ -224,6 +254,8 @@ class SeerRunState(BaseModel):
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
+    # exclude=True omits these from .dict() so they're not exposed via the public
+    # chat API. Internal callers (autofix, night shift) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     coding_agents: dict[str, ExplorerCodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)

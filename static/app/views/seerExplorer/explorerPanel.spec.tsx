@@ -215,6 +215,8 @@ describe('ExplorerPanel', () => {
           createPR: jest.fn(),
           overrideCtxEngEnable: true,
           setOverrideCtxEngEnable: jest.fn(),
+          overrideCodeModeEnable: true,
+          setOverrideCodeModeEnable: jest.fn(),
         });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
@@ -277,6 +279,8 @@ describe('ExplorerPanel', () => {
         createPR: jest.fn(),
         overrideCtxEngEnable: true,
         setOverrideCtxEngEnable: jest.fn(),
+        overrideCodeModeEnable: false,
+        setOverrideCodeModeEnable: jest.fn(),
       });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});

@@ -263,7 +263,7 @@ export function TicketRuleModal({
         fieldOptionsCache[fieldName] = choices;
       }
 
-      onSubmitAction(cleanData(values) as Record<string, string>, fieldOptionsCache);
+      onSubmitAction(cleanData(values), fieldOptionsCache);
       addSuccessMessage(t('Changes applied.'));
       closeModal();
     },
