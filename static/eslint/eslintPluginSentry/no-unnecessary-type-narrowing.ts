@@ -20,6 +20,22 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
     const parserServices = getParserServices(context);
     const checker = parserServices.program.getTypeChecker();
 
+    function typeContainsAny(type: ts.Type): boolean {
+      if ((type.flags & ts.TypeFlags.Any) !== 0) {
+        return true;
+      }
+      // Check type arguments (e.g. Promise<any>, Array<any>)
+      const typeArgs = checker.getTypeArguments(type as ts.TypeReference);
+      if (typeArgs?.length) {
+        return typeArgs.some(arg => typeContainsAny(arg));
+      }
+      // Check union/intersection members
+      if (type.isUnionOrIntersection()) {
+        return type.types.some(t => typeContainsAny(t));
+      }
+      return false;
+    }
+
     function isArgumentToGenericCall(node: TSESTree.TSAsExpression): boolean {
       // Walk up: the assertion might be inside an object literal property
       // that is an argument to a call, e.g. fn({ x: val as T })
@@ -106,10 +122,29 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        // Skip assertions that narrow away from `any` — these add type safety
+        // Skip assertions that narrow away from `any` — these add type safety.
+        // Check recursively through type arguments to catch cases like
+        // `Promise<any>` being asserted to `Promise<TableData>`.
         const originalTsNode = parserServices.esTreeNodeToTSNodeMap.get(node.expression);
         const originalType = checker.getTypeAtLocation(originalTsNode);
-        if ((originalType.flags & ts.TypeFlags.Any) !== 0) {
+        if (typeContainsAny(originalType)) {
+          return;
+        }
+
+        // Skip assertions that narrow a primitive to literal types — the
+        // assertion provides precision the type system cannot infer on its own
+        // (e.g. template literals produce `string`, but `as 'a' | 'b'` narrows
+        // to specific values).
+        const primitiveFlags =
+          ts.TypeFlags.String |
+          ts.TypeFlags.Number |
+          ts.TypeFlags.Boolean |
+          ts.TypeFlags.BigInt;
+        if (
+          (originalType.flags & primitiveFlags) !== 0 &&
+          checker.isTypeAssignableTo(assertedType, originalType) &&
+          !checker.isTypeAssignableTo(originalType, assertedType)
+        ) {
           return;
         }
 

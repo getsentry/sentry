@@ -182,6 +182,33 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       filename: 'valid.ts',
     },
     {
+      name: 'narrowing from Promise<any> — adds type safety',
+      code: `
+        declare function accept(x: Promise<string[]>): void;
+        declare function fetchData(): Promise<any>;
+        accept(fetchData() as Promise<string[]>);
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'string narrowed to string literal union',
+      code: `
+        declare function accept(x: string): void;
+        declare const value: string;
+        accept(value as 'a' | 'b' | 'c');
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'number narrowed to numeric literal union',
+      code: `
+        declare function accept(x: number): void;
+        declare const value: number;
+        accept(value as 1 | 2 | 3);
+      `,
+      filename: 'valid.ts',
+    },
+    {
       name: 'assertion in assignment — narrows union (dom pattern)',
       code: `
         declare let dom: HTMLDivElement | Text | null;
