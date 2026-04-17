@@ -119,7 +119,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Wait for Snuba bootstrap
         if: env.XDIST_PER_WORKER_SNUBA == '1'
