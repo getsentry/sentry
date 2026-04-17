@@ -1,4 +1,5 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import type {Simplify} from 'type-fest';
 
 import {fetchMutation, type UseMutationOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,11 +22,11 @@ export function useCreateGroupSearchView(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateGroupSearchViewData) =>
+    mutationFn: (data: Simplify<CreateGroupSearchViewData>) =>
       fetchMutation<GroupSearchView>({
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'POST',
-        data: {...data},
+        data,
       }),
     ...options,
     onSuccess: (data, variables, onMutateResult, context) => {
