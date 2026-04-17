@@ -130,9 +130,11 @@ class FetchCommitsTest(TestCase):
         Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
 
-    @patch("sentry.integrations.github.repository.GitHubRepositoryProvider.compare_commits")
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
     def test_github_compare_commits_cache_flag_disabled(
-        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+        self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
         cache.clear()
@@ -140,7 +142,9 @@ class FetchCommitsTest(TestCase):
         _, repo, previous_release, first_release, second_release, refs = (
             self._setup_github_compare_commits_cache_context()
         )
-        mock_compare_commits.return_value = self._github_compare_commits_result(repo.name, "b" * 40)
+        mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
+            repo.name, "b" * 40
+        )
 
         with self.tasks():
             fetch_commits(
@@ -156,11 +160,13 @@ class FetchCommitsTest(TestCase):
                 prev_release_id=previous_release.id,
             )
 
-        assert mock_compare_commits.call_count == 2
+        assert mock_fetch_commits_for_compare_range.call_count == 2
 
-    @patch("sentry.integrations.github.repository.GitHubRepositoryProvider.compare_commits")
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
     def test_github_compare_commits_cache_flag_enabled(
-        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+        self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
         cache.clear()
@@ -168,7 +174,9 @@ class FetchCommitsTest(TestCase):
         org, repo, previous_release, first_release, second_release, refs = (
             self._setup_github_compare_commits_cache_context()
         )
-        mock_compare_commits.return_value = self._github_compare_commits_result(repo.name, "b" * 40)
+        mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
+            repo.name, "b" * 40
+        )
 
         with self.feature(
             {"organizations:integrations-github-fetch-commits-compare-cache": [org.slug]}
@@ -187,11 +195,13 @@ class FetchCommitsTest(TestCase):
                     prev_release_id=previous_release.id,
                 )
 
-        assert mock_compare_commits.call_count == 1
+        assert mock_fetch_commits_for_compare_range.call_count == 1
 
-    @patch("sentry.integrations.github.repository.GitHubRepositoryProvider.compare_commits")
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
     def test_github_compare_commits_cache_key_variance_on_end_sha(
-        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+        self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
         cache.clear()
@@ -200,7 +210,7 @@ class FetchCommitsTest(TestCase):
             self._setup_github_compare_commits_cache_context()
         )
         refs_second = [{"repository": repo.name, "commit": "c" * 40}]
-        mock_compare_commits.side_effect = [
+        mock_fetch_commits_for_compare_range.side_effect = [
             self._github_compare_commits_result(repo.name, "b" * 40),
             self._github_compare_commits_result(repo.name, "c" * 40),
         ]
@@ -222,12 +232,14 @@ class FetchCommitsTest(TestCase):
                     prev_release_id=previous_release.id,
                 )
 
-        assert mock_compare_commits.call_count == 2
+        assert mock_fetch_commits_for_compare_range.call_count == 2
 
-    @patch("sentry.integrations.github.repository.GitHubRepositoryProvider.compare_commits")
+    @patch(
+        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
+    )
     def test_github_compare_commits_cache_ttl(
         self,
-        mock_compare_commits: MagicMock,
+        mock_fetch_commits_for_compare_range: MagicMock,
         mock_record: MagicMock,
     ) -> None:
         self.login_as(user=self.user)
@@ -236,7 +248,9 @@ class FetchCommitsTest(TestCase):
         org, repo, previous_release, first_release, _, refs = (
             self._setup_github_compare_commits_cache_context()
         )
-        mock_compare_commits.return_value = self._github_compare_commits_result(repo.name, "b" * 40)
+        mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
+            repo.name, "b" * 40
+        )
 
         with self.feature(
             {"organizations:integrations-github-fetch-commits-compare-cache": [org.slug]}

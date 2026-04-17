@@ -35,9 +35,9 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useQuery} from 'sentry/utils/queryClient';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -213,12 +213,14 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
-      const projectSettingsQueryKey: ApiQueryKey = [
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }),
-      ];
-      setApiQueryData(queryClient, projectSettingsQueryKey, resp);
+      const projectSettingsQueryKey = makeDetailedProjectQueryKey({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+      });
+      queryClient.setQueryData<ApiResponse<Project>>(projectSettingsQueryKey, prev => ({
+        headers: prev?.headers ?? {},
+        json: resp,
+      }));
       ProjectsStore.onUpdateSuccess(resp);
     },
     [project.slug, queryClient, organization.slug]

@@ -1,49 +1,17 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
-import type {PipelineStepProps} from './types';
+import {createMakeStepProps, dispatchPipelineMessage, setupMockPopup} from './testUtils';
 
 const GitHubOAuthLoginStep = githubIntegrationPipeline.steps[0].component;
 const OrgSelectionStep = githubIntegrationPipeline.steps[1].component;
 
-function makeStepProps<D, A>(
-  overrides: Partial<PipelineStepProps<D, A>> & {stepData: D}
-): PipelineStepProps<D, A> {
-  return {
-    advance: jest.fn(),
-    advanceError: null,
-    isAdvancing: false,
-    stepIndex: 0,
-    totalSteps: 2,
-    ...overrides,
-  };
-}
+const makeStepProps = createMakeStepProps({totalSteps: 2});
 
 let mockPopup: Window;
 
-function dispatchPipelineMessage({
-  data,
-  origin = document.location.origin,
-  source = mockPopup,
-}: {
-  data: Record<string, string>;
-  origin?: string;
-  source?: Window | MessageEventSource | null;
-}) {
-  act(() => {
-    const event = new MessageEvent('message', {data, origin});
-    Object.defineProperty(event, 'source', {value: source});
-    window.dispatchEvent(event);
-  });
-}
-
 beforeEach(() => {
-  mockPopup = {
-    closed: false,
-    close: jest.fn(),
-    focus: jest.fn(),
-  } as unknown as Window;
-  jest.spyOn(window, 'open').mockReturnValue(mockPopup);
+  mockPopup = setupMockPopup();
 });
 
 afterEach(() => {
@@ -54,7 +22,9 @@ describe('GitHubOAuthLoginStep', () => {
   it('renders the OAuth login step for GitHub', () => {
     render(
       <GitHubOAuthLoginStep
-        {...makeStepProps({stepData: {oauthUrl: 'https://github.com/login/oauth'}})}
+        {...makeStepProps({
+          stepData: {oauthUrl: 'https://github.com/login/oauth'},
+        })}
       />
     );
 
@@ -75,6 +45,7 @@ describe('GitHubOAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitHub'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {
         _pipeline_source: 'sentry-pipeline',
         code: 'abc123',
@@ -234,6 +205,7 @@ describe('OrgSelectionStep', () => {
     );
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {
         _pipeline_source: 'sentry-pipeline',
         installation_id: 'new-inst-99',
@@ -268,13 +240,7 @@ describe('OrgSelectionStep', () => {
   });
 
   it('disables install button when installAppUrl is not provided', () => {
-    render(
-      <OrgSelectionStep
-        {...makeStepProps({
-          stepData: {installationInfo: []},
-        })}
-      />
-    );
+    render(<OrgSelectionStep {...makeStepProps({stepData: {installationInfo: []}})} />);
 
     expect(screen.getByRole('button', {name: 'Install GitHub App'})).toBeDisabled();
   });

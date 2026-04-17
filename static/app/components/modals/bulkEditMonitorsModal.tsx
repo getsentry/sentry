@@ -185,7 +185,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
           emptyMessage={t('No monitors found')}
         >
           {isPending || !monitorList
-            ? [...new Array(NUM_PLACEHOLDER_ROWS)].map((_, i) => (
+            ? [...Array.from({length: NUM_PLACEHOLDER_ROWS})].map((_, i) => (
                 <RowPlaceholder key={i}>
                   <Placeholder height="20px" />
                 </RowPlaceholder>

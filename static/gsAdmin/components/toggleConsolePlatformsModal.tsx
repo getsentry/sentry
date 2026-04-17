@@ -181,12 +181,12 @@ function ToggleConsolePlatformsModal({
         method: 'PUT',
         url: `/organizations/${organization.slug}/`,
         data: {
-          enabledConsolePlatforms: Object.keys(platforms).reduce((acc, key) => {
+          enabledConsolePlatforms: Object.keys(platforms).reduce<string[]>((acc, key) => {
             if (platforms[key]) {
               acc.push(key);
             }
             return acc;
-          }, [] as string[]),
+          }, []),
           consoleSdkInviteQuota: Number(newConsoleSdkInviteQuota),
         },
       });
@@ -237,7 +237,7 @@ function ToggleConsolePlatformsModal({
 
   return (
     <Form
-      onSubmit={data => handleSubmit(data as Record<string, boolean | number>)}
+      onSubmit={data => handleSubmit(data)}
       onCancel={closeModal}
       saveOnBlur={false}
       initialData={{

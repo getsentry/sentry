@@ -1,49 +1,17 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {vstsIntegrationPipeline} from './pipelineIntegrationVsts';
-import type {PipelineStepProps} from './types';
+import {createMakeStepProps, dispatchPipelineMessage, setupMockPopup} from './testUtils';
 
 const VstsOAuthLoginStep = vstsIntegrationPipeline.steps[0].component;
 const VstsAccountSelectionStep = vstsIntegrationPipeline.steps[1].component;
 
-function makeStepProps<D, A>(
-  overrides: Partial<PipelineStepProps<D, A>> & {stepData: D}
-): PipelineStepProps<D, A> {
-  return {
-    advance: jest.fn(),
-    advanceError: null,
-    isAdvancing: false,
-    stepIndex: 0,
-    totalSteps: 2,
-    ...overrides,
-  };
-}
+const makeStepProps = createMakeStepProps({totalSteps: 2});
 
 let mockPopup: Window;
 
-function dispatchPipelineMessage({
-  data,
-  origin = document.location.origin,
-  source = mockPopup,
-}: {
-  data: Record<string, string>;
-  origin?: string;
-  source?: Window | MessageEventSource | null;
-}) {
-  act(() => {
-    const event = new MessageEvent('message', {data, origin});
-    Object.defineProperty(event, 'source', {value: source});
-    window.dispatchEvent(event);
-  });
-}
-
 beforeEach(() => {
-  mockPopup = {
-    closed: false,
-    close: jest.fn(),
-    focus: jest.fn(),
-  } as unknown as Window;
-  jest.spyOn(window, 'open').mockReturnValue(mockPopup);
+  mockPopup = setupMockPopup();
 });
 
 afterEach(() => {
@@ -83,6 +51,7 @@ describe('VstsOAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize Azure DevOps'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {
         _pipeline_source: 'sentry-pipeline',
         code: 'auth-code-123',

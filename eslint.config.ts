@@ -603,6 +603,7 @@ export default typescript.config([
           // Customization
           '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
+          '@sentry/no-unnecessary-type-narrowing': 'error',
           '@typescript-eslint/consistent-type-exports': 'error',
           '@typescript-eslint/switch-exhaustiveness-check': [
             'error',
@@ -634,7 +635,6 @@ export default typescript.config([
           '@typescript-eslint/prefer-find': 'off',
           '@typescript-eslint/prefer-includes': 'off',
           '@typescript-eslint/prefer-nullish-coalescing': 'off',
-          '@typescript-eslint/prefer-reduce-type-parameter': 'off',
           '@typescript-eslint/prefer-regexp-exec': 'off',
           '@typescript-eslint/prefer-return-this-type': 'off',
           '@typescript-eslint/prefer-string-starts-ends-with': 'off',

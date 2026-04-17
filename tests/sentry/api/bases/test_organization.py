@@ -46,6 +46,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.security.orgauthtoken_token import hash_token
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 
 class MockSuperUser:
@@ -414,6 +415,20 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
+    def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
+        request = drf_request_from_request(self.build_request(user=self.owner))
+        request._request.organization = None
+
+        with viewer_context_scope(ViewerContext(user_id=self.owner.id)):
+            self.endpoint.convert_args(request, self.org.slug)
+            ctx = get_viewer_context()
+
+        assert ctx is not None
+        assert ctx.user_id == self.owner.id
+        assert ctx.organization_id == self.org.id
 
 
 class GetProjectIdsTest(BaseOrganizationEndpointTest):

@@ -38,6 +38,7 @@ def format_snapshot_status_check_messages(
     total_removed = 0
     total_renamed = 0
     total_unchanged = 0
+    total_skipped = 0
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -58,6 +59,7 @@ def format_snapshot_status_check_messages(
             total_removed += comparison.images_removed
             total_renamed += comparison.images_renamed
             total_unchanged += comparison.images_unchanged
+            total_skipped += comparison.images_skipped
 
     if overall_status == StatusCheckStatus.IN_PROGRESS:
         subtitle = str(_("Comparing snapshots..."))
@@ -111,6 +113,17 @@ def format_snapshot_status_check_messages(
                 % {"count": total_unchanged}
             )
         subtitle = ", ".join(str(p) for p in parts)
+
+    if total_skipped > 0 and overall_status != StatusCheckStatus.IN_PROGRESS:
+        skipped_text = str(
+            ngettext(
+                "%(count)d skipped",
+                "%(count)d skipped",
+                total_skipped,
+            )
+            % {"count": total_skipped}
+        )
+        subtitle = f"{subtitle}, {skipped_text}"
 
     summary = _format_snapshot_summary(
         artifacts,
@@ -231,19 +244,19 @@ def _format_snapshot_summary(
 
         metrics = snapshot_metrics_map.get(artifact.id)
         if not metrics:
-            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         comparison = comparisons_map.get(metrics.id)
         if not comparison:
-            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         if comparison.state in (
             PreprodSnapshotComparison.State.PENDING,
             PreprodSnapshotComparison.State.PROCESSING,
         ):
-            table_rows.append(f"| {name} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         else:
             base_artifact = base_artifact_map.get(artifact.id)
             artifact_url = (
@@ -270,6 +283,7 @@ def _format_snapshot_summary(
                 f" | {_section_cell(comparison.images_changed, 'changed', artifact_url)}"
                 f" | {_section_cell(comparison.images_renamed, 'renamed', artifact_url)}"
                 f" | {_section_cell(comparison.images_unchanged, 'unchanged', artifact_url)}"
+                f" | {_section_cell(comparison.images_skipped, 'skipped', artifact_url)}"
                 f" | {status} |"
             )
 

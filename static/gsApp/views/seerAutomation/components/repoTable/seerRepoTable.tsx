@@ -132,33 +132,34 @@ export function SeerRepoTable() {
     isFetchingNextPage,
   } = result;
 
-  const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
-    onSuccess: mutations => {
-      const mutationMap = new Map(mutations.map(m => [m.id, m]));
-      queryClient.setQueryData(queryOptions.queryKey, prev => {
-        if (!prev) {
-          return prev;
-        }
-        return {
-          ...prev,
-          pages: prev.pages.map(page => ({
-            ...page,
-            json: page.json.map(repo => mutationMap.get(repo.id) ?? repo),
-          })),
-        };
-      });
-    },
-    onSettled: mutations => {
-      queryClient.invalidateQueries({
-        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
-      });
-      (mutations ?? []).forEach(mutation => {
-        queryClient.invalidateQueries({
-          queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+  const {mutate: mutateRepositorySettings, mutateAsync: mutateRepositorySettingsAsync} =
+    useBulkUpdateRepositorySettings({
+      onSuccess: mutations => {
+        const mutationMap = new Map(mutations.map(m => [m.id, m]));
+        queryClient.setQueryData(queryOptions.queryKey, prev => {
+          if (!prev) {
+            return prev;
+          }
+          return {
+            ...prev,
+            pages: prev.pages.map(page => ({
+              ...page,
+              json: page.json.map(repo => mutationMap.get(repo.id) ?? repo),
+            })),
+          };
         });
-      });
-    },
-  });
+      },
+      onSettled: mutations => {
+        queryClient.invalidateQueries({
+          queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+        });
+        (mutations ?? []).forEach(mutation => {
+          queryClient.invalidateQueries({
+            queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+          });
+        });
+      },
+    });
 
   const knownIds = useMemo(
     () => repositories?.map(repository => repository.id) ?? [],
@@ -207,8 +208,9 @@ export function SeerRepoTable() {
             gridColumns={GRID_COLUMNS}
             isFetchingNextPage={isFetchingNextPage}
             isPending={isPending}
-            mutateRepositorySettings={mutateRepositorySettings}
+            mutateRepositorySettings={mutateRepositorySettingsAsync}
             onSortClick={setSort}
+            repositories={repositories ?? []}
             sort={sort}
           />
           {isPending ? (

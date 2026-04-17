@@ -35,8 +35,8 @@ class BaseRelocationTransfer(DefaultFieldsModel):
 
     relocation_uuid = UUIDField()
     org_slug = models.CharField(null=False)
-    requesting_region = models.CharField(null=False)
-    exporting_region = models.CharField(null=False)
+    requesting_cell = models.CharField(null=False, db_column="requesting_region")
+    exporting_cell = models.CharField(null=False, db_column="exporting_region")
     state = models.CharField(
         choices=RelocationTransferState, default=RelocationTransferState.Request
     )

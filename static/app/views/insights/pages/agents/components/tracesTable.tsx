@@ -212,26 +212,13 @@ export function TracesTable({
       return {};
     }
     // sum up the error spans for a trace
-    const errors = traceErrorRequest.data?.reduce(
-      (acc, span) => {
-        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const errors = traceErrorRequest.data?.reduce<Record<string, number>>((acc, span) => {
+      acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
+      return acc;
+    }, {});
 
-    return spansRequest.data.reduce(
-      (acc, span) => {
-        acc[span.trace] = {
-          llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-          toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
-          totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
-          totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
-          totalErrors: Number(errors[span.trace] ?? 0),
-        };
-        return acc;
-      },
-      {} as Record<
+    return spansRequest.data.reduce<
+      Record<
         string,
         {
           llmCalls: number;
@@ -241,7 +228,16 @@ export function TracesTable({
           totalTokens: number;
         }
       >
-    );
+    >((acc, span) => {
+      acc[span.trace] = {
+        llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
+        toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
+        totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
+        totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
+        totalErrors: Number(errors[span.trace] ?? 0),
+      };
+      return acc;
+    }, {});
   }, [spansRequest.data, traceErrorRequest.data]);
 
   const tableData = useMemo(() => {

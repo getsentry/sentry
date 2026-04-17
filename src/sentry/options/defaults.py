@@ -1377,7 +1377,7 @@ register(
 )
 register(
     "seer.night_shift.issues_per_org",
-    default=5,
+    default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
