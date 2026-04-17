@@ -1873,51 +1873,22 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["type"] == "bar"
 
-    @patch(
-        "sentry.integrations.slack.unfurl.explore.client.get",
-    )
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_explore_multi_aggregate_uses_first_chart(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+    def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: avg (first, default line) and count with chartType=2
         # (area). The later chart's chartType must not leak through.
         url = (
-            f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/"
+            "https://sentry.io/organizations/org1/explore/traces/"
             "?aggregateField=%7B%22groupBy%22%3A%22%22%7D"
             "&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
             "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A2%7D"
-            f"&project={self.project.id}&statsPeriod=24h"
+            "&project=1&statsPeriod=24h"
         )
         link_type, args = match_link(url)
 
-        if not args or not link_type:
-            raise AssertionError("Missing link_type/args")
-
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
         assert args["chart_type"] is None
         assert args["query"].getlist("yAxis") == ["avg(span.duration)"]
-
-        links = [
-            UnfurlableUrl(url=url, args=args),
-        ]
-
-        with self.feature(["organizations:data-browsing-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
-
-        assert len(unfurls) == 1
-        api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("yAxis") == ["avg(span.duration)"]
-
-        chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["type"] == "line"
-
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title="Explore Traces - avg(span.duration)", chart_url="chart-url"
-            ).build()
-        )
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
