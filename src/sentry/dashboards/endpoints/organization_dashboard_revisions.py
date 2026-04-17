@@ -19,11 +19,11 @@ from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
 
 
-def _serialize_revisions(revisions: list[DashboardRevision], user: Any) -> list[dict[str, Any]]:
+def _serialize_revisions(revisions: list[DashboardRevision]) -> list[dict[str, Any]]:
     user_ids = [r.created_by_id for r in revisions if r.created_by_id is not None]
     users_by_id = {
         u["id"]: {"id": u["id"], "name": u["name"], "email": u["email"]}
-        for u in user_service.serialize_many(filter={"user_ids": user_ids}, as_user=user)
+        for u in user_service.serialize_many(filter={"user_ids": user_ids})
     }
     return [
         {
@@ -66,5 +66,5 @@ class OrganizationDashboardRevisionsEndpoint(OrganizationDashboardBase):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda results: _serialize_revisions(results, request.user),
+            on_results=_serialize_revisions,
         )
