@@ -169,7 +169,7 @@ export function getRadius(
 
   if (radius.length < 3) {
     // This can only be a single radius value, so we can resolve it directly.
-    return resolveRadius(radius as RadiusSize, theme) as string;
+    return resolveRadius(radius as RadiusSize, theme);
   }
 
   return radius
@@ -189,7 +189,7 @@ export function getSpacing(
 
   if (spacing.length < 3) {
     // This can only be a single spacing value, so we can resolve it directly.
-    return resolveSpacing(spacing as SpaceSize, theme) as string;
+    return resolveSpacing(spacing as SpaceSize, theme);
   }
 
   return spacing

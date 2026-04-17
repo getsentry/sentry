@@ -19,9 +19,7 @@ import {
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
-  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -536,7 +534,7 @@ export function useExplorerAutofix(
           waitingForResponse
         );
       },
-    } as UseApiQueryOptions<ExplorerAutofixResponse, RequestError>
+    }
   );
 
   const runState = apiData?.autofix ?? null;

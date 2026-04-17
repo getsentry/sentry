@@ -11,7 +11,6 @@ import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
@@ -61,16 +60,16 @@ export function useFetchAgentOptions({
   return useQuery({
     ...organizationIntegrationsCodingAgents(organization),
     enabled,
-    select: data => {
+    select: (data): Array<{label: string; value: PreferredAgent}> => {
       return [
-        {value: 'seer', label: t('Seer Agent')} as SelectValue<PreferredAgent>,
+        {value: 'seer', label: t('Seer Agent')},
         ...(data.json.integrations ?? [])
           .filter(integration => integration.id)
           .map(integration => ({
             value: integration,
             label: integration.name,
           })),
-      ] as const;
+      ];
     },
   });
 }

@@ -153,7 +153,7 @@ function CloudFormationStep({
 }: PipelineStepProps<CloudFormationStepData, CloudFormationAdvanceData>) {
   const organization = useOrganization();
   const [showExternalId, setShowExternalId] = useState(false);
-  const [defaultExternalId] = useState(() => crypto.randomUUID() as string);
+  const [defaultExternalId] = useState<string>(() => crypto.randomUUID());
 
   const cloudFormationParams = new URLSearchParams({
     templateURL: stepData.templateUrl,

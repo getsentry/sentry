@@ -185,7 +185,7 @@ function useAbuseMarkAreaSeries(
           ] as [{xAxis: string}, {xAxis: string}],
         ],
       }),
-    })) as SeriesItem[];
+    }));
   }, [regions, intervalMs, theme]);
 }
 

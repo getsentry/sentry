@@ -275,7 +275,7 @@ export default function SentryApplicationDetails() {
 
   const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
     const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
-    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
+    const updatedTokens = tokens.concat(newToken);
     setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
     setNewTokens(updatedNewTokens);
   };

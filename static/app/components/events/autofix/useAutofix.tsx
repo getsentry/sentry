@@ -25,7 +25,6 @@ import {
   useMutation,
   useQueryClient,
   type ApiQueryKey,
-  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -247,7 +246,7 @@ export const useAiAutofix = (
         return false;
       },
       refetchOnWindowFocus: 'always',
-    } as UseApiQueryOptions<AutofixResponse, RequestError>
+    }
   );
 
   const triggerAutofix = useCallback(
