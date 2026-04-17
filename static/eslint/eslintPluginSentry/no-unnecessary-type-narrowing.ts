@@ -102,6 +102,23 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
+        // Skip assertions in variable assignments and declarations — narrowing
+        // in assignments (e.g. `dom = dom as HTMLDivElement`) is intentional
+        // and out of scope for this rule.
+        if (
+          node.parent?.type === 'VariableDeclarator' ||
+          node.parent?.type === 'AssignmentExpression'
+        ) {
+          return;
+        }
+
+        // Skip assertions inside spread elements — the spread operator requires
+        // an object type (TS2698), so the assertion may be structurally necessary
+        // even when the original type is assignable to the contextual type.
+        if (node.parent?.type === 'SpreadElement') {
+          return;
+        }
+
         // Skip assertions that are arguments to generic function calls without
         // explicit type arguments — the assertion participates in type inference
         // for the generic, so removing it would change the inferred types.

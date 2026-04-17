@@ -164,6 +164,22 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       `,
       filename: 'valid.ts',
     },
+    {
+      name: 'assertion in variable declaration — excluded from rule scope',
+      code: `
+        declare const value: string | number;
+        const x: string | number = value as string;
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'assertion in assignment — narrows union (dom pattern)',
+      code: `
+        declare let dom: HTMLDivElement | Text | null;
+        dom = dom as HTMLDivElement;
+      `,
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
@@ -206,19 +222,6 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
         declare function accept(x: string | null | undefined): void;
         declare const value: string | null | undefined;
         accept(value);
-      `,
-      errors: [{messageId: 'unnecessary' as const}],
-      filename: 'invalid.ts',
-    },
-    {
-      name: 'unnecessary narrowing — variable with type annotation',
-      code: `
-        declare const value: string | number;
-        const x: string | number = value as string;
-      `,
-      output: `
-        declare const value: string | number;
-        const x: string | number = value;
       `,
       errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
