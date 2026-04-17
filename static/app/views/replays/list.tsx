@@ -113,7 +113,7 @@ function ReplaysHeader({
   }
 
   return (
-    <Layout.Header unified data-test-id="replays-inline-header">
+    <Layout.Header unified>
       <Layout.HeaderContent unified>
         {hasSavedQueryTitle ? (
           <SentryDocumentTitle
