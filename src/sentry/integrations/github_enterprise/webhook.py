@@ -301,6 +301,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
+        try:
+            webhook_type = GithubWebhookType(github_event)
+        except ValueError:
+            return HttpResponse(status=204)
+
         event_handler = handler()
 
         # Create a new transaction for each webhook event to ensure separate traces
@@ -317,7 +322,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
-                event_handler(event, host=host, github_event=GithubWebhookType(github_event))
+                event_handler(event, host=host, github_event=webhook_type)
 
         # Publish the request to the unified SCM (source control management) subscription's
         # platform. This is a replacement for the handlers defined above. Handlers should be
