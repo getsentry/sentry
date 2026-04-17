@@ -276,11 +276,20 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences(organization, list(project_map))
 
-    projects = [
+    candidates = [
         project_map[pid]
         for pid, pref in preferences.items()
         if pref is not None
         and pref.repositories
         and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+    ]
+    if not candidates:
+        return [], preferences
+
+    flag_result = features.batch_has(["projects:seer-night-shift"], projects=candidates)
+    projects = [
+        p
+        for p in candidates
+        if (flag_result or {}).get(f"project:{p.id}", {}).get("projects:seer-night-shift", False)
     ]
     return projects, preferences

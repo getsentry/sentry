@@ -211,7 +211,7 @@ function AgentNameForm({
                 </Alert>
               ) : (
                 <field.Select
-                  value={field.state.value as CodingAgentIntegration | 'seer'}
+                  value={field.state.value}
                   onChange={field.handleChange}
                   disabled={!canWrite}
                   options={codingAgentSelectOptions.data}

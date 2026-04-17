@@ -22,17 +22,14 @@ function mergeTasks({
   serverTasks: OnboardingTaskStatus[];
   supportedTasks: OnboardingTask[];
 }): OnboardingTask[] {
-  return supportedTasks.map(
-    supportedTask =>
-      ({
-        ...supportedTask,
-        ...serverTasks.find(
-          serverTask =>
-            serverTask.task === supportedTask.task ||
-            serverTask.task === supportedTask.serverTask
-        ),
-      }) as OnboardingTask
-  );
+  return supportedTasks.map(supportedTask => ({
+    ...supportedTask,
+    ...serverTasks.find(
+      serverTask =>
+        serverTask.task === supportedTask.task ||
+        serverTask.task === supportedTask.serverTask
+    ),
+  }));
 }
 
 // This hook polls the onboarding tasks endpoint every second until all supported tasks are complete and

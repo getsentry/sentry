@@ -122,10 +122,34 @@ class TestGetEligibleProjects(TestCase):
         # No connected repo
         self.create_project(organization=org)
 
-        with self.feature("organizations:seer-project-settings-read-from-sentry"):
+        with self.feature(
+            [
+                "organizations:seer-project-settings-read-from-sentry",
+                "projects:seer-night-shift",
+            ]
+        ):
             projects, preferences = _get_eligible_projects(org)
             assert projects == [eligible]
             assert eligible.id in preferences
+
+    def test_filters_by_project_flag_disabled(self) -> None:
+        org = self.create_organization()
+
+        project = self.create_project(organization=org)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        repo = self.create_repo(project=project, provider="github", name="owner/repo")
+        SeerProjectRepository.objects.create(project=project, repository=repo)
+
+        with self.feature(
+            {
+                "organizations:seer-project-settings-read-from-sentry": True,
+                "projects:seer-night-shift": False,
+            }
+        ):
+            projects, _ = _get_eligible_projects(org)
+            assert projects == []
 
 
 @django_db_all
@@ -161,7 +185,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         self.create_project(organization=org)
 
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
             run_night_shift_for_org(org.id)
@@ -191,7 +220,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         fake_client = FakeExplorerClient([high_fix.id, low_fix.id])
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
                 return_value=fake_client,
@@ -231,7 +265,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         fake_client = FakeExplorerClient([high_group.id, low_group.id])
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
                 return_value=fake_client,
@@ -254,7 +293,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         )
 
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
                 side_effect=RuntimeError("boom"),
@@ -277,7 +321,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         fake_client = FakeExplorerClient([group.id], action="autofix")
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
                 return_value=fake_client,
@@ -303,7 +352,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         fake_client = FakeExplorerClient([group.id], action="autofix")
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
                 return_value=fake_client,
@@ -329,7 +383,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         fake_client = FakeExplorerClient([group.id], action="root_cause_only")
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
                 return_value=fake_client,
@@ -350,7 +409,12 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         )
 
         with (
-            self.feature("organizations:seer-project-settings-read-from-sentry"),
+            self.feature(
+                [
+                    "organizations:seer-project-settings-read-from-sentry",
+                    "projects:seer-night-shift",
+                ]
+            ),
             patch(
                 "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
                 return_value=([], None),

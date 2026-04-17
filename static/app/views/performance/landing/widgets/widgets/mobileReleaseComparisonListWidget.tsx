@@ -14,7 +14,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -270,7 +270,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
             return {
               name: datum.name,
               value: datum.value,
-            } as SeriesDataUnit;
+            };
           }) ?? [];
 
         const colors = theme.chart.getColorPalette(3);
