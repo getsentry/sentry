@@ -473,7 +473,7 @@ export function BlockComponent({
                           )}
                         </ToolCallTextContainer>
                         {showTodoList && (
-                          <TodoListContent text={todosToMarkdown(block.todos!)} />
+                          <TodoListContent text={todosToMarkdown(block.todos)} />
                         )}
                       </Stack>
                     );
