@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import logging
 
-from sentry.seer.models import SeerApiError
+from sentry import features
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.seer.autofix.utils import bulk_read_preferences, bulk_set_project_preferences
+from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
 from sentry.seer.signed_seer_api import (
     BulkRemoveRepositoriesRequest,
     RemoveRepositoryRequest,
@@ -112,3 +116,73 @@ def bulk_cleanup_seer_repository_preferences(
             },
         )
         raise
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.cleanup_seer_automation_handoff_for_integration",
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * 10,
+    silo_mode=SiloMode.CELL,
+)
+def cleanup_seer_automation_handoff_for_integration(
+    organization_id: int, integration_id: int
+) -> None:
+    """
+    Clear automation_handoff from all project preferences in an organization that
+    reference the given integration.
+
+    Dispatched when an OrganizationIntegration is deleted so handoff references
+    don't dangle in project options or Seer's preference DB.
+    """
+    project_handoff_integration_ids = ProjectOption.objects.filter(
+        project__organization_id=organization_id,
+        key="sentry:seer_automation_handoff_integration_id",
+    ).values_list("project_id", "value")
+
+    affected_project_ids = [
+        project_id
+        for project_id, handoff_integration_id in project_handoff_integration_ids
+        if handoff_integration_id == integration_id
+    ]
+    if not affected_project_ids:
+        return
+
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return
+
+    try:
+        preferences_by_project_id = bulk_read_preferences(organization, affected_project_ids)
+    except (SeerApiError, SeerApiResponseValidationError):
+        logger.exception(
+            "cleanup_seer_automation_handoff_for_integration.failed",
+            extra={"organization_id": organization_id, "integration_id": integration_id},
+        )
+        raise
+
+    updated_preferences = [
+        preference.copy(update={"automation_handoff": None}).dict()
+        for preference in preferences_by_project_id.values()
+        if preference is not None
+    ]
+
+    try:
+        bulk_set_project_preferences(organization_id, updated_preferences)
+    except (SeerApiError, SeerApiResponseValidationError):
+        logger.exception(
+            "cleanup_seer_automation_handoff_for_integration.failed",
+            extra={"organization_id": organization_id, "integration_id": integration_id},
+        )
+        raise
+
+    if features.has("organizations:seer-project-settings-dual-write", organization):
+        ProjectOption.objects.filter(
+            project_id__in=affected_project_ids,
+            key__in={
+                "sentry:seer_automation_handoff_integration_id",
+                "sentry:seer_automation_handoff_point",
+                "sentry:seer_automation_handoff_target",
+                "sentry:seer_automation_handoff_auto_create_pr",
+            },
+        ).delete()

@@ -4,6 +4,7 @@ from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
 from sentry.organizations.services.organization import organization_service
+from sentry.tasks.seer.cleanup import cleanup_seer_automation_handoff_for_integration
 from sentry.types.cell import CellMappingNotFound
 from sentry.workflow_engine.service.action import action_service
 
@@ -40,6 +41,13 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
                     integration_id=instance.integration_id,
                     status=ObjectStatus.DISABLED,
                 )
+
+            cleanup_seer_automation_handoff_for_integration.apply_async(
+                kwargs={
+                    "organization_id": instance.organization_id,
+                    "integration_id": instance.integration_id,
+                }
+            )
 
         except CellMappingNotFound:
             # This can happen when an organization has been deleted already.
