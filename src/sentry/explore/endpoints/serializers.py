@@ -245,9 +245,12 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
                 query[key] = value
 
         if query.get("crossEvents"):
-            date_range = self.context["params"]["end"] - self.context["params"]["start"]
-            if date_range > MAX_CROSS_EVENT_RANGE:
-                raise serializers.ValidationError("Cross event queries are limited to 7 days.")
+            start = self.context["params"].get("start")
+            end = self.context["params"].get("end")
+            if start is not None and end is not None:
+                date_range = end - start
+                if date_range > MAX_CROSS_EVENT_RANGE:
+                    raise serializers.ValidationError("Cross event queries are limited to 7 days.")
 
         if "query" in data:
             query["query"] = []
