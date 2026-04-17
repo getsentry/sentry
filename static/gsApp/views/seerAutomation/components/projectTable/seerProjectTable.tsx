@@ -324,7 +324,7 @@ function ProjectTable({
             )}
             options={codingAgentCompactSelectOptions}
             onChange={option => setAgentFilter(option.value || null)}
-            value={agentFilter ?? undefined}
+            value={agentFilter ?? ''}
           />
         ) : null}
 
