@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -45,16 +45,14 @@ export function useConversations() {
   const combinedQuery = useCombinedQuery();
 
   const {
-    data: rawData,
+    data: response,
     isLoading,
     error,
-    getResponseHeader,
-  } = useApiQuery<ConversationApiResponse[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/ai-conversations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<ConversationApiResponse[]>()(
+      '/organizations/$organizationIdOrSlug/ai-conversations/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           cursor,
           query: combinedQuery,
@@ -62,17 +60,16 @@ export function useConversations() {
           environment: pageFilters.selection.environments,
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
+  const pageLinks = response?.headers.Link;
 
   const data = useMemo(() => {
-    return (rawData ?? [])
+    return (response?.json ?? [])
       .map(({firstInput: rawFirstInput, ...rest}): Conversation => {
         const firstInput =
           typeof rawFirstInput === 'string'
@@ -81,7 +78,7 @@ export function useConversations() {
         return {...rest, firstInput};
       })
       .sort((a, b) => b.endTimestamp - a.endTimestamp);
-  }, [rawData]);
+  }, [response?.json]);
 
   return {
     data,
