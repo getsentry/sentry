@@ -6,7 +6,7 @@ export function RawReplayErrorFixture(
   error: Overwrite<Partial<RawReplayError>, {timestamp: Date}>
 ): RawReplayError {
   return {
-    'error.type': error['error.type'] ?? ([] as string[]),
+    'error.type': error['error.type'] ?? [],
     id: error.id ?? 'e123',
     issue: error.issue ?? 'JS-374',
     'issue.id': error['issue.id'] ?? 3740335939,

@@ -22,7 +22,9 @@ export function SeerAgentSettings({canWrite, preference, project}: Props) {
   const disabledReason = canWrite
     ? organization.enableSeerCoding === false
       ? t('Turn on [settings:"Enable Code Generation"] to use this feature.', {
-          settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+          settings: (
+            <Link to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`} />
+          ),
         })
       : null
     : t('You do not have permission to update this setting.');
@@ -53,7 +55,9 @@ export function SeerAgentSettings({canWrite, preference, project}: Props) {
                 '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
                 {
                   settings: (
-                    <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                    <Link
+                      to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                    />
                   ),
                 }
               )}

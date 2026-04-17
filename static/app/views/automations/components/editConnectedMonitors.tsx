@@ -106,7 +106,6 @@ function AllMonitors({
         </Flex>
         <ConnectedMonitorsList
           data-test-id="drawer-all-monitors-list"
-          detectorIds={null}
           connectedDetectorIds={new Set(connectedIds)}
           toggleConnected={toggleConnected}
           emptyMessage={t('No monitors found')}

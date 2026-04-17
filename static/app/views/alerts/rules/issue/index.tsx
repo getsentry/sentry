@@ -1593,7 +1593,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...new Array(filters.length).keys()],
+        filterIndices: [...Array.from({length: filters.length}).keys()],
       };
     }
   }

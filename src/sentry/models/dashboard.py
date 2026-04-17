@@ -431,6 +431,9 @@ class DashboardTombstone(Model):
 class DashboardRevision(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
+    SNAPSHOT_SCHEMA_VERSION = 1
+    RETENTION_LIMIT = 10
+
     created_by_id = HybridCloudForeignKey(
         "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
     )
@@ -449,6 +452,31 @@ class DashboardRevision(DefaultFieldsModel):
                 name="sentry_dashrev_dash_date_idx",
             )
         ]
+
+    @classmethod
+    def create_for_dashboard(
+        cls, dashboard: Dashboard, user: Any, snapshot: dict[str, Any]
+    ) -> DashboardRevision:
+        """
+        Create a revision snapshot for the given dashboard and prune any revisions
+        beyond the retention limit. Must be called inside a transaction.atomic block.
+        """
+        revision = cls.objects.create(
+            dashboard=dashboard,
+            created_by_id=user.id if user.is_authenticated else None,
+            title=dashboard.title,
+            snapshot=snapshot,
+            snapshot_schema_version=cls.SNAPSHOT_SCHEMA_VERSION,
+        )
+        old_revision_ids = list(
+            cls.objects.filter(dashboard=dashboard)
+            .exclude(id=revision.id)
+            .order_by("-date_added")
+            .values_list("id", flat=True)[cls.RETENTION_LIMIT - 1 :]
+        )
+        if old_revision_ids:
+            cls.objects.filter(id__in=old_revision_ids).delete()
+        return revision
 
 
 @cell_silo_model

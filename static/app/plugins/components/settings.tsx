@@ -13,9 +13,8 @@ import {PluginComponentBase} from 'sentry/plugins/pluginComponentBase';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {parseRepo} from 'sentry/utils/git/parseRepo';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {isScmPlugin, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
@@ -56,13 +55,26 @@ export class PluginSettings<
     });
   }
 
-  trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
-    trackIntegrationAnalytics(eventKey, {
+  trackPluginEvent = (
+    eventKey:
+      | 'integrations.installation_start'
+      | 'integrations.installation_complete'
+      | 'integrations.config_saved'
+  ) => {
+    const baseParams = {
       integration: this.props.plugin.id,
-      integration_type: 'plugin',
-      view: 'plugin_details',
+      integration_type: 'plugin' as const,
+      view: 'plugin_details' as const,
       already_installed: this.state.wasConfiguredOnPageLoad,
       organization: this.props.organization,
+    };
+    if (eventKey === 'integrations.config_saved') {
+      trackIntegrationAnalytics(eventKey, baseParams);
+      return;
+    }
+    trackIntegrationAnalytics(eventKey, {
+      ...baseParams,
+      is_scm: isScmPlugin(this.props.plugin),
     });
   };
 
