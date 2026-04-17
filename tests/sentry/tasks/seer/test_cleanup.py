@@ -91,10 +91,6 @@ class TestBulkSeerRepositoryCleanup(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.repo1 = self.create_repo(project=self.project, provider="github", external_id="123")
         self.repo2 = self.create_repo(project=self.project, provider="github", external_id="456")
-        self.repos = [
-            [self.repo1.id, "123", "github"],
-            [self.repo2.id, "456", "github"],
-        ]
 
     @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request")
@@ -106,7 +102,10 @@ class TestBulkSeerRepositoryCleanup(TestCase):
 
         bulk_cleanup_seer_repository_preferences(
             organization_id=self.organization.id,
-            repos=self.repos,
+            repos=[
+                [self.repo1.id, self.repo1.external_id, self.repo1.provider],
+                [self.repo2.id, self.repo2.external_id, self.repo2.provider],
+            ],
         )
 
         mock_request.assert_called_once()
@@ -130,7 +129,10 @@ class TestBulkSeerRepositoryCleanup(TestCase):
         with pytest.raises(SeerApiError):
             bulk_cleanup_seer_repository_preferences(
                 organization_id=self.organization.id,
-                repos=self.repos,
+                repos=[
+                    [self.repo1.id, self.repo1.external_id, self.repo1.provider],
+                    [self.repo2.id, self.repo2.external_id, self.repo2.provider],
+                ],
             )
 
         assert (

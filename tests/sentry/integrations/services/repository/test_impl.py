@@ -169,7 +169,7 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         assert repo.status == ObjectStatus.ACTIVE
 
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_dispatches_seer_cleanup_task(self, mock_cleanup: MagicMock) -> None:
+    def test_calls_seer_preference_cleanup_task(self, mock_cleanup: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -225,7 +225,7 @@ class DisableRepositoriesForIntegrationTest(TestCase):
         assert repo.status == ObjectStatus.DISABLED
 
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_dispatches_seer_cleanup_task(self, mock_cleanup: MagicMock) -> None:
+    def test_calls_seer_preference_cleanup_task(self, mock_cleanup: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -282,7 +282,7 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         mock_cleanup.apply_async.assert_called_once()
 
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_dispatches_seer_cleanup_task(self, mock_cleanup: MagicMock) -> None:
+    def test_calls_seer_preference_cleanup_task(self, mock_cleanup: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
