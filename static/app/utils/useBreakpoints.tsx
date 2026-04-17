@@ -13,7 +13,7 @@ function useInstantRef<T>(value: T) {
 
 type Breakpoint = BreakpointSize;
 export function checkBreakpoints(breakpoints: Record<Breakpoint, string>, width: number) {
-  return Object.entries(breakpoints).reduce<Record<Breakpoint, boolean>>(
+  return Object.entries(breakpoints).reduce(
     (acc, [key, value]) => {
       // Assuming breakpoints are pixel values
       acc[key as Breakpoint] = width >= parseInt(value, 10);

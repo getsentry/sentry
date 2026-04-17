@@ -82,7 +82,7 @@ enum ModalType {
 const TRIAL_ENDING_DAY_WINDOW = 3;
 
 function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any) {
-  return Object.values(BILLED_DATA_CATEGORY_INFO).reduce<Record<EventType, any>>(
+  return Object.values(BILLED_DATA_CATEGORY_INFO).reduce(
     (acc, c) => {
       if (c.isBilledCategory) {
         acc[c.singular as EventType] = callback(c);

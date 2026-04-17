@@ -7,7 +7,7 @@ export function getWeights(webVitals: WebVitals[] = []): Record<WebVitals, numbe
     (acc, webVital) => acc + PERFORMANCE_SCORE_WEIGHTS[webVital],
     0
   );
-  return Object.keys(PERFORMANCE_SCORE_WEIGHTS).reduce<Record<WebVitals, number>>(
+  return Object.keys(PERFORMANCE_SCORE_WEIGHTS).reduce(
     (acc, webVital) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[webVital] =
