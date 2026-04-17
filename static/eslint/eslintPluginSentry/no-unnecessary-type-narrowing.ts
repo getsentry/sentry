@@ -130,6 +130,13 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
+        // Skip assertions inside object literal properties — property values
+        // are contextually typed, so removing the assertion can widen the type
+        // (e.g. `'foo' as SomeUnion` becomes `string` without the assertion).
+        if (node.parent?.type === 'Property') {
+          return;
+        }
+
         // Skip assertions that are arguments to generic function calls without
         // explicit type arguments — the assertion participates in type inference
         // for the generic, so removing it would change the inferred types.

@@ -189,6 +189,23 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       `,
       filename: 'valid.ts',
     },
+    {
+      name: 'assertion in object property — prevents widening',
+      code: `
+        type Status = 'active' | 'pending_deletion';
+        declare const config: { status: Status };
+        const obj: { status: Status } = { ...config, status: 'pending_deletion' as Status };
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'assertion in object property — value narrowing',
+      code: `
+        declare const value: string | number | undefined;
+        const obj: { x: string | number | undefined } = { x: value as string };
+      `,
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
@@ -216,19 +233,6 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
         declare function accept(x: string | number): void;
         declare const value: string | number;
         accept(value);
-      `,
-      errors: [{messageId: 'unnecessary' as const}],
-      filename: 'invalid.ts',
-    },
-    {
-      name: 'unnecessary narrowing in object literal property',
-      code: `
-        declare const value: string | number | undefined;
-        const obj: { x: string | number | undefined } = { x: value as string };
-      `,
-      output: `
-        declare const value: string | number | undefined;
-        const obj: { x: string | number | undefined } = { x: value };
       `,
       errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
