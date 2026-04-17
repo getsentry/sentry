@@ -15,7 +15,6 @@ import {useDataConditionNodeContext} from 'sentry/views/automations/components/d
 type IntervalChoice = {label: string; value: Interval};
 
 interface BranchProps {
-  comparisonIntervalChoices?: IntervalChoice[];
   intervalChoices?: IntervalChoice[];
 }
 
