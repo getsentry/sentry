@@ -22,3 +22,6 @@ class SeerAgentSlackResponded(analytics.Event):
     unique_users_in_thread: int
     linked_users_in_thread: int
     conversation_type: SlackSeerAgentConversation
+
+
+analytics.register(SeerAgentSlackResponded)
