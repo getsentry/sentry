@@ -234,6 +234,16 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       filename: 'valid.ts',
     },
     {
+      name: 'assertion in ternary inside object property — prevents widening',
+      code: `
+        declare const hit: boolean | undefined;
+        const obj: { hit: 'true' | 'false' | '' } = {
+          hit: hit === undefined ? '' : (\`\${hit}\` as 'true' | 'false' | ''),
+        };
+      `,
+      filename: 'valid.ts',
+    },
+    {
       name: 'object literal assertion — prevents property widening',
       code: `
         type Column = { kind: 'function' | 'field'; data: [string, number] };

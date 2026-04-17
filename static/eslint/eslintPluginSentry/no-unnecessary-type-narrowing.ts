@@ -79,6 +79,27 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
       return false;
     }
 
+    function isInsideObjectProperty(node: TSESTree.TSAsExpression): boolean {
+      let current: TSESTree.Node = node;
+      while (current.parent) {
+        const parent = current.parent;
+        if (parent.type === 'Property') {
+          return true;
+        }
+        // Walk through transparent expression wrappers
+        if (
+          parent.type === 'ConditionalExpression' ||
+          parent.type === 'LogicalExpression' ||
+          parent.type === 'SequenceExpression'
+        ) {
+          current = parent;
+          continue;
+        }
+        break;
+      }
+      return false;
+    }
+
     return {
       TSAsExpression(node: TSESTree.TSAsExpression) {
         // Skip `as const` — always valid
@@ -173,7 +194,9 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
         // Skip assertions inside object literal properties — property values
         // are contextually typed, so removing the assertion can widen the type
         // (e.g. `'foo' as SomeUnion` becomes `string` without the assertion).
-        if (node.parent?.type === 'Property') {
+        // Walk up through transparent expression wrappers (ternaries, logical
+        // expressions, etc.) to find the enclosing property.
+        if (isInsideObjectProperty(node)) {
           return;
         }
 
