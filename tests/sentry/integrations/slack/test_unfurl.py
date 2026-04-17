@@ -1873,6 +1873,20 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["type"] == "bar"
 
+    def test_unfurl_explore_non_dict_aggregate_field(self) -> None:
+        # aggregateField that parses to a non-dict (int, list, string, null)
+        # must not crash the arg mapper; it should fall back to defaults.
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=42&aggregateField=%5B%5D&aggregateField=null"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: count with chartType=2 (area, first) and avg (second).
         # The unfurl must render only the first chart and not merge avg's
