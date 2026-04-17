@@ -57,7 +57,7 @@ EXPLORE_DATASET_CONFIGS: dict[SupportedTraceItemType, ExploreDatasetConfig] = {
         "title_prefix": "Explore Logs",
         "default_y_axis": "count(message)",
         "query_key": "logsQuery",
-        "sort_key": "logsAggregateSortBys",
+        "sort_key": "logsSortBys",
     },
     SupportedTraceItemType.TRACEMETRICS: {
         "title_prefix": "Explore Metrics",

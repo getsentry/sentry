@@ -1940,7 +1940,7 @@ class UnfurlTest(TestCase):
         assert api_params["yAxis"] == "sum(payload_size)"
 
     def test_map_explore_query_args_logs_query_and_sort(self) -> None:
-        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsAggregateSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
         assert link_type == LinkType.EXPLORE
