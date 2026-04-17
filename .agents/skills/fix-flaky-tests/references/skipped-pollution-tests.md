@@ -70,6 +70,7 @@ Tests skipped via `@pytest.mark.skip(reason="test pollution: ...")` in the shuff
 ## tests/sentry/notifications/notifications/test_digests.py
 
 - `DigestSlackNotification::test_slack_digest_notification_truncates_at_48_blocks` — Slack footer shows `'bar'` (project slug from prior test) instead of 'showing' text; stale project state contaminates notification content
+- `DigestNotificationTest::test_digest_email_uses_user_timezone` — `mail.outbox` from prior tests contains alert emails that get misidentified as the Pacific user's digest email; PST/PDT assertion fails on prior test's email body
 
 ## tests/sentry/objectstore/endpoints/test_organization.py
 
@@ -149,3 +150,7 @@ Each group of skipped tests shares a root cause pattern:
 | Kafka message ordering       | Make tests assert on own producer's message IDs only           |
 | Live server socket leaks     | Join/stop live server thread before yielding                   |
 | Redis Cluster shared state   | Per-worker cluster isolation (different ports per worker)      |
+
+## tests/sentry/replays/endpoints/test_organization_replay_index.py
+
+- `OrganizationReplayIndexTest::test_get_replays_click_fields` — two clicks with identical timestamps return in non-deterministic order from ClickHouse when prior test data is present; test expects `[button, div]` but gets `[div, button]`
