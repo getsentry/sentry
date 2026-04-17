@@ -95,6 +95,17 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           }
         }
 
+        // Skip tuple assertions on array literals — without the assertion,
+        // `[a, b]` widens to `(A | B)[]`, not `[A, B]`. The assertion is
+        // always meaningful here even though getTypeAtLocation reports the
+        // contextually-influenced tuple type on the inner expression.
+        if (
+          node.expression.type === 'ArrayExpression' &&
+          node.typeAnnotation.type === 'TSTupleType'
+        ) {
+          return;
+        }
+
         // Skip assertions that narrow away from `any` — these add type safety
         const originalTsNode = parserServices.esTreeNodeToTSNodeMap.get(node.expression);
         const originalType = checker.getTypeAtLocation(originalTsNode);

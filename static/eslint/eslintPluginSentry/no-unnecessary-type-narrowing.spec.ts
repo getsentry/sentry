@@ -173,6 +173,15 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       filename: 'valid.ts',
     },
     {
+      name: 'tuple assertion — array literal is not assignable to tuple type',
+      code: `
+        declare function accept(x: [number, string][]): void;
+        const choices = [1, 2].map(n => [n, String(n)] as [number, string]);
+        accept(choices);
+      `,
+      filename: 'valid.ts',
+    },
+    {
       name: 'assertion in assignment — narrows union (dom pattern)',
       code: `
         declare let dom: HTMLDivElement | Text | null;
