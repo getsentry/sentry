@@ -82,7 +82,8 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
     function isInsideObjectProperty(node: TSESTree.TSAsExpression): boolean {
       let current: TSESTree.Node = node;
       while (current.parent) {
-        const parent = current.parent;
+        // eslint-disable-next-line @sentry/no-unnecessary-type-annotation -- breaks circular inference from `current = parent`
+        const parent: TSESTree.Node = current.parent;
         if (parent.type === 'Property') {
           return true;
         }
