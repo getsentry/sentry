@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
@@ -59,7 +61,11 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
     @with_feature("organizations:seer-project-settings-dual-write")
-    def test_repository_and_identity(self) -> None:
+    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+    )
+    def test_repository_and_identity(self, mock_handoff, mock_repo_cleanup) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -98,7 +104,11 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             assert repo.integration_id is None
             assert not SeerProjectRepository.objects.filter(id=seer_project_repo.id).exists()
 
-    def test_codeowner_links(self) -> None:
+    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+    )
+    def test_codeowner_links(self, mock_handoff, mock_repo_cleanup) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")

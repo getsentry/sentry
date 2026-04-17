@@ -156,6 +156,9 @@ def cleanup_seer_automation_handoff_for_integration(
             Project.objects.filter(organization_id=organization.id).values_list("id", flat=True)
         )
 
+    if not candidate_project_ids:
+        return
+
     try:
         preferences_by_project_id = bulk_read_preferences(organization, candidate_project_ids)
     except (SeerApiError, SeerApiResponseValidationError):
