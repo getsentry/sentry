@@ -8,13 +8,16 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormContext} from 'sentry/components/forms/formContext';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -22,6 +25,11 @@ import {AutomationFeedbackButton} from 'sentry/views/automations/components/auto
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -117,6 +125,35 @@ export function NewErrorDetectorForm() {
   );
 }
 
+function ErrorEditBreadcrumbs({
+  detector,
+  project,
+}: {
+  detector: ErrorDetector;
+  project?: Project;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          label: getDetectorTypeLabel(detector.type),
+          to: makeMonitorTypePathname(organization.slug, detector.type),
+        },
+        ...(project
+          ? [{label: <ProjectBadge disableLink project={project} avatarSize={16} />}]
+          : []),
+        {label: t('Configure')},
+      ]}
+    />
+  );
+}
+
 export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetector}) {
   const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
@@ -154,9 +191,8 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="title">
-            <EditDetectorBreadcrumbs detector={detector} />
+            <ErrorEditBreadcrumbs detector={detector} project={project} />
           </TopBar.Slot>
-          <Layout.Title>{detector.name}</Layout.Title>
           <AutomationFeedbackButton />
         </Fragment>
       ) : (
