@@ -78,7 +78,14 @@ export function ErrorDetectorProjectBreadcrumbs({
           to: makeMonitorTypePathname(organization.slug, detector.type),
         },
         ...(project
-          ? [{label: <ProjectBadge disableLink project={project} avatarSize={16} />}]
+          ? [
+              {
+                label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                ...(includeConfigure
+                  ? {to: makeMonitorDetailsPathname(organization.slug, detector.id)}
+                  : {}),
+              },
+            ]
           : []),
         ...(includeConfigure ? [{label: t('Configure')}] : []),
       ]}
