@@ -424,13 +424,13 @@ function AMCheckout(props: Props) {
             // only populate add-ons that are launched
             addOn => addOn.isAvailable
           )
-          .reduce((acc, addOn) => {
+          .reduce<CheckoutAddOns>((acc, addOn) => {
             acc[addOn.apiName] = {
               // don't prepopulate add-ons from trial state
               enabled: addOn.enabled && !isTrialPlan(subscription.plan),
             };
             return acc;
-          }, {} as CheckoutAddOns),
+          }, {}),
       };
 
       if (isNewPayingCustomer(subscription, organization)) {
