@@ -13,9 +13,8 @@ from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
 import orjson
+import sentry_sdk
 from django.conf import settings
-
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +139,10 @@ def observe_viewer_context_propagation(
         has_user = ctx.user_id is not None
         has_org = ctx.organization_id is not None
 
-    metrics.incr(
+    sentry_sdk.metrics.count(
         "viewer_context.observation",
-        tags={
+        1,
+        attributes={
             "point": point,
             "actor_type": actor_type,
             "has_user_id": str(has_user).lower(),

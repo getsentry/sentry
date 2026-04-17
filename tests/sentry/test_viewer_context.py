@@ -152,14 +152,14 @@ class TestViewerContextScope:
 class TestObserve:
     @pytest.fixture(autouse=True)
     def patch_metrics(self):
-        with mock.patch("sentry.viewer_context.metrics") as m:
+        with mock.patch("sentry.viewer_context.sentry_sdk.metrics.count") as m:
             yield m
 
     def _tags(self, m):
-        assert m.incr.call_count == 1
-        args, kwargs = m.incr.call_args
-        assert args == ("viewer_context.observation",)
-        return kwargs["tags"]
+        assert m.call_count == 1
+        args, kwargs = m.call_args
+        assert args == ("viewer_context.observation", 1)
+        return kwargs["attributes"]
 
     def test_no_context_tags_actor_none(self, patch_metrics):
         observe_viewer_context_propagation("seer_rpc_out")
