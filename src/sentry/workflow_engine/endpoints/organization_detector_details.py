@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.db.models import BigIntegerField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -47,17 +49,15 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
     if detector.type != MetricIssue.slug:
         return
 
-    # Look up DataSource -> QuerySubscription -> SnubaQuery in two queries
-    # (source_id is a TextField, so no FK/select_related).
-    ds = DataSource.objects.filter(
-        detector=detector,
-        type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    ).first()
-    if ds is None:
-        return
-
+    # Single query: DataSource -> (cast source_id) -> QuerySubscription -> SnubaQuery
     dataset = (
-        SnubaQuery.objects.filter(subscriptions__id=ds.source_id)
+        SnubaQuery.objects.filter(
+            subscriptions__id__in=DataSource.objects.filter(
+                detector=detector,
+                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                organization=organization,
+            ).values(_source_int=Cast("source_id", output_field=BigIntegerField()))
+        )
         .values_list("dataset", flat=True)
         .first()
     )

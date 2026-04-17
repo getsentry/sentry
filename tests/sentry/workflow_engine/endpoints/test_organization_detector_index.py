@@ -4,8 +4,6 @@ from datetime import timedelta
 import pytest
 from django.db.models import Q
 
-pytestmark = pytest.mark.sentry_metrics
-
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -41,6 +39,8 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationDetectorIndexBaseTest(APITestCase):
