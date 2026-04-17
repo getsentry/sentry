@@ -1,6 +1,6 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {queryOptions} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type FetchGroupSearchViewsParameters = {
@@ -8,22 +8,18 @@ type FetchGroupSearchViewsParameters = {
   orgSlug: string;
 };
 
-export const makeFetchGroupSearchViewKey = ({
+export function groupSearchViewApiOptions({
   id,
   orgSlug,
-}: FetchGroupSearchViewsParameters): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/$viewId/', {
-    path: {organizationIdOrSlug: orgSlug, viewId: id},
-  }),
-];
-
-export const groupSearchView = (
-  parameters: FetchGroupSearchViewsParameters,
-  options: Partial<UseApiQueryOptions<GroupSearchView>> = {}
-) => {
-  return useApiQuery<GroupSearchView>(makeFetchGroupSearchViewKey(parameters), {
-    staleTime: 30_000,
+}: FetchGroupSearchViewsParameters) {
+  return queryOptions({
+    ...apiOptions.as<GroupSearchView>()(
+      '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
+      {
+        path: {organizationIdOrSlug: orgSlug, viewId: id},
+        staleTime: 30_000,
+      }
+    ),
     retry: false,
-    ...options,
   });
-};
+}
