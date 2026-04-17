@@ -18,6 +18,7 @@ import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
@@ -26,7 +27,6 @@ import {
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmAlertFrequency} from './components/scmAlertFrequency';
-import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import type {StepProps} from './types';
 
@@ -250,17 +250,22 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         </Stack>
       </Stack>
 
-      <ScmStepFooter leading={genBackButton?.()}>
-        <Button
-          priority="primary"
-          onClick={handleCreateProject}
-          disabled={!canSubmit}
-          busy={createProjectAndRules.isPending}
-          icon={<IconProject />}
-        >
-          {t('Create project')}
-        </Button>
-      </ScmStepFooter>
+      <GenericFooter>
+        <Flex align="center" padding="0 3xl">
+          {genBackButton?.()}
+        </Flex>
+        <Flex align="center" padding="0 3xl" gap="md">
+          <Button
+            priority="primary"
+            onClick={handleCreateProject}
+            disabled={!canSubmit}
+            busy={createProjectAndRules.isPending}
+            icon={<IconProject />}
+          >
+            {t('Create project')}
+          </Button>
+        </Flex>
+      </GenericFooter>
     </Flex>
   );
 }

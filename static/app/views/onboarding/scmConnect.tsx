@@ -120,7 +120,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
               }}
               onClick={() => onComplete()}
             >
-              {t('Skip for now')}
+              {t('Continue without repo')}
             </Button>
           )}
 

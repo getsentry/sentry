@@ -194,7 +194,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: skip
-            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+            self.browser.click(xpath='//button[contains(., "Continue without repo")]')
 
             # Platform Features: manual picker
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
@@ -229,7 +229,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.start_onboarding()
 
             # SCM Connect: skip for now to advance to platform features
-            self.browser.click(xpath='//button[contains(., "Skip for now")]')
+            self.browser.click(xpath='//button[contains(., "Continue without repo")]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
 
             # Click the header "Skip onboarding" button

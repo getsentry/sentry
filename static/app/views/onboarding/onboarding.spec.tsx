@@ -773,7 +773,7 @@ describe('Onboarding', () => {
 
       expect(await screen.findByText('Connect a repository')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Skip for now'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Continue without repo'}));
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(

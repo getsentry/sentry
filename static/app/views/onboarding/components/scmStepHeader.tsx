@@ -17,7 +17,6 @@ export function ScmStepHeader({heading, subtitle}: ScmStepHeaderProps) {
         size="lg"
         wrap="pre-line"
         align="center"
-        bold
         density="comfortable"
       >
         {subtitle}
