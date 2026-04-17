@@ -127,7 +127,7 @@ export function GlobalDrawer({children}: any) {
   const scrollLock = useScrollLock(document.body);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
     (renderer, options) => {
-      if (options.scrollLock ?? true) {
+      if (options.shouldLockScroll ?? true) {
         scrollLock.acquire();
       }
       overwriteDrawerConfig({renderer, options});
