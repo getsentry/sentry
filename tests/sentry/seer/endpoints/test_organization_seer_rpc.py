@@ -170,14 +170,17 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data == {"slug": self.organization.slug}
 
     @with_feature("organizations:seer-public-rpc")
-    @patch("sentry.seer.endpoints.organization_seer_rpc.export_explorer_indexes")
-    def test_export_explorer_indexes(self, mock_export: MagicMock) -> None:
+    @patch("sentry.seer.explorer.snapshot.make_explorer_export_indexes_request")
+    def test_export_explorer_indexes(self, mock_request: MagicMock) -> None:
         """export_explorer_indexes proxies to Seer and returns the result."""
-        mock_export.return_value = {
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {
             "org_id": self.organization.id,
             "version": 1,
             "tables": {"explorer_index": []},
         }
+        mock_request.return_value = mock_response
 
         path = self._get_path("export_explorer_indexes")
         response = self.client.post(path, data={"args": {}}, format="json")
@@ -186,22 +189,35 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data["org_id"] == self.organization.id
         assert "tables" in response.data
         # org_id injected from URL, not from caller-supplied args
-        mock_export.assert_called_once_with(org_id=self.organization.id)
+        mock_request.assert_called_once_with(
+            {"org_id": self.organization.id},
+            viewer_context={"organization_id": self.organization.id},
+        )
 
     @with_feature("organizations:seer-public-rpc")
-    @patch("sentry.seer.endpoints.organization_seer_rpc.export_explorer_indexes")
+    @patch("sentry.seer.explorer.snapshot.make_explorer_export_indexes_request")
     def test_export_explorer_indexes_ignores_caller_supplied_org_id(
-        self, mock_export: MagicMock
+        self, mock_request: MagicMock
     ) -> None:
         """Caller cannot override org_id — it is always taken from the URL."""
-        mock_export.return_value = {"org_id": self.organization.id, "version": 1, "tables": {}}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {
+            "org_id": self.organization.id,
+            "version": 1,
+            "tables": {},
+        }
+        mock_request.return_value = mock_response
 
         path = self._get_path("export_explorer_indexes")
         # Attempt to pass a different org_id in args
         response = self.client.post(path, data={"args": {"org_id": 99999}}, format="json")
 
         assert response.status_code == 200
-        mock_export.assert_called_once_with(org_id=self.organization.id)
+        mock_request.assert_called_once_with(
+            {"org_id": self.organization.id},
+            viewer_context={"organization_id": self.organization.id},
+        )
 
     @with_feature("organizations:seer-public-rpc")
     def test_has_repo_code_mappings(self) -> None:
