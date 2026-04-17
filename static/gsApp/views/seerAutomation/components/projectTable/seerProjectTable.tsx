@@ -24,7 +24,10 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import type {PreferredAgentProvider} from 'sentry/utils/seer/preferredAgentFilter';
+import {
+  getFilteredCodingAgentName,
+  type PreferredAgentProvider,
+} from 'sentry/utils/seer/preferredAgentFilter';
 import {
   preferredAgentFilterParser,
   filterCodingAgentQueryOptions,
@@ -253,14 +256,14 @@ export function SeerProjectTable() {
               ? agentFilter
                 ? tct('No projects found matching [searchTerm] with [agentFilter]', {
                     searchTerm: <code>{searchTerm}</code>,
-                    agentFilter: <code>{agentFilter}</code>,
+                    agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
                   })
                 : tct('No projects found matching [searchTerm]', {
                     searchTerm: <code>{searchTerm}</code>,
                   })
               : agentFilter
                 ? tct('No projects found with [agentFilter]', {
-                    agentFilter: <code>{agentFilter}</code>,
+                    agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
                   })
                 : t('No projects found')}
           </SimpleTable.Empty>

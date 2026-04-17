@@ -8,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   CodingAgentProvider,
+  getCodingAgentName,
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
 import type {SolutionArtifact} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -250,19 +251,6 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
     }
   };
 
-  const getProviderDisplayName = (provider: string) => {
-    switch (provider) {
-      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Cloud Agent');
-      case CodingAgentProvider.CLAUDE_CODE_AGENT:
-        return t('Claude Agent');
-      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
-        return t('GitHub Copilot');
-      default:
-        return t('Coding Agent');
-    }
-  };
-
   const getOpenButtonText = (provider: string) => {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
@@ -276,7 +264,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
 
   return (
     <ArtifactCard
-      title={getProviderDisplayName(agents[0]?.provider ?? 'Coding Agent')}
+      title={getCodingAgentName(agents[0]?.provider)}
       icon={<IconCode size="md" variant="accent" />}
     >
       <Flex direction="column" gap="xl">

@@ -1,7 +1,10 @@
 import {queryOptions} from '@tanstack/react-query';
 import {parseAsStringEnum} from 'nuqs';
 
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  getCodingAgentName,
+} from 'sentry/components/events/autofix/types';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -27,6 +30,13 @@ function convertAgentNameToCodingAgentProvider(name: string): PreferredAgentProv
     default:
       return 'seer';
   }
+}
+
+export function getFilteredCodingAgentName(provider: undefined | string): string {
+  if (!provider || provider === 'seer') {
+    return t('Seer Agent');
+  }
+  return getCodingAgentName(provider);
 }
 
 export const preferredAgentFilterParser = parseAsStringEnum([
