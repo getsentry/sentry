@@ -240,11 +240,10 @@ export function useInvalidateSavedQueries() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const baseKey = savedQueriesApiOptions(organization).queryKey;
-
   return useCallback(() => {
+    const baseKey = savedQueriesApiOptions(organization).queryKey;
     queryClient.invalidateQueries({queryKey: baseKey});
-  }, [queryClient, baseKey]);
+  }, [queryClient, organization]);
 }
 
 function savedQueryApiOptions({
