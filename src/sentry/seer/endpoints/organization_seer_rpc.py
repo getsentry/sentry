@@ -50,7 +50,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
-from sentry.seer.explorer.snapshot import export_explorer_indexes
+from sentry.seer.explorer.snapshot_indexes import export_explorer_indexes
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,

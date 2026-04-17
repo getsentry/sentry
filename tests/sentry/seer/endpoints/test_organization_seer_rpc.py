@@ -170,7 +170,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data == {"slug": self.organization.slug}
 
     @with_feature("organizations:seer-public-rpc")
-    @patch("sentry.seer.explorer.snapshot.make_explorer_export_indexes_request")
+    @patch("sentry.seer.explorer.snapshot_indexes.make_explorer_export_indexes_request")
     def test_export_explorer_indexes(self, mock_request: MagicMock) -> None:
         """export_explorer_indexes proxies to Seer and returns the result."""
         mock_response = MagicMock()
@@ -195,7 +195,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         )
 
     @with_feature("organizations:seer-public-rpc")
-    @patch("sentry.seer.explorer.snapshot.make_explorer_export_indexes_request")
+    @patch("sentry.seer.explorer.snapshot_indexes.make_explorer_export_indexes_request")
     def test_export_explorer_indexes_ignores_caller_supplied_org_id(
         self, mock_request: MagicMock
     ) -> None:
