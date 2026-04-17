@@ -29,11 +29,12 @@ export type SpanNodeData = Pick<
   | 'transaction.event_id'
 >;
 
-// Empty transaction to use as a default value with duration of 1 second
+// Empty transaction to use as a default value with duration of 1 second.
+// Timestamps are in seconds to match precise.*_ts semantics downstream.
 const EmptyTransactionSpan: TransactionSpanData = {
   [SpanFields.SPAN_DESCRIPTION]: '',
-  [SpanFields.PRECISE_START_TS]: Date.now(),
-  [SpanFields.PRECISE_FINISH_TS]: Date.now() + 1000,
+  [SpanFields.PRECISE_START_TS]: 0,
+  [SpanFields.PRECISE_FINISH_TS]: 1,
   [SpanFields.SPAN_ID]: '',
   [SpanFields.SPAN_SELF_TIME]: 0,
   [SpanFields.TRACE]: '',
