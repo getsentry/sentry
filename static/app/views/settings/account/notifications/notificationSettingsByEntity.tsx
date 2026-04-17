@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from '@sentry/scraps/button';
@@ -70,8 +70,6 @@ export function NotificationSettingsByEntity({
   if (!organization && organizations.length === 1) {
     organization = organizations[0];
   }
-  const orgSlug = organization?.slug;
-
   // loads all the projects for an org
   const {
     data: projects,
@@ -81,7 +79,7 @@ export function NotificationSettingsByEntity({
     refetch,
   } = useQuery({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
-      path: {organizationIdOrSlug: orgSlug!},
+      path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
       host: organization?.links?.regionUrl,
       query: {
         all_projects: '1',
@@ -89,7 +87,6 @@ export function NotificationSettingsByEntity({
       },
       staleTime: Infinity,
     }),
-    enabled: Boolean(organization),
   });
 
   // always loading all projects even though we only need it sometimes
