@@ -603,7 +603,7 @@ export function ProjectPerformance() {
     [IssueTitle.AI_DETECTED_GENERAL]: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
-      label: IssueTitle.AI_DETECTED_GENERAL,
+      label: t('AI Detected'),
       help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
       onChange: value => {
