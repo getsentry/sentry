@@ -111,13 +111,14 @@ export const noUnnecessaryTypeNarrowing = ESLintUtils.RuleCreator.withoutDocs({
           }
         }
 
-        // Skip tuple assertions on array literals — without the assertion,
-        // `[a, b]` widens to `(A | B)[]`, not `[A, B]`. The assertion is
-        // always meaningful here even though getTypeAtLocation reports the
-        // contextually-influenced tuple type on the inner expression.
+        // Skip assertions on object and array literals — these are contextually
+        // typed by the assertion itself, so getTypeAtLocation reports the
+        // narrowed type. Without the assertion, object properties widen
+        // (`'foo'` → `string`), arrays widen (`[a, b]` → `(A|B)[]` not tuples),
+        // and literal types are lost.
         if (
-          node.expression.type === 'ArrayExpression' &&
-          node.typeAnnotation.type === 'TSTupleType'
+          node.expression.type === 'ObjectExpression' ||
+          node.expression.type === 'ArrayExpression'
         ) {
           return;
         }

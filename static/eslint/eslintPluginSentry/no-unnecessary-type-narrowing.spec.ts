@@ -233,18 +233,37 @@ ruleTester.run('no-unnecessary-type-narrowing', noUnnecessaryTypeNarrowing, {
       `,
       filename: 'valid.ts',
     },
+    {
+      name: 'object literal assertion — prevents property widening',
+      code: `
+        type Column = { kind: 'function' | 'field'; data: [string, number] };
+        declare function accept(x: Column): void;
+        accept({ kind: 'function', data: ['a', 1] } as Column);
+      `,
+      filename: 'valid.ts',
+    },
+    {
+      name: 'array literal assertion — prevents element widening',
+      code: `
+        declare function accept(x: string[]): void;
+        accept(['a', 'b'] as string[]);
+      `,
+      filename: 'valid.ts',
+    },
   ],
 
   invalid: [
     {
       name: 'unnecessary narrowing — parenthesized expression preserves closing paren',
       code: `
-        declare function map(fn: (x: number) => {a: number}): void;
-        map(x => ({a: x}) as {a: number});
+        declare function accept(x: string | number): void;
+        declare const value: string | number;
+        accept((value) as string);
       `,
       output: `
-        declare function map(fn: (x: number) => {a: number}): void;
-        map(x => ({a: x}));
+        declare function accept(x: string | number): void;
+        declare const value: string | number;
+        accept((value));
       `,
       errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
