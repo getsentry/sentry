@@ -111,32 +111,29 @@ export default function ProfilingContent() {
 
   const tab = decodeTab(location.query.tab);
 
-  const onTabChange = useCallback(
-    (newTab: 'flamegraph' | 'transactions') => {
-      // make sure to reset the state of the tabs
-      dispatchDataState({
-        dataKey: 'flamegraphData',
-        dataState: 'pending',
-      });
-      dispatchDataState({
-        dataKey: 'transactionsTableData',
-        dataState: 'pending',
-      });
+  const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
+    // make sure to reset the state of the tabs
+    dispatchDataState({
+      dataKey: 'flamegraphData',
+      dataState: 'pending',
+    });
+    dispatchDataState({
+      dataKey: 'transactionsTableData',
+      dataState: 'pending',
+    });
 
-      trackAnalytics('profiling_views.landing.tab_change', {
-        organization,
+    trackAnalytics('profiling_views.landing.tab_change', {
+      organization,
+      tab: newTab,
+    });
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
         tab: newTab,
-      });
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          tab: newTab,
-        },
-      });
-    },
-    [dispatchDataState, location, navigate, organization]
-  );
+      },
+    });
+  };
 
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],

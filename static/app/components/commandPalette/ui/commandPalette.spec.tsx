@@ -826,9 +826,31 @@ describe('CommandPalette', () => {
       expect(expandedOptions.slice(0, 4)).toEqual([
         'java-spring-boot',
         'java-spring-boot-test',
-        'gkojavascript-nextjs',
         'gkojavascript-astro',
+        'gkojavascript-nextjs',
       ]);
+    });
+
+    it('breaks equal search scores by shorter label length', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Paths'}} limit={2}>
+            <CMDKAction display={{label: 'path-cccccc'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'path-aaa'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'path-b'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'path');
+
+      const options = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'))
+        .map(option => option.textContent);
+
+      expect(options).toEqual(['path-b', 'path-aaa', 'See all']);
     });
   });
 

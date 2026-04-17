@@ -867,7 +867,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         self, start: str, end: str, *, limit: int | None = None
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
-            "query_type": ExportQueryType.EXPLORE_STR,
+            "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
             "format": OutputMode.JSONL.value,
             "query_info": {
                 "project": [self.project.id],
@@ -906,7 +906,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
     ) -> ExportedData:
         de = ExportedData.objects.get(id=payload["id"])
         assert de.user_id == self.user.id
-        assert de.query_type == ExportQueryType.EXPLORE
+        assert de.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
         assert de.export_format == OutputMode.JSONL.value
         assert de.query_info["dataset"] == "logs"
         return de

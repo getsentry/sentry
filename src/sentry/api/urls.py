@@ -3617,7 +3617,7 @@ INTERNAL_URLS = [
         name="sentry-api-0-rpc-service",
     ),
     re_path(
-        r"^scm-rpc/(?P<method_name>\w+)/$",
+        r"^scm-rpc/$",
         ScmRpcServiceEndpoint.as_view(),
         name="sentry-api-0-scm-rpc-service",
     ),

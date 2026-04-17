@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -74,12 +74,12 @@ export function PRFilesList({files}: PRFilesListProps) {
     setExpandedFiles(initialExpanded);
   }, [files]);
 
-  const toggleFileExpanded = useCallback((filename: string) => {
+  const toggleFileExpanded = (filename: string) => {
     setExpandedFiles(prev => ({
       ...prev,
       [filename]: !prev[filename],
     }));
-  }, []);
+  };
 
   const totalStats = useMemo(() => {
     return files.reduce(

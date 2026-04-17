@@ -13,6 +13,7 @@ from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 FEATURE_FLAG = "organizations:github-repo-auto-sync-webhook"
+REMOVAL_FLAG = "organizations:scm-repo-auto-sync-removal"
 
 
 @control_silo_test
@@ -70,7 +71,7 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        with self.feature(FEATURE_FLAG):
+        with self.feature([FEATURE_FLAG, REMOVAL_FLAG]):
             sync_repos_on_install_change(
                 integration_id=self.integration.id,
                 action="removed",
@@ -100,7 +101,7 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        with self.feature(FEATURE_FLAG):
+        with self.feature([FEATURE_FLAG, REMOVAL_FLAG]):
             sync_repos_on_install_change(
                 integration_id=self.integration.id,
                 action="added",

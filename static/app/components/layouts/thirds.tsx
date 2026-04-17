@@ -1,4 +1,4 @@
-import {useContext, type HTMLAttributes} from 'react';
+import {type HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,8 +10,6 @@ import {
 } from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -20,27 +18,11 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   const hasPageFrame = useHasPageFrameFeature();
-  const primaryNavigation = usePrimaryNavigation();
-  const secondaryNavigation = useContext(SecondaryNavigationContext);
 
   const {withPadding, ...rest} = props;
 
   if (hasPageFrame) {
-    return (
-      <Stack
-        as="main"
-        flex="1"
-        borderLeft={
-          secondaryNavigation?.view === 'expanded'
-            ? primaryNavigation.layout === 'sidebar'
-              ? 'primary'
-              : undefined
-            : undefined
-        }
-        background="primary"
-        {...rest}
-      />
-    );
+    return <Stack as="main" flex="1" background="primary" {...rest} />;
   }
 
   return (

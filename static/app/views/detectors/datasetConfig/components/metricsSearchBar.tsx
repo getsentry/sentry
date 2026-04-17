@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {useQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -13,11 +16,14 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 const EMPTY_TAG_COLLECTION: TagCollection = {};
 
@@ -32,6 +38,8 @@ export function MetricsDetectorSearchBar({
   projectIds,
   disabled,
 }: DetectorSearchBarProps) {
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
@@ -44,26 +52,16 @@ export function MetricsDetectorSearchBar({
   }
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
-  const {attributes: numberTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    type: 'number',
+  const {data} = useQuery({
+    ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      query: traceMetricFilter,
+      projectIds,
+    }),
     enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
-    projectIds,
-  });
-  const {attributes: stringTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    type: 'string',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
-    projectIds,
-  });
-  const {attributes: booleanTags} = useTraceItemAttributeKeys({
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    type: 'boolean',
-    enabled: Boolean(traceMetricFilter),
-    query: traceMetricFilter,
-    projectIds,
+    select: selectTraceItemTagCollection(),
   });
 
   const visibleNumberTags = useMemo(() => {
@@ -77,12 +75,12 @@ export function MetricsDetectorSearchBar({
     return {
       ...staticNumberTags,
       ...Object.fromEntries(
-        Object.entries(numberTags ?? {}).filter(
+        Object.entries(data?.numberAttributes ?? {}).filter(
           ([key]) => !HiddenTraceMetricSearchFields.includes(key)
         )
       ),
     };
-  }, [numberTags]);
+  }, [data?.numberAttributes]);
 
   const visibleStringTags = useMemo(() => {
     const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce((acc, key) => {
@@ -95,12 +93,12 @@ export function MetricsDetectorSearchBar({
     return {
       ...staticStringTags,
       ...Object.fromEntries(
-        Object.entries(stringTags ?? {}).filter(
+        Object.entries(data?.stringAttributes ?? {}).filter(
           ([key]) => !HiddenTraceMetricSearchFields.includes(key)
         )
       ),
     };
-  }, [stringTags]);
+  }, [data?.stringAttributes]);
 
   const visibleBooleanTags = useMemo(() => {
     const staticBooleanTags = SENTRY_TRACEMETRIC_BOOLEAN_TAGS.reduce((acc, key) => {
@@ -113,12 +111,12 @@ export function MetricsDetectorSearchBar({
     return {
       ...staticBooleanTags,
       ...Object.fromEntries(
-        Object.entries(booleanTags ?? {}).filter(
+        Object.entries(data?.booleanAttributes ?? {}).filter(
           ([key]) => !HiddenTraceMetricSearchFields.includes(key)
         )
       ),
     };
-  }, [booleanTags]);
+  }, [data?.booleanAttributes]);
 
   return (
     <TraceItemSearchQueryBuilder

@@ -497,5 +497,29 @@ describe('Discover > SaveQueryButtonGroup', () => {
       expect(queryParameters.get('dataset')).toBe('events');
       expect(queryParameters.get('eventTypes')).toBe('error');
     });
+    it('renders "Create Alert" button without workflow-engine-ui flag', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents'],
+      };
+      mount(location, metricAlertOrg, errorsViewModified, savedQuery, yAxis);
+
+      expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create Monitor'})
+      ).not.toBeInTheDocument();
+    });
+    it('renders "Create Monitor" button with workflow-engine-ui flag', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents', 'workflow-engine-ui'],
+      };
+      mount(location, metricAlertOrg, errorsViewModified, savedQuery, yAxis);
+
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create Alert'})
+      ).not.toBeInTheDocument();
+    });
   });
 });

@@ -527,23 +527,22 @@ describe('MetricsTabContent', () => {
   });
 
   it('should switch to aggregate mode when a group by is added', async () => {
-    // Mock the trace-items attributes endpoint for string type attributes
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'test.region', name: 'test.region'},
-        {key: 'test.service', name: 'test.service'},
+        {
+          attributeType: 'string',
+          key: 'test.region',
+          name: 'test.region',
+        },
+        {
+          attributeType: 'string',
+          key: 'test.service',
+          name: 'test.service',
+        },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-
-    // Mock the trace-items attributes endpoint for number type attributes (empty)
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
     });
 
     const {router} = render(
@@ -730,5 +729,80 @@ describe('MetricsTabContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Metric'}));
     expect(screen.getByRole('button', {name: 'Add Metric'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Add Equation'})).toBeDisabled();
+  });
+
+  it('disables delete button for metrics referenced by an equation', async () => {
+    const orgWithEquations = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+
+    const metricA = JSON.stringify({
+      metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,metricA,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const metricB = JSON.stringify({
+      metric: {name: 'metricB', type: 'distribution', unit: 'none'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,metricB,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const equation = JSON.stringify({
+      metric: {name: '', type: ''},
+      query: '',
+      aggregateFields: [{yAxes: ['equation|sum(value,metricA,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithEquations,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [metricA, metricB, equation],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(3);
+
+    await waitFor(() => {
+      expect(
+        within(toolbars[0]!).getByRole('button', {name: 'metricA'})
+      ).toBeInTheDocument();
+    });
+
+    // Metric A should be disabled because it is referenced by the equation
+    expect(
+      within(toolbars[0]!).getByRole('button', {name: 'Delete metric'})
+    ).toBeDisabled();
+
+    // Metric B should be enabled because it is not referenced by the equation
+    expect(
+      within(toolbars[1]!).getByRole('button', {name: 'Delete metric'})
+    ).toBeEnabled();
+
+    // Equation deletion should always be enabled
+    expect(
+      within(toolbars[2]!).getByRole('button', {name: 'Delete metric'})
+    ).toBeEnabled();
   });
 });

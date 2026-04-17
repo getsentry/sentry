@@ -44,6 +44,7 @@ from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
+from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
@@ -295,7 +296,7 @@ class OrganizationReportBatch:
         local_start, local_end = get_local_dates(self.ctx, user_id)
 
         message = MessageBuilder(
-            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(local_start)} - {date_format(local_end)}",
+            subject=f"Weekly Report for {sanitize_outbound_name(self.ctx.organization.name)}: {date_format(local_start)} - {date_format(local_end)}",
             template="sentry/emails/reports/body.txt",
             html_template="sentry/emails/reports/body.html",
             type="report.organization",

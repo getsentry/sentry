@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
@@ -19,11 +18,9 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {FeatureFilter} from './featureFilter';
 import {PrCommentsToggle} from './prCommentsToggle';
-import {SnapshotPrCommentsToggle} from './snapshotPrCommentsToggle';
-import {SnapshotStatusChecks} from './snapshotStatusChecks';
 import {StatusCheckRules} from './statusCheckRules';
 
-type PreprodTab = 'size' | 'distribution' | 'snapshots';
+type PreprodTab = 'size' | 'distribution';
 
 const SIZE_ENABLED_READ_KEY = 'sentry:preprod_size_enabled_by_customer';
 const SIZE_ENABLED_WRITE_KEY = 'preprodSizeEnabledByCustomer';
@@ -35,21 +32,15 @@ const DISTRIBUTION_ENABLED_WRITE_KEY = 'preprodDistributionEnabledByCustomer';
 const DISTRIBUTION_ENABLED_QUERY_READ_KEY = 'sentry:preprod_distribution_enabled_query';
 const DISTRIBUTION_ENABLED_QUERY_WRITE_KEY = 'preprodDistributionEnabledQuery';
 
-const VALID_TABS: PreprodTab[] = ['size', 'distribution', 'snapshots'];
+const VALID_TABS: PreprodTab[] = ['size', 'distribution'];
 
 export default function PreprodSettings() {
   const location = useLocation();
   const navigate = useNavigate();
-  const organization = useOrganization();
   const hasPageFrameFeature = useHasPageFrameFeature();
 
-  const hasSnapshots = organization.features.includes('preprod-snapshots');
-
-  const availableTabs = hasSnapshots
-    ? VALID_TABS
-    : VALID_TABS.filter(tab => tab !== 'snapshots');
   const queryTab = decodeScalar(location?.query?.tab);
-  const tab = availableTabs.includes(queryTab as PreprodTab)
+  const tab = VALID_TABS.includes(queryTab as PreprodTab)
     ? (queryTab as PreprodTab)
     : 'size';
 
@@ -84,9 +75,6 @@ export default function PreprodSettings() {
             <TabList>
               <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>
               <TabList.Item key="distribution">{t('Build Distribution')}</TabList.Item>
-              <TabList.Item key="snapshots" hidden={!hasSnapshots}>
-                {t('Snapshots')}
-              </TabList.Item>
             </TabList>
           </Tabs>
         </Container>
@@ -118,14 +106,6 @@ export default function PreprodSettings() {
             />
             <Feature features="organizations:preprod-build-distribution-pr-comments">
               <PrCommentsToggle />
-            </Feature>
-          </Fragment>
-        )}
-        {tab === 'snapshots' && (
-          <Fragment>
-            <SnapshotStatusChecks />
-            <Feature features="organizations:preprod-snapshot-pr-comments">
-              <SnapshotPrCommentsToggle />
             </Feature>
           </Fragment>
         )}

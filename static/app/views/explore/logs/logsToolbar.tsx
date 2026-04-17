@@ -153,18 +153,15 @@ function ToolbarVisualize() {
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
-  const replaceOverlay = useCallback(
-    (group: number, newVisualize: Visualize) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          return newVisualize.serialize();
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const replaceOverlay = (group: number, newVisualize: Visualize) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        return newVisualize.serialize();
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
   const handleDelete = useCallback(
     (group: number) => {

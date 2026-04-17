@@ -29,12 +29,14 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  hiddenAttributeKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -105,6 +107,8 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
 
@@ -134,6 +138,7 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    query: attributeQuery,
   });
 
   const getSuggestedAttribute = useExploreSuggestedAttribute({
@@ -146,6 +151,8 @@ export function useTraceItemSearchQueryBuilderProps({
     itemType,
     projects,
     extraTags: functionTags,
+    query: attributeQuery,
+    hiddenKeys: hiddenAttributeKeys,
   });
 
   return useMemo(
@@ -243,6 +250,8 @@ export function TraceItemSearchQueryBuilder({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -270,6 +279,8 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
+    attributeQuery,
+    hiddenAttributeKeys,
   });
 
   return (
