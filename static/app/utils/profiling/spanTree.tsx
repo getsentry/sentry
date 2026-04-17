@@ -14,6 +14,7 @@ export type TransactionSpanData = Pick<
   | 'span.self_time'
   | 'trace'
   | 'sdk.name'
+  | 'transaction.event_id'
 >;
 
 export type SpanNodeData = Pick<
@@ -37,6 +38,7 @@ const EmptyTransactionSpan: TransactionSpanData = {
   [SpanFields.SPAN_SELF_TIME]: 0,
   [SpanFields.TRACE]: '',
   [SpanFields.SDK_NAME]: '',
+  [SpanFields.TRANSACTION_EVENT_ID]: '',
 };
 
 function sortByStartTimeAndDuration(a: SpanNodeData, b: SpanNodeData) {
@@ -95,7 +97,7 @@ class SpanTree {
       [SpanFields.PRECISE_START_TS]: transaction[SpanFields.PRECISE_START_TS],
       [SpanFields.PRECISE_FINISH_TS]: transaction[SpanFields.PRECISE_FINISH_TS],
       [SpanFields.SPAN_ID]: transaction[SpanFields.SPAN_ID],
-      [SpanFields.TRANSACTION_EVENT_ID]: transaction[SpanFields.SPAN_ID],
+      [SpanFields.TRANSACTION_EVENT_ID]: transaction[SpanFields.TRANSACTION_EVENT_ID],
       [SpanFields.TRACE]: transaction[SpanFields.TRACE],
       [SpanFields.SPAN_OP]: 'transaction',
     });

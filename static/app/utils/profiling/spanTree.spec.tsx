@@ -25,6 +25,7 @@ function txn(partial: Partial<TransactionSpanData> = {}): TransactionSpanData {
     [SpanFields.SPAN_SELF_TIME]: 0,
     [SpanFields.TRACE]: '',
     [SpanFields.SDK_NAME]: '',
+    [SpanFields.TRANSACTION_EVENT_ID]: '',
     ...partial,
   };
 }
