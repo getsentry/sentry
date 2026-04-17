@@ -23,7 +23,7 @@ import {useScmProviders} from './components/useScmProviders';
 import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
 
-export function ScmConnect({onComplete}: StepProps) {
+export function ScmConnect({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
   const {
     selectedIntegration,
@@ -108,6 +108,9 @@ export function ScmConnect({onComplete}: StepProps) {
 
       <GenericFooter>
         <Flex align="center" padding="0 3xl">
+          {genBackButton?.()}
+        </Flex>
+        <Flex align="center" padding="0 3xl" gap="md">
           {!selectedRepository && (
             <Button
               analyticsEventKey="onboarding.scm_connect_skip_clicked"

@@ -4,23 +4,28 @@ import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 interface ScmStepFooterProps {
   children: React.ReactNode;
+  leading?: React.ReactNode;
   maxWidth?: string;
 }
 
 export function ScmStepFooter({
   children,
+  leading,
   maxWidth = SCM_STEP_CONTENT_WIDTH,
 }: ScmStepFooterProps) {
   return (
     <Flex
       gap="lg"
       align="center"
-      justify="end"
+      justify={leading ? 'between' : 'end'}
       width="100%"
       maxWidth={maxWidth}
       paddingTop="3xl"
     >
-      {children}
+      {leading}
+      <Flex gap="lg" align="center">
+        {children}
+      </Flex>
     </Flex>
   );
 }

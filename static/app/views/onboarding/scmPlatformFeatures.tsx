@@ -83,7 +83,7 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
 // Wider than SCM_STEP_CONTENT_WIDTH (506px) used by the footer.
 const PLATFORM_CONTENT_WIDTH = '564px';
 
-export function ScmPlatformFeatures({onComplete}: StepProps) {
+export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
   const {
     selectedRepository,
@@ -546,7 +546,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               />
             </Container>
           )}
-          <ScmStepFooter maxWidth={PLATFORM_CONTENT_WIDTH}>
+          <ScmStepFooter maxWidth={PLATFORM_CONTENT_WIDTH} leading={genBackButton?.()}>
             <Button
               priority="primary"
               analyticsEventKey="onboarding.scm_platform_features_continue_clicked"

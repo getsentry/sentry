@@ -8,6 +8,7 @@ export type StepProps = {
     query?: Record<string, string[]>
   ) => void;
   stepIndex: number;
+  genBackButton?: () => React.ReactNode;
   recentCreatedProject?: Project;
 };
 

@@ -301,6 +301,21 @@ export function OnboardingWithoutContext() {
     navigate(query ? normalizeUrl({pathname, query}) : normalizeUrl(pathname));
   };
 
+  const genBackButton = () => {
+    if (!hasScmOnboarding || stepIndex <= 0) {
+      return null;
+    }
+    return (
+      <Button
+        onClick={() => handleGoBack()}
+        icon={<IconArrow direction="left" />}
+        priority="link"
+      >
+        {t('Back')}
+      </Button>
+    );
+  };
+
   const genSkipOnboardingLink = () => {
     const source = `targeted-onboarding-${stepId}`;
     return (
@@ -374,9 +389,8 @@ export function OnboardingWithoutContext() {
             animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
           />
         )}
-        {stepIndex > 0 && (
+        {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
-            hasScmOnboarding={hasScmOnboarding}
             initial="initial"
             animate="visible"
             variants={{
@@ -416,6 +430,7 @@ export function OnboardingWithoutContext() {
                 }}
                 recentCreatedProject={recentCreatedProject}
                 genSkipOnboardingLink={genSkipOnboardingLink}
+                genBackButton={genBackButton}
               />
             )}
           </OnboardingStepVariable>
@@ -514,22 +529,10 @@ const StyledStepper = styled(Stepper)`
   }
 `;
 
-const BackMotionDiv = styled(motion.div, {
-  shouldForwardProp: prop => prop !== 'hasScmOnboarding',
-})<{hasScmOnboarding: boolean}>`
-  ${p =>
-    p.hasScmOnboarding
-      ? `
-    position: fixed;
-    bottom: 24px;
-    left: 24px;
-    z-index: 101;
-  `
-      : `
-    position: absolute;
-    top: 40px;
-    left: 20px;
-  `}
+const BackMotionDiv = styled(motion.div)`
+  position: absolute;
+  top: 40px;
+  left: 20px;
 
   button {
     font-size: ${p => p.theme.font.size.sm};

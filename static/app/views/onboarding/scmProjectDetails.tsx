@@ -32,7 +32,7 @@ import type {StepProps} from './types';
 
 const PROJECT_DETAILS_WIDTH = '285px';
 
-export function ScmProjectDetails({onComplete}: StepProps) {
+export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
   const {
     selectedPlatform,
@@ -250,7 +250,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         </Stack>
       </Stack>
 
-      <ScmStepFooter>
+      <ScmStepFooter leading={genBackButton?.()}>
         <Button
           priority="primary"
           onClick={handleCreateProject}

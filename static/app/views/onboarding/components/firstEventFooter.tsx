@@ -26,6 +26,7 @@ interface FirstEventFooterProps {
   onClickSetupLater: () => void;
   organization: Organization;
   project: Project;
+  leading?: React.ReactNode;
 }
 
 export function FirstEventFooter({
@@ -33,6 +34,7 @@ export function FirstEventFooter({
   project,
   onClickSetupLater,
   isLast,
+  leading,
 }: FirstEventFooterProps) {
   const {activateSidebar} = useOnboardingSidebar();
   const {inExperiment: hasScmOnboarding} = useExperiment({
@@ -62,7 +64,7 @@ export function FirstEventFooter({
   return (
     <GridFooter>
       {hasScmOnboarding ? (
-        <div />
+        <LeadingSlot>{leading}</LeadingSlot>
       ) : (
         <SkipOnboardingLink
           onClick={() => {
@@ -177,6 +179,12 @@ const StatusWrapper = styled(motion.div)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
+`;
+
+const LeadingSlot = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: auto ${p => p.theme.space['3xl']};
 `;
 
 const SkipOnboardingLink = styled(Link)`
