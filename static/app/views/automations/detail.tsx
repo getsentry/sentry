@@ -41,10 +41,65 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-function AutomationDetailContent({automation}: {automation: Automation}) {
+function AutomationDetailBreadcrumbs({automation}: {automation: Automation}) {
   const organization = useOrganization();
 
+  return (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
+        {label: automation.name},
+      ]}
+    />
+  );
+}
+
+function AutomationDetailHeaderContent({automation}: {automation: Automation}) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  if (hasPageFrameFeature) {
+    return (
+      <TopBar.Slot name="title">
+        <AutomationDetailBreadcrumbs automation={automation} />
+      </TopBar.Slot>
+    );
+  }
+
+  return (
+    <DetailLayout.HeaderContent>
+      <AutomationDetailBreadcrumbs automation={automation} />
+      <DetailLayout.Title title={automation.name} />
+    </DetailLayout.HeaderContent>
+  );
+}
+
+function AutomationDetailHeader({automation}: {automation: Automation}) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <AutomationDetailHeaderContent automation={automation} />
+        <Actions automation={automation} />
+      </Fragment>
+    );
+  }
+
+  return (
+    <DetailLayout.Header>
+      <AutomationDetailHeaderContent automation={automation} />
+      <Actions automation={automation} />
+    </DetailLayout.Header>
+  );
+}
+
+function AutomationDetailContent({automation}: {automation: Automation}) {
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
@@ -57,23 +112,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <DetailLayout.Header>
-          <DetailLayout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Alerts'),
-                  to: makeAutomationBasePathname(organization.slug),
-                },
-                {label: automation.name},
-              ]}
-            />
-            <DetailLayout.Title title={automation.name} />
-          </DetailLayout.HeaderContent>
-          <DetailLayout.Actions>
-            <Actions automation={automation} />
-          </DetailLayout.Actions>
-        </DetailLayout.Header>
+        <AutomationDetailHeader automation={automation} />
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
@@ -214,6 +253,7 @@ export default function AutomationDetail() {
 
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = () => {
@@ -232,9 +272,8 @@ function Actions({automation}: {automation: Automation}) {
     );
   };
 
-  return (
+  const actions = (
     <Fragment>
-      <AutomationFeedbackButton />
       <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
@@ -247,6 +286,33 @@ function Actions({automation}: {automation: Automation}) {
         {t('Edit')}
       </LinkButton>
     </Fragment>
+  );
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="actions">
+          <Button priority="default" onClick={toggleDisabled} busy={isUpdating}>
+            {automation.enabled ? t('Disable') : t('Enable')}
+          </Button>
+          <LinkButton
+            to={makeAutomationEditPathname(organization.slug, automation.id)}
+            priority="primary"
+            icon={<IconEdit />}
+          >
+            {t('Edit')}
+          </LinkButton>
+        </TopBar.Slot>
+        <AutomationFeedbackButton />
+      </Fragment>
+    );
+  }
+
+  return (
+    <DetailLayout.Actions>
+      <AutomationFeedbackButton />
+      {actions}
+    </DetailLayout.Actions>
   );
 }
 
