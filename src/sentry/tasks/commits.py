@@ -120,13 +120,13 @@ def fetch_commits_for_compare_range(
         if cached_repo_commits is not None:
             logger.info(
                 "fetch_commits.compare_commits_cache_hit",
-                extra={"compare_commits_cache_hit": True, "cache_key": cache_key},
+                extra={"compare_commits_cache_hit": False, "cache_key": cache_key},
             )
             return cached_repo_commits
 
         logger.info(
             "fetch_commits.compare_commits_cache_miss",
-            extra={"compare_commits_cache_miss": False, "cache_key": cache_key},
+            extra={"compare_commits_cache_miss": True, "cache_key": cache_key},
         )
 
     if is_integration_repo_provider:
