@@ -72,6 +72,8 @@ const mockAutofix = {
   createPR: jest.fn(),
   reset: jest.fn(),
   triggerCodingAgentHandoff: jest.fn(),
+  codingAgentErrors: [],
+  dismissCodingAgentError: jest.fn(),
 };
 
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
