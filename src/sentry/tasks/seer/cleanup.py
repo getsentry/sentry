@@ -201,3 +201,12 @@ def cleanup_seer_automation_handoff_for_integration(
                 "sentry:seer_automation_handoff_auto_create_pr",
             },
         ).delete()
+
+    logger.info(
+        "cleanup_seer_automation_handoff_for_integration.success",
+        extra={
+            "organization_id": organization_id,
+            "integration_id": integration_id,
+            "preferences_count": len(affected_preferences),
+        },
+    )

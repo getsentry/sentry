@@ -148,7 +148,7 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
             automation_handoff=handoff,
         )
 
-    def _assert_handoff_options_count(self, project, count) -> int:
+    def _assert_handoff_options_count(self, project, count) -> None:
         assert (
             ProjectOption.objects.filter(
                 project_id=project.id,
