@@ -782,6 +782,30 @@ describe('Onboarding', () => {
       });
     });
 
+    it('header skip button fires scm-connect analytics', async () => {
+      renderOnboarding('scm-connect');
+
+      await screen.findByText('Connect a repository');
+
+      const buttons = screen.getAllByRole('button', {name: 'Skip onboarding'});
+      expect(buttons).toHaveLength(1);
+      await userEvent.click(buttons[0]!);
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'growth.onboarding_clicked_skip',
+        expect.objectContaining({
+          source: 'targeted_onboarding_scm_connect',
+        })
+      );
+    });
+
+    it('hides the welcome footer skip button in favor of the header button', () => {
+      renderOnboarding('welcome');
+
+      const buttons = screen.getAllByRole('button', {name: 'Skip onboarding'});
+      expect(buttons).toHaveLength(1);
+    });
+
     it('renders scm-platform-features step and advances to scm-project-details', async () => {
       const {router} = renderOnboarding('scm-platform-features', {
         initialContext: {

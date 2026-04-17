@@ -1,0 +1,97 @@
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {OnboardingSkipButton} from 'sentry/views/onboarding/components/onboardingSkipButton';
+import {OnboardingStepId} from 'sentry/views/onboarding/types';
+
+jest.mock('sentry/utils/analytics');
+
+type MappedCase = {
+  analyticsSource: string;
+  referrer: string;
+  sidebarSource: string;
+  stepId: OnboardingStepId;
+};
+
+const MAPPED_CASES: MappedCase[] = [
+  {
+    stepId: OnboardingStepId.WELCOME,
+    analyticsSource: 'targeted_onboarding',
+    sidebarSource: 'targeted_onboarding_welcome_skip',
+    referrer: 'onboarding-welcome-skip',
+  },
+  {
+    stepId: OnboardingStepId.SCM_CONNECT,
+    analyticsSource: 'targeted_onboarding_scm_connect',
+    sidebarSource: 'targeted_onboarding_scm_connect_skip',
+    referrer: 'onboarding-scm-connect-skip',
+  },
+  {
+    stepId: OnboardingStepId.SCM_PLATFORM_FEATURES,
+    analyticsSource: 'targeted_onboarding_scm_platform_features',
+    sidebarSource: 'targeted_onboarding_scm_platform_features_skip',
+    referrer: 'onboarding-scm-platform-features-skip',
+  },
+  {
+    stepId: OnboardingStepId.SCM_PROJECT_DETAILS,
+    analyticsSource: 'targeted_onboarding_scm_project_details',
+    sidebarSource: 'targeted_onboarding_scm_project_details_skip',
+    referrer: 'onboarding-scm-project-details-skip',
+  },
+  {
+    stepId: OnboardingStepId.SETUP_DOCS,
+    analyticsSource: 'targeted_onboarding_first_event_footer',
+    sidebarSource: 'targeted_onboarding_first_event_footer_skip',
+    referrer: 'onboarding-first-event-footer-skip',
+  },
+];
+
+describe('OnboardingSkipButton', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each(MAPPED_CASES)(
+    'renders and fires the expected analytics for $stepId',
+    async ({stepId, analyticsSource, sidebarSource, referrer}) => {
+      jest.useFakeTimers();
+      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+
+      try {
+        render(<OnboardingSkipButton stepId={stepId} />);
+
+        const button = screen.getByRole('button', {name: 'Skip onboarding'});
+        expect(button).toHaveAttribute(
+          'href',
+          `/organizations/org-slug/issues/?referrer=${referrer}`
+        );
+
+        await userEvent.click(button, {delay: null});
+
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'growth.onboarding_clicked_skip',
+          expect.objectContaining({source: analyticsSource})
+        );
+
+        jest.runAllTimers();
+
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'quick_start.opened',
+          expect.objectContaining({source: sidebarSource})
+        );
+        expect(openSpy).toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+        openSpy.mockRestore();
+      }
+    }
+  );
+
+  it('renders nothing for unmapped steps', () => {
+    const {container} = render(
+      <OnboardingSkipButton stepId={OnboardingStepId.SELECT_PLATFORM} />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+});
