@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from sentry import features
 from sentry.models.organization import Organization
@@ -28,7 +29,11 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.CELL,
 )
 def cleanup_seer_repository_preferences(
-    organization_id: int, repo_id: int, repo_external_id: str, repo_provider: str
+    organization_id: int,
+    repo_external_id: str,
+    repo_provider: str,
+    repo_id: int | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     Clean up Seer preferences for a hidden repository.
@@ -55,12 +60,13 @@ def cleanup_seer_repository_preferences(
         )
         raise
 
-    try:
-        organization = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            SeerProjectRepository.objects.filter(repository_id=repo_id).delete()
-    except Organization.DoesNotExist:
-        pass
+    if repo_id is not None:
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:seer-project-settings-dual-write", organization):
+                SeerProjectRepository.objects.filter(repository_id=repo_id).delete()
+        except Organization.DoesNotExist:
+            pass
 
     logger.info(
         "cleanup_seer_repository_preferences.success",
@@ -80,19 +86,23 @@ def cleanup_seer_repository_preferences(
 )
 def bulk_cleanup_seer_repository_preferences(
     organization_id: int,
-    repos: list[tuple[int, str, str]],
+    repos: list[dict[str, int | str]],
+    **kwargs: Any,
 ) -> None:
     """
     Remove multiple repositories from Seer project preferences.
 
-    Each repo is a (repo_id, external_id, provider) tuple. Callers are expected
-    to filter out repos missing external_id or provider before dispatching.
+    Each repo is a dict with keys `repo_external_id` and `repo_provider`, and
+    optionally `repo_id` (used to clean up local SeerProjectRepository rows).
     """
     body = BulkRemoveRepositoriesRequest(
         organization_id=organization_id,
         repositories=[
-            RepoIdentifier(repo_provider=provider, repo_external_id=ext_id)
-            for _, ext_id, provider in repos
+            RepoIdentifier(
+                repo_provider=str(repo["repo_provider"]),
+                repo_external_id=str(repo["repo_external_id"]),
+            )
+            for repo in repos
         ],
     )
     viewer_context = SeerViewerContext(organization_id=organization_id)
@@ -110,14 +120,14 @@ def bulk_cleanup_seer_repository_preferences(
         )
         raise
 
-    try:
-        organization = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            SeerProjectRepository.objects.filter(
-                repository_id__in=[repo_id for repo_id, _, _ in repos]
-            ).delete()
-    except Organization.DoesNotExist:
-        pass
+    repo_ids = [repo["repo_id"] for repo in repos if "repo_id" in repo]
+    if repo_ids:
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:seer-project-settings-dual-write", organization):
+                SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
+        except Organization.DoesNotExist:
+            pass
 
     logger.info(
         "bulk_cleanup_seer_repository_preferences.success",

@@ -142,7 +142,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
 
                 repos_to_clean = [
-                    (repo_id, external_id, provider)
+                    {
+                        "repo_id": repo_id,
+                        "repo_external_id": external_id,
+                        "repo_provider": provider,
+                    }
                     for repo_id, external_id, provider in repos
                     if external_id and provider
                 ]
@@ -181,7 +185,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 Repository.objects.filter(id__in=repo_ids).update(status=ObjectStatus.DISABLED)
 
                 repos_to_clean = [
-                    (repo_id, external_id, provider)
+                    {
+                        "repo_id": repo_id,
+                        "repo_external_id": external_id,
+                        "repo_provider": provider,
+                    }
                     for repo_id, external_id, provider in repos
                     if external_id and provider
                 ]
@@ -214,7 +222,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 Repository.objects.filter(id__in=repo_ids).update(integration_id=None)
 
                 repos_to_clean = [
-                    (repo_id, external_id, provider)
+                    {
+                        "repo_id": repo_id,
+                        "repo_external_id": external_id,
+                        "repo_provider": provider,
+                    }
                     for repo_id, external_id, provider in repos
                     if external_id and provider
                 ]

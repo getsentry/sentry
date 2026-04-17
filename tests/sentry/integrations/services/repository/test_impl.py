@@ -189,7 +189,13 @@ class DisableRepositoriesByExternalIdsTest(TestCase):
         mock_cleanup.apply_async.assert_called_once_with(
             kwargs={
                 "organization_id": self.organization.id,
-                "repos": [(repo.id, "100", self.provider)],
+                "repos": [
+                    {
+                        "repo_id": repo.id,
+                        "repo_external_id": "100",
+                        "repo_provider": self.provider,
+                    }
+                ],
             }
         )
 
@@ -244,7 +250,13 @@ class DisableRepositoriesForIntegrationTest(TestCase):
         mock_cleanup.apply_async.assert_called_once_with(
             kwargs={
                 "organization_id": self.organization.id,
-                "repos": [(repo.id, "100", self.provider)],
+                "repos": [
+                    {
+                        "repo_id": repo.id,
+                        "repo_external_id": "100",
+                        "repo_provider": self.provider,
+                    }
+                ],
             }
         )
 
@@ -301,7 +313,13 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         mock_cleanup.apply_async.assert_called_once_with(
             kwargs={
                 "organization_id": self.organization.id,
-                "repos": [(repo.id, "100", self.provider)],
+                "repos": [
+                    {
+                        "repo_id": repo.id,
+                        "repo_external_id": "100",
+                        "repo_provider": self.provider,
+                    }
+                ],
             }
         )
 
