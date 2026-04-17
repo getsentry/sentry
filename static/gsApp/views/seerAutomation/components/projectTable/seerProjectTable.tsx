@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -322,11 +321,6 @@ function ProjectTable({
           options={codingAgentCompactSelectOptions}
           onChange={option => setAgentFilter(option.value || null)}
           value={agentFilter ?? undefined}
-          footer={
-            <Button size="sm" onClick={() => setAgentFilter(null)}>
-              Reset
-            </Button>
-          }
         />
 
         <InputGroup style={{width: '100%'}}>
