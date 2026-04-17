@@ -65,12 +65,15 @@ export function MetricsDetectorSearchBar({
   });
 
   const visibleNumberTags = useMemo(() => {
-    const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce((acc, key) => {
-      if (!HiddenTraceMetricSearchFields.includes(key)) {
-        acc[key] = {key, name: key, kind: FieldKind.MEASUREMENT};
-      }
-      return acc;
-    }, {} as TagCollection);
+    const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
+      (acc, key) => {
+        if (!HiddenTraceMetricSearchFields.includes(key)) {
+          acc[key] = {key, name: key, kind: FieldKind.MEASUREMENT};
+        }
+        return acc;
+      },
+      {}
+    );
 
     return {
       ...staticNumberTags,
@@ -83,12 +86,15 @@ export function MetricsDetectorSearchBar({
   }, [data?.numberAttributes]);
 
   const visibleStringTags = useMemo(() => {
-    const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce((acc, key) => {
-      if (!HiddenTraceMetricSearchFields.includes(key)) {
-        acc[key] = {key, name: key, kind: FieldKind.FIELD};
-      }
-      return acc;
-    }, {} as TagCollection);
+    const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce<TagCollection>(
+      (acc, key) => {
+        if (!HiddenTraceMetricSearchFields.includes(key)) {
+          acc[key] = {key, name: key, kind: FieldKind.FIELD};
+        }
+        return acc;
+      },
+      {}
+    );
 
     return {
       ...staticStringTags,
@@ -101,12 +107,15 @@ export function MetricsDetectorSearchBar({
   }, [data?.stringAttributes]);
 
   const visibleBooleanTags = useMemo(() => {
-    const staticBooleanTags = SENTRY_TRACEMETRIC_BOOLEAN_TAGS.reduce((acc, key) => {
-      if (!HiddenTraceMetricSearchFields.includes(key)) {
-        acc[key] = {key, name: key, kind: FieldKind.BOOLEAN};
-      }
-      return acc;
-    }, {} as TagCollection);
+    const staticBooleanTags = SENTRY_TRACEMETRIC_BOOLEAN_TAGS.reduce<TagCollection>(
+      (acc, key) => {
+        if (!HiddenTraceMetricSearchFields.includes(key)) {
+          acc[key] = {key, name: key, kind: FieldKind.BOOLEAN};
+        }
+        return acc;
+      },
+      {}
+    );
 
     return {
       ...staticBooleanTags,

@@ -19,6 +19,7 @@ function ClaudeCodeApiKeyStep({
   advance,
   advanceError,
   isAdvancing,
+  isInitializing,
 }: PipelineStepProps<Record<string, never>, {apiKey: string}>) {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -54,7 +55,7 @@ function ClaudeCodeApiKeyStep({
           )}
         </form.AppField>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing}>
+          <form.SubmitButton disabled={isAdvancing || isInitializing}>
             {isAdvancing ? t('Submitting...') : t('Continue')}
           </form.SubmitButton>
         </Flex>

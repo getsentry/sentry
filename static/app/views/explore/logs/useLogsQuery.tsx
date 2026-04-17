@@ -238,7 +238,7 @@ function getPageParam(
         sortByDirection: sortBy.kind,
         autoRefresh,
         cursor: link.cursor ?? undefined,
-      } as FlexTimePageParam;
+      };
     }
 
     const firstRow = pageData.data?.[0];

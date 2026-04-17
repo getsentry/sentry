@@ -67,7 +67,7 @@ export class ContinuousProfile extends Profile {
         : weightedSamples;
 
     let frame: Frame | null = null;
-    const resolvedStack: Frame[] = new Array(256); // stack size limit
+    const resolvedStack = Array.from<Frame>({length: 256}); // stack size limit
 
     for (const sample of samples) {
       const stack = chunk.stacks[sample.stack_id];

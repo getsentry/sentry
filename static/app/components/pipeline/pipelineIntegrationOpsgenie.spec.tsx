@@ -1,22 +1,11 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {opsgenieIntegrationPipeline} from './pipelineIntegrationOpsgenie';
-import type {PipelineStepProps} from './types';
+import {createMakeStepProps} from './testUtils';
 
 const OpsgenieInstallationConfigStep = opsgenieIntegrationPipeline.steps[0].component;
 
-function makeStepProps<D, A>(
-  overrides: Partial<PipelineStepProps<D, A>> & {stepData: D}
-): PipelineStepProps<D, A> {
-  return {
-    advance: jest.fn(),
-    advanceError: null,
-    isAdvancing: false,
-    stepIndex: 0,
-    totalSteps: 1,
-    ...overrides,
-  };
-}
+const makeStepProps = createMakeStepProps({totalSteps: 1});
 
 const baseUrlChoices = [
   {value: 'https://api.opsgenie.com/', label: 'api.opsgenie.com'},
@@ -88,5 +77,15 @@ describe('OpsgenieInstallationConfigStep', () => {
     );
 
     expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
+  });
+
+  it('disables submit button when isInitializing', () => {
+    render(
+      <OpsgenieInstallationConfigStep
+        {...makeStepProps({stepData: null, isInitializing: true})}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 });

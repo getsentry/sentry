@@ -5,6 +5,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
+import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
 import {DisplayType, type DashboardDetails, type Widget} from './types';
 
 type Props = {
@@ -61,7 +62,14 @@ export class WidgetLegendSelectionState {
         !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
         Object.values(selected).filter(value => value === false).length === 1;
 
-      if (thisWidgetWithReleasesWasSelected || thisWidgetWithoutReleasesWasSelected) {
+      // For new-path widgets the default is nothing hidden, so any toggle
+      // should update the URL. The two conditions above only cover old-path
+      // widgets where Releases-hidden was the implicit default state.
+      if (
+        thisWidgetWithReleasesWasSelected ||
+        thisWidgetWithoutReleasesWasSelected ||
+        !this.widgetRequiresLegendUnselection(widget)
+      ) {
         navigate(
           {
             ...location,
@@ -148,6 +156,12 @@ export class WidgetLegendSelectionState {
   }
 
   widgetRequiresLegendUnselection(widget: Widget) {
+    // The new chart path renders releases as bubble markers that don't
+    // clutter the chart, so there's no need to hide them by default.
+    if (widgetCanUseTimeSeriesVisualization(widget)) {
+      return false;
+    }
+
     return (
       widget.displayType === DisplayType.AREA || widget.displayType === DisplayType.LINE
     );

@@ -110,21 +110,22 @@ def fetch_commits_for_compare_range(
     start_sha: str,
     end_sha: str,
     user: RpcUser | None,
-    lifecycle: Any,
 ) -> list[dict[str, Any]]:
+    set_tag("compare_commits_cache_enabled", cache_enabled)
     if cache_enabled:
         cache_key = get_github_compare_commits_cache_key(
             repo.organization_id, repo.id, repo.provider, start_sha, end_sha
         )
         cached_repo_commits = cache.get(cache_key)
-        lifecycle.add_extra("compare_commits_cache_enabled", True)
+        logger.info(
+            "fetch_commits.compare_commits_cache_hit",
+            extra={
+                "compare_commits_cache_hit": cached_repo_commits is not None,
+                "cache_key": cache_key,
+            },
+        )
         if cached_repo_commits is not None:
-            lifecycle.add_extra("compare_commits_cache_hit", True)
             return cached_repo_commits
-
-        lifecycle.add_extra("compare_commits_cache_hit", False)
-    else:
-        lifecycle.add_extra("compare_commits_cache_enabled", False)
 
     if is_integration_repo_provider:
         # New method to decouple the provider from the task
@@ -223,6 +224,7 @@ def fetch_commits(
     commit_list: list[dict[str, Any]] = []
 
     release = Release.objects.get(id=release_id)
+    logger.info("fetch_commits.start", extra={"organization_slug": release.organization.slug})
     set_tag("organization.slug", release.organization.slug)
     # TODO: Need a better way to error handle no user_id. We need the SDK to be able to call this without user context
     # to autoassociate commits to releases
@@ -304,7 +306,6 @@ def fetch_commits(
                         start_sha=start_sha,
                         end_sha=end_sha,
                         user=user,
-                        lifecycle=lifecycle,
                     )
             except NotImplementedError:
                 pass

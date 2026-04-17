@@ -1,6 +1,5 @@
 import type {QueryClient} from '@tanstack/react-query';
 
-import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
   makeProjectSeerPreferencesQueryKey,
@@ -22,15 +21,6 @@ import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/se
 
 type SelectValue = 'off' | 'root_cause' | 'code';
 type SelectOptions = {label: string; value: SelectValue};
-
-export function getDefaultStoppingPointValue(organization: Organization): SelectValue {
-  if ([null, undefined, 'off'].includes(organization.defaultAutofixAutomationTuning)) {
-    return 'off';
-  }
-  return organization.defaultAutomatedRunStoppingPoint === 'root_cause'
-    ? 'root_cause'
-    : 'code';
-}
 
 export function getProjectStoppingPointValue(
   project: Project,
@@ -88,34 +78,6 @@ export function useFetchStoppingPointOptions({
           : t('Propose Changes'),
     },
   ];
-}
-
-export function getDefaultStoppingPointMutationOptions({
-  organization,
-}: {
-  organization: Organization;
-}) {
-  return mutationOptions({
-    mutationFn: ({stoppingPoint}: {stoppingPoint: SelectValue}) => {
-      return fetchMutation<Organization>({
-        method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
-        data:
-          stoppingPoint === 'off'
-            ? {defaultAutofixAutomationTuning: 'off'}
-            : {
-                defaultAutofixAutomationTuning: 'medium',
-                defaultAutomatedRunStoppingPoint:
-                  stoppingPoint === 'root_cause'
-                    ? 'root_cause'
-                    : organization.autoOpenPrs
-                      ? 'open_pr'
-                      : 'code_changes',
-              },
-      });
-    },
-    onSuccess: updateOrganization,
-  });
 }
 
 export function getProjectStoppingPointMutationOptions({
