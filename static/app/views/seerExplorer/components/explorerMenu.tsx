@@ -474,7 +474,7 @@ const MenuPanel = styled('div')<{
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.shadow.high};
   max-height: ${p =>
     p.panelSize === 'max' ? 'calc(100vh - 120px)' : 'calc(50vh - 80px)'};
   overflow-y: auto;

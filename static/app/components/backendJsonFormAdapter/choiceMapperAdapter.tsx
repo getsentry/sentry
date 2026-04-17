@@ -288,7 +288,7 @@ export function ChoiceMapperTable({
                   onChange={(v: {value: string | number | null} | null) =>
                     setValue(itemKey, fieldKey, v ? v.value : null)
                   }
-                  value={value[itemKey]?.[fieldKey] as string | null}
+                  value={value[itemKey]?.[fieldKey]}
                 />
               </Flex>
               {i === mappedKeys.length - 1 && (

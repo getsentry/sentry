@@ -27,7 +27,7 @@ from sentry.seer.autofix.coding_agent import (
     sanitize_branch_name,
     store_coding_agent_states_to_seer,
 )
-from sentry.seer.autofix.utils import CodingAgentState
+from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -141,7 +141,11 @@ def launch_coding_agents(
             failure_type = "generic"
             error_message = "Failed to launch coding agent"
             github_installation_id: str | None = None
-            if isinstance(e, ApiError):
+            if isinstance(e, HTTPError) and e.response is not None:
+                api_message = extract_api_error_message(e.response)
+                if api_message:
+                    error_message = api_message
+            elif isinstance(e, ApiError):
                 if e.code == 403 and is_github_copilot:
                     if e.text and "not licensed" in e.text.lower():
                         failure_type = "github_copilot_not_licensed"

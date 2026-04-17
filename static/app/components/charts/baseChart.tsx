@@ -617,31 +617,30 @@ export function BaseChart({
   // We use React.useMemo to keep the value across renders
   //
   const eventsMap = useMemo(
-    () =>
-      ({
-        click: (props: any, instance: ECharts) => {
-          handleClick(props, instance);
-          onClick?.(props, instance);
-        },
+    () => ({
+      click: (props: any, instance: ECharts) => {
+        handleClick(props, instance);
+        onClick?.(props, instance);
+      },
 
-        highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
-        downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
-        mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
-        mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
-        datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
-        restore: (props: any, instance: ECharts) => onRestore?.(props, instance),
-        finished: (props: any, instance: ECharts) => onFinished?.(props, instance),
-        rendered: (props: any, instance: ECharts) => onRendered?.(props, instance),
+      highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
+      downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
+      mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
+      mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
+      datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
+      restore: (props: any, instance: ECharts) => onRestore?.(props, instance),
+      finished: (props: any, instance: ECharts) => onFinished?.(props, instance),
+      rendered: (props: any, instance: ECharts) => onRendered?.(props, instance),
 
-        legendselectchanged: (props: any, instance: ECharts) =>
-          onLegendSelectChanged?.(props, instance),
+      legendselectchanged: (props: any, instance: ECharts) =>
+        onLegendSelectChanged?.(props, instance),
 
-        brush: (props: any, instance: ECharts) => onBrushStart?.(props, instance),
-        brushend: (props: any, instance: ECharts) => onBrushEnd?.(props, instance),
+      brush: (props: any, instance: ECharts) => onBrushStart?.(props, instance),
+      brushend: (props: any, instance: ECharts) => onBrushEnd?.(props, instance),
 
-        brushselected: (props: any, instance: ECharts) =>
-          onBrushSelected?.(props, instance),
-      }) as ReactEchartProps['onEvents'],
+      brushselected: (props: any, instance: ECharts) =>
+        onBrushSelected?.(props, instance),
+    }),
     [
       onClick,
       onHighlight,

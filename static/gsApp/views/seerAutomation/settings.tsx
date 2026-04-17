@@ -17,14 +17,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
-  AutofixOverviewSection,
-  useAutofixOverviewData,
-} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
-import {
-  CodeReviewOverviewSection,
-  useCodeReviewOverviewSection,
-} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
-import {
   SCMOverviewSection,
   useSCMOverviewSection,
 } from 'sentry/views/settings/seer/overview/scmOverviewSection';
@@ -38,19 +30,13 @@ const schema = z.object({
   autoOpenPrs: z.boolean(),
   autoEnableCodeReview: z.boolean(),
   defaultCodeReviewTriggers: z.array(z.enum(['on_new_commit', 'on_ready_for_review'])),
-  enableSeerEnhancedAlerts: z.boolean(),
-  enableSeerCoding: z.boolean(),
 });
 
 export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
-  const showSeerOverview = organization.features.includes('seer-overview');
-
   const scmOverviewData = useSCMOverviewSection();
-  const autofixOverviewData = useAutofixOverviewData();
-  const codeReviewOverviewData = useCodeReviewOverviewSection();
 
   const orgEndpoint = `/organizations/${organization.slug}/`;
   const orgMutationOpts = mutationOptions({
@@ -94,25 +80,7 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
-        {showSeerOverview ? (
-          <div>
-            <SCMOverviewSection
-              {...scmOverviewData}
-              canWrite={canWrite}
-              organizationSlug={organization.slug}
-            />
-            <AutofixOverviewSection
-              {...autofixOverviewData}
-              canWrite={canWrite}
-              organization={organization}
-            />
-            <CodeReviewOverviewSection
-              {...codeReviewOverviewData}
-              canWrite={canWrite}
-              organization={organization}
-            />
-          </div>
-        ) : (
+        {
           <Fragment>
             <SCMOverviewSection
               {...scmOverviewData}
@@ -196,7 +164,7 @@ export function SeerAutomationSettings() {
                               {
                                 settings: (
                                   <Link
-                                    to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                    to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
                                   />
                                 ),
                               }
@@ -294,83 +262,7 @@ export function SeerAutomationSettings() {
               </AutoSaveForm>
             </FieldGroup>
           </Fragment>
-        )}
-
-        <FieldGroup title={t('Advanced Settings')}>
-          <AutoSaveForm
-            name="enableSeerEnhancedAlerts"
-            schema={schema}
-            initialValue={organization.enableSeerEnhancedAlerts ?? true}
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Enable Seer Context in Alerts')}
-                hintText={
-                  <Flex gap="sm">
-                    <span>
-                      {t('Seer will provide extra context in supported alerts.')}
-                    </span>
-                    <QuestionTooltip
-                      size="xs"
-                      title={t(
-                        'Enable Seer to include Agent output in alerts when available. Agent output may include code snippets, explanations, and more.'
-                      )}
-                    />
-                  </Flex>
-                }
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={!canWrite}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-          <AutoSaveForm
-            name="enableSeerCoding"
-            schema={schema}
-            initialValue={organization.enableSeerCoding ?? true}
-            mutationOptions={orgMutationOpts}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Enable Code Generation')}
-                hintText={
-                  <Flex gap="sm">
-                    <span>
-                      {tct(
-                        'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
-                        {
-                          docs: (
-                            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation" />
-                          ),
-                        }
-                      )}
-                    </span>
-                    <QuestionTooltip
-                      size="xs"
-                      title={t(
-                        'This does not impact chat sessions where the agent will always be able to emit code snippets and examples while responding to your input.'
-                      )}
-                    />
-                  </Flex>
-                }
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={
-                    organization.features.includes('seer-disable-coding-setting')
-                      ? t('Code generation is managed by your organization.')
-                      : !canWrite
-                  }
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
+        }
       </SeerSettingsPageContent>
     </SeerSettingsPageWrapper>
   );

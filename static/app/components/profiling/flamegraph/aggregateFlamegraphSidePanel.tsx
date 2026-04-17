@@ -33,13 +33,10 @@ export function AggregateFlamegraphSidePanel({
   const {projects} = useProjects();
 
   const projectsLookupTable = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.id] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.id] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const flamegraph = useFlamegraph();
