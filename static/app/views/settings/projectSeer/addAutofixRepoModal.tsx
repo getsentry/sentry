@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,10 +10,14 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
@@ -37,10 +42,14 @@ export function AddAutofixRepoModal({
   Footer,
   closeModal,
 }: Props) {
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
-
   const organization = useOrganization();
+
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
   const [modalSelectedRepoIds, setModalSelectedRepoIds] =

@@ -1377,7 +1377,7 @@ register(
 )
 register(
     "seer.night_shift.issues_per_org",
-    default=5,
+    default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1386,6 +1386,24 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.supergroups_backfill_lightweight.batch_size",
+    type=Int,
+    default=40,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.supergroups_backfill_lightweight.inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.supergroups_backfill_lightweight.max_failures_per_batch",
+    type=Int,
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches

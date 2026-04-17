@@ -55,6 +55,12 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
+    override_code_mode_enable = serializers.BooleanField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text="Override code mode tools flag from the frontend toggle.",
+    )
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
@@ -156,6 +162,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
+        override_code_mode_enable = validated_data.get("override_code_mode_enable")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -175,6 +182,8 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             enable_code_mode_tools = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
+            if override_code_mode_enable is not None and enable_code_mode_tools:
+                enable_code_mode_tools = override_code_mode_enable
             client = SeerExplorerClient(
                 organization,
                 request.user,

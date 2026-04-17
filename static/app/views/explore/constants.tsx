@@ -146,3 +146,5 @@ export const MAX_CROSS_EVENT_QUERIES = 2;
 // We want a maximum of 7 days for cross events to avoid overwhelming the backend.
 export const MAX_PERIOD_FOR_CROSS_EVENTS = '7d';
 export const MAX_DAYS_FOR_CROSS_EVENTS = statsPeriodToDays(MAX_PERIOD_FOR_CROSS_EVENTS);
+
+export const TRACE_ITEM_ATTRIBUTE_STALE_TIME = 5 * 60 * 1000;

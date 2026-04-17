@@ -1,10 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, type ComponentProps, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -19,21 +18,17 @@ import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadg
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {HookStore} from 'sentry/stores/hookStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
@@ -85,73 +80,26 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
   const hasErrorUpsampling = project.features.includes('error-upsampling');
 
   const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
-  const hasFeedbackForm =
-    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
-    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
-    isAIDetectedIssue;
-  const feedbackSource =
-    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
-      ? 'issue_details_query_injection'
-      : isAIDetectedIssue
-        ? 'issue_details_ai_detected'
-        : 'issue_details_n_plus_one_api_calls';
-  const {feedback} = useFeedbackSDKIntegration();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
-  const feedbackOptions = {
-    messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
-    tags: {
-      ['feedback.source']: feedbackSource,
-    },
-  };
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
-  const [showLearnMore, setShowLearnMore] = useLocalStorageState(
-    'issue-details-learn-more',
-    true
-  );
+  const crumbs = [
+    {
+      label: 'Issues',
+      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
+    },
+    {label: <IssueIdBreadcrumb project={project} group={group} />},
+  ];
 
   return (
     <Fragment>
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="title">
-                <StyledBreadcrumbs
-                  crumbs={[
-                    {
-                      label: 'Issues',
-                      to: {
-                        pathname: `/organizations/${organization.slug}/issues/`,
-                        query,
-                      },
-                    },
-                    {
-                      label: <IssueIdBreadcrumb project={project} group={group} />,
-                    },
-                  ]}
-                />
-              </TopBar.Slot>
-            ) : (
-              <StyledBreadcrumbs
-                crumbs={[
-                  {
-                    label: 'Issues',
-                    to: {
-                      pathname: `/organizations/${organization.slug}/issues/`,
-                      query,
-                    },
-                  },
-                  {
-                    label: <IssueIdBreadcrumb project={project} group={group} />,
-                  },
-                ]}
-              />
-            )}
+            <MaybeTopBarSlot name="title">
+              <StyledBreadcrumbs crumbs={crumbs} />
+            </MaybeTopBarSlot>
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -163,42 +111,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
             )}
           </Flex>
           <Grid flow="column" align="center" gap="xs">
-            {!hasOnlyOneUIOption && !hasFeedbackForm && (
-              <LinkButton
-                size="xs"
-                external
-                tooltipProps={{title: t('Learn more about the new UI')}}
-                href="https://docs.sentry.io/product/issues/issue-details/"
-                aria-label={t('Learn more about the new UI')}
-                icon={<IconInfo />}
-                analyticsEventKey="issue_details.streamline_ui_learn_more"
-                analyticsEventName="Issue Details: Streamline UI Learn More"
-                analyticsParams={{show_learn_more: showLearnMore}}
-                onClick={() => setShowLearnMore(false)}
-              >
-                {showLearnMore ? t("See What's New") : null}
-              </LinkButton>
-            )}
-            {hasFeedbackForm && feedback ? (
-              hasPageFrameFeature ? (
-                <TopBar.Slot name="feedback">
-                  <FeedbackButton
-                    aria-label={t('Give feedback on the issue Sentry detected')}
-                    feedbackOptions={feedbackOptions}
-                  >
-                    {null}
-                  </FeedbackButton>
-                </TopBar.Slot>
-              ) : (
-                <FeedbackButton
-                  aria-label={t('Give feedback on the issue Sentry detected')}
-                  size="xs"
-                  feedbackOptions={feedbackOptions}
-                />
-              )
-            ) : (
-              <NewIssueExperienceButton />
-            )}
+            <HeaderActions group={group} />
           </Grid>
         </Flex>
         <HeaderGrid>
@@ -327,6 +240,57 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
       </TourElement>
     </Fragment>
   );
+}
+
+function MaybeTopBarSlot({
+  name,
+  children,
+}: {
+  children: ReactNode;
+  name: ComponentProps<typeof TopBar.Slot>['name'];
+}) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  if (hasPageFrameFeature) {
+    return <TopBar.Slot name={name}>{children}</TopBar.Slot>;
+  }
+  return children;
+}
+
+function HeaderActions({group}: {group: Group}) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const {feedback} = useFeedbackSDKIntegration();
+
+  const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
+  const hasFeedbackForm =
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
+    isAIDetectedIssue;
+  const feedbackSource =
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
+      ? 'issue_details_query_injection'
+      : isAIDetectedIssue
+        ? 'issue_details_ai_detected'
+        : 'issue_details_n_plus_one_api_calls';
+  const feedbackOptions = {
+    messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
+    tags: {['feedback.source']: feedbackSource},
+  };
+
+  if (hasFeedbackForm && feedback) {
+    return (
+      <MaybeTopBarSlot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give feedback on the issue Sentry detected')}
+          size={hasPageFrameFeature ? undefined : 'xs'}
+          feedbackOptions={feedbackOptions}
+        >
+          {hasPageFrameFeature ? null : t('Give Feedback')}
+        </FeedbackButton>
+      </MaybeTopBarSlot>
+    );
+  }
+
+  return null;
 }
 
 const Header = styled('header')`

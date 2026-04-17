@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
+from django.db.models import QuerySet
 from django.db.models.functions import Lower
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
@@ -554,9 +555,11 @@ class GenericOffsetPaginator:
 
 
 class CombinedQuerysetIntermediary:
-    is_empty = False
+    is_empty: bool = False
+    instance_type: type
+    order_by_type: type
 
-    def __init__(self, queryset, order_by):
+    def __init__(self, queryset: QuerySet[Any], order_by: list[str]) -> None:
         assert isinstance(order_by, list), "order_by must be a list of keys/field names"
         self.queryset = queryset
         self.order_by = order_by
@@ -569,7 +572,7 @@ class CombinedQuerysetIntermediary:
         except ObjectDoesNotExist:
             self.is_empty = True
 
-    def _assert_has_field(self, instance, field):
+    def _assert_has_field(self, instance: object, field: str) -> None:
         assert hasattr(instance, field), (
             f"Model of type {self.instance_type} does not have field {field}"
         )
@@ -591,15 +594,21 @@ class CombinedQuerysetPaginator:
     There is an assertion in the constructor to help prevent this from manifesting.
     """
 
-    multiplier = 1000000  # Use microseconds for date keys.
-    using_dates = False
+    multiplier: int = 1000000  # Use microseconds for date keys.
+    using_dates: bool = False
 
-    def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
+    def __init__(
+        self,
+        intermediaries: list[CombinedQuerysetIntermediary],
+        desc: bool = False,
+        on_results: Callable[[list[Any]], list[Any]] | None = None,
+        case_insensitive: bool = False,
+    ) -> None:
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
         self.case_insensitive = case_insensitive
-        self.model_key_map = {}
+        self.model_key_map: dict[type, list[str]] = {}
         for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
@@ -620,10 +629,10 @@ class CombinedQuerysetPaginator:
                 "When sorting by a date, it must be the key used on all intermediaries"
             )
 
-    def key_from_item(self, item):
+    def key_from_item(self, item: object) -> str:
         return self.model_key_map[type(item)][0]
 
-    def _prep_value(self, item, key, for_prev):
+    def _prep_value(self, item: object, key: str, for_prev: bool) -> object:
         """
         Formats values for use in the cursor
         """
@@ -635,7 +644,7 @@ class CombinedQuerysetPaginator:
             return quote(value.lower())
         return value
 
-    def get_item_key(self, item, for_prev=False):
+    def get_item_key(self, item: object, for_prev: bool = False) -> object:
         if self.using_dates:
             return int(
                 self.multiplier * float(getattr(item, self.key_from_item(item)).strftime("%s.%f"))
@@ -643,10 +652,10 @@ class CombinedQuerysetPaginator:
         else:
             return self._prep_value(item, self.key_from_item(item), for_prev)
 
-    def _is_asc(self, is_prev):
+    def _is_asc(self, is_prev: bool) -> bool:
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def _build_combined_querysets(self, is_prev):
+    def _build_combined_querysets(self, is_prev: bool, max_rows: int | None = None) -> list[object]:
         asc = self._is_asc(is_prev)
         combined_querysets = list()
         for intermediary in self.intermediaries:
@@ -664,6 +673,8 @@ class CombinedQuerysetPaginator:
                     queryset = queryset.order_by(key)
                 else:
                     queryset = queryset.order_by(f"-{key}")
+            if max_rows is not None:
+                queryset = queryset[:max_rows]
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
@@ -683,7 +694,7 @@ class CombinedQuerysetPaginator:
 
         return combined_querysets
 
-    def get_result(self, cursor=None, limit=100):
+    def get_result(self, cursor: Cursor | None = None, limit: int = 100) -> CursorResult[Any]:
         # offset is page #
         # value is page limit
         if cursor is None:
@@ -691,12 +702,15 @@ class CombinedQuerysetPaginator:
 
         limit = min(limit, MAX_LIMIT)
 
-        combined_querysets = self._build_combined_querysets(cursor.is_prev)
-
         page = int(cursor.offset)
         cursor_value = int(cursor.value)
         offset = page * cursor_value
         stop = offset + (int(cursor_value) or limit) + 1
+
+        # is_prev reverses the SQL sort direction, so applying max_rows would
+        # keep items from the wrong end of each queryset.
+        max_rows = stop if not cursor.is_prev else None
+        combined_querysets = self._build_combined_querysets(cursor.is_prev, max_rows=max_rows)
 
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")

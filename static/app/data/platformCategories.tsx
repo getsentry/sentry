@@ -843,14 +843,22 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 const platformKeys = platforms.map(p => p.id);
 
 // Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platformKeys.filter(
-  id => id.startsWith('javascript') || id.startsWith('python')
-);
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
+  ...platformKeys.filter(
+    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+  ),
+  'bun',
+  'deno',
+];
 
 // Feature flag platforms to show the issue details distribution drawer for.
-export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.filter(
-  id => id.startsWith('javascript') || id.startsWith('python')
-);
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
+  ...platformKeys.filter(
+    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+  ),
+  'bun',
+  'deno',
+];
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('javascript')),

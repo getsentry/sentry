@@ -2,7 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -41,6 +46,8 @@ describe('getting started with react-native', () => {
       />
     );
 
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
     expect(
       await screen.findByRole('heading', {name: /install sentry/i})
     ).toBeInTheDocument();
@@ -50,11 +57,11 @@ describe('getting started with react-native', () => {
     ).toBeInTheDocument();
 
     // Goes to the configure step
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Metrics are enabled by default/)).toBeInTheDocument();
 
     // Goes to the verify step
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
     expect(await screen.findByText(/Sentry\.metrics\.count/)).toBeInTheDocument();
     expect(screen.getByText(/Sentry\.metrics\.gauge/)).toBeInTheDocument();
   });

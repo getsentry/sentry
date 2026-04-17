@@ -19,6 +19,7 @@ export function StackedOrientation({
   infoContentHidden,
   setInfoContentHidden,
   isMetricOptionsEmpty,
+  title,
 }: {
   canChangeOrientation: boolean;
   infoContentHidden: boolean;
@@ -28,6 +29,7 @@ export function StackedOrientation({
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  title?: string;
 }) {
   const additionalInfoTabActions = (
     <Flex direction="row">
@@ -50,6 +52,7 @@ export function StackedOrientation({
           timeseriesResult={timeseriesResult}
           orientation={orientation}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
+          title={title}
         />
       </StackedGraphWrapper>
       <div>

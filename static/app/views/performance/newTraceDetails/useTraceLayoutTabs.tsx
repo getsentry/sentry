@@ -44,7 +44,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   [TraceLayoutTabKeys.SUMMARY]: {slug: TraceLayoutTabKeys.SUMMARY, label: t('Summary')},
   [TraceLayoutTabKeys.AI_SPANS]: {
     slug: TraceLayoutTabKeys.AI_SPANS,
-    label: t('AI Spans'),
+    label: t('AI'),
   },
 };
 

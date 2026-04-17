@@ -106,6 +106,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "function_duration_regression_detection_enabled": True,
     "db_query_injection_detection_enabled": False,
     "web_vitals_detection_enabled": True,
+    "ai_issue_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {

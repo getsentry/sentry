@@ -52,6 +52,7 @@ export enum SpanFields {
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
   TRANSACTION_SPAN_ID = 'transaction.span_id',
+  TRANSACTION_EVENT_ID = 'transaction.event_id',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
   PROFILE_ID = 'profile_id',
@@ -304,6 +305,7 @@ export type NonNullableStringFields =
   | SpanFields.CLS_SOURCE
   | SpanFields.LCP_ELEMENT
   | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM
   | SpanFields.CODE_FILEPATH
   | SpanFields.CODE_FUNCTION

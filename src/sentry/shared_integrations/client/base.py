@@ -175,6 +175,7 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: Literal[True] = ...,
         endpoint: str | None = None,
     ) -> Response: ...
@@ -194,6 +195,7 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: bool = ...,
         endpoint: str | None = None,
     ) -> Any: ...
@@ -212,6 +214,7 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
+        stream: bool | None = None,
         raw_response: bool = False,
         endpoint: str | None = None,
     ) -> Any | Response:
@@ -263,7 +266,7 @@ class BaseApiClient:
                 environment_settings = session.merge_environment_settings(
                     url=finalized_request.url,
                     proxies={},
-                    stream=None,
+                    stream=stream,
                     verify=self.verify_ssl,
                     cert=None,
                 )

@@ -8,8 +8,10 @@ from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import CharField, ChoiceField
 from rest_framework.serializers import ValidationError
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
@@ -32,7 +34,8 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -248,6 +251,40 @@ class OpsgenieIntegration(IntegrationInstallation):
         )
 
 
+BASE_URL_CHOICES = [
+    ("https://api.opsgenie.com/", "api.opsgenie.com"),
+    ("https://api.eu.opsgenie.com/", "api.eu.opsgenie.com"),
+    ("https://api.atlassian.com/jsm/ops/integration/", "api.atlassian.com (JSM)"),
+]
+
+
+class OpsgenieInstallationApiSerializer(CamelSnakeSerializer):
+    base_url = ChoiceField(choices=BASE_URL_CHOICES, required=True)
+    provider = CharField(required=True)
+    api_key = CharField(required=False, allow_blank=True, default="")
+
+
+class OpsgenieInstallationApiStep:
+    step_name = "installation_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {
+            "baseUrlChoices": [{"value": url, "label": label} for url, label in BASE_URL_CHOICES],
+        }
+
+    def get_serializer_cls(self) -> type:
+        return OpsgenieInstallationApiSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("installation_data", validated_data)
+        return PipelineStepResult.advance()
+
+
 class OpsgenieIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.OPSGENIE.value
     name = "Opsgenie"
@@ -262,6 +299,9 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView()]
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [OpsgenieInstallationApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state["installation_data"]["api_key"]

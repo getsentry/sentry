@@ -185,7 +185,7 @@ export function UsageAlert({subscription, usage}: Props) {
         ([category]) =>
           category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
       )
-      .reduce((acc, [category, currentHistory]) => {
+      .reduce<string[]>((acc, [category, currentHistory]) => {
         if (currentHistory.usageExceeded) {
           acc.push(
             getPlanCategoryName({
@@ -197,7 +197,7 @@ export function UsageAlert({subscription, usage}: Props) {
           );
         }
         return acc;
-      }, [] as string[]);
+      }, []);
 
     const quotasExceeded =
       exceededList.length > 0
