@@ -1,3 +1,4 @@
+import logging
 from typing import Any, TypedDict
 
 from sentry.seer.models import SeerApiError
@@ -6,6 +7,9 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_explorer_export_indexes_request,
 )
+from sentry.utils.json import JSONDecodeError
+
+logger = logging.getLogger(__name__)
 
 
 class ExplorerExportIndexesResponse(TypedDict):
@@ -25,10 +29,7 @@ def export_explorer_indexes(*, org_id: int) -> ExplorerExportIndexesResponse:
     response = make_explorer_export_indexes_request(body, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer export-indexes request failed", response.status)
-import logging
-from sentry.utils.json import JSONDecodeError
 
-logger = logging.getLogger(__name__)
     try:
         return response.json()
     except JSONDecodeError:
