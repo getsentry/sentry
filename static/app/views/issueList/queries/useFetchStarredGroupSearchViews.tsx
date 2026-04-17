@@ -1,14 +1,18 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type FetchStarredGroupSearchViewsParameters = {
   orgSlug: string;
 };
 
-export const makeFetchStarredGroupSearchViewsKey = ({
+export function starredGroupSearchViewsApiOptions({
   orgSlug,
-}: FetchStarredGroupSearchViewsParameters): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/starred/', {
-    path: {organizationIdOrSlug: orgSlug},
-  }),
-];
+}: FetchStarredGroupSearchViewsParameters) {
+  return apiOptions.as<StarredGroupSearchView[]>()(
+    '/organizations/$organizationIdOrSlug/group-search-views/starred/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: Infinity,
+    }
+  );
+}
