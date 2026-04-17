@@ -69,22 +69,19 @@ from taskbroker_client.task import Task
 
 from sentry.locks import locks
 from sentry.utils import metrics, redis
+from sentry.utils.iterators import chunked
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-CURSOR_CACHE_KEY_PREFIX = "cursored_scheduler"
+CURSOR_CACHE_KEY_PREFIX = "cursored_scheduler_offset"
 BATCH_SIZE_CACHE_KEY_PREFIX = "cursored_scheduler_batch_size"
 CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_cycle_start"
 PK_LIST_CACHE_KEY_PREFIX = "cursored_scheduler_pks"
 LOCK_PREFIX = "cursored_scheduler_lock"
-# How long to hold the lock during a tick
 DEFAULT_LOCK_DURATION_SECONDS = 120
-# Minimum batch size
 MIN_BATCH_SIZE = 1
-# Max PKs per RPUSH command during cycle init. Keeps each command small so
-# Redis's single-threaded event loop isn't blocked for long.
-RPUSH_CHUNK_SIZE = 1000
+RPUSH_CHUNK_SIZE = 10_000
 
 
 def _get_tick_interval(schedule_key: str) -> timedelta:
@@ -228,21 +225,32 @@ class CursoredScheduler[M: Model]:
         return True
 
     def _initialize_cycle(self) -> int:
+        init_start = time.time()
+
         all_pks = list(self.queryset.order_by("pk").values_list("pk", flat=True))
 
         client = self._get_redis_client()
-        # Clear any stale list from a crashed prior init; the distributed lock
-        # ensures no other tick can race with us here.
+
+        existing_len = client.llen(self.pk_list_cache_key)
+        if existing_len > 0:
+            logger.warning(
+                "cursored_scheduler.pk_list_not_empty",
+                extra={"scheduler": self.name, "existing_len": existing_len},
+            )
         client.delete(self.pk_list_cache_key)
-        with client.pipeline(transaction=False) as pipe:
-            for i in range(0, len(all_pks), RPUSH_CHUNK_SIZE):
-                pipe.rpush(self.pk_list_cache_key, *all_pks[i : i + RPUSH_CHUNK_SIZE])
-            pipe.expire(self.pk_list_cache_key, self.cache_ttl)
-            pipe.execute()
+
+        for chunk in chunked(all_pks, RPUSH_CHUNK_SIZE):
+            client.rpush(self.pk_list_cache_key, *chunk)
+        client.expire(self.pk_list_cache_key, self.cache_ttl)
 
         batch_size = self._calculate_batch_size(len(all_pks))
         cache.set(self.batch_size_cache_key, batch_size, self.cache_ttl)
         cache.set(self.cycle_start_cache_key, time.time(), self.cache_ttl)
+
+        metrics.timing(
+            "cursored_scheduler.init_duration", time.time() - init_start, tags=self._metric_tags
+        )
+
         return batch_size
 
     def _finalize_cycle(self):
