@@ -178,6 +178,9 @@ GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
 }
 
 
+FALLBACK_ISSUE_TITLE = "AI-Detected Application Issue"
+
+
 def get_group_type_for_title(title: str) -> type[GroupType]:
     return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
 
@@ -227,7 +230,9 @@ def create_issue_occurrence_from_detection(
         event_id=event_id,
         project_id=project.id,
         fingerprint=fingerprint,
-        issue_title=detected_issue.title,
+        issue_title=(
+            FALLBACK_ISSUE_TITLE if detected_issue.title == "Other" else detected_issue.title
+        ),
         subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
         resource_id=None,
         evidence_data=evidence_data,

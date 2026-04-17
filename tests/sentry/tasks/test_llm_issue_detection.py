@@ -165,6 +165,27 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-n+1-database-queries"]
         assert occurrence.type == AIDetectedDBGroupType
 
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_other_title_uses_fallback_display_title(self, mock_produce_occurrence):
+        detected_issue = DetectedIssue(
+            title="Other",
+            explanation="Something unusual happening here",
+            impact="Low",
+            evidence="Observed in trace",
+            offender_span_ids=[],
+            trace_id="trace789",
+            transaction_name="POST /foo",
+            verification_reason="Verified",
+            group_for_fingerprint="Other",
+        )
+        create_issue_occurrence_from_detection(
+            detected_issue=detected_issue,
+            project=self.project,
+        )
+        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
+        assert occurrence.issue_title == "AI-Detected Application Issue"
+        assert occurrence.type == AIDetectedGeneralGroupType
+
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
     @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
