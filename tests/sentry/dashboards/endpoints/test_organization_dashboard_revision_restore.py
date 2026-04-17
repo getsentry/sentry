@@ -2,8 +2,38 @@ from __future__ import annotations
 
 from django.urls import reverse
 
+from sentry.dashboards.endpoints.organization_dashboard_revision_restore import (
+    _prepare_restore_data,
+)
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.testutils.cases import APITestCase
+
+
+class PrepareRestoreDataTest:
+    def test_strips_widget_ids(self) -> None:
+        snapshot = {"widgets": [{"id": 1, "title": "Widget"}, {"id": 2, "title": "Other"}]}
+        result = _prepare_restore_data(snapshot)
+        for widget in result["widgets"]:
+            assert "id" not in widget
+
+    def test_strips_query_ids(self) -> None:
+        snapshot = {
+            "widgets": [
+                {
+                    "id": 1,
+                    "queries": [{"id": 10, "fields": ["count()"], "conditions": ""}],
+                }
+            ]
+        }
+        result = _prepare_restore_data(snapshot)
+        assert "id" not in result["widgets"][0]
+        assert "id" not in result["widgets"][0]["queries"][0]
+        assert result["widgets"][0]["queries"][0]["fields"] == ["count()"]
+
+    def test_no_widgets_key(self) -> None:
+        snapshot = {"title": "Dashboard"}
+        result = _prepare_restore_data(snapshot)
+        assert result == {"title": "Dashboard"}
 
 
 class OrganizationDashboardRevisionRestoreTestCase(APITestCase):

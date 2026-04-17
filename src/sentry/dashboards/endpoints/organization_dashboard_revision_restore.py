@@ -23,13 +23,17 @@ from sentry.models.organization import Organization
 
 
 def _prepare_restore_data(snapshot: dict[str, Any]) -> dict[str, Any]:
-    """Strip widget IDs from snapshot so all widgets are recreated fresh on restore."""
+    """Strip widget and query IDs from snapshot so all widgets/queries are recreated fresh on restore."""
     restore_data = dict(snapshot)
     if "widgets" in restore_data:
         widgets = []
         for widget in restore_data["widgets"]:
             widget_copy = dict(widget)
             widget_copy.pop("id", None)
+            if "queries" in widget_copy:
+                widget_copy["queries"] = [
+                    {k: v for k, v in q.items() if k != "id"} for q in widget_copy["queries"]
+                ]
             widgets.append(widget_copy)
         restore_data["widgets"] = widgets
     return restore_data
@@ -73,7 +77,7 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
 
         # Snapshot current state before overwriting — must be outside the transaction
         # because the serializer makes hybrid-cloud RPC calls.
-        snapshot = _take_dashboard_snapshot(organization, dashboard, request.user)
+        snapshot = _take_dashboard_snapshot(dashboard, request.user)
 
         restore_data = _prepare_restore_data(revision.snapshot)
 
