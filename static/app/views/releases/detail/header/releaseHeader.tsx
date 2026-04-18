@@ -203,7 +203,10 @@ export function ReleaseHeader({
             />
           </TopBar.Slot>
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={releaseFeedbackOptions}>
+            <FeedbackButton
+              feedbackOptions={releaseFeedbackOptions}
+              aria-label={t('Give Feedback')}
+            >
               {null}
             </FeedbackButton>
           </TopBar.Slot>
