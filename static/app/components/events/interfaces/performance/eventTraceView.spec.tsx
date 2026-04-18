@@ -54,7 +54,7 @@ describe('EventTraceView', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
-        transaction_child_count_map: new Array(size)
+        transaction_child_count_map: Array.from({length: size})
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
         span_count: 0,

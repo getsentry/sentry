@@ -22,25 +22,25 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/askUserQuestionBlock';
-import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
-import {EmptyState} from 'sentry/views/seerExplorer/emptyState';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
-import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
+import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
+import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
+import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
+import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
+import {
+  BlocksContainer,
+  PanelContainers,
+} from 'sentry/views/seerExplorer/components/panel/panelContainers';
+import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
+import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import {InputSection} from 'sentry/views/seerExplorer/inputSection';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
-import {
-  BlocksContainer,
-  PanelContainers,
-} from 'sentry/views/seerExplorer/panelContainers';
-import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
-import {TopBar} from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getExplorerUrl,
   getLangfuseUrl,
@@ -52,10 +52,10 @@ import {
 export function ExplorerPanel() {
   const {
     isOpen: isVisible,
-    openExplorerPanel,
+    openSeerExplorer,
     isMinimized,
     setIsMinimized,
-  } = useExplorerPanel();
+  } = useSeerExplorerContext();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -113,8 +113,7 @@ export function ExplorerPanel() {
     respondToUserInput,
     createPR,
     interruptRun,
-    interruptRequested,
-    wasJustInterrupted,
+    waitingForInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,
@@ -285,30 +284,28 @@ export function ExplorerPanel() {
     }
   }, [focusedBlockIndex]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (readOnly) {
-      return;
-    }
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (readOnly || e.nativeEvent.isComposing) {
+        return;
+      }
 
-    // While input is focused, prevent backtick from triggering superuser ViewAsHookMiddleware
-    if (e.key === '`') {
-      e.nativeEvent.stopImmediatePropagation();
-    }
-
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (inputValue.trim() && !isPolling) {
-        sendMessage(inputValue.trim(), undefined);
-        setInputValue('');
-        // Reset scroll state so we auto-scroll to show the response
-        userScrolledUpRef.current = false;
-        // Reset textarea height
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (inputValue.trim() && !isPolling) {
+          sendMessage(inputValue.trim());
+          setInputValue('');
+          // Reset scroll state so we auto-scroll to show the response
+          userScrolledUpRef.current = false;
+          // Reset textarea height
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
         }
       }
-    }
-  };
+    },
+    [readOnly, inputValue, isPolling, sendMessage]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -723,8 +720,7 @@ export function ExplorerPanel() {
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        interruptRequested={interruptRequested}
-        wasJustInterrupted={wasJustInterrupted}
+        waitingForInterrupt={waitingForInterrupt}
         isMinimized={isMinimized}
         isPolling={isPolling}
         isVisible={isVisible}
@@ -779,7 +775,7 @@ export function ExplorerPanel() {
       {!hasPageFrame && (
         <SeerFloatingActionButton
           visible={!isVisible && !isSeerDrawerOpen}
-          onClick={openExplorerPanel}
+          onClick={openSeerExplorer}
         />
       )}
     </Fragment>,

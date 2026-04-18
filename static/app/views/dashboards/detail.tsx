@@ -1547,9 +1547,7 @@ export function DashboardDetailWithInjectedProps(
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
-  const widgetInterval = organization.features.includes('dashboards-interval-selection')
-    ? chartInterval
-    : undefined;
+  const widgetInterval = chartInterval;
 
   return (
     <DashboardDetail

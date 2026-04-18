@@ -24,10 +24,7 @@ import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/
 import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
-import {
-  handleStaffPermissionError,
-  type StaffErrorDetail,
-} from 'sentry/views/preprod/utils/staffPermissionError';
+import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -79,7 +76,7 @@ export default function BuildComparison() {
     },
     onError: (error: RequestError) => {
       if (error.status === 403) {
-        handleStaffPermissionError(error.responseJSON?.detail as StaffErrorDetail);
+        handleStaffPermissionError(error.responseJSON?.detail);
         return;
       }
       addErrorMessage(t('Failed to rerun comparison'));

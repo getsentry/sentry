@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -136,7 +137,12 @@ export function usePipeline<
   const {enabled = true, initialData} = options;
 
   const pipelineName = getBackendPipelineType(type);
-  const apiUrl = `/organizations/${organization.slug}/pipeline/${pipelineName}/`;
+  const apiUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/pipeline/$pipelineName/',
+    {
+      path: {organizationIdOrSlug: organization.slug, pipelineName},
+    }
+  );
 
   const definition = useMemo(
     () => getPipelineDefinition(type, provider),
@@ -304,7 +310,10 @@ export function usePipeline<
       return <CompletionView data={state.data} finish={finish} />;
     }
 
-    if (!stepDefinition || state.status !== 'active') {
+    if (
+      !stepDefinition ||
+      (state.status !== 'active' && state.status !== 'initializing')
+    ) {
       return null;
     }
 
@@ -313,16 +322,28 @@ export function usePipeline<
     const Component: React.ComponentType<PipelineStepProps<any, any>> =
       stepDefinition.component;
 
-    return (
-      <Component
-        stepIndex={state.stepInfo.stepIndex}
-        totalSteps={state.stepInfo.totalSteps}
-        stepData={state.stepData}
-        advance={advanceMutate}
-        isAdvancing={isAdvancePending}
-        advanceError={advanceError}
-      />
-    );
+    const stepProps: PipelineStepProps<any, any> =
+      state.status === 'active'
+        ? {
+            stepIndex: state.stepInfo.stepIndex,
+            totalSteps: state.stepInfo.totalSteps,
+            stepData: state.stepData,
+            advance: advanceMutate,
+            isAdvancing: isAdvancePending,
+            isInitializing: false,
+            advanceError,
+          }
+        : {
+            stepIndex: 0,
+            totalSteps: definition.steps.length,
+            stepData: null,
+            advance: advanceMutate,
+            isAdvancing: false,
+            isInitializing: true,
+            advanceError: null,
+          };
+
+    return <Component {...stepProps} />;
   }, [
     state,
     stepDefinition,

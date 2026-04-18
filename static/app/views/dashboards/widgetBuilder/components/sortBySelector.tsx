@@ -147,7 +147,7 @@ export function WidgetBuilderSortBySelector() {
               <Select
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
-                options={[...new Array(maxLimit).keys()].map(resultLimit => {
+                options={[...Array.from({length: maxLimit}).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),

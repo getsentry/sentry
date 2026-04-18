@@ -1,9 +1,13 @@
 import {Fragment} from 'react';
 
+import {Badge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Feature from 'sentry/components/acl/feature';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {
   AGENTS_LANDING_SUB_PATH,
@@ -30,12 +34,10 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {ProjectsNavigationItems} from 'sentry/views/navigation/secondary/sections/projects/starredProjectsList';
 
 export function InsightsSecondaryNavigation() {
-  const user = useUser();
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
 
-  const shouldRedirectToMonitors =
-    organization.features.includes('workflow-engine-ui') && !user?.isStaff;
+  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
   const hasInsightsToDashboards = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
   );
@@ -99,11 +101,34 @@ export function InsightsSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={
-                  shouldRedirectToMonitors
+                  hasWorkflowEngineUI
                     ? `${makeMonitorBasePathname(organization.slug)}crons/?insightsRedirect=true`
                     : `${baseUrl}/crons/`
                 }
                 analyticsItemName="insights_crons"
+                trailingItems={
+                  hasWorkflowEngineUI ? (
+                    <Tooltip
+                      isHoverable
+                      title={
+                        <Fragment>
+                          <Text as="p">{t('Crons now live under Monitors.')}</Text>
+                          <Text as="p">
+                            {tct('See the [link:new Crons page here.]', {
+                              link: (
+                                <Link
+                                  to={`${makeMonitorBasePathname(organization.slug)}crons/`}
+                                />
+                              ),
+                            })}
+                          </Text>
+                        </Fragment>
+                      }
+                    >
+                      <Badge variant="muted">{t('Moved')}</Badge>
+                    </Tooltip>
+                  ) : null
+                }
               >
                 {t('Crons')}
               </SecondaryNavigation.Link>
@@ -112,11 +137,34 @@ export function InsightsSecondaryNavigation() {
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={
-                    shouldRedirectToMonitors
+                    hasWorkflowEngineUI
                       ? `${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`
                       : `${baseUrl}/uptime/`
                   }
                   analyticsItemName="insights_uptime"
+                  trailingItems={
+                    hasWorkflowEngineUI ? (
+                      <Tooltip
+                        isHoverable
+                        title={
+                          <Fragment>
+                            <Text as="p">{t('Uptime now lives under Monitors.')}</Text>
+                            <Text as="p">
+                              {tct('See the [link:new Uptime page here.]', {
+                                link: (
+                                  <Link
+                                    to={`${makeMonitorBasePathname(organization.slug)}uptime/`}
+                                  />
+                                ),
+                              })}
+                            </Text>
+                          </Fragment>
+                        }
+                      >
+                        <Badge variant="muted">{t('Moved')}</Badge>
+                      </Tooltip>
+                    ) : null
+                  }
                 >
                   {t('Uptime')}
                 </SecondaryNavigation.Link>

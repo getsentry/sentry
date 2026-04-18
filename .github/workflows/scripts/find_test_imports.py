@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -33,7 +34,8 @@ def find_test_imports(source_files: list[str], repo_root: Path) -> set[str]:
             continue
         rel_path = test_file.relative_to(repo_root).as_posix()
         for source_file, module in modules.items():
-            if f"from {module} import" in content:
+            escaped = re.escape(module)
+            if re.search(rf"from {escaped} import|import {escaped}(?:\s|;|$)", content):
                 importers[source_file].add(rel_path)
 
     for source_file, found in importers.items():

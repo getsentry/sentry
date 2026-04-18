@@ -19,5 +19,5 @@ export function decodeResponseCodeClass(
 
 function isAValidOption(maybeOption: string): maybeOption is ResponseCodeClass {
   // Manually widen  to allow the comparison to string
-  return (OPTIONS as unknown as string[]).includes(maybeOption as ResponseCodeClass);
+  return (OPTIONS as unknown as string[]).includes(maybeOption);
 }

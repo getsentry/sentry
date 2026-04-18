@@ -142,7 +142,7 @@ export function DataScrubFormModal({
     onSubmit: async ({value}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
-      const newRules = onGetNewRules(ruleValues as EditableRule);
+      const newRules = onGetNewRules(ruleValues);
 
       try {
         const data = await submitRules(api, endpoint, newRules);
