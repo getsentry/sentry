@@ -95,7 +95,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
 
         install = self.install
         config = install.get_create_issue_config(None, self.user, params={})
-        repo_field, assignee_field, label_field = config[:3]
+        repo_field, assignee_field, label_field, type_field = config[:4]
         assert repo_field["name"] == "repo"
         assert repo_field["type"] == "select"
         assert repo_field["label"] == "GitHub Repository"
@@ -105,6 +105,13 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert label_field["name"] == "labels"
         assert label_field["type"] == "select"
         assert label_field["label"] == "Labels"
+        assert type_field["name"] == "type"
+        assert type_field["type"] == "select"
+        assert type_field["label"] == "Type"
+        assert type_field["default"] == ""
+        assert type_field["multiple"] is False
+        assert type_field["required"] is False
+        assert type_field["choices"] == (("bug", "bug"), ("task", "task"))
 
 
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
