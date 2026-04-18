@@ -1,9 +1,9 @@
 import {css} from '@emotion/react';
+import classNames from 'classnames';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {classNames} from 'sentry/utils/classNames';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
 interface ViewportConstrainedPageProps extends Layout.MainProps {
