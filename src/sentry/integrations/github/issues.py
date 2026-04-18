@@ -184,10 +184,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if default_repo:
             owner, repo = default_repo.split("/")
             labels = self.get_repo_labels(owner, repo)
-            try:
-                issue_types = self.get_org_issue_types(owner)
-            except IntegrationResourceNotFoundError:
-                issue_types = []
+            issue_types = self.get_org_issue_types(owner)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
