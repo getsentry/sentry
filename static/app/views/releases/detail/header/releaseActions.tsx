@@ -199,10 +199,7 @@ export function ReleaseActions({
   return (
     <Flex gap="sm" align="center">
       {showFeedbackButton ? (
-        <FeedbackButton
-          display={{'2xs': 'none', xs: 'flex'}}
-          feedbackOptions={releaseFeedbackOptions}
-        >
+        <FeedbackButton feedbackOptions={releaseFeedbackOptions}>
           {t('Give Feedback')}
         </FeedbackButton>
       ) : null}
