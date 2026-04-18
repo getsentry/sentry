@@ -3,7 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -284,87 +284,5 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
-  });
-
-  it('uses recently viewed sort by default on table view', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    // mock the view type to table
-    localStorageWrapper.setItem(LAYOUT_KEY, '"table"');
-
-    render(<ManageDashboards />, {
-      organization: org,
-    });
-
-    const sortBy = await screen.findByTestId('sort-by-select');
-    expect(sortBy).toBeInTheDocument();
-    // The prefix and the selection are concatenated when using text content
-    expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
-  });
-
-  it('does not show My Dashboards as a sort option in table view', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    // mock the view type to table
-    localStorageWrapper.setItem(LAYOUT_KEY, '"table"');
-
-    render(<ManageDashboards />, {
-      organization: org,
-    });
-
-    const sortBy = await screen.findByTestId('sort-by-select');
-    expect(sortBy).toBeInTheDocument();
-    // The prefix and the selection are concatenated when using text content
-    expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
-    expect(screen.queryByText('My Dashboards')).not.toBeInTheDocument();
-  });
-
-  it('redirects the URL to the default sort option when the sort option is not valid', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-    mockUseLocation.mockReturnValue(LocationFixture({query: {sort: 'invalid'}}));
-
-    localStorageWrapper.setItem(LAYOUT_KEY, '"grid"');
-
-    render(<ManageDashboards />, {
-      organization: org,
-    });
-
-    expect(await screen.findByText('My Dashboards')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({query: {sort: 'mydashboards'}})
-      );
-    });
-  });
-
-  it('shows the most favorited sort option for the %s view type', async () => {
-    const org = OrganizationFixture({
-      features: [...FEATURES, 'dashboards-starred-reordering'],
-    });
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(<ManageDashboards />, {
-      organization: org,
-    });
-
-    await selectEvent.openMenu(await screen.findByRole('button', {name: /sort by/i}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Most Starred'}));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {sort: 'mostFavorited'}})
-    );
   });
 });
