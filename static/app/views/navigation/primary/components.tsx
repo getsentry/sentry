@@ -259,6 +259,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
   children?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
+  tooltipTitle?: React.ReactNode;
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
@@ -269,7 +270,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
 
   return (
     <Tooltip
-      title={props.label}
+      title={props.tooltipTitle ?? props.label}
       disabled={layout === 'mobile'}
       position="right"
       skipWrapper

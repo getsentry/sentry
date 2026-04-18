@@ -2,6 +2,7 @@ import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -315,6 +316,14 @@ export function PrimaryNavigationFooterItems() {
       {hasPageFrame ? (
         <PrimaryNavigation.Button
           label={t('Search support, docs and more')}
+          tooltipTitle={
+            organization.features.includes('cmd-k-supercharged') ? (
+              <Flex gap="xs" align="center">
+                {t('Open command palette')}
+                <Hotkey value="command+k" />
+              </Flex>
+            ) : undefined
+          }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,
