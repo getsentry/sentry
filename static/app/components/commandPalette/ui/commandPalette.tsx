@@ -389,11 +389,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                         }
                       }
 
-                      if (e.key === 'Enter' || e.key === 'Tab') {
-                        // Only forward shiftKey for Enter — Shift+Tab is reverse tab
-                        // navigation, not an "open in new tab" gesture.
+                      if (e.key === 'Enter') {
                         onActionSelection(treeState.selectionManager.focusedKey, {
-                          modifierKeys: {shiftKey: e.key === 'Enter' && e.shiftKey},
+                          modifierKeys: {shiftKey: e.shiftKey},
                         });
                         return;
                       }
