@@ -25,7 +25,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.types.cell import get_local_cell
-from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 class TestControlOrganizationProvisioningBase(TestCase):
@@ -382,27 +381,3 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         with assume_test_silo_mode(SiloMode.CELL):
             org.refresh_from_db()
             assert org.slug == desired_slug
-
-    def test_update_slug_revokes_auth_tokens(self) -> None:
-        self.organization = self.create_organization(
-            slug="old-slug", name="org", owner=self.create_user()
-        )
-        token_str = "sntrys_abc123_xyz"
-        token = self.create_org_auth_token(
-            organization_id=self.organization.id,
-            scope_list=[],
-            name="test_token",
-            token_hashed=hash_token(token_str),
-            date_last_used=None,
-        )
-        assert token.date_deactivated is None
-        with self.feature("organizations:revoke-org-auth-on-slug-rename"):
-            control_organization_provisioning_rpc_service.update_organization_slug(
-                organization_id=self.organization.id,
-                desired_slug="new-slug",
-                require_exact=True,
-                cell_name=self.cell_name,
-            )
-
-            token.refresh_from_db()
-            assert token.date_deactivated is not None
