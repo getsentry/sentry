@@ -986,7 +986,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.autodetect.notifications",
     "sentry.uptime.autodetect.tasks",
     "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
