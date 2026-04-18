@@ -1,6 +1,9 @@
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {classNames} from 'sentry/utils/classNames';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
 interface ViewportConstrainedPageProps extends Layout.MainProps {
@@ -24,37 +27,47 @@ export function ViewportConstrainedPage({
   hideFooter,
   ...rest
 }: ViewportConstrainedPageProps) {
+  const layoutMain = (className?: string) => (
+    <Layout.Main
+      width="full"
+      {...rest}
+      className={classNames(rest.className, className)}
+    />
+  );
+
   if (!constrained) {
-    return <FlexMain width="full" {...rest} />;
+    return (
+      <Flex direction="column" minHeight="0">
+        {({className}) => layoutMain(className)}
+      </Flex>
+    );
   }
 
   return (
-    <ConstrainedMain
-      width="full"
-      minHeight="0"
-      overflow="hidden"
-      data-hide-footer={hideFooter ? '' : undefined}
-      {...rest}
-    />
+    <Flex direction="column" minHeight="0" overflow="hidden">
+      {({className}) =>
+        layoutMain(
+          classNames(
+            className,
+            css`
+              contain: size;
+
+              @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
+                ~ footer {
+                  display: none;
+                }
+              }
+
+              ${hideFooter &&
+              css`
+                ~ footer {
+                  display: none;
+                }
+              `}
+            `
+          )
+        )
+      }
+    </Flex>
   );
 }
-
-const FlexMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-`;
-
-const ConstrainedMain = styled(FlexMain)`
-  contain: size;
-
-  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-    ~ footer {
-      display: none;
-    }
-  }
-
-  &[data-hide-footer] ~ footer {
-    display: none;
-  }
-`;
