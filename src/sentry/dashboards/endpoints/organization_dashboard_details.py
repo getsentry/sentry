@@ -30,7 +30,6 @@ from sentry.apidocs.parameters import DashboardParams, GlobalParams
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
-    DashboardFavoriteUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -279,23 +278,6 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
             return Response(status=401)
 
         is_favorited = request.data.get("isFavorited")
-
-        if features.has(
-            "organizations:dashboards-starred-reordering", organization, actor=request.user
-        ):
-            if is_favorited:
-                DashboardFavoriteUser.objects.insert_favorite_dashboard(
-                    organization=organization,
-                    user_id=request.user.id,
-                    dashboard=dashboard,
-                )
-            else:
-                DashboardFavoriteUser.objects.unfavorite_dashboard(
-                    organization=organization,
-                    user_id=request.user.id,
-                    dashboard=dashboard,
-                )
-            return Response(status=204)
 
         current_favorites = set(dashboard.favorited_by)
 
