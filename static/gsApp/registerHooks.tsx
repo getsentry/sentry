@@ -82,7 +82,6 @@ import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPalet
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
 import {
-  ContinuousProfilingBetaSDKAlertBanner,
   ContinuousProfilingBillingRequirementBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
@@ -229,8 +228,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:ai-setup-configuration': () => AiSetupConfiguration,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
-  'component:continuous-profiling-beta-sdk-banner': () =>
-    ContinuousProfilingBetaSDKAlertBanner,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
   'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,

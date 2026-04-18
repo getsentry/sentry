@@ -8,7 +8,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import Feature from 'sentry/components/acl/feature';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -20,11 +19,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import {
-  ContinuousProfilingBetaAlertBanner,
-  ContinuousProfilingBetaSDKAlertBanner,
-  ProfilingBetaAlertBanner,
-} from 'sentry/components/profiling/billing/alerts';
+import {ProfilingBetaAlertBanner} from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -165,10 +160,6 @@ export default function ProfilingContent() {
       >
         <Stack flex={1}>
           <ProfilingBetaAlertBanner organization={organization} />
-          <Feature features="continuous-profiling-beta-ui">
-            <ContinuousProfilingBetaAlertBanner organization={organization} />
-            <ContinuousProfilingBetaSDKAlertBanner />
-          </Feature>
           <ProfilingContentPageHeader />
           <ExploreBodySearch>
             <Layout.Main width="full">
