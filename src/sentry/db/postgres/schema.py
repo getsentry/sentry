@@ -104,9 +104,6 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             return
 
         column = old_field.column
-        if column is None:
-            return
-
         with self.connection.cursor() as cursor:
             constraints = self.connection.introspection.get_constraints(
                 cursor, model._meta.db_table
@@ -114,8 +111,8 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         index_names = sorted(
             name
             for name, info in constraints.items()
-            if column in info["columns"]
-            and (info["index"] or info["unique"] or info["primary_key"])
+            if (info["index"] or info["unique"] or info["primary_key"])
+            and column in info["columns"]
         )
         if index_names:
             raise UnsafeOperationException(
