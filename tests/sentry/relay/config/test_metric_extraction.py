@@ -1760,12 +1760,7 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
     widget_type: int,
 ) -> None:
     duration = 1000
-    with Feature(
-        {
-            ON_DEMAND_METRICS_WIDGETS: True,
-            "organizations:on-demand-metrics-query-spec-version-two": True,
-        }
-    ):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
@@ -2109,28 +2104,19 @@ def test_include_environment_for_widgets(default_project: Project, widget_type: 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget, _, _ = create_widget([aggr], query, default_project, widget_type=widget_type)
         config = get_metric_extraction_config(default_project)
-        # Because we have two specs we will have two metrics.
-        # The second spec includes the environment tag as part of the query hash.
+        # Two spec versions are still generated at write time; query-time always
+        # uses spec version 1.
         assert config and config["metrics"] == [
             widget_to_metric_spec("f1353b0f", condition),
             widget_to_metric_spec("4fb5a472", condition),
         ]
 
-        # We now verify that the string used for hashing is what we expect
-        # Since we're using the current spec it will not include the environment tag
         expected_query_str_hash = f"None;{condition}"
         spec = _on_demand_spec_from_widget(default_project, widget)
         assert spec.query_hash == "f1353b0f"
         assert spec._query_str_for_hash == expected_query_str_hash
         assert spec.spec_version.version == 1
         assert spec.spec_version.flags == set()
-
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
-            spec = _on_demand_spec_from_widget(default_project, widget)
-            assert spec._query_str_for_hash == f"{expected_query_str_hash};['environment']"
-            assert spec.query_hash == "4fb5a472"
-            assert spec.spec_version.version == 2
-            assert spec.spec_version.flags == {"include_environment_tag"}
 
 
 @django_db_all
@@ -2249,16 +2235,6 @@ def test_alert_and_widget_colliding(default_project: Project, widget_type: int) 
         assert widget_spec._query_str_for_hash == expected_query_str_hash
         assert alert_spec._query_str_for_hash == expected_query_str_hash
 
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
-            widget_spec = _on_demand_spec_from_widget(default_project, widget)
-            assert widget_spec._query_str_for_hash == f"{expected_query_str_hash};['environment']"
-            assert widget_spec.query_hash == "4fb5a472"
-            assert widget_spec.spec_version.version == 2
-            assert widget_spec.spec_version.flags == {"include_environment_tag"}
-
-            # With the new spec version they will not collide anymore
-            assert widget_spec.query_hash != alert_spec.query_hash
-
 
 foo_bar_condition = {"name": "event.tags.foo", "op": "eq", "value": "bar"}
 not_event_type_cond = {
@@ -2329,12 +2305,7 @@ def test_level_field(default_project: Project, widget_type: int) -> None:
 )
 def test_widget_modifed_after_on_demand(default_project: Project, widget_type: int) -> None:
     duration = 1000
-    with Feature(
-        {
-            ON_DEMAND_METRICS_WIDGETS: True,
-            "organizations:on-demand-metrics-query-spec-version-two": True,
-        }
-    ):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
