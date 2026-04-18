@@ -1,19 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import {useUpdateOrganization} from './useUpdateOrganization';
 
 describe('useUpdateOrganization', () => {
-  let queryClient: QueryClient;
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    queryClient = makeTestQueryClient();
     OrganizationStore.reset();
   });
 
@@ -37,11 +32,7 @@ describe('useUpdateOrganization', () => {
       body: updatedOrganization,
     });
 
-    const {result} = renderHook(() => useUpdateOrganization(organization), {
-      wrapper: ({children}) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      ),
-    });
+    const {result} = renderHookWithProviders(() => useUpdateOrganization(organization));
 
     // Verify initial state
     expect(OrganizationStore.get().organization?.name).toBe('Original Name');
@@ -81,11 +72,7 @@ describe('useUpdateOrganization', () => {
       body: {detail: 'Internal Server Error'},
     });
 
-    const {result} = renderHook(() => useUpdateOrganization(organization), {
-      wrapper: ({children}) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      ),
-    });
+    const {result} = renderHookWithProviders(() => useUpdateOrganization(organization));
 
     // Verify initial state
     expect(OrganizationStore.get().organization?.name).toBe('Original Name');

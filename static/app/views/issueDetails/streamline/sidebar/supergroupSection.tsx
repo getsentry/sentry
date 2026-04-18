@@ -35,21 +35,19 @@ export function SupergroupSection({group}: SupergroupSectionProps) {
   const issueCount = supergroup.group_ids.length;
 
   const handleClick = () => {
-    openDrawer(
-      () => (
-        <SupergroupDetailDrawer supergroup={supergroup} matchedGroupIds={[group.id]} />
-      ),
-      {
-        ariaLabel: t('Supergroup details'),
-        drawerKey: 'supergroup-drawer',
-      }
-    );
+    openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
+      ariaLabel: t('Issue group details'),
+      drawerKey: 'supergroup-drawer',
+      shouldCloseOnInteractOutside: el =>
+        !document.getElementById('modal-portal')?.contains(el) &&
+        !el.closest('[data-overlay]'),
+    });
   };
 
   return (
     <div>
-      <SidebarSectionTitle>{t('Supergroup')}</SidebarSectionTitle>
-      <SupergroupCard onClick={handleClick} aria-label={t('Supergroup details')}>
+      <SidebarSectionTitle>{t('Issue Group')}</SidebarSectionTitle>
+      <SupergroupCard onClick={handleClick} aria-label={t('Issue group details')}>
         <InteractionStateLayer />
         <Flex gap="sm" align="start">
           <AccentIcon size="sm" />

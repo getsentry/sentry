@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, ClassVar, Generic, NotRequired, TypedDict, TypeVar, cast
+from typing import Any, ClassVar, Generic, TypedDict, TypeVar, cast
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -19,7 +19,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcCreateRepository, RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
@@ -28,16 +27,6 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
 InstT = TypeVar("InstT", bound="RepositoryIntegration[Any]", default=RepositoryIntegration)
-
-
-class RepositoryInputConfig(TypedDict):
-    """Input config passed to create_repositories / build_repository_config.
-    Providers may include additional keys beyond these."""
-
-    external_id: str
-    integration_id: int
-    identifier: str
-    installation: NotRequired[str]
 
 
 class RepositoryConfig(TypedDict):
@@ -142,9 +131,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             existing_repo.name = name
             existing_repo.integration_id = integration_id
             existing_repo.url = url
+            existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )
+            self.on_create_repository(existing_repo, organization)
             metrics.incr("sentry.integration_repo_provider.repo_relink")
             return result, existing_repo
 
@@ -174,12 +165,15 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     "old_provider": repo.provider,
                 },
             )
-            # update from params
+            # update from params, merging config to preserve keys like webhook_id
+            repo.config = {**repo.config, **(repo_update_params.get("config") or {})}
             for field_name, field_value in repo_update_params.items():
-                setattr(repo, field_name, field_value)
+                if field_name != "config":
+                    setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
+            self.on_create_repository(repo, organization)
         else:
             create_repository = RpcCreateRepository.parse_obj(
                 {**repo_update_params, "status": ObjectStatus.ACTIVE}
@@ -188,15 +182,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization.id, create=create_repository
             )
             if new_repository is not None:
+                self.on_create_repository(new_repository, organization)
                 return result, new_repository
-
-            # Try to delete webhook we just created
-            try:
-                self.on_delete_repository(
-                    Repository(organization_id=organization.id, **repo_update_params)
-                )
-            except IntegrationError:
-                pass
 
             # if possible update the repo with matching integration
             repositories = repository_service.get_repositories(
@@ -221,8 +208,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     def _update_repository(self, repo: RpcRepository, config: RepositoryConfig):
         repo.status = ObjectStatus.ACTIVE
 
+        new_config = config.get("config") or {}
+        repo.config = {**repo.config, **new_config}
         for field_name, field_value in config.items():
-            setattr(repo, field_name, field_value)
+            if field_name != "config":
+                setattr(repo, field_name, field_value)
         return repo
 
     def _update_repositories(
@@ -240,7 +230,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def create_repositories(
         self,
-        configs: list[RepositoryInputConfig],
+        configs: list[dict[str, Any]],
         organization: RpcOrganization,
     ) -> tuple[list[RpcRepository], list[RpcRepository], list[RepositoryConfig]]:
         """
@@ -282,17 +272,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization.id, create=create_repository
             )
             if new_repository is not None:
+                self.on_create_repository(new_repository, organization)
                 created_repos.append(new_repository)
                 continue
 
             missing_repos.append(repo_config)
-            # Try to delete webhook we just created
-            try:
-                self.on_delete_repository(
-                    Repository(organization_id=organization.id, **repo_config)
-                )
-            except IntegrationError:
-                pass
 
             # if possible update the repo with matching integration
             repositories = repository_service.get_repositories(
@@ -309,6 +293,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization.id,
                 updates=repos_to_update,
             )
+            for repo in repos_to_update:
+                self.on_create_repository(repo, organization)
 
         return created_repos, repos_to_update, missing_repos
 
@@ -391,6 +377,14 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             >>> }
         """
         raise NotImplementedError
+
+    def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        """Called after a repository is created or reactivated.
+
+        Override to perform post-creation setup like webhook creation.
+        The repo has already been persisted — update repo.config and call
+        repository_service.update_repository to store any new config values.
+        """
 
     def on_delete_repository(self, repo):
         pass

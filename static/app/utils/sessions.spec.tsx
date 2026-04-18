@@ -192,80 +192,52 @@ describe('utils/sessions', () => {
   });
 
   describe('getSessionsInterval', () => {
-    describe('with high fidelity', () => {
-      it('>= 60 days', () => {
-        expect(getSessionsInterval({period: '60d'}, {highFidelity: true})).toBe('1d');
-      });
-
-      it('>= 30 days', () => {
-        expect(getSessionsInterval({period: '30d'}, {highFidelity: true})).toBe('4h');
-      });
-
-      it('14 days', () => {
-        expect(getSessionsInterval({period: '14d'}, {highFidelity: true})).toBe('1h');
-      });
-
-      it('>= 6 hours', () => {
-        expect(getSessionsInterval({period: '6h'}, {highFidelity: true})).toBe('1h');
-      });
-
-      it('between 6 hours and 30 minutes', () => {
-        expect(getSessionsInterval({period: '31m'}, {highFidelity: true})).toBe('5m');
-      });
-
-      it('less or equal to 30 minutes', () => {
-        expect(getSessionsInterval({period: '30m'}, {highFidelity: true})).toBe('1m');
-      });
-
-      it('less or equal to 10 minutes', () => {
-        expect(
-          getSessionsInterval(
-            {start: '2021-10-08T12:00:00Z', end: '2021-10-08T12:05:00.000Z'},
-            {highFidelity: true}
-          )
-        ).toBe('10s');
-      });
-
-      it('ignores high fidelity flag if start is older than 30d', () => {
-        expect(
-          getSessionsInterval(
-            {start: '2017-09-15T02:41:20Z', end: '2017-09-15T02:42:20Z'},
-            {highFidelity: true}
-          )
-        ).toBe('1h');
-      });
+    it('>= 60 days', () => {
+      expect(getSessionsInterval({period: '60d'})).toBe('1d');
+      expect(
+        getSessionsInterval({
+          start: '2021-07-19T15:14:23Z',
+          end: '2021-10-19T15:14:23Z',
+        })
+      ).toBe('1d');
     });
 
-    describe('with low fidelity', () => {
-      it('>= 60 days', () => {
-        expect(getSessionsInterval({period: '60d'})).toBe('1d');
-        expect(
-          getSessionsInterval(
-            {start: '2021-07-19T15:14:23Z', end: '2021-10-19T15:14:23Z'},
-            {highFidelity: true}
-          )
-        ).toBe('1d');
-      });
+    it('>= 30 days', () => {
+      expect(getSessionsInterval({period: '30d'})).toBe('4h');
+    });
 
-      it('>= 30 days', () => {
-        expect(getSessionsInterval({period: '30d'})).toBe('4h');
-      });
+    it('14 days', () => {
+      expect(getSessionsInterval({period: '14d'})).toBe('1h');
+    });
 
-      it('14 days', () => {
-        expect(getSessionsInterval({period: '14d'})).toBe('1h');
-      });
+    it('>= 6 hours', () => {
+      expect(getSessionsInterval({period: '6h'})).toBe('1h');
+    });
 
-      it('>= 6 hours', () => {
-        expect(getSessionsInterval({period: '6h'})).toBe('1h');
-      });
+    it('between 6 hours and 30 minutes', () => {
+      expect(getSessionsInterval({period: '31m'})).toBe('5m');
+    });
 
-      it('between 6 hours and 30 minutes', () => {
-        expect(getSessionsInterval({period: '31m'})).toBe('1h');
-      });
+    it('less or equal to 30 minutes', () => {
+      expect(getSessionsInterval({period: '30m'})).toBe('1m');
+    });
 
-      it('less or equal to 30 minutes', () => {
-        expect(getSessionsInterval({period: '30m'})).toBe('1h');
-      });
+    it('less or equal to 10 minutes', () => {
+      expect(
+        getSessionsInterval({
+          start: '2021-10-08T12:00:00Z',
+          end: '2021-10-08T12:05:00.000Z',
+        })
+      ).toBe('10s');
+    });
+
+    it('falls back to 1h if start is older than 30d', () => {
+      expect(
+        getSessionsInterval({
+          start: '2017-09-15T02:41:20Z',
+          end: '2017-09-15T02:42:20Z',
+        })
+      ).toBe('1h');
     });
   });
 

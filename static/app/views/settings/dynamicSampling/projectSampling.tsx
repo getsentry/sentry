@@ -49,13 +49,10 @@ export function ProjectSampling() {
 
   const projectRates = useMemo(
     () =>
-      (sampleRatesQuery.data || []).reduce(
-        (acc, item) => {
-          acc[item.id.toString()] = (item.sampleRate * 100).toString();
-          return acc;
-        },
-        {} as Record<string, string>
-      ),
+      (sampleRatesQuery.data || []).reduce<Record<string, string>>((acc, item) => {
+        acc[item.id.toString()] = (item.sampleRate * 100).toString();
+        return acc;
+      }, {}),
     [sampleRatesQuery.data]
   );
 

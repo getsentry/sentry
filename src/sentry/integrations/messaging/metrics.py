@@ -37,6 +37,8 @@ class MessagingInteractionType(StrEnum):
     VIEW_SUBMISSION = "VIEW_SUBMISSION"
     SEER_AUTOFIX_START = "SEER_AUTOFIX_START"
     APP_MENTION = "APP_MENTION"
+    DIRECT_MESSAGE = "DIRECT_MESSAGE"
+    ASSISTANT_THREAD_STARTED = "ASSISTANT_THREAD_STARTED"
 
     # Automatic behaviors
     PROCESS_SHARED_LINK = "PROCESS_SHARED_LINK"
@@ -112,11 +114,10 @@ class MessageInteractionFailureReason(StrEnum):
     MISSING_ACTION = "missing_action"
 
 
-class AppMentionHaltReason(StrEnum):
-    """Reasons why an app mention event may halt without processing."""
+class SeerSlackHaltReason(StrEnum):
+    """Reasons why a Seer Slack event (app mention, DM, assistant thread) may halt."""
 
-    NO_ORGANIZATION = "no_organization"
-    ORGANIZATION_NOT_FOUND = "organization_not_found"
-    ORGANIZATION_NOT_ACTIVE = "organization_not_active"
-    FEATURE_NOT_ENABLED = "feature_not_enabled"
+    NO_VALID_INTEGRATION = "no_valid_integration"
+    NO_VALID_ORGANIZATION = "no_valid_organization"
+    IDENTITY_NOT_LINKED = "identity_not_linked"
     MISSING_EVENT_DATA = "missing_event_data"

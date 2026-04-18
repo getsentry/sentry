@@ -15,8 +15,13 @@ import {
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -522,23 +527,22 @@ describe('MetricsTabContent', () => {
   });
 
   it('should switch to aggregate mode when a group by is added', async () => {
-    // Mock the trace-items attributes endpoint for string type attributes
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'test.region', name: 'test.region'},
-        {key: 'test.service', name: 'test.service'},
+        {
+          attributeType: 'string',
+          key: 'test.region',
+          name: 'test.region',
+        },
+        {
+          attributeType: 'string',
+          key: 'test.service',
+          name: 'test.service',
+        },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-
-    // Mock the trace-items attributes endpoint for number type attributes (empty)
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+      match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
     });
 
     const {router} = render(
@@ -611,5 +615,194 @@ describe('MetricsTabContent', () => {
     );
     expect(await screen.findByText('Add Metric')).toBeInTheDocument();
     expect(screen.getByText('Add Equation')).toBeInTheDocument();
+  });
+
+  it('renders aggregate and equation panels in separate sections in refresh layout', async () => {
+    const orgWithFeatures = OrganizationFixture({
+      features: [
+        'tracemetrics-enabled',
+        'tracemetrics-equations-in-explore',
+        'tracemetrics-ui-refresh',
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithFeatures.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeatures,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [
+                JSON.stringify({
+                  metric: {name: 'bar', type: 'distribution'},
+                  query: '',
+                  aggregateFields: [
+                    new VisualizeFunction('p50(value,bar,distribution,-)').serialize(),
+                  ],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+                JSON.stringify({
+                  metric: {name: '', type: ''},
+                  query: '',
+                  aggregateFields: [new VisualizeEquation(EQUATION_PREFIX).serialize()],
+                  aggregateSortBys: [],
+                  mode: 'samples',
+                }),
+              ],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+
+    const aggregateSection = await screen.findByTestId('aggregate-metric-panels');
+    const equationSection = screen.getByTestId('equation-metric-panels');
+
+    expect(within(aggregateSection).getAllByTestId('metric-panel')).toHaveLength(1);
+    expect(within(equationSection).getAllByTestId('metric-panel')).toHaveLength(1);
+  });
+
+  it('disables both Add Metric and Add Equation buttons when the maximum number of metric queries is reached', async () => {
+    const metricQueryWithGroupBy = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {groupBy: 'environment'},
+        {yAxes: ['per_second(bar)'], displayType: 'line'},
+      ],
+      aggregateSortBys: [],
+      mode: 'aggregate',
+    });
+    const orgWithFeature = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithFeature,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+                metricQueryWithGroupBy,
+              ],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+    expect(await screen.findByText('Add Metric')).toBeInTheDocument();
+    expect(screen.getByText('Add Equation')).toBeInTheDocument();
+
+    // Only 7 entries -> both buttons are enabled
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeEnabled();
+
+    // Add an entry, 8 entries -> both buttons are disabled
+    await userEvent.click(screen.getByRole('button', {name: 'Add Metric'}));
+    expect(screen.getByRole('button', {name: 'Add Metric'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Equation'})).toBeDisabled();
+  });
+
+  it('disables delete button for metrics referenced by an equation', async () => {
+    const orgWithEquations = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+    });
+
+    const metricA = JSON.stringify({
+      metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,metricA,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const metricB = JSON.stringify({
+      metric: {name: 'metricB', type: 'distribution', unit: 'none'},
+      query: '',
+      aggregateFields: [{yAxes: ['sum(value,metricB,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const equation = JSON.stringify({
+      metric: {name: '', type: ''},
+      query: '',
+      aggregateFields: [{yAxes: ['equation|sum(value,metricA,distribution,none)']}],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        organization: orgWithEquations,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/:orgId/explore/metrics/',
+            query: {
+              start: '2025-04-10T14%3A37%3A55',
+              end: '2025-04-10T20%3A04%3A51',
+              metric: [metricA, metricB, equation],
+              title: 'Test Title',
+            },
+          },
+          route: '/organizations/:orgId/explore/metrics/',
+        },
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(3);
+
+    await waitFor(() => {
+      expect(
+        within(toolbars[0]!).getByRole('button', {name: 'metricA'})
+      ).toBeInTheDocument();
+    });
+
+    // Metric A should be disabled because it is referenced by the equation
+    expect(
+      within(toolbars[0]!).getByRole('button', {name: 'Delete metric'})
+    ).toBeDisabled();
+
+    // Metric B should be enabled because it is not referenced by the equation
+    expect(
+      within(toolbars[1]!).getByRole('button', {name: 'Delete metric'})
+    ).toBeEnabled();
+
+    // Equation deletion should always be enabled
+    expect(
+      within(toolbars[2]!).getByRole('button', {name: 'Delete metric'})
+    ).toBeEnabled();
   });
 });

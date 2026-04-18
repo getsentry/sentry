@@ -91,7 +91,7 @@ export function VolumeSliders({
         )
         .map(category => {
           const allowedValues = activePlan.planCategories[category]?.map(
-            (bucket: any) => bucket.events
+            bucket => bucket.events
           );
 
           if (!allowedValues) {
@@ -105,8 +105,8 @@ export function VolumeSliders({
 
           const categoryInfo = getCategoryInfoFromPlural(category);
 
-          const min = allowedValues[0];
-          const max = allowedValues.slice(-1)[0];
+          const min = allowedValues[0]!;
+          const max = allowedValues.slice(-1)[0]!;
 
           const billingInterval = utils.getShortInterval(activePlan.billingInterval);
           const price = utils.displayPrice({cents: eventBucket.price});

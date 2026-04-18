@@ -474,12 +474,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
-  const regionMap = ConfigStore.get('regions').reduce(
+  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
     (acc, region) => {
       acc[region.url] = region.name;
       return acc;
     },
-    {} as Record<string, string>
+    {}
   );
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
@@ -723,6 +723,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.owner ? <CustomerContact owner={customer.owner} /> : 'n/a'}{' '}
           </DetailLabel>
           <DetailLabel title="Type">{customer.type || 'n/a'}</DetailLabel>
+          <DetailLabel title="Managed" yesNo={customer.isManaged} />
           <DetailLabel title="Channel">{customer.channel || 'n/a'}</DetailLabel>
           <DetailLabel title="Sponsored Type">
             {customer.sponsoredType || 'n/a'}

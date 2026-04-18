@@ -96,7 +96,7 @@ export function SeerProjectTableRow({
               disabled={!canWrite}
               name="autofixAgent"
               options={agentOptions.data ?? []}
-              value={autofixAgent}
+              value={autofixAgent ?? 'seer'}
               onChange={option => {
                 mutateSelectedAgent(option.value, {
                   onSuccess: () => {
@@ -130,7 +130,7 @@ export function SeerProjectTableRow({
                   {
                     settings: (
                       <Link
-                        to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                        to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
                       />
                     ),
                   }

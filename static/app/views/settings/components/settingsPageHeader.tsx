@@ -1,6 +1,11 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Props = {
   /**
@@ -40,10 +45,37 @@ function UnstyledSettingsPageHeader({
   noTitleStyles = false,
   ...props
 }: Props) {
+  const routes = useRoutes();
+  const hasPageFrame = useHasPageFrameFeature();
   // If Header is narrow, use align-items to center <Action>.
   // Otherwise, use a fixed margin to prevent an odd alignment.
   // This is needed as Actions could be a button or a dropdown.
   const isNarrow = !subtitle;
+
+  // In page frame mode the breadcrumb in the TopBar serves as the page title.
+  // Sync the last breadcrumb label with the actual page title and skip
+  // rendering the title heading so it doesn't appear twice.
+  if (hasPageFrame) {
+    return (
+      <Fragment>
+        {typeof title === 'string' ? (
+          <BreadcrumbTitle routes={routes} title={title} />
+        ) : (
+          title && (
+            <TitleWrapper>
+              {icon && <Icon>{icon}</Icon>}
+              <Title tabs={tabs} styled={noTitleStyles}>
+                <Layout.Title>{title}</Layout.Title>
+              </Title>
+            </TitleWrapper>
+          )
+        )}
+        {action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
+        {body && <BodyWrapper>{body}</BodyWrapper>}
+        {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
+      </Fragment>
+    );
+  }
 
   return (
     <div {...props}>

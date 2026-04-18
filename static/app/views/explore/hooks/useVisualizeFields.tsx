@@ -9,6 +9,8 @@ import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   FieldKind,
+  FieldValueType,
+  getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
@@ -111,6 +113,23 @@ function getSupportedAttributes({
 
     if (functionName === AggregationKey.COUNT_UNIQUE) {
       return {...numberTags, ...stringTags, ...booleanTags};
+    }
+
+    if (
+      functionName === AggregationKey.PERFORMANCE_SCORE ||
+      functionName === AggregationKey.OPPORTUNITY_SCORE
+    ) {
+      const fieldDef = getFieldDefinition(functionName, 'span');
+      const param = fieldDef?.parameters?.[0];
+      if (param?.kind === 'column' && typeof param.columnTypes === 'function') {
+        const filtered: TagCollection = {};
+        for (const [key, tag] of Object.entries(numberTags)) {
+          if (param.columnTypes({key, valueType: FieldValueType.NUMBER})) {
+            filtered[key] = tag;
+          }
+        }
+        return filtered;
+      }
     }
 
     return numberTags;

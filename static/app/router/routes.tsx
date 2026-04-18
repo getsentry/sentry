@@ -158,10 +158,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: '/accept/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
@@ -675,6 +671,11 @@ function buildRoutes(): RouteObject[] {
       path: 'mobile-builds/',
       name: t('Mobile Builds'),
       component: make(() => import('sentry/views/settings/project/preprod')),
+    },
+    {
+      path: 'snapshots/',
+      name: t('Snapshots'),
+      component: make(() => import('sentry/views/settings/project/preprod/snapshots')),
     },
     {
       path: 'keys/',
@@ -2321,6 +2322,14 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/conversations/overview')
           ),
         },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
       ],
     },
     {
@@ -2517,6 +2526,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
+    },
+    {
+      path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
+      component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
       path: 'instrumentation/',

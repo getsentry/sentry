@@ -1,5 +1,6 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
 import {Outlet} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -24,9 +25,11 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
@@ -71,35 +74,23 @@ function ReleasesDetail({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const releasePath = getApiUrl(
-    '/organizations/$organizationIdOrSlug/releases/$version/',
-    {
-      path: {organizationIdOrSlug: organization.slug, version: params.release},
-    }
-  );
-  const deploysPath = getApiUrl(
-    '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
-    {
-      path: {organizationIdOrSlug: organization.slug, version: params.release},
-    }
-  );
-
   const {
     data: release,
     refetch: refetchRelease,
     isPending: isReleasePending,
     error: releaseError,
-  } = useApiQuery<ReleaseWithHealth>(
-    [
-      releasePath,
+  } = useQuery(
+    apiOptions.as<ReleaseWithHealth>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
       {
+        path: {organizationIdOrSlug: organization.slug, version: params.release},
         query: {
           adoptionStages: 1,
           ...normalizeDateTimeParams(pickLocationQuery(location)),
         },
-      },
-    ],
-    {staleTime: Infinity}
+        staleTime: Infinity,
+      }
+    )
   );
   const isDeploysEnabled = releaseMeta.deployCount > 0;
   const {
@@ -107,8 +98,12 @@ function ReleasesDetail({
     refetch: refetchDeploys,
     isPending: isDeploysPending,
     error: deploysError,
-  } = useApiQuery<Deploy[]>([deploysPath, {query: {project: location.query.project}}], {
-    staleTime: Infinity,
+  } = useQuery({
+    ...deploysApiOptions({
+      orgSlug: organization.slug,
+      releaseVersion: params.release,
+      query: {project: location.query.project},
+    }),
     enabled: isDeploysEnabled,
   });
 
@@ -176,8 +171,8 @@ function ReleasesDetail({
 
   // Remove null values and status 400 errors -> Only show non-400 errors.
   const visibleErrors = [releaseError, deploysError, sessionsError]
-    .filter(e => e !== null)
-    .filter(e => e?.status !== 400);
+    .filter(e => e instanceof RequestError)
+    .filter(e => e.status !== 400);
 
   if (visibleErrors.length) {
     return renderErrors(visibleErrors);

@@ -418,17 +418,23 @@ describe('useInfiniteLogsQuery', () => {
         makeMockEventsResponse({
           cursor: '',
           nextCursor: 'page2',
-          data: new Array(500).fill(0).map((_, i) => fakeRow(i)),
+          data: Array.from({length: 500})
+            .fill(0)
+            .map((_, i) => fakeRow(i)),
         }),
         makeMockEventsResponse({
           cursor: 'page2',
           nextCursor: 'page3',
-          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 500)),
+          data: Array.from({length: 500})
+            .fill(0)
+            .map((_, i) => fakeRow(i + 500)),
         }),
         makeMockEventsResponse({
           cursor: 'page3',
           nextCursor: 'page4',
-          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 1000)),
+          data: Array.from({length: 500})
+            .fill(0)
+            .map((_, i) => fakeRow(i + 1000)),
         }),
       ].map(response => MockApiClient.addMockResponse(response));
 

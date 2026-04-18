@@ -44,6 +44,10 @@ describe('CronDetectorsList', () => {
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
 
     // Mock processing errors endpoint (no errors by default)
     MockApiClient.addMockResponse({

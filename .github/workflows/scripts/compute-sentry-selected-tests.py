@@ -22,6 +22,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from find_test_imports import find_test_imports
+
 # -- Path conventions --
 # The coverage DB stores paths relative to the getsentry rootdir:
 #   sentry sources: ../sentry/src/sentry/...
@@ -85,6 +87,11 @@ EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
 EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"^tests/(acceptance|apidocs|js|tools)/"),
 ]
+
+# Tests that should always be run even if not explicitly selected.
+ALWAYS_RUN_TESTS: set[str] = {
+    "tests/sentry/taskworker/test_config.py",
+}
 
 
 def _is_test(path: str) -> bool:
@@ -206,6 +213,17 @@ def main() -> int:
                 print(f"Error querying coverage database: {e}", file=sys.stderr)
                 return 1
 
+            # Union with static import search so files invisible to coverage are still caught.
+            changed_source_files = [f for f in changed if not _is_test(f) and f.endswith(".py")]
+            if changed_source_files:
+                static_tests = find_test_imports(changed_source_files, Path.cwd())
+                static_tests = {
+                    f
+                    for f in static_tests
+                    if _is_test(f) and not any(p.search(f) for p in EXCLUDED_TEST_PATTERNS)
+                }
+                affected_test_files.update(static_tests)
+
             affected_test_files -= EXCLUDED_TEST_FILES
 
             # Extra mapped files
@@ -224,6 +242,9 @@ def main() -> int:
             if existing_changed:
                 print(f"Including {len(existing_changed)} directly changed test files")
                 affected_test_files.update(existing_changed)
+
+            # Always run these tests
+            affected_test_files.update(ALWAYS_RUN_TESTS)
 
     # Filter to sentry tests only (drop any getsentry tests from coverage)
     affected_test_files = {f for f in affected_test_files if _is_test(f)}

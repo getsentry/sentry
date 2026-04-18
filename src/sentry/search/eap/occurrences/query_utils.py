@@ -2,9 +2,18 @@ from collections.abc import Callable, Hashable, Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    IntArray,
+    StrArray,
+)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
 from sentry.search.events.types import SnubaParams
 
 
@@ -74,3 +83,56 @@ def keyed_counts_subset_match(
         return False
 
     return all(exp_count <= control_map[key] for key, exp_count in experimental_map.items())
+
+
+def build_group_id_in_filter(group_ids: Sequence[int]) -> TraceItemFilter:
+    return TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(name="group_id", type=AttributeKey.TYPE_INT),
+            op=ComparisonFilter.OP_IN,
+            value=AttributeValue(val_int_array=IntArray(values=list(group_ids))),
+        )
+    )
+
+
+def build_event_id_in_filter(event_ids: Sequence[str]) -> TraceItemFilter:
+    return TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(name="sentry.item_id", type=AttributeKey.TYPE_STRING),
+            op=ComparisonFilter.OP_IN,
+            value=AttributeValue(val_str_array=StrArray(values=list(event_ids))),
+        )
+    )
+
+
+def build_keyset_pagination_filter(
+    timestamp_value: str,
+    event_id: str,
+) -> TraceItemFilter | None:
+    ts_epoch = datetime.fromisoformat(timestamp_value).timestamp()
+    timestamp_key = AttributeKey(name="sentry.timestamp", type=AttributeKey.TYPE_DOUBLE)
+    event_id_key = AttributeKey(name="sentry.item_id", type=AttributeKey.TYPE_STRING)
+
+    ts_lte = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=timestamp_key,
+            op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+            value=AttributeValue(val_double=ts_epoch),
+        )
+    )
+    ts_lt = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=timestamp_key,
+            op=ComparisonFilter.OP_LESS_THAN,
+            value=AttributeValue(val_double=ts_epoch),
+        )
+    )
+    eid_lt = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=event_id_key,
+            op=ComparisonFilter.OP_LESS_THAN,
+            value=AttributeValue(val_str=event_id),
+        )
+    )
+
+    return and_trace_item_filters(ts_lte, or_trace_item_filters(ts_lt, eid_lt))

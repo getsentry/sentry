@@ -622,6 +622,23 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.OPPORTUNITY_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.OPPORTUNITY_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -630,7 +647,7 @@ const ALIASES = {
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
+assert(AGGREGATIONS);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -1093,7 +1110,7 @@ export function generateAggregateFields(
       }
     }
   });
-  return fields.map(field => ({field})) as Field[];
+  return fields.map(field => ({field}));
 }
 
 function isDerivedMetric(field: string): boolean {
@@ -1429,7 +1446,7 @@ export function fieldAlignment(
  * Match on types that are legal to show on a timeseries chart.
  */
 export function isLegalYAxisType(match: ColumnType) {
-  return ['number', 'integer', 'duration', 'percentage'].includes(match);
+  return ['number', 'integer', 'duration', 'percentage', 'score'].includes(match);
 }
 
 export function getSpanOperationName(field: string): string | null {

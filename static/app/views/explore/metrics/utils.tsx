@@ -3,6 +3,7 @@ import qs from 'query-string';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
@@ -138,6 +139,21 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     const aggregateFields = [...visualizes, ...groupBys];
 
+    const hasAggregateOrderby = defined(queryItem.aggregateOrderby);
+    let aggregateSortBys = undefined;
+    if (hasAggregateOrderby) {
+      aggregateSortBys = queryItem.aggregateOrderby
+        ? decodeSorts(queryItem.aggregateOrderby)
+        : undefined;
+    } else if (queryItem.orderby) {
+      aggregateSortBys = decodeSorts(queryItem.orderby);
+    }
+
+    const sortBys =
+      hasAggregateOrderby && queryItem.orderby
+        ? decodeSorts(queryItem.orderby)
+        : undefined;
+
     return {
       ...defaultQuery,
       metric: queryItem.metric ?? defaultQuery.metric,
@@ -145,7 +161,8 @@ export function getMetricsUrlFromSavedQueryUrl({
         mode: queryItem.mode,
         query: queryItem.query,
         aggregateFields,
-        aggregateSortBys: decodeSorts(queryItem.orderby) || [],
+        aggregateSortBys,
+        sortBys,
       }),
     };
   });

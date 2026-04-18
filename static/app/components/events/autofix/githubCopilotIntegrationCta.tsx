@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -21,7 +19,7 @@ export function GithubCopilotIntegrationCta() {
     organizationIntegrationsCodingAgents(organization)
   );
 
-  const handleInstallClick = useCallback(() => {
+  const handleInstallClick = () => {
     trackAnalytics('coding_integration.install_clicked', {
       organization,
       project_slug: '', // GitHub Copilot CTA is not project-specific
@@ -29,7 +27,7 @@ export function GithubCopilotIntegrationCta() {
       source: 'cta',
       user_id: user.id,
     });
-  }, [organization, user.id]);
+  };
 
   const githubCopilotIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'github_copilot'

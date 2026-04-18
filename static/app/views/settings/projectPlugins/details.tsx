@@ -85,7 +85,7 @@ export default function ProjectPluginDetails() {
         organization,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       addSuccessMessage(t('Plugin was reset'));
       trackAnalytics('integrations.uninstall_completed', {
         integration: pluginId,
@@ -93,6 +93,8 @@ export default function ProjectPluginDetails() {
         view: 'plugin_details',
         organization,
       });
+      // Keep both the toggle state and config form in sync after reset.
+      await Promise.all([refetchPlugins(), refetchPluginDetails()]);
     },
     onError: () => {
       addErrorMessage(t('An error occurred'));

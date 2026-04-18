@@ -8,7 +8,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -118,11 +117,6 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         - `FAILED` / `NOT_RAN`: Analysis did not complete; `errorCode` and `errorMessage` are included.
         - `COMPLETED`: Analysis finished successfully with full size data.
         """
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             head_artifact = PreprodArtifact.objects.select_related(

@@ -392,7 +392,7 @@ function EnhancedUsageStatsOrganization({
         }
 
         // don't count ongoing spikes
-        const categorySpikes = (storedSpikes || ([] as SpikeDetails[])).filter(
+        const categorySpikes = (storedSpikes || []).filter(
           spike => spike.dataCategory === dataCategoryInfo.name && spike.dropped
         );
 

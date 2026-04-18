@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -30,6 +30,7 @@ export function SideBySideOrientation({
   infoContentHidden,
   setInfoContentHidden,
   isMetricOptionsEmpty,
+  title,
 }: {
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
@@ -38,6 +39,7 @@ export function SideBySideOrientation({
   setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  title?: string;
 }) {
   const organization = useOrganization();
   const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
@@ -46,19 +48,22 @@ export function SideBySideOrientation({
 
   if (hasMetricsUIRefresh) {
     return (
-      <Grid columns="1fr 1fr" gap="sm">
-        <MetricsGraph
-          timeseriesResult={timeseriesResult}
-          orientation={orientation}
-          isMetricOptionsEmpty={isMetricOptionsEmpty}
-        />
-        <div>
+      <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
+        <Container minWidth="0">
+          <MetricsGraph
+            timeseriesResult={timeseriesResult}
+            orientation={orientation}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
+            title={title}
+          />
+        </Container>
+        <Container minWidth="0">
           <MetricInfoTabs
             traceMetric={traceMetric}
             orientation={orientation}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
           />
-        </div>
+        </Container>
       </Grid>
     );
   }
@@ -96,6 +101,7 @@ export function SideBySideOrientation({
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
+          title={title}
         />
       </div>
     );
@@ -112,6 +118,7 @@ export function SideBySideOrientation({
                 timeseriesResult={timeseriesResult}
                 orientation={orientation}
                 isMetricOptionsEmpty={isMetricOptionsEmpty}
+                title={title}
               />
             ),
             default: defaultSplit,

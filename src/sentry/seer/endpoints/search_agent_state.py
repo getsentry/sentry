@@ -81,9 +81,12 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 }
             }
         """
-        if not features.has(
+        has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        ):
+        ) or features.has(
+            "organizations:gen-ai-explore-metrics-search", organization, actor=request.user
+        )
+        if not has_feature:
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,

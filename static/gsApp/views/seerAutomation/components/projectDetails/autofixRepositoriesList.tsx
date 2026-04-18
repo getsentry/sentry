@@ -1,5 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
   ProjectSeerPreferences,
@@ -22,6 +22,11 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {
+  organizationRepositoriesInfiniteOptions,
+  selectUniqueRepos,
+} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 
@@ -58,8 +63,12 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
 export function AutofixRepositories({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
-  const {data: repositories, isFetching: isFetchingRepositories} =
-    useOrganizationRepositories();
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
+    select: selectUniqueRepos,
+  });
+  useFetchAllPages({result: repositoriesQuery});
+  const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
@@ -70,27 +79,24 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
     [preference]
   );
 
-  const handleSaveRepoList = useCallback(
-    (updatedRepositories: SeerRepoDefinition[]) => {
-      updateProjectSeerPreferences(
-        {
-          repositories: updatedRepositories,
-          automated_run_stopping_point: preference?.automated_run_stopping_point,
-          automation_handoff: preference?.automation_handoff,
-        },
-        {
-          onError: () => addErrorMessage(t('Failed to connect repositories')),
-          onSuccess: () =>
-            addSuccessMessage(
-              t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
-            ),
-        }
-      );
-    },
-    [updateProjectSeerPreferences, preference, project.slug]
-  );
+  const handleSaveRepoList = (updatedRepositories: SeerRepoDefinition[]) => {
+    updateProjectSeerPreferences(
+      {
+        repositories: updatedRepositories,
+        automated_run_stopping_point: preference?.automated_run_stopping_point,
+        automation_handoff: preference?.automation_handoff,
+      },
+      {
+        onError: () => addErrorMessage(t('Failed to connect repositories')),
+        onSuccess: () =>
+          addSuccessMessage(
+            t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
+          ),
+      }
+    );
+  };
 
-  const handleAddRepoClick = useCallback(() => {
+  const handleAddRepoClick = () => {
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
@@ -123,7 +129,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
         }}
       />
     ));
-  }, [repoMap, handleSaveRepoList, repositories, organization.id]);
+  };
 
   if (isFetchingRepositories) {
     return <LoadingIndicator />;

@@ -14,6 +14,7 @@ import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
 import {PreprodBuildsDistributionTable} from './preprodBuildsDistributionTable';
 import {PreprodBuildsSizeTable} from './preprodBuildsSizeTable';
+import {PreprodBuildsSnapshotTable} from './preprodBuildsSnapshotTable';
 
 interface PreprodBuildsTableProps {
   builds: BuildDetailsApiResponse[];
@@ -51,10 +52,12 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
-  const isDistributionDisplay = display === PreprodBuildsDisplay.DISTRIBUTION;
-  const emptyStateDocUrl = isDistributionDisplay
-    ? 'https://docs.sentry.io/product/build-distribution/'
-    : 'https://docs.sentry.io/product/size-analysis/';
+  const emptyStateDocUrl =
+    display === PreprodBuildsDisplay.DISTRIBUTION
+      ? 'https://docs.sentry.io/product/build-distribution/'
+      : display === PreprodBuildsDisplay.SNAPSHOT
+        ? 'https://docs.sentry.io/product/snapshot-testing/'
+        : 'https://docs.sentry.io/product/size-analysis/';
 
   const hasMultiplePlatforms = useMemo(() => {
     const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
@@ -79,12 +82,25 @@ export function PreprodBuildsTable({
       <SimpleTable.Empty>
         <Text as="p">
           {hasSearchQuery
-            ? t('No mobile builds found for your search')
-            : tct('No mobile builds found, see our [link:documentation] for more info.', {
-                link: (
-                  <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>
-                ),
-              })}
+            ? display === PreprodBuildsDisplay.SNAPSHOT
+              ? t('No snapshots found for your search')
+              : t('No mobile builds found for your search')
+            : display === PreprodBuildsDisplay.SNAPSHOT
+              ? tct('No snapshots found, see our [link:documentation] for more info.', {
+                  link: (
+                    <ExternalLink href={emptyStateDocUrl}>{t('Learn more')}</ExternalLink>
+                  ),
+                })
+              : tct(
+                  'No mobile builds found, see our [link:documentation] for more info.',
+                  {
+                    link: (
+                      <ExternalLink href={emptyStateDocUrl}>
+                        {t('Learn more')}
+                      </ExternalLink>
+                    ),
+                  }
+                )}
         </Text>
       </SimpleTable.Empty>
     );
@@ -92,7 +108,15 @@ export function PreprodBuildsTable({
 
   return (
     <Fragment>
-      {isDistributionDisplay ? (
+      {display === PreprodBuildsDisplay.SNAPSHOT ? (
+        <PreprodBuildsSnapshotTable
+          builds={builds}
+          content={tableContent}
+          onRowClick={onRowClick}
+          organizationSlug={organizationSlug}
+          showProjectColumn={showProjectColumn}
+        />
+      ) : display === PreprodBuildsDisplay.DISTRIBUTION ? (
         <PreprodBuildsDistributionTable
           builds={builds}
           content={tableContent}

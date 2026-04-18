@@ -160,6 +160,9 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
 from sentry.dashboards.endpoints.organization_dashboard_generate import (
     OrganizationDashboardGenerateEndpoint,
 )
+from sentry.dashboards.endpoints.organization_dashboard_revisions import (
+    OrganizationDashboardRevisionsEndpoint,
+)
 from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
@@ -527,6 +530,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
+from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -1607,6 +1611,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/favorite/$",
         OrganizationDashboardFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-favorite",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/revisions/$",
+        OrganizationDashboardRevisionsEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-revisions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/shortids/(?P<issue_id>[^/]+)/$",
@@ -3616,7 +3625,7 @@ INTERNAL_URLS = [
         name="sentry-api-0-rpc-service",
     ),
     re_path(
-        r"^scm-rpc/(?P<method_name>\w+)/$",
+        r"^scm-rpc/$",
         ScmRpcServiceEndpoint.as_view(),
         name="sentry-api-0-scm-rpc-service",
     ),
@@ -3653,6 +3662,11 @@ INTERNAL_URLS = [
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
+    re_path(
+        r"^seer/night-shift/trigger/$",
+        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        name="sentry-admin-seer-night-shift-trigger",
+    ),
 ]
 
 urlpatterns = [
@@ -3781,11 +3795,6 @@ urlpatterns = [
         r"^data-export/notifications/google-cloud/$",
         DataExportNotificationsEndpoint.as_view(),
         name="sentry-api-0-data-export-notifications",
-    ),
-    re_path(
-        r"^accept-invite/(?P<member_id>[^/]+)/(?P<token>[^/]+)/$",
-        AcceptOrganizationInvite.as_view(),
-        name="sentry-api-0-accept-organization-invite",
     ),
     re_path(
         r"^notification-defaults/$",

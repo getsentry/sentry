@@ -39,9 +39,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features: dict[str, bool] = {}
 
         self.additional_params: dict[str, Any] = dict()
 

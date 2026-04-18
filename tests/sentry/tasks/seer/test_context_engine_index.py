@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
+from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.tasks.seer.context_engine_index import (
     get_allowed_org_ids_context_engine_indexing,
     index_org_project_knowledge,
@@ -468,6 +469,51 @@ class TestIndexRepos(TestCase):
         assert len(repos) == 1
         assert repos[0]["name"] == "sentry"
         assert repos[0]["project_ids"] == [self.project1.id]
+
+    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_read_preferences_from_sentry_db")
+    @mock.patch("sentry.tasks.seer.context_engine_index.bulk_get_project_preferences")
+    @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
+    def test_reads_from_sentry_db(
+        self,
+        mock_make_org_repo_knowledge_index_request,
+        mock_bulk_get_preferences,
+        mock_bulk_read_db,
+    ) -> None:
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        mock_make_org_repo_knowledge_index_request.return_value.status = 200
+        mock_bulk_read_db.return_value = {
+            self.project1.id: SeerProjectPreference(
+                organization_id=self.org.id,
+                project_id=self.project1.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        owner="getsentry",
+                        name="sentry",
+                        external_id="123",
+                        integration_id=str(self.integration.id),
+                    )
+                ],
+            ),
+        }
+
+        with override_options({"explorer.context_engine_indexing.enable": True}):
+            with self.feature(
+                {
+                    "organizations:context-engine-experiments": True,
+                    "organizations:seer-project-settings-read-from-sentry": True,
+                }
+            ):
+                index_repos(self.org.id)
+
+        mock_bulk_get_preferences.assert_not_called()
+        mock_bulk_read_db.assert_called_once()
+        mock_make_org_repo_knowledge_index_request.assert_called_once()
+        body = mock_make_org_repo_knowledge_index_request.call_args[0][0]
+        repos = body["repos"]
+        assert len(repos) == 1
+        assert repos[0]["name"] == "sentry"
+        assert repos[0]["owner"] == "getsentry"
 
 
 @django_db_all

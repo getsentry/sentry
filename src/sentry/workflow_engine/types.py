@@ -392,7 +392,7 @@ class DataConditionType(TypedDict):
 
 
 # TODO - Move this to snuba module
-class SnubaQueryDataSourceType(TypedDict):
+class SnubaQueryDataSourceType(TypedDict, total=False):
     query_type: SnubaQuery.Type
     dataset: Dataset
     query: str

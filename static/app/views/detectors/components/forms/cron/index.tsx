@@ -36,6 +36,28 @@ const FORM_SECTIONS = [
   CronIssuePreview,
   AutomateSection,
 ];
+/**
+ * Maps API errors in the `dataSources` property to the correct form fields.
+ * For Crons, `slug` may return error messages, and we want those to show
+ * up under the `name` field.
+ *
+ * TODO: When converting to the new form components, find a less fragile way to do this.
+ */
+const mapCronDetectorFormErrors = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return error;
+  }
+
+  if ('dataSources' in error) {
+    if (typeof error.dataSources === 'object' && error.dataSources !== null) {
+      if ('slug' in error.dataSources) {
+        return {...error, name: error.dataSources.slug};
+      }
+      return {...error, ...error.dataSources};
+    }
+  }
+  return error;
+};
 
 function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
@@ -76,6 +98,7 @@ export function NewCronDetectorForm() {
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
+      mapFormErrors={mapCronDetectorFormErrors}
       disabledCreate={
         showingPlatformGuide
           ? t(
@@ -95,6 +118,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       detector={detector}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
+      mapFormErrors={mapCronDetectorFormErrors}
     >
       <CronDetectorForm detector={detector} />
     </EditDetectorLayout>

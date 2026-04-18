@@ -46,6 +46,8 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.response.object",
     "gen_ai.response.text",
     "gen_ai.tool.name",
+    "gen_ai.tool.call.arguments",
+    "gen_ai.tool.input",
     "gen_ai.usage.total_tokens",
     "gen_ai.request.model",
     "gen_ai.response.model",

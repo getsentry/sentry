@@ -4,6 +4,7 @@ from typing import Any
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
+from sentry.data_export.writers import OutputMode
 from sentry.search.utils import parse_datetime_string
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -102,6 +103,7 @@ class DataExportTest(APITestCase):
             },
             "status": ExportStatus.Early,
             "checksum": None,
+            "export_format": OutputMode.CSV.value,
             "fileName": None,
         }
 
@@ -132,6 +134,7 @@ class DataExportTest(APITestCase):
             },
             "status": data_export.status,
             "checksum": None,
+            "export_format": OutputMode.CSV.value,
             "fileName": None,
         }
 

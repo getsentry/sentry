@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {useSpansSeriesQuery, useSpansTableQuery} from './useSpansWidgetQuery';
@@ -13,20 +12,6 @@ import {useSpansSeriesQuery, useSpansTableQuery} from './useSpansWidgetQuery';
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useSpansSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -77,15 +62,13 @@ describe('useSpansSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters: pageFiltersWithDates,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters: pageFiltersWithDates,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -123,18 +106,16 @@ describe('useSpansSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -202,15 +183,13 @@ describe('useSpansSeriesQuery', () => {
       ],
     });
 
-    renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -241,15 +220,13 @@ describe('useSpansSeriesQuery', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    const {result} = renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     expect(result.current.loading).toBe(true);
@@ -278,15 +255,13 @@ describe('useSpansSeriesQuery', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    const {result} = renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -342,15 +317,13 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters: pageFiltersWithDates,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters: pageFiltersWithDates,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -388,15 +361,13 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    const {result} = renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -426,18 +397,16 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -474,17 +443,15 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 50,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 50,
+        cursor: 'test-cursor',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -522,15 +489,13 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    const {result} = renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     expect(result.current.loading).toBe(true);
@@ -559,15 +524,13 @@ describe('useSpansTableQuery', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    const {result} = renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -601,15 +564,13 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -644,15 +605,13 @@ describe('useSpansTableQuery', () => {
         data: [{transaction: '/api/test', 'count()': 100}],
       },
     });
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
@@ -688,15 +647,13 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -734,16 +691,14 @@ describe('useSpansTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useSpansTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 15,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 15,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

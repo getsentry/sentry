@@ -27,13 +27,10 @@ export function InvisibleTraceBar(props: InvisibleTraceBarProps) {
     [props.manager, props.node_space, props.virtualizedIndex]
   );
 
-  const onDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      props.manager.onZoomIntoSpace(props.node_space!);
-    },
-    [props.manager, props.node_space]
-  );
+  const onDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    props.manager.onZoomIntoSpace(props.node_space!);
+  };
 
   if (!props.node_space || !props.children) {
     return null;

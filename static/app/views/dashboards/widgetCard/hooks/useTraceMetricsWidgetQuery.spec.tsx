@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
@@ -16,20 +15,6 @@ import {
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useTraceMetricsSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -74,15 +59,13 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -130,18 +113,16 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -178,15 +159,13 @@ describe('useTraceMetricsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -239,15 +218,13 @@ describe('useTraceMetricsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -289,17 +266,15 @@ describe('useTraceMetricsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTraceMetricsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 25,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTraceMetricsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 25,
+        cursor: 'test-cursor',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

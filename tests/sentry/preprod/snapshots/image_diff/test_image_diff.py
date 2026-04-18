@@ -24,13 +24,52 @@ class TestCompareImages:
         large = _make_solid_image(50, 50, (100, 100, 100, 255))
         result = compare_images(small, large)
         assert result is not None
-        assert result.changed_pixels == 0
+        assert result.changed_pixels == 50 * 50 - 30 * 30
         assert result.total_pixels == 50 * 50
         assert result.aligned_height == 50
         assert result.before_width == 30
         assert result.before_height == 30
         assert result.after_width == 50
         assert result.after_height == 50
+
+    def test_different_sizes_with_content_diff(self) -> None:
+        before = _make_solid_image(50, 50, (100, 100, 100, 255))
+        after = _make_solid_image(80, 80, (200, 200, 200, 255))
+        result = compare_images(before, after)
+        assert result is not None
+        non_overlap = 80 * 80 - 50 * 50
+        assert result.changed_pixels > non_overlap
+        assert result.total_pixels == 80 * 80
+
+    def test_different_height_same_width(self) -> None:
+        before = _make_solid_image(100, 50, (100, 100, 100, 255))
+        after = _make_solid_image(100, 80, (100, 100, 100, 255))
+        result = compare_images(before, after)
+        assert result is not None
+        assert result.changed_pixels == 100 * 80 - 100 * 50
+        assert result.total_pixels == 100 * 80
+        assert result.before_width == 100
+        assert result.after_width == 100
+        assert result.before_height == 50
+        assert result.after_height == 80
+
+    def test_different_width_same_height(self) -> None:
+        before = _make_solid_image(50, 100, (100, 100, 100, 255))
+        after = _make_solid_image(80, 100, (100, 100, 100, 255))
+        result = compare_images(before, after)
+        assert result is not None
+        assert result.changed_pixels == 80 * 100 - 50 * 100
+        assert result.total_pixels == 80 * 100
+
+    def test_smaller_after_image(self) -> None:
+        before = _make_solid_image(50, 50, (100, 100, 100, 255))
+        after = _make_solid_image(30, 30, (100, 100, 100, 255))
+        result = compare_images(before, after)
+        assert result is not None
+        assert result.changed_pixels == 50 * 50 - 30 * 30
+        assert result.total_pixels == 50 * 50
+        assert result.before_width == 50
+        assert result.after_width == 30
 
     def test_modified_block(self) -> None:
         before = _make_solid_image(100, 100, (100, 100, 100, 255))

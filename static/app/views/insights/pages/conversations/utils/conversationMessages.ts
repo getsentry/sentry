@@ -1,4 +1,5 @@
 import {
+  AGENT_NAME_FIELDS,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -23,7 +24,9 @@ export interface ConversationMessage {
   nodeId: string;
   role: 'user' | 'assistant';
   timestamp: number;
+  agentName?: string;
   duration?: number;
+  modelName?: string;
   toolCalls?: ToolCall[];
   userEmail?: string;
 }
@@ -187,6 +190,15 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       const endTs = Math.max(genEnd, lastToolEnd);
       const duration = endTs > startTs ? endTs - startTs : undefined;
 
+      let agentName: string | undefined;
+      for (const field of AGENT_NAME_FIELDS) {
+        agentName = getStringAttr(turn.generation, field);
+        if (agentName) {
+          break;
+        }
+      }
+      const modelName = getStringAttr(turn.generation, SpanFields.GEN_AI_RESPONSE_MODEL);
+
       messages.push({
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
@@ -195,6 +207,8 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         nodeId: turn.generation.id,
         toolCalls: turn.toolCalls.length > 0 ? turn.toolCalls : undefined,
         duration,
+        agentName: agentName || undefined,
+        modelName: modelName || undefined,
       });
     }
   }

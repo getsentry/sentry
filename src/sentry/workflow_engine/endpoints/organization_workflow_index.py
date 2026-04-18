@@ -49,6 +49,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.utils import parse_user_value
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
@@ -80,7 +81,7 @@ SORT_COL_MAP = {
 workflow_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "action"},
-    allowed_keys={"name", "action"},
+    allowed_keys={"name", "action", "created_by"},
     allow_boolean=False,
     free_text_key="query",
 )
@@ -175,6 +176,21 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
                             distinct=True,
                         )
+                    case SearchFilter(
+                        key=SearchKey("created_by"),
+                        operator=("=" | "IN" | "!=" | "NOT IN"),
+                    ):
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        user_ids = [parse_user_value(v, request.user).id for v in values]
+                        created_by_q = Q(created_by_id__in=user_ids)
+                        if filter.operator in ("!=", "NOT IN"):
+                            queryset = queryset.exclude(created_by_q)
+                        else:
+                            queryset = queryset.filter(created_by_q)
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.

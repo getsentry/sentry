@@ -106,7 +106,7 @@ describe('AcceptOrganizationInvite', () => {
 
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: '/accept-invite/1/abc/',
+      url: '/accept-invite/org-slug/1/abc/',
       method: 'GET',
       statusCode: 400,
       body: {detail: 'uh oh'},
@@ -115,9 +115,9 @@ describe('AcceptOrganizationInvite', () => {
     render(<AcceptOrganizationInvite />, {
       initialRouterConfig: {
         location: {
-          pathname: '/accept-invite/1/abc/',
+          pathname: '/accept-invite/org-slug/1/abc/',
         },
-        route: '/accept-invite/:memberId/:token/',
+        route: '/accept-invite/:orgId/:memberId/:token/',
       },
     });
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
 from sentry.models.apitoken import generate_token
@@ -55,12 +57,23 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
-        installation = self.get_installation(data.get("installation"), organization.id)
+        return {
+            "name": data["identifier"],
+            "external_id": data["external_id"],
+            "url": "https://bitbucket.org/{}".format(data["name"]),
+            "config": {"name": data["name"]},
+            "integration_id": data["installation"],
+        }
+
+    def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        if repo.config.get("webhook_id"):
+            return
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        secret = installation.model.metadata.get("webhook_secret", "")
         try:
-            secret = installation.model.metadata.get("webhook_secret", "")
             resp = client.create_hook(
-                data["identifier"],
+                repo.config["name"],
                 {
                     "description": "sentry-bitbucket-repo-hook",
                     "url": absolute_uri(
@@ -73,14 +86,8 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
             )
         except Exception as e:
             installation.raise_error(e)
-        else:
-            return {
-                "name": data["identifier"],
-                "external_id": data["external_id"],
-                "url": "https://bitbucket.org/{}".format(data["name"]),
-                "config": {"name": data["name"], "webhook_id": resp["uuid"]},
-                "integration_id": data["installation"],
-            }
+        repo.config["webhook_id"] = resp["uuid"]
+        repository_service.update_repository(organization_id=organization.id, update=repo)
 
     def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)

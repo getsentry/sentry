@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -14,20 +13,6 @@ import {useIssuesSeriesQuery, useIssuesTableQuery} from './useIssuesWidgetQuery'
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useIssuesSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -66,15 +51,13 @@ describe('useIssuesSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useIssuesSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useIssuesSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -117,18 +100,16 @@ describe('useIssuesSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useIssuesSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useIssuesSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -183,15 +164,13 @@ describe('useIssuesTableQuery', () => {
       ],
     });
 
-    renderHook(
-      () =>
-        useIssuesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useIssuesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -236,17 +215,15 @@ describe('useIssuesTableQuery', () => {
       ],
     });
 
-    renderHook(
-      () =>
-        useIssuesTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 50,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useIssuesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 50,
+        cursor: 'test-cursor',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

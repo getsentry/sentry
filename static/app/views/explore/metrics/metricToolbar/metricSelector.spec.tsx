@@ -46,8 +46,8 @@ describe('MetricSelector', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'device.name', type: 'string'},
-        {key: 'release', type: 'string'},
+        {attributeType: 'string', key: 'device.name', name: 'device.name'},
+        {attributeType: 'string', key: 'release', name: 'release'},
       ],
     });
 
@@ -55,8 +55,8 @@ describe('MetricSelector', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'device.name', type: 'string'},
-        {key: 'release', type: 'string'},
+        {attributeType: 'string', key: 'device.name', name: 'device.name'},
+        {attributeType: 'string', key: 'release', name: 'release'},
       ],
     });
   });
@@ -145,6 +145,25 @@ describe('MetricSelector', () => {
       await waitFor(() => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
       });
+    });
+
+    it('dismisses outside click without committing the current keyboard focus', async () => {
+      const onChange = jest.fn();
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
     });
 
     it('closes after selecting an option and calls onChange', async () => {
@@ -262,11 +281,34 @@ describe('MetricSelector', () => {
       expect(onChange).toHaveBeenCalledTimes(1);
     });
 
-    // NOTE: Tests for ArrowDown moving DOM focus from the search input into
-    // the list were removed because React Aria's FocusScope `contain` prevents
-    // `.focus()` from moving DOM focus to list items in JSDOM. The underlying
-    // selection behaviour is still covered by 'ArrowDown followed by Enter
-    // selects an option'.
+    it('ArrowDown from search keeps focus in input', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
+      await userEvent.keyboard('{ArrowDown}');
+
+      // DOM focus stays on search input; virtual focus moves to first option
+      expect(searchInput).toHaveFocus();
+    });
+
+    it('ArrowDown twice selects second option with Enter', async () => {
+      const onChange = jest.fn();
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{Enter}');
+
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({name: SORTED_METRIC_NAMES[1]})
+      );
+    });
 
     it('keeps keyboard selection valid when displayed options shrink', async () => {
       const onChange = jest.fn();
@@ -288,8 +330,8 @@ describe('MetricSelector', () => {
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
         body: [
-          {key: 'device.name', type: 'string'},
-          {key: 'release', type: 'string'},
+          {attributeType: 'string', key: 'device.name', name: 'device.name'},
+          {attributeType: 'string', key: 'release', name: 'release'},
         ],
       });
       setupEventsMock(

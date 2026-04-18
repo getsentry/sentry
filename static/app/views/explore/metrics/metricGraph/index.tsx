@@ -57,6 +57,7 @@ interface MetricsGraphProps {
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
+  title?: string;
 }
 
 export function MetricsGraph({
@@ -65,6 +66,7 @@ export function MetricsGraph({
   additionalActions,
   infoContentHidden,
   isMetricOptionsEmpty,
+  title,
 }: MetricsGraphProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
@@ -91,6 +93,7 @@ export function MetricsGraph({
       additionalActions={additionalActions}
       infoContentHidden={infoContentHidden}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
+      title={title}
     />
   );
 }
@@ -110,6 +113,7 @@ function Graph({
   infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
+  title,
 }: GraphProps) {
   const organization = useOrganization();
   const aggregate = visualize.yAxis;
@@ -178,8 +182,8 @@ function Graph({
     if (visualizes.length > 1) {
       return metricName;
     }
-    return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
-  }, [aggregate, metricLabel, metricName, visualizes.length]);
+    return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
+  }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
   const Title = <Widget.WidgetTitle title={chartTitle} />;
 

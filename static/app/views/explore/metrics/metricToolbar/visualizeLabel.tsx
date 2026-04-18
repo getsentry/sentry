@@ -9,15 +9,14 @@ import {IconHide} from 'sentry/icons/iconHide';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 interface VisualizeLabelProps {
-  index: number;
+  label: string;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
 }
 
-export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+export function VisualizeLabel({label, onClick, visualize}: VisualizeLabelProps) {
   const organization = useOrganization();
 
   if (canUseMetricsUIRefresh(organization)) {
@@ -32,7 +31,7 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
           <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
           <RefreshLabel justify="center" align="center">
             <Text as="span" bold variant="accent">
-              {getVisualizeLabel(index)}
+              {label}
             </Text>
           </RefreshLabel>
         </Flex>
@@ -40,7 +39,6 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
     );
   }
 
-  const label = getVisualizeLabel(index);
   const icon = visualize.visible ? <IconShow /> : <IconHide />;
 
   return (

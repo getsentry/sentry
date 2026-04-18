@@ -9,7 +9,6 @@
 
 export type KnownSentryApiUrls =
   | '/'
-  | '/accept-invite/$memberId/$token/'
   | '/accept-invite/$organizationIdOrSlug/$memberId/$token/'
   | '/accept-transfer/'
   | '/api-applications/'
@@ -119,8 +118,9 @@ export type KnownSentryApiUrls =
   | '/internal/project-config/'
   | '/internal/projectkey-cell-mappings/'
   | '/internal/rpc/$serviceName/$methodName/'
-  | '/internal/scm-rpc/$methodName/'
+  | '/internal/scm-rpc/'
   | '/internal/seer-rpc/$methodName/'
+  | '/internal/seer/night-shift/trigger/'
   | '/internal/warnings/'
   | '/issues/$issueId/'
   | '/issues/$issueId/activities/'
@@ -218,6 +218,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/dashboards/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/'
+  | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/'
   | '/organizations/$organizationIdOrSlug/dashboards/generate/'
   | '/organizations/$organizationIdOrSlug/dashboards/starred/'

@@ -229,7 +229,7 @@ E.g. `['release', 'environment']`""",
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
     )
     securityTokenHeader = serializers.RegexField(
-        r"^[a-zA-Z0-9_\-]+$", max_length=20, allow_blank=True
+        r"^[a-zA-Z0-9_\-]+$", max_length=64, allow_blank=True
     )
     verifySSL = serializers.BooleanField(required=False)
 
@@ -549,7 +549,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         Return details on an individual project.
         """
-        data = serialize(project, request.user, DetailedProjectSerializer())
+        collapse = request.GET.getlist("collapse", [])
+        data = serialize(project, request.user, DetailedProjectSerializer(collapse=collapse))
 
         # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))

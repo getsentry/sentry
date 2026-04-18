@@ -113,13 +113,12 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
 
 
 def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotificationData:
-    from sentry.notifications.notification_action.types import BaseIssueAlertHandler
-
     action = invocation.action
     detector = invocation.detector
     event_data = invocation.event_data
 
-    rule_instance = BaseIssueAlertHandler.create_rule_instance_from_action(
+    handler = issue_alert_handler_registry.get(action.type)
+    rule_instance = handler.create_rule_instance_from_action(
         action=action,
         detector=detector,
         event_data=event_data,

@@ -564,6 +564,14 @@ jest.mocked(usePageFilters)
 PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({ projects: [1]}),
 )
+
+// ❌ Don't recreate the basic context providers
+renderHook(useNavigate, {
+  wrapper: (children) => (<AllTheProviders>{children}</AllTheProviders>),
+})
+
+// ✅ Use the provided helpers that mock everything
+renderHookWithProviders(useNavigate)
 ```
 
 #### Use fixtures

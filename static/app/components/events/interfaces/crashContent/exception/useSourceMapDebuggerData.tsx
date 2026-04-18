@@ -6,7 +6,7 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface SourceMapDebugBlueThunderResponseFrame {
+export interface SourceMapDebugBlueThunderResponseFrame {
   debug_id_process: {
     debug_id: string | null;
     uploaded_source_file_with_correct_debug_id: boolean;

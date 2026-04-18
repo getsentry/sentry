@@ -3,6 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
@@ -26,6 +27,7 @@ export function DetectorListActions({children, detectorType}: DetectorListAction
 
   return (
     <Flex gap="sm">
+      <AlertsMonitorsShowcaseButton />
       {children}
       <MonitorFeedbackButton />
       <LinkButton

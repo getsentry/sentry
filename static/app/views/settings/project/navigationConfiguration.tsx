@@ -131,9 +131,15 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/mobile-builds/`,
           title: t('Mobile Builds'),
-          show: () => !!organization?.features?.includes('preprod-frontend-routes'),
           badge: () => 'new',
           description: t('Size analysis and build distribution configuration.'),
+        },
+        {
+          path: `${pathPrefix}/snapshots/`,
+          title: t('Snapshots'),
+          badge: () => 'alpha',
+          show: () => !!organization?.features?.includes('preprod-snapshots'),
+          description: t('Configure snapshot status checks and PR comments.'),
         },
       ],
     },

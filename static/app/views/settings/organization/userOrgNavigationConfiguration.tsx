@@ -141,12 +141,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           id: 'relay',
         },
         {
-          path: `${organizationSettingsPathPrefix}/repos/`,
-          title: t('Repositories'),
-          description: t('Manage repositories connected to the organization'),
-          id: 'repos',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/early-features/`,
           title: t('Early Features'),
           description: t('Manage early access features'),
@@ -203,6 +197,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
           ),
           id: 'integrations',
+          recordAnalytics: true,
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/repos/`,
+          title: t('Repositories'),
+          description: t('Manage repositories connected to the organization'),
+          id: 'repos',
           recordAnalytics: true,
         },
         {

@@ -25,7 +25,6 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -33,6 +32,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -231,10 +231,7 @@ export function FiltersBar({
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
-  const hasIntervalSelection = organization.features.includes(
-    'dashboards-interval-selection'
-  );
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
 
   return (
     <Wrapper>
@@ -367,23 +364,21 @@ export function FiltersBar({
           )}
         <ToggleOnDemand />
       </FiltersRow>
-      {hasIntervalSelection && (
-        <CompactSelect
-          value={interval}
-          onChange={option => setInterval(option.value)}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconClock />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          menuTitle={t('Interval')}
-          options={intervalOptions}
-        />
-      )}
+      <CompactSelect
+        value={interval}
+        onChange={option => setInterval(option.value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            icon={<IconClock />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        menuTitle={t('Interval')}
+        options={intervalOptions}
+      />
     </Wrapper>
   );
 }

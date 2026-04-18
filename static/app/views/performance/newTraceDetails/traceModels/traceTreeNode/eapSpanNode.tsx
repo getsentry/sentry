@@ -19,7 +19,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   id: string;
   type: TraceTree.NodeType;
 
-  reparentedEAPTransactions = new Set<EapSpanNode>();
   /**
    * The breakdown of the node's children's operations by count.
    */
@@ -30,13 +29,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     value: TraceTree.EAPSpan,
     extra: TraceTreeNodeExtra
   ) {
-    // For eap transactions, on load we only display the embedded transactions children.
-    // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
-    const parentNode = value.is_transaction
-      ? (parent?.findParent(p => isEAPSpanNode(p) && p.value.is_transaction) ?? parent)
-      : parent;
-
-    super(parentNode, value, extra);
+    super(parent, value, extra);
 
     this.id = value.event_id;
     this.type = 'span';
@@ -65,8 +58,8 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
     this._updateAncestorOpsBreakdown(this, value.op);
 
-    parentNode?.children.push(this);
-    parentNode?.children.sort(traceChronologicalSort);
+    parent?.children.push(this);
+    parent?.children.sort(traceChronologicalSort);
   }
 
   private _updateAncestorOpsBreakdown(node: EapSpanNode, op: string) {
@@ -82,6 +75,54 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
       current = current.parent;
     }
+  }
+
+  /**
+   * Build the summarized child list for a collapsed EAP transaction.
+   *
+   * In the collapsed state we do not render the full span tree. Instead, we surface the
+   * first descendant EAP transaction reachable on each branch so the user still sees
+   * embedded transactions without expanding all intermediary spans.
+   *
+   * This traversal intentionally preserves real parentage. Nested transactions stay attached
+   * to their actual span parents and are only surfaced as visible descendants in the collapsed
+   * summary; we do not reparent them under the collapsed transaction node.
+   *
+   * We also have to traverse through non-EAP wrapper nodes via `getNextTraversalNodes()`.
+   * After `ApplyPreferences` runs, wrappers like `ParentAutogroupNode` can sit between this
+   * transaction and a nested descendant transaction. If we stopped at `!isEAPSpanNode(node)`,
+   * those descendant transactions would disappear from the collapsed summary.
+   */
+  private getCollapsedTransactionChildren(): BaseNode[] {
+    const queue: BaseNode[] = [];
+    const collapsedChildren: BaseNode[] = [];
+    const visited = new Set<BaseNode>();
+    visited.add(this);
+
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      queue.push(this.children[i]!);
+    }
+
+    while (queue.length > 0) {
+      const node = queue.pop()!;
+
+      if (visited.has(node)) {
+        continue;
+      }
+      visited.add(node);
+
+      if (isEAPSpanNode(node) && node.value.is_transaction) {
+        collapsedChildren.push(node);
+        continue;
+      }
+
+      const nextNodes = node.getNextTraversalNodes();
+      for (let i = nextNodes.length - 1; i >= 0; i--) {
+        queue.push(nextNodes[i]!);
+      }
+    }
+
+    return collapsedChildren.sort(traceChronologicalSort);
   }
 
   get drawerTabsTitle(): string {
@@ -148,11 +189,9 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
   get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
     if (this.value.is_transaction && !this.expanded) {
-      // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
-      // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
-      return this.children.filter(
-        child => isEAPSpanNode(child) && child.value.is_transaction
-      );
+      // For collapsed eap-transactions we render the first nested transaction on each
+      // descendant branch while preserving the actual tree parentage.
+      return this.getCollapsedTransactionChildren();
     }
 
     return super.directVisibleChildren;
@@ -185,79 +224,19 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // Flip expanded so that we can collect visible children
       this.expanded = expanding;
 
-      // When eap-transaction nodes are expanded, we need to reparent the transactions under
-      // the eap-spans (by their parent_span_id) that were previously hidden. Note that this only impacts the
-      // direct eap-transaction children of the targetted eap-transaction node.
       if (this.value.is_transaction) {
-        const eapTransactions = this.children.filter(
-          c => isEAPSpanNode(c) && c.value.is_transaction
-        ) as EapSpanNode[];
-
-        for (const txn of eapTransactions) {
-          // Find the eap-span that is the parent of the transaction
-          const newParent = this.findChild(n => {
-            if (isEAPSpanNode(n)) {
-              return n.value.event_id === txn.value.parent_span_id;
-            }
-            return false;
-          });
-
-          // If the transaction already has the correct parent, we can continue
-          if (newParent === txn.parent) {
-            continue;
-          }
-
-          this.reparentedEAPTransactions.add(txn);
-
-          // If we have found a new parent to reparent the transaction under,
-          // remove it from its current parent's children and add it to the new parent
-          if (newParent) {
-            if (txn.parent) {
-              txn.parent.children = txn.parent.children.filter(c => c !== txn);
-            }
-            newParent.children.push(txn);
-            txn.parent = newParent;
-            txn.parent.children.sort(traceChronologicalSort);
-          }
-        }
-
         const browserRequestSpan = this.children.find(c => isBrowserRequestNode(c));
         if (browserRequestSpan) {
           this._reparentSSRUnderBrowserRequestSpan(browserRequestSpan);
         }
       }
 
-      // Flip expanded so that we can collect visible children
+      // Insert expanded children into the flat list
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
 
       this.expanded = expanding;
-
-      // When eap-transaction nodes are collapsed, they still render transactions as visible children.
-      // Reparent the transactions from under the eap-spans in the expanded state, to under the closest eap-transaction
-      // in the collapsed state. This only targets the embedded transactions that are to be direct children of the node upon collapse.
-      if (this.value.is_transaction) {
-        for (const txn of this.reparentedEAPTransactions) {
-          const newParent = this;
-
-          // If the transaction already has the correct parent, we can continue
-          if (newParent === txn.parent) {
-            continue;
-          }
-
-          // If we have found a new parent to reparent the transaction under,
-          // remove it from its current parent's children and add it to the new parent
-          if (newParent) {
-            if (txn.parent) {
-              txn.parent.children = txn.parent.children.filter(c => c !== txn);
-            }
-            newParent.children.push(txn);
-            txn.parent = newParent;
-            txn.parent.children.sort(traceChronologicalSort);
-          }
-        }
-      }
 
       // When transaction nodes are collapsed, they still render child transactions
       if (this.value.is_transaction) {

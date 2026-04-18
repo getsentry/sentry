@@ -56,7 +56,7 @@ const TreemapControlButton = styled(Button)<{$active?: boolean}>`
   padding: 0 ${p => p.theme.space.xs};
   background: ${p => (p.$active ? p.theme.colors.blue400 : 'rgba(0, 0, 0, 0.8)')};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
 
   &:hover {
     color: ${p => p.theme.colors.white};

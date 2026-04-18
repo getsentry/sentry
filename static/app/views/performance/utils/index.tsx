@@ -317,10 +317,7 @@ export function getIsMultiProject(projects: readonly number[] | number[]) {
   return false;
 }
 
-export function getSelectedProjectPlatformsArray(
-  location: Location,
-  projects: Project[]
-) {
+function getSelectedProjectPlatformsArray(location: Location, projects: Project[]) {
   const projectQuery = location.query.project;
   const selectedProjectIdSet = new Set(toArray(projectQuery));
 

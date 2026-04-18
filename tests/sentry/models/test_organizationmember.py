@@ -103,6 +103,16 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert len(mail.outbox) == 1
         assert self.organization.absolute_url("/accept/") in mail.outbox[0].body
 
+    def test_send_invite_email_sanitizes_org_name(self) -> None:
+        org = self.create_organization(name="https://evil.com org")
+        member = OrganizationMember(id=1, organization=org, email="user@example.com")
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            member.send_invite_email()
+
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert "://" not in msg.subject
+
     def test_send_sso_link_email(self) -> None:
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email="foo@example.com")

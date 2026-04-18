@@ -1,3 +1,4 @@
+import {useQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -7,7 +8,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-import {useTraces, type TraceResult} from './useTraces';
+import {useTracesApiOptions, type TraceResult} from './useTraces';
 
 function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {
@@ -83,7 +84,10 @@ describe('useTraces', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(useTraces, {
+    const useTracesQuery = (...params: Parameters<typeof useTracesApiOptions>) =>
+      useQuery(useTracesApiOptions(...params));
+
+    const {result} = renderHookWithProviders(useTracesQuery, {
       ...context,
       initialProps: {
         datetime: {

@@ -89,7 +89,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "integrations-ticket-rules",
             "integrations-vercel",
             "invite-members",
-            "minute-resolution-sessions",
             "open-membership",
             "relay",
             "session-replay-ui",

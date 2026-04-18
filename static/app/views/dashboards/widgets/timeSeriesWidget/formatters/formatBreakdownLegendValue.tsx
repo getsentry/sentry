@@ -26,7 +26,10 @@ export function formatBreakdownLegendValue(
     value > 0 &&
     value < NUMBER_MIN_VALUE
   ) {
-    return `<${NUMBER_MIN_VALUE}`;
+    return value.toLocaleString(undefined, {
+      notation: 'scientific' as const,
+      maximumSignificantDigits: 3,
+    });
   }
 
   return formatTooltipValue(value, type, unit);

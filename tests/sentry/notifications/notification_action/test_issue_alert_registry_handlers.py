@@ -25,7 +25,7 @@ from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
     TicketingIssueAlertHandler,
 )
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import TEST_NOTIFICATION_ID, ActionTargetType, FallthroughChoiceType
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -168,7 +168,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.detector.name
+        assert rule.label == self.workflow.name
         assert rule.data == {
             "actions": [
                 {
@@ -182,6 +182,51 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
+
+    def test_create_rule_instance_from_action_deleted_workflow_falls_back_to_detector_name(
+        self,
+    ) -> None:
+        """Test that label falls back to detector.name when the workflow no longer exists"""
+        workflow_id = self.workflow.id
+        self.workflow.delete()
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
+
+        assert isinstance(rule, Rule)
+        assert rule.label == self.detector.name
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "workflow_id": workflow_id,
+                }
+            ]
+        }
+
+    def test_create_rule_instance_from_action_with_test_notification_id(self) -> None:
+        """Test that Workflow lookup is skipped for test notifications, falling back to detector name"""
+        self.action.workflow_id = TEST_NOTIFICATION_ID
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
+
+        assert isinstance(rule, Rule)
+        assert rule.label == self.detector.name
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "legacy_rule_id": TEST_NOTIFICATION_ID,
+                }
+            ],
+        }
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""

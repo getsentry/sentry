@@ -498,6 +498,76 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response.data) == 1
 
+    def test_query_by_created_by_me(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "created_by:me"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_created_by_email(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"created_by:{self.user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"created_by:{other_user.email}"}
+        )
+        assert len(response2.data) == 1
+        assert response2.data[0]["id"] == str(self.workflow_two.id)
+
+    def test_query_by_created_by_negation(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"!created_by:{self.user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_created_by_multiple(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"created_by:[{self.user.email},{other_user.email}]"},
+        )
+        assert len(response.data) == 2
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+        }
+
+    def test_query_by_created_by_negated_list(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.workflow.update(created_by_id=self.user.id)
+        self.workflow_two.update(created_by_id=other_user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"!created_by:[{self.user.email},{other_user.email}]"},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_created_by_invalid_user(self) -> None:
+        self.workflow.update(created_by_id=self.user.id)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "created_by:nonexistent@example.com"},
+        )
+        assert len(response.data) == 0
+
 
 @cell_silo_test
 class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):

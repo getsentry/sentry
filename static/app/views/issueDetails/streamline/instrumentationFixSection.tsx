@@ -16,7 +16,6 @@ import {
   CodeChangesCard,
   CodingAgentHandoffCard,
   SolutionCard,
-  type ArtifactData,
 } from 'sentry/components/events/autofix/v2/artifactCards';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
@@ -67,9 +66,9 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     [blocks, artifacts]
   );
 
-  const handleStartCodeChanges = useCallback(() => {
+  const handleStartCodeChanges = () => {
     startStep('code_changes');
-  }, [startStep]);
+  };
 
   const handleStartStep = useCallback(
     async (step: Parameters<typeof startStep>[0]) => {
@@ -164,7 +163,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
             // Only show solution and code changes for instrumentation issues
             if (key === 'solution') {
-              return <SolutionCard key="solution" data={artifact.data as ArtifactData} />;
+              return <SolutionCard key="solution" data={artifact.data} />;
             }
             return null;
           })}

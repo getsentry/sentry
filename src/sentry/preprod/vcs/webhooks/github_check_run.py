@@ -16,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import (
     APPROVE_SIZE_ACTION_IDENTIFIER,
     create_preprod_status_check_task,
@@ -223,6 +224,12 @@ def handle_preprod_check_run_event(
         create_preprod_snapshot_status_check_task(
             preprod_artifact_id=artifact.id,
             caller="github_approve_webhook",
+        )
+        create_preprod_snapshot_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "github_approve_webhook",
+            },
         )
     else:
         raise ValueError(f"Unknown identifier: {identifier}")

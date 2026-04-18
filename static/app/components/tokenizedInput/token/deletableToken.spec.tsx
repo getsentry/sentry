@@ -66,12 +66,9 @@ function Grid({onDelete, ...props}: GridProps) {
 
 function Component() {
   const [items, setItems] = useState(() =>
-    [1, 2].map(
-      value =>
-        ({
-          key: String(value),
-        }) as GridItem
-    )
+    [1, 2].map(value => ({
+      key: String(value),
+    }))
   );
 
   function onDelete(key: string) {

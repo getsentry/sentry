@@ -75,7 +75,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Run API docs tests
         run: |
@@ -267,7 +267,7 @@ jobs:
           if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
             python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
           fi
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Download odiff binary
         run: |
@@ -388,7 +388,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: run tests
         run: |
@@ -437,7 +437,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Run test
         env:
@@ -523,7 +523,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Sync API Urls to TypeScript
         run: |
@@ -561,7 +561,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Migration & lockfile checks
         env:
@@ -606,7 +606,7 @@ jobs:
       - name: Wait for devservices
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Run test
         run: |

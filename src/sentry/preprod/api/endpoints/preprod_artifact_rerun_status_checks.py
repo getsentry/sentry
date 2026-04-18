@@ -13,6 +13,7 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunStatusChecksEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     create_preprod_snapshot_status_check_task,
@@ -98,6 +99,9 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                         )
                     case "snapshots":
                         create_preprod_snapshot_status_check_task.delay(
+                            preprod_artifact_id=head_artifact.id, caller="rerun_endpoint"
+                        )
+                        create_preprod_snapshot_pr_comment_task.delay(
                             preprod_artifact_id=head_artifact.id, caller="rerun_endpoint"
                         )
                     case _:

@@ -666,6 +666,115 @@ describe('conversationMessages utilities', () => {
       expect(assistantMessages).toHaveLength(2);
     });
 
+    it('includes agentName from gen_ai.agent.name', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+            attributes: {
+              [SpanFields.GEN_AI_AGENT_NAME]: 'my-agent',
+            },
+          } as any,
+          userContent: 'Hello',
+          assistantContent: 'Hi',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant?.agentName).toBe('my-agent');
+    });
+
+    it('falls back agentName to gen_ai.function_id', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+            attributes: {
+              [SpanFields.GEN_AI_FUNCTION_ID]: 'vercel-func',
+            },
+          } as any,
+          userContent: 'Hello',
+          assistantContent: 'Hi',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant?.agentName).toBe('vercel-func');
+    });
+
+    it('prefers gen_ai.agent.name over gen_ai.function_id for agentName', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+            attributes: {
+              [SpanFields.GEN_AI_AGENT_NAME]: 'preferred-agent',
+              [SpanFields.GEN_AI_FUNCTION_ID]: 'fallback-func',
+            },
+          } as any,
+          userContent: 'Hello',
+          assistantContent: 'Hi',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant?.agentName).toBe('preferred-agent');
+    });
+
+    it('includes modelName from gen_ai.response.model', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+            attributes: {
+              [SpanFields.GEN_AI_RESPONSE_MODEL]: 'gpt-4o',
+            },
+          } as any,
+          userContent: 'Hello',
+          assistantContent: 'Hi',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant?.modelName).toBe('gpt-4o');
+    });
+
+    it('leaves agentName and modelName undefined when not set', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'Hello',
+          assistantContent: 'Hi',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant?.agentName).toBeUndefined();
+      expect(assistant?.modelName).toBeUndefined();
+    });
+
     it('attaches tool calls to assistant messages', () => {
       const turns = [
         {

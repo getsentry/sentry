@@ -1,6 +1,11 @@
 from collections.abc import Sequence
 
-from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.deletions.base import (
+    BaseRelation,
+    BulkModelDeletionTask,
+    ModelDeletionTask,
+    ModelRelation,
+)
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
@@ -27,6 +32,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
         from sentry.models.environment import Environment
+        from sentry.models.groupenvironment import GroupEnvironment
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.project import Project
         from sentry.models.promptsactivity import PromptsActivity
@@ -39,7 +45,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         # Team must come first
         relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
 
-        model_list = (
+        pre_environment_models = (
             OrganizationMember,
             Repository,
             CommitAuthor,
@@ -48,6 +54,24 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             Release,
             Project,
             Workflow,
+        )
+        relations.extend(
+            [ModelRelation(m, {"organization_id": instance.id}) for m in pre_environment_models]
+        )
+
+        # GroupEnvironment must be deleted before Environment. When Environment is deleted
+        # via the ORM, Django cascades to GroupEnvironment (on_delete=CASCADE, db_constraint=False)
+        # and fires a post_delete signal per row. For large orgs this causes the deletion task
+        # to time out. Bulk-deleting GroupEnvironment first avoids that cascade entirely.
+        relations.append(
+            ModelRelation(
+                GroupEnvironment,
+                {"environment__organization_id": instance.id},
+                task=BulkModelDeletionTask,
+            )
+        )
+
+        post_environment_models = (
             Environment,
             Dashboard,
             TeamKeyTransaction,
@@ -56,7 +80,9 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             ProjectTransactionThreshold,
             ArtifactBundle,
         )
-        relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
+        relations.extend(
+            [ModelRelation(m, {"organization_id": instance.id}) for m in post_environment_models]
+        )
         # Explicitly assign the task here as it was getting replaced with BulkModelDeletionTask in CI.
         relations.append(
             ModelRelation(

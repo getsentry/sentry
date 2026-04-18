@@ -6,15 +6,14 @@ import {LLMContextProvider, useLLMContext} from './llmContext';
 import type {LLMContextSnapshot} from './llmContextTypes';
 import {registerLLMContext} from './registerLLMContext';
 
-// ---------------------------------------------------------------------------
-// Test helper: ContextCapture
-//
-// Renders nothing but stores a reference to the getSnapshot function.
-// Since the context value is memoized (stable), this component only renders
-// once. However, getSnapshot() always reads stateRef.current (fresh), so
-// calling capturedRef.current() in waitFor gives live data.
-// ---------------------------------------------------------------------------
-
+/**
+ * Test helper: ContextCapture
+ *
+ * Renders nothing but stores a reference to the getSnapshot function.
+ * Since the context value is memoized (stable), this component only renders
+ * once. However, getSnapshot() always reads stateRef.current (fresh), so
+ * calling capturedRef.current() in waitFor gives live data.
+ */
 function makeContextCapture() {
   const ref: {current: ((componentOnly?: boolean) => LLMContextSnapshot) | null} = {
     current: null,
@@ -34,9 +33,7 @@ function makeContextCapture() {
   return {ContextCapture, getSnapshot};
 }
 
-// ---------------------------------------------------------------------------
 // Test fixtures
-// ---------------------------------------------------------------------------
 
 function DummyChart({label}: {label?: string}) {
   useLLMContext({label: label ?? 'chart'});
@@ -66,10 +63,6 @@ function DummyDashboard({name, children}: {children?: ReactNode; name?: string})
 const ContextChart = registerLLMContext('chart', DummyChart);
 const ContextWidget = registerLLMContext('widget', DummyWidget);
 const ContextDashboard = registerLLMContext('dashboard', DummyDashboard);
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe('LLMContextProvider — empty state', () => {
   it('returns an empty snapshot when no nodes are registered', async () => {

@@ -1,6 +1,10 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
@@ -19,9 +23,7 @@ import {
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
-  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -40,6 +42,11 @@ import {
 /**
  * Available autofix steps that can be triggered via the Explorer.
  */
+interface CodingAgentError {
+  id: number;
+  message: string;
+}
+
 export type AutofixExplorerStep =
   | 'root_cause'
   | 'solution'
@@ -521,6 +528,15 @@ export function useExplorerAutofix(
    */
   const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
+  const [codingAgentErrors, setCodingAgentErrors] = useState<CodingAgentError[]>([]);
+  const nextCodingAgentErrorId = useRef(0);
+  const appendCodingAgentErrors = useCallback((messages: string[]) => {
+    setCodingAgentErrors(prev => [
+      ...prev,
+      ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
+    ]);
+  }, []);
+
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
     {
@@ -536,7 +552,7 @@ export function useExplorerAutofix(
           waitingForResponse
         );
       },
-    } as UseApiQueryOptions<ExplorerAutofixResponse, RequestError>
+    }
   );
 
   const runState = apiData?.autofix ?? null;
@@ -731,9 +747,11 @@ export function useExplorerAutofix(
             openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
           }
 
-          otherFailures.forEach(failure => {
-            addErrorMessage(failure.error_message ?? 'Failed to launch coding agent');
-          });
+          if (otherFailures.length > 0) {
+            appendCodingAgentErrors(
+              otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
+            );
+          }
         }
 
         // Invalidate to fetch fresh data
@@ -746,13 +764,16 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        appendCodingAgentErrors([
+          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
+        ]);
         throw e;
       } finally {
+        clearIndicators();
         setWaitingForCodingAgent(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id]
+    [api, orgSlug, groupId, queryClient, organization, user.id, appendCodingAgentErrors]
   );
 
   // Clear waiting state when we get a response
@@ -793,6 +814,16 @@ export function useExplorerAutofix(
      * Trigger coding agent handoff for an existing run.
      */
     triggerCodingAgentHandoff,
+    /**
+     * Errors from coding agent launch attempts, accumulated across launches and
+     * persisted for the lifetime of the hook mount. Displayed inline in the panel.
+     */
+    codingAgentErrors,
+    /**
+     * Dismiss a single coding agent error by its id.
+     */
+    dismissCodingAgentError: (id: number) =>
+      setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
   };
 }
 

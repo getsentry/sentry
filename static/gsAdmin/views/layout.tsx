@@ -80,6 +80,7 @@ export function Layout() {
                 Spike Projection Generation
               </NavLink>
               <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+              <NavLink to="/_admin/seer/">Seer</NavLink>
             </Navigation>
             <div>
               <ThemeToggle

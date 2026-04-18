@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,10 +25,9 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -77,26 +77,23 @@ export function ReleasesDrawerTable({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {data, isLoading, isError, getResponseHeader} = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: projects,
-          environment: environments,
-          cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
-          ...normalizeDateTimeParams(datetime),
-          per_page: 15,
-        },
+  const {data, isLoading, isError} = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: projects,
+        environment: environments,
+        cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
+        ...normalizeDateTimeParams(datetime),
+        per_page: 15,
       },
-    ],
-    {staleTime: 0}
-  );
-  const pageLinks = getResponseHeader?.('Link');
+      staleTime: 0,
+    }),
+    select: selectJsonWithHeaders,
+  });
+  const pageLinks = data?.headers.Link;
 
-  const releaseData = data?.map(d => ({
+  const releaseData = data?.json?.map(d => ({
     project: d.projects[0]!,
     release: d.version,
     date: d.dateCreated,

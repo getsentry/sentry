@@ -9,6 +9,7 @@ import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
@@ -17,12 +18,15 @@ import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settin
 import {SeerAutomationSettings} from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
+  const subscription = useSubscription();
   const organization = useOrganization();
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const showNoActiveSeerSubscriptionBanner =
-    !hasSeatBasedSeer && (hasLegacySeer || hasCodeReviewBeta);
+    !hasSeatBasedSeer &&
+    (hasLegacySeer || hasCodeReviewBeta) &&
+    subscription?.canSelfServe;
 
   if (showNewSeer(organization)) {
     return <SeerAutomationSettings />;

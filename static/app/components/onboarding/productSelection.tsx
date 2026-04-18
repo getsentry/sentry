@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
+import {useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -631,39 +631,36 @@ export function ProductSelection({
     initializeProducts();
   }, []);
 
-  const handleClickProduct = useCallback(
-    (product: ProductSolution) => {
-      const newProduct = new Set(
-        urlProducts.includes(product)
-          ? urlProducts.filter(p => p !== product)
-          : [...urlProducts, product]
-      );
+  const handleClickProduct = (product: ProductSolution) => {
+    const newProduct = new Set(
+      urlProducts.includes(product)
+        ? urlProducts.filter(p => p !== product)
+        : [...urlProducts, product]
+    );
 
-      if (products?.includes(ProductSolution.PROFILING)) {
-        // Ensure that if profiling is enabled, tracing is also enabled
-        if (
-          product === ProductSolution.PROFILING &&
-          newProduct.has(ProductSolution.PROFILING)
-        ) {
-          newProduct.add(ProductSolution.PERFORMANCE_MONITORING);
-        } else if (
-          product === ProductSolution.PERFORMANCE_MONITORING &&
-          !newProduct.has(ProductSolution.PERFORMANCE_MONITORING)
-        ) {
-          newProduct.delete(ProductSolution.PROFILING);
-        }
+    if (products?.includes(ProductSolution.PROFILING)) {
+      // Ensure that if profiling is enabled, tracing is also enabled
+      if (
+        product === ProductSolution.PROFILING &&
+        newProduct.has(ProductSolution.PROFILING)
+      ) {
+        newProduct.add(ProductSolution.PERFORMANCE_MONITORING);
+      } else if (
+        product === ProductSolution.PERFORMANCE_MONITORING &&
+        !newProduct.has(ProductSolution.PERFORMANCE_MONITORING)
+      ) {
+        newProduct.delete(ProductSolution.PROFILING);
       }
+    }
 
-      const selectedProducts = Array.from(newProduct);
+    const selectedProducts = Array.from(newProduct);
 
-      onChange?.({
-        previousProducts: urlProducts,
-        products: selectedProducts,
-      });
-      setParams({product: selectedProducts});
-    },
-    [products, setParams, urlProducts, onChange]
-  );
+    onChange?.({
+      previousProducts: urlProducts,
+      products: selectedProducts,
+    });
+    setParams({product: selectedProducts});
+  };
 
   if (!products) {
     // if the platform does not support any product, we don't render anything

@@ -154,6 +154,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         return [{"name": "repo", "identifier": "user/repo", "external_id": "1"}]
 

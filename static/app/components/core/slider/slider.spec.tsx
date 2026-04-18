@@ -140,9 +140,15 @@ describe('Slider', () => {
     });
   });
 
-  describe('formatLabel', () => {
+  describe('formatOptions', () => {
     it('formats the value label', () => {
-      render(<Slider defaultValue={42} formatLabel={v => `${v}%`} aria-label="Test" />);
+      render(
+        <Slider
+          defaultValue={42}
+          formatOptions={{style: 'unit', unit: 'percent'}}
+          aria-label="Test"
+        />
+      );
       // 42% only appears in the value label (not in edge labels since 42 != min or max)
       expect(screen.getByText('42%')).toBeInTheDocument();
     });
@@ -152,7 +158,7 @@ describe('Slider', () => {
         <Slider
           defaultValue={25}
           ticks={{count: 3, labels: true}}
-          formatLabel={v => `$${v}`}
+          formatOptions={{style: 'currency', currency: 'USD', maximumFractionDigits: 0}}
           aria-label="Test"
         />
       );

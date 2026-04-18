@@ -72,6 +72,7 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
+  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -400,6 +401,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue-details.android-tombstones-cta-dismiss':
+    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

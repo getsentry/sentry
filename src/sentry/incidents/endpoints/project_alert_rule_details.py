@@ -24,6 +24,9 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-projectalertruledetails-get",
+    }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rule-details")
     def get(self, request: Request, project: Project, alert_rule: AlertRule | Detector) -> Response:

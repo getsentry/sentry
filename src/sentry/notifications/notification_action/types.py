@@ -35,7 +35,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
-from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
@@ -156,8 +156,26 @@ class BaseIssueAlertHandler(ABC):
             raise ValueError(f"No mapping found for action type: {action.type}")
         return mapping
 
+    @staticmethod
+    def _get_cached_integration(
+        integration_id: Any,
+        integration_cache: dict[int, RpcIntegration] | None,
+    ) -> RpcIntegration | None:
+        """Look up an integration from the pre-fetched cache, safely coercing the ID to int."""
+        if integration_cache is None or integration_id is None:
+            return None
+        try:
+            return integration_cache.get(int(integration_id))
+        except (ValueError, TypeError):
+            return None
+
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+    def render_label(
+        cls,
+        organization_id: int,
+        blob: dict[str, Any],
+        integration_cache: dict[int, RpcIntegration] | None = None,
+    ) -> str:
         return "Send a notification"
 
     @classmethod
@@ -201,7 +219,19 @@ class BaseIssueAlertHandler(ABC):
         workflow_id = getattr(action, "workflow_id", None)
         rule_id = None
 
-        label = detector.name
+        label = None
+        # Attempt to query the workflow name for non-test notifications.
+        if workflow_id is not None and workflow_id != TEST_NOTIFICATION_ID:
+            try:
+                workflow = Workflow.objects.get(id=workflow_id)
+                label = workflow.name
+            except Workflow.DoesNotExist:
+                # If the workflow no longer exists, bail and use detector name
+                # as a fallback.
+                pass
+
+        if label is None:
+            label = detector.name
         # Build link to the rule if it exists, otherwise build link to the workflow.
         # FE will handle redirection if necessary from rule -> workflow
 
@@ -345,12 +375,20 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
     label_template = "Create a ticket in {integration}"
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
-        integration = integration_service.get_integration(
-            integration_id=blob.get("integration"),
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-        )
+    def render_label(
+        cls,
+        organization_id: int,
+        blob: dict[str, Any],
+        integration_cache: dict[int, RpcIntegration] | None = None,
+    ) -> str:
+        integration_id = blob.get("integration")
+        integration = cls._get_cached_integration(integration_id, integration_cache)
+        if integration is None:
+            integration = integration_service.get_integration(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
         integration_name = integration.name if integration else "[removed]"
         return cls.label_template.format(integration=integration_name)
 

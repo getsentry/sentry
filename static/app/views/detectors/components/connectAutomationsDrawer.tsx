@@ -5,10 +5,10 @@ import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {makeAutomationsQueryKey} from 'sentry/views/automations/hooks';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 
 function ConnectedAutomations({
@@ -81,13 +81,11 @@ export function ConnectAutomationsDrawer({
 
   const toggleConnected = ({automation}: {automation: Automation}) => {
     const oldAutomationsData =
-      getApiQueryData<Automation[]>(
-        queryClient,
-        makeAutomationsQueryKey({
-          orgSlug: organization.slug,
+      queryClient.getQueryData(
+        automationsApiOptions(organization, {
           ids: localWorkflowIds,
-        })
-      ) ?? [];
+        }).queryKey
+      )?.json ?? [];
 
     const newAutomations = (
       oldAutomationsData.some(a => a.id === automation.id)
@@ -96,13 +94,9 @@ export function ConnectAutomationsDrawer({
     ).sort((a, b) => a.id.localeCompare(b.id));
     const newWorkflowIds = newAutomations.map(a => a.id);
 
-    setApiQueryData<Automation[]>(
-      queryClient,
-      makeAutomationsQueryKey({
-        orgSlug: organization.slug,
-        ids: newWorkflowIds,
-      }),
-      newAutomations
+    queryClient.setQueryData(
+      automationsApiOptions(organization, {ids: newWorkflowIds}).queryKey,
+      old => ({headers: old?.headers ?? {}, json: newAutomations})
     );
 
     setLocalWorkflowIds(newWorkflowIds);

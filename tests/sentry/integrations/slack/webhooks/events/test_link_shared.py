@@ -1,7 +1,6 @@
 import re
 from unittest.mock import Mock, patch
 
-import orjson
 import pytest
 import responses
 from slack_sdk.errors import SlackApiError
@@ -54,7 +53,7 @@ class LinkSharedEventTest(BaseEventTest):
         },
     )
     def test_share_links_sdk(self, mock_match_link, mock_record) -> None:
-        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
 
@@ -84,15 +83,15 @@ class LinkSharedEventTest(BaseEventTest):
                 arg_mapper=make_type_coercer({}),
                 fn=Mock(
                     return_value={
-                        "link1": build_test_block(LINK_SHARED_EVENT[0]),
-                        "link2": build_test_block(LINK_SHARED_EVENT[1]),
+                        "link1": build_test_block(LINK_SHARED_EVENT["links"][0]["url"]),
+                        "link2": build_test_block(LINK_SHARED_EVENT["links"][1]["url"]),
                     }
                 ),
             )
         },
     )
     def test_share_links_block_kit_sdk(self, mock_match_link, mock_record) -> None:
-        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
 
@@ -101,9 +100,9 @@ class LinkSharedEventTest(BaseEventTest):
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2
-        result1 = build_test_block(LINK_SHARED_EVENT[0])
+        result1 = build_test_block(LINK_SHARED_EVENT["links"][0]["url"])
         del result1["text"]
-        result2 = build_test_block(LINK_SHARED_EVENT[1])
+        result2 = build_test_block(LINK_SHARED_EVENT["links"][1]["url"])
         del result2["text"]
         assert unfurls["link1"] == result1
         assert unfurls["link2"] == result2
@@ -128,8 +127,8 @@ class LinkSharedEventTest(BaseEventTest):
                 arg_mapper=make_type_coercer({}),
                 fn=Mock(
                     return_value={
-                        "link1": build_test_block(LINK_SHARED_EVENT[0]),
-                        "link2": build_test_block(LINK_SHARED_EVENT[1]),
+                        "link1": build_test_block(LINK_SHARED_EVENT["links"][0]["url"]),
+                        "link2": build_test_block(LINK_SHARED_EVENT["links"][1]["url"]),
                     }
                 ),
             )
@@ -150,14 +149,14 @@ class LinkSharedEventTest(BaseEventTest):
                     status_code=200,
                 ),
             )
-            resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
+            resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
 
         assert resp.status_code == 200, resp.content
 
         assert_slo_metric_calls(mock_record.mock_calls[-2:], EventLifecycleOutcome.FAILURE)
 
     def test_share_links_no_matches(self, mock_record) -> None:
-        event_data = orjson.loads(LINK_SHARED_EVENT)
+        event_data = {**LINK_SHARED_EVENT}
         event_data["links"] = [{}]
         resp = self.post_webhook(event_data=event_data)
         assert resp.status_code == 200, resp.content

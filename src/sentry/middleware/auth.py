@@ -13,6 +13,7 @@ from sentry.api.authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
 )
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
@@ -78,6 +79,15 @@ class AuthenticationMiddleware(MiddlewareMixin):
                     # default to anonymous user and use IP ratelimit
                     request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
                 return
+
+        # Try viewer context authentication (signed headers from trusted services)
+        try:
+            result = ViewerContextAuthentication().authenticate(request)
+        except AuthenticationFailed:
+            result = None
+        if result:
+            request.user, request.auth = result
+            return
 
         # default to anonymous user and use IP ratelimit
         request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None

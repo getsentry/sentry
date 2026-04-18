@@ -4,7 +4,11 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    IncidentSerializer,
+)
+from sentry.incidents.models.incident import IncidentActivityType, IncidentStatus
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -28,6 +32,30 @@ class IncidentSerializerTest(TestCase):
         assert result["dateDetected"] == incident.date_detected
         assert result["dateCreated"] == incident.date_added
         assert result["dateClosed"] == incident.date_closed
+
+    def test_with_activities(self) -> None:
+        incident = self.create_incident()
+        activity = self.create_incident_activity(
+            incident=incident,
+            type=IncidentActivityType.STATUS_CHANGE.value,
+            value=str(IncidentStatus.CRITICAL.value),
+            previous_value=str(IncidentStatus.WARNING.value),
+        )
+
+        result = serialize(incident, serializer=IncidentSerializer(expand=["activities"]))
+
+        assert result["activities"] is not None
+        assert len(result["activities"]) == 1
+        assert result["activities"][0] == {
+            "id": str(activity.id),
+            "incidentIdentifier": str(incident.identifier),
+            "user": None,
+            "type": IncidentActivityType.STATUS_CHANGE.value,
+            "value": str(IncidentStatus.CRITICAL.value),
+            "previousValue": str(IncidentStatus.WARNING.value),
+            "comment": None,
+            "dateCreated": activity.date_added,
+        }
 
 
 class DetailedIncidentSerializerTest(TestCase):

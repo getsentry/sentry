@@ -17,7 +17,6 @@ from sentry.seer.autofix.issue_summary import (
     _fetch_user_preference,
     _get_event,
     _get_stopping_point_from_fixability,
-    _trigger_autofix_task,
     get_and_update_group_fixability_score,
     get_automation_stopping_point,
     get_issue_summary,
@@ -26,6 +25,7 @@ from sentry.seer.autofix.issue_summary import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -946,85 +946,6 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         mock_trigger.assert_not_called()
 
 
-@with_feature(
-    {
-        "organizations:gen-ai-features": True,
-        "organizations:seer-explorer": True,
-        "organizations:autofix-on-explorer": True,
-    }
-)
-class TestTriggerAutofixTaskLightweightRca(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.group = self.create_group()
-        event_data = load_data("python")
-        self.event = self.store_event(data=event_data, project_id=self.project.id)
-
-    @patch("sentry.seer.autofix.issue_summary.trigger_explorer_lightweight_rca")
-    @patch("sentry.seer.autofix.issue_summary.trigger_autofix_explorer", return_value=42)
-    def test_lightweight_rca_called_on_explorer_path(
-        self,
-        mock_explorer,
-        mock_explorer_lightweight_rca,
-    ):
-        """trigger_explorer_lightweight_rca is called when the explorer path is taken"""
-        _trigger_autofix_task(
-            group_id=self.group.id,
-            event_id=self.event.event_id,
-            user_id=None,
-            auto_run_source="post_process",
-        )
-
-        mock_explorer.assert_called_once()
-        mock_explorer_lightweight_rca.assert_called_once_with(self.group)
-
-    @patch("sentry.seer.autofix.issue_summary.trigger_explorer_lightweight_rca")
-    @patch(
-        "sentry.seer.autofix.issue_summary.trigger_autofix", return_value=Mock(data={"run_id": 42})
-    )
-    def test_lightweight_rca_not_called_on_legacy_path(
-        self,
-        mock_autofix,
-        mock_explorer_lightweight_rca,
-    ):
-        """trigger_explorer_lightweight_rca is NOT called on the legacy autofix path"""
-        with self.feature(
-            {
-                "organizations:seer-explorer": False,
-                "organizations:autofix-on-explorer": False,
-            }
-        ):
-            _trigger_autofix_task(
-                group_id=self.group.id,
-                event_id=self.event.event_id,
-                user_id=None,
-                auto_run_source="post_process",
-            )
-
-        mock_autofix.assert_called_once()
-        mock_explorer_lightweight_rca.assert_not_called()
-
-    @patch("sentry.seer.autofix.issue_summary.trigger_explorer_lightweight_rca")
-    @patch("sentry.seer.autofix.issue_summary.trigger_autofix_explorer", return_value=42)
-    def test_lightweight_rca_failure_does_not_block_explorer(
-        self,
-        mock_explorer,
-        mock_explorer_lightweight_rca,
-    ):
-        """Failure in trigger_explorer_lightweight_rca doesn't prevent the explorer autofix from completing"""
-        mock_explorer_lightweight_rca.side_effect = Exception("lightweight RCA failed")
-
-        _trigger_autofix_task(
-            group_id=self.group.id,
-            event_id=self.event.event_id,
-            user_id=None,
-            auto_run_source="post_process",
-        )
-
-        mock_explorer.assert_called_once()
-        mock_explorer_lightweight_rca.assert_called_once_with(self.group)
-
-
 class TestFetchUserPreference:
     @patch("sentry.seer.autofix.issue_summary.make_get_project_preference_request")
     def test_fetch_user_preference_success(self, mock_request):
@@ -1557,3 +1478,20 @@ class TestGetAutomationStoppingPoint(TestCase):
         mock_preference.return_value = "open_pr"
 
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.ROOT_CAUSE
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.issue_summary.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_reads_stopping_point_from_sentry_db(
+        self, mock_fixability, mock_preference, mock_read_db
+    ):
+        mock_fixability.return_value = 0.80
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automated_run_stopping_point="solution",
+        )
+
+        assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.SOLUTION

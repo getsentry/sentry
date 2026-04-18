@@ -94,12 +94,15 @@ class ExportedData(Model):
         self.delete_file()
         return super().delete(*args, **kwargs)
 
-    def finalize_upload(self, file: File, expiration: timedelta = DEFAULT_EXPIRATION) -> None:
+    def finalize_upload(
+        self, file: File, expiration: timedelta = DEFAULT_EXPIRATION, email_notif: bool = True
+    ) -> None:
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file_id=file.id, date_finished=current_time, date_expired=expire_time)
-        transaction.on_commit(lambda: self.email_success(), router.db_for_write(ExportedData))
+        if email_notif:
+            transaction.on_commit(lambda: self.email_success(), router.db_for_write(ExportedData))
 
     def email_success(self) -> None:
         from sentry.utils.email import MessageBuilder

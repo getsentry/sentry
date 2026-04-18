@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 from sentry import eventstream, nodestore
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -73,6 +74,7 @@ def reprocess_group(
         tenant_ids={
             "organization_id": Project.objects.get_from_cache(id=project_id).organization_id
         },
+        eap_conditions=build_group_id_in_filter([group_id]),
     )
 
     if not events:

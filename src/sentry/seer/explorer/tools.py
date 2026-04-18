@@ -32,6 +32,7 @@ from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
+from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.constants import ISSUE_ID_ALIAS
@@ -1255,6 +1256,7 @@ def get_event_details(
                         organization_id=organization_id,
                         project_ids=project_ids,
                     ),
+                    eap_conditions=build_event_id_in_filter([event_id]),
                     limit=1,
                     tenant_ids={"organization_id": organization_id},
                     dataset=dataset,
@@ -1355,6 +1357,7 @@ def get_issue_and_event_details_v2(
                         organization_id=organization_id,
                         project_ids=project_ids,
                     ),
+                    eap_conditions=build_event_id_in_filter([event_id]),
                     limit=1,
                     tenant_ids={"organization_id": organization_id},
                     dataset=dataset,

@@ -113,7 +113,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         {...props}
       >
         {props.children}
-        {showSuperuserWarning && (
+        {/* page-frame renders a marquee for the visual superuser indicator */}
+        {!hasPageFrame && showSuperuserWarning && (
           <Container
             position="absolute"
             top={0}

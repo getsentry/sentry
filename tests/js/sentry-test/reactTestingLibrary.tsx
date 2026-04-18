@@ -22,7 +22,7 @@ import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
@@ -364,7 +364,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
 
 function renderHookWithProviders<Result = unknown, Props = unknown>(
   callback: (initialProps: Props) => Result,
-  options: RenderHookWithProvidersOptions<Props> = {} as RenderHookWithProvidersOptions<Props>
+  options: RenderHookWithProvidersOptions<Props> = {}
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 

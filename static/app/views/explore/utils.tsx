@@ -320,6 +320,8 @@ export function generateTargetQuery({
       } else {
         search.setFilterValues(groupBy, [value]);
       }
+    } else if (!defined(value)) {
+      search.addFilterValue('!has', groupBy);
     }
   }
 

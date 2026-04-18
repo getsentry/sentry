@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.db.models import BigIntegerField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -24,9 +26,12 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
+from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
@@ -36,7 +41,30 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_edit_detector,
     get_unknown_detector_type_error,
 )
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSource, Detector
+
+
+def _check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
+    """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
+    if detector.type != MetricIssue.slug:
+        return
+
+    # Single query: DataSource -> (cast source_id) -> QuerySubscription -> SnubaQuery
+    dataset = (
+        SnubaQuery.objects.filter(
+            subscriptions__id__in=DataSource.objects.filter(
+                detector=detector,
+                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                organization=organization,
+            ).values(_source_int=Cast("source_id", output_field=BigIntegerField()))
+        )
+        .values_list("dataset", flat=True)
+        .first()
+    )
+    if dataset is None:
+        return
+    if not is_metric_subscription_allowed(dataset, organization):
+        raise ResourceDoesNotExist
 
 
 def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
@@ -148,6 +176,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Return details on an individual monitor
         """
+        _check_metric_detector_allowed(detector, organization)
+
         serialized_detector = serialize(
             detector,
             request.user,
@@ -177,6 +207,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Update an existing monitor
         """
+        _check_metric_detector_allowed(detector, organization)
+
         if not can_edit_detector(detector, request):
             raise PermissionDenied
 
@@ -210,4 +242,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         Delete a monitor
         """
+        # Intentionally no _check_metric_detector_allowed gate here:
+        # orgs should be able to delete detectors they can no longer use
+        # (e.g. after a plan downgrade).
         return remove_detector(request, organization, detector)

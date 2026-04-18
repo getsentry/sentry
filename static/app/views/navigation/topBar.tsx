@@ -10,7 +10,8 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {
@@ -26,8 +27,9 @@ function TopBarContent() {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
+  const topOffset = useTopOffset();
 
-  const {openExplorerPanel} = useExplorerPanel();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   if (!hasPageFrame) {
     return null;
@@ -45,7 +47,7 @@ function TopBarContent() {
       padding={{sm: 'sm lg', md: 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
+      top={topOffset}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
@@ -61,7 +63,7 @@ function TopBarContent() {
           </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+            <Button icon={<IconSeer />} onClick={openSeerExplorer}>
               {t('Ask Seer')}
             </Button>
           ) : null}

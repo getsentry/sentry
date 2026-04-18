@@ -70,6 +70,28 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+def extract_api_error_message(response: Any) -> str | None:
+    # Anthropic returns {"error": {"type": "...", "message": "..."}}; others
+    # (OpenAI, GitHub, Stripe) use one of "error.message" or top-level "message".
+    if response is None:
+        return None
+    try:
+        body = response.json()
+    except (ValueError, AttributeError):
+        return None
+    if not isinstance(body, dict):
+        return None
+    error = body.get("error")
+    if isinstance(error, dict):
+        message = error.get("message")
+        if isinstance(message, str) and message:
+            return message
+    message = body.get("message")
+    if isinstance(message, str) and message:
+        return message
+    return None
+
+
 def get_valid_automated_run_stopping_points(
     organization: Organization,
 ) -> set[AutofixStoppingPoint]:
@@ -626,24 +648,27 @@ def _write_preferences_to_sentry_db(
                         repo_def.branch_overrides
                     )
 
-        # Create project repos.
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+        if project_repos_to_create:
+            # Create project repos.
+            created_project_repos = SeerProjectRepository.objects.bulk_create(
+                project_repos_to_create
+            )
 
-        # Create branch overrides using the created project repos.
-        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
-        for seer_project_repo in created_project_repos:
-            for override in overrides_by_key.get(
-                (seer_project_repo.project_id, seer_project_repo.repository_id), []
-            ):
-                overrides_to_create.append(
-                    SeerProjectRepositoryBranchOverride(
-                        seer_project_repository=seer_project_repo,
-                        tag_name=override.tag_name,
-                        tag_value=override.tag_value,
-                        branch_name=override.branch_name,
+            # Create branch overrides using the created project repos.
+            overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+            for seer_project_repo in created_project_repos:
+                for override in overrides_by_key.get(
+                    (seer_project_repo.project_id, seer_project_repo.repository_id), []
+                ):
+                    overrides_to_create.append(
+                        SeerProjectRepositoryBranchOverride(
+                            seer_project_repository=seer_project_repo,
+                            tag_name=override.tag_name,
+                            tag_value=override.tag_value,
+                            branch_name=override.branch_name,
+                        )
                     )
-                )
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
         # Write ProjectOptions last so cache updates only happen after all DB writes succeed
         # (cache cannot be rolled back by the transaction).
@@ -652,14 +677,17 @@ def _write_preferences_to_sentry_db(
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
-    """Write a single Seer project preference to ProjectOption and SeerProjectRepository."""
+    """Write a single Seer project preference to ProjectOption and SeerProjectRepository.
+    TODO(AIML-2753): Add support for writing autofix_automation_tuning"""
     _write_preferences_to_sentry_db([(project, preference)])
 
 
 def bulk_write_preferences_to_sentry_db(
     projects: list[Project], preferences: list[SeerProjectPreference]
 ) -> None:
-    """Write multiple Seer project preferences using bulk operations."""
+    """Write multiple Seer project preferences using bulk operations.
+    TODO(AIML-2753): Add support for writing autofix_automation_tuning
+    """
     projects_by_id = {p.id: p for p in projects}
 
     project_preferences: list[tuple[Project, SeerProjectPreference]] = []
@@ -728,7 +756,7 @@ def _build_automation_handoff(
     )
 
 
-def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | None:
+def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB.
 
     For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
@@ -743,24 +771,19 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference | 
         if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
     ]
 
-    has_configured_options = any(
-        ProjectOption.objects.isset(project, key) for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
-    )
-    if not repo_definitions and not has_configured_options:
-        return None
-
     return SeerProjectPreference(
         organization_id=project.organization_id,
         project_id=project.id,
         repositories=repo_definitions,
         automated_run_stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         automation_handoff=_build_automation_handoff(project.get_option),
+        autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
 
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
-) -> dict[int, SeerProjectPreference | None]:
+) -> dict[int, SeerProjectPreference]:
     """Bulk read Seer preferences from Sentry DB.
 
     For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
@@ -786,15 +809,8 @@ def bulk_read_preferences_from_sentry_db(
         for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
     }
 
-    result: dict[int, SeerProjectPreference | None] = {}
+    result: dict[int, SeerProjectPreference] = {}
     for project in projects:
-        has_configured_options = any(
-            project_options[key][project.id] is not None
-            for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
-        )
-        if project.id not in repo_definitions_by_project and not has_configured_options:
-            result[project.id] = None
-            continue
 
         def _get_project_option(key: str) -> Any:
             value = project_options[key][project.id]
@@ -810,8 +826,46 @@ def bulk_read_preferences_from_sentry_db(
                 "sentry:seer_automated_run_stopping_point"
             ),
             automation_handoff=_build_automation_handoff(_get_project_option),
+            autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
         )
 
+    return result
+
+
+def bulk_read_preferences(
+    organization: Organization, project_ids: list[int]
+) -> dict[int, SeerProjectPreference | None]:
+    """Read Seer project preferences in bulk, using the correct source based on feature flag.
+
+    Always returns ``dict[int, SeerProjectPreference | None]`` regardless of the
+    underlying read path (Sentry DB or Seer API)."""
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)  # type: ignore[return-value]
+
+    raw = bulk_get_project_preferences(organization.id, project_ids)
+    tuning_by_id = ProjectOption.objects.get_value_bulk_id(
+        project_ids, "sentry:autofix_automation_tuning"
+    )
+    result: dict[int, SeerProjectPreference | None] = {}
+    for pid, data in raw.items():
+        int_pid = int(pid)
+        if data is None:
+            result[int_pid] = None
+            continue
+        try:
+            pref = SeerProjectPreference.validate(data)
+        except pydantic.ValidationError:
+            logger.exception(
+                "seer.bulk_read_preferences.validation_error",
+                extra={"project_id": pid, "organization_id": organization.id},
+            )
+            result[int_pid] = None
+            continue
+        tuning = tuning_by_id.get(int_pid)
+        if tuning is None:
+            tuning = projectoptions.get_well_known_default("sentry:autofix_automation_tuning")
+        pref.autofix_automation_tuning = tuning
+        result[int_pid] = pref
     return result
 
 
@@ -827,51 +881,45 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
 
 
 def has_project_connected_repos(
-    organization_id: int, project_id: int, *, skip_cache: bool = False
+    organization: Organization, project: Project, *, skip_cache: bool = False
 ) -> bool:
     """
     Check if a project has connected repositories for Seer automation.
     Checks Seer preferences first, then falls back to Sentry code mappings.
     Results are cached for 15 minutes to minimize API calls.
     """
-    cache_key = f"seer-project-has-repos:{organization_id}:{project_id}"
+    cache_key = f"seer-project-has-repos:{organization.id}:{project.id}"
     if not skip_cache:
         cached_value = cache.get(cache_key)
         if cached_value is not None:
             return cached_value
 
     has_repos = False
-
-    try:
-        project_preferences = get_project_seer_preferences(project_id)
-        has_repos = bool(
-            project_preferences.preference and project_preferences.preference.repositories
-        )
-    except (SeerApiError, SeerApiResponseValidationError):
-        pass
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        has_repos = bool(read_preference_from_sentry_db(project).repositories)
+    else:
+        try:
+            preference = get_project_seer_preferences(project.id).preference
+            has_repos = bool(preference and preference.repositories)
+        except (SeerApiError, SeerApiResponseValidationError):
+            pass
 
     if not has_repos:
         # If it's the first autofix run of project we check code mapping.
-        try:
-            project = Project.objects.get(id=project_id)
-            has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
-        except Project.DoesNotExist:
-            pass
+        has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
 
     logger.info(
         "Checking if project has repositories connected",
-        extra={
-            "org_id": organization_id,
-            "project_id": project_id,
-            "has_repos": has_repos,
-        },
+        extra={"org_id": organization.id, "project_id": project.id, "has_repos": has_repos},
     )
 
     cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
     return has_repos
 
 
-def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
+def bulk_get_project_preferences(
+    organization_id: int, project_ids: list[int]
+) -> dict[str, dict | None]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
     viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_get_project_preferences_request(
@@ -922,16 +970,17 @@ def get_autofix_repos_from_project_code_mappings(
         if (
             # We expect a repository name to be in the format of "owner/name" for now.
             len(repo_name_sections) > 1
-            # Filter out code mappings with unsupported providers.
+            # Only include active repos with a supported provider, active integration, and external ID.
+            and repo.status == ObjectStatus.ACTIVE
+            and repo.integration_id is not None
+            and repo.external_id
             and repo.provider
             and repo.provider in SEER_SUPPORTED_SCM_PROVIDERS
         ):
             repo_dict = {
                 "repository_id": repo.id,
                 "organization_id": repo.organization_id,
-                "integration_id": (
-                    str(repo.integration_id) if repo.integration_id is not None else None
-                ),
+                "integration_id": str(repo.integration_id),
                 "provider": repo.provider,
                 "owner": repo_name_sections[0],
                 "name": "/".join(repo_name_sections[1:]),

@@ -27,10 +27,6 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
-// ---------------------------------------------------------------------------
-// Row component
-// ---------------------------------------------------------------------------
-
 type Props = {
   node: TreeNode;
   onAddIntegration: () => void;
