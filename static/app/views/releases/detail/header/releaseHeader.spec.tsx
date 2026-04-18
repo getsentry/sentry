@@ -92,9 +92,7 @@ describe('ReleaseHeader', () => {
 
     expect(screen.getByTestId('topbar-feedback-slot')).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('topbar-feedback-slot')).getByRole('button', {
-        name: 'Give Feedback',
-      })
+      within(screen.getByTestId('topbar-feedback-slot')).getByLabelText('Give Feedback')
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('topbar-actions-slot')).queryByRole('button', {
