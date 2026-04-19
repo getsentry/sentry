@@ -206,8 +206,39 @@ def semver_filter_converter(
         raise ValueError("organization is a required param")
     organization_id: int = builder.params.organization.id
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-    version: str = search_filter.value.raw_value
+    raw_version = search_filter.value.raw_value
     operator: str = search_filter.operator
+
+    # Handle multi-value (IN operator) by resolving each version individually
+    # with the = operator, similar to how release_filter_converter works.
+    if operator == "IN" and isinstance(raw_version, list):
+        versions: list[str] = []
+        for version_str in raw_version:
+            qs = (
+                Release.objects.filter_by_semver(
+                    organization_id,
+                    parse_semver(version_str, "="),
+                    project_ids=builder.params.project_ids,
+                )
+                .values_list("version", flat=True)
+                .order_by(*Release.SEMVER_COLS)[: constants.MAX_SEARCH_RELEASES]
+            )
+            versions.extend(qs)
+        versions = list(dict.fromkeys(versions))  # deduplicate while preserving order
+
+        if not validate_snuba_array_parameter(versions):
+            raise InvalidSearchQuery(
+                "There are too many releases that match your release.version filter, please try again with a narrower range"
+            )
+
+        if not versions:
+            versions = [constants.SEMVER_EMPTY_RELEASE]
+
+        return Condition(builder.column("release"), Op.IN, versions)
+
+    if not isinstance(raw_version, str):
+        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+    version: str = raw_version
 
     # Note that we sort this such that if we end up fetching more than
     # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to

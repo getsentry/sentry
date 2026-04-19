@@ -204,10 +204,25 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
-    def test_in_operator_rejected(self) -> None:
-        filter = SearchFilter(SearchKey(self.key), "IN", SearchValue(["1.0.0", "2.0.0"]))
-        with pytest.raises(InvalidSearchQuery, match="Invalid operation 'IN'"):
-            _semver_filter_converter(filter, self.key, {"organization_id": self.organization.id})
+    def test_in_operator_multi_value(self) -> None:
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        filter = SearchFilter(SearchKey(self.key), "IN", SearchValue(["1.2.3", "1.2.4"]))
+        converted = _semver_filter_converter(
+            filter, self.key, {"organization_id": self.organization.id}
+        )
+        assert converted[0] == "release"
+        assert converted[1] == "IN"
+        assert set(converted[2]) == {release.version, release_2.version}
+
+    def test_in_operator_no_match(self) -> None:
+        filter = SearchFilter(SearchKey(self.key), "IN", SearchValue(["9.9.9"]))
+        converted = _semver_filter_converter(
+            filter, self.key, {"organization_id": self.organization.id}
+        )
+        assert converted[0] == "release"
+        assert converted[1] == "IN"
+        assert converted[2] == [SEMVER_EMPTY_RELEASE]
 
     def test_empty(self) -> None:
         self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
