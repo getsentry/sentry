@@ -256,7 +256,7 @@ const Footer = styled('div')`
   display: flex;
   align-items: center;
   padding: 20px 30px;
-  border-top: 1px solid #e2dee6;
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: 20px -30px -30px;
   justify-content: space-between;
 `;
