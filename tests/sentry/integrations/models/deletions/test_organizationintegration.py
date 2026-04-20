@@ -59,7 +59,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-    @with_feature("organizations:seer-project-settings-dual-write")
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
     @patch(
         "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
