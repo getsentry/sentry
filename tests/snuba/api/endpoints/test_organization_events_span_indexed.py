@@ -27,9 +27,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.features = {
-            "organizations:starfish-view": True,
-        }
+        self.features = {}
 
     @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
     def test_spm(self) -> None:

@@ -69,7 +69,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         self, organization: Organization, request: Request
     ) -> Mapping[str, bool | None]:
         feature_names = [
-            "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
         ]
