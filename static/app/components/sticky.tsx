@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 /**
  * A component that will become stuck to the top of the page. Once the user has
@@ -13,7 +14,11 @@ import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
  */
 function TaggedSticky(props: React.ComponentProps<'div'>) {
   const elementRef = useRef<HTMLDivElement>(null);
-  const isStuck = useIsStuck(elementRef.current);
+  const {contentTop} = useTopOffset();
+
+  const isStuck = useIsStuck(elementRef.current, {
+    offset: Number.parseInt(contentTop, 10) ?? 0,
+  });
 
   const stuckProps = isStuck ? {'data-stuck': ''} : {};
 
