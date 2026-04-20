@@ -1,30 +1,42 @@
 import {Fragment, useMemo} from 'react';
 import noop from 'lodash/noop';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {MetricsAggregateDropdown} from 'sentry/views/detectors/components/forms/metric/traceMetrics/metricsAggregateDropdown';
-import {MetricsMetricSelector} from 'sentry/views/detectors/components/forms/metric/traceMetrics/metricsMetricSelector';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
-import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/components/metricsSearchBar';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
-import {extractReferenceLabels} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {
+  extractReferenceLabels,
+  unresolveExpression,
+} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
-import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import type {MetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  MetricsQueryParamsProvider,
+  useMetricVisualize,
+  useTraceMetric,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
+import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
+import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
+import {
+  LocalMultiMetricsQueryParamsProvider,
+  useAddMetricQuery,
+  useMultiMetricsQueryParams,
+} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -34,70 +46,134 @@ const FUNCTION_GRID_COLUMNS = '24px 3fr 2fr 6fr 40px';
 const EQUATION_GRID_COLUMNS = '24px 5fr 6fr 40px';
 
 export function MetricsEquationVisualize() {
+  const organization = useOrganization();
+  const hasEquations = canUseMetricsEquationsInAlerts(organization);
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
-  const parsed = parseAggregateExpression(aggregateFunction ?? '');
-  const referenceMap = useMetricReferences(parsed.metricQueries);
 
-  // Labels (A, B, …) from parsed.metricQueries that are actually used inside
+  // Parse once at mount; subsequent aggregateFunction changes are intentionally
+  // discarded so unsaved row edits survive form writes. Remounting the provider
+  // (via a `key` on this component) is the escape hatch for true re-hydration.
+  const initialQueries = useMemo(() => {
+    const parsed = parseAggregateExpression(aggregateFunction ?? '');
+    return parsed.equationRow
+      ? [...parsed.metricQueries, parsed.equationRow]
+      : parsed.metricQueries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <LocalMultiMetricsQueryParamsProvider
+      initialQueries={initialQueries}
+      hasEquations={hasEquations}
+    >
+      <MetricsEquationVisualizeContent />
+    </LocalMultiMetricsQueryParamsProvider>
+  );
+}
+
+function MetricsEquationVisualizeContent() {
+  const metricQueries = useMultiMetricsQueryParams();
+  const referenceMap = useMetricReferences(metricQueries);
+  const addAggregate = useAddMetricQuery({type: 'aggregate'});
+  const addEquation = useAddMetricQuery({type: 'equation'});
+
+  const functionQueries = useMemo(
+    () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),
+    [metricQueries]
+  );
+  const equationQuery = useMemo(
+    () => metricQueries.find(q => isVisualizeEquation(q.queryParams.visualizes[0]!)),
+    [metricQueries]
+  );
+
+  // Labels (A, B, …) from the function rows that are actually used inside
   // the equation expression. Metrics in this set cannot be deleted without
   // leaving dangling references.
   const referencedLabels = useMemo(() => {
-    if (!parsed.compactExpression || parsed.metricQueries.length === 0) {
+    if (!equationQuery) {
+      return new Set<string>();
+    }
+    const equationVisualize = equationQuery.queryParams.visualizes[0];
+    if (!equationVisualize || !isVisualizeEquation(equationVisualize)) {
       return new Set<string>();
     }
     const labelSet = new Set(
-      parsed.metricQueries
-        .map(q => q.label)
-        .filter((label): label is string => Boolean(label))
+      functionQueries.map(q => q.label).filter((l): l is string => Boolean(l))
     );
-    const expr = new Expression(parsed.compactExpression, labelSet);
+    const unresolvedText = unresolveExpression(
+      equationVisualize.expression.text,
+      referenceMap
+    );
+    const expr = new Expression(unresolvedText, labelSet);
     return new Set(extractReferenceLabels(expr));
-  }, [parsed.compactExpression, parsed.metricQueries]);
+  }, [equationQuery, functionQueries, referenceMap]);
 
   return (
     <Stack gap="md">
-      {parsed.metricQueries.length > 0 && <FunctionColumnHeaders />}
-      {parsed.metricQueries.map(metricQuery => {
+      {functionQueries.length > 0 && <FunctionColumnHeaders />}
+      {functionQueries.map(metricQuery => {
         const isReferenced = referencedLabels.has(metricQuery.label ?? '');
         return (
-          <MetricToolbar
-            key={metricQuery.label ?? ''}
-            metricQuery={metricQuery}
-            referenceMap={referenceMap}
-            canDelete={parsed.metricQueries.length > 1 && !isReferenced}
-          />
+          <RowProvider key={metricQuery.label ?? ''} metricQuery={metricQuery}>
+            <MetricToolbar
+              metricQuery={metricQuery}
+              referenceMap={referenceMap}
+              canDelete={functionQueries.length > 1 && !isReferenced}
+            />
+          </RowProvider>
         );
       })}
-      {parsed.equationRow && (
+      {equationQuery && (
         <Fragment>
           <EquationColumnHeader />
-          <MetricToolbar
-            metricQuery={{...parsed.equationRow, label: 'ƒ1'}}
-            referenceMap={referenceMap}
-            canDelete
-          />
+          <RowProvider metricQuery={equationQuery}>
+            <MetricToolbar
+              metricQuery={equationQuery}
+              referenceMap={referenceMap}
+              canDelete
+            />
+          </RowProvider>
         </Fragment>
       )}
       <Flex gap="md" align="center">
         <ToolbarVisualizeAddChart
-          add={() => {}}
+          add={addAggregate}
           disabled={false}
           label={t('Add Metric')}
           display="button"
         />
-
-        {!defined(parsed.equationRow) && (
+        {!equationQuery && (
           <ToolbarVisualizeAddChart
             display="button"
-            add={() => {}}
+            add={addEquation}
             disabled={false}
             label={t('Add Equation')}
           />
         )}
       </Flex>
     </Stack>
+  );
+}
+
+function RowProvider({
+  metricQuery,
+  children,
+}: {
+  children: React.ReactNode;
+  metricQuery: MetricQuery;
+}) {
+  return (
+    <MetricsQueryParamsProvider
+      queryParams={metricQuery.queryParams}
+      traceMetric={metricQuery.metric}
+      setTraceMetric={metricQuery.setTraceMetric}
+      setQueryParams={metricQuery.setQueryParams}
+      removeMetric={metricQuery.removeMetric}
+    >
+      {children}
+    </MetricsQueryParamsProvider>
   );
 }
 
@@ -149,24 +225,12 @@ function MetricToolbar({
   canDelete,
 }: {
   canDelete: boolean;
-  metricQuery: BaseMetricQuery;
+  metricQuery: MetricQuery;
   referenceMap: Record<string, string>;
 }) {
-  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-  const projectIds = useMemo(() => {
-    if (projectId) {
-      return [Number(projectId)];
-    }
-    return [];
-  }, [projectId]);
-
-  const visualize = metricQuery.queryParams.visualizes[0]!;
-  const traceMetric = metricQuery.metric;
+  const visualize = useMetricVisualize();
+  const traceMetric = useTraceMetric();
   const queryLabel = metricQuery.label ?? '';
-  const parsedAggregate = isVisualizeFunction(visualize)
-    ? parseMetricAggregate(visualize.yAxis)
-    : null;
 
   const setTraceMetric = () => {};
   const handleExpressionChange = () => {};
@@ -190,30 +254,10 @@ function MetricToolbar({
       />
       {isVisualizeFunction(visualize) ? (
         <Fragment>
-          <MetricsMetricSelector value={traceMetric} onChange={setTraceMetric} />
-          <MetricsAggregateDropdown
-            value={parsedAggregate?.aggregation ?? ''}
-            onChange={() => {}}
-          />
-          <MetricsDetectorSearchBar
-            initialQuery={metricQuery.queryParams.query}
-            onSearch={() => {}}
-            onClose={() => {}}
-            projectIds={projectIds}
-            environment={environment}
-            traceMetric={traceMetric}
-          />
-          <Button
-            priority="transparent"
-            icon={<IconDelete />}
-            size="zero"
-            onClick={() => {}}
-            disabled={!canDelete}
-            tooltipProps={{
-              title: canDelete ? undefined : t('This metric is used in an equation'),
-            }}
-            aria-label={t('Delete Metric')}
-          />
+          <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+          <AggregateDropdown traceMetric={traceMetric} />
+          <Filter traceMetric={traceMetric} />
+          <DeleteMetricButton disabled={!canDelete} />
         </Fragment>
       ) : isVisualizeEquation(visualize) ? (
         <Fragment>
@@ -223,21 +267,8 @@ function MetricToolbar({
             handleExpressionChange={handleExpressionChange}
             onReferenceLabelsChange={handleReferenceLabelsChange}
           />
-          <MetricsDetectorSearchBar
-            initialQuery={metricQuery.queryParams.query}
-            onSearch={() => {}}
-            onClose={() => {}}
-            projectIds={projectIds}
-            environment={environment}
-            traceMetric={traceMetric}
-          />
-          <Button
-            priority="transparent"
-            icon={<IconDelete />}
-            size="zero"
-            onClick={() => {}}
-            aria-label={t('Delete Equation')}
-          />
+          <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+          <DeleteMetricButton />
         </Fragment>
       ) : null}
     </Grid>
