@@ -141,6 +141,7 @@ export const useSeerExplorer = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // TODO: support in drawer version (drawer content does not have values for SeerExplorerContext)
   useEffect(() => {
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
     if (typeof paramValue !== 'string') {

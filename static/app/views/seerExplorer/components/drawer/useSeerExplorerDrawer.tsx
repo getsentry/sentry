@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -7,20 +7,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
-import {isSeerExplorerEnabled, RUN_ID_QUERY_PARAM} from 'sentry/views/seerExplorer/utils';
+import {
+  isSeerExplorerEnabled,
+  RUN_ID_QUERY_PARAM,
+  usePageReferrer,
+} from 'sentry/views/seerExplorer/utils';
 
 export const useSeerExplorerDrawer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {openDrawer, closeDrawer} = useDrawer();
 
-  // TODO: add effect that opens drawer, sets session storage, and consumes RUN_ID_QUERY_PARAM
+  const {openDrawer, closeDrawer} = useDrawer();
+  const {getPageReferrer} = usePageReferrer();
+
+  // TODO: add effect that opens drawer and seeds run_id from URL
   // (useSeerExplorer hook should no longer handle this)
-  const [isExplorerDrawerOpen, setIsExplorerDrawerOpen] = useState(false);
+  const isExplorerDrawerOpenRef = useRef(false);
 
   const onClose = useCallback(() => {
-    setIsExplorerDrawerOpen(false);
+    isExplorerDrawerOpenRef.current = false;
     navigate(
       {
         pathname: location.pathname,
@@ -33,37 +39,45 @@ export const useSeerExplorerDrawer = () => {
     );
   }, [location, navigate]);
 
-  const openSeerExplorerDrawer = useCallback(() => {
-    openDrawer(() => <ExplorerDrawerContent />, {
-      ariaLabel: t('Seer Explorer drawer'),
-      drawerKey: 'seer-explorer-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
-      resizable: true,
-      closeOnOutsideClick: false,
-      shouldLockScroll: false,
-      onClose: () => onClose?.(),
-    });
-    setIsExplorerDrawerOpen(true);
-  }, [openDrawer, onClose]);
-
   const closeSeerExplorerDrawer = useCallback(() => {
-    // Prevent closing the global drawer if another drawer is open
-    if (isExplorerDrawerOpen) {
+    // Prevent closing the global drawer if another drawer (e.g. autofix) is open
+    if (isExplorerDrawerOpenRef.current) {
       closeDrawer();
-      onClose?.();
+      onClose();
     }
-  }, [isExplorerDrawerOpen, closeDrawer, onClose]);
+  }, [closeDrawer, onClose]);
+
+  const openSeerExplorerDrawer = useCallback(() => {
+    openDrawer(
+      () => (
+        <ExplorerDrawerContent
+          handleClose={closeSeerExplorerDrawer}
+          getPageReferrer={getPageReferrer}
+        />
+      ),
+      {
+        ariaLabel: t('Seer Explorer drawer'),
+        drawerKey: 'seer-explorer-drawer',
+        drawerCss: css`
+          height: fit-content;
+          max-height: 100%;
+        `,
+        resizable: true,
+        closeOnOutsideClick: false,
+        shouldLockScroll: false,
+        onClose,
+      }
+    );
+    isExplorerDrawerOpenRef.current = true;
+  }, [openDrawer, onClose, closeSeerExplorerDrawer, getPageReferrer]);
 
   const toggleSeerExplorerDrawer = useCallback(() => {
-    if (isExplorerDrawerOpen) {
+    if (isExplorerDrawerOpenRef.current) {
       closeSeerExplorerDrawer();
     } else {
       openSeerExplorerDrawer();
     }
-  }, [isExplorerDrawerOpen, closeSeerExplorerDrawer, openSeerExplorerDrawer]);
+  }, [closeSeerExplorerDrawer, openSeerExplorerDrawer]);
 
   if (
     !organization ||

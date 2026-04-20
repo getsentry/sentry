@@ -29,7 +29,7 @@ function TopBarContent() {
   const hasPageFrame = useHasPageFrameFeature();
   const topOffset = useTopOffset();
 
-  const {openSeerExplorer} = useSeerExplorerContext();
+  const {toggleSeerExplorer} = useSeerExplorerContext();
 
   if (!hasPageFrame) {
     return null;
@@ -63,7 +63,7 @@ function TopBarContent() {
           </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openSeerExplorer}>
+            <Button icon={<IconSeer />} onClick={toggleSeerExplorer}>
               {t('Ask Seer')}
             </Button>
           ) : null}

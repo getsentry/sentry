@@ -53,6 +53,7 @@ export function ExplorerPanel() {
   const {
     isOpen: isVisible,
     openSeerExplorer,
+    closeSeerExplorer,
     isMinimized,
     setIsMinimized,
   } = useSeerExplorerContext();
@@ -599,6 +600,7 @@ export function ExplorerPanel() {
       onUnminimize={handleUnminimize}
     >
       <TopBar
+        handleClose={closeSeerExplorer}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSeerDrawerOpen={isSeerDrawerOpen}

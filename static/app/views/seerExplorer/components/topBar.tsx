@@ -19,9 +19,9 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 interface TopBarProps {
+  handleClose: () => void;
   isCopyLinkEnabled: boolean;
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
@@ -46,6 +46,7 @@ interface TopBarProps {
 }
 
 export function TopBar({
+  handleClose,
   isCopyLinkEnabled,
   isCopySessionEnabled,
   isEmptyState,
@@ -68,8 +69,6 @@ export function TopBar({
   onSizeToggleClick,
   panelSize,
 }: TopBarProps) {
-  const {closeSeerExplorer} = useSeerExplorerContext();
-
   return (
     <Flex
       align="center"
@@ -208,7 +207,7 @@ export function TopBar({
         )}
         <Button
           icon={<IconClose />}
-          onClick={closeSeerExplorer}
+          onClick={handleClose}
           priority="transparent"
           size="sm"
           aria-label={t('Close panel')}

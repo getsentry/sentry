@@ -21,12 +21,15 @@ import {
   getExplorerUrl,
   getLangfuseUrl,
   useCopySessionDataToClipboard,
-  usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
-export function ExplorerDrawerContent() {
-  const {getPageReferrer} = usePageReferrer();
-
+export function ExplorerDrawerContent({
+  handleClose,
+  getPageReferrer,
+}: {
+  getPageReferrer: () => string;
+  handleClose: () => void;
+}) {
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1);
 
@@ -276,6 +279,7 @@ export function ExplorerDrawerContent() {
   return (
     <Fragment>
       <TopBar
+        handleClose={handleClose}
         isCopyLinkEnabled={false} // TODO: add back once deep links are supported by drawer (!!runId)
         isCopySessionEnabled={copySessionEnabled}
         isEmptyState={isEmptyState}
