@@ -104,14 +104,14 @@ class BaseApiClientTest(TestCase):
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
     @patch.object(Session, "send")
-    def test_request_and_response_metrics_do_not_include_endpoint(
+    def test_request_and_response_metrics_do_not_include_api_request_type(
         self, mock_session_send, mock_metrics_incr
     ) -> None:
         response = MagicMock()
         response.status_code = 204
         mock_session_send.return_value = response
 
-        self.api_client.get("https://example.com/get", endpoint="compare_commits")
+        self.api_client.get("https://example.com/get", api_request_type="compare_commits")
 
         mock_metrics_incr.assert_any_call(
             "None.http_request",
@@ -132,7 +132,7 @@ class BaseApiClientTest(TestCase):
         mock_metrics_incr.assert_called_once_with(
             "None.get_cached",
             sample_rate=1.0,
-            tags={"integration": "base", "result": "hit"},
+            tags={"integration": "base", "api_request_type": "unknown", "result": "hit"},
         )
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
@@ -147,5 +147,19 @@ class BaseApiClientTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "None.get_cached",
             sample_rate=1.0,
-            tags={"integration": "base", "result": "miss"},
+            tags={"integration": "base", "api_request_type": "unknown", "result": "miss"},
+        )
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_get_cached_emits_api_request_type_metric_tag(self, mock_metrics_incr) -> None:
+        with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
+            self.api_client.get_cached(
+                "https://example.com/repos/example/repo/commits",
+                endpoint="get_commits",
+            )
+
+        mock_metrics_incr.assert_called_once_with(
+            "None.get_cached",
+            sample_rate=1.0,
+            tags={"integration": "base", "api_request_type": "get_commits", "result": "hit"},
         )
