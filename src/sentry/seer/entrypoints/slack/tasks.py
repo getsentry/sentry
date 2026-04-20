@@ -159,28 +159,35 @@ def process_mention_for_slack(
         if run_id is None:
             return
 
+        slack_user_ids_in_thread = {
+            msg_user for msg in messages if isinstance(msg_user := msg.get("user"), str)
+        }
+
         try:
-            slack_user_ids_in_thread = {
-                msg_user for msg in messages if isinstance(msg_user := msg.get("user"), str)
-            }
-            analytics.record(
-                SeerAgentSlackResponded(
-                    org_slug=organization.slug,
-                    username=user.username,
-                    thread_ts=thread_ts or ts,
-                    prompt_length=len(prompt),
-                    run_id=run_id,
-                    integration_id=integration_id,
-                    messages_in_thread=len(messages),
-                    seer_msgs_in_thread=sum(1 for m in messages if m.get("user") == bot_user_id),
-                    unique_users_in_thread=len(slack_user_ids_in_thread),
-                    linked_users_in_thread=_count_linked_users(
-                        integration=entrypoint.integration,
-                        slack_user_ids=slack_user_ids_in_thread,
-                    ),
-                    conversation_type=conversation_type,
-                )
+            linked_user_count = _count_linked_users(
+                integration=entrypoint.integration,
+                slack_user_ids=slack_user_ids_in_thread,
             )
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.count_linked_users_failed", exc_info=e)
+            linked_user_count = 0
+
+        analytics_event = SeerAgentSlackResponded(
+            org_slug=organization.slug,
+            username=user.username,
+            thread_ts=thread_ts or ts,
+            prompt_length=len(prompt),
+            run_id=run_id,
+            integration_id=integration_id,
+            messages_in_thread=len(messages),
+            seer_msgs_in_thread=sum(1 for m in messages if m.get("user") == bot_user_id),
+            unique_users_in_thread=len(slack_user_ids_in_thread),
+            linked_users_in_thread=linked_user_count,
+            conversation_type=conversation_type,
+        )
+
+        try:
+            analytics.record(analytics_event)
         except Exception as e:
             _logger.warning("seer.slack.process_mention.analytics_failed", exc_info=e)
 
