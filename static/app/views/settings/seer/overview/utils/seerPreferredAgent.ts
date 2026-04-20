@@ -111,6 +111,14 @@ export function useBulkMutateSelectedAgent() {
       queryClient.invalidateQueries({
         queryKey: autofixSettingsQueryOptions.queryKey,
       });
+      for (const project of projects) {
+        queryClient.invalidateQueries({
+          queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+        });
+      }
+      queryClient.invalidateQueries({
+        queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
+      });
 
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length) {
