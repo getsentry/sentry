@@ -37,7 +37,7 @@ repos:
       # Configuration for flake8 S* rules exists in setup.cfg.
       - id: flake8-sentry
         name: flake8 (sentry rules)
-        entry: .venv/bin/flake8 --select=S --quiet
+        entry: .venv/bin/flake8 --select=S
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
