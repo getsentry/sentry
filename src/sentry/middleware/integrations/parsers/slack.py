@@ -43,6 +43,10 @@ from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
+from sentry.seer.entrypoints.slack.event_tasks import (
+    handle_seer_assistant_thread_started_event,
+    handle_seer_mention_event,
+)
 from sentry.types.cell import Cell
 from sentry.utils import json
 from sentry.utils.signing import unsign
@@ -291,45 +295,72 @@ class SlackRequestParser(BaseRequestParser):
                 )
                 return [action_organization]
 
-        return self._filter_organizations_for_seer_event(organizations)
+        return organizations
 
-    def _filter_organizations_for_seer_event(
-        self, organizations: list[RpcOrganizationMapping]
-    ) -> list[RpcOrganizationMapping]:
+    def _try_ack_seer_event(self) -> HttpResponseBase | None:
         """
-        If the request is a Seer Agent event, attempt to resolve a specific organization.
-        Fallback to the original organizations if there's no resolution.
+        Slack gives us 3s to ack event webhooks. For Seer agent events we don't have the budget
+        to do org resolution + ``setStatus`` / ``setSuggestedPrompts`` synchronously, so 200 here
+        and hand the rest off to a control-silo task.
+
+        Returns the 200 response when the event was handed off, or ``None`` if the caller should
+        continue with normal cell forwarding.
         """
-        if not self.slack_request:
-            return organizations
+        if self.view_class != SlackEventEndpoint:
+            return None
 
-        if self.view_class != SlackEventEndpoint or not isinstance(
-            self.slack_request, SlackEventRequest
-        ):
-            return organizations
+        # Populates self.slack_request as a side effect.
+        self.get_integration_from_request()
+        slack_request = self.slack_request
+        if not isinstance(slack_request, SlackEventRequest):
+            return None
+        if not slack_request.is_seer_agent_request:
+            return None
 
-        if not self.slack_request.is_seer_agent_request:
-            return organizations
+        integration_id = slack_request.integration.id
+        channel_id = slack_request.channel_id
+        slack_user_id = slack_request.user_id
+        thread_ts = slack_request.thread_ts or None
 
-        organization_id, error_reason = self.slack_request.resolve_seer_organization()
-        logger_ctx = {"organization_id": organization_id, "error_reason": error_reason}
-
-        if not organization_id or error_reason:
-            logger.info(
-                "slack.control.filter_seer_event.organization_not_resolved", extra=logger_ctx
+        if slack_request.type == "assistant_thread_started":
+            if not channel_id or not thread_ts or not slack_user_id:
+                return None
+            handle_seer_assistant_thread_started_event.apply_async(
+                kwargs={
+                    "integration_id": integration_id,
+                    "channel_id": channel_id,
+                    "slack_user_id": slack_user_id,
+                    "thread_ts": thread_ts,
+                }
             )
-            return organizations
-
-        mapping = next((org for org in organizations if org.id == organization_id), None)
-        if not mapping:
-            logger.info(
-                "slack.control.filter_seer_event.organization_mapping_not_found",
-                extra=logger_ctx,
+        else:
+            event = slack_request.data.get("event", {})
+            text = event.get("text", "") or ""
+            ts = event.get("ts") or event.get("message_ts") or ""
+            authorizations = slack_request.data.get("authorizations") or []
+            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
+            if not channel_id or not ts or not slack_user_id:
+                return None
+            handle_seer_mention_event.apply_async(
+                kwargs={
+                    "integration_id": integration_id,
+                    "channel_id": channel_id,
+                    "slack_user_id": slack_user_id,
+                    "text": text,
+                    "ts": ts,
+                    "thread_ts": thread_ts,
+                    "bot_user_id": bot_user_id,
+                }
             )
-            return organizations
 
-        logger.info("slack.control.filter_seer_event.routed", extra=logger_ctx)
-        return [mapping]
+        logger.info(
+            "slack.control.seer_event.acked",
+            extra={
+                "integration_id": integration_id,
+                "event_type": slack_request.type,
+            },
+        )
+        return HttpResponse(status=status.HTTP_200_OK)
 
     def get_response(self) -> HttpResponseBase:
         """
@@ -346,6 +377,10 @@ class SlackRequestParser(BaseRequestParser):
             pass
         if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
+
+        seer_ack = self._try_ack_seer_event()
+        if seer_ack is not None:
+            return seer_ack
 
         try:
             cells = self.get_cells_from_organizations()
