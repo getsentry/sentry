@@ -53,7 +53,7 @@ function UnstyledSettingsPageHeader({
         ) : (
           title && (
             <TitleWrapper>
-              <Title tabs={tabs} styled={noTitleStyles}>
+              <Title styled={noTitleStyles}>
                 <Layout.Title>{title}</Layout.Title>
               </Title>
             </TitleWrapper>
@@ -71,7 +71,7 @@ function UnstyledSettingsPageHeader({
       <TitleAndActions isNarrow={isNarrow}>
         <TitleWrapper>
           {title && (
-            <Title tabs={tabs} styled={noTitleStyles}>
+            <Title styled={noTitleStyles}>
               <Layout.Title>{title}</Layout.Title>
               {subtitle && <Subtitle>{subtitle}</Subtitle>}
             </Title>
@@ -86,11 +86,6 @@ function UnstyledSettingsPageHeader({
   );
 }
 
-interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
-  styled?: boolean;
-  tabs?: React.ReactNode;
-}
-
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
   align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
@@ -99,7 +94,7 @@ const TitleWrapper = styled('div')`
   flex: 1;
 `;
 
-const Title = styled('div')<TitleProps>`
+const Title = styled('div')<{styled?: boolean}>`
   ${p =>
     !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
   margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
