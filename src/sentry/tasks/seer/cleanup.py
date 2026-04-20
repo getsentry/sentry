@@ -64,7 +64,9 @@ def cleanup_seer_repository_preferences(
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
-                SeerProjectRepository.objects.filter(repository_id=repo_id).delete()
+                SeerProjectRepository.objects.filter(
+                    repository_id=repo_id, project__organization_id=organization_id
+                ).delete()
         except Organization.DoesNotExist:
             pass
 
@@ -126,7 +128,9 @@ def bulk_cleanup_seer_repository_preferences(
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
-                SeerProjectRepository.objects.filter(repository_id__in=repo_ids).delete()
+                SeerProjectRepository.objects.filter(
+                    repository_id__in=repo_ids, project__organization_id=organization_id
+                ).delete()
         except Organization.DoesNotExist:
             pass
 
