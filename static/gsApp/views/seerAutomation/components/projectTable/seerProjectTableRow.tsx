@@ -52,16 +52,14 @@ export function SeerProjectTableRow({
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  const defaultSettings: AutofixAutomationSettings = {
-    autofixAutomationTuning: 'off',
-    automatedRunStoppingPoint: 'code_changes',
-    automationHandoff: undefined,
-    projectId: project.id,
-    reposCount: 0,
-  };
-
   const autofixAgent = useSelectedAgentFromBulkSettings({
-    autofixSettings: autofixSettings ?? defaultSettings,
+    autofixSettings: autofixSettings ?? {
+      autofixAutomationTuning: 'off',
+      automatedRunStoppingPoint: 'code_changes',
+      automationHandoff: undefined,
+      projectId: project.id,
+      reposCount: 0,
+    },
     integrations: integrations ?? [],
   });
 
