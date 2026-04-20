@@ -263,7 +263,7 @@ export const LogRowContent = memo(function LogRowContent({
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
-    caseSensitiveHighlighting: !caseInsensitivity,
+    caseSensitiveHighlighting: !!caseInsensitivity,
     logColors,
     useFullSeverityText: false,
     location,
@@ -548,7 +548,7 @@ function LogRowDetails({
                       wrapBody: true,
                       location,
                       organization,
-                      caseSensitiveHighlighting: !caseInsensitivity,
+                      caseSensitiveHighlighting: !!caseInsensitivity,
                       projectSlug,
                       attributes,
                       attributeTypes,
@@ -570,7 +570,7 @@ function LogRowDetails({
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
-                    caseSensitiveHighlighting: !caseInsensitivity,
+                    caseSensitiveHighlighting: !!caseInsensitivity,
                     highlightTerms,
                     logColors,
                     location,
