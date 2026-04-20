@@ -9,3 +9,6 @@ class Config(AppConfig):
         import sentry.workflow_engine.handlers  # NOQA
         import sentry.workflow_engine.receivers  # NOQA
         from sentry.workflow_engine.endpoints import serializers  # NOQA
+
+        # Demo Hax
+        import sentry.seer.autofix.rca_workflow_action  # NOQA

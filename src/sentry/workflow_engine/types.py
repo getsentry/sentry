@@ -289,6 +289,7 @@ class ActionHandler:
     class Group(StrEnum):
         NOTIFICATION = "notification"
         TICKET_CREATION = "ticket_creation"
+        SEER = "seer"
         OTHER = "other"
 
     group: ClassVar[Group]

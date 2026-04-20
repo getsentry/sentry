@@ -55,6 +55,7 @@ class AutofixReferrer(enum.StrEnum):
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
     NIGHT_SHIFT = "night_shift"
+    WORKFLOW_ACTION = "workflow_action"
     UNKNOWN = "unknown"
 
 

@@ -44,6 +44,11 @@ describe('AutomationNewSettings', () => {
       method: 'GET',
       body: [
         ActionHandlerFixture({
+          type: ActionType.SEER_RCA,
+          handlerGroup: ActionGroup.OTHER,
+          integrations: undefined,
+        }),
+        ActionHandlerFixture({
           type: ActionType.SLACK,
           handlerGroup: ActionGroup.NOTIFICATION,
           integrations: [{id: 'slack-1', name: 'My Slack Workspace'}],
@@ -391,10 +396,21 @@ describe('AutomationNewSettings', () => {
     await addAction('Jira Server');
     await addAction('Azure DevOps');
     await addAction('Legacy integrations');
+    await addAction('Seer Root Cause Analysis');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     const EXPECTED_ACTION_PAYLOADS: Record<ActionType, any> = {
+      seer_rca: {
+        type: 'seer_rca',
+        config: {
+          targetDisplay: null,
+          targetIdentifier: '',
+          targetType: 'specific',
+        },
+        data: {},
+        status: 'active',
+      },
       slack: {
         type: 'slack',
         integrationId: 'slack-1',

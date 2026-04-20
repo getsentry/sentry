@@ -70,11 +70,13 @@ export function ActionNodeList({
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
     const ticketCreationActions: Option[] = [];
+    const seerActions: Option[] = [];
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
       const label =
         actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
+
       const newAction = {
         value: action,
         label,
@@ -84,6 +86,8 @@ export function ActionNodeList({
         notificationActions.push(newAction);
       } else if (action.handlerGroup === ActionGroup.TICKET_CREATION) {
         ticketCreationActions.push(newAction);
+      } else if (action.handlerGroup === ActionGroup.SEER) {
+        seerActions.push(newAction);
       } else {
         otherActions.push(newAction);
       }
@@ -99,6 +103,11 @@ export function ActionNodeList({
         key: ActionGroup.TICKET_CREATION,
         label: t('Ticket Creation'),
         options: ticketCreationActions,
+      },
+      {
+        key: ActionGroup.SEER,
+        label: t('Seer'),
+        options: seerActions,
       },
       {
         key: ActionGroup.OTHER,

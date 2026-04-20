@@ -48,6 +48,11 @@ import {
 } from 'sentry/views/automations/components/actions/pagerduty';
 import {PluginNode} from 'sentry/views/automations/components/actions/plugin';
 import {
+  SeerRCA,
+  SeerRCANode,
+  validateSeerRCA,
+} from 'sentry/views/automations/components/actions/seerRca';
+import {
   SentryAppDetails,
   SentryAppNode,
 } from 'sentry/views/automations/components/actions/sentryApp';
@@ -233,6 +238,15 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       action: WebhookNode,
       details: WebhookDetails,
       validate: validateWebhookAction,
+    },
+  ],
+  [
+    ActionType.SEER_RCA,
+    {
+      label: t('Seer Root Cause Analysis'),
+      action: SeerRCANode,
+      details: SeerRCA,
+      validate: validateSeerRCA,
     },
   ],
 ]);
