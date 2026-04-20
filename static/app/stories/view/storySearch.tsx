@@ -16,10 +16,10 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
-  inferComponentSubcategory,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -107,10 +107,15 @@ export function StorySearch() {
               {item.options.map(storyItem => {
                 const subcategoryKey =
                   item.key === 'core'
-                    ? inferComponentSubcategory(storyItem.name.toLowerCase())
+                    ? storyFrontmatterIndex[storyItem.filesystemPath]?.category
                     : undefined;
                 const subcategoryLabel = subcategoryKey
-                  ? COMPONENT_SUBCATEGORY_CONFIG[subcategoryKey].label
+                  ? (
+                      COMPONENT_SUBCATEGORY_CONFIG as Record<
+                        string,
+                        {label: string} | undefined
+                      >
+                    )[subcategoryKey]?.label
                   : undefined;
 
                 return (

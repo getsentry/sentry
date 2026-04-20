@@ -9,6 +9,7 @@ import type {StoryResources} from './view/useStoriesLoader';
 export interface MDXFrontmatter {
   description: string;
   title: string;
+  category?: string;
   layout?: 'document';
   resources?: StoryResources;
   source?: string;
