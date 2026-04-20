@@ -104,7 +104,7 @@ class BaseApiClientTest(TestCase):
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
     @patch.object(Session, "send")
-    def test_request_and_response_metrics_do_not_include_api_request_type(
+    def test_request_and_response_metrics_include_api_request_type(
         self, mock_session_send, mock_metrics_incr
     ) -> None:
         response = MagicMock()
@@ -116,12 +116,12 @@ class BaseApiClientTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "None.http_request",
             sample_rate=1.0,
-            tags={"integration": "base"},
+            tags={"integration": "base", "api_request_type": "compare_commits"},
         )
         mock_metrics_incr.assert_any_call(
             "None.http_response",
             sample_rate=1.0,
-            tags={"integration": "base", "status": 204},
+            tags={"integration": "base", "status": 204, "api_request_type": "compare_commits"},
         )
 
     @patch("sentry.shared_integrations.client.base.metrics.incr")
