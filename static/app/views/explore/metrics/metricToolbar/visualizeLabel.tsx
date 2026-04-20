@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron, IconShow} from 'sentry/icons';
-import {IconHide} from 'sentry/icons/iconHide';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
+import {IconChevron} from 'sentry/icons';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeLabelProps {
@@ -23,62 +20,33 @@ export function VisualizeLabel({
   visualize,
   disableCollapse,
 }: VisualizeLabelProps) {
-  const organization = useOrganization();
-
-  if (canUseMetricsUIRefresh(organization)) {
-    return (
-      <Container
-        display="flex"
-        cursor={disableCollapse ? 'default' : 'pointer'}
-        onClick={onClick}
-        style={{userSelect: 'none', WebkitTapHighlightColor: 'transparent'}}
-      >
-        <Flex align="center" gap="xs">
-          {!disableCollapse && (
-            <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
-          )}
-          <RefreshLabel justify="center" align="center">
-            <Text as="span" bold variant="accent">
-              {label}
-            </Text>
-          </RefreshLabel>
-        </Flex>
-      </Container>
-    );
-  }
-
-  const icon = visualize.visible ? <IconShow /> : <IconHide />;
-
   return (
-    <Flex align="center" justify="start" gap="md">
-      {!disableCollapse && (
-        <IconLabel
-          onClick={onClick}
-          height="36px"
+    <Container
+      display="flex"
+      cursor={disableCollapse ? 'default' : 'pointer'}
+      onClick={onClick}
+      style={{userSelect: 'none', WebkitTapHighlightColor: 'transparent'}}
+    >
+      <Flex align="center" gap="xs">
+        {!disableCollapse && (
+          <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+        )}
+        <VisualizeLabelBadge
           justify="center"
           align="center"
-          disableInteraction={disableCollapse}
+          width="24px"
+          height="36px"
+          radius="md"
         >
-          {icon}
-        </IconLabel>
-      )}
-      <Text bold size="md">
-        {label}
-      </Text>
-    </Flex>
+          <Text as="span" bold variant="accent">
+            {label}
+          </Text>
+        </VisualizeLabelBadge>
+      </Flex>
+    </Container>
   );
 }
 
-const RefreshLabel = styled(Flex)`
+const VisualizeLabelBadge = styled(Flex)`
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-  color: ${p => p.theme.tokens.content.accent};
-  width: 24px;
-  height: 36px;
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const IconLabel = styled(Flex)<{disableInteraction?: boolean}>`
-  cursor: ${p => (p.disableInteraction ? 'default' : 'pointer')};
-  font-weight: bold;
-  color: ${p => p.theme.tokens.content.accent};
 `;

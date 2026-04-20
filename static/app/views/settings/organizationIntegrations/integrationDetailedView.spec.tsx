@@ -128,9 +128,9 @@ describe('IntegrationDetailedView', () => {
       initialRouterConfig: createRouterConfig('bitbucket', {tab: 'configurations'}),
       organization,
     });
-    expect(await screen.findByTestId('integration-name')).toHaveTextContent(
-      '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}'
-    );
+    expect(
+      await screen.findByText('{fb715533-bbd7-4666-aa57-01dc93dd9cc0}')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 

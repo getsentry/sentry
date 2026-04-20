@@ -12,9 +12,11 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursored_scheduler import (
     BATCH_SIZE_CACHE_KEY_PREFIX,
     CURSOR_CACHE_KEY_PREFIX,
+    PK_LIST_CACHE_KEY_PREFIX,
     CursoredScheduler,
     _get_tick_interval,
 )
+from sentry.utils.redis import redis_clusters
 
 TEST_SCHEDULES = {
     "test-scheduler-beat": {
@@ -39,8 +41,11 @@ class CursoredSchedulerTest(TestCase):
         self.mock_task = MagicMock()
         self.cache_key = f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler"
         self.batch_size_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:test_scheduler"
+        self.pk_list_key = f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler"
+        self.redis_client = redis_clusters.get("default")
         cache.delete(self.cache_key)
         cache.delete(self.batch_size_key)
+        self.redis_client.delete(self.pk_list_key)
 
     _oi_counter = 0
 
@@ -305,6 +310,102 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         scheduler.tick()
         assert self.mock_task.delay.call_count == 3
+
+    def test_pks_cached_at_cycle_start(self):
+        """PKs are snapshotted into the Redis list at the start of each cycle."""
+        self._create_org_integrations(30)
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+
+        assert self.redis_client.llen(self.pk_list_key) == 30
+
+    def test_cached_pks_stable_mid_cycle(self):
+        """Adding items mid-cycle doesn't affect the current cycle's batch size."""
+        self._create_org_integrations(30)
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+        first_batch = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        assert len(first_batch) == 10
+
+        # Add more items mid-cycle
+        self._create_org_integrations(30)
+
+        self.mock_task.reset_mock()
+        scheduler.tick()
+        second_batch = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        # Still 10, not recalculated to 20
+        assert len(second_batch) == 10
+
+    def test_cached_pks_cleared_after_cycle(self):
+        """PK list is cleared when cycle completes."""
+        self._create_org_integrations(30)
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+        scheduler.tick()
+        scheduler.tick()
+        scheduler.tick()  # cycle done
+
+        assert self.redis_client.exists(self.pk_list_key) == 0
+
+    def test_validate_item_filters_dispatches(self):
+        """When validate_item is provided, only items passing validation are dispatched."""
+        ois = self._create_org_integrations(30)
+        # Only dispatch even-indexed PKs
+        even_pks = {oi.pk for oi in ois[::2]}
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            validate_item=lambda pk: pk in even_pks,
+        )
+
+        scheduler.tick()
+
+        dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
+        for pk in dispatched_pks:
+            assert pk in even_pks
+
+    def test_validate_item_none_dispatches_all(self):
+        """When validate_item is None (default), all items are dispatched."""
+        self._create_org_integrations(30)
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+
+        assert self.mock_task.delay.call_count == 10
+
+    def test_validate_item_cursor_advances_past_skipped(self):
+        """Cursor advances based on all items in batch, not just dispatched ones."""
+        self._create_org_integrations(30)
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            validate_item=lambda pk: False,  # reject all
+        )
+
+        scheduler.tick()
+
+        # No dispatches, but cursor should still advance
+        assert self.mock_task.delay.call_count == 0
+        cursor = cache.get(f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler")
+        assert cursor is not None
+        assert int(cursor) == 10
 
 
 @override_settings(TASKWORKER_SCHEDULES=TEST_SCHEDULES)

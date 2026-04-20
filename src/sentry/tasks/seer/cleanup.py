@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.CELL,
 )
 def cleanup_seer_repository_preferences(
-    organization_id: int, repo_external_id: str, repo_provider: str
+    organization_id: int, repo_external_id: str, repo_provider: str, **kwargs
 ) -> None:
     """
     Clean up Seer preferences for a deleted repository.
@@ -73,7 +73,7 @@ def cleanup_seer_repository_preferences(
     silo_mode=SiloMode.CELL,
 )
 def bulk_cleanup_seer_repository_preferences(
-    organization_id: int, repos: list[dict[str, str]]
+    organization_id: int, repos: list[dict[str, str]], **kwargs
 ) -> None:
     """
     Removes multiple repositories from Seer project preferences when the repository
