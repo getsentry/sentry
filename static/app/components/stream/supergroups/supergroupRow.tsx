@@ -56,7 +56,11 @@ export function SupergroupRow({
   const highlighted = isActive && isDrawerOpen;
 
   return (
-    <Wrapper onClick={handleClick} highlighted={highlighted}>
+    <Wrapper
+      onClick={handleClick}
+      highlighted={highlighted}
+      data-sentry-component="SupergroupRow"
+    >
       <InteractionStateLayer />
       <IconArea>
         <AccentIcon size="md" />
