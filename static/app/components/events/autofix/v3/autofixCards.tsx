@@ -457,7 +457,9 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
           }
 
           if (message.content && message.content !== 'Thinking...') {
-            return <MarkedText key={index} text={message.content} inline as="span" />;
+            return (
+              <StyledMarkedText key={index} text={message.content} inline as="span" />
+            );
           }
 
           return null;
@@ -473,4 +475,10 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const StyledMarkedText = styled(MarkedText)`
+  p {
+    margin: 0;
+  }
 `;
