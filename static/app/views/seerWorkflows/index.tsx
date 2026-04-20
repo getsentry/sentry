@@ -157,7 +157,7 @@ function RunDetail({
           <Text bold size="xs" variant="muted" uppercase>
             {t('Extras')}
           </Text>
-          <Text as="pre" size="sm" monospace>
+          <Text as="div" size="sm" monospace style={{whiteSpace: 'pre-wrap'}}>
             {JSON.stringify(run.extras, null, 2)}
           </Text>
         </Flex>
