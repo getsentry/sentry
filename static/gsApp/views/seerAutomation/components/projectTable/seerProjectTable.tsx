@@ -235,9 +235,13 @@ export function SeerProjectTable() {
           />
 
           {fetching ? (
-            <LoadingIndicator />
+            <SimpleTable.Empty>
+              <LoadingIndicator />
+            </SimpleTable.Empty>
           ) : fetchError ? (
-            <LoadingError />
+            <SimpleTable.Empty>
+              <LoadingError />
+            </SimpleTable.Empty>
           ) : filteredProjects.length === 0 ? (
             <SimpleTable.Empty>
               {searchTerm
