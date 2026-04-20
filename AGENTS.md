@@ -61,7 +61,14 @@ cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 #### Setup
 
 ```bash
-devenv sync     # refresh dependencies
+# Refreshes dependencies.
+# SENTRY_DEVENV_FRONTEND_ONLY=1 skips over migrations which is not needed for pytest. HIGHLY RECOMMENDED.
+SENTRY_DEVENV_FRONTEND_ONLY=1 devenv sync
+
+# refresh dependencies, apply migrations
+# Only relevant if you want a working development server.
+devenv sync
+
 direnv allow    # activate the environment
 devservices up  # bring up services
 ```
