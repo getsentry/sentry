@@ -4,13 +4,14 @@ import html
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict, cast
 from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
+from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.messaging.metrics import (
@@ -35,6 +36,14 @@ from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+
+class DashboardsUnfurlArgs(TypedDict):
+    org_slug: str
+    dashboard_id: int
+    widget_index: int
+    query: QueryDict
+
 
 _logger = logging.getLogger(__name__)
 
@@ -90,17 +99,14 @@ def _unfurl_dashboards(
     unfurls = {}
 
     for link in links:
-        org_slug = link.args["org_slug"]
+        args = cast(DashboardsUnfurlArgs, link.args)
+        org_slug = args["org_slug"]
         org = enabled_orgs.get(org_slug)
 
         if not org:
             continue
 
-        dashboard_id = link.args["dashboard_id"]
-        widget_index = link.args["widget_index"]
-        url_params: QueryDict = link.args["query"]
-
-        widget = _get_widget(org.id, dashboard_id, widget_index)
+        widget = _get_widget(org.id, args["dashboard_id"], args["widget_index"])
         if widget is None:
             continue
 
@@ -118,10 +124,10 @@ def _unfurl_dashboards(
         if not widget_queries:
             continue
 
-        combined_time_series: list[Any] = []
+        combined_time_series: list[TimeSeries] = []
         request_failed = False
         for widget_query in widget_queries:
-            params = _build_timeseries_params(widget_query, url_params)
+            params = _build_timeseries_params(widget_query, args["query"])
 
             try:
                 resp = client.get(
@@ -180,9 +186,6 @@ def _get_widget(
     widget list as returned by the API (ordered by id), matching the
     frontend's ``dashboard.widgets[widgetId]`` lookup.
     """
-    if widget_index < 0:
-        return None
-
     widgets = list(
         DashboardWidget.objects.filter(
             dashboard_id=dashboard_id,
@@ -196,35 +199,40 @@ def _get_widget(
 
 def _build_timeseries_params(
     widget_query: DashboardWidgetQuery, url_params: QueryDict
-) -> QueryDict:
-    """Build events-timeseries API params from a widget query + URL params."""
-    params = QueryDict(mutable=True)
+) -> dict[str, str | list[str]]:
+    """Build events-timeseries API params from a widget query + URL params.
+
+    Returns a plain dict with list values for multi-valued params. ``client.get``
+    iterates ``params.items()`` and only honors multiple values when the value
+    is a ``list``; a ``QueryDict`` would silently drop all but the last value.
+    """
+    params: dict[str, str | list[str]] = {}
 
     aggregates = list(widget_query.aggregates or [])
     columns = list(widget_query.columns or [])
 
-    params.setlist("yAxis", aggregates)
+    params["yAxis"] = aggregates
 
     if columns:
-        params.setlist("groupBy", columns)
-        params.setlist("topEvents", [str(TOP_N)])
+        params["groupBy"] = columns
+        params["topEvents"] = str(TOP_N)
 
     if widget_query.conditions:
         params["query"] = widget_query.conditions
 
     if widget_query.orderby:
-        params.setlist("sort", [widget_query.orderby])
+        params["sort"] = widget_query.orderby
     elif columns and aggregates:
         # Match Explore behavior: default to descending by the first yAxis
         # when grouping without an explicit sort.
-        params.setlist("sort", [f"-{aggregates[0]}"])
+        params["sort"] = f"-{aggregates[0]}"
 
     for param in ("project", "environment", "statsPeriod", "start", "end", "interval"):
         values = url_params.getlist(param)
         if values:
-            params.setlist(param, values)
+            params[param] = values if len(values) > 1 else values[0]
 
-    if not params.get("statsPeriod") and not params.get("start"):
+    if "statsPeriod" not in params and "start" not in params:
         params["statsPeriod"] = DEFAULT_PERIOD
 
     params["dataset"] = SupportedTraceItemType.SPANS.value
@@ -233,24 +241,21 @@ def _build_timeseries_params(
     return params
 
 
-def map_dashboards_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
-    """Extract the dashboard widget args and URL query params."""
+def map_dashboards_query_args(url: str, args: Mapping[str, str | None]) -> DashboardsUnfurlArgs:
+    """Extract the dashboard widget args and URL query params.
+
+    The regex matchers guarantee ``org_slug``, ``dashboard_id``, and
+    ``widget_index`` are all non-None and numeric where applicable, so
+    the casts below cannot fail for any url that reaches this function.
+    """
     url = html.unescape(url)
     parsed_url = urlparse(url)
-    raw_query = QueryDict(parsed_url.query)
-
-    try:
-        dashboard_id = int(args["dashboard_id"] or "")
-        widget_index = int(args["widget_index"] or "")
-    except (TypeError, ValueError):
-        dashboard_id = -1
-        widget_index = -1
 
     return {
-        "org_slug": args.get("org_slug"),
-        "dashboard_id": dashboard_id,
-        "widget_index": widget_index,
-        "query": raw_query,
+        "org_slug": args["org_slug"] or "",
+        "dashboard_id": int(args["dashboard_id"] or 0),
+        "widget_index": int(args["widget_index"] or 0),
+        "query": QueryDict(parsed_url.query),
     }
 
 

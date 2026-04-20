@@ -2129,7 +2129,7 @@ class UnfurlTest(TestCase):
 
         api_params = mock_client_get.call_args[1]["params"]
         assert "/events-timeseries/" in mock_client_get.call_args[1]["path"]
-        assert api_params.getlist("yAxis") == ["avg(span.duration)"]
+        assert api_params["yAxis"] == ["avg(span.duration)"]
         assert api_params["dataset"] == "spans"
         assert api_params["referrer"] == "dashboards.slack.unfurl"
         assert api_params["statsPeriod"] == "7d"
@@ -2285,10 +2285,10 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("groupBy") == ["span.op"]
-        assert api_params.getlist("topEvents") == ["5"]
+        assert api_params["groupBy"] == ["span.op"]
+        assert api_params["topEvents"] == "5"
         # Default descending by the first yAxis
-        assert api_params.getlist("sort") == ["-avg(span.duration)"]
+        assert api_params["sort"] == "-avg(span.duration)"
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
@@ -2314,7 +2314,7 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 1
         api_params = mock_client_get.call_args[1]["params"]
-        assert api_params.getlist("sort") == ["span.op"]
+        assert api_params["sort"] == "span.op"
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
@@ -2417,6 +2417,35 @@ class UnfurlTest(TestCase):
 
         api_params = mock_client_get.call_args[1]["params"]
         assert api_params["query"] == "span.op:http"
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_multi_valued_params_are_preserved(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        # Regression test: the internal API client iterates params.items(),
+        # which drops all but the last value for QueryDict multi-valued keys.
+        # Params must be a plain dict with list values so multiple aggregates
+        # and groupBy columns reach the timeseries endpoint intact.
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard, _ = self._create_spans_widget(
+            aggregates=["avg(span.duration)", "p75(span.duration)"],
+            columns=["span.op", "span.category"],
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        api_params = mock_client_get.call_args[1]["params"]
+        assert api_params["yAxis"] == ["avg(span.duration)", "p75(span.duration)"]
+        assert api_params["groupBy"] == ["span.op", "span.category"]
 
     def test_match_link_dashboards(self) -> None:
         # Primary domain
