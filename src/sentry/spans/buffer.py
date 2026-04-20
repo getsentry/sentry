@@ -199,6 +199,9 @@ class FlushedSegment(NamedTuple):
 
         If the segment size exceeds `spans.buffer.max_segment_bytes`, the segment is split
         into multiple messages with skip_enrichment=True. Otherwise, returns a single message.
+
+        Each message gets a unique flush_id generated at call time, ensuring duplicate
+        flushes from Redis produce distinct IDs.
         """
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
@@ -206,7 +209,7 @@ class FlushedSegment(NamedTuple):
 
         sizes = [len(orjson.dumps(s)) for s in spans]
         if sum(sizes) <= max_segment_bytes:
-            return [{"spans": spans}]
+            return [{"flush_id": uuid.uuid4().hex, "spans": spans}]
 
         messages: list[dict[str, Any]] = []
         current: list[SpanPayload] = []
@@ -214,14 +217,18 @@ class FlushedSegment(NamedTuple):
 
         for span, size in zip(spans, sizes):
             if current and current_size + size > max_segment_bytes:
-                messages.append({"spans": current, "skip_enrichment": True})
+                messages.append(
+                    {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
+                )
                 current = []
                 current_size = 0
             current.append(span)
             current_size += size
 
         if current:
-            messages.append({"spans": current, "skip_enrichment": True})
+            messages.append(
+                {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
+            )
 
         if len(messages) > 1:
             metrics.timing(
