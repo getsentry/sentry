@@ -11,6 +11,16 @@ export type DashboardRevision = {
   title: string;
 };
 
+const REVISIONS_PATH =
+  '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/' as const;
+
+export function getDashboardRevisionsQueryKey(orgSlug: string, dashboardId: string) {
+  return apiOptions.as<DashboardRevision[]>()(REVISIONS_PATH, {
+    path: {organizationIdOrSlug: orgSlug, dashboardId},
+    staleTime: 30_000,
+  }).queryKey;
+}
+
 interface UseDashboardRevisionsOptions {
   dashboardId: string;
 }
@@ -18,12 +28,9 @@ interface UseDashboardRevisionsOptions {
 export function useDashboardRevisions({dashboardId}: UseDashboardRevisionsOptions) {
   const organization = useOrganization();
   return useQuery(
-    apiOptions.as<DashboardRevision[]>()(
-      '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/',
-      {
-        path: {organizationIdOrSlug: organization.slug, dashboardId},
-        staleTime: 30_000,
-      }
-    )
+    apiOptions.as<DashboardRevision[]>()(REVISIONS_PATH, {
+      path: {organizationIdOrSlug: organization.slug, dashboardId},
+      staleTime: 30_000,
+    })
   );
 }
