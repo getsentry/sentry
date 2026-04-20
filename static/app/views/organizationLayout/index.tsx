@@ -31,7 +31,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
-import {ExplorerPanel} from 'sentry/views/seerExplorer/components/panel/explorerPanel';
+import {ExplorerFloatingActionButton} from 'sentry/views/seerExplorer/components/panel/explorerPanel';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -55,7 +55,7 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <GlobalDrawer>
           <SeerExplorerContextProvider>
-            {hasPageFrame ? null : <ExplorerPanel />}
+            {hasPageFrame ? null : <ExplorerFloatingActionButton />}
             <AppLayout organization={organization} />
           </SeerExplorerContextProvider>
         </GlobalDrawer>

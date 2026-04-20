@@ -1,9 +1,8 @@
-import {createContext, useCallback, useContext, useState, type ReactNode} from 'react';
+import {createContext, useContext, type ReactNode} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 type SeerExplorerContextValue = {
@@ -25,44 +24,28 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  const hasPageFrame = useHasPageFrameFeature();
-  const useDrawer = hasPageFrame;
-
-  /* PANEL VERSION */
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const {visible: isModalOpen} = useGlobalModal();
-
-  // Stable callbacks
-  const openSeerExplorerPanel = useCallback(() => setIsOpen(true), []);
-  const closeSeerExplorerPanel = useCallback(() => setIsOpen(false), []);
-  const toggleSeerExplorerPanel = useCallback(() => setIsOpen(prev => !prev), []);
-
-  const panelContextValue = {
+  const {
+    openSeerExplorerDrawer,
+    closeSeerExplorerDrawer,
+    toggleSeerExplorerDrawer,
     isOpen,
-    isMinimized,
-    setIsMinimized,
-    openSeerExplorer: openSeerExplorerPanel,
-    closeSeerExplorer: closeSeerExplorerPanel,
-    toggleSeerExplorer: toggleSeerExplorerPanel,
-  };
+  } = useSeerExplorerDrawer();
 
-  /* DRAWER VERSION */
-  const {openSeerExplorerDrawer, closeSeerExplorerDrawer, toggleSeerExplorerDrawer} =
-    useSeerExplorerDrawer();
-
-  const drawerContextValue = {
-    isOpen: false, // do not use
-    isMinimized: false, // do not use
-    setIsMinimized: () => {}, // do not use
+  const contextValue = {
+    isOpen,
+    isMinimized: false, // for backward compatibility, do not use.
+    setIsMinimized: () => {}, // for backward compatibility, do not use.
     openSeerExplorer: openSeerExplorerDrawer,
     closeSeerExplorer: closeSeerExplorerDrawer,
     toggleSeerExplorer: toggleSeerExplorerDrawer,
   };
 
+  const {visible: isModalOpen} = useGlobalModal();
+
   useHotkeys(
-    useDrawer
-      ? [
+    isModalOpen
+      ? []
+      : [
           {
             match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
             callback: () => {
@@ -71,27 +54,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
             includeInputs: true,
           },
         ]
-      : isModalOpen
-        ? []
-        : [
-            {
-              match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
-              callback: () => {
-                if (isOpen) {
-                  setIsMinimized(prev => !prev);
-                } else {
-                  setIsOpen(true);
-                }
-              },
-              includeInputs: true,
-            },
-          ]
   );
 
   return (
-    <SeerExplorerContext.Provider
-      value={useDrawer ? drawerContextValue : panelContextValue}
-    >
+    <SeerExplorerContext.Provider value={contextValue}>
       {children}
     </SeerExplorerContext.Provider>
   );

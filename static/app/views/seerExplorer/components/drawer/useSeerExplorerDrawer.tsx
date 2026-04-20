@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -24,10 +24,13 @@ export const useSeerExplorerDrawer = () => {
 
   // TODO: add effect that opens drawer and seeds run_id from URL
   // (useSeerExplorer hook should no longer handle this)
-  const isOpenRef = useRef(false);
+
+  const [isOpen, setIsOpen] = useState(false); // for hook users
+  const isOpenRef = useRef(false); // for callback accuracy
 
   const onOpen = useCallback(() => {
     isOpenRef.current = true;
+    setIsOpen(true);
     trackAnalytics('seer.explorer.global_panel.opened', {
       referrer: getPageReferrer(),
       organization,
@@ -37,6 +40,7 @@ export const useSeerExplorerDrawer = () => {
 
   const onClose = useCallback(() => {
     isOpenRef.current = false;
+    setIsOpen(false);
     navigate(
       {
         pathname: location.pathname,
@@ -101,8 +105,14 @@ export const useSeerExplorerDrawer = () => {
       openSeerExplorerDrawer: () => {},
       closeSeerExplorerDrawer: () => {},
       toggleSeerExplorerDrawer: () => {},
+      isOpen: false,
     };
   }
 
-  return {openSeerExplorerDrawer, closeSeerExplorerDrawer, toggleSeerExplorerDrawer};
+  return {
+    openSeerExplorerDrawer,
+    closeSeerExplorerDrawer,
+    toggleSeerExplorerDrawer,
+    isOpen,
+  };
 };
