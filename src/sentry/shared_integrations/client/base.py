@@ -366,11 +366,10 @@ class BaseApiClient:
         key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
         api_request_type = kwargs.get("api_request_type") or kwargs.get("endpoint")
-        api_request_type_tag = (
-            api_request_type.value
-            if hasattr(api_request_type, "value")
-            else api_request_type or "unknown"
-        )
+        if api_request_type is None:
+            api_request_type_tag = "unknown"
+        else:
+            api_request_type_tag = str(api_request_type)
         metrics.incr(
             f"{self.metrics_prefix}.get_cached",
             sample_rate=1.0,
