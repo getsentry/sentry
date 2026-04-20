@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,7 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useCodingAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
@@ -25,6 +26,7 @@ import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/ut
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
@@ -100,6 +102,7 @@ export function ProjectTableHeader({
   onSortClick,
   sort,
   updateBulkAutofixAutomationSettings,
+  agentOptions,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -122,7 +125,6 @@ export function ProjectTableHeader({
     [projects, selectedIds]
   );
 
-  const agentOptions = useCodingAgentSelectOptions({organization});
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
 
   return (

@@ -27,7 +27,7 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useCodingAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
+import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getFilteredCodingAgentName,
   type PreferredAgentProvider,
@@ -53,7 +53,7 @@ export function SeerProjectTable() {
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
-  const agentOptions = useCodingAgentSelectOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
     filterCodingAgentQueryOptions({
       organization,
@@ -258,8 +258,9 @@ export function SeerProjectTable() {
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
-            projects={filteredProjects}
+            agentOptions={agentOptions}
             onSortClick={setSort}
+            projects={filteredProjects}
             sort={sort}
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />

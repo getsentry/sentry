@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -17,7 +18,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import type {useCodingAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {
   getProjectStoppingPointValueFromSettings,
   type MutateStoppingPoint,
@@ -32,7 +33,7 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: ReturnType<typeof useCodingAgentSelectOptions>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;

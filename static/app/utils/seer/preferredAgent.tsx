@@ -1,4 +1,4 @@
-import type {QueryClient} from '@tanstack/react-query';
+import {queryOptions, type QueryClient} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
@@ -19,21 +19,20 @@ import {
   getApiQueryData,
   mutationOptions,
   setApiQueryData,
-  useQuery,
 } from 'sentry/utils/queryClient';
 
-type PreferredAgent = 'seer' | CodingAgentIntegration;
+export type PreferredAgent = 'seer' | CodingAgentIntegration;
 
 /**
  * Returns the list of coding agent integrations formatted as select options,
  * with Seer Agent as the first/default option.
  */
-export function useCodingAgentSelectOptions({
+export function getCodingAgentSelectQueryOptions({
   organization,
 }: {
   organization: Organization;
 }) {
-  return useQuery({
+  return queryOptions({
     ...organizationIntegrationsCodingAgents(organization),
     select: (data): Array<{label: string; value: PreferredAgent}> => [
       {value: 'seer', label: t('Seer Agent')},
