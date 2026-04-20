@@ -1,9 +1,10 @@
 import {useCallback} from 'react';
 import {css} from '@emotion/react';
 
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';
 import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -60,8 +61,7 @@ export const useOpenSeerDrawer = ({
         max-height: 100%;
       `,
       resizable: true,
-      closeOnOutsideClick: false,
-      shouldLockScroll: false,
+      mode: 'passive',
       onClose: () => {
         navigate(
           {
