@@ -26,17 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
-interface SeerCommandPaletteActionsProps {
-  event: Event | null;
-  group: Group;
-  project: Project;
-}
-
-export function SeerCommandPaletteActions({
-  group,
-  project,
-  event,
-}: SeerCommandPaletteActionsProps) {
+function useSeerState(group: Group, project: Project) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const isExplorer = organization.features.includes('autofix-on-explorer');
@@ -47,24 +37,10 @@ export function SeerCommandPaletteActions({
     enabled: aiConfig.areAiFeaturesAllowed && isExplorer,
   });
 
-  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
-
-  const {data: codingAgentResponse} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
-  const codingAgentIntegrations = codingAgentResponse?.integrations;
-
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
-
-  if (!aiConfig.areAiFeaturesAllowed || !isExplorer || !issueTypeSupportsSeer || !event) {
-    return null;
-  }
-
-  const {runState, isPolling} = autofix;
-  const runId = runState?.run_id;
 
   const completedRootCause = sections.some(
     s => isRootCauseSection(s) && s.status === 'completed'
@@ -76,6 +52,56 @@ export function SeerCommandPaletteActions({
     s => isCodeChangesSection(s) && s.status === 'completed'
   );
   const hasPR = sections.some(isPullRequestsSection);
+
+  return {
+    organization,
+    aiConfig,
+    isExplorer,
+    issueTypeSupportsSeer,
+    autofix,
+    completedRootCause,
+    completedSolution,
+    completedCodeChanges,
+    hasPR,
+  };
+}
+
+interface SeerCommandPaletteActionsProps {
+  event: Event | null;
+  group: Group;
+  project: Project;
+}
+
+export function SeerCommandPaletteActions({
+  group,
+  project,
+  event,
+}: SeerCommandPaletteActionsProps) {
+  const {
+    organization,
+    aiConfig,
+    isExplorer,
+    issueTypeSupportsSeer,
+    autofix,
+    completedRootCause,
+    completedSolution,
+    completedCodeChanges,
+    hasPR,
+  } = useSeerState(group, project);
+
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
+
+  const {data: codingAgentResponse} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
+  const codingAgentIntegrations = codingAgentResponse?.integrations;
+
+  if (!aiConfig.areAiFeaturesAllowed || !isExplorer || !issueTypeSupportsSeer || !event) {
+    return null;
+  }
+
+  const {runState, isPolling} = autofix;
+  const runId = runState?.run_id;
 
   const canContinue = !isPolling && defined(runId);
 
