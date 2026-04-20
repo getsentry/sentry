@@ -1,6 +1,11 @@
 import logging
 
+import sentry_sdk
+
+from sentry import features
+from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
@@ -13,6 +18,8 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -137,4 +144,73 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
         group_id=event_data.group.id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,
+    )
+
+
+def metric_alert_notification_data_factory(
+    invocation: ActionInvocation,
+) -> MetricAlertNotificationData:
+    from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+        get_alert_rule_serializer,
+        get_detailed_incident_serializer,
+        get_detector_serializer,
+    )
+
+    issue_notif_context = IssueNotificationContext(invocation)
+    notification_context = issue_notif_context.notification_context
+    alert_context = issue_notif_context.alert_context
+    metric_issue_context = issue_notif_context.metric_issue_context
+    open_period_context = issue_notif_context.open_period_context
+    organization = issue_notif_context.organization
+
+    if notification_context.integration_id is None:
+        raise ValueError("Integration ID is None")
+
+    if notification_context.target_identifier is None:
+        raise ValueError("Slack channel is None")
+
+    referrer = f"metric_alert_{invocation.action.type}"
+    attachment_info = incident_attachment_info(
+        organization=organization,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        notification_uuid=invocation.notification_uuid,
+        referrer=referrer,
+    )
+
+    alert_rule_serialized_response = get_alert_rule_serializer(invocation.detector)
+    detector_serialized_response = get_detector_serializer(invocation.detector)
+    incident_serialized_response = get_detailed_incident_serializer(issue_notif_context.open_period)
+
+    chart_url = None
+    if (
+        features.has("organizations:metric-alert-chartcuterie", organization)
+        and alert_rule_serialized_response
+        and incident_serialized_response
+    ):
+        try:
+            chart_url = build_metric_alert_chart(
+                organization=organization,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                snuba_query=metric_issue_context.snuba_query,
+                alert_context=alert_context,
+                open_period_context=open_period_context,
+                selected_incident_serialized=incident_serialized_response,
+                subscription=metric_issue_context.subscription,
+                detector_serialized_response=detector_serialized_response,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    return MetricAlertNotificationData(
+        group_id=metric_issue_context.id,
+        organization_id=organization.id,
+        notification_uuid=invocation.notification_uuid,
+        action_id=notification_context.id,
+        open_period_context=open_period_context,
+        new_status=metric_issue_context.new_status.value,
+        title=attachment_info["title"],
+        title_link=attachment_info["title_link"],
+        text=attachment_info["text"],
+        chart_url=chart_url,
     )
