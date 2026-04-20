@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.entrypoints.slack.analytics import (
-    SeerAgentSlackResponded,
     SlackSeerAgentConversation,
+    SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError
 from sentry.seer.entrypoints.slack.metrics import (
@@ -79,7 +79,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         assert_last_analytics_event(
             mock_record,
-            SeerAgentSlackResponded(
+            SlackSeerAgentResponded(
                 org_slug=self.organization.slug,
                 username="alice",
                 thread_ts="1234567890.123456",
@@ -244,7 +244,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         assert_last_analytics_event(
             mock_record,
-            SeerAgentSlackResponded(
+            SlackSeerAgentResponded(
                 org_slug=self.organization.slug,
                 username="alice",
                 thread_ts="1234567890.000001",
@@ -300,4 +300,4 @@ class ProcessMentionForSlackTest(TestCase):
 
         self._run_task()
 
-        assert_not_analytics_event(mock_record, SeerAgentSlackResponded)
+        assert_not_analytics_event(mock_record, SlackSeerAgentResponded)

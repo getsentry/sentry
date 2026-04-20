@@ -17,8 +17,8 @@ from sentry.seer.entrypoints.metrics import (
 )
 from sentry.seer.entrypoints.operator import SeerExplorerOperator
 from sentry.seer.entrypoints.slack.analytics import (
-    SeerAgentSlackResponded,
     SlackSeerAgentConversation,
+    SlackSeerAgentResponded,
 )
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
@@ -172,7 +172,7 @@ def process_mention_for_slack(
             _logger.warning("seer.slack.process_mention.count_linked_users_failed", exc_info=e)
             linked_user_count = 0
 
-        analytics_event = SeerAgentSlackResponded(
+        analytics_event = SlackSeerAgentResponded(
             org_slug=organization.slug,
             username=user.username,
             thread_ts=thread_ts or ts,

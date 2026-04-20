@@ -10,7 +10,7 @@ class SlackSeerAgentConversation(str, Enum):
 
 
 @analytics.eventclass("ai.explorer.slack.responded")
-class SeerAgentSlackResponded(analytics.Event):
+class SlackSeerAgentResponded(analytics.Event):
     org_slug: str
     username: str
     thread_ts: str
@@ -24,4 +24,4 @@ class SeerAgentSlackResponded(analytics.Event):
     conversation_type: SlackSeerAgentConversation
 
 
-analytics.register(SeerAgentSlackResponded)
+analytics.register(SlackSeerAgentResponded)
