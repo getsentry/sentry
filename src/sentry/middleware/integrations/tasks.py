@@ -19,7 +19,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.types.cell import Cell, get_cell_by_name, get_cell_for_organization
+from sentry.types.cell import Cell, CellResolutionError, get_cell_by_name, get_cell_for_organization
 
 logger = logging.getLogger(__name__)
 
@@ -202,17 +202,24 @@ def route_slack_seer_event(
     Now control will respond immediately, and schedule this task. We can take our time routing,
     and then allow the identified cell to actually handle the event.
     """
+    logging_ctx = {"integration_id": integration_id, "slack_user_id": slack_user_id}
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
     )
     if integration is None:
+        logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
     result = resolve_seer_organization_for_slack_user(
         integration=integration, slack_user_id=slack_user_id
     )
     if result.organization_id is None:
+        logger.warning("route_slack_seer_event.no_organization_found", extra=logging_ctx)
         return
 
-    cell = get_cell_for_organization(str(result.organization_id))
+    try:
+        cell = get_cell_for_organization(str(result.organization_id))
+    except CellResolutionError:
+        logger.exception("route_slack_seer_event.cell_resolution_error", extra=logging_ctx)
+        return
     _AsyncSlackSeerDispatcher(payload, response_url="").dispatch([cell.name])

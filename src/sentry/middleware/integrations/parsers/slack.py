@@ -296,40 +296,6 @@ class SlackRequestParser(BaseRequestParser):
 
         return organizations
 
-    def _try_ack_seer_event(self) -> HttpResponseBase | None:
-        """
-        Slack gives us 3s to ack event webhooks. For Seer agent events org resolution
-        may hit Slack (e.g. scanning thread history for a link), so 200 here and hand
-        the resolve-and-forward step to a control-silo task. The routing task posts
-        the original payload to the resolved cell, which runs the webhook as usual.
-        """
-        if self.view_class != SlackEventEndpoint:
-            return None
-
-        # Populates self.slack_request as a side effect.
-        self.get_integration_from_request()
-        slack_request = self.slack_request
-        if not isinstance(slack_request, SlackEventRequest):
-            return None
-        if not slack_request.is_seer_agent_request:
-            return None
-
-        route_slack_seer_event.apply_async(
-            kwargs={
-                "payload": create_async_request_payload(self.request),
-                "integration_id": slack_request.integration.id,
-                "slack_user_id": slack_request.user_id,
-            }
-        )
-        logger.info(
-            "slack.control.seer_event.acked",
-            extra={
-                "integration_id": slack_request.integration.id,
-                "event_type": slack_request.type,
-            },
-        )
-        return HttpResponse(status=status.HTTP_200_OK)
-
     def get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
@@ -346,10 +312,6 @@ class SlackRequestParser(BaseRequestParser):
         if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
 
-        seer_ack = self._try_ack_seer_event()
-        if seer_ack is not None:
-            return seer_ack
-
         try:
             cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
@@ -362,6 +324,27 @@ class SlackRequestParser(BaseRequestParser):
             # their org's slack integration, and slack will continue to retry
             # this request until it succeeds.
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
+
+        if (
+            self.slack_request
+            and isinstance(self.slack_request, SlackEventRequest)
+            and self.slack_request.is_seer_agent_request
+        ):
+            route_slack_seer_event.apply_async(
+                kwargs={
+                    "payload": create_async_request_payload(self.request),
+                    "integration_id": self.slack_request.integration.id,
+                    "slack_user_id": self.slack_request.user_id,
+                }
+            )
+            logger.info(
+                "slack.control.seer_event.routing_scheduled",
+                extra={
+                    "integration_id": self.slack_request.integration.id,
+                    "event_type": self.slack_request.type,
+                },
+            )
+            return HttpResponse(status=status.HTTP_200_OK)
 
         if self.view_class == SlackActionEndpoint and isinstance(
             self.slack_request, SlackActionRequest

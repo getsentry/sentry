@@ -385,9 +385,17 @@ class SlackRequestParserTest(TestCase):
         assert kwargs["payload"]["method"] == "POST"
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
 
+    @responses.activate
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_non_seer_event_not_acked_early(self, mock_apply):
+    def test_non_seer_event_not_routed_through_task(self, mock_apply):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/slack/event/",
+            status=status.HTTP_200_OK,
+            body=b"",
+        )
         parser = self._make_parser_with_seer_event(event_type="link_shared")
-        seer_ack = parser._try_ack_seer_event()
-        assert seer_ack is None
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
         mock_apply.assert_not_called()
