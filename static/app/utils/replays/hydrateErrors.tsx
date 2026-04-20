@@ -3,6 +3,7 @@ import invariant from 'invariant';
 
 import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import type {
@@ -26,7 +27,7 @@ export function hydrateErrors(
     try {
       // Feedback frame
       if (e.title.includes('User Feedback')) {
-        const time = new Date(e.timestamp);
+        const time = parseEventTimestampMs(e.timestamp_ms);
         invariant(isValidDate(time), 'feedbackFrame.timestamp is invalid');
 
         feedbackFrames.push({
@@ -53,7 +54,7 @@ export function hydrateErrors(
         return;
       }
       // Error frame
-      const time = new Date(e.timestamp);
+      const time = parseEventTimestampMs(e.timestamp_ms);
       invariant(isValidDate(time), 'errorFrame.timestamp is invalid');
 
       errorFrames.push({

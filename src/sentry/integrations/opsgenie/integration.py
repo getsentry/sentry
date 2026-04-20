@@ -4,9 +4,7 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
-from django import forms
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField, ChoiceField
 from rest_framework.serializers import ValidationError
@@ -16,7 +14,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
-    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -29,10 +26,6 @@ from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.metrics import (
-    IntegrationPipelineViewEvent,
-    IntegrationPipelineViewType,
-)
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
@@ -42,7 +35,6 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationError,
 )
-from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
 from .utils import get_team
@@ -87,57 +79,6 @@ OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
     "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
     "https://api.atlassian.com/jsm/ops/integration/": "atlassian.net",
 }
-
-
-class InstallationForm(forms.Form):
-    base_url = forms.ChoiceField(
-        label=_("Base URL"),
-        choices=[
-            ("https://api.opsgenie.com/", "api.opsgenie.com"),
-            ("https://api.eu.opsgenie.com/", "api.eu.opsgenie.com"),
-            ("https://api.atlassian.com/jsm/ops/integration/", "api.atlassian.com (JSM)"),
-        ],
-    )
-    provider = forms.CharField(
-        label=_("Account Name"),
-        help_text=_("Example: 'acme' for https://acme.app.opsgenie.com/"),
-        widget=forms.TextInput(),
-    )
-
-    api_key = forms.CharField(
-        label=("Opsgenie Integration Key"),
-        help_text=_(
-            "Optionally, add your first integration key for sending alerts. You can rename this key later."
-        ),
-        widget=forms.TextInput(),
-        required=False,
-    )
-
-
-class InstallationConfigView:
-    def record_event(self, event: IntegrationPipelineViewType):
-        return IntegrationPipelineViewEvent(
-            event, IntegrationDomain.ON_CALL_SCHEDULING, OpsgenieIntegrationProvider.key
-        )
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with self.record_event(IntegrationPipelineViewType.INSTALLATION_CONFIGURATION).capture():
-            if request.method == "POST":
-                form = InstallationForm(request.POST)
-                if form.is_valid():
-                    form_data = form.cleaned_data
-
-                    pipeline.bind_state("installation_data", form_data)
-
-                    return pipeline.next_step()
-            else:
-                form = InstallationForm()
-
-            return render_to_response(
-                template="sentry/integrations/opsgenie-config.html",
-                context={"form": form},
-                request=request,
-            )
 
 
 class OpsgenieIntegration(IntegrationInstallation):
@@ -298,7 +239,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     )
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [InstallationConfigView()]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [OpsgenieInstallationApiStep()]

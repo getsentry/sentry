@@ -13,10 +13,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-import {Switch} from '@sentry/scraps/switch';
 
-import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -46,12 +43,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {getDashboardTemplates} from 'sentry/views/dashboards/data';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
-import {
-  assignDefaultLayout,
-  getInitialColumnDepths,
-} from 'sentry/views/dashboards/layoutUtils';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {
   OWNED_CURSOR_KEY,
@@ -59,7 +51,6 @@ import {
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
-import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -75,18 +66,11 @@ import {
   DEFAULT_PREBUILT_SORT,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
-import {TemplateCard} from './templateCard';
 
-const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
 const TABLE = 'table';
-
-function shouldShowTemplates(): boolean {
-  const shouldShow = localStorageWrapper.getItem(SHOW_TEMPLATES_KEY);
-  return shouldShow === 'true' || shouldShow === null;
-}
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorageWrapper.getItem(LAYOUT_KEY);
@@ -178,10 +162,6 @@ function ManageDashboards() {
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
 
-  const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
-    SHOW_TEMPLATES_KEY,
-    shouldShowTemplates()
-  );
   const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
     LAYOUT_KEY,
     getDashboardsOverviewLayout()
@@ -400,34 +380,10 @@ function ManageDashboards() {
     });
   };
 
-  const toggleTemplates = () => {
-    trackAnalytics('dashboards_manage.templates.toggle', {
-      organization,
-      show_templates: !showTemplates,
-    });
-    setShowTemplatesLocal(!showTemplates);
-  };
-
   function getQuery() {
     const {query} = location.query;
 
     return typeof query === 'string' ? query : undefined;
-  }
-
-  function renderTemplates() {
-    return (
-      <TemplateContainer>
-        {getDashboardTemplates(organization).map(dashboard => (
-          <TemplateCard
-            title={dashboard.title}
-            description={dashboard.description}
-            onPreview={() => onPreview(dashboard.id)}
-            onAdd={() => onAdd(dashboard)}
-            key={dashboard.title}
-          />
-        ))}
-      </TemplateContainer>
-    );
   }
 
   function renderActions() {
@@ -553,41 +509,6 @@ function ManageDashboards() {
     navigate(normalizeUrl(`/organizations/${organization.slug}/dashboards/new/`));
   }
 
-  async function onAdd(dashboard: DashboardDetails) {
-    trackAnalytics('dashboards_manage.templates.add', {
-      organization,
-      dashboard_id: dashboard.id,
-      dashboard_title: dashboard.title,
-      was_previewed: false,
-    });
-
-    addLoadingMessage(t('Adding dashboard from template...'));
-
-    const newDashboard = await createDashboard(api, organization.slug, {
-      ...dashboard,
-      widgets: assignDefaultLayout(dashboard.widgets, getInitialColumnDepths()),
-    });
-    addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
-    loadDashboard(newDashboard.id);
-  }
-
-  function loadDashboard(dashboardId: string) {
-    navigate(
-      normalizeUrl(`/organizations/${organization.slug}/dashboards/${dashboardId}/`)
-    );
-  }
-
-  function onPreview(dashboardId: string) {
-    trackAnalytics('dashboards_manage.templates.preview', {
-      organization,
-      dashboard_id: dashboardId,
-    });
-
-    navigate(
-      normalizeUrl(`/organizations/${organization.slug}/dashboards/new/${dashboardId}/`)
-    );
-  }
-
   function onGenerateDashboard() {
     trackAnalytics('dashboards_manage.generate.start', {
       organization,
@@ -638,16 +559,6 @@ function ManageDashboards() {
                   {hasPageFrameFeature ? (
                     <Fragment>
                       <TopBar.Slot name="actions">
-                        {!hasPrebuiltDashboards && (
-                          <TemplateSwitch>
-                            {t('Show Templates')}
-                            <Switch
-                              checked={showTemplates}
-                              size="lg"
-                              onChange={toggleTemplates}
-                            />
-                          </TemplateSwitch>
-                        )}
                         <Feature features={['dashboards-ai-generate']}>
                           {({hasFeature: hasAiGenerate}) =>
                             hasAiGenerate && areAiFeaturesAllowed ? (
@@ -746,17 +657,6 @@ function ManageDashboards() {
                   ) : (
                     <Layout.HeaderActions>
                       <Grid flow="column" align="center" gap="lg">
-                        {!hasPrebuiltDashboards && (
-                          <TemplateSwitch>
-                            {t('Show Templates')}
-                            <Switch
-                              checked={showTemplates}
-                              size="lg"
-                              onChange={toggleTemplates}
-                            />
-                          </TemplateSwitch>
-                        )}
-
                         <FeedbackButton />
                         <Feature features={['dashboards-ai-generate']}>
                           {({hasFeature: hasAiGenerate}) =>
@@ -857,7 +757,6 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main width="full">
-                    {!hasPrebuiltDashboards && showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}
@@ -885,30 +784,6 @@ const StyledActions = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
-  }
-`;
-
-const TemplateSwitch = styled('label')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  font-size: ${p => p.theme.font.size.lg};
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  width: max-content;
-  margin: 0;
-`;
-
-const TemplateContainer = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xs};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;
 
