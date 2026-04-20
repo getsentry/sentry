@@ -34,6 +34,7 @@ import {AutomationHistoryList} from 'sentry/views/automations/components/automat
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
@@ -121,12 +122,28 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
-              <DetailSection title={t('Connected Monitors')}>
+              <DetailSection
+                title={t('Connected Projects')}
+                description={t(
+                  'All issues belonging to a connected project will trigger this alert when conditions are met.'
+                )}
+              >
+                <ErrorBoundary mini>
+                  <ConnectedProjectsList automationId={automation.id} />
+                </ErrorBoundary>
+              </DetailSection>
+              <DetailSection
+                title={t('Connected Monitors')}
+                description={t(
+                  'Issues created by a connected monitor will trigger this alert when conditions are met.'
+                )}
+              >
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectorIds={automation.detectorIds}
+                    workflowId={automation.id}
                     cursor={monitorListCursor}
                     onCursor={setMonitorListCursor}
+                    query="!type:issue_stream"
                   />
                 </ErrorBoundary>
               </DetailSection>

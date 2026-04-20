@@ -35,7 +35,7 @@ import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 interface AutofixCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

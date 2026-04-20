@@ -1,13 +1,15 @@
 import {Fragment, useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {Pagination} from 'sentry/components/pagination';
 import type {Project} from 'sentry/types/project';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
-import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
+import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 
 import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 
@@ -28,20 +30,17 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
   // when this value changes there are new check-ins present.
   const nextCheckIn = getNextCheckInEnv(monitorEnvs)?.nextCheckIn;
 
-  const {
-    data: checkInList,
-    getResponseHeader,
-    isPending,
-    isError,
-    refetch,
-  } = useMonitorCheckIns({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-    monitorIdOrSlug: monitorSlug,
-    limit: PER_PAGE,
-    expand: 'groups',
-    environment: monitorEnvs.map(e => e.name),
-    queryParams: {...location.query},
+  const {data, isPending, isError, refetch} = useQuery({
+    ...monitorCheckInsApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      monitorIdOrSlug: monitorSlug,
+      limit: PER_PAGE,
+      expand: 'groups',
+      environment: monitorEnvs.map(e => e.name),
+      queryParams: {...location.query},
+    }),
+    select: selectJsonWithHeaders,
   });
 
   useEffect(() => void refetch(), [refetch, nextCheckIn]);
@@ -55,12 +54,12 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
   return (
     <Fragment>
       <MonitorCheckInsGrid
-        checkIns={checkInList ?? []}
+        checkIns={data?.json ?? []}
         isLoading={isPending}
         hasMultiEnv={hasMultiEnv}
         project={project}
       />
-      <Pagination pageLinks={getResponseHeader?.('Link')} />
+      <Pagination pageLinks={data?.headers.Link} />
     </Fragment>
   );
 }

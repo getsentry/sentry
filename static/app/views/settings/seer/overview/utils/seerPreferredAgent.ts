@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -18,37 +17,12 @@ import {
   fetchDataQuery,
   fetchMutation,
   useQueryClient,
-  mutationOptions,
   useQuery,
 } from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type PreferredAgent = 'seer' | CodingAgentIntegration;
-
-export function useFetchPreferredAgent({organization}: {organization: Organization}) {
-  const value = organization.defaultCodingAgentIntegrationId
-    ? String(organization.defaultCodingAgentIntegrationId)
-    : organization.defaultCodingAgent;
-
-  const query = useQuery({
-    ...organizationIntegrationsCodingAgents(organization),
-    enabled: value !== null && value !== 'seer',
-    select: data =>
-      data.json.integrations?.find(i => i.id === String(value!)) ?? ('seer' as const),
-  });
-
-  if (value === null || value === 'seer') {
-    return {
-      ...query,
-      data: 'seer' as const,
-      isPending: false,
-      isSuccess: true,
-      status: 'success',
-    };
-  }
-  return query;
-}
 
 export function useFetchAgentOptions({
   organization,
@@ -71,32 +45,6 @@ export function useFetchAgentOptions({
           })),
       ];
     },
-  });
-}
-
-export function getPreferredAgentMutationOptions({
-  organization,
-}: {
-  organization: Organization;
-}) {
-  return mutationOptions({
-    mutationFn: ({integration}: {integration: PreferredAgent}) => {
-      return fetchMutation<Organization>({
-        method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
-        data:
-          integration === 'seer'
-            ? {
-                defaultCodingAgent: integration,
-                defaultCodingAgentIntegrationId: null,
-              }
-            : {
-                defaultCodingAgent: integration.provider,
-                defaultCodingAgentIntegrationId: integration.id,
-              },
-      });
-    },
-    onSuccess: updateOrganization,
   });
 }
 

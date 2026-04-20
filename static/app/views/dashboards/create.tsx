@@ -8,9 +8,8 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 
-import {EMPTY_DASHBOARD, getDashboardTemplates} from './data';
+import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
@@ -18,30 +17,14 @@ import {cloneDashboard} from './utils';
 
 export default function CreateDashboard() {
   const organization = useOrganization();
-  const {templateId} = useParams<{templateId: string}>();
   const location = useLocation();
 
-  const template = templateId
-    ? getDashboardTemplates(organization).find(
-        dashboardTemplate => dashboardTemplate.id === templateId
-      )
-    : undefined;
-
-  const baseDashboard = template
-    ? cloneDashboard(template)
-    : cloneDashboard(EMPTY_DASHBOARD);
-
-  const hasWidgetsToAdd = !!location.state?.widgets && location.state.widgets.length > 0;
-
   const [dashboard] = useState<DashboardDetails>(() => {
-    if (hasWidgetsToAdd) {
-      // Pre-populate dashboard with widgets from location state
-      return {
-        ...baseDashboard,
-        widgets: location.state.widgets as Widget[],
-      };
+    const base = cloneDashboard(EMPTY_DASHBOARD);
+    if (location.state?.widgets?.length) {
+      return {...base, widgets: location.state.widgets as Widget[]};
     }
-    return baseDashboard;
+    return base;
   });
 
   function renderDisabled() {
@@ -64,7 +47,7 @@ export default function CreateDashboard() {
     >
       <ErrorBoundary>
         <DashboardDetail
-          initialState={template ? DashboardState.PREVIEW : DashboardState.CREATE}
+          initialState={DashboardState.CREATE}
           dashboard={dashboard}
           dashboards={[]}
         />

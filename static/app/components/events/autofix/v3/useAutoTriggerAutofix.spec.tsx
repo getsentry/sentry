@@ -8,16 +8,18 @@ import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAuto
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
 ): ReturnType<typeof useExplorerAutofix> {
-  return {
+  const base: ReturnType<typeof useExplorerAutofix> = {
     runState: null,
     startStep: jest.fn(),
     createPR: jest.fn(),
     reset: jest.fn(),
     triggerCodingAgentHandoff: jest.fn(),
+    codingAgentErrors: [],
+    dismissCodingAgentError: jest.fn(),
     isLoading: false,
     isPolling: false,
-    ...overrides,
   };
+  return {...base, ...overrides};
 }
 
 describe('useAutoTriggerAutofix', () => {

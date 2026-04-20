@@ -19,14 +19,6 @@ type Props = {
   body?: React.ReactNode;
   className?: string;
   /**
-   * Use a purple color for the subtitle
-   */
-  colorSubtitle?: boolean;
-  /**
-   * Icon to the left of the title
-   */
-  icon?: React.ReactNode;
-  /**
    * Disables font styles in the title. Allows for more custom titles.
    */
   noTitleStyles?: boolean;
@@ -35,10 +27,8 @@ type Props = {
 };
 
 function UnstyledSettingsPageHeader({
-  icon,
   title,
   subtitle,
-  colorSubtitle,
   action,
   body,
   tabs,
@@ -61,14 +51,7 @@ function UnstyledSettingsPageHeader({
         {typeof title === 'string' ? (
           <BreadcrumbTitle routes={routes} title={title} />
         ) : (
-          title && (
-            <TitleWrapper>
-              {icon && <Icon>{icon}</Icon>}
-              <Title tabs={tabs} styled={noTitleStyles}>
-                <Layout.Title>{title}</Layout.Title>
-              </Title>
-            </TitleWrapper>
-          )
+          title && <Layout.Title>{title}</Layout.Title>
         )}
         {action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
         {body && <BodyWrapper>{body}</BodyWrapper>}
@@ -81,11 +64,10 @@ function UnstyledSettingsPageHeader({
     <div {...props}>
       <TitleAndActions isNarrow={isNarrow}>
         <TitleWrapper>
-          {icon && <Icon>{icon}</Icon>}
           {title && (
-            <Title tabs={tabs} styled={noTitleStyles}>
+            <Title styled={noTitleStyles}>
               <Layout.Title>{title}</Layout.Title>
-              {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
+              {subtitle && <Subtitle>{subtitle}</Subtitle>}
             </Title>
           )}
         </TitleWrapper>
@@ -98,11 +80,6 @@ function UnstyledSettingsPageHeader({
   );
 }
 
-interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
-  styled?: boolean;
-  tabs?: React.ReactNode;
-}
-
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
   align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
@@ -111,22 +88,17 @@ const TitleWrapper = styled('div')`
   flex: 1;
 `;
 
-const Title = styled('div')<TitleProps>`
+const Title = styled('div')<{styled?: boolean}>`
   ${p =>
     !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
   margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
     ${p => p.theme.space['2xl']} 0;
 `;
-const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
-  color: ${p =>
-    p.colorSubtitle ? p.theme.tokens.content.accent : p.theme.colors.gray500};
+const Subtitle = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
   padding: ${p => p.theme.space.lg} 0 0;
-`;
-
-const Icon = styled('div')`
-  margin-right: ${p => p.theme.space.md};
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`

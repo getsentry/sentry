@@ -12,6 +12,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -39,6 +40,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci
+@with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-details"
 
@@ -208,6 +210,14 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
+    def test_metric_detector_not_allowed_returns_404(self) -> None:
+        """
+        When the org lacks the incidents feature, GET for a metric detector
+        should return 404.
+        """
+        with self.feature({"organizations:incidents": False}):
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
@@ -365,6 +375,19 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 self.detector.id,
                 **data,
                 status_code=200,
+            )
+
+    def test_metric_detector_not_allowed_returns_404(self) -> None:
+        """
+        When the org lacks the incidents feature, PUT for a metric detector
+        should return 404.
+        """
+        with self.feature({"organizations:incidents": False}):
+            self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **self.valid_data,
+                status_code=404,
             )
 
     def test_update_add_data_condition(self) -> None:
@@ -1074,6 +1097,15 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
+
+    def test_delete_allowed_without_metric_subscription_feature(self) -> None:
+        with self.feature({"organizations:incidents": False}):
+            with outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
 
     def test_error_group_type(self) -> None:
         """

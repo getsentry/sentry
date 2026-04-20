@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TabPanels} from '@sentry/scraps/tabs';
@@ -6,20 +5,12 @@ import {TabPanels} from '@sentry/scraps/tabs';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
-import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
+export const TabListWrapper = styled('div')`
   width: 100%;
   padding-left: ${p => p.theme.space.md};
   padding-top: ${p => p.theme.space.md};
-
-  ${p =>
-    p.orientation === 'bottom' &&
-    css`
-      padding-top: 0;
-      padding-bottom: 1px;
-    `}
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;

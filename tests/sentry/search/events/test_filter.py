@@ -204,6 +204,11 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
+    def test_in_operator_rejected(self) -> None:
+        filter = SearchFilter(SearchKey(self.key), "IN", SearchValue(["1.0.0", "2.0.0"]))
+        with pytest.raises(InvalidSearchQuery, match="Invalid operation 'IN'"):
+            _semver_filter_converter(filter, self.key, {"organization_id": self.organization.id})
+
     def test_empty(self) -> None:
         self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
 
