@@ -26,6 +26,15 @@ export const useSeerExplorerDrawer = () => {
   // (useSeerExplorer hook should no longer handle this)
   const isOpenRef = useRef(false);
 
+  const onOpen = useCallback(() => {
+    isOpenRef.current = true;
+    trackAnalytics('seer.explorer.global_panel.opened', {
+      referrer: getPageReferrer(),
+      organization,
+      isDrawer: true,
+    });
+  }, [getPageReferrer, organization]);
+
   const onClose = useCallback(() => {
     isOpenRef.current = false;
     navigate(
@@ -65,18 +74,14 @@ export const useSeerExplorerDrawer = () => {
         `,
         resizable: true,
         closeOnOutsideClick: false,
-        shouldLockScroll: true,
+        shouldLockScroll: false,
+        // XXX: be sure to update isOpenRef if closing on change is needed. useDrawer doesn't call onClose
+        shouldCloseOnLocationChange: () => false,
+        onOpen,
         onClose,
       }
     );
-
-    isOpenRef.current = true;
-    trackAnalytics('seer.explorer.global_panel.opened', {
-      referrer: getPageReferrer(),
-      organization,
-      isDrawer: true,
-    });
-  }, [openDrawer, onClose, closeSeerExplorerDrawer, getPageReferrer, organization]);
+  }, [openDrawer, closeSeerExplorerDrawer, onOpen, onClose, getPageReferrer]);
 
   const toggleSeerExplorerDrawer = useCallback(() => {
     if (isOpenRef.current) {
