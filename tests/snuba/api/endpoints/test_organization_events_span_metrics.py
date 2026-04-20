@@ -27,7 +27,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.min_ago = before_now(minutes=1)
         self.six_min_ago = before_now(minutes=6)
         self.three_days_ago = before_now(days=3)
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query, features=None):
         if features is None:
