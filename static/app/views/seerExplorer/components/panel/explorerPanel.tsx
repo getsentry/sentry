@@ -73,6 +73,9 @@ export function ExplorerFloatingActionButton() {
   );
 }
 
+/**
+ * Seer Explorer panel component using global portal. Deprecated in favor of useSeerExplorerDrawer.
+ */
 export function ExplorerPanel() {
   const {
     isOpen: isVisible,
