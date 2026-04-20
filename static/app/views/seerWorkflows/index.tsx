@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -62,7 +62,7 @@ function SeerWorkflows() {
 
   return (
     <SentryDocumentTitle title={t('Seer Workflows')} orgSlug={organization.slug}>
-      <Container>
+      <Flex direction="column" gap="lg" padding="xl">
         <Heading as="h1">{t('Seer Workflows')}</Heading>
         <Text as="p" variant="muted">
           {t('Historical runs of Seer workflows for this organization.')}
@@ -116,9 +116,13 @@ function SeerWorkflows() {
 
                     {isExpanded && (
                       <SimpleTable.Row variant="faded">
-                        <FullWidthCell>
+                        <Container
+                          background="secondary"
+                          padding="md lg"
+                          style={{gridColumn: '1 / -1'}}
+                        >
                           <RunDetail run={run} organizationSlug={organization.slug} />
-                        </FullWidthCell>
+                        </Container>
                       </SimpleTable.Row>
                     )}
                   </Fragment>
@@ -127,7 +131,7 @@ function SeerWorkflows() {
             )}
           </RunsTable>
         )}
-      </Container>
+      </Flex>
     </SentryDocumentTitle>
   );
 }
@@ -140,7 +144,7 @@ function RunDetail({
   run: SeerNightShiftRun;
 }) {
   return (
-    <Flex direction="column" gap="sm" padding="md lg">
+    <Flex direction="column" gap="sm">
       {run.errorMessage ? (
         <Text variant="danger" size="sm">
           {t('Error: ')}
@@ -153,7 +157,9 @@ function RunDetail({
           <Text bold size="xs" variant="muted" uppercase>
             {t('Extras')}
           </Text>
-          <ExtrasPre>{JSON.stringify(run.extras, null, 2)}</ExtrasPre>
+          <Text as="pre" size="sm" monospace>
+            {JSON.stringify(run.extras, null, 2)}
+          </Text>
         </Fragment>
       ) : null}
 
@@ -166,88 +172,38 @@ function RunDetail({
           {t('No issues processed in this run.')}
         </Text>
       ) : (
-        <IssuesTable>
-          <colgroup>
-            <col style={{width: '120px'}} />
-            <col style={{width: '200px'}} />
-            <col />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>{t('Group')}</th>
-              <th>{t('Action')}</th>
-              <th>{t('Seer Run ID')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {run.issues.map(issue => (
-              <tr key={issue.id}>
-                <td>
-                  <Link
-                    to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}
-                  >
-                    {issue.groupId}
-                  </Link>
-                </td>
-                <td>{issue.action}</td>
-                <td>{issue.seerRunId ?? '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </IssuesTable>
+        <Grid columns="max-content max-content 1fr" gap="xs md">
+          <Text bold size="xs" variant="muted">
+            {t('Group')}
+          </Text>
+          <Text bold size="xs" variant="muted">
+            {t('Action')}
+          </Text>
+          <Text bold size="xs" variant="muted">
+            {t('Seer Run ID')}
+          </Text>
+          {run.issues.flatMap(issue => [
+            <Link
+              key={`${issue.id}-group`}
+              to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}
+            >
+              {issue.groupId}
+            </Link>,
+            <Text key={`${issue.id}-action`} size="sm">
+              {issue.action}
+            </Text>,
+            <Text key={`${issue.id}-seer`} size="sm" variant="muted">
+              {issue.seerRunId ?? '-'}
+            </Text>,
+          ])}
+        </Grid>
       )}
     </Flex>
   );
 }
 
-const Container = styled('div')`
-  padding: ${p => p.theme.space.xl};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-`;
-
 const RunsTable = styled(SimpleTable)`
   grid-template-columns: min-content 1fr 1fr 1fr 1fr min-content;
-`;
-
-const FullWidthCell = styled('div')`
-  grid-column: 1 / -1;
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
-const ExtrasPre = styled('pre')`
-  margin: 0;
-  padding: ${p => p.theme.space.md};
-  background: ${p => p.theme.surface100};
-  border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.font.size.sm};
-  white-space: pre-wrap;
-`;
-
-const IssuesTable = styled('table')`
-  width: auto;
-  border-collapse: collapse;
-  font-size: ${p => p.theme.font.size.sm};
-  table-layout: fixed;
-
-  th,
-  td {
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-    text-align: left;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  th {
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-
-  tr:last-child td {
-    border-bottom: none;
-  }
 `;
 
 export default SeerWorkflows;
