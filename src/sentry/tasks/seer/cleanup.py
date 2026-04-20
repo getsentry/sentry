@@ -147,7 +147,7 @@ def bulk_cleanup_seer_repository_preferences(
 
 
 @instrumented_task(
-    name="sentry.tasks.seer.cleanup_seer_automation_handoff_for_integration",
+    name="sentry.tasks.seer.cleanup_seer_automation_handoffs_for_integration",
     namespace=seer_tasks,
     processing_deadline_duration=60 * 10,
     silo_mode=SiloMode.CELL,
@@ -170,7 +170,7 @@ def cleanup_seer_automation_handoffs_for_integration(
             raise SeerApiError("Seer request failed", response.status)
     except Exception:
         logger.exception(
-            "cleanup_seer_automation_handoff_for_integration.failed",
+            "cleanup_seer_automation_handoffs_for_integration.failed",
             extra={"organization_id": organization_id, "integration_id": integration_id},
         )
         raise
@@ -196,6 +196,6 @@ def cleanup_seer_automation_handoffs_for_integration(
         pass
 
     logger.info(
-        "cleanup_seer_automation_handoff_for_integration.success",
+        "cleanup_seer_automation_handoffs_for_integration.success",
         extra={"organization_id": organization_id, "integration_id": integration_id},
     )
