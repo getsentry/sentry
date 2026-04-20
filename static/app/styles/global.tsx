@@ -152,7 +152,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   *::after {
     scrollbar-width: thin;
     /* eslint-disable @sentry/scraps/use-semantic-token */
-    scrollbar-color: ${theme.tokens.graphics.neutral.muted} transparent;
+    scrollbar-color: ${theme.tokens.graphics.neutral.moderate} transparent;
   }
 
   body {
