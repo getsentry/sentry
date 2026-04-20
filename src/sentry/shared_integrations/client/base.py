@@ -341,6 +341,9 @@ class BaseApiClient:
 
         self.track_response_data(resp.status_code, None, resp, extra=extra)
 
+        if resp.status_code == 204:
+            return {}
+
         # BaseApiResponse.from_response returns MappingApiResponse (subclass of dict)
         # or SequenceApiResponse (subclass of list), or TextApiResponse (has str .text)
         return BaseApiResponse.from_response(
