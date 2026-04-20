@@ -360,7 +360,6 @@ class BaseApiClient:
 
         key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
-        integration_tag_key = self.integration_type or "integration"
         api_request_type = kwargs.get("api_request_type")
         api_request_type_tag = (
             api_request_type.value
@@ -371,7 +370,7 @@ class BaseApiClient:
             f"{self.metrics_prefix}.get_cached",
             sample_rate=1.0,
             tags={
-                integration_tag_key: self.name,
+                "integration": self.name,
                 "api_request_type": str(api_request_type_tag),
                 "result": "hit" if result is not None else "miss",
             },
