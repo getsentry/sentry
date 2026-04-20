@@ -6,6 +6,7 @@ from sentry.dashboards.endpoints.organization_dashboard_revision_restore import 
     _prepare_restore_data,
 )
 from sentry.models.dashboard import Dashboard, DashboardRevision
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.testutils.cases import APITestCase
 
 
@@ -180,3 +181,71 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
 
         assert response.status_code == 400
         assert "detail" in response.data
+
+    def test_returns_403_when_user_lacks_edit_permission(self) -> None:
+        DashboardPermissions.objects.create(
+            is_editable_by_everyone=False,
+            dashboard=self.dashboard,
+        )
+        revision = self._create_revision(snapshot={"title": "Dashboard 1", "widgets": []})
+
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization, role="member")
+        self.login_as(other_user)
+
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.post(self._url(revision.id))
+
+        assert response.status_code == 403
+
+    def test_returns_409_when_restored_title_conflicts_with_another_dashboard(self) -> None:
+        Dashboard.objects.create(
+            title="Conflicting Title",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        revision = self._create_revision(
+            snapshot={"title": "Conflicting Title", "widgets": []},
+            title="Conflicting Title",
+        )
+
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.post(self._url(revision.id))
+
+        assert response.status_code == 409
+        assert "detail" in response.data
+
+    def test_widget_ids_are_not_reused_after_restore(self) -> None:
+        snapshot_widget_id = 999999
+        revision = self._create_revision(
+            snapshot={
+                "title": "Dashboard 1",
+                "widgets": [
+                    {
+                        "id": snapshot_widget_id,
+                        "title": "Widget",
+                        "displayType": "table",
+                        "interval": "5m",
+                        "queries": [
+                            {
+                                "name": "",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "",
+                            }
+                        ],
+                        "widgetType": "error-events",
+                        "order": 0,
+                    }
+                ],
+            }
+        )
+
+        with self.feature("organizations:dashboards-revisions"):
+            response = self.client.post(self._url(revision.id))
+
+        assert response.status_code == 200
+        assert len(response.data["widgets"]) == 1
+        assert response.data["widgets"][0]["id"] != str(snapshot_widget_id)
