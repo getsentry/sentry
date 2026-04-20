@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Literal, Self, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -24,6 +24,14 @@ from ..exceptions import (
     ApiTimeoutError,
 )
 from ..response.base import BaseApiResponse
+
+if TYPE_CHECKING:
+    from ..response.mapping import MappingApiResponse
+    from ..response.sequence import SequenceApiResponse
+    from ..response.text import TextApiResponse
+
+    # Type alias for API response data
+    ApiResponseData = MappingApiResponse | SequenceApiResponse | TextApiResponse
 
 
 class SessionSettings(TypedDict, total=False):
@@ -340,13 +348,11 @@ class BaseApiClient:
         )
 
     # subclasses should override ``request``
-    def request(
-        self, method: str, path: str, *args: Any, **kwargs: Any
-    ) -> BaseApiResponse | Response:
+    def request(self, method: str, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._request(method, path, *args, **kwargs)
 
-    def delete(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return self.request("DELETE", path, *args, **kwargs)  # type: ignore[return-value]
+    def delete(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("DELETE", path, *args, **kwargs)
 
     def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
         if not data:
@@ -358,13 +364,13 @@ class BaseApiClient:
             + md5_text(self.build_url(path), method, query, data).hexdigest()
         )
 
-    def check_cache(self, cache_key: str) -> BaseApiResponse | None:
+    def check_cache(self, cache_key: str) -> Any | None:
         return cache.get(cache_key)
 
-    def set_cache(self, cache_key: str, result: BaseApiResponse, cache_time: int) -> None:
+    def set_cache(self, cache_key: str, result: Any, cache_time: int) -> None:
         cache.set(cache_key, result, cache_time)
 
-    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> Any:
         data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
@@ -393,32 +399,32 @@ class BaseApiClient:
             self.set_cache(key, result, cache_time)
         return result
 
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return self.request("GET", path, *args, **kwargs)  # type: ignore[return-value]
+    def get(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("GET", path, *args, **kwargs)
 
-    def patch(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return self.request("PATCH", path, *args, **kwargs)  # type: ignore[return-value]
+    def patch(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("PATCH", path, *args, **kwargs)
 
-    def post(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return self.request("POST", path, *args, **kwargs)  # type: ignore[return-value]
+    def post(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("POST", path, *args, **kwargs)
 
-    def put(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return self.request("PUT", path, *args, **kwargs)  # type: ignore[return-value]
+    def put(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("PUT", path, *args, **kwargs)
 
-    def head(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return self.request("HEAD", path, *args, **kwargs)  # type: ignore[return-value]
+    def head(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("HEAD", path, *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(
         self,
         path: str,
         gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
-        get_results: Callable[[BaseApiResponse], Sequence[Any]],
+        get_results: Callable[[Any], Sequence[Any]],
         *args: Any,
         **kwargs: Any,
     ) -> list[Any]:
