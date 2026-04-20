@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Literal, Self, TypedDict, overload
 
 import sentry_sdk
@@ -30,10 +30,10 @@ class SessionSettings(TypedDict):
     timeout: int
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
-    proxies: Any
-    stream: Any
-    verify: Any
-    cert: Any
+    proxies: dict[str, str]
+    stream: bool | None
+    verify: bool | str
+    cert: str | tuple[str, str] | None
 
 
 class BaseApiClient:
@@ -76,7 +76,12 @@ class BaseApiClient:
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: Any,
+    ) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
         #  machinery + how we override it, possibly do this along with urllib3
@@ -86,9 +91,9 @@ class BaseApiClient:
     def track_response_data(
         self,
         code: str | int,
-        error: Exception | None = None,
+        error: BaseException | None = None,
         resp: Response | None = None,
-        extra: Mapping[str, str] | None = None,
+        extra: Mapping[str, str | int] | None = None,
     ) -> None:
         tags: dict[str, str | int] = {self.integration_type: self.name, "status": code}
         if extra and "api_request_type" in extra:
@@ -153,7 +158,7 @@ class BaseApiClient:
                 return True
         return False
 
-    def is_error_fatal(self, error: Exception) -> bool:
+    def is_error_fatal(self, error: BaseException) -> bool:
         return False
 
     def build_session(self) -> SafeSession:
@@ -168,8 +173,8 @@ class BaseApiClient:
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, str | int | bool] | None = None,
         auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -188,8 +193,8 @@ class BaseApiClient:
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, str | int | bool] | None = None,
         auth: str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -207,8 +212,8 @@ class BaseApiClient:
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, str | int | bool] | None = None,
         auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -331,16 +336,20 @@ class BaseApiClient:
         if resp.status_code == 204:
             return {}
 
-        return BaseApiResponse.from_response(
+        response_data = BaseApiResponse.from_response(
             resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
         )
+        # BaseApiResponse.from_response returns dict, str, or list
+        return response_data
 
     # subclasses should override ``request``
-    def request(self, *args: Any, **kwargs: Any) -> Any:
-        return self._request(*args, **kwargs)
+    def request(
+        self, method: str, path: str, *args: Any, **kwargs: Any
+    ) -> dict[str, Any] | str | list[Any] | Response:
+        return self._request(method, path, *args, **kwargs)
 
-    def delete(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("DELETE", *args, **kwargs)
+    def delete(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
+        return self.request("DELETE", path, *args, **kwargs)
 
     def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
         if not data:
@@ -352,13 +361,17 @@ class BaseApiClient:
             + md5_text(self.build_url(path), method, query, data).hexdigest()
         )
 
-    def check_cache(self, cache_key: str) -> Any | None:
+    def check_cache(self, cache_key: str) -> dict[str, Any] | str | list[Any] | None:
         return cache.get(cache_key)
 
-    def set_cache(self, cache_key: str, result: Any, cache_time: int) -> None:
+    def set_cache(
+        self, cache_key: str, result: dict[str, Any] | str | list[Any], cache_time: int
+    ) -> None:
         cache.set(cache_key, result, cache_time)
 
-    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> Any:
+    def _get_cached(
+        self, path: str, method: str, *args: Any, **kwargs: Any
+    ) -> dict[str, Any] | str | list[Any]:
         data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
@@ -387,44 +400,44 @@ class BaseApiClient:
             self.set_cache(key, result, cache_time)
         return result
 
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("GET", *args, **kwargs)
+    def get(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
+        return self.request("GET", path, *args, **kwargs)
 
-    def patch(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("PATCH", *args, **kwargs)
+    def patch(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
+        return self.request("PATCH", path, *args, **kwargs)
 
-    def post(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("POST", *args, **kwargs)
+    def post(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
+        return self.request("POST", path, *args, **kwargs)
 
-    def put(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("PUT", *args, **kwargs)
+    def put(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
+        return self.request("PUT", path, *args, **kwargs)
 
-    def head(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("HEAD", *args, **kwargs)
+    def head(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
+        return self.request("HEAD", path, *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> dict[str, Any] | str | list[Any]:
         return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(
         self,
         path: str,
-        gen_params: Callable[..., Any],
-        get_results: Callable[..., Any],
+        gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
+        get_results: Callable[[dict[str, Any] | str | list[Any]], Sequence[Any]],
         *args: Any,
         **kwargs: Any,
     ) -> list[Any]:
         page_size = self.page_size
-        output = []
+        output: list[Any] = []
 
         for i in range(self.page_number_limit):
             resp = self.get(path, params=gen_params(i, page_size))
             results = get_results(resp)
             num_results = len(results)
 
-            output += results
+            output += list(results)
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output
