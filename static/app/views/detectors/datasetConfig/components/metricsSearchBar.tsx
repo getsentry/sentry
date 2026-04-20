@@ -37,21 +37,20 @@ export function MetricsDetectorSearchBar({
   onClose,
   projectIds,
   disabled,
-  traceMetric,
-}: DetectorSearchBarProps & {traceMetric?: {name: string; type: string}}) {
+}: DetectorSearchBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
 
-  let parsedTraceMetric: {name: string; type: string} = {name: '', type: ''};
+  let traceMetric: {name: string; type: string} = {name: '', type: ''};
   try {
-    ({traceMetric: parsedTraceMetric} = parseMetricAggregate(aggregateFunction ?? ''));
+    ({traceMetric} = parseMetricAggregate(aggregateFunction ?? ''));
   } catch {
     // aggregateFunction may be unset during form init / dataset switching
   }
-  const traceMetricFilter = createTraceMetricFilter(traceMetric ?? parsedTraceMetric);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {data} = useQuery({
     ...traceItemAttributeKeysOptions({
@@ -130,7 +129,7 @@ export function MetricsDetectorSearchBar({
 
   return (
     <TraceItemSearchQueryBuilder
-      key={traceMetric?.name ?? ''}
+      key={traceMetric.name}
       itemType={TraceItemDataset.TRACEMETRICS}
       initialQuery={initialQuery}
       onSearch={onSearch}
@@ -142,7 +141,7 @@ export function MetricsDetectorSearchBar({
       stringSecondaryAliases={EMPTY_TAG_COLLECTION}
       searchSource="detectors-metrics"
       projects={projectIds}
-      namespace={traceMetric?.name ?? undefined}
+      namespace={traceMetric.name}
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
