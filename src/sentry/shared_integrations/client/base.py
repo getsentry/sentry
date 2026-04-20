@@ -371,11 +371,12 @@ class BaseApiClient:
             api_request_type_tag = "unknown"
         else:
             api_request_type_tag = str(api_request_type)
+        integration_tag_key = self.integration_type or "integration"
         metrics.incr(
             f"{self.metrics_prefix}.get_cached",
             sample_rate=1.0,
             tags={
-                "integration": self.name,
+                integration_tag_key: self.name,
                 "api_request_type": str(api_request_type_tag),
                 "result": "hit" if result is not None else "miss",
             },
