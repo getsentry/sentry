@@ -387,9 +387,7 @@ export function Controls({
                 }}
               </DashboardCreateLimitWrapper>
             )}
-            <Feature features="organizations:dashboards-revisions">
-              <DashboardRevisionsButton dashboard={dashboard} />
-            </Feature>
+            <DashboardRevisionsButton dashboard={dashboard} />
           </Fragment>
         )}
       </DashboardEditFeature>

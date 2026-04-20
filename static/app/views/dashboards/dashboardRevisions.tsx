@@ -25,6 +25,7 @@ interface DashboardRevisionsButtonProps {
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
   const organization = useOrganization();
 
+  const hasFeatureFlag = organization.features.includes('dashboards-revisions');
   const isValidDashboard =
     !!dashboard.id && dashboard.id !== 'default-overview' && !dashboard.prebuiltId;
 
@@ -38,7 +39,7 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
     ));
   };
 
-  if (!isValidDashboard) {
+  if (!hasFeatureFlag || !isValidDashboard) {
     return null;
   }
 

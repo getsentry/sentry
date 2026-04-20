@@ -1,0 +1,130 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
+
+import {DashboardRevisionsButton} from './dashboardRevisions';
+
+const REVISIONS_URL = '/organizations/org-slug/dashboards/1/revisions/';
+
+function makeRevision(overrides = {}) {
+  return {
+    id: '1',
+    title: 'My Dashboard',
+    source: 'edit',
+    createdBy: {id: '42', name: 'Alice', email: 'alice@example.com'},
+    dateCreated: '2024-01-15T10:00:00Z',
+    ...overrides,
+  };
+}
+
+function renderButton(
+  dashboardOverrides = {},
+  orgFeatures: string[] = ['dashboards-revisions']
+) {
+  const organization = OrganizationFixture({features: orgFeatures});
+  const dashboard = DashboardFixture([], {
+    id: '1',
+    title: 'My Dashboard',
+    ...dashboardOverrides,
+  });
+  render(<DashboardRevisionsButton dashboard={dashboard} />, {organization});
+}
+
+describe('DashboardRevisionsButton', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('does not render when dashboards-revisions feature flag is off', () => {
+    renderButton({}, []);
+    expect(
+      screen.queryByRole('button', {name: 'Dashboard Revisions'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render for the default-overview dashboard', () => {
+    renderButton({id: 'default-overview'});
+    expect(
+      screen.queryByRole('button', {name: 'Dashboard Revisions'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render for prebuilt dashboards', () => {
+    renderButton({prebuiltId: 'some-prebuilt-id'});
+    expect(
+      screen.queryByRole('button', {name: 'Dashboard Revisions'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the button for a valid custom dashboard', () => {
+    MockApiClient.addMockResponse({url: REVISIONS_URL, body: []});
+    renderButton();
+    expect(screen.getByRole('button', {name: 'Dashboard Revisions'})).toBeInTheDocument();
+  });
+
+  it('does not call the revisions endpoint until the button is clicked', () => {
+    const revisionsRequest = MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [],
+    });
+    renderButton();
+    expect(revisionsRequest).not.toHaveBeenCalled();
+  });
+
+  it('opens the modal and fetches revisions when clicked', async () => {
+    const revisionsRequest = MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [makeRevision()],
+    });
+
+    renderButton();
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
+
+    expect(revisionsRequest).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('My Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+  });
+
+  it('falls back to email when createdBy has no name', async () => {
+    MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [makeRevision({createdBy: {id: '42', name: '', email: 'alice@example.com'}})],
+    });
+
+    renderButton();
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
+
+    expect(await screen.findByText('alice@example.com')).toBeInTheDocument();
+  });
+
+  it('shows "Unknown" when createdBy is null', async () => {
+    MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [makeRevision({createdBy: null})],
+    });
+
+    renderButton();
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
+
+    expect(await screen.findByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('shows the empty state when no revisions exist', async () => {
+    MockApiClient.addMockResponse({url: REVISIONS_URL, body: []});
+
+    renderButton();
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
+
+    expect(await screen.findByText('No revisions found.')).toBeInTheDocument();
+  });
+});
