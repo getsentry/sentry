@@ -1912,6 +1912,12 @@ SENTRY_SCOPE_SETS = (
     ),
     (
         (
+            "org:ci",
+            "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
+    ),
+    (
+        (
             "org:integrations",
             "Read, write, and admin access to organization integrations.",
         ),

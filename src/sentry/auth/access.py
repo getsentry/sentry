@@ -43,6 +43,10 @@ __all__ = (
     "from_rpc_member",
 )
 
+# These scopes are not represented in organization member roles, but auth tokens
+# still need to retain them when request access is derived from the token.
+NON_ROLE_TOKEN_SCOPES = frozenset({"org:ci", "project:distribution"})
+
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
@@ -191,6 +195,18 @@ class Access(abc.ABC):
     @abc.abstractmethod
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
         pass
+
+
+def _intersect_member_and_token_scopes(
+    member_scopes: Collection[str], token_scopes: Iterable[str] | None
+) -> frozenset[str]:
+    if token_scopes is None:
+        return frozenset(member_scopes)
+
+    requested_scopes = frozenset(token_scopes)
+    return (requested_scopes & frozenset(member_scopes)) | (
+        requested_scopes & NON_ROLE_TOKEN_SCOPES
+    )
 
 
 @dataclass
@@ -440,8 +456,9 @@ class RpcBackedAccess(Access):
         if self.scopes_upper_bound is None:
             return frozenset(self.rpc_user_organization_context.member.scopes)
 
-        return frozenset(self.rpc_user_organization_context.member.scopes) & frozenset(
-            self.scopes_upper_bound
+        return _intersect_member_and_token_scopes(
+            self.rpc_user_organization_context.member.scopes,
+            self.scopes_upper_bound,
         )
 
     # TODO(cathy): remove this
@@ -1133,10 +1150,7 @@ def from_member(
     is_superuser: bool = False,
     is_staff: bool = False,
 ) -> Access:
-    if scopes is not None:
-        scope_intersection = frozenset(scopes) & member.get_scopes()
-    else:
-        scope_intersection = member.get_scopes()
+    scope_intersection = _intersect_member_and_token_scopes(member.get_scopes(), scopes)
 
     if (is_superuser or is_staff) and member.user_id is not None:
         # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
