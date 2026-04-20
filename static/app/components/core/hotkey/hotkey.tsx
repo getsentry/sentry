@@ -68,6 +68,6 @@ const StyledKbd = styled('kbd')`
   font-size: inherit;
   background: none;
   border: 0;
-  border-radius: ${p => p.theme.radius['2xs']};
+  border-radius: 0;
   box-shadow: none;
 `;
