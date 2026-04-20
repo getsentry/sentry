@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.urls import reverse
 
-from sentry.models.dashboard import Dashboard, DashboardRevision
+from sentry.models.dashboard import DashboardRevision
 from sentry.testutils.cases import APITestCase
 
 
@@ -10,9 +10,9 @@ class OrganizationDashboardRevisionDetailsTestCase(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.dashboard = Dashboard.objects.create(
+        self.dashboard = self.create_dashboard(
             title="Dashboard 1",
-            created_by_id=self.user.id,
+            created_by=self.user,
             organization=self.organization,
         )
         self.revision = DashboardRevision.objects.create(
@@ -112,9 +112,9 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
         assert response.status_code == 404
 
     def test_returns_404_for_revision_belonging_to_different_dashboard(self) -> None:
-        other_dashboard = Dashboard.objects.create(
+        other_dashboard = self.create_dashboard(
             title="Other Dashboard",
-            created_by_id=self.user.id,
+            created_by=self.user,
             organization=self.organization,
         )
         other_revision = DashboardRevision.objects.create(
@@ -140,9 +140,9 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
 
     def test_returns_404_for_dashboard_belonging_to_different_org(self) -> None:
         other_org = self.create_organization()
-        other_dashboard = Dashboard.objects.create(
+        other_dashboard = self.create_dashboard(
             title="Other Org Dashboard",
-            created_by_id=self.user.id,
+            created_by=self.user,
             organization=other_org,
         )
         other_revision = DashboardRevision.objects.create(
