@@ -109,7 +109,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--output",
-        default=".cache/coverage.db",
+        default="/tmp/sentry-selective-testing-cache/coverage.db",
         help="Output path for the coverage database (default: .cache/coverage.db)",
     )
     args = parser.parse_args()
