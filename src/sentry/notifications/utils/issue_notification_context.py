@@ -10,6 +10,8 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.organization import Organization
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel
@@ -108,3 +110,11 @@ class IssueNotificationContext:
     @cached_property
     def open_period_context(self) -> OpenPeriodContext:
         return OpenPeriodContext.from_group(self.group)
+
+    @cached_property
+    def organization(self) -> Organization:
+        return self._invocation.detector.project.organization
+
+    @cached_property
+    def open_period(self) -> GroupOpenPeriod:
+        return GroupOpenPeriod.objects.get(id=self.metric_issue_context.open_period_identifier)
