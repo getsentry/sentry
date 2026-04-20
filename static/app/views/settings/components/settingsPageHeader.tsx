@@ -51,13 +51,7 @@ function UnstyledSettingsPageHeader({
         {typeof title === 'string' ? (
           <BreadcrumbTitle routes={routes} title={title} />
         ) : (
-          title && (
-            <TitleWrapper>
-              <Title styled={noTitleStyles}>
-                <Layout.Title>{title}</Layout.Title>
-              </Title>
-            </TitleWrapper>
-          )
+          title && <Layout.Title>{title}</Layout.Title>
         )}
         {action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
         {body && <BodyWrapper>{body}</BodyWrapper>}
