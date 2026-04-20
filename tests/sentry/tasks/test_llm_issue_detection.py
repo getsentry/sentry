@@ -8,7 +8,7 @@ from sentry.issues.grouptype import AIDetectedDBGroupType, AIDetectedGeneralGrou
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
-    detect_llm_issues_for_project,
+    detect_llm_issues_for_org,
     run_llm_issue_detection,
 )
 from sentry.tasks.llm_issue_detection.detection import (
@@ -27,6 +27,13 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class LLMIssueDetectionTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        patcher = patch("sentry.tasks.llm_issue_detection.detection.Project.objects.filter")
+        self.mock_project_filter = patcher.start()
+        self.mock_project_filter.return_value.values_list.return_value = [self.project.id]
+        self.addCleanup(patcher.stop)
+
     @staticmethod
     def _budget_ok_response() -> Mock:
         response = Mock()
@@ -34,21 +41,22 @@ class LLMIssueDetectionTest(TestCase):
         response.data = b'{"has_budget": true}'
         return response
 
-    @patch("sentry.tasks.llm_issue_detection.detection.detect_llm_issues_for_project.apply_async")
-    def test_run_detection_dispatches_sub_tasks(self, mock_apply_async):
-        project = self.create_project()
-
-        with self.options(
-            {
-                "issue-detection.llm-detection.enabled": True,
-                "issue-detection.llm-detection.projects-allowlist": [project.id],
-            }
-        ):
+    @patch("sentry.tasks.llm_issue_detection.detection.CursoredScheduler")
+    def test_calls_scheduler_tick_with_validate_item(self, mock_scheduler_cls):
+        with self.options({"issue-detection.llm-detection.enabled": True}):
             run_llm_issue_detection()
 
-        mock_apply_async.assert_called_once_with(
-            args=[project.id], countdown=0, headers={"sentry-propagate-traces": False}
-        )
+        mock_scheduler_cls.assert_called_once()
+        call_kwargs = mock_scheduler_cls.call_args.kwargs
+        assert call_kwargs["validate_item"] is not None
+        mock_scheduler_cls.return_value.tick.assert_called_once()
+
+    @patch("sentry.tasks.llm_issue_detection.detection.CursoredScheduler")
+    def test_skips_when_disabled(self, mock_scheduler_cls):
+        with self.options({"issue-detection.llm-detection.enabled": False}):
+            run_llm_issue_detection()
+
+        mock_scheduler_cls.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
@@ -63,7 +71,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_get_transactions.return_value = []
 
-        detect_llm_issues_for_project(self.project.id)
+        detect_llm_issues_for_org(self.organization.id)
 
         mock_get_transactions.assert_called_once_with(
             self.project.id,
@@ -91,7 +99,7 @@ class LLMIssueDetectionTest(TestCase):
             {"data": [], "meta": {}},
         ]
 
-        detect_llm_issues_for_project(self.project.id)
+        detect_llm_issues_for_org(self.organization.id)
 
         mock_seer_request.assert_not_called()
 
@@ -262,20 +270,17 @@ class LLMIssueDetectionTest(TestCase):
         mock_accepted_response.status = 202
         mock_seer_request.return_value = mock_accepted_response
 
-        detect_llm_issues_for_project(self.project.id)
+        detect_llm_issues_for_org(self.organization.id)
 
         assert mock_spans_query.call_count == 4  # 1 transactions, 2 traces, 1 span count
         assert mock_seer_request.call_count == 1  # Single batch request
 
         seer_request = mock_seer_request.call_args[0][0]
         assert seer_request.project_id == self.project.id
-        assert seer_request.organization_id == self.project.organization_id
-        assert len(seer_request.traces) == 2
-        trace_ids = {t.trace_id for t in seer_request.traces}
-        assert trace_ids == {"trace_id_1", "trace_id_2"}
+        assert seer_request.organization_id == self.organization.id
+        assert len(seer_request.traces) == 1
 
         assert mock_mark_processed.call_count == 1
-        mock_mark_processed.assert_called_once_with(["trace_id_1", "trace_id_2"])
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
@@ -316,7 +321,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_error_response.data = b"Internal Server Error"
         mock_seer_request.return_value = mock_error_response
 
-        detect_llm_issues_for_project(self.project.id)
+        detect_llm_issues_for_org(self.organization.id)
 
         assert mock_seer_request.call_count == 1
         assert mock_logger_error.call_count == 1
@@ -337,7 +342,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_get_transactions.return_value = []
 
-        detect_llm_issues_for_project(self.project.id)
+        detect_llm_issues_for_org(self.organization.id)
 
         mock_get_transactions.assert_called_once()
 
@@ -355,7 +360,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_budget_response.data = b'{"has_budget": false}'
         mock_budget_request.return_value = mock_budget_response
 
-        detect_llm_issues_for_project(self.project.id)
+        detect_llm_issues_for_org(self.organization.id)
 
         mock_get_transactions.assert_not_called()
         mock_seer_request.assert_not_called()

@@ -34,7 +34,7 @@ This section contains critical command execution instructions that apply across 
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+**CRITICAL**: When running Python commands (pytest, mypy, prek, etc.), you MUST use the virtual environment.
 
 #### For AI Agents (automated commands)
 
@@ -61,57 +61,48 @@ cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 #### Setup
 
 ```bash
-# Install dependencies and setup development environment
-make develop
+# Refreshes dependencies.
+# SENTRY_DEVENV_FRONTEND_ONLY=1 skips over migrations which is not needed for pytest. HIGHLY RECOMMENDED.
+SENTRY_DEVENV_FRONTEND_ONLY=1 devenv sync
 
-# Or use the newer devenv command
+# refresh dependencies, apply migrations
+# Only relevant if you want a working development server.
 devenv sync
 
-# Activate the Python virtual environment (required for running tests and Python commands)
-direnv allow
-
-# Start dev dependencies
-devservices up
-
-# Start the development server
-devservices serve
+direnv allow    # activate the environment
+devservices up  # bring up services
 ```
+
+That is all that is required to run `pytest`.
+
+`devservices serve` starts the development server.
 
 #### Linting
 
-```bash
-# Preferred: Run pre-commit hooks on specific files
-pre-commit run --files src/sentry/path/to/file.py
+prek is the single entrypoint for all lint, format, and type-checking tools.
 
-# Run all pre-commit hooks
-pre-commit run --all-files
-```
-
-#### Before completing a task
-
-Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
+Before considering a task complete, run:
 
 ```bash
-# From repo root; for automation use the venv
-cd /path/to/sentry && .venv/bin/pre-commit run --files <file1> [file2 ...]
+cd /path/to/sentry && .venv/bin/prek run -q
 ```
 
-If pre-commit fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+prek detects changed files automatically. To run a specific hook:
+
+```bash
+.venv/bin/prek run -q mypy --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
+```
+
+If a hook fails, fix the issues, stage changes, then re-run until it passes.
 
 #### Testing
 
 ```bash
-# Preferred for local backend changes: run only tests affected by your diff (fast)
-make test-selective
-
-# Run Python tests (always use these parameters)
-pytest -svv --reuse-db
-
-# Run specific test file
-pytest -svv --reuse-db tests/sentry/api/test_base.py
+# Run a specific test file.
+# Do not run pytest by itself; it'll take forever!
+.venv/bin/pytest -n3 -svv --reuse-db tests/sentry/api/test_base.py
 ```
-
-For backend-scoped changes, always try `make test-selective` first. It detects which tests are affected by your local diff and runs only those, making the feedback loop much faster. Fall back to `pytest` when you need to run a specific file or `test-selective` doesn't cover your case.
 
 #### Database Operations
 

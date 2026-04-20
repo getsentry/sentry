@@ -175,13 +175,14 @@ const FluidContainer = styled('section')`
   gap: ${p => p.theme.space.md};
 `;
 
-const BodyGrid = styled('main')`
+const BodyGrid = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
 
   display: grid;
   grid-template-rows: 1fr auto;
   gap: ${p => p.theme.space.xl};
   padding: ${p => p.theme.space.xl};
+  flex: 1;
 
   /*
   Grid items have default \`min-height: auto\` to contain all content.

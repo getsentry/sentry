@@ -97,6 +97,8 @@ class DatabaseBackedIdentityService(IdentityService):
                 query = query.filter(user_id=filters["user_id"])
             if "identity_ext_id" in filters:
                 query = query.filter(external_id=filters["identity_ext_id"])
+            if "identity_ext_ids" in filters:
+                query = query.filter(external_id__in=filters["identity_ext_ids"])
             if "provider_id" in filters:
                 query = query.filter(idp_id=filters["provider_id"])
             if "provider_ext_id" in filters:

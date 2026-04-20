@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import cast
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
@@ -17,17 +18,21 @@ ACTION_TYPE_TO_STRING = {
 }
 
 
-def get_resolve_threshold(condition_group: DataConditionGroup) -> float | None:
+def get_resolve_thresholds(
+    condition_groups: Sequence[DataConditionGroup],
+) -> dict[int, float | None]:
     """
-    Returns the resolution threshold for a static or percent-based metric issue,
-    or None if no resolve condition exists.
+    Batch-fetch resolution thresholds for multiple condition groups.
+    Returns a dict mapping condition_group.id to the resolve threshold (or None).
     """
-    resolve_condition = DataCondition.objects.filter(
-        condition_result=DetectorPriorityLevel.OK, condition_group=condition_group
-    ).first()
-    if resolve_condition is None:
-        return None
-    return resolve_condition.comparison
+    resolve_conditions = DataCondition.objects.filter(
+        condition_result=DetectorPriorityLevel.OK,
+        condition_group__in=condition_groups,
+    )
+    thresholds: dict[int, float | None] = {}
+    for dc in resolve_conditions:
+        thresholds[dc.condition_group_id] = dc.comparison
+    return thresholds
 
 
 def get_action_description(action: AlertRuleTriggerAction) -> str:

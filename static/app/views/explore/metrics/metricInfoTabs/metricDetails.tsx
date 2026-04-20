@@ -7,7 +7,9 @@ import {IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
 import {
   getLogColors,
@@ -35,6 +37,10 @@ export function MetricDetails({
   const location = useLocation();
   const organization = useOrganization();
   const getActions = useLogAttributesTreeActions({embedded: false});
+  const project = useProjectFromId({
+    project_id: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
+  });
+  const projectSlug = project?.slug ?? '';
 
   const traceDetailResult = useMetricTraceDetail({
     metricId: String(dataRow[TraceMetricKnownFieldKey.ID] ?? ''),
@@ -73,12 +79,25 @@ export function MetricDetails({
                   getCustomActions={getActions}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
-                    attributeTypes: {},
-                    attributes: {},
+                    attributeTypes: data.attributes.reduce<
+                      Record<string, TraceItemResponseAttribute['type']>
+                    >((acc, attr) => {
+                      acc[attr.name] = attr.type;
+                      return acc;
+                    }, {}),
+                    attributes: data.attributes.reduce<
+                      Record<string, TraceItemResponseAttribute['value']>
+                    >((acc, attr) => {
+                      acc[attr.name] = attr.value;
+                      return acc;
+                    }, {}),
                     highlightTerms: [],
                     logColors: getLogColors(SeverityLevel.INFO, theme),
                     location,
                     organization,
+                    projectSlug,
+                    project,
+                    traceItemMeta: data.meta,
                     theme,
                   }}
                 />

@@ -532,6 +532,46 @@ describe('ScmPlatformFeatures', () => {
       );
     });
 
+    it('fires platform selected event once when auto-detection resolves', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture(),
+            DetectedPlatformFixture({
+              platform: 'python-django',
+              language: 'Python',
+              priority: 2,
+            }),
+          ],
+        },
+      });
+
+      render(
+        <ScmPlatformFeatures
+          onComplete={jest.fn()}
+          stepIndex={2}
+          genSkipOnboardingLink={() => null}
+        />,
+        {
+          organization,
+          additionalWrapper: makeOnboardingWrapper({
+            selectedRepository: mockRepository,
+          }),
+        }
+      );
+
+      await screen.findByText('What do you want to set up?');
+
+      const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
+        ([event, params]) =>
+          event === 'onboarding.scm_platform_selected' &&
+          params.platform === 'javascript-nextjs' &&
+          params.source === 'detected'
+      );
+      expect(detectedCalls).toHaveLength(1);
+    });
+
     it('fires feature toggled event when toggling a feature', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/42/platforms/`,

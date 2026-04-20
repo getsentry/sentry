@@ -98,17 +98,6 @@ export type DashboardsEventParameters = {
   'dashboards_manage.generate.start': Record<string, unknown>;
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;
-  'dashboards_manage.templates.add': {
-    dashboard_id: string;
-    dashboard_title: string;
-    was_previewed: boolean;
-  };
-  'dashboards_manage.templates.preview': {
-    dashboard_id: string;
-  };
-  'dashboards_manage.templates.toggle': {
-    show_templates: boolean;
-  };
   'dashboards_manage.toggle_favorite': {dashboard_id: string; favorited: boolean};
   'dashboards_views.insights_redirect': {
     dashboard_id: string;
@@ -206,9 +195,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.delete': 'Dashboards Manager: Dashboard Deleted',
   'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
   'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
-  'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
-  'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
-  'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',
   'dashboards_manage.toggle_favorite': 'Dashboards Manager: Dashboard Favorite Toggled',
   'dashboards_views.widget_viewer.edit': 'Widget Viewer: Edit Widget Modal Opened',
   'dashboards_views.widget_viewer.open': 'Widget Viewer: Opened',
