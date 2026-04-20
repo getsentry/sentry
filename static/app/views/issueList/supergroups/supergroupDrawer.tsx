@@ -15,6 +15,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
@@ -32,6 +33,7 @@ import {IconChevron, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -71,7 +73,7 @@ export function SupergroupDetailDrawer({
   filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
   return (
-    <Fragment>
+    <AnalyticsArea name="supergroup_drawer">
       <DrawerHeader hideBar>
         <Flex justify="between" align="center" gap="md" flexGrow={1}>
           <Flex align="center" gap="sm">
@@ -125,7 +127,7 @@ export function SupergroupDetailDrawer({
           </Container>
         )}
       </DrawerContentBody>
-    </Fragment>
+    </AnalyticsArea>
   );
 }
 
@@ -302,6 +304,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const area = useAnalyticsArea();
   const {selection} = usePageFilters();
   const {toggleSelectAllVisible, deselectAll} = useIssueSelectionActions();
   const {pageSelected, anySelected, multiSelected, selectedIdsSet} =
@@ -382,8 +385,15 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
       },
       {}
     );
+    trackAnalytics('issues_stream.merged', {
+      organization,
+      project_id: undefined,
+      platform: undefined,
+      items_merged: itemIds.length,
+      area,
+    });
     deselectAll();
-  }, [api, organization.slug, selectedIdsSet, selection, deselectAll]);
+  }, [api, area, organization, selectedIdsSet, selection, deselectAll]);
 
   const onShouldConfirm = useCallback(
     (action: ConfirmAction) => {

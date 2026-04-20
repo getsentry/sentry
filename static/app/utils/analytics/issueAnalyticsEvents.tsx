@@ -242,15 +242,18 @@ export type IssueEventParameters = {
     sort: string;
   };
   'issues_stream.archived': {
+    area: string;
     action_status_details?: string;
     action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
+    area: string;
     assigned_type: string;
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
   'issues_stream.merged': {
+    area: string;
     items_merged: number | 'all_in_query' | undefined;
     platform: string | undefined;
     project_id: string | undefined;
@@ -265,6 +268,7 @@ export type IssueEventParameters = {
     sort: string;
   };
   'issues_stream.updated_priority': {
+    area: string;
     priority: PriorityLevel;
   };
   'one_other_related_trace_issue.clicked': {
