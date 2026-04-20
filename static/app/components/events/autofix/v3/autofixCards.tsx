@@ -60,7 +60,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <Text>{artifact.data.one_line_description}</Text>
+          <StyledMarkedText text={artifact.data.one_line_description} />
           {artifact.data.five_whys?.length ? (
             <Fragment>
               <ArtifactDetails>
@@ -68,7 +68,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                 <Container as="ul" margin="0">
                   {artifact.data.five_whys.map((why, index) => (
                     <li key={index}>
-                      <Text>{why}</Text>
+                      <StyledMarkedText text={why} />
                     </li>
                   ))}
                 </Container>
@@ -79,7 +79,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                   <Container as="ol" margin="0">
                     {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <Text>{step}</Text>
+                        <StyledMarkedText text={step} />
                       </li>
                     ))}
                   </Container>
@@ -128,7 +128,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <Text>{artifact.data.one_line_summary}</Text>
+          <StyledMarkedText text={artifact.data.one_line_summary} />
           {artifact.data.steps ? (
             <ArtifactDetails>
               <Text bold>{t('Steps to Resolve')}</Text>
@@ -136,7 +136,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
                     <Flex direction="column">
-                      <Text>{step.title}</Text>
+                      <StyledMarkedText text={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>
