@@ -12,13 +12,14 @@ resources:
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {InlineCode} from '@sentry/scraps/code';
 import {IconCommand, IconControl, IconShift, IconOption, IconReturn} from 'sentry/icons';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/hotkey');
 
-The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. On Mac, `command` renders as `⌘`; on other platforms it renders as `CTRL`. The `<Kbd>` component renders a single styled key cap.
+The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. On Mac, `command` renders as <InlineCode><IconCommand size="xs" /></InlineCode>; on other platforms it renders as `Ctrl`. The `<Kbd>` component renders a single styled key cap.
 
 ## Hotkey
 
@@ -51,15 +52,15 @@ The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elem
 
 Modifiers are automatically mapped per platform. No fallback arrays needed for standard modifier differences.
 
-| Key name  | Mac             | Other platforms |
-| --------- | --------------- | --------------- |
-| `command` | <IconCommand /> | `ctrl`          |
-| `ctrl`    | <IconControl /> | `ctrl`          |
-| `alt`     | <IconOption />  | `alt`           |
-| `option`  | <IconOption />  | `alt`           |
-| `shift`   | <IconShift />   | <IconShift />   |
-| `enter`   | <IconReturn />  | <IconReturn />  |
-| `return`  | <IconReturn />  | <IconReturn />  |
+| Key name  | Mac                                                | Other platforms                                   |
+| --------- | -------------------------------------------------- | ------------------------------------------------- |
+| `command` | <InlineCode><IconCommand size="xs" /></InlineCode> | `ctrl`                                            |
+| `ctrl`    | <InlineCode><IconControl size="xs" /></InlineCode> | `ctrl`                                            |
+| `alt`     | <InlineCode><IconOption size="xs" /></InlineCode>  | `alt`                                             |
+| `option`  | <InlineCode><IconOption size="xs" /></InlineCode>  | `alt`                                             |
+| `shift`   | <InlineCode><IconShift size="xs" /></InlineCode>   | <InlineCode><IconShift size="xs" /></InlineCode>  |
+| `enter`   | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
+| `return`  | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
 
 ### Complex Shortcuts
 
