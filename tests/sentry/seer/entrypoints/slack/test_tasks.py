@@ -227,7 +227,7 @@ class ProcessMentionForSlackTest(TestCase):
 
         self._run_task(
             thread_ts="1234567890.000001",
-            conversation_type=SlackSeerAgentConversation.AI_ASSISTANT,
+            conversation_type=SlackSeerAgentConversation.DIRECT_MESSAGE,
         )
 
         mock_entrypoint.install.get_thread_history.assert_called_once_with(
@@ -255,7 +255,7 @@ class ProcessMentionForSlackTest(TestCase):
                 seer_msgs_in_thread=2,
                 unique_users_in_thread=3,
                 linked_users_in_thread=1,
-                conversation_type=SlackSeerAgentConversation.AI_ASSISTANT,
+                conversation_type=SlackSeerAgentConversation.DIRECT_MESSAGE,
             ),
         )
 
