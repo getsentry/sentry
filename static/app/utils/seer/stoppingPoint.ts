@@ -17,8 +17,9 @@ import {
   mutationOptions,
   setApiQueryData,
 } from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
+type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
 export const PROJECT_STOPPING_POINT_OPTIONS = [
   {value: 'off' as const, label: t('No Automation')},
@@ -35,10 +36,10 @@ export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, 
     create_pr: 4,
   };
 
-export function getDefaultStoppingPoint(
-  stoppingPoint: AutofixStoppingPoint | null | undefined
-): UserFacingStoppingPoint {
-  switch (stoppingPoint) {
+export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
+  const organization = useOrganization();
+
+  switch (organization.defaultAutomatedRunStoppingPoint) {
     case AutofixStoppingPoint.ROOT_CAUSE:
       return 'root_cause';
     case AutofixStoppingPoint.OPEN_PR:
@@ -112,7 +113,7 @@ export function getProjectStoppingPointValue(
  * Setting 'off' only writes autofixAutomationTuning and intentionally leaves
  * automated_run_stopping_point unchanged, so re-enabling restores the prior state.
  */
-function resolveStoppingPoint(
+export function resolveStoppingPoint(
   stoppingPoint: UserFacingStoppingPoint,
   handoff: ProjectSeerPreferences['automation_handoff']
 ): {

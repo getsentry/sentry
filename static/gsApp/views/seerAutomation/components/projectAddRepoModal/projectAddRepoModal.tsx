@@ -1,313 +1,357 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Input} from '@sentry/scraps/input';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Select} from '@sentry/scraps/select';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import {type Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSelectProjectOptions';
+import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
+import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
+import {useOrgDefaultAgent} from 'sentry/utils/seer/preferredAgent';
+import {useCodingAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
 import {
-  organizationRepositoriesInfiniteOptions,
-  selectUniqueRepos,
-} from 'sentry/utils/repositories/repoQueryOptions';
-import {
-  useCodingAgentSelectOptions,
-  type PreferredAgent,
-} from 'sentry/utils/seer/preferredAgent';
-import {
-  getDefaultStoppingPoint,
   PROJECT_STOPPING_POINT_OPTIONS,
-  type UserFacingStoppingPoint,
+  useOrgDefaultStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
+import {useMutateAutofixProject} from 'sentry/utils/seer/useMutateAutofixProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
 interface RepoEntry {
   branch: string;
-  key: number;
-  repoId: Repository['id'] | null;
+  repoId: Repository['id'];
 }
 
 interface Props extends ModalRenderProps {
   title: string;
-  preSelectedProject?: Project;
-}
-
-let nextKey = 0;
-function makeRepoEntry(): RepoEntry {
-  return {key: nextKey++, repoId: null, branch: ''};
+  preSelectedProjectId?: Project['id'];
 }
 
 export function ProjectAddRepoModal({
   Header,
   Body,
   Footer,
-  preSelectedProject,
+  preSelectedProjectId,
   title,
   closeModal,
 }: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const projectsById = useProjectsById();
+  const repositoriesById = useRepositoriesById();
 
-  const projectsById = useMemo(() => {
-    return Object.fromEntries(projects.map(project => [project.id, project]));
-  }, [projects]);
-
-  const isProjectStatic = Boolean(preSelectedProject);
-  const [selectedProjectId, setSelectedProjectId] = useState<Project['id'] | null>(
-    preSelectedProject?.id ?? null
-  );
-  const selectedProject = selectedProjectId ? projectsById[selectedProjectId] : null;
-
-  const [repoEntries, setRepoEntries] = useState<RepoEntry[]>(() => [makeRepoEntry()]);
-
+  const unconfiguredProjects = useUnconfiguredProjects();
+  const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
+  const repositoryOptions = useCompactSelectRepositoryOptions();
   const agentOptions = useCodingAgentSelectOptions({organization});
-  const integrations = useMemo(
-    () =>
-      (agentOptions.data ?? [])
-        .filter(
-          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
-        )
-        .map(o => o.value),
-    [agentOptions.data]
-  );
+  const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
-  const [selectedAgent, setSelectedAgent] = useState<PreferredAgent>(() => {
-    if (organization.defaultCodingAgentIntegrationId) {
-      const match = integrations.find(
-        i => i.id === String(organization.defaultCodingAgentIntegrationId)
-      );
-      if (match) {
-        return match;
-      }
-    }
-    return 'seer';
+  const formSchema = z.object({
+    projectId: z.string().refine(id => projectsById.has(id), {
+      message: t('Please select a project'),
+    }),
+    repoEntries: z
+      .array(
+        z.object({
+          repoId: z.string().refine(id => repositoriesById.has(id), {
+            message: t('Repository not found'),
+          }),
+          branch: z.string(),
+        })
+      )
+      .min(1, {message: t('Please add at least one repository')}),
+    agent: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
+    stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
   });
-  const [selectedStoppingPoint, setSelectedStoppingPoint] =
-    useState<UserFacingStoppingPoint>(() =>
-      getDefaultStoppingPoint(organization.defaultAutomatedRunStoppingPoint)
-    );
 
-  const hasValidRepo = repoEntries.some(e => e.repoId !== null);
-  const isFormValid = selectedProjectId !== null && hasValidRepo;
-
-  const projectOptions = useMemo(() => {
-    return projects.map(project => ({
-      value: project.id,
-      label: project.name,
-    }));
-  }, [projects]);
-
-  const repositoriesQuery = useInfiniteQuery({
-    ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
-    select: selectUniqueRepos,
+  const saveMutation = useMutateAutofixProject({
+    onSuccess: () => {
+      addSuccessMessage(t('Project saved successfully'));
+      closeModal();
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to save project settings'));
+    },
   });
-  useFetchAllPages({result: repositoriesQuery});
-  const {data: repositories, isPending: isRepositoriesPending} = repositoriesQuery;
 
-  const repositoriesById = useMemo(() => {
-    return Object.fromEntries(repositories?.map(repo => [repo.id, repo]) ?? []);
-  }, [repositories]);
-
-  const repositoryOptions = useMemo(() => {
-    return (
-      repositories?.map(repo => ({
-        value: repo.id,
-        label: repo.name,
-      })) ?? []
-    );
-  }, [repositories]);
-
-  const selectedRepoIds = useMemo(
-    () => new Set(repoEntries.map(e => e.repoId).filter(Boolean)),
-    [repoEntries]
-  );
-
-  const handleRepoChange = (key: number, repoId: Repository['id']) => {
-    setRepoEntries(prev =>
-      prev.map(entry => (entry.key === key ? {...entry, repoId} : entry))
-    );
-  };
-
-  const handleBranchChange = (key: number, branch: string) => {
-    setRepoEntries(prev =>
-      prev.map(entry => (entry.key === key ? {...entry, branch} : entry))
-    );
-  };
-
-  const handleRemoveEntry = (key: number) => {
-    setRepoEntries(prev => prev.filter(entry => entry.key !== key));
-  };
-
-  const handleAddEntry = () => {
-    setRepoEntries(prev => [...prev, makeRepoEntry()]);
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      projectId: preSelectedProjectId ?? '',
+      repoEntries: [{repoId: '', branch: ''}] as RepoEntry[],
+      agent: useOrgDefaultAgent(),
+      stoppingPoint: useOrgDefaultStoppingPoint(),
+    },
+    validators: {onDynamic: formSchema},
+    onSubmit: ({value: {projectId, repoEntries, agent, stoppingPoint}}) =>
+      saveMutation.mutate({
+        project: projectsById.get(projectId)!, // We refined projectId, so this is safe
+        repoEntries,
+        agent,
+        stoppingPoint,
+      }),
+  });
 
   return (
     <Fragment>
       <Header closeButton>
         <Heading as="h4">{title}</Heading>
       </Header>
-      <Body>
-        <Stack gap="xl">
-          <Text size="md">
-            {tct(
-              "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
-              {
-                manage_repositories_link: <Link to="/settings/organization/repos/" />,
-              }
-            )}
-          </Text>
-          <Separator orientation="horizontal" />
-
-          <Grid columns="1fr max-content 1fr" gap="xl">
-            <CompactSelect
-              style={{width: '100%'}}
-              trigger={triggerProps => {
-                return (
-                  <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
-                    {selectedProject ? (
-                      <ProjectBadge
-                        avatarSize={16}
-                        project={selectedProject}
-                        disableLink
-                      />
-                    ) : (
-                      t('Project')
-                    )}
-                  </OverlayTrigger.Button>
-                );
-              }}
-              search
-              disabled={isProjectStatic}
-              emptyMessage={t('No projects found')}
-              options={projectOptions}
-              value={selectedProjectId ?? ''}
-              onChange={option => setSelectedProjectId(option.value)}
-            />
-
-            <Flex align="center" height="36px">
-              <IconArrow direction="right" size="md" />
-            </Flex>
-            <Stack gap="md">
-              {repoEntries.map(entry => {
-                const filteredOptions = repositoryOptions.filter(
-                  opt => opt.value === entry.repoId || !selectedRepoIds.has(opt.value)
-                );
-                const selectedRepo = entry.repoId ? repositoriesById[entry.repoId] : null;
-
-                return (
-                  <Flex key={entry.key} gap="sm" align="start">
-                    <Stack gap="xs" style={{flex: 1}}>
-                      <CompactSelect
-                        style={{width: '100%'}}
-                        trigger={triggerProps => (
-                          <OverlayTrigger.Button
-                            {...triggerProps}
-                            style={{width: '100%'}}
-                          >
-                            {selectedRepo?.name ?? t('Repository')}
-                          </OverlayTrigger.Button>
-                        )}
-                        search
-                        loading={isRepositoriesPending}
-                        emptyMessage={t('No repositories found')}
-                        options={filteredOptions}
-                        value={entry.repoId ?? ''}
-                        onChange={option => handleRepoChange(entry.key, option.value)}
-                      />
-                      <Input
-                        size="sm"
-                        placeholder={t('Default branch (e.g. main)')}
-                        value={entry.branch}
-                        onChange={e => handleBranchChange(entry.key, e.target.value)}
-                      />
-                    </Stack>
-                    {repoEntries.length > 1 && (
-                      <Button
-                        aria-label={t('Remove repository')}
-                        size="sm"
-                        priority="transparent"
-                        icon={<IconDelete size="xs" />}
-                        onClick={() => handleRemoveEntry(entry.key)}
-                      />
-                    )}
-                  </Flex>
-                );
-              })}
-
-              <Flex>
-                <Button
-                  size="sm"
-                  priority="transparent"
-                  icon={<IconAdd />}
-                  onClick={handleAddEntry}
-                >
-                  {t('Add Repository')}
-                </Button>
-              </Flex>
-            </Stack>
-          </Grid>
-
-          <Separator orientation="horizontal" />
-
-          <Stack gap="md">
-            <Text size="md" bold>
-              {t('Preferred Coding Agent')}
-            </Text>
-            {agentOptions.isPending ? (
-              <Placeholder height="36px" width="100%" />
-            ) : (
-              <Select
-                name="agent"
-                options={agentOptions.data ?? []}
-                value={selectedAgent}
-                onChange={option => setSelectedAgent(option.value)}
-                isValueEqual={(a, b) =>
-                  a === b ||
-                  (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+      <form.AppForm form={form}>
+        <Body>
+          <Stack gap="xl">
+            <Text size="md">
+              {tct(
+                "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
+                {
+                  manage_repositories_link: <Link to="/settings/organization/repos/" />,
                 }
-              />
-            )}
-          </Stack>
-
-          <Stack gap="md">
-            <Text size="md" bold>
-              {t('Automation Steps')}
+              )}
             </Text>
-            <Select
-              name="stoppingPoint"
-              options={PROJECT_STOPPING_POINT_OPTIONS}
-              value={selectedStoppingPoint}
-              onChange={option => setSelectedStoppingPoint(option.value)}
-            />
+
+            <Separator orientation="horizontal" />
+
+            <Grid columns="1fr max-content 1fr" gap="xl">
+              <form.AppField name="projectId">
+                {field => (
+                  <CompactSelect
+                    style={{width: '100%'}}
+                    trigger={triggerProps => {
+                      const project = projectsById.get(field.state.value ?? '');
+                      return (
+                        <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
+                          {project ? (
+                            <Flex gap="sm" align="center">
+                              <ProjectAvatar project={project} />
+                              {project.name}
+                            </Flex>
+                          ) : (
+                            t('Select Project')
+                          )}
+                        </OverlayTrigger.Button>
+                      );
+                    }}
+                    disabled={Boolean(preSelectedProjectId)}
+                    emptyMessage={t('No projects found')}
+                    onChange={option => field.handleChange(option?.value ?? '')}
+                    options={projectOptions}
+                    search
+                    value={field.state.value ?? ''}
+                  />
+                )}
+              </form.AppField>
+
+              <Flex align="center" height="36px">
+                <IconArrow direction="right" size="md" />
+              </Flex>
+
+              <Stack gap="md">
+                <form.AppField name="repoEntries" mode="array">
+                  {field => (
+                    <Fragment>
+                      {field.state.value.map((_, i) => (
+                        <Flex key={`repoEntries[${i}]`} gap="sm" align="start">
+                          <Stack gap="xs" flex={1}>
+                            <form.Field name={`repoEntries[${i}].repoId`}>
+                              {subField => (
+                                <CompactSelect
+                                  style={{width: '100%'}}
+                                  trigger={triggerProps => {
+                                    const repo = repositoriesById.get(
+                                      subField.state.value
+                                    );
+                                    return (
+                                      <OverlayTrigger.Button
+                                        {...triggerProps}
+                                        style={{width: '100%'}}
+                                      >
+                                        {repo ? (
+                                          <Flex gap="sm" align="center">
+                                            {getIntegrationIcon(
+                                              repo.provider?.name?.toLowerCase() || ''
+                                            )}
+                                            {repo.name}
+                                          </Flex>
+                                        ) : (
+                                          t('Select Repository')
+                                        )}
+                                      </OverlayTrigger.Button>
+                                    );
+                                  }}
+                                  search
+                                  loading={
+                                    repositoryOptions.isPending ||
+                                    repositoryOptions.hasNextPage
+                                  }
+                                  emptyMessage={t('No repositories found')}
+                                  options={repositoryOptions.data ?? []}
+                                  value={subField.state.value ?? ''}
+                                  onChange={option =>
+                                    subField.handleChange(option?.value ?? '')
+                                  }
+                                />
+                              )}
+                            </form.Field>
+                            <form.Field key={i} name={`repoEntries[${i}].branch`}>
+                              {subField => (
+                                <InputGroup>
+                                  <InputGroup.LeadingItems disablePointerEvents>
+                                    <IconBranch />
+                                  </InputGroup.LeadingItems>
+                                  <InputGroup.Input
+                                    size="sm"
+                                    placeholder={t('Select Branch (optional)')}
+                                    value={subField.state.value ?? ''}
+                                    onChange={e => subField.handleChange(e.target.value)}
+                                  />
+                                </InputGroup>
+                              )}
+                            </form.Field>
+                          </Stack>
+                          {field.state.value.length > 1 && (
+                            <Button
+                              aria-label={t('Remove repository')}
+                              size="sm"
+                              priority="transparent"
+                              icon={<IconDelete size="xs" />}
+                              onClick={() => field.removeValue(i)}
+                            />
+                          )}
+                        </Flex>
+                      ))}
+                      <Flex>
+                        <Button
+                          size="sm"
+                          priority="transparent"
+                          icon={<IconAdd />}
+                          onClick={() => field.pushValue({repoId: '', branch: ''})}
+                        >
+                          {t('Add Repository')}
+                        </Button>
+                      </Flex>
+                    </Fragment>
+                  )}
+                </form.AppField>
+              </Stack>
+            </Grid>
+
+            <Separator orientation="horizontal" />
+
+            <form.AppField name="agent">
+              {field => (
+                <field.Layout.Row
+                  label={t('Preferred Coding Agent')}
+                  hintText={t(
+                    'Have Autofix trigger on any issue with enough occurrences and Sentry-determined fixability. Select how far you want Autofix to run on actionable issues. The steps are Root Cause Analysis > Plan > Generate Code > Draft PR > Merge PR.'
+                  )}
+                >
+                  {agentOptions.isPending ? (
+                    <Placeholder height="36px" width="100%" />
+                  ) : agentOptions.isError ? (
+                    <LoadingError />
+                  ) : (
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={agentOptions.data}
+                      isValueEqual={(a, b) =>
+                        a === b ||
+                        (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                      }
+                    />
+                  )}
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+
+            <Separator orientation="horizontal" />
+
+            <form.AppField name="stoppingPoint">
+              {field => (
+                <field.Layout.Row
+                  label={t('Automation Steps')}
+                  hintText={t(
+                    'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR.'
+                  )}
+                >
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={stoppingPointOptions}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
           </Stack>
-        </Stack>
-      </Body>
-      <Footer>
-        <Flex gap="md" justify="end">
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" disabled={!isFormValid}>
-            {t('Save Project')}
-          </Button>
-        </Flex>
-      </Footer>
+        </Body>
+        <Footer>
+          <Flex gap="md" justify="end">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <form.Subscribe selector={state => state.isSubmitting}>
+              {isSubmitting => (
+                <Button
+                  priority="primary"
+                  disabled={isSubmitting}
+                  onClick={() => form.handleSubmit()}
+                >
+                  {t('Save Project')}
+                </Button>
+              )}
+            </form.Subscribe>
+          </Flex>
+        </Footer>
+      </form.AppForm>
     </Fragment>
   );
+}
+
+function useUnconfiguredProjects() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
+  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
+    organization,
+  });
+  const result = useInfiniteQuery({
+    ...autofixSettingsQueryOptions,
+    select: ({pages}) =>
+      new Set(
+        pages
+          .flatMap(page => page.json)
+          .filter(setting => setting.reposCount > 0)
+          .map(setting => String(setting.projectId))
+      ),
+  });
+  useFetchAllPages({result});
+  const {data: projectsWithRepos, isPending, hasNextPage} = result;
+
+  return useMemo(() => {
+    return isPending || hasNextPage
+      ? projects
+      : projects.filter(p => !projectsWithRepos?.has(String(p.id)));
+  }, [projects, projectsWithRepos, isPending, hasNextPage]);
 }

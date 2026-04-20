@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
@@ -21,8 +22,55 @@ import {
   setApiQueryData,
   useQuery,
 } from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type PreferredAgent = 'seer' | CodingAgentIntegration;
+type PreferredAgent = 'seer' | CodingAgentIntegration;
+
+export function useOrgDefaultAgent() {
+  const organization = useOrganization();
+  const agentOptions = useCodingAgentSelectOptions({organization});
+
+  const integrations = useMemo(
+    () =>
+      (agentOptions.data ?? [])
+        .filter(
+          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
+        )
+        .map(o => o.value),
+    [agentOptions.data]
+  );
+
+  return useMemo((): PreferredAgent => {
+    if (organization.defaultCodingAgentIntegrationId) {
+      const match = integrations.find(
+        i => i.id === String(organization.defaultCodingAgentIntegrationId)
+      );
+      if (match) {
+        return match;
+      }
+    }
+    return 'seer';
+  }, [organization.defaultCodingAgentIntegrationId, integrations]);
+}
+
+/**
+ * Builds the automation_handoff payload for a given agent.
+ * Returns undefined for Seer (no external handoff needed).
+ */
+export function buildHandoffPayload(
+  agent: PreferredAgent,
+  autoCreatePr: boolean
+): ProjectSeerPreferences['automation_handoff'] {
+  if (agent === 'seer') {
+    return undefined;
+  }
+  return {
+    handoff_point: 'root_cause',
+    target: PROVIDER_TO_HANDOFF_TARGET[agent.provider]!,
+    integration_id: Number(agent.id),
+    auto_create_pr: autoCreatePr,
+  };
+}
 
 /**
  * Returns the list of coding agent integrations formatted as select options,
@@ -97,17 +145,10 @@ export function getProjectAgentMutationOptions({
       });
       const preference = prefsData?.preference;
 
-      const handoff: ProjectSeerPreferences['automation_handoff'] =
-        agent === 'seer'
-          ? undefined
-          : {
-              handoff_point: 'root_cause',
-              target: PROVIDER_TO_HANDOFF_TARGET[agent.provider]!,
-              integration_id: Number(agent.id),
-              auto_create_pr:
-                preference?.automated_run_stopping_point === 'open_pr' ||
-                Boolean(preference?.automation_handoff?.auto_create_pr),
-            };
+      const autoCreatePr =
+        preference?.automated_run_stopping_point === 'open_pr' ||
+        Boolean(preference?.automation_handoff?.auto_create_pr);
+      const handoff = buildHandoffPayload(agent, autoCreatePr);
 
       return Promise.all([
         fetchMutation<Project>({
@@ -134,20 +175,10 @@ export function getProjectAgentMutationOptions({
       );
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: 'medium'});
       if (previousPreference?.preference) {
-        const handoff: ProjectSeerPreferences['automation_handoff'] =
-          agent === 'seer'
-            ? undefined
-            : {
-                handoff_point: 'root_cause',
-                target: PROVIDER_TO_HANDOFF_TARGET[agent.provider]!,
-                integration_id: Number(agent.id),
-                auto_create_pr:
-                  previousPreference.preference.automated_run_stopping_point ===
-                    'open_pr' ||
-                  Boolean(
-                    previousPreference.preference.automation_handoff?.auto_create_pr
-                  ),
-              };
+        const autoCreatePr =
+          previousPreference.preference.automated_run_stopping_point === 'open_pr' ||
+          Boolean(previousPreference.preference.automation_handoff?.auto_create_pr);
+        const handoff = buildHandoffPayload(agent, autoCreatePr);
         setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
           ...previousPreference,
           preference: {

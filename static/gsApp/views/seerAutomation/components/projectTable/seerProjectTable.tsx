@@ -69,13 +69,15 @@ export function SeerProjectTable() {
   });
   const result = useInfiniteQuery({
     ...autofixSettingsQueryOptions,
-    select: ({pages}) => pages.flatMap(page => page.json),
+    select: ({pages}) =>
+      new Map(
+        pages
+          .flatMap(page => page.json)
+          .map(setting => [String(setting.projectId), setting] as const)
+      ),
   });
-
-  // Auto-fetch each page, one at a time
   useFetchAllPages({result});
-
-  const {data: autofixAutomationSettings} = result;
+  const {data: autofixSettingsByProjectId} = result;
 
   const {data: integrations, isPending: isPendingIntegrations} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
@@ -128,17 +130,6 @@ export function SeerProjectTable() {
       },
     });
 
-  const autofixSettingsByProjectId = useMemo(
-    () =>
-      new Map(
-        (autofixAutomationSettings ?? []).map(setting => [
-          String(setting.projectId),
-          setting,
-        ])
-      ),
-    [autofixAutomationSettings]
-  );
-
   const [agentFilter, setAgentFilter] = useQueryState(
     'agent',
     preferredAgentFilterParser
@@ -167,8 +158,8 @@ export function SeerProjectTable() {
           : b.name.localeCompare(a.name);
       }
 
-      const aSettings = autofixSettingsByProjectId.get(a.id);
-      const bSettings = autofixSettingsByProjectId.get(b.id);
+      const aSettings = autofixSettingsByProjectId?.get(a.id);
+      const bSettings = autofixSettingsByProjectId?.get(b.id);
 
       if (sort.field === 'agent') {
         const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
@@ -214,7 +205,7 @@ export function SeerProjectTable() {
 
     if (agentFilter) {
       filtered = filtered.filter(project => {
-        const settings = autofixSettingsByProjectId.get(project.id);
+        const settings = autofixSettingsByProjectId?.get(project.id);
         const projectAgentId = settings?.automationHandoff?.target
           ? String(settings.automationHandoff.target)
           : 'seer';
@@ -275,9 +266,6 @@ export function SeerProjectTable() {
                   modalCss: css`
                     width: 700px;
                   `,
-                  onClose: () => {
-                    // queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
-                  },
                 }
               );
             }}
@@ -323,7 +311,7 @@ export function SeerProjectTable() {
             filteredProjects.map(project => (
               <SeerProjectTableRow
                 key={project.id}
-                autofixSettings={autofixSettingsByProjectId.get(project.id)}
+                autofixSettings={autofixSettingsByProjectId?.get(project.id)}
                 integrations={integrations ?? []}
                 isPendingIntegrations={isPendingIntegrations}
                 mutateStoppingPoint={mutateStoppingPoint}
