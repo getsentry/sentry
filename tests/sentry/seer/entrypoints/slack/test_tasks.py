@@ -86,9 +86,9 @@ class ProcessMentionForSlackTest(TestCase):
                 prompt_length=len("What is causing this issue?"),
                 run_id=42,
                 integration_id=123,
-                messages_in_thread=0,
+                messages_in_thread=1,
                 seer_msgs_in_thread=0,
-                unique_users_in_thread=0,
+                unique_users_in_thread=1,
                 linked_users_in_thread=0,
                 conversation_type=SlackSeerAgentConversation.APP_MENTION,
             ),
@@ -216,6 +216,7 @@ class ProcessMentionForSlackTest(TestCase):
             {"user": "U0BOT", "text": "let me take a look"},
             {"user": "U222", "text": "sure, what's the error?"},
             {"user": "U0BOT", "text": "I'm on it"},
+            {"user": "U1234567890", "text": "<@U0BOT> What is causing this issue?"},
         ]
         mock_explorer_cls.return_value = mock_entrypoint
 
@@ -240,7 +241,12 @@ class ProcessMentionForSlackTest(TestCase):
         assert "<@U222>: sure, what's the error?" in call_kwargs["on_page_context"]
 
         mock_count_linked.assert_called_once()
-        assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {"U111", "U222", "U0BOT"}
+        assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {
+            "U111",
+            "U222",
+            "U0BOT",
+            "U1234567890",
+        }
 
         assert_last_analytics_event(
             mock_record,
@@ -251,9 +257,9 @@ class ProcessMentionForSlackTest(TestCase):
                 prompt_length=len("What is causing this issue?"),
                 run_id=99,
                 integration_id=123,
-                messages_in_thread=4,
+                messages_in_thread=5,
                 seer_msgs_in_thread=2,
-                unique_users_in_thread=3,
+                unique_users_in_thread=4,
                 linked_users_in_thread=1,
                 conversation_type=SlackSeerAgentConversation.DIRECT_MESSAGE,
             ),
@@ -279,6 +285,54 @@ class ProcessMentionForSlackTest(TestCase):
         mock_entrypoint.install.get_thread_history.assert_not_called()
         call_kwargs = mock_operator.trigger_explorer.call_args[1]
         assert call_kwargs["on_page_context"] is None
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.seer.entrypoints.slack.tasks._count_linked_users")
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackExplorerEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_top_level_mention_analytics(
+        self,
+        mock_resolve_user,
+        mock_explorer_cls,
+        mock_operator_cls,
+        mock_count_linked,
+        mock_record,
+    ):
+        mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
+
+        mock_explorer_cls.has_access.return_value = True
+        mock_entrypoint = MagicMock()
+        mock_entrypoint.thread_ts = "1234567890.654321"
+        mock_explorer_cls.return_value = mock_entrypoint
+
+        mock_operator = MagicMock()
+        mock_operator.trigger_explorer.return_value = 7
+        mock_operator_cls.return_value = mock_operator
+
+        mock_count_linked.return_value = 1
+
+        self._run_task(thread_ts=None)
+
+        mock_count_linked.assert_called_once()
+        assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {"U1234567890"}
+
+        assert_last_analytics_event(
+            mock_record,
+            SlackSeerAgentResponded(
+                org_slug=self.organization.slug,
+                username="alice",
+                thread_ts="1234567890.654321",
+                prompt_length=len("What is causing this issue?"),
+                run_id=7,
+                integration_id=123,
+                messages_in_thread=1,
+                seer_msgs_in_thread=0,
+                unique_users_in_thread=1,
+                linked_users_in_thread=1,
+                conversation_type=SlackSeerAgentConversation.APP_MENTION,
+            ),
+        )
 
     @patch("sentry.analytics.record")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerExplorerOperator")
