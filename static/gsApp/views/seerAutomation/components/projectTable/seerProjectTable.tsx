@@ -228,7 +228,7 @@ export function SeerProjectTable() {
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
-            projects={projects}
+            projects={filteredProjects}
             onSortClick={setSort}
             sort={sort}
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
