@@ -4851,7 +4851,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[0]).toHaveTextContent('span.description contains test*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 
