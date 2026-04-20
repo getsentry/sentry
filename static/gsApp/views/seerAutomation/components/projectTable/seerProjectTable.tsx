@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
@@ -18,7 +18,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {
@@ -156,12 +155,6 @@ export function SeerProjectTable() {
     {query: {query: searchTerm, sort, agent: agentFilter}},
   ] as unknown as ApiQueryKey;
 
-  // Sort cache is used for sorting by stopping point, to avoid re-computing the same value multiple times.
-  const sortCache = useRef(new Map<Project, number>());
-  useEffect(() => {
-    sortCache.current.clear();
-  }, [autofixSettingsByProjectId]);
-
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {
       if (sort.field === 'project') {
@@ -182,20 +175,14 @@ export function SeerProjectTable() {
       }
 
       if (sort.field === 'steps') {
-        const aStoppingPointOrder = sortCache.current.getOrInsertComputed(
-          a,
-          () =>
-            PROJECT_STOPPING_POINT_SORT_ORDER[
-              getProjectStoppingPointValueFromSettings(aSettings)
-            ]
-        );
-        const bStoppingPointOrder = sortCache.current.getOrInsertComputed(
-          b,
-          () =>
-            PROJECT_STOPPING_POINT_SORT_ORDER[
-              getProjectStoppingPointValueFromSettings(bSettings)
-            ]
-        );
+        const aStoppingPointOrder =
+          PROJECT_STOPPING_POINT_SORT_ORDER[
+            getProjectStoppingPointValueFromSettings(aSettings)
+          ];
+        const bStoppingPointOrder =
+          PROJECT_STOPPING_POINT_SORT_ORDER[
+            getProjectStoppingPointValueFromSettings(bSettings)
+          ];
         return sort.kind === 'asc'
           ? aStoppingPointOrder - bStoppingPointOrder
           : bStoppingPointOrder - aStoppingPointOrder;
