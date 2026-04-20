@@ -80,20 +80,17 @@ export function SimilarStackTraceItem(props: Props) {
     }
   }, [busy, issue.id]);
 
-  const handleShowDiff = useCallback(
-    (event: React.MouseEvent) => {
-      const {groupId: baseIssueId, project} = props;
-      const {id: targetIssueId} = issue;
+  const handleShowDiff = (event: React.MouseEvent) => {
+    const {groupId: baseIssueId, project} = props;
+    const {id: targetIssueId} = issue;
 
-      openDiffModal({
-        baseIssueId,
-        targetIssueId,
-        project,
-      });
-      event.stopPropagation();
-    },
-    [issue, props]
-  );
+    openDiffModal({
+      baseIssueId,
+      targetIssueId,
+      project,
+    });
+    event.stopPropagation();
+  };
 
   const similarInterfaces = hasSimilarityEmbeddingsFeature
     ? (['exception'] as const)

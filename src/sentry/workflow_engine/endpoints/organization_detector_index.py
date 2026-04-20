@@ -50,7 +50,10 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
-from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.filters import (
+    apply_filter,
+    exclude_disallowed_metric_detectors,
+)
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -66,8 +69,8 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 detector_search_config = SearchConfig.create_from(
     default_config,
-    text_operator_keys={"name", "type"},
-    allowed_keys={"name", "type", "assignee"},
+    text_operator_keys={"name", "type", "workflow"},
+    allowed_keys={"name", "type", "assignee", "workflow"},
     allow_boolean=False,
     free_text_key="query",
 )
@@ -218,6 +221,24 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)
+                    case SearchFilter(
+                        key=SearchKey("workflow"),
+                        operator=("=" | "IN" | "!=" | "NOT IN"),
+                    ):
+                        workflow_ids = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        workflow_ids = to_valid_int_id_list("workflow", workflow_ids)
+                        if filter.operator in ("!=", "NOT IN"):
+                            queryset = queryset.exclude(
+                                detectorworkflow__workflow_id__in=workflow_ids
+                            )
+                        else:
+                            queryset = queryset.filter(
+                                detectorworkflow__workflow_id__in=workflow_ids
+                            ).distinct()
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.
@@ -259,6 +280,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+        queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         sort_by = request.GET.get("sortBy", "id")
         sort_by_field = sort_by.lstrip("-")
@@ -349,6 +371,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         enabled = validator.validated_data.get("enabled", True)
 
         queryset = self.filter_detectors(request, organization)
+        queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):

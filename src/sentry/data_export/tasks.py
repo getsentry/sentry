@@ -11,6 +11,17 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
+from sentry.data_export.base import (
+    DEFAULT_EXPORT_RETRIES,
+    EXPORTED_ROWS_LIMIT,
+    MAX_BATCH_SIZE,
+    MAX_FRAGMENTS_PER_BATCH,
+    RECOVERABLE_RETRY_BASE_SECONDS,
+    RECOVERABLE_RETRY_MAX_SECONDS,
+    SNUBA_MAX_RESULTS,
+    ExportError,
+    ExportQueryType,
+)
 from sentry.data_export.models import ExportedData, ExportedDataBlob
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.explore import ExploreProcessor, TraceItemFullExportProcessor
@@ -31,15 +42,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-
-from .base import (
-    EXPORTED_ROWS_LIMIT,
-    MAX_BATCH_SIZE,
-    MAX_FRAGMENTS_PER_BATCH,
-    SNUBA_MAX_RESULTS,
-    ExportError,
-    ExportQueryType,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -67,14 +69,6 @@ def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
         "query_type": ExportQueryType.as_str(data_export.query_type),
         "dataset": dataset,
     }
-
-
-def _is_full_jsonl_trace_item_export(data_export: ExportedData, output_mode: OutputMode) -> bool:
-    return (
-        data_export.query_type == ExportQueryType.EXPLORE
-        and output_mode == OutputMode.JSONL
-        and len(data_export.query_info.get("field", [])) == 0
-    )
 
 
 def _page_token_b64_from_processor(
@@ -200,6 +194,15 @@ def export_chunk_to_stored_blobs(
     )
 
 
+def recoverable_retry_countdown(remaining_export_retries: int) -> int:
+    """Delay before re-running assemble_download after a recoverable Snuba error."""
+    attempt_count = max(0, DEFAULT_EXPORT_RETRIES - remaining_export_retries)
+    return min(
+        RECOVERABLE_RETRY_MAX_SECONDS,
+        RECOVERABLE_RETRY_BASE_SECONDS * (2**attempt_count),
+    )
+
+
 def _schedule_retry(
     *,
     data_export_id: int,
@@ -211,6 +214,7 @@ def _schedule_retry(
     export_retries: int,
     page_token: str | None,
     last_emitted_item_id_hex: str | None,
+    delay_retry: bool = False,
 ) -> None:
     assemble_download.apply_async(
         args=[data_export_id],
@@ -224,6 +228,7 @@ def _schedule_retry(
             "page_token": page_token,
             "last_emitted_item_id_hex": last_emitted_item_id_hex,
         },
+        countdown=recoverable_retry_countdown(export_retries) if delay_retry else None,
     )
 
 
@@ -298,7 +303,7 @@ def assemble_download(
     offset: int = 0,
     bytes_written: int = 0,
     environment_id: int | None = None,
-    export_retries: int = 3,
+    export_retries: int = DEFAULT_EXPORT_RETRIES,
     *,
     page_token: str | None = None,
     last_emitted_item_id_hex: str | None = None,
@@ -347,6 +352,7 @@ def assemble_download(
                     export_retries=export_retries,
                     page_token=page_token,
                     last_emitted_item_id_hex=last_emitted_item_id_hex,
+                    delay_retry=error.delay_retry,
                 )
             else:
                 metrics.incr(
@@ -450,25 +456,26 @@ def get_processor(
                 organization=data_export.organization,
             )
         elif data_export.query_type == ExportQueryType.EXPLORE:
-            if _is_full_jsonl_trace_item_export(data_export, output_mode):
-                page_token: bytes | None = None
-                if page_token_b64:
-                    try:
-                        page_token = base64.b64decode(page_token_b64)
-                    except (ValueError, TypeError) as e:
-                        raise ExportError("Invalid export trace item pagination state.") from e
-                return TraceItemFullExportProcessor(
-                    explore_query=data_export.query_info,
-                    organization=data_export.organization,
-                    output_mode=output_mode,
-                    page_token=page_token,
-                    last_emitted_item_id_hex=last_emitted_item_id_hex,
-                )
             return ExploreProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
                 output_mode=output_mode,
             )
+        elif data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT:
+            page_token: bytes | None = None
+            if page_token_b64:
+                try:
+                    page_token = base64.b64decode(page_token_b64)
+                except (ValueError, TypeError) as e:
+                    raise ExportError("Invalid export trace item pagination state.") from e
+            return TraceItemFullExportProcessor(
+                explore_query=data_export.query_info,
+                organization=data_export.organization,
+                output_mode=output_mode,
+                page_token=page_token,
+                last_emitted_item_id_hex=last_emitted_item_id_hex,
+            )
+
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
     except ExportError as error:
@@ -488,7 +495,10 @@ def process_rows(
             rows = process_issues_by_tag(processor, batch_size, offset)
         elif data_export.query_type == ExportQueryType.DISCOVER:
             rows = process_discover(processor, batch_size, offset)
-        elif data_export.query_type == ExportQueryType.EXPLORE:
+        elif (
+            data_export.query_type == ExportQueryType.EXPLORE
+            or data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
+        ):
             rows = process_explore(processor, batch_size, offset)
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")

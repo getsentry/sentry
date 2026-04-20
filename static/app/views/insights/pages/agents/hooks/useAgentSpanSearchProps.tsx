@@ -34,9 +34,7 @@ export function useAgentSpanSearchProps() {
       },
       searchSource: 'agent-monitoring',
 
-      replaceRawSearchKeys: hasRawSearchReplacement
-        ? ['span.description', 'span.name']
-        : undefined,
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.name'] : undefined,
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},

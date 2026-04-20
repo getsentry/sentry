@@ -8,6 +8,7 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,7 +40,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   const scmProviders = useMemo(
     () =>
       (providersQuery.data?.providers ?? [])
-        .filter(p => p.metadata.features.some(f => f.featureGate.includes('commits')))
+        .filter(isScmProvider)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [providersQuery.data]
   );

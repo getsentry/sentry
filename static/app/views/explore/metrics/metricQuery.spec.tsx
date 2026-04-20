@@ -211,7 +211,7 @@ describe('defaultMetricQuery', () => {
       metric: {name: '', type: ''},
       queryParams: new ReadableQueryParams({
         extrapolate: true,
-        mode: Mode.SAMPLES,
+        mode: Mode.AGGREGATE,
         query: '',
         cursor: '',
         fields: ['id', 'timestamp'],

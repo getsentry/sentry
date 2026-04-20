@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';
@@ -41,9 +41,9 @@ export function EventTagsDataSection({
   const sentryTags = getSentryDefaultTags();
 
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
-  const handleTagFilterChange = useCallback((value: TagFilter) => {
+  const handleTagFilterChange = (value: TagFilter) => {
     setTagFilter(value);
-  }, []);
+  };
 
   const tagsWithMeta = useMemo(() => {
     return associateTagsWithMeta({tags: event.tags, meta: event._meta?.tags});

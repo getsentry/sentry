@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -61,7 +59,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const isConfigured =
       preference?.automation_handoff?.target === config.target && isAutomationEnabled;
 
-    const handleInstallClick = useCallback(() => {
+    const handleInstallClick = () => {
       trackAnalytics('coding_integration.install_clicked', {
         organization,
         project_slug: project.slug,
@@ -69,9 +67,9 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         source: 'cta',
         user_id: user.id,
       });
-    }, [organization, project.slug, user.id]);
+    };
 
-    const handleSetupClick = useCallback(async () => {
+    const handleSetupClick = async () => {
       if (!integration?.id) {
         throw new Error(`${config.displayName} integration not found`);
       }
@@ -104,17 +102,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           integration_id: parseInt(integration.id, 10),
         },
       });
-    }, [
-      organization,
-      project.slug,
-      project.seerScannerAutomation,
-      project.autofixAutomationTuning,
-      updateProjectSeerPreferences,
-      updateProjectAutomation,
-      preference?.repositories,
-      integration,
-      user.id,
-    ]);
+    };
 
     if (!hasFeatureFlag) {
       return null;

@@ -649,9 +649,9 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.TRACE_METRIC_BYTE,
     plural: DataCategory.TRACE_METRIC_BYTE,
     singular: 'traceMetricByte',
-    displayName: 'metric byte',
-    titleName: t('Metrics (Bytes)'),
-    productName: t('Metrics'),
+    displayName: 'application metric byte',
+    titleName: t('Application Metrics'),
+    productName: t('Application Metrics'),
     uid: 37,
     isBilledCategory: true,
     statsInfo: {

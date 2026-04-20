@@ -116,7 +116,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     intelligence_level = serializers.ChoiceField(
         required=False,
         choices=["low", "medium", "high"],
-        default="low",
+        default="medium",
         help_text="The intelligence level to use.",
     )
     user_context = serializers.CharField(

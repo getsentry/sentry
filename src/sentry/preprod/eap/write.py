@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -26,6 +27,18 @@ from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
+
+logger = logging.getLogger(__name__)
+
+
+def _metrics_artifact_type_label(value: int | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        return PreprodArtifactSizeMetrics.MetricsArtifactType(value).to_choice_label()
+    except (ValueError, KeyError):
+        logger.warning("preprod.eap.unknown_metrics_artifact_type", extra={"value": value})
+        return None
 
 
 def produce_preprod_size_metric_to_eap(
@@ -65,7 +78,7 @@ def produce_preprod_size_metric_to_eap(
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
         "sub_item_type": "size_metric",
-        "metrics_artifact_type": size_metric.metrics_artifact_type,
+        "metrics_artifact_type": _metrics_artifact_type_label(size_metric.metrics_artifact_type),
         "identifier": size_metric.identifier,
         "min_install_size": size_metric.min_install_size,
         "max_install_size": size_metric.max_install_size,

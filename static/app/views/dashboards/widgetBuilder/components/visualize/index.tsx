@@ -170,11 +170,30 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
+
   if (
     selectedField.kind !== FieldValueKind.FUNCTION ||
     dataset === WidgetType.SPANS ||
     dataset === WidgetType.LOGS
   ) {
+    // For SPANS/LOGS functions, check for dropdown parameters before returning
+    // generic columns. Functions like performance_score and opportunity_score
+    // define restricted dropdown options that must be respected.
+    if (
+      selectedField.kind === FieldValueKind.FUNCTION &&
+      (dataset === WidgetType.SPANS || dataset === WidgetType.LOGS)
+    ) {
+      const fnData = fieldValues.find(
+        option => option.value.meta.name === selectedField.function[0]
+      )?.value;
+      if (
+        fnData?.kind === FieldValueKind.FUNCTION &&
+        fnData.meta.parameters.length > 0 &&
+        fnData.meta.parameters[0]?.kind === 'dropdown'
+      ) {
+        return fnData.meta.parameters[0].options;
+      }
+    }
     return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);

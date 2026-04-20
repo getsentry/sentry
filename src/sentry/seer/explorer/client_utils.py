@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.utils import timezone
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -25,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -56,6 +56,7 @@ class ExplorerChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
+    reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
     enable_code_mode_tools: NotRequired[bool]
@@ -70,7 +71,7 @@ class ExplorerChatRequest(TypedDict):
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
-    user_auth_token: NotRequired[str | None]
+    proxy_headers: NotRequired[dict[str, str] | None]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -184,7 +185,8 @@ def get_explorer_state_from_pr_id(
 
 
 def has_seer_explorer_access_with_detail(
-    organization: Organization, actor: SentryUser | AnonymousUser | RpcUser | None = None
+    organization: Organization | RpcOrganization,
+    actor: SentryUser | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Explorer.
@@ -300,31 +302,27 @@ def collect_user_org_context(
     }
 
 
-def create_explorer_api_token(user: SentryUser | RpcUser, organization: Organization) -> str | None:
-    """Create a short-lived read-only API token for Seer to call back into Sentry."""
-    try:
-        from sentry.models.apitoken import ApiToken
-        from sentry.types.token import AuthTokenType
-        from sentry.users.models.user import User as UserModel
+def get_proxy_headers() -> dict[str, str] | None:
+    """Build auth headers for Seer to echo back to Sentry on callbacks.
 
-        real_user = UserModel.objects.get(id=user.id)
-        token = ApiToken.objects.create(
-            user=real_user,
-            token_type=AuthTokenType.USER,
-            scoping_organization_id=organization.id,
-            scope_list=[
-                "org:read",
-                "project:read",
-                "event:read",
-                "alerts:read",
-                "member:read",
-                "team:read",
-            ],
-            expires_at=timezone.now() + timedelta(hours=1),
-        )
-        return token.plaintext_token
+    Returns a single ``X-Viewer-Context`` JWT header, or ``None`` when no
+    ViewerContext is set. Matches the format used by the standard inbound
+    Seer → Sentry path (``X-Viewer-Context`` JWT, no separate signature
+    header), so Sentry's middleware decodes both with the same code path.
+    """
+    from sentry.viewer_context import encode_viewer_context, get_viewer_context
+
+    ctx = get_viewer_context()
+    if ctx is None or ctx.user_id is None:
+        return None
+
+    if not settings.SEER_API_SHARED_SECRET:
+        return None
+
+    try:
+        return {"X-Viewer-Context": encode_viewer_context(ctx)}
     except Exception:
-        logger.exception("Failed to create short-lived API token for Seer Explorer")
+        logger.exception("Failed to encode viewer context JWT for proxy headers")
         return None
 
 

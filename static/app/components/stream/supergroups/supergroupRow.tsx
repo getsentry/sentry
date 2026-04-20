@@ -43,8 +43,11 @@ export function SupergroupRow({
         />
       ),
       {
-        ariaLabel: t('Supergroup details'),
+        ariaLabel: t('Issue group details'),
         drawerKey: 'supergroup-drawer',
+        shouldCloseOnInteractOutside: el =>
+          !document.getElementById('modal-portal')?.contains(el) &&
+          !el.closest('[data-overlay]'),
         onClose: () => setIsActive(false),
       }
     );

@@ -231,19 +231,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          attributeType: 'number',
-          itemType: 'spans',
-          project: [],
-          statsPeriod: '10d',
-        }),
-      })
-    );
-    expect(traceItemAttributesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          attributeType: 'string',
+          attributeType: ['string', 'number', 'boolean'],
           itemType: 'spans',
           project: [],
           statsPeriod: '10d',
@@ -339,19 +327,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          attributeType: 'number',
-          itemType: 'spans',
-          project: [],
-          statsPeriod: '10d',
-        }),
-      })
-    );
-    expect(traceItemAttributesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/trace-items/attributes/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          attributeType: 'string',
+          attributeType: ['string', 'number', 'boolean'],
           itemType: 'spans',
           project: [],
           statsPeriod: '10d',

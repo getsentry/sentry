@@ -6,6 +6,7 @@ from sentry.taskworker.adapters import (
     DjangoCacheAtMostOnceStore,
     SentryMetricsBackend,
     SentryRouter,
+    ViewerContextHook,
     make_producer,
 )
 
@@ -15,6 +16,7 @@ app = TaskbrokerApp(
     metrics_class=SentryMetricsBackend(),
     router_class=SentryRouter(),
     at_most_once_store=DjangoCacheAtMostOnceStore(cache),
+    context_hooks=[ViewerContextHook()],
 )
 app.set_config(
     {

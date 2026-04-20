@@ -162,7 +162,7 @@ const Card = styled('div')<{highlight?: boolean}>`
     p.highlight
       ? p.theme.tokens.interactive.link.accent.active
       : p.theme.tokens.content.primary};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding: ${p => p.theme.space.xl};
 `;
 const Error = styled('div')`

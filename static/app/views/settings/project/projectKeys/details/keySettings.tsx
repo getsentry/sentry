@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -51,7 +51,7 @@ export function KeySettings({
   const {keyId, projectId} = params;
   const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
-  const handleRemove = useCallback(async () => {
+  const handleRemove = async () => {
     addLoadingMessage(t('Revoking key\u2026'));
 
     try {
@@ -67,7 +67,7 @@ export function KeySettings({
     } catch (_err) {
       addErrorMessage(t('Unable to revoke key'));
     }
-  }, [organization, api, onRemove, keyId, projectId]);
+  };
 
   const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');

@@ -1,5 +1,4 @@
 import {DataCategoryExact} from 'sentry/types/core';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
 
@@ -11,20 +10,13 @@ const notificationsByProject = ['alerts', 'email', 'workflow', 'spikeProtection'
 export const isGroupedByProject = (notificationType: string): boolean =>
   notificationsByProject.includes(notificationType);
 
-export const groupByOrganization = (
-  projects: Project[]
-): Record<string, {organization: OrganizationSummary; projects: Project[]}> => {
-  return projects.reduce<
-    Record<string, {organization: OrganizationSummary; projects: Project[]}>
-  >((acc, project) => {
+export const groupByOrganization = (projects: Project[]): Record<string, Project[]> => {
+  return projects.reduce<Record<string, Project[]>>((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {
-      acc[orgSlug]!.projects.push(project);
+      acc[orgSlug]!.push(project);
     } else {
-      acc[orgSlug] = {
-        organization: project.organization,
-        projects: [project],
-      };
+      acc[orgSlug] = [project];
     }
     return acc;
   }, {});

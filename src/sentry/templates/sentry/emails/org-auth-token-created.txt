@@ -3,7 +3,7 @@
 {% autoescape off %}
 Security Notice
 ---------------
-User {{ actor.email }} has created a new Organization Auth Token "{{ token_name }}" for your Sentry organization {{ organization.name }}.
+User {{ actor.email }} has created a new Organization Auth Token "{{ token_name }}" for your Sentry organization {{ organization.name|sanitize_periods }}.
 
 Details
 -------

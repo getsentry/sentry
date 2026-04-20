@@ -14,7 +14,15 @@ from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
+from sentry.issues.grouptype import (
+    AIDetectedCodeHealthGroupType,
+    AIDetectedDBGroupType,
+    AIDetectedGeneralGroupType,
+    AIDetectedHTTPGroupType,
+    AIDetectedRuntimePerformanceGroupType,
+    AIDetectedSecurityGroupType,
+    GroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
@@ -23,11 +31,13 @@ from sentry.seer.explorer.utils import normalize_description
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
+SEER_CHECK_BUDGET_ENDPOINT_PATH = "/v1/automation/issue-detection/check-budget"
 SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
@@ -146,6 +156,37 @@ def get_base_platform(platform: str | None) -> str | None:
     return None
 
 
+TITLE_TO_GROUP_TYPE: dict[str, type[GroupType]] = {
+    "Inefficient HTTP Requests": AIDetectedHTTPGroupType,
+    "Degraded HTTP Operation": AIDetectedHTTPGroupType,
+    "Failed HTTP Operation": AIDetectedHTTPGroupType,
+    "Inefficient Database Queries": AIDetectedDBGroupType,
+    "Degraded Database Operation": AIDetectedDBGroupType,
+    "Main Thread Blocking Operation": AIDetectedRuntimePerformanceGroupType,
+    "Degraded UI Performance": AIDetectedRuntimePerformanceGroupType,
+    "Potential Security Leak": AIDetectedSecurityGroupType,
+    "Potential Security Risk": AIDetectedSecurityGroupType,
+    "Configuration Warning": AIDetectedCodeHealthGroupType,
+    "Deprecation Warning": AIDetectedCodeHealthGroupType,
+}
+
+GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
+    AIDetectedHTTPGroupType: "ai_detected_http_enabled",
+    AIDetectedDBGroupType: "ai_detected_db_enabled",
+    AIDetectedRuntimePerformanceGroupType: "ai_detected_runtime_performance_enabled",
+    AIDetectedSecurityGroupType: "ai_detected_security_enabled",
+    AIDetectedCodeHealthGroupType: "ai_detected_code_health_enabled",
+    AIDetectedGeneralGroupType: "ai_detected_general_enabled",
+}
+
+
+FALLBACK_ISSUE_TITLE = "AI-Detected Application Issue"
+
+
+def get_group_type_for_title(title: str) -> type[GroupType]:
+    return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     project: Project,
@@ -153,6 +194,13 @@ def create_issue_occurrence_from_detection(
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
+    group_type = get_group_type_for_title(detected_issue.title)
+    setting_key = GROUP_TYPE_TO_SETTING.get(group_type)
+    if setting_key:
+        perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+        if not perf_settings.get(setting_key, True):
+            return
+
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
@@ -160,7 +208,9 @@ def create_issue_occurrence_from_detection(
     transaction_name = normalize_description(detected_issue.transaction_name)
     group_for_fingerprint = detected_issue.group_for_fingerprint
 
-    fingerprint = [f"llm-detected-{group_for_fingerprint.strip().lower().replace(' ', '-')}"]
+    fingerprint = [
+        f"1-{group_type.type_id}-{group_for_fingerprint.strip().lower().replace(' ', '-')}"
+    ]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -182,12 +232,14 @@ def create_issue_occurrence_from_detection(
         event_id=event_id,
         project_id=project.id,
         fingerprint=fingerprint,
-        issue_title=detected_issue.title,
+        issue_title=(
+            FALLBACK_ISSUE_TITLE if detected_issue.title == "Other" else detected_issue.title
+        ),
         subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
-        type=LLMDetectedExperimentalGroupTypeV2,
+        type=get_group_type_for_title(detected_issue.title),
         detection_time=detection_time,
         culprit=transaction_name,
         level="warning",
@@ -279,6 +331,30 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     )
     if not has_access:
         return
+
+    perf_settings = project.get_option("sentry:performance_issue_settings", default={})
+    if not perf_settings.get("ai_issue_detection_enabled", True):
+        return
+
+    budget_response = make_signed_seer_api_request(
+        seer_issue_detection_connection_pool,
+        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{organization_id}",
+        body=b"",
+        method="GET",
+        timeout=SEER_TIMEOUT_S,
+    )
+    if budget_response.status == 200:
+        # fail-open since there is an additional budget check on the seer side
+        try:
+            body = json.loads(budget_response.data)
+            if not body.get("has_budget", True):
+                logger.info(
+                    "llm_issue_detection.budget_exceeded",
+                    extra={"organization_id": organization_id},
+                )
+                return
+        except json.JSONDecodeError:
+            pass
 
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
         project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES

@@ -42,6 +42,7 @@ import {
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 
 export const NONE_UNIT = 'none';
+const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 
 function nextFrameCallback(cb: () => void) {
   if ('requestAnimationFrame' in window) {
@@ -689,21 +690,24 @@ function MetricAttributesSection({
     type: metricType,
   });
 
+  const debouncedTraceMetricFilter = useDebouncedValue(
+    traceMetricFilter,
+    METRIC_ATTRIBUTES_DEBOUNCE_DURATION
+  );
+
+  const isDebouncingAttributes = debouncedTraceMetricFilter !== traceMetricFilter;
+  const metricAttributeQuery = {
+    enabled: Boolean(debouncedTraceMetricFilter),
+    query: debouncedTraceMetricFilter,
+    staleTime: Infinity,
+  };
+
   const {attributes: stringAttrs, isLoading: stringLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'string'
-    );
+    useTraceMetricItemAttributes(metricAttributeQuery, 'string');
   const {attributes: numberAttrs, isLoading: numberLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'number'
-    );
+    useTraceMetricItemAttributes(metricAttributeQuery, 'number');
   const {attributes: booleanAttrs, isLoading: booleanLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'boolean'
-    );
+    useTraceMetricItemAttributes(metricAttributeQuery, 'boolean');
 
   const attributeKeys = useMemo(() => {
     const keys = new Set([
@@ -716,7 +720,7 @@ function MetricAttributesSection({
       .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
   }, [stringAttrs, numberAttrs, booleanAttrs]);
 
-  if (stringLoading || numberLoading || booleanLoading) {
+  if (isDebouncingAttributes || stringLoading || numberLoading || booleanLoading) {
     return (
       <Stack gap="xs">
         <Text size="md">{t('Attributes')}:</Text>

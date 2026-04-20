@@ -29,14 +29,14 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
       )
   );
 
-  const toggleRelatedExceptions = useCallback((exceptionId: number) => {
+  const toggleRelatedExceptions = (exceptionId: number) => {
     setHiddenExceptions(old => {
       if (!defined(old[exceptionId])) {
         return old;
       }
       return {...old, [exceptionId]: !old[exceptionId]};
     });
-  }, []);
+  };
 
   const expandException = useCallback(
     (exceptionId: number) => {

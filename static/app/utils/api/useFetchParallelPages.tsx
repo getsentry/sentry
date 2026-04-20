@@ -100,7 +100,9 @@ export function useFetchParallelPages<Data>({
 
   const cursors = useMemo(
     () =>
-      new Array(Math.ceil(hits / perPage)).fill(0).map((_, i) => `0:${perPage * i}:0`),
+      Array.from({length: Math.ceil(hits / perPage)})
+        .fill(0)
+        .map((_, i) => `0:${perPage * i}:0`),
     [hits, perPage]
   );
 

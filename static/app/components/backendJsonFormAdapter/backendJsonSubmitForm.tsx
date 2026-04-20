@@ -115,8 +115,11 @@ function computeDefaultValues(
   const defaults: Record<string, unknown> = {};
   for (const field of fields) {
     if (field.name && field.type !== 'blank') {
+      const initialValue = initialValues?.[field.name];
       defaults[field.name] =
-        initialValues?.[field.name] ?? field.default ?? getDefaultForField(field);
+        initialValue === undefined
+          ? (field.default ?? getDefaultForField(field))
+          : initialValue;
     }
   }
   return defaults;
@@ -270,7 +273,7 @@ export function BackendJsonSubmitForm({
                         </fieldApi.Layout.Stack>
                       );
                     case 'select':
-                    case 'choice':
+                    case 'choice': {
                       if (field.url) {
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
@@ -318,8 +321,12 @@ export function BackendJsonSubmitForm({
                             >
                               <fieldApi.SelectAsync
                                 multiple
-                                value={(fieldApi.state.value as string[]) ?? []}
-                                onChange={handleChange}
+                                value={
+                                  (fieldApi.state.value as Array<string | number>) ?? []
+                                }
+                                onChange={(value: Array<string | number>) =>
+                                  handleChange(value)
+                                }
                                 disabled={field.disabled}
                                 queryOptions={asyncQueryOptions}
                               />
@@ -332,12 +339,28 @@ export function BackendJsonSubmitForm({
                             hintText={field.help}
                             required={field.required}
                           >
-                            <fieldApi.SelectAsync
-                              value={fieldApi.state.value as string | null}
-                              onChange={handleChange}
-                              disabled={field.disabled}
-                              queryOptions={asyncQueryOptions}
-                            />
+                            {field.required ? (
+                              <fieldApi.SelectAsync
+                                value={
+                                  (fieldApi.state.value ?? null) as string | number | null
+                                }
+                                onChange={(value: string | number) => handleChange(value)}
+                                disabled={field.disabled}
+                                queryOptions={asyncQueryOptions}
+                              />
+                            ) : (
+                              <fieldApi.SelectAsync
+                                clearable
+                                value={
+                                  (fieldApi.state.value ?? null) as string | number | null
+                                }
+                                onChange={(value: string | number | null) =>
+                                  handleChange(value)
+                                }
+                                disabled={field.disabled}
+                                queryOptions={asyncQueryOptions}
+                              />
+                            )}
                           </fieldApi.Layout.Stack>
                         );
                       }
@@ -351,7 +374,7 @@ export function BackendJsonSubmitForm({
                             <fieldApi.Select
                               multiple
                               value={(fieldApi.state.value as string[]) ?? []}
-                              onChange={handleChange}
+                              onChange={(value: string[]) => handleChange(value)}
                               options={transformChoices(field.choices)}
                               disabled={field.disabled}
                             />
@@ -364,14 +387,25 @@ export function BackendJsonSubmitForm({
                           hintText={field.help}
                           required={field.required}
                         >
-                          <fieldApi.Select
-                            value={fieldApi.state.value as string | null}
-                            onChange={handleChange}
-                            options={transformChoices(field.choices)}
-                            disabled={field.disabled}
-                          />
+                          {field.required ? (
+                            <fieldApi.Select
+                              value={(fieldApi.state.value ?? null) as string | null}
+                              onChange={(value: string) => handleChange(value)}
+                              options={transformChoices(field.choices)}
+                              disabled={field.disabled}
+                            />
+                          ) : (
+                            <fieldApi.Select
+                              clearable
+                              value={(fieldApi.state.value ?? null) as string | null}
+                              onChange={(value: string | null) => handleChange(value)}
+                              options={transformChoices(field.choices)}
+                              disabled={field.disabled}
+                            />
+                          )}
                         </fieldApi.Layout.Stack>
                       );
+                    }
                     case 'secret':
                       return (
                         <fieldApi.Layout.Stack

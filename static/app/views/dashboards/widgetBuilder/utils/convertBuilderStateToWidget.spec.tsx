@@ -200,7 +200,7 @@ describe('convertBuilderStateToWidget', () => {
     expect(widget.queries[0]!.orderby).toBe('');
   });
 
-  it('sets limit to undefined for table widgets', () => {
+  it('sets limit to null for table widgets so it survives JSON serialization', () => {
     const mockState: WidgetBuilderState = {
       displayType: DisplayType.TABLE,
       fields: [
@@ -213,10 +213,10 @@ describe('convertBuilderStateToWidget', () => {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.limit).toBeUndefined();
+    expect(widget.limit).toBeNull();
   });
 
-  it('sets limit to undefined for big number widgets', () => {
+  it('sets limit to null for big number widgets so it survives JSON serialization', () => {
     const mockState: WidgetBuilderState = {
       displayType: DisplayType.BIG_NUMBER,
       fields: [
@@ -228,7 +228,7 @@ describe('convertBuilderStateToWidget', () => {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.limit).toBeUndefined();
+    expect(widget.limit).toBeNull();
   });
 
   it('uses explicit axisRange from state', () => {

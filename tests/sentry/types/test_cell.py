@@ -27,6 +27,7 @@ from sentry.types.cell import (
     get_cell_by_name,
     get_cell_for_organization,
     get_local_cell,
+    get_new_org_cell_for_locality,
     load_from_config,
     subdomain_is_locality,
 )
@@ -272,3 +273,60 @@ class CellDirectoryTest(TestCase):
             req = rf.get("/")
             setattr(req, "subdomain", "acme")
             assert not subdomain_is_locality(req)
+
+    def test_get_new_org_cell_for_locality(self) -> None:
+        cells = [
+            Cell(
+                name="us",
+                snowflake_id=1,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.1",
+                visible=True,
+            ),
+            Cell(
+                name="us2",
+                snowflake_id=3,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.2",
+                visible=True,
+            ),
+            Cell(
+                name="de1",
+                snowflake_id=2,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.3",
+                visible=True,
+            ),
+            Cell(
+                name="de2",
+                snowflake_id=4,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.4",
+                visible=True,
+            ),
+        ]
+        localities = [
+            Locality(
+                name="us",
+                cells=frozenset(["us", "us2"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="us2",
+                visible=True,
+            ),
+            Locality(
+                name="de",
+                cells=frozenset(["de1", "de2"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="de2",
+                visible=True,
+            ),
+        ]
+        with get_test_env_directory().swap_state(cells=cells, localities=localities):
+            org_cell = get_new_org_cell_for_locality("de")
+            assert org_cell.name == "de2"
+
+            org_cell = get_new_org_cell_for_locality("us")
+            assert org_cell.name == "us2"
+
+            with pytest.raises(CellResolutionError):
+                get_new_org_cell_for_locality("derp")

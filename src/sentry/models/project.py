@@ -444,14 +444,11 @@ class Project(Model):
     ) -> Any:
         return self.option_manager.get_value(self, key, default, validate)
 
-    def update_option(self, key: str, value: Any, reload_cache: bool = True) -> bool:
+    def update_option(self, key: str, value: Any) -> bool:
         """
         Updates a project option for this project.
-        :param reload_cache: Invalidate the project config and reload the
-        cache. Do not call this with `False` unless you know for sure that
-        it's fine to keep the cached project config.
         """
-        return self.option_manager.set_value(self, key, value, reload_cache=reload_cache)
+        return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)

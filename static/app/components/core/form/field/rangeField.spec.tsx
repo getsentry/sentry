@@ -8,7 +8,7 @@ interface TestFormProps {
   label: string;
   defaultValue?: number;
   disabled?: boolean | string;
-  formatLabel?: (value: number | '') => React.ReactNode;
+  formatOptions?: Intl.NumberFormatOptions;
   hintText?: string;
   max?: number;
   min?: number;
@@ -25,7 +25,7 @@ function TestForm({
   min = 0,
   max = 100,
   step,
-  formatLabel,
+  formatOptions,
 }: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -46,7 +46,7 @@ function TestForm({
               min={min}
               max={max}
               step={step}
-              formatLabel={formatLabel}
+              formatOptions={formatOptions}
             />
           </field.Layout.Row>
         )}
@@ -177,8 +177,14 @@ describe('RangeField props', () => {
     expect(screen.getByRole('slider')).toHaveAttribute('step', '10');
   });
 
-  it('supports formatLabel prop', () => {
-    render(<TestForm label="Volume" formatLabel={v => `${v}%`} defaultValue={50} />);
+  it('supports formatOptions prop', () => {
+    render(
+      <TestForm
+        label="Volume"
+        formatOptions={{style: 'unit', unit: 'percent'}}
+        defaultValue={50}
+      />
+    );
 
     // The label shows on hover/focus, just verify the slider renders
     expect(screen.getByRole('slider')).toBeInTheDocument();

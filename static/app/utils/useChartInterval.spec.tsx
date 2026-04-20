@@ -27,6 +27,7 @@ describe('useChartInterval', () => {
       {value: '1h', label: '1 hour'},
       {value: '3h', label: '3 hours'},
       {value: '6h', label: '6 hours'},
+      {value: '1d', label: '1 day'},
     ]);
     expect(chartInterval).toBe('1h'); // default
 

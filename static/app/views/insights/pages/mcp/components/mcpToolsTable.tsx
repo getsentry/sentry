@@ -49,7 +49,7 @@ const rightAlignColumns = new Set([
 export function McpToolsTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
+  const query = useCombinedQuery(`span.name:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
   const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
@@ -155,7 +155,7 @@ function McpToolCell({tool}: {tool: string}) {
   const {selection} = usePageFilters();
 
   const search = new MutableSearch('');
-  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.NAME, 'mcp.server');
   search.addFilterValue(SpanFields.MCP_TOOL_NAME, tool);
 
   const link = getExploreUrl({
@@ -170,7 +170,7 @@ function McpToolCell({tool}: {tool: string}) {
     ],
     query: search.formatString(),
     sort: '-count(span.duration)',
-    field: ['span.description', 'mcp.tool.result.content', 'span.duration', 'timestamp'],
+    field: ['span.name', 'mcp.tool.result.content', 'span.duration', 'timestamp'],
   });
   return <Link to={link}>{tool}</Link>;
 }

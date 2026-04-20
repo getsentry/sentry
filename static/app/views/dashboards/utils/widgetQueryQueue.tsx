@@ -34,18 +34,22 @@ export function useWidgetQueryQueue() {
   return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
 }
 
-// Lowest known safe values for customers
-const MAX_CONCURRENCY = 5;
+// Lowest known safe value for customers — used when the org option is unset so we
+// never accidentally assume a high limit.
+const FALLBACK_CONCURRENCY = 5;
 const MAX_RETRIES = 5;
 
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
   const startTimeRef = useRef<number | undefined>(undefined);
   const location = useLocation();
+  const organization = useOrganization();
+  const concurrency =
+    organization.dashboardsAsyncQueueParallelLimit ?? FALLBACK_CONCURRENCY;
 
   const queueOptions = useMemo(
     () =>
       asyncQueuerOptions({
-        concurrency: MAX_CONCURRENCY,
+        concurrency,
         wait: 5,
         started: true,
         key: 'widget-query-queue',
@@ -75,7 +79,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
           }
         },
       }),
-    [location.pathname]
+    [location.pathname, concurrency]
   );
 
   const queue = useAsyncQueuer(fetchWidgetItem, queueOptions);

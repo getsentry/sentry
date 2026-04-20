@@ -1,17 +1,12 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
-import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
+import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
+import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
@@ -21,84 +16,76 @@ type UpdateGroupSearchViewVariables = Pick<
 };
 
 export const useUpdateGroupSearchView = (
-  options: Omit<
-    UseMutationOptions<GroupSearchView, RequestError, UpdateGroupSearchViewVariables>,
-    'mutationFn'
-  > = {}
+  options: {onSuccess?: (data: GroupSearchView) => void} = {}
 ) => {
-  const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  return useMutation<GroupSearchView, RequestError, UpdateGroupSearchViewVariables>({
-    ...options,
-    mutationFn: ({id, ...groupSearchView}: UpdateGroupSearchViewVariables) =>
-      api.requestPromise(
-        `/organizations/${organization.slug}/group-search-views/${id}/`,
-        {
-          method: 'PUT',
-          data: groupSearchView,
-        }
-      ),
+  const starredKey = starredGroupSearchViewsApiOptions({
+    orgSlug: organization.slug,
+  }).queryKey;
 
-    onMutate: (variables, context) => {
+  return useMutation({
+    mutationFn: ({id, ...groupSearchView}: UpdateGroupSearchViewVariables) =>
+      fetchMutation<GroupSearchView>({
+        url: `/organizations/${organization.slug}/group-search-views/${id}/`,
+        method: 'PUT',
+        data: groupSearchView,
+      }),
+    onMutate: variables => {
       const {optimistic, ...viewParams} = variables;
       if (optimistic) {
+        const viewKey = groupSearchViewApiOptions({
+          orgSlug: organization.slug,
+          id: viewParams.id,
+        }).queryKey;
+
         // Update the specific view cache
-        setApiQueryData<GroupSearchView>(
-          queryClient,
-          makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: viewParams.id}),
-          oldView => (oldView ? {...oldView, ...viewParams} : oldView)
+        queryClient.setQueryData(viewKey, prevData =>
+          prevData ? {...prevData, json: {...prevData.json, ...viewParams}} : prevData
         );
 
         // Update any matching starred views in cache
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          oldGroupSearchViews => {
-            return (
-              oldGroupSearchViews?.map(view => {
-                if (view.id === variables.id) {
-                  return {...view, ...variables};
-                }
-                return view;
-              }) ?? []
-            );
-          }
+        queryClient.setQueryData(starredKey, prevData =>
+          prevData
+            ? {
+                ...prevData,
+                json: prevData.json.map(view =>
+                  view.id === variables.id ? {...view, ...variables} : view
+                ),
+              }
+            : prevData
         );
       }
-      options.onMutate?.(variables, context);
     },
-    onSuccess: (data, parameters, onMutateResult, context) => {
-      if (!parameters.optimistic) {
+    onSuccess: (data, variables) => {
+      if (!variables.optimistic) {
+        const viewKey = groupSearchViewApiOptions({
+          orgSlug: organization.slug,
+          id: variables.id,
+        }).queryKey;
+
         // Update the specific view cache
-        setApiQueryData<GroupSearchView>(
-          queryClient,
-          makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
-          data
+        queryClient.setQueryData(viewKey, prevData =>
+          prevData ? {...prevData, json: data} : prevData
         );
 
         // Update any matching starred views in cache
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          oldGroupSearchViews => {
-            return (
-              oldGroupSearchViews?.map(view => {
-                if (view.id === parameters.id) {
-                  return {...view, ...parameters};
-                }
-                return view;
-              }) ?? []
-            );
-          }
+        queryClient.setQueryData(starredKey, prevData =>
+          prevData
+            ? {
+                ...prevData,
+                json: prevData.json.map(view =>
+                  view.id === variables.id ? {...view, ...variables} : view
+                ),
+              }
+            : prevData
         );
       }
-      options.onSuccess?.(data, parameters, onMutateResult, context);
+      options.onSuccess?.(data);
     },
-    onError: (error, variables, onMutateResult, context) => {
+    onError: () => {
       addErrorMessage(t('Failed to update view'));
-      options.onError?.(error, variables, onMutateResult, context);
     },
   });
 };

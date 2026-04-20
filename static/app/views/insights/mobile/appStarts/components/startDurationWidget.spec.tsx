@@ -1,4 +1,3 @@
-import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
@@ -73,7 +72,7 @@ describe('StartDurationWidget', () => {
       query: {
         app_start_type: 'cold',
       },
-    } as Location);
+    });
 
     render(<StartDurationWidget />);
     expect(await screen.findByText('Average Cold Start')).toBeInTheDocument();
@@ -85,7 +84,7 @@ describe('StartDurationWidget', () => {
       query: {
         app_start_type: 'warm',
       },
-    } as Location);
+    });
 
     render(<StartDurationWidget />);
     expect(await screen.findByText('Average Warm Start')).toBeInTheDocument();

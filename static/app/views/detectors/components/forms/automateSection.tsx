@@ -133,5 +133,5 @@ export function AutomateSection({step}: {step?: number}) {
 const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.xl};
-  margin: -${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.lg};
 `;

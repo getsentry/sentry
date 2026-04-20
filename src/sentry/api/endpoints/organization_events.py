@@ -107,7 +107,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
-            "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
             "organizations:starfish-view",
