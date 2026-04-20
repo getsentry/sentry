@@ -132,17 +132,6 @@ FIELD_MAPPINGS: dict[str, str] = {
     "size_state": "preprodartifactsizemetrics__state",
 }
 
-IMAGE_COMPARISON_KEYS: frozenset[str] = frozenset(
-    {
-        "images_added",
-        "images_changed",
-        "images_removed",
-        "images_renamed",
-        "images_skipped",
-        "images_unchanged",
-    }
-)
-
 SIZE_STATE_VALUES: dict[str, int] = {
     member.name.lower(): member.value for member in PreprodArtifactSizeMetrics.SizeAnalysisState
 }
@@ -172,6 +161,16 @@ def _translate_size_state(value: object) -> int:
     return SIZE_STATE_VALUES[raw]
 
 
+def _base_searchable_queryset() -> PreprodArtifactQuerySet:
+    return (
+        PreprodArtifact.objects.get_queryset()
+        .annotate_download_count()
+        .annotate_installable()
+        .annotate_main_size_metrics()
+        .annotate_platform_name()
+    )
+
+
 def queryset_for_query(
     query: str,
     organization: Organization,
@@ -192,14 +191,8 @@ def queryset_for_query(
     Raises:
         InvalidSearchQuery: If the query string is invalid
     """
-    queryset = PreprodArtifact.objects.get_queryset()
-    queryset = queryset.annotate_download_count()
-    queryset = queryset.annotate_installable()
-    queryset = queryset.annotate_main_size_metrics()
-    queryset = queryset.annotate_platform_name()
-
     search_filters = parse_search_query(query, config=search_config, get_field_type=get_field_type)
-    return apply_filters(queryset, search_filters, organization)
+    return apply_filters(_base_searchable_queryset(), search_filters, organization)
 
 
 def artifact_in_queryset(
@@ -304,7 +297,6 @@ def apply_filters(
                 queryset = queryset.exclude(q)
             else:
                 queryset = queryset.filter(q)
-            queryset = queryset.distinct()
             continue
 
         if name == "distribution_error_code":
@@ -351,16 +343,7 @@ def apply_filters(
         elif token.operator == "!=" and token.value.value == "":
             # !has: filter
             q = Q(**{f"{db_field}__isnull": False})
-        elif token.operator == "=":
-            q = Q(**{f"{db_field}__exact": token.value.value})
-        elif token.operator == "!=" and name in IMAGE_COMPARISON_KEYS:
-            q = Q(**{f"{db_field}__gt": token.value.value}) | Q(
-                **{f"{db_field}__lt": token.value.value}
-            )
-            queryset = queryset.filter(q).distinct()
-            continue
-        elif token.operator == "!=":
-            # Negation handled below (is_negation handles !=)
+        elif token.operator in ("=", "!="):
             q = Q(**{f"{db_field}__exact": token.value.value})
         else:
             raise InvalidSearchQuery(f"Unknown operator {token.operator}.")
@@ -368,9 +351,7 @@ def apply_filters(
         if token.is_negation or token.operator == "!~":
             q = ~q
         queryset = queryset.filter(q)
-        if name in IMAGE_COMPARISON_KEYS:
-            queryset = queryset.distinct()
-    return queryset
+    return queryset.distinct()
 
 
 def get_sequential_base_artifact(
@@ -394,11 +375,7 @@ def get_sequential_base_artifact(
     Returns:
         The most recent prior PreprodArtifact matching the criteria, or None.
     """
-    queryset = PreprodArtifact.objects.get_queryset()
-    queryset = queryset.annotate_download_count()
-    queryset = queryset.annotate_installable()
-    queryset = queryset.annotate_main_size_metrics()
-    queryset = queryset.annotate_platform_name()
+    queryset = _base_searchable_queryset()
 
     if query and query.strip():
         search_filters = parse_search_query(

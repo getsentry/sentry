@@ -257,16 +257,23 @@ class ArtifactMatchesQuerySnapshotFiltersTest(TestCase):
         queryset = queryset_for_query("images_changed:>5", self.organization)
         assert queryset.filter(pk=head_artifact.pk).count() == 1
 
-    def test_images_changed_not_equal_any_row_semantics(self) -> None:
-        """`!=3` is at-least-one semantics: artifact with comparisons [3, 5] matches."""
+    def test_images_changed_not_equal(self) -> None:
         head_artifact = self.create_preprod_artifact(project=self.project)
         head_metrics = self.create_preprod_snapshot_metrics(
             preprod_artifact=head_artifact, image_count=20
         )
-        for images_changed in (3, 5):
-            self._add_comparison(head_metrics, base_image_count=20, images_changed=images_changed)
+        self._add_comparison(head_metrics, base_image_count=20, images_changed=5)
 
         assert artifact_matches_query(head_artifact, "images_changed:!=3", self.organization)
+        assert not artifact_matches_query(head_artifact, "images_changed:!=5", self.organization)
+
+    def test_images_changed_not_equal_no_comparison_row(self) -> None:
+        no_metrics = self.create_preprod_artifact(project=self.project)
+        no_comparison = self.create_preprod_artifact(project=self.project)
+        self.create_preprod_snapshot_metrics(preprod_artifact=no_comparison, image_count=0)
+
+        assert artifact_matches_query(no_metrics, "images_changed:!=3", self.organization)
+        assert artifact_matches_query(no_comparison, "images_changed:!=3", self.organization)
 
 
 class ArtifactMatchesQueryIsApprovedFilterTest(TestCase):
