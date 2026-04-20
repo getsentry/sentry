@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -30,13 +31,7 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
     !!dashboard.id && dashboard.id !== 'default-overview' && !dashboard.prebuiltId;
 
   const handleClick = () => {
-    openModal(props => (
-      <DashboardRevisionsModal
-        {...props}
-        dashboardId={dashboard.id}
-        orgSlug={organization.slug}
-      />
-    ));
+    openModal(props => <DashboardRevisionsModal {...props} dashboardId={dashboard.id} />);
   };
 
   if (!hasFeatureFlag || !isValidDashboard) {
@@ -61,9 +56,8 @@ function DashboardRevisionsModal({
   dashboardId,
 }: ModalRenderProps & {
   dashboardId: string;
-  orgSlug: string;
 }) {
-  const {data: revisions, isPending} = useDashboardRevisions({dashboardId});
+  const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});
 
   return (
     <Fragment>
@@ -71,6 +65,8 @@ function DashboardRevisionsModal({
       <Body>
         {isPending ? (
           <LoadingIndicator />
+        ) : isError ? (
+          <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
         ) : revisions?.length ? (
           <RevisionList revisions={revisions} />
         ) : (
@@ -88,9 +84,21 @@ function RevisionList({revisions}: {revisions: DashboardRevision[]}) {
     <Table>
       <thead>
         <tr>
-          <Th>{t('Title')}</Th>
-          <Th>{t('Created By')}</Th>
-          <Th>{t('Created At')}</Th>
+          <Th>
+            <Text size="sm" variant="muted" bold as="span">
+              {t('Title')}
+            </Text>
+          </Th>
+          <Th>
+            <Text size="sm" variant="muted" bold as="span">
+              {t('Created By')}
+            </Text>
+          </Th>
+          <Th>
+            <Text size="sm" variant="muted" bold as="span">
+              {t('Created At')}
+            </Text>
+          </Th>
         </tr>
       </thead>
       <tbody>
@@ -125,9 +133,6 @@ const Th = styled('th')`
   text-align: left;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Td = styled('td')`

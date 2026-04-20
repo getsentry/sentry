@@ -127,4 +127,16 @@ describe('DashboardRevisionsButton', () => {
 
     expect(await screen.findByText('No revisions found.')).toBeInTheDocument();
   });
+
+  it('shows an error state when the API request fails', async () => {
+    MockApiClient.addMockResponse({url: REVISIONS_URL, statusCode: 500, body: {}});
+
+    renderButton();
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
+
+    expect(
+      await screen.findByText('Failed to load dashboard revisions.')
+    ).toBeInTheDocument();
+  });
 });
