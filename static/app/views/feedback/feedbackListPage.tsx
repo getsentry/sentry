@@ -219,7 +219,7 @@ export default function FeedbackListPage() {
   if (hasPageFrameFeature) {
     return (
       <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
-        <PageFrameViewport flex={1}>
+        <Stack flex={1} contain="size">
           <FeedbackQueryKeys organization={organization}>
             <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
             <TopBar.Slot name="actions">
@@ -236,7 +236,7 @@ export default function FeedbackListPage() {
               content={pageContent}
             />
           </FeedbackQueryKeys>
-        </PageFrameViewport>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -327,10 +327,6 @@ const SetupContainer = styled('div')`
 const SearchContainer = styled('div')`
   flex-grow: 1;
   min-width: 0;
-`;
-
-const PageFrameViewport = styled(Stack)`
-  contain: size;
 `;
 
 const JumpToSelectedButton = styled(Button)`
