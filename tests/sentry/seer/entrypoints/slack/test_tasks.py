@@ -244,7 +244,6 @@ class ProcessMentionForSlackTest(TestCase):
         assert mock_count_linked.call_args.kwargs["slack_user_ids"] == {
             "U111",
             "U222",
-            "U0BOT",
             "U1234567890",
         }
 
@@ -259,7 +258,7 @@ class ProcessMentionForSlackTest(TestCase):
                 integration_id=123,
                 messages_in_thread=5,
                 seer_msgs_in_thread=2,
-                unique_users_in_thread=4,
+                unique_users_in_thread=3,
                 linked_users_in_thread=1,
                 conversation_type=SlackSeerAgentConversation.DIRECT_MESSAGE,
             ),

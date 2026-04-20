@@ -160,10 +160,10 @@ def process_mention_for_slack(
             return
 
         slack_user_ids_in_thread = {
-            msg_user for msg in messages if isinstance(msg_user := msg.get("user"), str)
-        }
-        # Ensure the triggering sender is counted; absent from history for top-level mentions.
-        slack_user_ids_in_thread.add(slack_user_id)
+            msg_user
+            for msg in messages
+            if isinstance(msg_user := msg.get("user"), str) and msg_user != bot_user_id
+        } | {slack_user_id}
 
         try:
             linked_user_count = _count_linked_users(
