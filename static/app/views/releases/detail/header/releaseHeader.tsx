@@ -12,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -27,7 +28,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import {ReleaseActions} from './releaseActions';
+import {ReleaseActions, releaseFeedbackOptions} from './releaseActions';
 
 type Props = {
   location: Location;
@@ -191,14 +192,25 @@ export function ReleaseHeader({
       </Layout.HeaderContent>
 
       {hasPageFrameFeature ? (
-        <TopBar.Slot name="actions">
-          <ReleaseActions
-            projectSlug={project.slug}
-            release={release}
-            releaseMeta={releaseMeta}
-            refetchData={refetchData}
-          />
-        </TopBar.Slot>
+        <React.Fragment>
+          <TopBar.Slot name="actions">
+            <ReleaseActions
+              projectSlug={project.slug}
+              release={release}
+              releaseMeta={releaseMeta}
+              refetchData={refetchData}
+              showFeedbackButton={false}
+            />
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              feedbackOptions={releaseFeedbackOptions}
+              aria-label={t('Give Feedback')}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        </React.Fragment>
       ) : (
         <Layout.HeaderActions>
           <ReleaseActions
