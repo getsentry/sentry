@@ -229,9 +229,6 @@ function ReleasesDetail({
   );
 }
 
-// ========================================================================
-// RELEASE DETAIL CONTAINER
-// ========================================================================
 function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
