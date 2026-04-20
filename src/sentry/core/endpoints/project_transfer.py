@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -37,15 +38,22 @@ class ProjectTransferEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedProjectPermission,)
 
     enforce_rate_limit = True
-    rate_limits = RateLimitConfig(
-        limit_overrides={
-            "POST": {
-                RateLimitCategory.USER: RateLimit(
-                    limit=3, window=60 * 60
-                ),  # 3 POST requests per hour per user
+
+    @staticmethod
+    def rate_limits(*args: Any, **kwargs: Any) -> RateLimitConfig:
+        override = options.get("api.project-transfer.rate-limit-overrides").get(
+            str(kwargs.get("organization_id_or_slug", "")), {}
+        )
+        return RateLimitConfig(
+            limit_overrides={
+                "POST": {
+                    RateLimitCategory.USER: RateLimit(
+                        limit=override.get("limit", 3),
+                        window=override.get("window", 60 * 60),
+                    ),
+                },
             },
-        },
-    )
+        )
 
     @sudo_required
     def post(self, request: Request, project) -> Response:

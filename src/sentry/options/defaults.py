@@ -344,6 +344,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Per-organization POST rate-limit overrides for ProjectTransferEndpoint.
+# Keyed by organization id or slug (as string), value is {"limit": int, "window": int}.
+register(
+    "api.project-transfer.rate-limit-overrides",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register(
