@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -16,6 +16,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
@@ -32,6 +33,7 @@ import {IconChevron, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -70,6 +72,15 @@ export function SupergroupDetailDrawer({
   memberList,
   filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('supergroup.drawer_opened', {
+      supergroup_id: supergroup.id,
+      organization,
+    });
+  }, [supergroup.id, organization]);
+
   return (
     <Fragment>
       <DrawerHeader hideBar>
@@ -78,6 +89,18 @@ export function SupergroupDetailDrawer({
             <NavigationCrumbs crumbs={[{label: t('Issue Groups')}]} />
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              formTitle: t('Give feedback on Issue Groups'),
+              messagePlaceholder: t('How can we make Issue Groups better for you?'),
+              tags: {
+                ['feedback.source']: 'supergroup_drawer',
+              },
+            }}
+            tooltipProps={{title: t('Give feedback on Issue Groups')}}
+            aria-label={t('Give feedback on Issue Groups')}
+          />
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>

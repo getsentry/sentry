@@ -181,6 +181,9 @@ export type TeamInsightsEventParameters = {
   'releases_list.click_add_release_health': {
     project_id: number;
   };
+  'supergroup.drawer_opened': {
+    supergroup_id: number;
+  };
   'supergroup.feedback_submitted': {
     choice_selected: boolean;
     supergroup_id: number;
@@ -264,6 +267,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
+  'supergroup.drawer_opened': 'Supergroup Drawer Opened',
   'supergroup.feedback_submitted': 'Supergroup Feedback Submitted',
   'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',
 };
