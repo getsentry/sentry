@@ -4,7 +4,6 @@ from sentry import analytics
 
 
 class SlackSeerAgentConversation(str, Enum):
-    AI_ASSISTANT = "ai_assistant"
     DIRECT_MESSAGE = "direct_message"
     APP_MENTION = "app_mention"
 

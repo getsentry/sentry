@@ -73,15 +73,6 @@ _SEER_LOADING_MESSAGES = [
 ]
 
 
-def _resolve_direct_message_conversation_type(
-    slack_request: SlackEventRequest,
-) -> SlackSeerAgentConversation:
-    event = slack_request.data.get("event", {})
-    if event.get("thread_ts") and slack_request.has_assistant_scope:
-        return SlackSeerAgentConversation.AI_ASSISTANT
-    return SlackSeerAgentConversation.DIRECT_MESSAGE
-
-
 @all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
     owner = ApiOwner.ECOSYSTEM
@@ -370,10 +361,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def _handle_seer_prompt(
         self,
         slack_request: SlackEventRequest,
-        interaction_type: MessagingInteractionType,
         conversation_type: SlackSeerAgentConversation,
     ) -> Response:
         """Shared handler for app mentions and DMs that trigger the Seer Explorer agent."""
+        if conversation_type == SlackSeerAgentConversation.DIRECT_MESSAGE:
+            interaction_type = MessagingInteractionType.DIRECT_MESSAGE
+        else:
+            interaction_type = MessagingInteractionType.APP_MENTION
+
         with MessagingInteractionEvent(
             interaction_type=interaction_type,
             spec=SlackMessagingSpec(),
@@ -456,15 +451,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
     def on_app_mention(self, slack_request: SlackEventRequest) -> Response:
         return self._handle_seer_prompt(
             slack_request,
-            MessagingInteractionType.APP_MENTION,
             SlackSeerAgentConversation.APP_MENTION,
         )
 
     def on_direct_message(self, slack_request: SlackEventRequest) -> Response:
         return self._handle_seer_prompt(
             slack_request,
-            MessagingInteractionType.DIRECT_MESSAGE,
-            _resolve_direct_message_conversation_type(slack_request),
+            SlackSeerAgentConversation.DIRECT_MESSAGE,
         )
 
     def on_assistant_thread_started(self, slack_request: SlackEventRequest) -> Response:
