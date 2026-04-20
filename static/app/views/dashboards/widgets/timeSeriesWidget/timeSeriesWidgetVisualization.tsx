@@ -90,6 +90,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   legendSelection?: LegendSelection;
 
   /**
+   * Whether new options fully replace previous chart options.
+   */
+  notMerge?: boolean;
+
+  /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -687,6 +692,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          notMerge={props.notMerge}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
