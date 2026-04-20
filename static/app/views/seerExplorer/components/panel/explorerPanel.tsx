@@ -21,7 +21,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
@@ -79,8 +78,6 @@ export function ExplorerPanel() {
   const allowHoverFocusChange = useRef<boolean>(true);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
-
-  const hasPageFrame = useHasPageFrameFeature();
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
 
@@ -774,12 +771,10 @@ export function ExplorerPanel() {
   return createPortal(
     <Fragment>
       {panelContent}
-      {!hasPageFrame && (
-        <SeerFloatingActionButton
-          visible={!isVisible && !isSeerDrawerOpen}
-          onClick={openSeerExplorer}
-        />
-      )}
+      <SeerFloatingActionButton
+        visible={!isVisible && !isSeerDrawerOpen}
+        onClick={openSeerExplorer}
+      />
     </Fragment>,
     document.body
   );

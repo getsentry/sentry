@@ -3,9 +3,8 @@ import {createContext, useCallback, useContext, useState, type ReactNode} from '
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-
-const USE_DRAWER = true;
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
@@ -26,6 +25,9 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
+  const hasPageFrame = useHasPageFrameFeature();
+  const useDrawer = hasPageFrame;
+
   /* PANEL VERSION */
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -59,7 +61,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   };
 
   useHotkeys(
-    USE_DRAWER
+    useDrawer
       ? [
           {
             match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
@@ -88,7 +90,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   return (
     <SeerExplorerContext.Provider
-      value={USE_DRAWER ? drawerContextValue : panelContextValue}
+      value={useDrawer ? drawerContextValue : panelContextValue}
     >
       {children}
     </SeerExplorerContext.Provider>

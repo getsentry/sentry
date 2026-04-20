@@ -31,6 +31,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
+import {ExplorerPanel} from 'sentry/views/seerExplorer/components/panel/explorerPanel';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -44,6 +45,7 @@ export function OrganizationLayout() {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
+  const hasPageFrame = useHasPageFrameFeature();
 
   useInitSentryToolbar(organization);
 
@@ -53,6 +55,7 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <GlobalDrawer>
           <SeerExplorerContextProvider>
+            {hasPageFrame ? null : <ExplorerPanel />}
             <AppLayout organization={organization} />
           </SeerExplorerContextProvider>
         </GlobalDrawer>
