@@ -24,7 +24,7 @@ from sentry.workflow_engine.models import Action
 @control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
     @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
     )
     def test_simple(self, mock_handoff: MagicMock) -> None:
         org = self.create_organization()
@@ -64,7 +64,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
     @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
     )
     def test_repository_and_identity(
         self, mock_handoff: MagicMock, mock_repo_cleanup: MagicMock
@@ -105,7 +105,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
     @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
     )
     def test_codeowner_links(self, mock_handoff: MagicMock, mock_repo_cleanup: MagicMock) -> None:
         org = self.create_organization()
@@ -136,7 +136,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
     @with_feature("organizations:update-action-status")
     @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
     )
     def test_actions_disabled_on_integration_delete(self, mock_handoff: MagicMock) -> None:
         """Test that actions are actually disabled when organization integration is deleted."""

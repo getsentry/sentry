@@ -243,7 +243,7 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         self.org_integration = self.integration.organizationintegration_set.first()
 
     @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
     )
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
     def test_disassociates_repos(self, mock_cleanup: MagicMock, mock_handoff: MagicMock) -> None:
@@ -285,7 +285,7 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         )
 
     @patch(
-        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
     )
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
     def test_transaction_rollback_does_not_dispatch_seer_cleanup(
