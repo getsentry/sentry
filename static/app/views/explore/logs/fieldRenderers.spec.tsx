@@ -42,6 +42,7 @@ describe('Logs Field Renderers', () => {
       theme: ThemeFixture(),
       attributeTypes: {},
       attributes,
+      caseSensitiveHighlighting: false,
       highlightTerms: [],
       logColors: {
         text: '#000',

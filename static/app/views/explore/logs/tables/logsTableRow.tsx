@@ -10,6 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -258,9 +259,11 @@ export const LogRowContent = memo(function LogRowContent({
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
+  const [caseInsensitivity] = useCaseInsensitivity();
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
+    caseSensitiveHighlighting: !caseInsensitivity,
     logColors,
     useFullSeverityText: false,
     location,
@@ -476,6 +479,7 @@ function LogRowDetails({
   const projectSlug = project?.slug ?? '';
   const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
+  const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
@@ -544,6 +548,7 @@ function LogRowDetails({
                       wrapBody: true,
                       location,
                       organization,
+                      caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
                       attributes,
                       attributeTypes,
@@ -565,6 +570,7 @@ function LogRowDetails({
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
+                    caseSensitiveHighlighting: !caseInsensitivity,
                     highlightTerms,
                     logColors,
                     location,
