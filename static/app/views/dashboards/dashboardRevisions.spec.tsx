@@ -16,7 +16,7 @@ function makeRevision(overrides = {}) {
   return {
     id: '1',
     title: 'My Dashboard',
-    source: 'edit',
+    source: 'edit' as const,
     createdBy: {id: '42', name: 'Alice', email: 'alice@example.com'},
     dateCreated: '2024-01-15T10:00:00Z',
     ...overrides,
@@ -116,6 +116,23 @@ describe('DashboardRevisionsButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
 
     expect(await screen.findByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('shows the pre-restore badge for revisions with source pre-restore', async () => {
+    MockApiClient.addMockResponse({
+      url: REVISIONS_URL,
+      body: [
+        makeRevision({source: 'pre-restore' as const}),
+        makeRevision({id: '2', title: 'Other', source: 'edit' as const}),
+      ],
+    });
+
+    renderButton();
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard Revisions'}));
+
+    expect(await screen.findByText('pre-restore')).toBeInTheDocument();
+    expect(screen.getAllByText('pre-restore')).toHaveLength(1);
   });
 
   it('shows the empty state when no revisions exist', async () => {

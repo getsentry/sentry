@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -105,7 +106,12 @@ function RevisionList({revisions}: {revisions: DashboardRevision[]}) {
         {revisions.map(revision => (
           <tr key={revision.id}>
             <Td>
-              <Text size="sm">{revision.title}</Text>
+              <Flex align="center" gap="sm">
+                <Text size="sm">{revision.title}</Text>
+                {revision.source === 'pre-restore' && (
+                  <Tag variant="muted">{t('pre-restore')}</Tag>
+                )}
+              </Flex>
             </Td>
             <Td>
               <Text size="sm" variant="muted">

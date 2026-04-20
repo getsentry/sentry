@@ -347,7 +347,7 @@ export type DashboardRevision = {
   createdBy: {email: string; id: string; name: string} | null;
   dateCreated: string;
   id: string;
-  source: string;
+  source: 'edit' | 'pre-restore';
   title: string;
 };
 
