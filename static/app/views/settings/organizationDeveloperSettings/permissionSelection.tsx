@@ -235,10 +235,7 @@ export class PermissionSelection extends Component<Props, State> {
     // derives scopes from the onChange callback instead.
     this.context.form?.setValue(
       'scopes',
-      permissionStateToList(
-        nextState.permissions,
-        nextState.hasContinuousIntegration
-      ) as string[]
+      permissionStateToList(nextState.permissions, nextState.hasContinuousIntegration)
     );
   };
 
