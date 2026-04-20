@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.api import client
 from sentry.seer.assisted_query.metrics_tools import (
     _build_or_query,
     get_metric_metadata,
@@ -163,3 +164,43 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["foo"],
         )
         assert result["candidates"][0]["unit"] == "none"
+
+    @patch("sentry.seer.assisted_query.metrics_tools.client")
+    def test_organization_not_found_returns_error(self, mock_client: MagicMock) -> None:
+        """Missing organization must surface as an explicit error code, not a silent
+        empty result. Seer translates the error key into success=False so Langfuse
+        traces distinguish real failures from sparse metric catalogs."""
+        # Pass a non-existent org_id; the handler should catch DoesNotExist.
+        result = get_metric_metadata(
+            org_id=99999999,
+            project_ids=[self.project.id],
+            name_substrings=["foo"],
+        )
+
+        assert result == {
+            "candidates": [],
+            "has_more": False,
+            "error": "organization_not_found",
+        }
+        # No events query should be attempted.
+        mock_client.get.assert_not_called()
+
+    @patch("sentry.seer.assisted_query.metrics_tools.client")
+    def test_events_query_failure_returns_error(self, mock_client: MagicMock) -> None:
+        """When the underlying events API raises ApiError, return an explicit
+        error code rather than a silent empty result."""
+        mock_client.ApiError = client.ApiError
+        mock_client.get.side_effect = client.ApiError(500, "snuba exploded")
+
+        result = get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["foo"],
+        )
+
+        assert result == {
+            "candidates": [],
+            "has_more": False,
+            "error": "events_query_failed",
+        }
+        mock_client.get.assert_called_once()

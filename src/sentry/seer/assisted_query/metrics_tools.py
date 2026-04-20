@@ -71,6 +71,10 @@ def get_metric_metadata(
         {
             "candidates": [{"name", "type", "unit", "count"}, ...],
             "has_more": bool,
+            "error": str,  # present only on handler-side failure (e.g.
+                           # "organization_not_found", "events_query_failed").
+                           # Callers should treat a non-empty error as a tool
+                           # failure rather than an empty result set.
         }
     """
     substrings = [s for s in (name_substrings or []) if s][:MAX_SUBSTRINGS]
@@ -85,7 +89,7 @@ def get_metric_metadata(
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
         logger.warning("get_metric_metadata: organization not found", extra={"org_id": org_id})
-        return {"candidates": [], "has_more": False}
+        return {"candidates": [], "has_more": False, "error": "organization_not_found"}
 
     # Over-fetch by 1 to detect has_more.
     per_page = max(1, limit) + 1
@@ -115,7 +119,7 @@ def get_metric_metadata(
             "get_metric_metadata: events query failed",
             extra={"org_id": org_id, "project_ids": project_ids},
         )
-        return {"candidates": [], "has_more": False}
+        return {"candidates": [], "has_more": False, "error": "events_query_failed"}
 
     raw_rows = (resp.data or {}).get("data") or []
 
