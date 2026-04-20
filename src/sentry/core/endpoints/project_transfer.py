@@ -44,6 +44,8 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         override = options.get("api.project-transfer.rate-limit-overrides").get(
             str(kwargs.get("organization_id_or_slug", "")), {}
         )
+        if not isinstance(override, dict):
+            override = {}
         return RateLimitConfig(
             limit_overrides={
                 "POST": {
