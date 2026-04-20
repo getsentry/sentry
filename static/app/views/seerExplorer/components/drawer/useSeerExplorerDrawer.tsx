@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -23,10 +24,10 @@ export const useSeerExplorerDrawer = () => {
 
   // TODO: add effect that opens drawer and seeds run_id from URL
   // (useSeerExplorer hook should no longer handle this)
-  const isExplorerDrawerOpenRef = useRef(false);
+  const isOpenRef = useRef(false);
 
   const onClose = useCallback(() => {
-    isExplorerDrawerOpenRef.current = false;
+    isOpenRef.current = false;
     navigate(
       {
         pathname: location.pathname,
@@ -41,7 +42,7 @@ export const useSeerExplorerDrawer = () => {
 
   const closeSeerExplorerDrawer = useCallback(() => {
     // Prevent closing the global drawer if another drawer (e.g. autofix) is open
-    if (isExplorerDrawerOpenRef.current) {
+    if (isOpenRef.current) {
       closeDrawer();
       onClose();
     }
@@ -68,11 +69,17 @@ export const useSeerExplorerDrawer = () => {
         onClose,
       }
     );
-    isExplorerDrawerOpenRef.current = true;
-  }, [openDrawer, onClose, closeSeerExplorerDrawer, getPageReferrer]);
+
+    isOpenRef.current = true;
+    trackAnalytics('seer.explorer.global_panel.opened', {
+      referrer: getPageReferrer(),
+      organization,
+      isDrawer: true,
+    });
+  }, [openDrawer, onClose, closeSeerExplorerDrawer, getPageReferrer, organization]);
 
   const toggleSeerExplorerDrawer = useCallback(() => {
-    if (isExplorerDrawerOpenRef.current) {
+    if (isOpenRef.current) {
       closeSeerExplorerDrawer();
     } else {
       openSeerExplorerDrawer();

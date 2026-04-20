@@ -125,6 +125,7 @@ export type SeerAnalyticsEventsParameters = {
   };
   'seer.explorer.global_panel.opened': {
     referrer: string;
+    isDrawer?: boolean;
   };
   'seer.explorer.global_panel.tool_link_navigation': {
     referrer: string;
