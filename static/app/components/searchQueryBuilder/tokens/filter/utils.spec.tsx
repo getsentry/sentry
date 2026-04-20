@@ -5,6 +5,7 @@ import {
   areWildcardOperatorsAllowed,
   escapeTagValueForSearch,
   formatFilterValue,
+  unescapeAsteriskSearchValue,
   unescapeTagValue,
 } from './utils';
 
@@ -103,8 +104,18 @@ describe('unescapeTagValue', () => {
   });
 });
 
+describe('unescapeAsteriskSearchValue', () => {
+  it('unescapes escaped asterisks for display', () => {
+    expect(unescapeAsteriskSearchValue('foo\\*bar')).toBe('foo*bar');
+  });
+
+  it('preserves representable backslashes before escaped asterisks', () => {
+    expect(unescapeAsteriskSearchValue('foo\\\\\\*bar')).toBe('foo\\\\*bar');
+  });
+});
+
 describe('formatFilterValue', () => {
-  it('renders escaped asterisks exactly as saved for unquoted values', () => {
+  it('unescapes asterisks for unquoted values', () => {
     expect(
       formatFilterValue({
         token: {
@@ -114,6 +125,19 @@ describe('formatFilterValue', () => {
           quoted: false,
         } as any,
       })
-    ).toBe('\\*\\*\\*\\*');
+    ).toBe('****');
+  });
+
+  it('unescapes asterisks for quoted values', () => {
+    expect(
+      formatFilterValue({
+        token: {
+          type: Token.VALUE_TEXT,
+          text: '"foo\\\\*bar"',
+          value: 'foo\\*bar',
+          quoted: true,
+        } as any,
+      })
+    ).toBe('foo*bar');
   });
 });

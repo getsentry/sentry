@@ -173,6 +173,27 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
+// This only inverts the query builder's wildcard escaping for search values that
+// the search syntax can actually represent. In search syntax, `\*` already means
+// a literal `*`, so odd backslash counts before `*` are not distinct raw values.
+export function unescapeAsteriskSearchValue(value: string): string {
+  let unescapedValue = '';
+
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index];
+
+    if (char === '\\' && value[index + 1] === '*') {
+      unescapedValue += '*';
+      index += 1;
+      continue;
+    }
+
+    unescapedValue += char;
+  }
+
+  return unescapedValue;
+}
+
 export function formatFilterValue({
   token,
 }: {
@@ -186,7 +207,9 @@ export function formatFilterValue({
         return content;
       }
 
-      return token.quoted ? unescapeTagValue(content) : content;
+      return unescapeAsteriskSearchValue(
+        token.quoted ? unescapeTagValue(content) : content
+      );
     }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);

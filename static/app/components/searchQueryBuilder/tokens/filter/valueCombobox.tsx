@@ -30,6 +30,7 @@ import {
   escapeTagValueForSearch,
   formatFilterValue,
   getFilterValueType,
+  unescapeAsteriskSearchValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
@@ -146,27 +147,6 @@ export function prepareInputValueForSaving(
   return uniqueValues.length > 1
     ? `[${uniqueValues.join(',')}]`
     : (uniqueValues[0] ?? '""');
-}
-
-// This only inverts the query builder's wildcard escaping for search values that
-// the search syntax can actually represent. In search syntax, `\*` already means
-// a literal `*`, so odd backslash counts before `*` are not distinct raw values.
-function unescapeAsteriskSearchValue(value: string) {
-  let unescapedValue = '';
-
-  for (let index = 0; index < value.length; index++) {
-    const char = value[index];
-
-    if (char === '\\' && value[index + 1] === '*') {
-      unescapedValue += '*';
-      index += 1;
-      continue;
-    }
-
-    unescapedValue += char;
-  }
-
-  return unescapedValue;
 }
 
 export function getSelectedValuesFromText(
