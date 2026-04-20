@@ -23,7 +23,10 @@ from sentry.workflow_engine.models import Action
 
 @control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self) -> None:
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+    )
+    def test_simple(self, mock_handoff: MagicMock) -> None:
         org = self.create_organization()
         integration, organization_integration = self.create_provider_integration_for(
             org, self.user, provider="example", name="Example"
@@ -132,7 +135,10 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
 
     @with_feature("organizations:update-action-status")
-    def test_actions_disabled_on_integration_delete(self) -> None:
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoff_for_integration"
+    )
+    def test_actions_disabled_on_integration_delete(self, mock_handoff: MagicMock) -> None:
         """Test that actions are actually disabled when organization integration is deleted."""
         org = self.create_organization()
         integration, organization_integration = self.create_provider_integration_for(

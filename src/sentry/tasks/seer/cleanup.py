@@ -4,19 +4,18 @@ import logging
 from typing import Any
 
 from sentry import features
-from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.seer.autofix.utils import bulk_read_preferences, bulk_set_project_preferences
-from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
+from sentry.seer.models import SeerApiError
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.signed_seer_api import (
     BulkRemoveRepositoriesRequest,
+    RemoveHandoffsForIntegrationRequest,
     RemoveRepositoryRequest,
     RepoIdentifier,
     SeerViewerContext,
     make_bulk_remove_repositories_request,
+    make_remove_handoffs_for_integration_request,
     make_remove_repository_request,
 )
 from sentry.silo.base import SiloMode
@@ -159,87 +158,44 @@ def cleanup_seer_automation_handoff_for_integration(
     """
     Clear automation_handoff from all project preferences in an organization that
     reference the given integration.
-
-    Dispatched when an OrganizationIntegration is deleted so handoff references
-    don't dangle in project options or Seer's preference DB.
     """
+
+    body = RemoveHandoffsForIntegrationRequest(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    try:
+        response = make_remove_handoffs_for_integration_request(body, viewer_context=viewer_context)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+    except Exception:
+        logger.exception(
+            "cleanup_seer_automation_handoff_for_integration.failed",
+            extra={"organization_id": organization_id, "integration_id": integration_id},
+        )
+        raise
+
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:seer-project-settings-dual-write", organization):
+            affected_project_ids = ProjectOption.objects.filter(
+                project__organization_id=organization.id,
+                key="sentry:seer_automation_handoff_integration_id",
+                value=integration_id,
+            ).values("project_id")
+            ProjectOption.objects.filter(
+                project_id__in=affected_project_ids,
+                key__in={
+                    "sentry:seer_automation_handoff_integration_id",
+                    "sentry:seer_automation_handoff_point",
+                    "sentry:seer_automation_handoff_target",
+                    "sentry:seer_automation_handoff_auto_create_pr",
+                },
+            ).delete()
     except Organization.DoesNotExist:
-        return
-
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        project_handoff_integration_ids = ProjectOption.objects.filter(
-            project__organization_id=organization.id,
-            key="sentry:seer_automation_handoff_integration_id",
-        ).values_list("project_id", "value")
-        # Only get project ids that have a preference with a matching handoff integration id.
-        candidate_project_ids = [
-            project_id
-            for project_id, handoff_integration_id in project_handoff_integration_ids
-            if handoff_integration_id == integration_id
-        ]
-    else:
-        candidate_project_ids = list(
-            Project.objects.filter(
-                organization_id=organization.id, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
-        )
-
-    if not candidate_project_ids:
-        return
-
-    try:
-        preferences_by_project_id = bulk_read_preferences(organization, candidate_project_ids)
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "cleanup_seer_automation_handoff_for_integration.failed",
-            extra={"organization_id": organization_id, "integration_id": integration_id},
-        )
-        raise
-
-    # Filter out non-affected projects in case we read all project ids
-    # (ie, organizations:seer-project-settings-read-from-sentry is off).
-    affected_preferences = [
-        preference
-        for preference in preferences_by_project_id.values()
-        if preference is not None
-        and preference.automation_handoff is not None
-        and preference.automation_handoff.integration_id == integration_id
-    ]
-    if not affected_preferences:
-        return
-
-    updated_preferences = [
-        preference.copy(update={"automation_handoff": None}).dict()
-        for preference in affected_preferences
-    ]
-
-    try:
-        bulk_set_project_preferences(organization_id, updated_preferences)
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "cleanup_seer_automation_handoff_for_integration.failed",
-            extra={"organization_id": organization_id, "integration_id": integration_id},
-        )
-        raise
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        ProjectOption.objects.filter(
-            project_id__in=[preference.project_id for preference in affected_preferences],
-            key__in={
-                "sentry:seer_automation_handoff_integration_id",
-                "sentry:seer_automation_handoff_point",
-                "sentry:seer_automation_handoff_target",
-                "sentry:seer_automation_handoff_auto_create_pr",
-            },
-        ).delete()
+        pass
 
     logger.info(
         "cleanup_seer_automation_handoff_for_integration.success",
-        extra={
-            "organization_id": organization_id,
-            "integration_id": integration_id,
-            "preferences_count": len(affected_preferences),
-        },
+        extra={"organization_id": organization_id, "integration_id": integration_id},
     )
