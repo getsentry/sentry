@@ -188,12 +188,13 @@ def main(context: dict[str, str]) -> int:
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
     IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
 
-    brew.install()
+    if constants.DARWIN:
+        brew.install()
 
-    proc.run(
-        (f"{constants.homebrew_bin}/brew", "bundle"),
-        cwd=reporoot,
-    )
+        proc.run(
+            (f"{constants.homebrew_bin}/brew", "bundle"),
+            cwd=reporoot,
+        )
 
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"
