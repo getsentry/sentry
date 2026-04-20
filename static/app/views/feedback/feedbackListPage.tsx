@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -39,6 +40,48 @@ const userFeedbackFeedbackOptions = {
     ['feedback.source']: 'feedback-list',
   },
 };
+
+function PageContent({
+  hideTop,
+  hasFeedbackContent,
+  content,
+}: {
+  content: ReactNode;
+  hasFeedbackContent: boolean;
+  hideTop: boolean;
+}) {
+  return (
+    <PageFiltersContainer>
+      <ErrorBoundary>
+        <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
+          <LayoutGrid hideTop={hideTop}>
+            {!hideTop && (
+              <Stack
+                flexGrow={1}
+                gap="md"
+                area="top"
+                direction={{xs: 'column', sm: 'row'}}
+                align={{xs: 'stretch', sm: 'start'}}
+              >
+                <FeedbackFilters />
+                <SearchContainer>
+                  <FeedbackSearch />
+                </SearchContainer>
+              </Stack>
+            )}
+            {hasFeedbackContent ? (
+              content
+            ) : (
+              <SetupContainer>
+                <FeedbackSetupPanel />
+              </SetupContainer>
+            )}
+          </LayoutGrid>
+        </Stack>
+      </ErrorBoundary>
+    </PageFiltersContainer>
+  );
+}
 
 export default function FeedbackListPage() {
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -144,6 +187,8 @@ export default function FeedbackListPage() {
 
   // on medium and smaller screens, hide the search & filters when feedback item is in view
   const hideTop = isMediumOrSmaller && showItemPreview;
+  const hasFeedbackContent = hasSetupOneFeedback || hasSlug;
+  const pageContent = isMediumOrSmaller ? smallerScreenView : largeScreenView;
   const titleContent = (
     <Fragment>
       {t('User Feedback')}
@@ -171,42 +216,6 @@ export default function FeedbackListPage() {
     },
   };
 
-  const pageBody = (
-    <PageFiltersContainer>
-      <ErrorBoundary>
-        <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
-          <LayoutGrid hideTop={hideTop}>
-            {!hideTop && (
-              <Stack
-                flexGrow={1}
-                gap="md"
-                area="top"
-                direction={{xs: 'column', sm: 'row'}}
-                align={{xs: 'stretch', sm: 'start'}}
-              >
-                <FeedbackFilters />
-                <SearchContainer>
-                  <FeedbackSearch />
-                </SearchContainer>
-              </Stack>
-            )}
-            {hasSetupOneFeedback || hasSlug ? (
-              isMediumOrSmaller ? (
-                smallerScreenView
-              ) : (
-                largeScreenView
-              )
-            ) : (
-              <SetupContainer>
-                <FeedbackSetupPanel />
-              </SetupContainer>
-            )}
-          </LayoutGrid>
-        </Stack>
-      </ErrorBoundary>
-    </PageFiltersContainer>
-  );
-
   if (hasPageFrameFeature) {
     return (
       <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -221,7 +230,11 @@ export default function FeedbackListPage() {
                 {null}
               </FeedbackButton>
             </TopBar.Slot>
-            {pageBody}
+            <PageContent
+              hideTop={hideTop}
+              hasFeedbackContent={hasFeedbackContent}
+              content={pageContent}
+            />
           </FeedbackQueryKeys>
         </PageFrameViewport>
       </SentryDocumentTitle>
@@ -245,7 +258,11 @@ export default function FeedbackListPage() {
               </Flex>
             </Layout.HeaderActions>
           </Layout.Header>
-          {pageBody}
+          <PageContent
+            hideTop={hideTop}
+            hasFeedbackContent={hasFeedbackContent}
+            content={pageContent}
+          />
         </FeedbackQueryKeys>
       </FullViewport>
     </SentryDocumentTitle>
