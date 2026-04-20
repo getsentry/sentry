@@ -338,6 +338,7 @@ def _check_project_access[T](
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
     workflow_engine_method_flags = {
         "GET": "organizations:workflow-engine-orgalertruledetails-get",
+        "DELETE": "organizations:workflow-engine-orgalertruledetails-delete",
     }
     owner = ApiOwner.ISSUES
     publish_status = {

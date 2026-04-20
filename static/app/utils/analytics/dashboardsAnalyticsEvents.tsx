@@ -110,6 +110,10 @@ export type DashboardsEventParameters = {
     show_templates: boolean;
   };
   'dashboards_manage.toggle_favorite': {dashboard_id: string; favorited: boolean};
+  'dashboards_views.insights_redirect': {
+    dashboard_id: string;
+    prebuilt_id: number;
+  };
   'dashboards_views.open_in_discover.opened': {
     widget_type: string;
   };
@@ -219,5 +223,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.edit_access.save': 'Dashboards2: Edit Access Dropdown Selection Saved',
   'dashboards2.span_migration.results_check':
     'Dashboards2: Check Widget Results From Span Migration',
+  'dashboards_views.insights_redirect': 'Insights: Redirected to Dashboard',
   ...dashboardsEventMapWidgetBuilder,
 };

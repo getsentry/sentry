@@ -340,7 +340,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
 
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
   const colors = theme.chart.getColorPalette(0);
-  const palette = new Array(BARS).fill([colors[0]]);
+  const palette = Array.from<[string]>({length: BARS}).fill([colors[0]]);
 
   const frame = useMemo(() => {
     return new Frame(
@@ -429,7 +429,13 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
             ),
           })}
         >
-          <ScoreBar score={score} palette={palette} size={20} radius={0} />
+          <ScoreBar
+            score={score}
+            // @ts-expect-error -- TODO: resolve this types mismatch
+            palette={palette}
+            size={20}
+            radius={0}
+          />
         </Tooltip>
         <DropdownMenu
           position="bottom-end"

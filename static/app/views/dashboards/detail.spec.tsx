@@ -71,7 +71,7 @@ class MockIntersectionObserver {
     }));
 
     if (entries.length > 0) {
-      this.callback(entries as IntersectionObserverEntry[], this as any);
+      this.callback(entries, this as any);
     }
   }
 }

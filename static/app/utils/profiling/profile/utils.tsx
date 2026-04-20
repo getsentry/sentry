@@ -329,7 +329,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean
 ) {
-  const frameIds = [...new Array(frames.length).keys()].sort((a, b) => {
+  const frameIds = [...Array.from({length: frames.length}).keys()].sort((a, b) => {
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 

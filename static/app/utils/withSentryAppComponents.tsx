@@ -47,7 +47,7 @@ export function withSentryAppComponents<P extends InjectedAppComponentsProps>(
       const components = propComponents ?? storeComponents;
 
       // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-      return <WrappedComponent {...({components, ...props} as P as any)} />;
+      return <WrappedComponent {...({components, ...props} as any)} />;
     }
   }
   return WithSentryAppComponents;

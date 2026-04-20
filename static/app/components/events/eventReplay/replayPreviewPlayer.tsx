@@ -34,7 +34,7 @@ import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
 import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export function ReplayPreviewPlayer({
   query,
@@ -105,7 +105,7 @@ export function ReplayPreviewPlayer({
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
             query,
           }}
-          replay={replayRecord as ReplayListRecord}
+          replay={replayRecord}
           rowIndex={0}
           columnIndex={0}
           showDropdownFilters={false}

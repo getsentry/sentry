@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {PluginNoProject, PluginProjectItem} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
@@ -29,7 +28,13 @@ type Props = {
   organization: Organization;
   plugin: PluginNoProject;
   projectItem: PluginProjectItem;
-  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (
+    eventKey:
+      | 'integrations.uninstall_clicked'
+      | 'integrations.uninstall_completed'
+      | 'integrations.enabled'
+      | 'integrations.disabled'
+  ) => void; // analytics callback
   className?: string;
   hasAccess?: boolean;
 };
