@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,6 +18,7 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
+  TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
 const Slot = slot(['title', 'actions', 'feedback'] as const, {
@@ -27,9 +29,20 @@ function TopBarContent() {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
-  const topOffset = useTopOffset();
+  const {barTop, contentTop} = useTopOffset();
 
   const {openSeerExplorer} = useSeerExplorerContext();
+
+  useEffect(() => {
+    if (!hasPageFrame) {
+      document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
+      return;
+    }
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    return () => {
+      document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
+    };
+  }, [hasPageFrame, contentTop]);
 
   if (!hasPageFrame) {
     return null;
@@ -47,7 +60,7 @@ function TopBarContent() {
       padding={{sm: 'sm lg', md: 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={topOffset}
+      top={barTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}

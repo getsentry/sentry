@@ -39,6 +39,7 @@ export function useSentryAppExternalIssues({
     isLoading,
   };
 
+  const displayedExternalIssues = new Set<string>();
   for (const component of sentryAppComponents) {
     const installation = sentryAppInstallations.find(
       i => i.app.uuid === component.sentryApp.uuid
@@ -78,6 +79,8 @@ export function useSentryAppExternalIssues({
             });
         },
       });
+
+      displayedExternalIssues.add(externalIssue.id);
     } else {
       result.integrations.push({
         key: `sentryapp-${component.sentryApp.slug}`,
@@ -102,6 +105,39 @@ export function useSentryAppExternalIssues({
         ],
       });
     }
+  }
+
+  for (const externalIssue of externalIssues) {
+    // Loop through to find any issues that are not already displayed
+    if (displayedExternalIssues.has(externalIssue.id)) {
+      continue;
+    }
+
+    const installations = sentryAppInstallations.filter(
+      i => i.app.slug === externalIssue.serviceType
+    );
+    if (installations.length === 0) {
+      continue;
+    }
+
+    result.linkedIssues.push({
+      key: `sentryapp-linked-${externalIssue.id}`,
+      displayName: externalIssue.displayName,
+      url: externalIssue.webUrl,
+      title: externalIssue.displayName,
+      onUnlink: () => {
+        deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
+          .then(_data => {
+            onDeleteExternalIssue(externalIssue);
+            addSuccessMessage(t('Successfully unlinked issue.'));
+          })
+          .catch(_error => {
+            addErrorMessage(t('Unable to unlink issue.'));
+          });
+      },
+    });
+
+    displayedExternalIssues.add(externalIssue.id);
   }
 
   return result;
