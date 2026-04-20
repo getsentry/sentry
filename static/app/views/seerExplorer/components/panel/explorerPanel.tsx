@@ -32,8 +32,8 @@ import {
   BlocksContainer,
   PanelContainers,
 } from 'sentry/views/seerExplorer/components/panel/panelContainers';
-import {TopBar} from 'sentry/views/seerExplorer/components/panel/topBar';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
+import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';

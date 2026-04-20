@@ -1,5 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
@@ -7,16 +12,17 @@ import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {BlocksContainer} from 'sentry/views/seerExplorer/components/panel/panelContainers';
+import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
-import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
-
-// interface ExplorerDrawerContentProps {
-//   // isMinimized: boolean;
-//   // setIsMinimized: (value: boolean) => void;
-// }
+import {
+  getExplorerUrl,
+  getLangfuseUrl,
+  useCopySessionDataToClipboard,
+  usePageReferrer,
+} from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent() {
   const {getPageReferrer} = usePageReferrer();
@@ -43,11 +49,63 @@ export function ExplorerDrawerContent() {
     isError,
     sendMessage,
     deleteFromIndex,
+    startNewSession,
     respondToUserInput,
     createPR,
     interruptRun,
     waitingForInterrupt,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
+    overrideCodeModeEnable,
+    setOverrideCodeModeEnable,
   } = useSeerExplorer();
+
+  const organization = useOrganization({allowNull: true});
+  const {projects} = useProjects();
+  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
+  const [isSessionHistoryOpen, setIsSessionHistoryOpen] = useState(false);
+
+  const copySessionEnabled = Boolean(runId && organization?.slug);
+  const {copySessionToClipboard} = useCopySessionDataToClipboard({
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
+    organization,
+    projects,
+    enabled: copySessionEnabled,
+  });
+
+  const openFeedbackForm = useFeedbackForm();
+  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
+
+  const handleFeedback = useCallback(() => {
+    if (openFeedbackForm) {
+      openFeedbackForm({
+        formTitle: 'Seer Agent Feedback',
+        messagePlaceholder: 'How can we make Seer better for you?',
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+          ['feedback.owner']: 'ml-ai',
+          ...(runId === null ? {} : {['seer.run_id']: runId}),
+          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+        },
+      });
+    }
+  }, [openFeedbackForm, runId, langfuseUrl]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!runId) {
+      return;
+    }
+    try {
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
+      addSuccessMessage('Copied link to current chat');
+    } catch {
+      addErrorMessage('Failed to copy link to current chat');
+    }
+    trackAnalytics('seer.explorer.session_link_copied', {organization});
+  }, [runId, organization]);
 
   const repoPRStates = useMemo(
     () => sessionData?.repo_pr_states ?? {},
@@ -89,7 +147,7 @@ export function ExplorerDrawerContent() {
   //   switchToRun,
   //   sessionRunId: runId ?? undefined,
   //   sessionBlocks: sessionData?.blocks,
-  //   // onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]), TODO:
+  //   onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]),
   // });
 
   // ── Pending user input (file approval + questions) ────────────────────────
@@ -201,29 +259,48 @@ export function ExplorerDrawerContent() {
     blockRefs,
     textareaRef,
     setFocusedBlockIndex,
-    // isMinimized, //TODO:
     isFileApprovalPending,
     isPolling,
     isQuestionPending,
     onDeleteFromIndex: deleteFromIndex,
-    // TODO:
-    // onKeyPress: (blockIndex, key) => {
-    //   const handler = blockEnterHandlers.current.get(blockIndex);
-    //   const handled = handler?.(key) ?? false;
-    //   if (key === 'Enter' && handled) setIsMinimized(true);
-    //   return handled;
-    // },
+    onKeyPress: (blockIndex, key) => {
+      const handler = blockEnterHandlers.current.get(blockIndex);
+      const handled = handler?.(key) ?? false;
+      return handled;
+    },
     onNavigate: () => {
-      // setIsMinimized(false); //TODO:
       userScrolledUpRef.current = true;
     },
   });
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Fragment>
+      <TopBar
+        isCopyLinkEnabled={false} // TODO: add back once deep links are supported by drawer (!!runId)
+        isCopySessionEnabled={copySessionEnabled}
+        isEmptyState={isEmptyState}
+        isPolling={isPolling}
+        isSessionHistoryOpen={isSessionHistoryOpen}
+        onCopyLinkClick={handleCopyLink}
+        onCopySessionClick={copySessionToClipboard}
+        onFeedbackClick={handleFeedback}
+        onNewChatClick={startNewSession}
+        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
+        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+        onSessionHistoryClick={() => setIsSessionHistoryOpen(prev => !prev)}
+        overrideCodeModeEnable={overrideCodeModeEnable}
+        overrideCtxEngEnable={overrideCtxEngEnable}
+        sessionHistoryButtonRef={sessionHistoryButtonRef}
+        showCodeModeToggle={
+          !!organization?.features.includes('seer-explorer-code-mode-tools')
+        }
+        showContextEngineToggle={
+          !!organization?.features.includes(
+            'seer-explorer-context-engine-fe-override-ui-flag'
+          )
+        }
+      />
       <BlocksContainer ref={scrollContainerRef}>
-        {' '}
         {/* TODO: onClick={handlePanelBackgroundClick} */}
         {isEmptyState ? (
           <EmptyState isLoading={isPolling} isError={isError} runId={runId} />

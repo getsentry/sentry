@@ -15,9 +15,8 @@ export const useSeerExplorerDrawer = () => {
   const organization = useOrganization();
   const {openDrawer, closeDrawer} = useDrawer();
 
-  // TODO: add effect that opens drawer when query param is present (useSeerExplorer hook should no longer consume the param)
-  // Needs an enabled flag if we FF drawer version
-
+  // TODO: add effect that opens drawer, sets session storage, and consumes RUN_ID_QUERY_PARAM
+  // (useSeerExplorer hook should no longer handle this)
   const [isExplorerDrawerOpen, setIsExplorerDrawerOpen] = useState(false);
 
   const onClose = useCallback(() => {
