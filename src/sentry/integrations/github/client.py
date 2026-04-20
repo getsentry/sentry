@@ -11,6 +11,7 @@ import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -353,6 +354,7 @@ class GitHubBaseClient(
             f"/repos/{repo}/commits",
             params={"sha": end_sha, "per_page": per_page},
             endpoint=GitHubApiEndpoint.GET_COMMITS,
+            cache_time=options.get("integrations.github.get-last-commits.cache-ttl"),
         )
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:

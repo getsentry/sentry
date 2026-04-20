@@ -114,6 +114,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Integrations
+register(
+    "integrations.github.get-last-commits.cache-ttl",
+    type=Int,
+    default=900,  # 15 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",

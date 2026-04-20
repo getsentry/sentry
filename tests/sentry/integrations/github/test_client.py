@@ -30,6 +30,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -201,6 +202,23 @@ class GitHubApiClientTest(TestCase):
             f"/repos/{self.repo.name}/commits",
             params={"sha": "abc", "per_page": 20},
             endpoint=GitHubApiEndpoint.GET_COMMITS,
+            cache_time=900,
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_last_commits_honors_cache_ttl_option(self, get_jwt) -> None:
+        with (
+            override_options({"integrations.github.get-last-commits.cache-ttl": 3600}),
+            mock.patch.object(self.github_client, "get_cached") as mock_get_cached,
+        ):
+            self.github_client.get_last_commits(self.repo.name, "abc")
+
+        mock_get_cached.assert_called_once_with(
+            f"/repos/{self.repo.name}/commits",
+            params={"sha": "abc", "per_page": 20},
+            endpoint=GitHubApiEndpoint.GET_COMMITS,
+            cache_time=3600,
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

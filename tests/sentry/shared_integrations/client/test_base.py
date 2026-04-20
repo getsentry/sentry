@@ -123,3 +123,29 @@ class BaseApiClientTest(TestCase):
             sample_rate=1.0,
             tags={"integration": "base", "status": 204},
         )
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_get_cached_emits_hit_metric(self, mock_metrics_incr) -> None:
+        with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
+            self.api_client.get_cached("https://example.com/repos/example/repo/commits")
+
+        mock_metrics_incr.assert_called_once_with(
+            "None.get_cached",
+            sample_rate=1.0,
+            tags={"integration": "base", "result": "hit"},
+        )
+
+    @patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_get_cached_emits_miss_metric(self, mock_metrics_incr) -> None:
+        with (
+            patch.object(self.api_client, "check_cache", return_value=None),
+            patch.object(self.api_client, "request", return_value={"fresh": True}),
+            patch.object(self.api_client, "set_cache"),
+        ):
+            self.api_client.get_cached("https://example.com/repos/example/repo/commits")
+
+        mock_metrics_incr.assert_any_call(
+            "None.get_cached",
+            sample_rate=1.0,
+            tags={"integration": "base", "result": "miss"},
+        )

@@ -360,6 +360,15 @@ class BaseApiClient:
 
         key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
+        integration_tag_key = self.integration_type or "integration"
+        metrics.incr(
+            f"{self.metrics_prefix}.get_cached",
+            sample_rate=1.0,
+            tags={
+                integration_tag_key: self.name,
+                "result": "hit" if result is not None else "miss",
+            },
+        )
         if result is None:
             cache_time = kwargs.pop("cache_time", None) or self.cache_time
             result = self.request(method, path, *args, **kwargs)
