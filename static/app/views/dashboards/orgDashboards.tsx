@@ -98,7 +98,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       ...selectedDashboard,
       ...prebuiltDashboard,
       id: selectedDashboard.id,
-      filters: {...selectedDashboard.filters, globalFilter},
+      filters: {release: selectedDashboard.filters?.release, globalFilter},
       projects: selectedDashboard.projects,
       environment: selectedDashboard.environment,
       period: selectedDashboard.period,
