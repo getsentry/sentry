@@ -80,6 +80,24 @@ class ProjectPreprodDistributionEndpointTest(TestCase):
         assert call_kwargs.kwargs["organization_id"] == self.project.organization_id
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_distribution.send_build_distribution_webhook"
+    )
+    def test_normalizes_known_short_code_error_message(self, mock_send_webhook) -> None:
+        response = self._put(orjson.dumps({"error_code": 2, "error_message": "invalid_signature"}))
+
+        assert response.status_code == 200
+        self.artifact.refresh_from_db()
+        assert (
+            self.artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.SKIPPED
+        )
+        assert (
+            self.artifact.installable_app_error_message
+            == "The build's code signature could not be verified."
+        )
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_invalid_error_code(self) -> None:
         response = self._put(orjson.dumps({"error_code": 99, "error_message": "bad"}))
         assert response.status_code == 400

@@ -18,6 +18,7 @@ from sentry.preprod.authentication import (
     LaunchpadRpcSignatureAuthentication,
 )
 from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
+from sentry.preprod.distribution_errors import normalize_installable_app_error_message
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,9 @@ class ProjectPreprodDistributionEndpoint(PreprodArtifactEndpoint):
         put: PutDistribution = parse_request_with_pydantic(request, cast(Any, PutDistribution))
 
         head_artifact.installable_app_error_code = put.error_code
-        head_artifact.installable_app_error_message = put.error_message
+        head_artifact.installable_app_error_message = normalize_installable_app_error_message(
+            put.error_message
+        )
         head_artifact.save(
             update_fields=[
                 "installable_app_error_code",
