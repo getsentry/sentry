@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
@@ -11,12 +12,20 @@ from sentry.issues.auto_source_code_config.utils.platform import get_supported_e
 from sentry.shared_integrations.exceptions import ApiConflictError, ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
 METRICS_KEY_PREFIX = "integrations.source_code_management"
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
+
+# Maximum number of parallel threads for fetching repo trees.
+POPULATE_TREES_MAX_WORKERS = 10
+
+# Per-repo timeout (seconds) when fetching from the GitHub API via the proxy.
+# A single slow/hung GitHub response will not block the whole task beyond this.
+REPO_TREE_FETCH_TIMEOUT_SECONDS = 30
 
 
 class RepoAndBranch(NamedTuple):
@@ -111,6 +120,9 @@ class RepoTreesIntegration(ABC):
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
+
+        Repositories are fetched in parallel using a bounded thread pool so that a
+        single slow or hung GitHub response does not stall the entire task.
         """
         trees: dict[str, RepoTree] = {}
         use_cache = False
@@ -131,40 +143,63 @@ class RepoTreesIntegration(ABC):
             tags={"cached": use_cache, "integration": self.integration_name},
         )
 
+        # Pre-calculate per-repo arguments serially so that the rate-limit
+        # bookkeeping (remaining_requests decrement) stays race-free.
+        repo_args: list[tuple[dict[str, str], bool, int]] = []
         for index, repo_info in enumerate(repositories):
-            repo_full_name = repo_info["full_name"]
-            extra = {"repo_full_name": repo_full_name}
-            # Only use the cache if we drop below the lower ceiling
-            # We will fetch after the limit is reset (every hour)
             if not use_cache and remaining_requests <= MINIMUM_REQUESTS_REMAINING:
                 use_cache = True
             else:
                 remaining_requests -= 1
+            # Spread cache expiry across the day to avoid a thundering-herd on
+            # the next cycle (same logic as the original sequential loop).
+            shifted_seconds = 3600 * (index % 24)
+            repo_args.append((repo_info, use_cache, shifted_seconds))
 
-            try:
-                # The API rate limit is reset every hour
-                # Spread the expiration of the cache of each repo across the day
-                trees[repo_full_name] = self._populate_tree(
-                    RepoAndBranch(repo_full_name, repo_info["default_branch"]),
-                    use_cache,
-                    3600 * (index % 24),
-                )
-            except ApiError as error:
-                if self.get_client().should_count_api_error(error, extra):
-                    connection_error_count += 1
-            except Exception:
-                # Report for investigation but do not stop processing
-                logger.warning(
-                    "Failed to populate_tree. Investigate. Contining execution.", extra=extra
-                )
+        # Submit all tree fetches in parallel, then collect results.
+        with ContextPropagatingThreadPoolExecutor(max_workers=POPULATE_TREES_MAX_WORKERS) as pool:
+            future_to_repo = {
+                pool.submit(
+                    self._populate_tree,
+                    RepoAndBranch(repo_info["full_name"], repo_info["default_branch"]),
+                    repo_use_cache,
+                    shifted,
+                ): repo_info
+                for repo_info, repo_use_cache, shifted in repo_args
+            }
 
-            # This is a rudimentary circuit breaker
-            if connection_error_count >= MAX_CONNECTION_ERRORS:
-                logger.warning(
-                    "Falling back to the cache because we've hit too many error connections.",
-                    extra=extra,
-                )
-                use_cache = True
+            for future, repo_info in future_to_repo.items():
+                repo_full_name = repo_info["full_name"]
+                extra = {"repo_full_name": repo_full_name}
+                try:
+                    trees[repo_full_name] = future.result(
+                        timeout=REPO_TREE_FETCH_TIMEOUT_SECONDS
+                    )
+                except FutureTimeoutError:
+                    logger.warning(
+                        "Timed out fetching tree for repo. Skipping.",
+                        extra=extra,
+                    )
+                except ApiError as error:
+                    if self.get_client().should_count_api_error(error, extra):
+                        connection_error_count += 1
+                except Exception:
+                    # Report for investigation but do not stop processing
+                    logger.warning(
+                        "Failed to populate_tree. Investigate. Contining execution.", extra=extra
+                    )
+
+                # Rudimentary circuit breaker: stop hitting the API once we've
+                # seen too many connection errors.
+                if connection_error_count >= MAX_CONNECTION_ERRORS:
+                    logger.warning(
+                        "Falling back to the cache because we've hit too many error connections.",
+                        extra=extra,
+                    )
+                    # Cancel any futures that haven't started yet.
+                    for remaining_future in future_to_repo:
+                        remaining_future.cancel()
+                    break
 
         return trees
 
