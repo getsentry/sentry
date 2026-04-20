@@ -1,14 +1,15 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {
+  fetchMutation,
   useMutation,
-  useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewStarredVariables = {
@@ -23,20 +24,17 @@ export const useUpdateGroupSearchViewStarred = (
     'mutationFn'
   > = {}
 ) => {
-  const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
   return useMutation<null, RequestError, UpdateGroupSearchViewStarredVariables>({
     ...options,
     mutationFn: ({id, starred}: UpdateGroupSearchViewStarredVariables) =>
-      api.requestPromise(
-        `/organizations/${organization.slug}/group-search-views/${id}/starred/`,
-        {
-          method: 'POST',
-          data: {starred},
-        }
-      ),
+      fetchMutation<null>({
+        url: `/organizations/${organization.slug}/group-search-views/${id}/starred/`,
+        method: 'POST',
+        data: {starred},
+      }),
     onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
         variables.starred ? t('Failed to star view') : t('Failed to unstar view')
@@ -45,7 +43,8 @@ export const useUpdateGroupSearchViewStarred = (
     },
     onSettled: (...args) => {
       queryClient.invalidateQueries({
-        queryKey: makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+        queryKey: starredGroupSearchViewsApiOptions({orgSlug: organization.slug})
+          .queryKey,
       });
       options.onSettled?.(...args);
     },
