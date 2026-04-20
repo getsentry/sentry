@@ -250,11 +250,9 @@ export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
         </Stack>
       </Stack>
 
-      <GenericFooter>
-        <Flex align="center" padding="0 3xl">
-          {genBackButton?.()}
-        </Flex>
-        <Flex align="center" padding="0 3xl" gap="md">
+      <GenericFooter gap="3xl" padding="0 3xl">
+        <Flex align="center">{genBackButton?.()}</Flex>
+        <Flex align="center" gap="md">
           <Button
             priority="primary"
             onClick={handleCreateProject}

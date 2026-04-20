@@ -219,14 +219,14 @@ export function NewWelcomeUI(props: StepProps) {
             </Text>
           </MotionContainer>
         </Flex>
-        <GenericFooter>
-          <Flex align="center" padding="0 3xl">
+        <GenericFooter gap="3xl" padding="0 3xl">
+          <Flex align="center">
             {hasScmOnboarding ? null : (
               <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
             )}
           </Flex>
 
-          <Flex align="center" padding="0 3xl">
+          <Flex align="center">
             <Button
               priority="primary"
               onClick={handleComplete}

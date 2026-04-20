@@ -160,7 +160,6 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       transition={{
         staggerChildren: 0.2,
       }}
-      key={props.id}
       data-test-id={`onboarding-step-${props.id}`}
     >
       {props.children}
@@ -417,6 +416,7 @@ export function OnboardingWithoutContext() {
         )}
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStepVariable
+            key={stepObj.id}
             id={stepObj.id}
             hasNewWelcomeUI={hasNewWelcomeUI}
             hasScmOnboarding={hasScmOnboarding}
