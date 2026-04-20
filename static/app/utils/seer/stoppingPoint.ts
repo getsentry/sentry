@@ -204,6 +204,15 @@ export function getProjectStoppingPointMutationOptions({
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: tuning});
 
+      const bulkQueryKey = bulkAutofixAutomationSettingsInfiniteOptions({
+        organization,
+      }).queryKey;
+      const previousBulkData = queryClient.getQueryData(bulkQueryKey);
+
+      const bulkUpdates: Partial<AutofixAutomationSettings> = {
+        autofixAutomationTuning: tuning,
+      };
+
       if (stoppingPoint !== 'off' && previousPreference?.preference) {
         const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
           stoppingPoint,
@@ -217,20 +226,30 @@ export function getProjectStoppingPointMutationOptions({
             automation_handoff: automationHandoff,
           },
         });
+        bulkUpdates.automatedRunStoppingPoint = stoppingPointValue;
+        bulkUpdates.automationHandoff = automationHandoff;
       }
 
-      return {previousProject, previousPreference};
+      queryClient.setQueryData(bulkQueryKey, (oldData: typeof previousBulkData) => {
+        if (!oldData) {
+          return oldData;
+        }
+        return {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            json: page.json.map(setting =>
+              String(setting.projectId) === project.id
+                ? {...setting, ...bulkUpdates}
+                : setting
+            ),
+          })),
+        };
+      });
+
+      return {previousProject, previousPreference, previousBulkData};
     },
-    onError: (
-      _error: unknown,
-      {project}: StoppingPointVariables,
-      context:
-        | {
-            previousPreference: SeerPreferencesResponse | undefined;
-            previousProject: Project | undefined;
-          }
-        | undefined
-    ) => {
+    onError: (_error, {project}: StoppingPointVariables, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
       }
@@ -244,6 +263,12 @@ export function getProjectStoppingPointMutationOptions({
           seerPrefsQueryKey,
           context.previousPreference
         );
+      }
+      if (context?.previousBulkData) {
+        const bulkQueryKey = bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        }).queryKey;
+        queryClient.setQueryData(bulkQueryKey, context.previousBulkData);
       }
     },
     onSettled: (_data: unknown, _error: unknown, {project}: StoppingPointVariables) => {
