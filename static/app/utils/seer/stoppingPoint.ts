@@ -1,13 +1,10 @@
 import type {QueryClient, UseMutateFunction} from '@tanstack/react-query';
 
-import {
-  bulkAutofixAutomationSettingsInfiniteOptions,
-  type AutofixAutomationSettings,
-} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  type SeerPreferencesResponse,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {AutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -21,7 +18,7 @@ import {
   setApiQueryData,
 } from 'sentry/utils/queryClient';
 
-type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
+export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
 export const PROJECT_STOPPING_POINT_OPTIONS = [
   {value: 'off' as const, label: t('No Automation')},
@@ -37,6 +34,22 @@ export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, 
     plan: 3,
     create_pr: 4,
   };
+
+export function getDefaultStoppingPoint(
+  stoppingPoint: AutofixStoppingPoint | null | undefined
+): UserFacingStoppingPoint {
+  switch (stoppingPoint) {
+    case AutofixStoppingPoint.ROOT_CAUSE:
+      return 'root_cause';
+    case AutofixStoppingPoint.OPEN_PR:
+      return 'create_pr';
+    case AutofixStoppingPoint.SOLUTION:
+      return 'plan';
+    case AutofixStoppingPoint.CODE_CHANGES:
+    default:
+      return 'create_pr';
+  }
+}
 
 /**
  * Derives the current stopping point UI value from project + preferences.

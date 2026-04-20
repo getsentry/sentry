@@ -7,11 +7,14 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Select} from '@sentry/scraps/select';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -23,6 +26,15 @@ import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
+import {
+  useCodingAgentSelectOptions,
+  type PreferredAgent,
+} from 'sentry/utils/seer/preferredAgent';
+import {
+  getDefaultStoppingPoint,
+  PROJECT_STOPPING_POINT_OPTIONS,
+  type UserFacingStoppingPoint,
+} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -64,6 +76,36 @@ export function ProjectAddRepoModal({
   const selectedProject = selectedProjectId ? projectsById[selectedProjectId] : null;
 
   const [repoEntries, setRepoEntries] = useState<RepoEntry[]>(() => [makeRepoEntry()]);
+
+  const agentOptions = useCodingAgentSelectOptions({organization});
+  const integrations = useMemo(
+    () =>
+      (agentOptions.data ?? [])
+        .filter(
+          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
+        )
+        .map(o => o.value),
+    [agentOptions.data]
+  );
+
+  const [selectedAgent, setSelectedAgent] = useState<PreferredAgent>(() => {
+    if (organization.defaultCodingAgentIntegrationId) {
+      const match = integrations.find(
+        i => i.id === String(organization.defaultCodingAgentIntegrationId)
+      );
+      if (match) {
+        return match;
+      }
+    }
+    return 'seer';
+  });
+  const [selectedStoppingPoint, setSelectedStoppingPoint] =
+    useState<UserFacingStoppingPoint>(() =>
+      getDefaultStoppingPoint(organization.defaultAutomatedRunStoppingPoint)
+    );
+
+  const hasValidRepo = repoEntries.some(e => e.repoId !== null);
+  const isFormValid = selectedProjectId !== null && hasValidRepo;
 
   const projectOptions = useMemo(() => {
     return projects.map(project => ({
@@ -222,12 +264,48 @@ export function ProjectAddRepoModal({
               </Flex>
             </Stack>
           </Grid>
+
+          <Separator orientation="horizontal" />
+
+          <Stack gap="md">
+            <Text size="md" bold>
+              {t('Preferred Coding Agent')}
+            </Text>
+            {agentOptions.isPending ? (
+              <Placeholder height="36px" width="100%" />
+            ) : (
+              <Select
+                name="agent"
+                options={agentOptions.data ?? []}
+                value={selectedAgent}
+                onChange={option => setSelectedAgent(option.value)}
+                isValueEqual={(a, b) =>
+                  a === b ||
+                  (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                }
+              />
+            )}
+          </Stack>
+
+          <Stack gap="md">
+            <Text size="md" bold>
+              {t('Automation Steps')}
+            </Text>
+            <Select
+              name="stoppingPoint"
+              options={PROJECT_STOPPING_POINT_OPTIONS}
+              value={selectedStoppingPoint}
+              onChange={option => setSelectedStoppingPoint(option.value)}
+            />
+          </Stack>
         </Stack>
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary">{t('Save Project')}</Button>
+          <Button priority="primary" disabled={!isFormValid}>
+            {t('Save Project')}
+          </Button>
         </Flex>
       </Footer>
     </Fragment>

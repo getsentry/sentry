@@ -22,7 +22,7 @@ import {
   useQuery,
 } from 'sentry/utils/queryClient';
 
-type PreferredAgent = 'seer' | CodingAgentIntegration;
+export type PreferredAgent = 'seer' | CodingAgentIntegration;
 
 /**
  * Returns the list of coding agent integrations formatted as select options,
