@@ -152,18 +152,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   *::after {
     scrollbar-width: thin;
     /* eslint-disable @sentry/scraps/use-semantic-token */
-    scrollbar-color: ${theme.tokens.interactive.transparent.neutral.background.rest}
-      transparent;
-    &:is(:hover, :focus) {
-      /* eslint-disable @sentry/scraps/use-semantic-token */
-      scrollbar-color: ${theme.tokens.interactive.transparent.neutral.background.hover}
-        transparent;
-    }
-    &:is(:active) {
-      /* eslint-disable @sentry/scraps/use-semantic-token */
-      scrollbar-color: ${theme.tokens.interactive.transparent.neutral.background.active}
-        transparent;
-    }
+    scrollbar-color: ${theme.tokens.graphics.neutral.muted} transparent;
   }
 
   body {
