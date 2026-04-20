@@ -71,7 +71,7 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
       onClick={handleClick}
       to={`/organizations/${organization.slug}/issues/?referrer=${config.referrer}`}
     >
-      {t('Skip onboarding')}
+      {t('Skip setup')}
     </LinkButton>
   );
 }
