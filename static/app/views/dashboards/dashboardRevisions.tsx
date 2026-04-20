@@ -8,15 +8,16 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {DashboardRevision} from 'sentry/actionCreators/dashboards';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisions} from './hooks/useDashboardRevisions';
 import type {DashboardDetails} from './types';
 
@@ -82,67 +83,38 @@ function DashboardRevisionsModal({
 
 function RevisionList({revisions}: {revisions: DashboardRevision[]}) {
   return (
-    <Table>
-      <thead>
-        <tr>
-          <Th>
-            <Text size="sm" variant="muted" bold as="span">
-              {t('Title')}
+    <RevisionsTable>
+      <SimpleTable.Header>
+        <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
+      </SimpleTable.Header>
+      {revisions.map(revision => (
+        <SimpleTable.Row key={revision.id}>
+          <SimpleTable.RowCell>
+            <Flex align="center" gap="sm">
+              <Text size="sm">{revision.title}</Text>
+              {revision.source === 'pre-restore' && (
+                <Tag variant="muted">{t('pre-restore')}</Tag>
+              )}
+            </Flex>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Text size="sm" variant="muted">
+              {revision.createdBy
+                ? revision.createdBy.name || revision.createdBy.email
+                : t('Unknown')}
             </Text>
-          </Th>
-          <Th>
-            <Text size="sm" variant="muted" bold as="span">
-              {t('Created By')}
-            </Text>
-          </Th>
-          <Th>
-            <Text size="sm" variant="muted" bold as="span">
-              {t('Created At')}
-            </Text>
-          </Th>
-        </tr>
-      </thead>
-      <tbody>
-        {revisions.map(revision => (
-          <tr key={revision.id}>
-            <Td>
-              <Flex align="center" gap="sm">
-                <Text size="sm">{revision.title}</Text>
-                {revision.source === 'pre-restore' && (
-                  <Tag variant="muted">{t('pre-restore')}</Tag>
-                )}
-              </Flex>
-            </Td>
-            <Td>
-              <Text size="sm" variant="muted">
-                {revision.createdBy
-                  ? revision.createdBy.name || revision.createdBy.email
-                  : t('Unknown')}
-              </Text>
-            </Td>
-            <Td>
-              <TimeSince date={revision.dateCreated} />
-            </Td>
-          </tr>
-        ))}
-      </tbody>
-    </Table>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <TimeSince date={revision.dateCreated} />
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      ))}
+    </RevisionsTable>
   );
 }
 
-const Table = styled('table')`
-  width: 100%;
-  border-collapse: collapse;
-`;
-
-const Th = styled('th')`
-  text-align: left;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const Td = styled('td')`
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  vertical-align: middle;
+const RevisionsTable = styled(SimpleTable)`
+  grid-template-columns: minmax(200px, 2fr) minmax(150px, 1fr) minmax(120px, auto);
 `;
