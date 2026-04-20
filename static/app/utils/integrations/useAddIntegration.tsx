@@ -49,6 +49,7 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'opsgenie',
   'pagerduty',
   'slack',
+  'slack_staging',
   'vsts',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 
