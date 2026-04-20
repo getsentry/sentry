@@ -327,6 +327,7 @@ export function Controls({
               </Tooltip>
             )}
             {renderEditButton(hasFeature)}
+            <DashboardRevisionsButton dashboard={dashboard} />
             {hasFeature && !isPrebuiltDashboard && (
               <Tooltip
                 title={tooltipMessage}
@@ -387,7 +388,6 @@ export function Controls({
                 }}
               </DashboardCreateLimitWrapper>
             )}
-            <DashboardRevisionsButton dashboard={dashboard} />
           </Fragment>
         )}
       </DashboardEditFeature>
