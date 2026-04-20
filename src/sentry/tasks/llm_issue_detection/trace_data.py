@@ -88,13 +88,11 @@ def get_next_project_id(
     if not playlist:
         return random.choice(project_ids) if project_ids else None
 
-    client.rpush(cache_key, *playlist)
-    client.expire(cache_key, PROJECT_PLAYLIST_CACHE_TTL)
+    if len(playlist) > 1:
+        client.rpush(cache_key, *playlist[1:])
+        client.expire(cache_key, PROJECT_PLAYLIST_CACHE_TTL)
 
-    next_id = client.lpop(cache_key)
-    if next_id is not None:
-        return int(next_id)
-    return random.choice(project_ids) if project_ids else None
+    return playlist[0]
 
 
 def _build_project_playlist(
