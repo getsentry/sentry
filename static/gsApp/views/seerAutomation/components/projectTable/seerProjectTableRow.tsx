@@ -17,13 +17,13 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import type {useCodingAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getProjectStoppingPointValueFromSettings,
   type MutateStoppingPoint,
   PROJECT_STOPPING_POINT_OPTIONS,
 } from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
@@ -32,7 +32,7 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: ReturnType<typeof useFetchAgentOptions>;
+  agentOptions: ReturnType<typeof useCodingAgentSelectOptions>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
