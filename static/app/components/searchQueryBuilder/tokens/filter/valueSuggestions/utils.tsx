@@ -2,7 +2,7 @@ import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/
 import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
 import {parseFilterValuePercentage} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/percentage/parser';
 import {parseFilterValueSize} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/size/parser';
-import {escapeTagValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {escapeTagValueForSearch} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {DEFAULT_BOOLEAN_SUGGESTIONS} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/boolean';
 import {getRelativeDateSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import {getDurationSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/duration';
@@ -58,7 +58,7 @@ export function cleanFilterValue({
   token?: TokenResult<Token.FILTER>;
 }): string | null {
   if (!valueType) {
-    return escapeTagValue(value);
+    return escapeTagValueForSearch(value);
   }
 
   switch (valueType) {
@@ -127,6 +127,6 @@ export function cleanFilterValue({
       return value;
     }
     default:
-      return escapeTagValue(value).trim();
+      return escapeTagValueForSearch(value).trim();
   }
 }

@@ -27,7 +27,7 @@ import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/t
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
-  escapeTagValue,
+  escapeTagValueForSearch,
   formatFilterValue,
   getFilterValueType,
   unescapeTagValue,
@@ -125,11 +125,20 @@ export function prepareInputValueForSaving(
 
   const values =
     parsed.items
-      .map(item =>
-        item.value?.quoted
-          ? (item.value?.text ?? '')
-          : cleanFilterValue({valueType, value: item.value?.text ?? ''})
-      )
+      .map(item => {
+        if (item.value?.quoted) {
+          if (!item.value.value) {
+            return '""';
+          }
+
+          return escapeTagValueForSearch(item.value.value, {
+            allowArrayValue: false,
+            forceQuote: true,
+          });
+        }
+
+        return cleanFilterValue({valueType, value: item.value?.text ?? ''});
+      })
       .filter(text => text?.length) ?? [];
 
   const uniqueValues = uniq(values);
@@ -137,6 +146,24 @@ export function prepareInputValueForSaving(
   return uniqueValues.length > 1
     ? `[${uniqueValues.join(',')}]`
     : (uniqueValues[0] ?? '""');
+}
+
+function unescapeAsteriskSearchValue(value: string) {
+  let unescapedValue = '';
+
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index];
+
+    if (char === '\\' && value[index + 1] === '*') {
+      unescapedValue += '*';
+      index += 1;
+      continue;
+    }
+
+    unescapedValue += char;
+  }
+
+  return unescapedValue;
 }
 
 export function getSelectedValuesFromText(
@@ -153,7 +180,9 @@ export function getSelectedValuesFromText(
     .filter(item => item.value?.value)
     .map(item => {
       const value =
-        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? '';
+        (escaped
+          ? item.value?.text
+          : unescapeAsteriskSearchValue(unescapeTagValue(item.value?.value ?? ''))) ?? '';
 
       // Check if this value is selected by looking at the character after the value in
       // the text. If there's a comma after the value, it means this value is selected.
@@ -509,7 +538,7 @@ function ItemCheckbox({
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
               token,
-              value: escapeTagValue(value),
+              value: escapeTagValueForSearch(value),
             });
           }}
           aria-label={t('Toggle %s', value)}
@@ -787,7 +816,7 @@ export function SearchQueryBuilderValueCombobox({
             getFilterValueType(token, fieldDefinition),
             selectedValuesUnescaped
               .filter(v => (v.selected ? v.value !== value : true))
-              .map(v => escapeTagValue(v.value, {allowArrayValue: false}))
+              .map(v => escapeTagValueForSearch(v.value, {allowArrayValue: false}))
               .join(',')
           );
 
@@ -810,7 +839,11 @@ export function SearchQueryBuilderValueCombobox({
           token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
+            replaceCommaSeparatedValue(
+              inputValue,
+              selectionIndex,
+              escapeTagValueForSearch(value)
+            )
           ),
           op,
         });
