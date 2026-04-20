@@ -61,7 +61,7 @@ describe('OnboardingSkipButton', () => {
       try {
         render(<OnboardingSkipButton stepId={stepId} />);
 
-        const button = screen.getByRole('button', {name: 'Skip onboarding'});
+        const button = screen.getByRole('button', {name: 'Skip setup'});
         expect(button).toHaveAttribute(
           'href',
           `/organizations/org-slug/issues/?referrer=${referrer}`
