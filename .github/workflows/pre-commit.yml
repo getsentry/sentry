@@ -69,6 +69,7 @@ jobs:
         with:
           path: ~/.cache/prek
           key: cache-epoch-2|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Setup prek
         run: |
           .venv/bin/prek prepare-hooks

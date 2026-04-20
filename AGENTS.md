@@ -61,25 +61,18 @@ cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 #### Setup
 
 ```bash
-# Install dependencies and setup development environment
-make develop
-
-# Or use the newer devenv command
-devenv sync
-
-# Activate the Python virtual environment (required for running tests and Python commands)
-direnv allow
-
-# Start dev dependencies
-devservices up
-
-# Start the development server
-devservices serve
+devenv sync     # refresh dependencies
+direnv allow    # activate the environment
+devservices up  # bring up services
 ```
+
+That is all that is required to run `pytest`.
+
+`devservices serve` starts the development server.
 
 #### Linting
 
-prek is the single entrypoint for all lint, format, and type-checking tools. Do not invoke ruff, mypy, eslint, or similar tools directly — always go through prek.
+prek is the single entrypoint for all lint, format, and type-checking tools.
 
 Before considering a task complete, run:
 
@@ -87,28 +80,22 @@ Before considering a task complete, run:
 cd /path/to/sentry && .venv/bin/prek run -q
 ```
 
-prek detects changed files automatically. To run a specific hook (e.g. mypy only):
+prek detects changed files automatically. To run a specific hook:
 
 ```bash
 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
 ```
 
-If a hook fails, fix the issues and re-run until it passes.
+If a hook fails, fix the issues, stage changes, then re-run until it passes.
 
 #### Testing
 
 ```bash
-# Preferred for local backend changes: run only tests affected by your diff (fast)
-make test-selective
-
-# Run Python tests (always use these parameters)
-pytest -svv --reuse-db
-
-# Run specific test file
-pytest -svv --reuse-db tests/sentry/api/test_base.py
+# Run a specific test file.
+# Do not run pytest by itself; it'll take forever!
+.venv/bin/pytest -n3 -svv --reuse-db tests/sentry/api/test_base.py
 ```
-
-For backend-scoped changes, always try `make test-selective` first. It detects which tests are affected by your local diff and runs only those, making the feedback loop much faster. Fall back to `pytest` when you need to run a specific file or `test-selective` doesn't cover your case.
 
 #### Database Operations
 
