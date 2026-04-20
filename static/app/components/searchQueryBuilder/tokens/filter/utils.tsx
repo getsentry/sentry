@@ -167,7 +167,6 @@ export function escapeTagValueForSearch(
   const shouldEscape = shouldEscapeTagValue(escapedValue, {
     ...options,
     allowArrayValue: true,
-    forceQuote: false,
   });
 
   return shouldEscape ? `"${escapeDoubleQuotes(escapedValue)}"` : escapedValue;

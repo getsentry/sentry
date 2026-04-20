@@ -2182,7 +2182,7 @@ describe('SearchQueryBuilder', () => {
       expect(listBox).toBeChecked();
     });
 
-    it('strips multiple wildcards into a single wildcard', async () => {
+    it('escapes repeated literal asterisks in saved values', async () => {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -2205,7 +2205,7 @@ describe('SearchQueryBuilder', () => {
         '****random****Value*****{enter}'
       );
       expect(mockOnChange).toHaveBeenCalledWith(
-        'browser.name:[Firefox,*random*Value*]',
+        'browser.name:[Firefox,\\*\\*\\*\\*random\\*\\*\\*\\*Value\\*\\*\\*\\*\\*]',
         expect.anything()
       );
     });
