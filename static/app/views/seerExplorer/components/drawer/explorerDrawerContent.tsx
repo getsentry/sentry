@@ -397,6 +397,8 @@ export function ExplorerDrawerContent({
   return (
     <DrawerContentContainer>
       <TopBar
+        isCopyLinkEnabled={false} // TODO: disabled for drawer, may remove in favor copy URL
+        onCopyLinkClick={() => {}}
         handleClose={handleClose}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
@@ -407,10 +409,8 @@ export function ExplorerDrawerContent({
           focusInput();
         }}
         onCopySessionClick={copySessionToClipboard}
-        onCopyLinkClick={() => {}}
         onSessionHistoryClick={openSessionHistory}
         isCopySessionEnabled={copySessionEnabled}
-        isCopyLinkEnabled={!!runId}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
