@@ -456,7 +456,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
     >
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight
-          caseSensitive={!props.extra.caseSensitiveHighlighting}
+          caseSensitive={props.extra.caseSensitiveHighlighting}
           text={highlightTerm}
         >
           {stripAnsi(attribute_value)}
