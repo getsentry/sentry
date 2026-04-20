@@ -4,6 +4,10 @@ import logging
 import random
 import re
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -53,6 +57,97 @@ def get_valid_trace_ids_by_span_count(
         for row in result.get("data", [])
         if LOWER_SPAN_LIMIT <= row["count()"] <= UPPER_SPAN_LIMIT
     }
+
+
+PROJECT_PLAYLIST_SIZE = 20
+PROJECT_PLAYLIST_CACHE_KEY_PREFIX = "llm_detection:project_playlist"
+PROJECT_PLAYLIST_CACHE_TTL = 86400 * 7  # 7 days
+
+
+def get_next_project_id(
+    organization: Organization,
+    project_ids: list[int],
+    start_time_delta_minutes: int = 60,
+) -> int | None:
+    """
+    Pop the next project ID from a cached playlist weighted by traffic.
+
+    The playlist is a shuffled list of project IDs where higher-traffic
+    projects appear more often. When the playlist is empty or missing,
+    a new one is generated from a Snuba query and cached.
+
+    Returns None if there are no active projects with traffic.
+    """
+    from django.core.cache import cache
+
+    cache_key = f"{PROJECT_PLAYLIST_CACHE_KEY_PREFIX}:{organization.id}"
+    playlist = cache.get(cache_key)
+
+    if not playlist:
+        playlist = _build_project_playlist(organization, project_ids, start_time_delta_minutes)
+        if not playlist:
+            return random.choice(project_ids) if project_ids else None
+        cache.set(cache_key, playlist, PROJECT_PLAYLIST_CACHE_TTL)
+
+    project_id = playlist.pop(0)
+    if playlist:
+        cache.set(cache_key, playlist, PROJECT_PLAYLIST_CACHE_TTL)
+    else:
+        cache.delete(cache_key)
+
+    return project_id
+
+
+def _build_project_playlist(
+    organization: Organization,
+    project_ids: list[int],
+    start_time_delta_minutes: int,
+) -> list[int]:
+    """
+    Build a shuffled playlist of PROJECT_PLAYLIST_SIZE project IDs
+    weighted by transaction count.
+    """
+    projects = list(Project.objects.filter(id__in=project_ids))
+    if not projects:
+        return []
+
+    end_time = datetime.now(UTC)
+    start_time = end_time - timedelta(minutes=start_time_delta_minutes)
+    config = SearchResolverConfig(auto_fields=True)
+
+    snuba_params = SnubaParams(
+        start=start_time,
+        end=end_time,
+        projects=projects,
+        organization=organization,
+    )
+
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string="is_transaction:true",
+        selected_columns=["project_id", "count()"],
+        orderby=None,
+        offset=0,
+        limit=len(project_ids),
+        referrer=Referrer.ISSUES_LLM_ISSUE_DETECTION_TRANSACTION.value,
+        config=config,
+        sampling_mode="NORMAL",
+    )
+
+    weights = {
+        row["project_id"]: row["count()"]
+        for row in result.get("data", [])
+        if row.get("project_id") in set(project_ids)
+    }
+
+    if not weights:
+        return []
+
+    weighted_ids = list(weights.keys())
+    weighted_counts = list(weights.values())
+    playlist = random.choices(weighted_ids, weights=weighted_counts, k=PROJECT_PLAYLIST_SIZE)
+    random.shuffle(playlist)
+    return playlist
 
 
 def get_project_top_transaction_traces_for_llm_detection(

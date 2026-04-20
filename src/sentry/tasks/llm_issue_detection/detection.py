@@ -320,6 +320,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
     Budget enforcement happens on the Seer side.
     """
     from sentry.tasks.llm_issue_detection.trace_data import (  # circular imports
+        get_next_project_id,
         get_project_top_transaction_traces_for_llm_detection,
     )
 
@@ -337,7 +338,9 @@ def detect_llm_issues_for_org(org_id: int) -> None:
     if not project_ids:
         return
 
-    project_id = random.choice(project_ids)
+    project_id = get_next_project_id(organization, project_ids)
+    if not project_id:
+        return
 
     project = Project.objects.get_from_cache(id=project_id)
     perf_settings = project.get_option("sentry:performance_issue_settings", default={})
