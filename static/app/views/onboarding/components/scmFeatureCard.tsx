@@ -55,6 +55,7 @@ export function ScmFeatureCard({
               rows="min-content min-content"
               gap={{xs: 'xs md', md: 'xs lg'}}
               align="center"
+              width="100%"
               areas={`
                     "icon label"
                     ". description"

@@ -472,7 +472,12 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                 <LoadingIndicator mini />
               ) : (
                 <Grid
-                  columns={{xs: '1fr', md: `repeat(${resolvedPlatforms.length}, 1fr)`}}
+                  columns={{
+                    xs: '1fr',
+                    md: `repeat(${resolvedPlatforms.length}, minmax(200px, 1fr))`,
+                  }}
+                  width={{xs: '100%', md: 'auto'}}
+                  maxWidth={{xs: SCM_STEP_CONTENT_WIDTH, md: 'auto'}}
                   justify="center"
                   gap="md"
                   role="radiogroup"

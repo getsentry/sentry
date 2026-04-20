@@ -1,6 +1,6 @@
 import type {ComponentType} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -100,14 +100,7 @@ export function ScmFeatureSelectionCards({
           <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
         </Flex>
       </Grid>
-      <Grid
-        gap="xl"
-        columns={
-          availableFeatures.length === 1 ? '1fr' : {xs: '1fr', md: 'repeat(2, 1fr)'}
-        }
-        maxWidth={availableFeatures.length === 1 ? {xs: '100%', md: '50%'} : undefined}
-        margin={availableFeatures.length === 1 ? '0 auto' : undefined}
-      >
+      <Stack gap="xl">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const disabledProduct = disabledProducts[feature];
@@ -127,7 +120,7 @@ export function ScmFeatureSelectionCards({
             />
           );
         })}
-      </Grid>
+      </Stack>
     </Flex>
   );
 }
