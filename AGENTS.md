@@ -79,23 +79,13 @@ devservices serve
 
 #### Linting
 
-```bash
-# Preferred: Run pre-commit hooks on specific files (PREK_QUIET in .envrc means only failures are shown)
-.venv/bin/prek run -q --files src/sentry/path/to/file.py
-
-# Run all pre-commit hooks
-.venv/bin/prek run -q --all-files
-```
-
-#### Before completing a task
-
-Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
+We use prek with `.pre-commit-config.yaml`. Before considering a task complete, run:
 
 ```bash
-cd /path/to/sentry && .venv/bin/prek run -q --files <file1> [file2 ...]
+cd /path/to/sentry && .venv/bin/prek run -q
 ```
 
-If a hook fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+prek detects changed files automatically. If a hook fails, fix the issues and re-run until it passes.
 
 #### Testing
 
