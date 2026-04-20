@@ -55,7 +55,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
     queryClient,
   });
 
-  const sstoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
+  const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
     organization,
     queryClient,
   });
@@ -125,18 +125,18 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
         initialValue={stoppingPointValue}
         mutationOptions={{
           mutationFn: (vars, fnCtx) =>
-            sstoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
+            stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
           onMutate: (vars, fnCtx) =>
-            sstoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
+            stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
           onError: (error, vars, mutateResult, fnCtx) =>
-            sstoppingPointMutationOptions.onError?.(
+            stoppingPointMutationOptions.onError?.(
               error,
               {...vars, project},
               mutateResult,
               fnCtx
             ),
           onSettled: (data, error, vars, mutateResult, fnCtx) =>
-            sstoppingPointMutationOptions.onSettled?.(
+            stoppingPointMutationOptions.onSettled?.(
               data,
               error,
               {...vars, project},
