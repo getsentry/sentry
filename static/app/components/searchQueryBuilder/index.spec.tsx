@@ -2182,7 +2182,7 @@ describe('SearchQueryBuilder', () => {
       expect(listBox).toBeChecked();
     });
 
-    it('escapes repeated literal asterisks in saved values', async () => {
+    it('strips multiple wildcards into a single wildcard', async () => {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -2205,9 +2205,77 @@ describe('SearchQueryBuilder', () => {
         '****random****Value*****{enter}'
       );
       expect(mockOnChange).toHaveBeenCalledWith(
-        'browser.name:[Firefox,\\*\\*\\*\\*random\\*\\*\\*\\*Value\\*\\*\\*\\*\\*]',
+        'browser.name:[Firefox,*random*Value*]',
         expect.anything()
       );
+    });
+
+    it('escapes literal asterisks when adding a dropdown value', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [FieldKey.BROWSER_NAME]: {
+              ...FILTER_KEYS[FieldKey.BROWSER_NAME]!,
+              values: [
+                ...((FILTER_KEYS[FieldKey.BROWSER_NAME]?.values as
+                  | string[]
+                  | undefined) ?? []),
+                'test*',
+              ],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.type(screen.getByRole('combobox'), 'test');
+      await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,test\\*]',
+          expect.anything()
+        );
+      });
+    });
+
+    it('escapes literal asterisks when selecting a single-value dropdown option', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [FieldKey.IS]: {
+              ...FILTER_KEYS[FieldKey.IS]!,
+              values: [
+                ...((FILTER_KEYS[FieldKey.IS]?.values as string[] | undefined) ?? []),
+                'test*',
+              ],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery="is:unresolved"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: is'})
+      );
+      await userEvent.type(screen.getByRole('combobox'), 'test');
+      await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('is:test\\*', expect.anything());
+      });
     });
   });
 

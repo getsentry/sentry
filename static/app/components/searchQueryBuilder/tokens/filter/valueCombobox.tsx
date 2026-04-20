@@ -126,20 +126,11 @@ export function prepareInputValueForSaving(
 
   const values =
     parsed.items
-      .map(item => {
-        if (item.value?.quoted) {
-          if (!item.value.value) {
-            return '""';
-          }
-
-          return escapeTagValueForSearch(item.value.value, {
-            allowArrayValue: false,
-            forceQuote: true,
-          });
-        }
-
-        return cleanFilterValue({valueType, value: item.value?.text ?? ''});
-      })
+      .map(item =>
+        item.value?.quoted
+          ? (item.value?.text ?? '')
+          : cleanFilterValue({valueType, value: item.value?.text ?? ''})
+      )
       .filter(text => text?.length) ?? [];
 
   const uniqueValues = uniq(values);
@@ -763,7 +754,11 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const updateFilterValue = useCallback(
-    (value: string, op?: TermOperator) => {
+    (
+      value: string,
+      op?: TermOperator,
+      {escapeSearchValue = false}: {escapeSearchValue?: boolean} = {}
+    ) => {
       if (token.filter === FilterType.HAS) {
         const suggested = getSuggestedFilterKey(value);
         if (suggested) {
@@ -777,9 +772,15 @@ export function SearchQueryBuilderValueCombobox({
         }
       }
 
+      const valueType = getFilterValueType(token, fieldDefinition);
+      const valueForSaving =
+        escapeSearchValue && valueType === FieldValueType.STRING
+          ? escapeTagValueForSearch(value)
+          : value;
+
       const cleanedValue = cleanFilterValue({
-        valueType: getFilterValueType(token, fieldDefinition),
-        value,
+        valueType,
+        value: valueForSaving,
         token,
       });
 
@@ -825,7 +826,7 @@ export function SearchQueryBuilderValueCombobox({
             replaceCommaSeparatedValue(
               inputValue,
               selectionIndex,
-              escapeTagValueForSearch(value)
+              escapeSearchValue ? escapeTagValueForSearch(value) : value
             )
           ),
           op,
@@ -891,7 +892,7 @@ export function SearchQueryBuilderValueCombobox({
         newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
       }
 
-      updateFilterValue(value, newOp);
+      updateFilterValue(value, newOp, {escapeSearchValue: true});
       trackAnalytics('search.value_autocompleted', {
         ...analyticsData,
         filter_value: value,

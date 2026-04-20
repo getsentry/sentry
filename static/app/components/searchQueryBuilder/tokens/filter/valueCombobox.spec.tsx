@@ -3,21 +3,31 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {getSelectedValuesFromText, prepareInputValueForSaving} from './valueCombobox';
 
 describe('prepareInputValueForSaving', () => {
-  it('escapes asterisks in unquoted string values', () => {
-    expect(prepareInputValueForSaving(FieldValueType.STRING, 'foo*bar')).toBe(
-      'foo\\*bar'
-    );
+  it('preserves manual asterisks in unquoted string values', () => {
+    expect(prepareInputValueForSaving(FieldValueType.STRING, 'foo*bar')).toBe('foo*bar');
   });
 
-  it('escapes asterisks in quoted string values', () => {
+  it('preserves manual asterisks in quoted string values', () => {
     expect(prepareInputValueForSaving(FieldValueType.STRING, '"foo*bar"')).toBe(
-      '"foo\\*bar"'
+      '"foo*bar"'
     );
   });
 
-  it('escapes asterisks in multi-select string values', () => {
+  it('preserves manual asterisks in multi-select string values', () => {
     expect(prepareInputValueForSaving(FieldValueType.STRING, 'foo*bar,baz*qux')).toBe(
+      '[foo*bar,baz*qux]'
+    );
+  });
+
+  it('preserves already-escaped dropdown values', () => {
+    expect(prepareInputValueForSaving(FieldValueType.STRING, 'foo\\*bar,baz\\*qux')).toBe(
       '[foo\\*bar,baz\\*qux]'
+    );
+  });
+
+  it('preserves already-escaped quoted dropdown values', () => {
+    expect(prepareInputValueForSaving(FieldValueType.STRING, '"foo\\*bar"')).toBe(
+      '"foo\\*bar"'
     );
   });
 });
