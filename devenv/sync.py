@@ -290,7 +290,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("prek dependencies", (".venv/bin/prek", "install", "--install-hooks", "-f"), {}),
+            ("prek dependencies", ("prek", "install", "--install-hooks", "-f"), {}),
             ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
         ),
         verbose,

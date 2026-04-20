@@ -79,13 +79,21 @@ devservices serve
 
 #### Linting
 
-We use prek with `.pre-commit-config.yaml`. Before considering a task complete, run:
+prek is the single entrypoint for all lint, format, and type-checking tools. Do not invoke ruff, mypy, eslint, or similar tools directly — always go through prek.
+
+Before considering a task complete, run:
 
 ```bash
 cd /path/to/sentry && .venv/bin/prek run -q
 ```
 
-prek detects staged files automatically. If a hook fails, fix the issues, stage changes, and re-run until it passes.
+prek detects changed files automatically. To run a specific hook (e.g. mypy only):
+
+```bash
+.venv/bin/prek run -q mypy --files src/sentry/foo/bar.py
+```
+
+If a hook fails, fix the issues and re-run until it passes.
 
 #### Testing
 
