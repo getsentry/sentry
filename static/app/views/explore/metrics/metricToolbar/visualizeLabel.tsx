@@ -14,21 +14,29 @@ interface VisualizeLabelProps {
   label: string;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
+  disableCollapse?: boolean;
 }
 
-export function VisualizeLabel({label, onClick, visualize}: VisualizeLabelProps) {
+export function VisualizeLabel({
+  label,
+  onClick,
+  visualize,
+  disableCollapse,
+}: VisualizeLabelProps) {
   const organization = useOrganization();
 
   if (canUseMetricsUIRefresh(organization)) {
     return (
       <Container
         display="flex"
-        cursor="pointer"
+        cursor={disableCollapse ? 'default' : 'pointer'}
         onClick={onClick}
         style={{userSelect: 'none', WebkitTapHighlightColor: 'transparent'}}
       >
         <Flex align="center" gap="xs">
-          <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+          {!disableCollapse && (
+            <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+          )}
           <RefreshLabel justify="center" align="center">
             <Text as="span" bold variant="accent">
               {label}
@@ -43,9 +51,17 @@ export function VisualizeLabel({label, onClick, visualize}: VisualizeLabelProps)
 
   return (
     <Flex align="center" justify="start" gap="md">
-      <IconLabel onClick={onClick} height="36px" justify="center" align="center">
-        {icon}
-      </IconLabel>
+      {!disableCollapse && (
+        <IconLabel
+          onClick={onClick}
+          height="36px"
+          justify="center"
+          align="center"
+          disableInteraction={disableCollapse}
+        >
+          {icon}
+        </IconLabel>
+      )}
       <Text bold size="md">
         {label}
       </Text>
@@ -61,8 +77,8 @@ const RefreshLabel = styled(Flex)`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const IconLabel = styled(Flex)`
-  cursor: pointer;
+const IconLabel = styled(Flex)<{disableInteraction?: boolean}>`
+  cursor: ${p => (p.disableInteraction ? 'default' : 'pointer')};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.accent};
 `;

@@ -202,7 +202,7 @@ function MetricsQueryBuilderSection({
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
-  const referenceMap = useMetricReferences();
+  const referenceMap = useMetricReferences(metricQueries);
 
   if (canUseMetricsUIRefresh(organization)) {
     return null;
@@ -274,7 +274,7 @@ function MetricsTabBodySection({
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
-  const referenceMap = useMetricReferences();
+  const referenceMap = useMetricReferences(metricQueries);
   const aggregateMetricQueries = useSortableMetricQueries({
     predicate: metricQuery =>
       !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!),
