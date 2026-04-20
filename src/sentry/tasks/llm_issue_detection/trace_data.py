@@ -4,11 +4,8 @@ import logging
 import random
 import re
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from sentry.models.organization import Organization
-
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -78,24 +75,23 @@ def get_next_project_id(
 
     Returns None if there are no active projects with traffic.
     """
-    from django.core.cache import cache
+    from sentry.utils.redis import redis_clusters
 
+    client = redis_clusters.get("default")
     cache_key = f"{PROJECT_PLAYLIST_CACHE_KEY_PREFIX}:{organization.id}"
-    playlist = cache.get(cache_key)
 
+    project_id_raw = client.lpop(cache_key)
+    if project_id_raw is not None:
+        return int(project_id_raw)
+
+    playlist = _build_project_playlist(organization, project_ids, start_time_delta_minutes)
     if not playlist:
-        playlist = _build_project_playlist(organization, project_ids, start_time_delta_minutes)
-        if not playlist:
-            return random.choice(project_ids) if project_ids else None
-        cache.set(cache_key, playlist, PROJECT_PLAYLIST_CACHE_TTL)
+        return random.choice(project_ids) if project_ids else None
 
-    project_id = playlist.pop(0)
-    if playlist:
-        cache.set(cache_key, playlist, PROJECT_PLAYLIST_CACHE_TTL)
-    else:
-        cache.delete(cache_key)
+    client.rpush(cache_key, *playlist)
+    client.expire(cache_key, PROJECT_PLAYLIST_CACHE_TTL)
 
-    return project_id
+    return int(client.lpop(cache_key))
 
 
 def _build_project_playlist(
