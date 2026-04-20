@@ -6,6 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
+import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
 import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
@@ -110,18 +111,7 @@ export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
 
 type StorySection = 'overview' | StoryCategory;
 
-type ComponentSubcategory =
-  | 'typography'
-  | 'layout'
-  | 'buttons'
-  | 'controls'
-  | 'forms'
-  | 'navigation'
-  | 'status'
-  | 'display'
-  | 'overlays'
-  | 'utilities'
-  | 'shared';
+type ComponentSubcategory = NonNullable<MDXFrontmatter['category']>;
 
 export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   overview: {label: 'Overview'},

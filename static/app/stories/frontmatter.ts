@@ -1,5 +1,17 @@
 import type {StoryResources} from './view/useStoriesLoader';
 
+type ComponentCategory =
+  | 'typography'
+  | 'layout'
+  | 'buttons'
+  | 'controls'
+  | 'forms'
+  | 'navigation'
+  | 'status'
+  | 'display'
+  | 'overlays'
+  | 'utilities'
+  | 'shared';
 /**
  * Frontmatter schema for MDX story files.
  * Validated at type-check time via Volar + @mdx-js/language-service.
@@ -9,7 +21,7 @@ import type {StoryResources} from './view/useStoriesLoader';
 export interface MDXFrontmatter {
   description: string;
   title: string;
-  category?: string;
+  category?: ComponentCategory;
   layout?: 'document';
   resources?: StoryResources;
   source?: string;
