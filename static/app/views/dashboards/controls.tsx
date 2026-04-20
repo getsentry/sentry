@@ -31,6 +31,7 @@ import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDu
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
@@ -386,6 +387,9 @@ export function Controls({
                 }}
               </DashboardCreateLimitWrapper>
             )}
+            <Feature features="organizations:dashboards-revisions">
+              <DashboardRevisionsButton dashboard={dashboard} />
+            </Feature>
           </Fragment>
         )}
       </DashboardEditFeature>

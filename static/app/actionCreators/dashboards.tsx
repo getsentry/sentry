@@ -343,6 +343,22 @@ export function updateDashboardPermissions(
   return promise;
 }
 
+export type DashboardRevision = {
+  createdBy: {email: string; id: string; name: string} | null;
+  dateCreated: string;
+  id: string;
+  source: string;
+  title: string;
+};
+
+export function makeDashboardRevisionsQueryKey(orgSlug: string, dashboardId: string) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/', {
+      path: {organizationIdOrSlug: orgSlug, dashboardId},
+    }),
+  ] as const;
+}
+
 export function validateWidget(
   api: Client,
   orgId: string,
