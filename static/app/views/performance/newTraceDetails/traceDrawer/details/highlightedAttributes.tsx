@@ -451,12 +451,12 @@ function HighlightedContextUtilization({
 }) {
   const percentage = Math.round(utilization * 100);
   const tokensUsed =
-    windowSize != null ? Math.round(utilization * windowSize) : totalTokens;
+    windowSize !== null ? Math.round(utilization * windowSize) : totalTokens;
 
   const inlineValue = (
     <Fragment>
       {percentage}%
-      {tokensUsed != null && windowSize != null && (
+      {tokensUsed !== null && windowSize !== null && (
         <Fragment>
           {' ('}
           <Count value={tokensUsed} />
@@ -470,13 +470,13 @@ function HighlightedContextUtilization({
 
   const tooltipContent = (
     <TokensTooltipTitle>
-      {windowSize != null && (
+      {windowSize !== null && (
         <Fragment>
           <span>{t('Window Size')}</span>
           <span>{windowSize.toLocaleString()}</span>
         </Fragment>
       )}
-      {tokensUsed != null && (
+      {tokensUsed !== null && (
         <Fragment>
           <span>{t('Tokens Used')}</span>
           <span>{tokensUsed.toLocaleString()}</span>
