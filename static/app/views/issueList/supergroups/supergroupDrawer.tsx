@@ -99,7 +99,6 @@ export function SupergroupDetailDrawer({
               },
             }}
             tooltipProps={{title: t('Give feedback on Issue Groups')}}
-            aria-label={t('Give feedback on Issue Groups')}
           />
         </Flex>
       </DrawerHeader>
