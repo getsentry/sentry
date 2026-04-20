@@ -63,8 +63,9 @@ class TestQueryCoverage:
                 ],
             },
         )
-        result = _query_coverage(db, ["../sentry/src/sentry/models/organization.py"])
-        assert result == {"tests/sentry/api/test_organization.py"}
+        assert _query_coverage(db, ["../sentry/src/sentry/models/organization.py"]) == {
+            "tests/sentry/api/test_organization.py"
+        }
 
     def test_getsentry_tests_excluded(self, tmp_path):
         """Coverage contexts pointing to getsentry tests should be dropped."""
@@ -77,8 +78,7 @@ class TestQueryCoverage:
                 ],
             },
         )
-        result = _query_coverage(db, ["../sentry/src/sentry/models/organization.py"])
-        assert result == set()
+        assert _query_coverage(db, ["../sentry/src/sentry/models/organization.py"]) == set()
 
     def test_missing_tables_raises(self, tmp_path):
         db = str(tmp_path / "coverage.db")
@@ -106,6 +106,11 @@ class TestQueryCoverage:
 
 
 class TestMain:
+    @pytest.fixture(autouse=True)
+    def _patch_find_test_imports(self):
+        with mock.patch("compute_sentry_selected_tests.find_test_imports", return_value=set()):
+            yield
+
     def test_no_changed_files_falls_back_to_full_suite(self, tmp_path):
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(str(db_path), {})
@@ -353,6 +358,52 @@ class TestMain:
         gh = gh_output.read_text()
         assert "has-selected-tests=true" in gh
         assert f"test-count={len(ALWAYS_RUN_TESTS)}" in gh
+
+    def test_static_import_results_unioned_with_coverage(self, tmp_path):
+        """Static import results are unioned with coverage regardless of whether coverage found anything."""
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(
+            str(db_path),
+            {
+                "../sentry/src/sentry/seer/explorer/client_models.py": [
+                    "../sentry/tests/sentry/seer/explorer/test_explorer_client.py::T::test|run",
+                ],
+            },
+        )
+        output = tmp_path / "output.txt"
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        static_result = {"tests/sentry/seer/endpoints/test_group_ai_autofix.py"}
+
+        with mock.patch(
+            "compute_sentry_selected_tests.find_test_imports", return_value=static_result
+        ):
+            with mock.patch("compute_sentry_selected_tests.Path.exists", return_value=True):
+                _run(
+                    [
+                        "--coverage-db",
+                        str(db_path),
+                        "--changed-files",
+                        "src/sentry/seer/explorer/client_models.py",
+                        "--output",
+                        str(output),
+                        "--github-output",
+                    ],
+                    {"GITHUB_OUTPUT": str(gh_output)},
+                )
+
+        gh = gh_output.read_text()
+        assert "has-selected-tests=true" in gh
+        assert f"test-count={2 + len(ALWAYS_RUN_TESTS)}" in gh
+        expected = sorted(
+            {
+                "tests/sentry/seer/explorer/test_explorer_client.py",
+                "tests/sentry/seer/endpoints/test_group_ai_autofix.py",
+            }
+            | ALWAYS_RUN_TESTS
+        )
+        assert output.read_text().splitlines() == expected
 
     def test_missing_db_returns_error(self):
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])

@@ -2,6 +2,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 import {
@@ -13,6 +14,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
@@ -209,7 +211,12 @@ describe('AutomationNewSettings', () => {
       body: created,
     });
 
-    const {router} = render(<AutomationNewSettings />, {organization});
+    const {router} = render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
 
     // Add an action filter (tagged event)
     await selectEvent.select(
@@ -291,7 +298,7 @@ describe('AutomationNewSettings', () => {
               },
             ],
             config: {frequency: 0},
-            detectorIds: [],
+            detectorIds: ['123'],
             enabled: true,
           },
         })
@@ -329,7 +336,12 @@ describe('AutomationNewSettings', () => {
       body: created,
     });
 
-    render(<AutomationNewSettings />, {organization});
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
 
     const addAction = async (label: string) => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
@@ -591,6 +603,68 @@ describe('AutomationNewSettings', () => {
     await waitFor(() => {
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
     });
+  });
+
+  it('shows validation error when submitting with no projects or monitors selected', async () => {
+    ProjectsStore.loadInitialData([]);
+
+    const post = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture(),
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    // Add an action so the builder validation passes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    // Submit with no projects or monitors selected
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    // Should show validation error
+    expect(
+      await screen.findByText(
+        'Select at least one project or monitor to create an alert.'
+      )
+    ).toBeInTheDocument();
+
+    // Should not have submitted
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('pre-selects a project from page filters on first load', async () => {
+    const project = ProjectFixture({id: '2', slug: 'my-project', isMember: true});
+    ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(project.id)]})
+    );
+
+    render(<AutomationNewSettings />, {organization});
+
+    // The project selector should show the pre-selected project
+    expect(await screen.findByText('my-project')).toBeInTheDocument();
+  });
+
+  it('pre-selects the first member project when "my projects" is selected', async () => {
+    const memberProject = ProjectFixture({
+      id: '3',
+      slug: 'member-project',
+      isMember: true,
+    });
+    const otherProject = ProjectFixture({
+      id: '4',
+      slug: 'other-project',
+      isMember: false,
+    });
+    ProjectsStore.loadInitialData([otherProject, memberProject]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: []}));
+
+    render(<AutomationNewSettings />, {organization});
+
+    // Should pre-select the member project
+    expect(await screen.findByText('member-project')).toBeInTheDocument();
   });
 
   it('surfaces error details when test notification fails', async () => {

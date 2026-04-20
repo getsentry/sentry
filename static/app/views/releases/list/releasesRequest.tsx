@@ -463,11 +463,11 @@ class ReleasesRequest extends Component<Props, State> {
 
     const projectData = statusCountByProjectInPeriod?.groups
       .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => reduceTimeSeriesGroups(acc, group, field), [] as number[]);
+      ?.reduce<number[]>((acc, group) => reduceTimeSeriesGroups(acc, group, field), []);
 
     const releaseData = statusCountByReleaseInPeriod?.groups
       .filter(({by}) => by.project === project && by.release === version)
-      ?.reduce((acc, group) => reduceTimeSeriesGroups(acc, group, field), [] as number[]);
+      ?.reduce<number[]>((acc, group) => reduceTimeSeriesGroups(acc, group, field), []);
 
     return [
       {

@@ -238,7 +238,11 @@ def transform_webhook_to_codegen_request(
         )
     elif github_event == GithubWebhookType.PULL_REQUEST:
         payload = transform_pull_request_to_codegen_request(
-            github_event_action, event_payload, organization, repo, target_commit_sha
+            github_event_action,
+            event_payload,
+            organization,
+            repo,
+            target_commit_sha,
         )
     return payload
 
@@ -355,8 +359,10 @@ def _build_repo_definition(
     if len(repo_name_sections) < 2:
         raise ValueError(f"Invalid repository name format: {repo.name}")
 
+    # repo.provider uses the "integrations:<slug>" format; Seer expects the bare slug
+    provider = repo.provider.removeprefix("integrations:") if repo.provider else "github"
     repo_definition = {
-        "provider": "github",  # All GitHub webhooks use "github" provider
+        "provider": provider,
         "owner": repo_name_sections[0],
         "name": "/".join(repo_name_sections[1:]),
         "external_id": repo.external_id,

@@ -24,7 +24,7 @@ function PagerDutyInstallStep({
   );
 
   const {openPopup, popupStatus} = useRedirectPopupStep({
-    redirectUrl: stepData.installUrl,
+    redirectUrl: stepData?.installUrl,
     onCallback: handleCallback,
     popup: {height: 900},
   });
@@ -63,7 +63,7 @@ function PagerDutyInstallStep({
           size="sm"
           priority="primary"
           onClick={openPopup}
-          disabled={!stepData.installUrl}
+          disabled={!stepData?.installUrl}
         >
           {t('Install PagerDuty App')}
         </Button>

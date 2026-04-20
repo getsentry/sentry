@@ -35,6 +35,7 @@ class _TriageResponse(pydantic.BaseModel):
 def agentic_triage_strategy(
     projects: Sequence[Project],
     organization: Organization,
+    max_candidates: int,
 ) -> tuple[list[TriageResult], int | None]:
     """
     Select candidates via fixability scoring, then use the Seer Explorer agent
@@ -43,7 +44,7 @@ def agentic_triage_strategy(
     Returns a tuple of (triage_results, agent_run_id).
     """
     # TODO: try a new way to get scored issues
-    scored = fixability_score_strategy(projects)
+    scored = fixability_score_strategy(projects, max_candidates)
     if not scored:
         return [], None
 

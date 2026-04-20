@@ -474,12 +474,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
-  const regionMap = ConfigStore.get('regions').reduce(
+  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
     (acc, region) => {
       acc[region.url] = region.name;
       return acc;
     },
-    {} as Record<string, string>
+    {}
   );
   const region = regionMap[organization.links.regionUrl] ?? '??';
 

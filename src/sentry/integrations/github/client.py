@@ -343,15 +343,15 @@ class GitHubBaseClient(
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
-    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[Any]:
+    def get_last_commits(self, repo: str, end_sha: str, per_page: int = 20) -> Sequence[Any]:
         """
-        Return API request that fetches last ~30 commits
+        Return API request that fetches the last N commits.
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
         return self.get_cached(
             f"/repos/{repo}/commits",
-            params={"sha": end_sha},
+            params={"sha": end_sha, "per_page": per_page},
             endpoint=GitHubApiEndpoint.GET_COMMITS,
         )
 

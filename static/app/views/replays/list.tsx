@@ -66,6 +66,52 @@ function ReplaysHeader({
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
+  const titleContent = title ? (
+    title
+  ) : (
+    <Fragment>
+      {t('Session Replay')}
+      <PageHeadingQuestionTooltip
+        title={t(
+          'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+        )}
+        docsUrl="https://docs.sentry.io/product/session-replay/"
+      />
+    </Fragment>
+  );
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        {hasSavedQueryTitle ? (
+          <SentryDocumentTitle
+            title={`${savedQuery.name} — ${t('Session Replay')}`}
+            orgSlug={organization?.slug}
+          />
+        ) : null}
+        <TopBar.Slot name="title">
+          {title && defined(pageId) ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.REPLAYS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : (
+            titleContent
+          )}
+        </TopBar.Slot>
+        <TopBar.Slot name="actions">
+          <ReplayIndexTimestampPrefPicker />
+          {showDeadRageClickCards ? (
+            <ReplayWidgetsToggleButton
+              onClick={onToggleWidgets}
+              widgetIsOpen={widgetIsOpen}
+            />
+          ) : null}
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
@@ -82,37 +128,11 @@ function ReplaysHeader({
           />
         ) : null}
 
-        <Layout.Title>
-          {title ? (
-            title
-          ) : (
-            <Fragment>
-              {t('Session Replay')}
-              <PageHeadingQuestionTooltip
-                title={t(
-                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                )}
-                docsUrl="https://docs.sentry.io/product/session-replay/"
-              />
-            </Fragment>
-          )}
-        </Layout.Title>
+        <Layout.Title>{titleContent}</Layout.Title>
       </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <TopBar.Slot name="actions">
-          <ReplayIndexTimestampPrefPicker />
-          {showDeadRageClickCards ? (
-            <ReplayWidgetsToggleButton
-              onClick={onToggleWidgets}
-              widgetIsOpen={widgetIsOpen}
-            />
-          ) : null}
-        </TopBar.Slot>
-      ) : (
-        <Layout.HeaderActions>
-          <ReplayIndexTimestampPrefPicker />
-        </Layout.HeaderActions>
-      )}
+      <Layout.HeaderActions>
+        <ReplayIndexTimestampPrefPicker />
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }

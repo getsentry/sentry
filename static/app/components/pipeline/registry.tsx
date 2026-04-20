@@ -9,6 +9,7 @@ import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {opsgenieIntegrationPipeline} from './pipelineIntegrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './pipelineIntegrationPagerDuty';
 import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
+import {vercelIntegrationPipeline} from './pipelineIntegrationVercel';
 import {vstsIntegrationPipeline} from './pipelineIntegrationVsts';
 
 /**
@@ -27,6 +28,7 @@ export const PIPELINE_REGISTRY = [
   pagerDutyIntegrationPipeline,
   slackIntegrationPipeline,
   vstsIntegrationPipeline,
+  vercelIntegrationPipeline,
 ] as const;
 
 type AllPipelines = (typeof PIPELINE_REGISTRY)[number];

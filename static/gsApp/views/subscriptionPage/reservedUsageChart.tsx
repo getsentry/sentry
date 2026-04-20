@@ -613,15 +613,14 @@ export function ProductUsageChart({
           (budgetType === ReservedBudgetCategoryType.DYNAMIC_SAMPLING &&
             subscription.hadCustomDynamicSampling)
         ) {
-          const statsByDateAndCategory = categoryStats.reduce(
-            (acc, stat) => {
-              if (stat) {
-                acc[stat.date] = {[category]: [stat]};
-              }
-              return acc;
-            },
-            {} as Record<string, Record<string, BillingStats>>
-          );
+          const statsByDateAndCategory = categoryStats.reduce<
+            Record<string, Record<string, BillingStats>>
+          >((acc, stat) => {
+            if (stat) {
+              acc[stat.date] = {[category]: [stat]};
+            }
+            return acc;
+          }, {});
           dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
             statsByDateAndCategory,
             transform,
@@ -638,17 +637,16 @@ export function ProductUsageChart({
             [category]: categoryStats,
             [otherCategory]: otherCategoryStats,
           };
-          const statsByDateAndCategory = Object.entries(statsByCategory).reduce(
-            (acc, [budgetCategory, stats]) => {
-              stats.forEach(stat => {
-                if (stat) {
-                  acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
-                }
-              });
-              return acc;
-            },
-            {} as Record<string, Record<string, BillingStats>>
-          );
+          const statsByDateAndCategory = Object.entries(statsByCategory).reduce<
+            Record<string, Record<string, BillingStats>>
+          >((acc, [budgetCategory, stats]) => {
+            stats.forEach(stat => {
+              if (stat) {
+                acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
+              }
+            });
+            return acc;
+          }, {});
           dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
             statsByDateAndCategory,
             transform,

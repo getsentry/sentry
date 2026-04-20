@@ -174,7 +174,7 @@ export function IssuesWidget() {
       </HeaderContainer>
       <PanelBody>
         {isPending
-          ? [...new Array(4)].map((_, i) => (
+          ? [...Array.from({length: 4})].map((_, i) => (
               <GroupPlaceholder key={i}>
                 <Placeholder height="50px" />
               </GroupPlaceholder>

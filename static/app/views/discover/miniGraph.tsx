@@ -154,8 +154,8 @@ class MiniGraph extends Component<Props> {
         end={end}
         period={period}
         interval={interval}
-        project={project as number[]}
-        environment={environment as string[]}
+        project={project}
+        environment={environment}
         includePrevious={false}
         yAxis={yAxis}
         field={field}

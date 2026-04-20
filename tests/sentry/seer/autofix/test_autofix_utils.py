@@ -14,6 +14,7 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
     deduplicate_repositories,
+    extract_api_error_message,
     get_autofix_prompt,
     get_coding_agent_prompt,
     get_org_default_seer_automation_handoff,
@@ -1653,3 +1654,53 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         )
         stopping_point, _ = get_org_default_seer_automation_handoff(self.organization)
         assert stopping_point == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+
+
+class TestExtractApiErrorMessage:
+    def _response(self, body: Any) -> Mock:
+        response = Mock()
+        response.json.return_value = body
+        return response
+
+    def test_anthropic_shape(self) -> None:
+        response = self._response(
+            {"error": {"type": "invalid_request_error", "message": "Credit balance too low"}}
+        )
+        assert extract_api_error_message(response) == "Credit balance too low"
+
+    def test_top_level_message(self) -> None:
+        response = self._response({"message": "Rate limit exceeded"})
+        assert extract_api_error_message(response) == "Rate limit exceeded"
+
+    def test_error_message_wins_over_top_level_message(self) -> None:
+        response = self._response({"error": {"message": "Nested msg"}, "message": "Top msg"})
+        assert extract_api_error_message(response) == "Nested msg"
+
+    def test_returns_none_when_response_is_none(self) -> None:
+        assert extract_api_error_message(None) is None
+
+    def test_returns_none_when_json_raises_value_error(self) -> None:
+        response = Mock()
+        response.json.side_effect = ValueError("not json")
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_body_is_not_a_dict(self) -> None:
+        response = self._response(["just", "a", "list"])
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_error_field_is_a_string(self) -> None:
+        # Some APIs use "error" as a string; skip it rather than crashing.
+        response = self._response({"error": "something broke"})
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_no_recognized_keys(self) -> None:
+        response = self._response({"detail": "DRF-style error"})
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_message_is_empty_string(self) -> None:
+        response = self._response({"error": {"message": ""}})
+        assert extract_api_error_message(response) is None
+
+    def test_returns_none_when_message_is_not_a_string(self) -> None:
+        response = self._response({"error": {"message": 42}})
+        assert extract_api_error_message(response) is None

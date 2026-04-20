@@ -218,7 +218,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         preloadQueue.add(event);
         // Deserialize and preload an event serially, otherwise for large event
         // counts, this can crash the browser
-        await deserializeAndPreloadCanvasEvents(event.data as canvasMutationData, event);
+        await deserializeAndPreloadCanvasEvents(event.data, event);
         preloadQueue.delete(event);
       }
     }

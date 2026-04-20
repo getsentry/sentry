@@ -217,7 +217,7 @@ function getDartFrame(
 }
 
 function ljust(str: string, len: number) {
-  return str + new Array(Math.max(0, len - str.length) + 1).join(' ');
+  return str + Array.from({length: Math.max(0, len - str.length) + 1}).join(' ');
 }
 
 function getNativeFrame(frame: Frame, includeLocation: boolean): string {

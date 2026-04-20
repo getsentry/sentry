@@ -40,7 +40,9 @@ const traceWithChildError = makeTrace({
 
 const errorsOnlyTrace = makeTrace({
   transactions: [],
-  orphan_errors: new Array(20).fill(null).map(() => makeTraceError({})),
+  orphan_errors: Array.from({length: 20})
+    .fill(null)
+    .map(() => makeTraceError({})),
 });
 
 const organization = OrganizationFixture();

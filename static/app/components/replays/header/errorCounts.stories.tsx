@@ -24,19 +24,16 @@ const PY_FIXTURE = fixture('my-py-app');
 const GOLANG_FIXTURE = fixture('my-golang-app');
 
 function errorFramesToRawReplayErrors(errorFrames: ErrorFrame[]): RawReplayError[] {
-  return errorFrames.map(
-    errorFrame =>
-      ({
-        'project.name': errorFrame.data.projectSlug,
-        'error.type': errorFrame.data.labels,
-        id: errorFrame.data.eventId,
-        issue: errorFrame.data.label,
-        'issue.id': errorFrame.data.groupId,
-        timestamp: errorFrame.timestamp.toISOString(),
-        level: errorFrame.data.level,
-        title: errorFrame.data.label,
-      }) as RawReplayError
-  );
+  return errorFrames.map(errorFrame => ({
+    'project.name': errorFrame.data.projectSlug,
+    'error.type': errorFrame.data.labels,
+    id: errorFrame.data.eventId,
+    issue: errorFrame.data.label,
+    'issue.id': errorFrame.data.groupId,
+    timestamp: errorFrame.timestamp.toISOString(),
+    level: errorFrame.data.level,
+    title: errorFrame.data.label,
+  }));
 }
 
 export default Storybook.story('Timeline', story => {
