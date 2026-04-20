@@ -40,6 +40,7 @@ import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/atta
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
 import {SeerBadge} from 'sentry/views/issueDetails/streamline/header/seerBadge';
+import {SeerStateTag} from 'sentry/views/issueDetails/streamline/header/seerStateTag';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -126,6 +127,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
             {isAIDetectedIssue && <FeatureBadge type="beta" />}
+            <SeerStateTag group={group} project={project} />
           </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
@@ -396,7 +398,7 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, max-content) min-content;
+  grid-template-columns: minmax(0, max-content) min-content min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
 `;
