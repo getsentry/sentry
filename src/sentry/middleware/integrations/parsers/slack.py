@@ -42,10 +42,9 @@ from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.middleware.integrations.tasks import convert_to_async_slack_response
-from sentry.seer.entrypoints.slack.event_tasks import (
-    handle_seer_assistant_thread_started_event,
-    handle_seer_mention_event,
+from sentry.middleware.integrations.tasks import (
+    convert_to_async_slack_response,
+    route_slack_seer_event,
 )
 from sentry.types.cell import Cell
 from sentry.utils import json
@@ -299,12 +298,10 @@ class SlackRequestParser(BaseRequestParser):
 
     def _try_ack_seer_event(self) -> HttpResponseBase | None:
         """
-        Slack gives us 3s to ack event webhooks. For Seer agent events we don't have the budget
-        to do org resolution + ``setStatus`` / ``setSuggestedPrompts`` synchronously, so 200 here
-        and hand the rest off to a control-silo task.
-
-        Returns the 200 response when the event was handed off, or ``None`` if the caller should
-        continue with normal cell forwarding.
+        Slack gives us 3s to ack event webhooks. For Seer agent events org resolution
+        may hit Slack (e.g. scanning thread history for a link), so 200 here and hand
+        the resolve-and-forward step to a control-silo task. The routing task posts
+        the original payload to the resolved cell, which runs the webhook as usual.
         """
         if self.view_class != SlackEventEndpoint:
             return None
@@ -317,46 +314,17 @@ class SlackRequestParser(BaseRequestParser):
         if not slack_request.is_seer_agent_request:
             return None
 
-        integration_id = slack_request.integration.id
-        channel_id = slack_request.channel_id
-        slack_user_id = slack_request.user_id
-        thread_ts = slack_request.thread_ts or None
-
-        if slack_request.type == "assistant_thread_started":
-            if not channel_id or not thread_ts or not slack_user_id:
-                return None
-            handle_seer_assistant_thread_started_event.apply_async(
-                kwargs={
-                    "integration_id": integration_id,
-                    "channel_id": channel_id,
-                    "slack_user_id": slack_user_id,
-                    "thread_ts": thread_ts,
-                }
-            )
-        else:
-            event = slack_request.data.get("event", {})
-            text = event.get("text", "") or ""
-            ts = event.get("ts") or event.get("message_ts") or ""
-            authorizations = slack_request.data.get("authorizations") or []
-            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
-            if not channel_id or not ts or not slack_user_id:
-                return None
-            handle_seer_mention_event.apply_async(
-                kwargs={
-                    "integration_id": integration_id,
-                    "channel_id": channel_id,
-                    "slack_user_id": slack_user_id,
-                    "text": text,
-                    "ts": ts,
-                    "thread_ts": thread_ts,
-                    "bot_user_id": bot_user_id,
-                }
-            )
-
+        route_slack_seer_event.apply_async(
+            kwargs={
+                "payload": create_async_request_payload(self.request),
+                "integration_id": slack_request.integration.id,
+                "slack_user_id": slack_request.user_id,
+            }
+        )
         logger.info(
             "slack.control.seer_event.acked",
             extra={
-                "integration_id": integration_id,
+                "integration_id": slack_request.integration.id,
                 "event_type": slack_request.type,
             },
         )

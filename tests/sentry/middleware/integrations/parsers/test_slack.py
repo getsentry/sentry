@@ -371,30 +371,8 @@ class SlackRequestParserTest(TestCase):
         assert self.organization.id in organization_ids
         assert other_organization.id in organization_ids
 
-    def _make_parser_with_assistant_thread_started(self):
-        data = {
-            "type": "event_callback",
-            "team_id": self.integration.external_id,
-            "api_app_id": "AXXXXXXXX1",
-            "event_id": "E1",
-            "event": {
-                "type": "assistant_thread_started",
-                "assistant_thread": {
-                    "channel_id": "C1234567890",
-                    "user_id": "U1234567890",
-                    "thread_ts": "1234567890.123456",
-                },
-            },
-        }
-        request = self.factory.post(
-            reverse("sentry-integration-slack-event"),
-            data=orjson.dumps(data),
-            content_type="application/json",
-        )
-        return SlackRequestParser(request, self.get_response)
-
-    @patch("sentry.middleware.integrations.parsers.slack.handle_seer_mention_event.apply_async")
-    def test_seer_event_acks_200_and_enqueues_mention_task(self, mock_apply):
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_acks_200_and_enqueues_routing_task(self, mock_apply):
         parser = self._make_parser_with_seer_event(event_type="app_mention")
         response = parser.get_response()
 
@@ -403,27 +381,11 @@ class SlackRequestParserTest(TestCase):
         mock_apply.assert_called_once()
         kwargs = mock_apply.call_args.kwargs["kwargs"]
         assert kwargs["integration_id"] == self.integration.id
-        assert kwargs["channel_id"] == "C1234567890"
         assert kwargs["slack_user_id"] == "U1234567890"
-        assert kwargs["text"] == "hello"
+        assert kwargs["payload"]["method"] == "POST"
+        assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
 
-    @patch(
-        "sentry.middleware.integrations.parsers.slack.handle_seer_assistant_thread_started_event.apply_async"
-    )
-    def test_assistant_thread_started_acks_200_and_enqueues_task(self, mock_apply):
-        parser = self._make_parser_with_assistant_thread_started()
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_200_OK
-        mock_apply.assert_called_once()
-        kwargs = mock_apply.call_args.kwargs["kwargs"]
-        assert kwargs["integration_id"] == self.integration.id
-        assert kwargs["channel_id"] == "C1234567890"
-        assert kwargs["slack_user_id"] == "U1234567890"
-        assert kwargs["thread_ts"] == "1234567890.123456"
-
-    @patch("sentry.middleware.integrations.parsers.slack.handle_seer_mention_event.apply_async")
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
     def test_non_seer_event_not_acked_early(self, mock_apply):
         parser = self._make_parser_with_seer_event(event_type="link_shared")
         seer_ack = parser._try_ack_seer_event()

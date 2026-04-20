@@ -8,13 +8,15 @@ from responses import matchers
 from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
+from sentry.integrations.slack.requests.event import SeerResolutionResult
 from sentry.middleware.integrations.tasks import (
     convert_to_async_discord_response,
     convert_to_async_slack_response,
+    route_slack_seer_event,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
 
@@ -255,3 +257,78 @@ class AsyncDiscordResponseTest(TestCase):
             response_url=self.response_url,
         )
         assert discord_response.call_count == 0
+
+
+@control_silo_test(cells=create_test_cells("us"))
+class RouteSlackSeerEventTest(TestCase):
+    factory = RequestFactory()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="T1", provider="slack"
+        )
+        slack_body = {
+            "type": "event_callback",
+            "team_id": "T1",
+            "event": {"type": "app_mention", "user": "U_SLACK", "channel": "C1", "ts": "1.0"},
+        }
+        event_request = self.factory.post(
+            reverse("sentry-integration-slack-event"),
+            data=json.dumps(slack_body),
+            content_type="application/json",
+        )
+        self.payload = create_async_request_payload(event_request)
+
+    @responses.activate
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    def test_forwards_to_resolved_cell(self, mock_resolve: MagicMock) -> None:
+        mock_resolve.return_value = SeerResolutionResult(
+            organization_id=self.organization.id, error_reason=None
+        )
+        cell_response = responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/slack/event/",
+            status=200,
+            body=b"",
+        )
+
+        route_slack_seer_event(
+            payload=self.payload,
+            integration_id=self.integration.id,
+            slack_user_id="U_SLACK",
+        )
+
+        assert cell_response.call_count == 1
+
+    @responses.activate
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    def test_falls_back_to_first_cell_when_unresolved(self, mock_resolve: MagicMock) -> None:
+        from sentry.integrations.messaging.metrics import SeerSlackHaltReason
+
+        mock_resolve.return_value = SeerResolutionResult(
+            organization_id=None, error_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
+        )
+        cell_response = responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/slack/event/",
+            status=200,
+            body=b"",
+        )
+
+        route_slack_seer_event(
+            payload=self.payload,
+            integration_id=self.integration.id,
+            slack_user_id="U_SLACK",
+        )
+
+        assert cell_response.call_count == 1
+
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    def test_missing_integration_is_noop(self, mock_resolve: MagicMock) -> None:
+        route_slack_seer_event(
+            payload=self.payload,
+            integration_id=99999,
+            slack_user_id="U_SLACK",
+        )
+        mock_resolve.assert_not_called()

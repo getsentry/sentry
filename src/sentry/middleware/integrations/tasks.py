@@ -11,12 +11,15 @@ from requests import Response
 from rest_framework import status
 from taskbroker_client.retry import Retry
 
+from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.requests.event import resolve_seer_organization_for_slack_user
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.types.cell import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name, get_cell_for_organization
 
 logger = logging.getLogger(__name__)
 
@@ -163,3 +166,65 @@ def convert_to_async_discord_response(
 
     if response is not None and response.status_code == status.HTTP_404_NOT_FOUND:
         raise Exception("Discord hook is not ready.")
+
+
+@instrumented_task(
+    name="sentry.middleware.integrations.tasks.route_slack_seer_event",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=2, delay=5),
+    silo_mode=SiloMode.CONTROL,
+)
+def route_slack_seer_event(
+    *,
+    payload: dict[str, Any],
+    integration_id: int,
+    slack_user_id: str,
+) -> None:
+    """
+    Resolve the target org for a Seer Slack event and forward the original webhook
+    payload to that org's cell. The parser already 200'd Slack, so this runs with no
+    deadline pressure and the cell handles all business logic as usual.
+
+    When resolution fails (no linked identity, no eligible org), forward to the first
+    cell among attached orgs so the webhook can still render the identity-link prompt
+    or no-op — matching pre-ack behavior.
+    """
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
+    if integration is None:
+        return
+
+    result = resolve_seer_organization_for_slack_user(
+        integration=integration, slack_user_id=slack_user_id
+    )
+    if result.organization_id is not None:
+        target_cell: Cell = get_cell_for_organization(str(result.organization_id))
+    else:
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
+        cell_names = sorted({get_cell_for_organization(str(oi.organization_id)).name for oi in ois})
+        if not cell_names:
+            return
+        target_cell = get_cell_by_name(cell_names[0])
+
+    client = CellSiloClient(cell=target_cell)
+    try:
+        client.request(
+            method=payload["method"],
+            path=payload["path"],
+            headers=payload["headers"],
+            data=payload["body"].encode("utf-8"),
+            json=False,
+            raw_response=True,
+        )
+    except Exception:
+        logger.exception(
+            "slack.route_seer_event.forward_failed",
+            extra={
+                "integration_id": integration_id,
+                "cell": target_cell.name,
+                "organization_id": result.organization_id,
+            },
+        )
