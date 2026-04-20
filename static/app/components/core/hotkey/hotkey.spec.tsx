@@ -25,7 +25,7 @@ describe('Hotkey', () => {
       render(<Hotkey value="ctrl+alt+delete" />);
       expect(screen.getByLabelText('\u2303')).toBeInTheDocument();
       expect(screen.getByLabelText('\u2325')).toBeInTheDocument();
-      expect(screen.getByText('DEL')).toBeInTheDocument();
+      expect(screen.getByText('Del')).toBeInTheDocument();
     });
 
     it('renders option as ⌥ icon', () => {
@@ -40,22 +40,22 @@ describe('Hotkey', () => {
       isMac.mockReturnValue(false);
     });
 
-    it('renders command as CTRL text', () => {
+    it('renders command as Ctrl text', () => {
       render(<Hotkey value="command+k" />);
-      expect(screen.getByText('CTRL')).toBeInTheDocument();
+      expect(screen.getByText('Ctrl')).toBeInTheDocument();
       expect(screen.getByText('K')).toBeInTheDocument();
     });
 
-    it('renders ctrl as CTRL text', () => {
+    it('renders ctrl as Ctrl text', () => {
       render(<Hotkey value="ctrl+alt+delete" />);
-      expect(screen.getByText('CTRL')).toBeInTheDocument();
-      expect(screen.getByText('ALT')).toBeInTheDocument();
-      expect(screen.getByText('DEL')).toBeInTheDocument();
+      expect(screen.getByText('Ctrl')).toBeInTheDocument();
+      expect(screen.getByText('Alt')).toBeInTheDocument();
+      expect(screen.getByText('Del')).toBeInTheDocument();
     });
 
-    it('renders option as ALT text', () => {
+    it('renders option as Alt text', () => {
       render(<Hotkey value="option+x" />);
-      expect(screen.getByText('ALT')).toBeInTheDocument();
+      expect(screen.getByText('Alt')).toBeInTheDocument();
       expect(screen.getByText('X')).toBeInTheDocument();
     });
 

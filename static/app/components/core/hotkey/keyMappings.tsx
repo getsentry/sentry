@@ -9,6 +9,7 @@ import {
   IconShift,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 // All non-canonical key names map to their canonical form here
 const aliases: Record<string, string> = {
@@ -103,9 +104,9 @@ const macGlyphs: Record<string, KeyGlyph> = {
 
 // other platforms: same modifiers with text labels
 const otherGlyphs: Record<string, KeyGlyph> = {
-  command: {label: 'ctrl'},
-  control: {label: 'ctrl'},
-  alt: {label: 'alt'},
+  command: {label: 'Ctrl'},
+  control: {label: 'Ctrl'},
+  alt: {label: 'Alt'},
 };
 
 // same glyph on all platforms
@@ -136,7 +137,7 @@ export function resolveKeyGlyph(keyName: string, isMac: boolean): KeyGlyph {
     return glyph;
   }
 
-  // Single-char keys (e.g. 'k', '/') are expected to fall through — they just get uppercased.
+  // Single-char keys (e.g. 'k', '/') are expected to fall through — they just get title-cased.
   // Multi-char keys without a mapping are genuinely missing and should be flagged.
   if (key.length > 1) {
     if (process.env.NODE_ENV !== 'production') {
@@ -145,5 +146,5 @@ export function resolveKeyGlyph(keyName: string, isMac: boolean): KeyGlyph {
     Sentry.logger.warn('Missing key glyph mapping', {keyName});
   }
 
-  return {label: keyName.toUpperCase()};
+  return {label: toTitleCase(keyName)};
 }
