@@ -342,7 +342,10 @@ def detect_llm_issues_for_org(org_id: int) -> None:
     if not project_id:
         return
 
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        return
     perf_settings = project.get_option("sentry:performance_issue_settings", default={})
     if not perf_settings.get("ai_issue_detection_enabled", True):
         return

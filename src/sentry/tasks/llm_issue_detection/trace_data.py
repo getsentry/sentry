@@ -91,7 +91,10 @@ def get_next_project_id(
     client.rpush(cache_key, *playlist)
     client.expire(cache_key, PROJECT_PLAYLIST_CACHE_TTL)
 
-    return int(client.lpop(cache_key))
+    next_id = client.lpop(cache_key)
+    if next_id is not None:
+        return int(next_id)
+    return random.choice(project_ids) if project_ids else None
 
 
 def _build_project_playlist(
@@ -130,10 +133,11 @@ def _build_project_playlist(
         sampling_mode="NORMAL",
     )
 
+    valid_ids = set(project_ids)
     weights = {
         row["project_id"]: row["count()"]
         for row in result.get("data", [])
-        if row.get("project_id") in set(project_ids)
+        if row.get("project_id") in valid_ids
     }
 
     if not weights:
