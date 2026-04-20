@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {assignTempId} from './layoutUtils';
@@ -90,11 +91,16 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
   // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
+    const prebuiltConfig = PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId];
+    const globalFilter = selectedDashboard.filters?.globalFilter?.length
+      ? selectedDashboard.filters.globalFilter
+      : prebuiltConfig?.filters?.globalFilter;
+
     selectedDashboard = {
       ...selectedDashboard,
       ...prebuiltDashboard,
       id: selectedDashboard.id,
-      filters: selectedDashboard.filters,
+      filters: {...selectedDashboard.filters, globalFilter},
       projects: selectedDashboard.projects,
       environment: selectedDashboard.environment,
       period: selectedDashboard.period,
