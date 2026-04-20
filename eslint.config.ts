@@ -14,7 +14,7 @@
  *
  * This configuration uses two complementary approaches for linting imports:
  *
- * 1. `@typescript-eslint/no-restricted-imports` - Applied to 3rd party dependencies
+ * 1. `no-restricted-imports` - Applied to 3rd party dependencies
  *    - Controls which external packages can be imported
  *    - Enforces consistent usage of third-party libraries across the codebase
  *    - Examples: restricting @testing-library/react, lodash, marked, etc.
@@ -283,18 +283,16 @@ export default typescript.config([
    * 1. First you'd setup a configuration object for that plugin:
    *    {
    *      name: 'my-plugin/recommended',
-   *      ...myPlugin.configs.recommended,
+   *      extends: [myPlugin.configs.recommended],
    *    },
    *
    * 2. Second you'd override the rule you want to deal with, maybe making it a
    *    warning to start:
    *    {
    *      name: 'my-plugin/recommended',
-   *      ...myPlugin.configs.recommended,
+   *      extends: [myPlugin.configs.recommended],
    *      rules: {
    *        ['a-rule-outside-the-recommended-list']: 'error',
-   *
-   *        ...myPlugin.configs.recommended.rules,
    *        ['a-recommended-rule']: 'warn',
    *      }
    *    },
@@ -331,6 +329,20 @@ export default typescript.config([
       'no-octal-escape': 'error',
       'no-param-reassign': 'off', // TODO(ryan953): Fix violations and enable this rule
       'no-proto': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
       'no-restricted-syntax': [
         'error',
         {
@@ -402,6 +414,9 @@ export default typescript.config([
       'wrap-iife': ['error', 'any'],
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
+
+      // TODO: Evaluate which rules we could practically fix violations from & enable
+      'no-prototype-builtins': 'off',
     },
   },
   {
@@ -677,20 +692,6 @@ export default typescript.config([
       'prefer-spread': 'off',
       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/no-loop-func': 'error',
-      '@typescript-eslint/no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: restrictedImportPaths,
-        },
-      ],
       '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
       '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
       '@typescript-eslint/no-unused-vars':
@@ -780,6 +781,62 @@ export default typescript.config([
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
+
+      // TODO: Evaluate which rules we could practically fix violations from & enable
+      'unicorn/consistent-date-clone': 'off',
+      'unicorn/consistent-existence-index-check': 'off',
+      'unicorn/escape-case': 'off',
+      'unicorn/import-style': 'off',
+      'unicorn/no-array-for-each': 'off',
+      'unicorn/no-array-method-this-argument': 'off',
+      'unicorn/no-array-reverse': 'off',
+      'unicorn/no-array-sort': 'off',
+      'unicorn/no-document-cookie': 'off',
+      'unicorn/no-hex-escape': 'off',
+      'unicorn/no-lonely-if': 'off',
+      'unicorn/no-magic-array-flat-depth': 'off',
+      'unicorn/no-named-default': 'off',
+      'unicorn/no-object-as-default-parameter': 'off',
+      'unicorn/no-process-exit': 'off',
+      'unicorn/no-thenable': 'off',
+      'unicorn/no-typeof-undefined': 'off',
+      'unicorn/no-unnecessary-array-flat-depth': 'off',
+      'unicorn/no-unnecessary-array-splice-count': 'off',
+      'unicorn/no-unnecessary-slice-end': 'off',
+      'unicorn/no-unreadable-array-destructuring': 'off',
+      'unicorn/no-useless-collection-argument': 'off',
+      'unicorn/no-useless-promise-resolve-reject': 'off',
+      'unicorn/no-useless-spread': 'off',
+      'unicorn/no-useless-switch-case': 'off',
+      'unicorn/numeric-separators-style': 'off',
+      'unicorn/prefer-add-event-listener': 'off',
+      'unicorn/prefer-at': 'off',
+      'unicorn/prefer-bigint-literals': 'off',
+      'unicorn/prefer-class-fields': 'off',
+      'unicorn/prefer-code-point': 'off',
+      'unicorn/prefer-dom-node-append': 'off',
+      'unicorn/prefer-dom-node-dataset': 'off',
+      'unicorn/prefer-dom-node-remove': 'off',
+      'unicorn/prefer-dom-node-text-content': 'off',
+      'unicorn/prefer-global-this': 'off',
+      'unicorn/prefer-math-min-max': 'off',
+      'unicorn/prefer-module': 'off',
+      'unicorn/prefer-number-properties': 'off',
+      'unicorn/prefer-optional-catch-binding': 'off',
+      'unicorn/prefer-set-has': 'off',
+      'unicorn/prefer-single-call': 'off',
+      'unicorn/prefer-string-raw': 'off',
+      'unicorn/prefer-string-replace-all': 'off',
+      'unicorn/prefer-string-slice': 'off',
+      'unicorn/prefer-string-starts-ends-with': 'off',
+      'unicorn/prefer-structured-clone': 'off',
+      'unicorn/prefer-switch': 'off',
+      'unicorn/prefer-ternary': 'off',
+      'unicorn/prefer-top-level-await': 'off',
+      'unicorn/prefer-type-error': 'off',
+      'unicorn/require-array-join-separator': 'off',
+      'unicorn/require-number-to-fixed-digits-argument': 'off',
+      'unicorn/text-encoding-identifier-case': 'off',
     },
   },
   {
@@ -913,7 +970,7 @@ export default typescript.config([
     name: 'files/insights-chart-widgets',
     files: ['static/app/views/insights/common/components/widgets/*.tsx'],
     rules: {
-      '@typescript-eslint/no-restricted-imports': [
+      'no-restricted-imports': [
         'error',
         {
           // Allow these imports only in the above widgets directory in `files`
@@ -933,7 +990,7 @@ export default typescript.config([
     name: 'files/components-core',
     files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
-      '@typescript-eslint/no-restricted-imports': [
+      'no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -954,7 +1011,7 @@ export default typescript.config([
     name: 'files/figma-code-connect',
     files: ['**/*.figma.{tsx,jsx}'],
     rules: {
-      '@typescript-eslint/no-restricted-imports': [
+      'no-restricted-imports': [
         'error',
         {
           // Allow @figma/code-connect only in *.figma.tsx files
@@ -968,7 +1025,7 @@ export default typescript.config([
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in tests
-      '@typescript-eslint/no-restricted-imports': [
+      'no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -1034,7 +1091,7 @@ export default typescript.config([
           allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
         },
       ],
-      '@typescript-eslint/no-restricted-imports': [
+      'no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -1059,7 +1116,7 @@ export default typescript.config([
     files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
       // Allow imports from gsApp into getsentry-test fixtures
-      '@typescript-eslint/no-restricted-imports': 'off',
+      'no-restricted-imports': 'off',
     },
   },
   // MDX Configuration
