@@ -182,6 +182,20 @@ wheels = [
 ]
 
 [[package]]
+name = "codeowners-coverage"
+version = "0.3.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "click", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pathspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/codeowners_coverage-0.3.0-py3-none-any.whl", hash = "sha256:d30abe67e36cdcee67b75f6364b04f61b382816e5040c84c3f85b0a1e96d2508" },
+]
+
+[[package]]
 name = "confluent-kafka"
 version = "2.13.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2176,6 +2190,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "codeowners-coverage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "covdefaults", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "devservices", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "django-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2344,6 +2359,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "devservices", specifier = ">=1.2.4" },
     { name = "django-stubs", specifier = ">=5.2.9" },

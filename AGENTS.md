@@ -34,7 +34,7 @@ This section contains critical command execution instructions that apply across 
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: When running Python commands (pytest, mypy, etc.), you MUST use the virtual environment.
+**CRITICAL**: When running Python commands (pytest, mypy, prek, etc.), you MUST use the virtual environment.
 
 #### For AI Agents (automated commands)
 
@@ -85,7 +85,7 @@ We use prek with `.pre-commit-config.yaml`. Before considering a task complete, 
 cd /path/to/sentry && .venv/bin/prek run -q
 ```
 
-prek detects changed files automatically. If a hook fails, fix the issues and re-run until it passes.
+prek detects staged files automatically. If a hook fails, fix the issues, stage changes, and re-run until it passes.
 
 #### Testing
 
