@@ -1,15 +1,11 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import {createContext, useCallback, useContext, useState, type ReactNode} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+
+const USE_DRAWER = true;
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
@@ -30,57 +26,70 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  // Initialize the global explorer panel state. Includes hotkeys.
+  /* PANEL VERSION */
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-
-  const openSeerExplorer = useCallback(() => {
-    setIsOpen(true);
-  }, []);
-
-  const closeSeerExplorer = useCallback(() => {
-    setIsOpen(false);
-  }, []);
-
-  const toggleSeerExplorer = useCallback(() => {
-    setIsOpen(prev => !prev);
-  }, []);
-
-  const contextValue = useMemo(
-    () => ({
-      isOpen,
-      isMinimized,
-      openSeerExplorer,
-      closeSeerExplorer,
-      setIsMinimized,
-      toggleSeerExplorer,
-    }),
-    [isOpen, isMinimized, openSeerExplorer, closeSeerExplorer, toggleSeerExplorer]
-  );
-
-  // Hot keys for toggling the explorer panel.
   const {visible: isModalOpen} = useGlobalModal();
 
+  // Stable callbacks
+  const openSeerExplorerPanel = useCallback(() => setIsOpen(true), []);
+  const closeSeerExplorerPanel = useCallback(() => setIsOpen(false), []);
+  const toggleSeerExplorerPanel = useCallback(() => setIsOpen(prev => !prev), []);
+
+  const panelContextValue = {
+    isOpen,
+    isMinimized,
+    setIsMinimized,
+    openSeerExplorer: openSeerExplorerPanel,
+    closeSeerExplorer: closeSeerExplorerPanel,
+    toggleSeerExplorer: toggleSeerExplorerPanel,
+  };
+
+  /* DRAWER VERSION */
+  const {openSeerExplorerDrawer, closeSeerExplorerDrawer, toggleSeerExplorerDrawer} =
+    useSeerExplorerDrawer();
+
+  const drawerContextValue = {
+    isOpen: false, // do not use
+    isMinimized: false, // do not use
+    setIsMinimized: () => {}, // do not use
+    openSeerExplorer: openSeerExplorerDrawer,
+    closeSeerExplorer: closeSeerExplorerDrawer,
+    toggleSeerExplorer: toggleSeerExplorerDrawer,
+  };
+
   useHotkeys(
-    isModalOpen
-      ? []
-      : [
+    USE_DRAWER
+      ? [
           {
             match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
             callback: () => {
-              if (isOpen && isMinimized) {
-                setIsMinimized(false);
-              } else {
-                toggleSeerExplorer();
-              }
+              toggleSeerExplorerDrawer();
             },
             includeInputs: true,
           },
         ]
+      : isModalOpen
+        ? []
+        : [
+            {
+              match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
+              callback: () => {
+                if (isOpen) {
+                  setIsMinimized(prev => !prev);
+                } else {
+                  setIsOpen(true);
+                }
+              },
+              includeInputs: true,
+            },
+          ]
   );
 
   return (
-    <SeerExplorerContext.Provider value={contextValue}>
+    <SeerExplorerContext.Provider
+      value={USE_DRAWER ? drawerContextValue : panelContextValue}
+    >
       {children}
     </SeerExplorerContext.Provider>
   );
