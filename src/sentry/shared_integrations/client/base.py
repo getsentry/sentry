@@ -178,6 +178,7 @@ class BaseApiClient:
         stream: bool | None = None,
         raw_response: Literal[True] = ...,
         endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Response: ...
 
     @overload
@@ -198,6 +199,7 @@ class BaseApiClient:
         stream: bool | None = None,
         raw_response: bool = ...,
         endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Any: ...
 
     def _request(
@@ -217,6 +219,7 @@ class BaseApiClient:
         stream: bool | None = None,
         raw_response: bool = False,
         endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
@@ -257,8 +260,10 @@ class BaseApiClient:
         integration_id = getattr(self, "integration_id", None)
         if integration_id is not None:
             extra["integration_id"] = str(integration_id)
-        if endpoint is not None:
-            extra["endpoint"] = endpoint
+        if api_request_type is not None:
+            extra["api_request_type"] = api_request_type
+        elif endpoint is not None:
+            extra["api_request_type"] = endpoint
 
         try:
             with self.build_session() as session:
@@ -360,7 +365,7 @@ class BaseApiClient:
 
         key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
-        api_request_type = kwargs.get("api_request_type")
+        api_request_type = kwargs.get("api_request_type") or kwargs.get("endpoint")
         api_request_type_tag = (
             api_request_type.value
             if hasattr(api_request_type, "value")

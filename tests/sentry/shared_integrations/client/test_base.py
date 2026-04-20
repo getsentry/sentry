@@ -155,7 +155,7 @@ class BaseApiClientTest(TestCase):
         with patch.object(self.api_client, "check_cache", return_value={"cached": True}):
             self.api_client.get_cached(
                 "https://example.com/repos/example/repo/commits",
-                endpoint="get_commits",
+                api_request_type="get_commits",
             )
 
         mock_metrics_incr.assert_called_once_with(
