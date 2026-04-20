@@ -4,9 +4,9 @@ import {mergeRefs} from '@react-aria/utils';
 import type {Transition} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import type {DrawerOptions} from '@sentry/scraps/drawer';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';

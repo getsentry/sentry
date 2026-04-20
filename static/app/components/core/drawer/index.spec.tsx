@@ -9,9 +9,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
 
-import type {DrawerConfig} from 'sentry/components/globalDrawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import type {DrawerConfig} from '@sentry/scraps/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -223,7 +223,7 @@ describe('GlobalDrawer', () => {
     expect(button).not.toBeInTheDocument();
   });
 
-  it('ignores some close events press when option is set', async () => {
+  it('passive mode does not close on outside click', async () => {
     const closeSpy = jest.fn();
 
     render(
@@ -232,15 +232,12 @@ describe('GlobalDrawer', () => {
           renderer: () => (
             <Fragment>
               <DrawerHeader />
-              <DrawerBody data-test-id="drawer-test-content">
-                ignore close events
-              </DrawerBody>
+              <DrawerBody data-test-id="drawer-test-content">passive mode</DrawerBody>
             </Fragment>
           ),
           options: {
             onClose: closeSpy,
-            closeOnEscapeKeypress: false,
-            closeOnOutsideClick: false,
+            mode: 'passive',
             ariaLabel,
           },
         }}
@@ -250,11 +247,6 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     const content = screen.getByTestId('drawer-test-content');
-
-    await userEvent.keyboard('{Escape}');
-
-    expect(closeSpy).not.toHaveBeenCalled();
-    expect(content).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-outside'));
 

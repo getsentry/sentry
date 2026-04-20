@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('GlobalDrawer', story => {
@@ -20,9 +20,10 @@ export default Storybook.story('GlobalDrawer', story => {
         the drawer are unstyled.
       </p>
       <p>
-        By default the drawer can be closed with an "Escape" key press, with an outside
-        click, or on URL location change. This behavior can be changed by passing in
-        options to <code>openDrawer</code>. More on this below.
+        By default (<code>mode: 'blocking'</code>), the drawer can be closed with an
+        "Escape" key press, with an outside click, or on URL location change. Use{' '}
+        <code>mode: 'passive'</code> to opt out of scroll locking, outside-click close,
+        and location-change close — useful for drawers that coexist with page interaction.
       </p>
     </Fragment>
   ));
@@ -39,8 +40,8 @@ export default Storybook.story('GlobalDrawer', story => {
     return (
       <Fragment>
         <CodeBlock language="jsx">
-          {`import { useDrawer } from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+          {`import { useDrawer } from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 function MyPage() {
   const {openDrawer, isDrawerOpen} = useDrawer();
@@ -120,7 +121,7 @@ function MyDrawer({title}: {title: string}) {
               () => <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>,
               {
                 ariaLabel: 'test drawer',
-                closeOnOutsideClick: false,
+                mode: 'passive',
               }
             )
           }
@@ -130,43 +131,46 @@ function MyDrawer({title}: {title: string}) {
         <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>
 
         <p>
-          Another is clicking outside the drawer . You can control this behavior with the{' '}
-          <code>closeOnOutsideClick</code> and <code>shouldCloseOnInteractOutside</code>{' '}
-          props. <code>closeOnOutsideClick</code> is a boolean. If <code>true</code>,
-          clicking anywhere outside the drawer will close it.{' '}
-          <code>shouldCloseOnInteractOutside</code> is a function that accepts the element
-          that was interacted with. Returning <code>false</code> will prevent the drawer
-          close.
+          Another is clicking outside the drawer. By default (
+          <code>mode: 'blocking'</code>
+          ), clicking outside the drawer closes it. Use <code>mode: 'passive'</code> to
+          disable this behavior. For finer control in blocking mode, use{' '}
+          <code>shouldCloseOnInteractOutside</code> — a function that receives the
+          interacted element and returns <code>false</code> to prevent closing.
         </p>
 
         <CodeBlock language="jsx">
-          {`<Button onClick={() => openDrawer(() => null, {
-    ariaLabel: 'My Drawer',
-    closeOnOutsideClick: true, // or false
-    shouldCloseOnInteractOutside: (element) => element.tagName !== 'A';
-})}>
-  Open Drawer
-</Button>`}
+          {`// Disable click-outside close and scroll locking:
+openDrawer(() => null, {
+  ariaLabel: 'My Drawer',
+  mode: 'passive',
+})
+
+// Fine-grained control in blocking mode (don't close when clicking links):
+openDrawer(() => null, {
+  ariaLabel: 'My Drawer',
+  shouldCloseOnInteractOutside: (element) => element.tagName !== 'A',
+})`}
         </CodeBlock>
 
         <LeftButton
           onClick={() =>
             openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
               ariaLabel: 'test drawer',
-              closeOnOutsideClick: false,
+              mode: 'passive',
             })
           }
         >
-          Open Drawer. Does not close on click outside.
+          Open Drawer (passive — does not close on click outside)
         </LeftButton>
 
         <p>
-          Another is URL change. By default, the drawer will automatically close if the
-          URL changes. This applies to the pathname, query, and hash. You can control this
-          with the <code>shouldCloseOnLocationChange</code> prop.{' '}
-          <code>shouldCloseOnLocationChange</code> is a function that accepts the new{' '}
-          <code>Location</code> object. Based on its contents you can decide whether the
-          drawer should close or stay open.
+          Another is URL change. By default (<code>mode: 'blocking'</code>), the drawer
+          automatically closes if the URL changes. In <code>mode: 'passive'</code>, the
+          drawer stays open on URL changes. You can override this default in either mode
+          with the <code>shouldCloseOnLocationChange</code> prop — a function that accepts
+          the new <code>Location</code> object and returns whether the drawer should
+          close.
         </p>
 
         <LeftButton
@@ -181,20 +185,8 @@ function MyDrawer({title}: {title: string}) {
         </LeftButton>
 
         <p>
-          Finally, "Escape" key press. You can control this with the{' '}
-          <code>closeOnEscapeKeypress</code> prop.
+          Finally, "Escape" key press. The drawer always closes on Escape in both modes.
         </p>
-
-        <LeftButton
-          onClick={() =>
-            openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
-              ariaLabel: 'test drawer',
-              closeOnEscapeKeypress: false,
-            })
-          }
-        >
-          Open Drawer. Does not close on "Escape".
-        </LeftButton>
       </Fragment>
     );
   });
@@ -210,7 +202,7 @@ function MyDrawer({title}: {title: string}) {
 
       <CodeBlock language="jsx">
         {`import {useEffect} from 'react';
-import { useDrawer } from 'sentry/components/globalDrawer';
+import { useDrawer } from '@sentry/scraps/drawer';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function OverviewPage() {
@@ -262,7 +254,7 @@ function ModalContent() {
         </p>
 
         <CodeBlock language="jsx">
-          {`import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+          {`import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 <Button onClick={() => openDrawer(
   () => (

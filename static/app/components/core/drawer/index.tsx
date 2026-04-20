@@ -15,25 +15,18 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+
+import {DrawerComponents} from './components';
 
 export interface DrawerOptions {
   /**
    * Accessbility label for the drawer
    */
   ariaLabel: string;
-  /**
-   * If true (default), closes the drawer when an escape key is pressed
-   */
-  closeOnEscapeKeypress?: boolean;
-  /**
-   * If true (default), closes the drawer when anywhere else is clicked
-   */
-  closeOnOutsideClick?: boolean;
   /**
    * Custom CSS for the drawer
    */
@@ -51,6 +44,12 @@ export interface DrawerOptions {
    */
   headerContent?: React.ReactNode;
   /**
+   * Controls scroll locking, click-outside close, and location-change close behavior.
+   * - 'blocking' (default): scroll locked, click outside closes, location change closes
+   * - 'passive': scroll not locked, click outside does NOT close, location change does NOT close
+   */
+  mode?: 'blocking' | 'passive';
+  /**
    * Callback for when the drawer closes
    */
   onClose?: () => void;
@@ -65,17 +64,14 @@ export interface DrawerOptions {
   resizable?: boolean;
   /**
    * Function to determine whether the drawer should close when interacting with
-   * other elements.
+   * other elements. Only applies in 'blocking' mode.
    */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   /**
-   * If true (default), closes the drawer when the location changes
+   * Callback to determine whether the drawer should close when the location changes.
+   * Defaults to closing in 'blocking' mode, staying open in 'passive' mode.
    */
   shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
-  /**
-   * If true (default), locks the page scroll when the drawer is open
-   */
-  shouldLockScroll?: boolean;
   //
   // Custom framer motion transition for the drawer
   //
@@ -127,7 +123,7 @@ export function GlobalDrawer({children}: any) {
   const scrollLock = useScrollLock(document.body);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
     (renderer, options) => {
-      if (options.shouldLockScroll ?? true) {
+      if (options.mode !== 'passive') {
         scrollLock.acquire();
       }
       overwriteDrawerConfig({renderer, options});
@@ -155,11 +151,11 @@ export function GlobalDrawer({children}: any) {
       if (
         // No need to close drawer if it is not open
         currentDrawerConfigRef.current !== undefined &&
-        // Otherwise, when the location changes, check callback or default to closing the drawer if it doesn't exist
+        // Otherwise, when the location changes, check callback or default based on mode
         (currentDrawerConfigRef.current.options?.shouldCloseOnLocationChange?.(
           location
         ) ??
-          true)
+          currentDrawerConfigRef.current.options?.mode !== 'passive')
       ) {
         // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
         closeDrawer();
@@ -170,10 +166,10 @@ export function GlobalDrawer({children}: any) {
     [closeDrawer, location]
   );
 
-  // Close the drawer when clicking outside the panel and options allow it.
+  // Close the drawer when clicking outside the panel (blocking mode only).
   const panelRef = useRef<HTMLDivElement>(null);
   const handleClickOutside = useCallback(() => {
-    if (currentDrawerConfig?.options?.closeOnOutsideClick ?? true) {
+    if (currentDrawerConfig?.options?.mode !== 'passive') {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
@@ -189,14 +185,12 @@ export function GlobalDrawer({children}: any) {
     handleClickOutside();
   });
 
-  // Close the drawer when escape is pressed and options allow it.
+  // Close the drawer when escape is pressed.
   useHotkeys([
     {
       match: 'Escape',
       callback: () => {
-        if (currentDrawerConfig?.options?.closeOnEscapeKeypress ?? true) {
-          handleClose();
-        }
+        handleClose();
       },
     },
   ]);
@@ -243,11 +237,10 @@ export function GlobalDrawer({children}: any) {
  * const {openDrawer, closeDrawer} = useDrawer()
  * ```
  *
- * The `openDrawer` function accepts a renderer, and options. By default, the drawer will close
- * on outside clicks, and 'Escape' key presses. For example:
- * ```
- * openDrawer(() => <DrawerBody><MyComponent /></DrawerBody>, {closeOnOutsideClick: false})
- * ```
+ * The `openDrawer` function accepts a renderer, and options. By default (`mode: 'blocking'`),
+ * the drawer locks scroll, closes on outside clicks, closes on location changes, and closes
+ * on 'Escape'. Use `mode: 'passive'` to opt out of scroll locking, outside-click close, and
+ * location-change close — useful for drawers that coexist with page interaction.
  *
  * The `closeDrawer` function accepts no parameters and closes the drawer, unmounting its contents.
  * For example:
@@ -258,3 +251,5 @@ export function GlobalDrawer({children}: any) {
 export function useDrawer() {
   return useContext(DrawerContext);
 }
+
+export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';
