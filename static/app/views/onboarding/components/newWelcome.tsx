@@ -156,13 +156,13 @@ export function NewWelcomeUI(props: StepProps) {
         <Flex direction="column" gap="2xl">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM}>
             {hasScmOnboarding ? (
-              <Container paddingBottom="2xl">
+              <Flex paddingBottom="2xl" justify="center">
                 <ScmStepHeader
                   heading={t('Welcome to Sentry')}
                   subtitle={t("Your code is probably broken. Let's fix it faster.")}
                   subtitleSize="xl"
                 />
-              </Container>
+              </Flex>
             ) : (
               <Flex direction="column" gap="sm" paddingBottom="2xl">
                 <Container>

@@ -3,6 +3,8 @@ import type {ComponentProps} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
+
 interface ScmStepHeaderProps {
   heading: string;
   subtitle: string;
@@ -17,7 +19,7 @@ export function ScmStepHeader({
   subtitleSize = 'lg',
 }: ScmStepHeaderProps) {
   return (
-    <Stack align="center" gap="sm">
+    <Stack align="center" gap="sm" maxWidth={SCM_STEP_CONTENT_WIDTH}>
       <Heading as="h2" size={headingSize}>
         {heading}
       </Heading>

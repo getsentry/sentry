@@ -62,8 +62,10 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
-        heading={t('Connect a repository')}
-        subtitle={t('Link your source control for enhanced debugging features')}
+        heading={t('Connect a repo')}
+        subtitle={t(
+          'Connect a repo to auto-detect your platform and unlock stack trace linking, suspect commits, suggested assignees, and Seer.'
+        )}
       />
 
       <LayoutGroup>

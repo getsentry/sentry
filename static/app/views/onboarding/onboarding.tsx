@@ -371,11 +371,11 @@ export function OnboardingWithoutContext() {
           />
         )}
         <HeaderActions>
-          {hasScmOnboarding && <OnboardingSkipButton stepId={stepObj.id} />}
           <Hook
             name="onboarding:targeted-onboarding-header"
             source="targeted-onboarding"
           />
+          {hasScmOnboarding && <OnboardingSkipButton stepId={stepObj.id} />}
         </HeaderActions>
       </Header>
       <ContainerVariable
@@ -501,10 +501,12 @@ const Header = styled('header')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   justify-items: stretch;
+  @media (max-width: ${p => p.theme.breakpoints.xl}) {
+    grid-template-columns: min-content 1fr;
+  }
 `;
 
 const LogoSvg = styled(LogoSentry)`
-  width: 130px;
   height: 30px;
   color: ${p => p.theme.tokens.content.primary};
 `;
@@ -532,7 +534,7 @@ const AdaptivePageCorners = styled(PageCorners)`
 
 const StyledStepper = styled(Stepper)`
   justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @media (max-width: ${p => p.theme.breakpoints.xl}) {
     display: none;
   }
 `;

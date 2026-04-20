@@ -33,6 +33,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import {ScmSearchControl} from './components/scmSearchControl';
 import {ScmStepHeader} from './components/scmStepHeader';
@@ -78,10 +79,6 @@ function shouldSuggestFramework(platformKey: PlatformKey): boolean {
     Object.values(SupportedLanguages).includes(info.language as SupportedLanguages)
   );
 }
-
-// Width for the platform/feature content area (matches Figma spec).
-// Wider than SCM_STEP_CONTENT_WIDTH (506px) used by the footer.
-const PLATFORM_CONTENT_WIDTH = '564px';
 
 export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
@@ -506,7 +503,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
             gap="md"
             align="center"
             width="100%"
-            maxWidth={PLATFORM_CONTENT_WIDTH}
+            maxWidth={SCM_STEP_CONTENT_WIDTH}
             initial={{opacity: 0}}
             animate={{opacity: 1}}
           >
@@ -537,7 +534,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
 
         <MotionStack layout="position" width="100%" align="center">
           {availableFeatures.length > 0 && (
-            <Container width="100%" maxWidth={PLATFORM_CONTENT_WIDTH}>
+            <Container width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
               <ScmFeatureSelectionCards
                 availableFeatures={availableFeatures}
                 selectedFeatures={currentFeatures}
