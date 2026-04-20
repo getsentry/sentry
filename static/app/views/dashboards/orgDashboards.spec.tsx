@@ -10,7 +10,6 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OrgDashboards} from 'sentry/views/dashboards/orgDashboards';
-import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
@@ -272,21 +271,22 @@ describe('OrgDashboards', () => {
     );
   });
 
-  it('uses saved globalFilter when the user has customized filters', async () => {
-    const savedGlobalFilter = [
-      {
-        dataset: WidgetType.SPANS,
-        tag: {key: 'custom.tag', name: 'custom.tag', kind: 'tag' as const},
-        value: 'custom.tag:foo',
-      },
-    ];
+  it('merges saved globalFilter with prebuilt filters', async () => {
+    const prebuiltConfig = PREBUILT_DASHBOARDS[PrebuiltDashboardId.FRONTEND_ASSETS];
+    const prebuiltGlobalFilters = prebuiltConfig.filters.globalFilter!;
+
+    // Override one of the prebuilt filters with a saved value
+    const overriddenFilter = {
+      ...prebuiltGlobalFilters[0]!,
+      value: `${prebuiltGlobalFilters[0]!.tag.key}:custom-value`,
+    };
     const mockPrebuiltDashboard = {
       dateCreated: '2021-08-10T21:20:46.798237Z',
       id: '1',
       title: 'Frontend Assets',
       widgets: [],
       projects: [],
-      filters: {globalFilter: savedGlobalFilter},
+      filters: {globalFilter: [overriddenFilter]},
       prebuiltId: PrebuiltDashboardId.FRONTEND_ASSETS,
     };
     MockApiClient.addMockResponse({
@@ -312,7 +312,11 @@ describe('OrgDashboards', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(receivedDashboard?.filters?.globalFilter).toEqual(savedGlobalFilter);
+    const resultFilters = receivedDashboard?.filters?.globalFilter;
+    // The overridden filter replaces its prebuilt match
+    expect(resultFilters).toContainEqual(overriddenFilter);
+    // The remaining prebuilt filters are still present
+    expect(resultFilters).toHaveLength(prebuiltGlobalFilters.length);
   });
 
   it('applies saved filters after navigating back from a dashboard without filters', async () => {

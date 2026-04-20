@@ -20,6 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
+import {mergeGlobalFilters} from './globalFilter/utils';
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
 import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
@@ -90,9 +91,9 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
   // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
-    const globalFilter = selectedDashboard.filters?.globalFilter?.length
-      ? selectedDashboard.filters.globalFilter
-      : prebuiltDashboard?.filters?.globalFilter;
+    const prebuiltGlobalFilters = prebuiltDashboard?.filters?.globalFilter ?? [];
+    const savedGlobalFilters = selectedDashboard.filters?.globalFilter ?? [];
+    const globalFilter = mergeGlobalFilters(prebuiltGlobalFilters, savedGlobalFilters);
 
     selectedDashboard = {
       ...selectedDashboard,
