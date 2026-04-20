@@ -19,7 +19,7 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import {GenericFooter} from './genericFooter';
+import {GridFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
   isLast: boolean;
@@ -192,15 +192,5 @@ const SkipOnboardingLink = styled(Link)`
   white-space: nowrap;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
-  }
-`;
-
-const GridFooter = styled(GenericFooter)`
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    flex-direction: row;
-    justify-content: end;
   }
 `;
