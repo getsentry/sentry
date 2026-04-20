@@ -118,7 +118,7 @@ function SeerWorkflows() {
                       <SimpleTable.Row variant="faded">
                         <Container
                           background="secondary"
-                          padding="md lg"
+                          padding="lg xl"
                           style={{gridColumn: '1 / -1'}}
                         >
                           <RunDetail run={run} organizationSlug={organization.slug} />
@@ -144,7 +144,7 @@ function RunDetail({
   run: SeerNightShiftRun;
 }) {
   return (
-    <Flex direction="column" gap="sm">
+    <Flex direction="column" gap="lg">
       {run.errorMessage ? (
         <Text variant="danger" size="sm">
           {t('Error: ')}
@@ -153,51 +153,53 @@ function RunDetail({
       ) : null}
 
       {Object.keys(run.extras).length > 0 ? (
-        <Fragment>
+        <Flex direction="column" gap="sm">
           <Text bold size="xs" variant="muted" uppercase>
             {t('Extras')}
           </Text>
           <Text as="pre" size="sm" monospace>
             {JSON.stringify(run.extras, null, 2)}
           </Text>
-        </Fragment>
+        </Flex>
       ) : null}
 
-      <Text bold size="xs" variant="muted" uppercase>
-        {t('Issues (%s)', run.issues.length)}
-      </Text>
-
-      {run.issues.length === 0 ? (
-        <Text variant="muted" size="sm">
-          {t('No issues processed in this run.')}
+      <Flex direction="column" gap="sm">
+        <Text bold size="xs" variant="muted" uppercase>
+          {t('Issues (%s)', run.issues.length)}
         </Text>
-      ) : (
-        <Grid columns="max-content max-content 1fr" gap="xs md">
-          <Text bold size="xs" variant="muted">
-            {t('Group')}
+
+        {run.issues.length === 0 ? (
+          <Text variant="muted" size="sm">
+            {t('No issues processed in this run.')}
           </Text>
-          <Text bold size="xs" variant="muted">
-            {t('Action')}
-          </Text>
-          <Text bold size="xs" variant="muted">
-            {t('Seer Run ID')}
-          </Text>
-          {run.issues.flatMap(issue => [
-            <Link
-              key={`${issue.id}-group`}
-              to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}
-            >
-              {issue.groupId}
-            </Link>,
-            <Text key={`${issue.id}-action`} size="sm">
-              {issue.action}
-            </Text>,
-            <Text key={`${issue.id}-seer`} size="sm" variant="muted">
-              {issue.seerRunId ?? '-'}
-            </Text>,
-          ])}
-        </Grid>
-      )}
+        ) : (
+          <Grid columns="max-content max-content 1fr" gap="sm xl" align="center">
+            <Text bold size="xs" variant="muted">
+              {t('Group')}
+            </Text>
+            <Text bold size="xs" variant="muted">
+              {t('Action')}
+            </Text>
+            <Text bold size="xs" variant="muted">
+              {t('Seer Run ID')}
+            </Text>
+            {run.issues.flatMap(issue => [
+              <Link
+                key={`${issue.id}-group`}
+                to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}
+              >
+                {issue.groupId}
+              </Link>,
+              <Text key={`${issue.id}-action`} size="sm">
+                {issue.action}
+              </Text>,
+              <Text key={`${issue.id}-seer`} size="sm" variant="muted">
+                {issue.seerRunId ?? '-'}
+              </Text>,
+            ])}
+          </Grid>
+        )}
+      </Flex>
     </Flex>
   );
 }
