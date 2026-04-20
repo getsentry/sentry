@@ -3,9 +3,9 @@ import invariant from 'invariant';
 
 import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
-import {parseEventTimestampMs} from 'sentry/utils/replays/eventTimestampMs';
 import type {
   BreadcrumbFrame,
   ErrorFrame,

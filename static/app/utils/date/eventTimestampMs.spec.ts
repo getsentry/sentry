@@ -1,7 +1,7 @@
 import {
   parseEventTimestampMs,
   toEventTimestampMs,
-} from 'sentry/utils/replays/eventTimestampMs';
+} from 'sentry/utils/date/eventTimestampMs';
 
 describe('parseEventTimestampMs', () => {
   it('parses the non-ISO shape returned by the events endpoint as UTC', () => {

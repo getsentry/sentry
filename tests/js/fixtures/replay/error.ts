@@ -1,4 +1,4 @@
-import {toEventTimestampMs} from 'sentry/utils/replays/eventTimestampMs';
+import {toEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 
 export function RawReplayErrorFixture(

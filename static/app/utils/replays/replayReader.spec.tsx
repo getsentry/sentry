@@ -22,7 +22,7 @@ import {
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {parseEventTimestampMs} from 'sentry/utils/replays/eventTimestampMs';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
 

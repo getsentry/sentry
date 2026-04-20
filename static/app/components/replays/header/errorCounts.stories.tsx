@@ -3,7 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplaySlugChooser} from 'sentry/components/replays/player/__stories__/replaySlugChooser';
 import * as Storybook from 'sentry/stories';
-import {toEventTimestampMs} from 'sentry/utils/replays/eventTimestampMs';
+import {toEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ErrorFrame, RawReplayError} from 'sentry/utils/replays/types';
 

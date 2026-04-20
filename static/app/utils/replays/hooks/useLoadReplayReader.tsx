@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
-import {parseEventTimestampMs} from 'sentry/utils/replays/eventTimestampMs';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 
