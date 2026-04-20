@@ -24,9 +24,9 @@ import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/uti
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
+import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/components/panel/explorerMenu';
 import {
   BlocksContainer,
   PanelContainers,

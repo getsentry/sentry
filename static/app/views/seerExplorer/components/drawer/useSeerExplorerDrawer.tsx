@@ -60,7 +60,7 @@ export const useSeerExplorerDrawer = () => {
         ariaLabel: t('Seer Explorer drawer'),
         drawerKey: 'seer-explorer-drawer',
         drawerCss: css`
-          height: fit-content;
+          height: 100%;
           max-height: 100%;
         `,
         resizable: true,

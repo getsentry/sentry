@@ -1,4 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -8,10 +11,9 @@ import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/uti
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
+import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {useExplorerMenu} from 'sentry/views/seerExplorer/components/panel/explorerMenu';
-import {BlocksContainer} from 'sentry/views/seerExplorer/components/panel/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
@@ -393,7 +395,7 @@ export function ExplorerDrawerContent({
   // });
 
   return (
-    <Fragment>
+    <DrawerContentContainer>
       <TopBar
         handleClose={handleClose}
         isEmptyState={isEmptyState}
@@ -543,6 +545,22 @@ export function ExplorerDrawerContent({
             : undefined
         }
       />
-    </Fragment>
+    </DrawerContentContainer>
   );
 }
+
+const BlocksContainer = styled(Stack)`
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+`;
+
+const DrawerContentContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+  background: ${p => p.theme.tokens.background.primary};
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
