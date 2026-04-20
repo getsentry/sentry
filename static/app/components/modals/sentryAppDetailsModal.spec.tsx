@@ -173,4 +173,24 @@ describe('SentryAppDetailsModal', () => {
 
     expect(screen.queryByText('Permissions')).not.toBeInTheDocument();
   });
+
+  it('renders the Continuous Integration special permission', async () => {
+    renderMockRequests({sentryAppSlug: sentryApp.slug});
+
+    render(
+      <SentryAppDetailsModal
+        closeModal={jest.fn()}
+        isInstalled={false}
+        onInstall={jest.fn()}
+        organization={OrganizationFixture()}
+        sentryApp={{...sentryApp, scopes: ['org:ci']}}
+      />
+    );
+
+    expect(await screen.findByText('Permissions')).toBeInTheDocument();
+    expect(screen.getByText(/Continuous Integration \(CI\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Source map upload, release creation, and code mappings\./)
+    ).toBeInTheDocument();
+  });
 });

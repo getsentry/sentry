@@ -31,7 +31,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+} from 'sentry/constants';
 import {
   internalIntegrationForms,
   publicIntegrationForms,
@@ -97,6 +100,15 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
   return undefined;
 };
 
+const getPermissionFieldNameFromScope = (scope: Scope): string | undefined => {
+  if (scope === CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope) {
+    return CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName;
+  }
+
+  const resource = getResourceFromScope(scope);
+  return resource ? `${resource}--permission` : undefined;
+};
+
 /**
  * We need to map the API response errors to the actual form fields.
  * We do this by pulling out scopes and mapping each scope error to the correct input.
@@ -113,10 +125,9 @@ const mapFormErrors = (responseJSON?: any) => {
       const matches = message.match(/Requested permission of (\w+:\w+)/);
       if (matches) {
         const scope = matches[1];
-        const resource = getResourceFromScope(scope as Scope);
-        // should always match but technically resource can be undefined
-        if (resource) {
-          formErrors[`${resource}--permission`] = [message];
+        const fieldName = getPermissionFieldNameFromScope(scope as Scope);
+        if (fieldName) {
+          formErrors[fieldName] = [message];
         }
       }
     });

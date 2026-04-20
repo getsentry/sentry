@@ -198,4 +198,40 @@ describe('ApiNewToken', () => {
 
     await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
   });
+
+  it('creates token with org:ci as the only scope', async () => {
+    MockApiClient.clearMockResponses();
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+    });
+
+    render(<ApiNewToken />);
+    const createButton = screen.getByRole('button', {name: 'Create Token'});
+    const ciCheckbox = screen.getByRole('checkbox', {
+      name: 'Continuous Integration (CI)',
+    });
+
+    expect(createButton).toBeDisabled();
+    expect(ciCheckbox).not.toBeChecked();
+
+    await userEvent.click(ciCheckbox);
+
+    expect(createButton).toBeEnabled();
+    expect(ciCheckbox).toBeChecked();
+    expect(screen.getByText('org:ci')).toBeInTheDocument();
+
+    await userEvent.click(createButton);
+
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/api-tokens/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            scopes: ['org:ci'],
+          }),
+        })
+      )
+    );
+  });
 });
