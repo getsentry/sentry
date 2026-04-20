@@ -457,9 +457,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
           }
 
           if (message.content && message.content !== 'Thinking...') {
-            return (
-              <StyledMarkedText key={index} text={message.content} inline as="span" />
-            );
+            return <StyledMarkedText key={index} text={message.content} />;
           }
 
           return null;
