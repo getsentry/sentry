@@ -6,6 +6,7 @@ import {PlatformIcon} from 'platformicons';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -537,6 +538,10 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           </MotionStack>
         )}
 
+        <MotionContainer layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
+          <Separator orientation="horizontal" border="primary" />
+        </MotionContainer>
+
         <MotionStack layout="position" width="100%" align="center">
           {availableFeatures.length > 0 && (
             <Container width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
@@ -578,3 +583,4 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
 }
 
 const MotionStack = motion.create(Stack);
+const MotionContainer = motion.create(Container);
