@@ -1,11 +1,11 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import type {LoaderDefinitionFunction} from '@rspack/core';
 import {parse as parseYaml} from 'yaml';
 
 const frontmatterIndexLoader: LoaderDefinitionFunction = function () {
-  const staticAppDir = path.resolve(__dirname, '../static/app');
+  const staticAppDir = path.resolve(import.meta.dirname, '../static/app');
 
   this.addContextDependency(staticAppDir);
 
