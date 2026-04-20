@@ -396,7 +396,7 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, max-content) min-content min-content;
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
 `;
