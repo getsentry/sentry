@@ -10,7 +10,6 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
-from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -20,7 +19,6 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
-from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
@@ -36,7 +34,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
-from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -435,46 +433,6 @@ class BaseMetricAlertHandler(ABC):
         project: Project,
     ) -> None:
         raise NotImplementedError
-
-    @staticmethod
-    def _extract_from_group_event(
-        event: GroupEvent,
-    ) -> tuple[MetricIssueEvidenceData, DetectorPriorityLevel]:
-        """
-        Extract evidence data and priority from a GroupEvent
-        """
-
-        if event.occurrence is None:
-            raise ValueError("Event occurrence is required for alert context")
-
-        if event.occurrence.priority is None:
-            raise ValueError("Event occurrence priority is required for alert context")
-
-        evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
-        priority = DetectorPriorityLevel(event.occurrence.priority)
-        return evidence_data, priority
-
-    @staticmethod
-    def _extract_from_activity(
-        event: Activity,
-    ) -> tuple[MetricIssueEvidenceData, DetectorPriorityLevel]:
-        """
-        Extract evidence data and priority from an Activity event
-        """
-
-        if event.type != ActivityType.SET_RESOLVED.value:
-            raise ValueError(
-                "Activity type must be SET_RESOLVED to invoke metric alert legacy registry"
-            )
-
-        if event.data is None or not event.data:
-            raise ValueError("Activity data is required for alert context")
-
-        evidence_data_dict = dict(event.data)
-        priority = DetectorPriorityLevel.OK
-        evidence_data = MetricIssueEvidenceData(**evidence_data_dict)
-
-        return evidence_data, priority
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
