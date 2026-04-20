@@ -10,10 +10,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
-// ── Alias resolution ──────────────────────────────────────────────────────────
-// All non-canonical key names map to their canonical form here. Both
-// getKeyCode and resolveKeyGlyph run through canonicalize() so alias
-// handling only lives in one place.
+// All non-canonical key names map to their canonical form here
 const aliases: Record<string, string> = {
   cmd: 'command',
   meta: 'command',
@@ -35,7 +32,7 @@ function canonicalize(keyName: string): string {
   return aliases[lower] ?? lower;
 }
 
-// ── Key code mapping (canonical names only) ───────────────────────────────────
+// Only uses canonical names
 const keyCodeMap: Record<string, number> = {
   backspace: 8,
   tab: 9,
@@ -89,9 +86,6 @@ const keyCodeMap: Record<string, number> = {
   '\\': 220,
 };
 
-/**
- * Get the keyCode for a key name. Used by useHotkeys for event matching.
- */
 export function getKeyCode(x: string): number {
   const key = canonicalize(x);
   return keyCodeMap[key] ?? x.toUpperCase().charCodeAt(0);
@@ -107,14 +101,14 @@ const macGlyphs: Record<string, KeyGlyph> = {
   alt: {icon: <IconOption {...sharedProps} />, label: '\u2325'},
 };
 
-// Other Platforms: same modifiers with text labels
+// other platforms: same modifiers with text labels
 const otherGlyphs: Record<string, KeyGlyph> = {
   command: {label: 'ctrl'},
   control: {label: 'ctrl'},
   alt: {label: 'alt'},
 };
 
-// Same glyph on all platforms
+// same glyph on all platforms
 const universalGlyphs: Record<string, KeyGlyph> = {
   shift: {icon: <IconShift {...sharedProps} />, label: '\u21e7'},
   enter: {icon: <IconReturn {...sharedProps} />, label: '\u21b5'},
