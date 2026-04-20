@@ -1,12 +1,15 @@
 import {useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   useUpdateBulkAutofixAutomationSettings,
@@ -15,6 +18,7 @@ import {organizationIntegrationsCodingAgents} from 'sentry/components/events/aut
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -255,6 +259,32 @@ export function SeerProjectTable() {
               }
             />
           </InputGroup>
+
+          <Button
+            priority="primary"
+            size="md"
+            onClick={async () => {
+              const {ProjectAddRepoModal} =
+                await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
+
+              openModal(
+                deps => (
+                  <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />
+                ),
+                {
+                  modalCss: css`
+                    width: 700px;
+                  `,
+                  onClose: () => {
+                    // queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
+                  },
+                }
+              );
+            }}
+            icon={<IconAdd />}
+          >
+            {t('Add Project')}
+          </Button>
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
