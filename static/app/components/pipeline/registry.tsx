@@ -8,7 +8,10 @@ import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {opsgenieIntegrationPipeline} from './pipelineIntegrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './pipelineIntegrationPagerDuty';
-import {slackIntegrationPipeline} from './pipelineIntegrationSlack';
+import {
+  slackIntegrationPipeline,
+  slackStagingIntegrationPipeline,
+} from './pipelineIntegrationSlack';
 import {vercelIntegrationPipeline} from './pipelineIntegrationVercel';
 import {vstsIntegrationPipeline} from './pipelineIntegrationVsts';
 
@@ -27,6 +30,7 @@ export const PIPELINE_REGISTRY = [
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,
   slackIntegrationPipeline,
+  slackStagingIntegrationPipeline,
   vstsIntegrationPipeline,
   vercelIntegrationPipeline,
 ] as const;

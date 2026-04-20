@@ -73,7 +73,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
             raise ResourceDoesNotExist
 
         has_workflow_engine_flags = features.has(
-            "organizations:workflow-engine-orgincidentdetails-get", organization
+            "organizations:workflow-engine-metric-alert-endpoints-get", organization
         ) or features.has("organizations:workflow-engine-rule-serializers", organization)
 
         if request.method == "GET" and has_workflow_engine_flags:
