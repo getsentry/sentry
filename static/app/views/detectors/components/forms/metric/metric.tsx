@@ -484,6 +484,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
         </Tooltip>
         {canUseMetricsEquationsInAlerts(organization) &&
         dataset === DetectorDataset.METRICS &&
+        aggregateFunction &&
         isEquation(aggregateFunction) ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
