@@ -117,6 +117,17 @@ class _AsyncSlackDispatcher(_AsyncCellDispatcher):
         return None
 
 
+class _AsyncSlackSeerDispatcher(_AsyncSlackDispatcher):
+    """
+    Seer event webhooks carry no ``response_url``; the cell handles the event and
+    responds with an empty 200. Suppress response forwarding by always unpacking
+    to ``None``.
+    """
+
+    def unpack_payload(self, response: Response) -> Any:
+        return None
+
+
 @instrumented_task(
     name="sentry.middleware.integrations.tasks.convert_to_async_slack_response",
     namespace=integrations_control_tasks,
@@ -181,13 +192,15 @@ def route_slack_seer_event(
     slack_user_id: str,
 ) -> None:
     """
-    Resolve the target org for a Seer Slack event and forward the original webhook
-    payload to that org's cell. The parser already 200'd Slack, so this runs with no
-    deadline pressure and the cell handles all business logic as usual.
+    Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
+    Since this can route to organizations sharing Slack across cells, we need to run it at the parser.
 
-    When resolution fails (no linked identity, no eligible org), forward to the first
-    cell among attached orgs so the webhook can still render the identity-link prompt
-    or no-op — matching pre-ack behavior.
+    We run this as a task because the algorithm will make calls to Slack, increasing the likelihood
+    of hitting the 3 second deadline. At that point, Slack may retry the request and we don't
+    dedupe these requests, so it'd break the Seer experience.
+
+    Now control will respond immediately, and schedule this task. We can take our time routing,
+    and then allow the identified cell to actually handle the event.
     """
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
@@ -198,33 +211,8 @@ def route_slack_seer_event(
     result = resolve_seer_organization_for_slack_user(
         integration=integration, slack_user_id=slack_user_id
     )
-    if result.organization_id is not None:
-        target_cell: Cell = get_cell_for_organization(str(result.organization_id))
-    else:
-        ois = integration_service.get_organization_integrations(
-            integration_id=integration_id, status=ObjectStatus.ACTIVE
-        )
-        cell_names = sorted({get_cell_for_organization(str(oi.organization_id)).name for oi in ois})
-        if not cell_names:
-            return
-        target_cell = get_cell_by_name(cell_names[0])
+    if result.organization_id is None:
+        return
 
-    client = CellSiloClient(cell=target_cell)
-    try:
-        client.request(
-            method=payload["method"],
-            path=payload["path"],
-            headers=payload["headers"],
-            data=payload["body"].encode("utf-8"),
-            json=False,
-            raw_response=True,
-        )
-    except Exception:
-        logger.exception(
-            "slack.route_seer_event.forward_failed",
-            extra={
-                "integration_id": integration_id,
-                "cell": target_cell.name,
-                "organization_id": result.organization_id,
-            },
-        )
+    cell = get_cell_for_organization(str(result.organization_id))
+    _AsyncSlackSeerDispatcher(payload, response_url="").dispatch([cell.name])

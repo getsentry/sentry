@@ -47,10 +47,14 @@ def resolve_seer_organization_for_slack_user(
     slack_user_id: str,
 ) -> SeerResolutionResult:
     """
-    Resolve the target organization for a Seer Slack event from ``(integration, slack_user_id)``.
+    Resolve and validate an organization/user for a Seer Slack event.
 
-    Used both by :meth:`SlackEventRequest.resolve_seer_organization` during webhook handling
-    and by the ack-then-task orchestrators, which don't have a live request in hand.
+    We require a linked identity, then search for an active organization they belong to with
+    Seer Agent access.
+
+    Note: There is a limitation here of only grabbing the first organization belonging to the
+    user with access to Seer. If a Slack installation corresponds to multiple organizations
+    with Seer access, this will not work as expected. This will be revisited.
     """
     provider = identity_service.get_provider(
         provider_type=integration.provider, provider_ext_id=integration.external_id
@@ -137,16 +141,6 @@ class SlackEventRequest(SlackDMRequest):
 
     @all_silo_function
     def resolve_seer_organization(self) -> SeerResolutionResult:
-        """
-        Resolve and validate an organization/user for a Seer Slack event.
-
-        We require a linked identity, then search for an active organization they belong to with
-        Seer Agent access.
-
-        Note: There is a limitation here of only grabbing the first organization belonging to the
-        user with access to Seer. If a Slack installation corresponds to multiple organizations
-        with Seer access, this will not work as expected. This will be revisited.
-        """
         return resolve_seer_organization_for_slack_user(
             integration=self.integration, slack_user_id=self.user_id
         )

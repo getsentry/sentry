@@ -303,7 +303,7 @@ class RouteSlackSeerEventTest(TestCase):
 
     @responses.activate
     @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
-    def test_falls_back_to_first_cell_when_unresolved(self, mock_resolve: MagicMock) -> None:
+    def test_drops_event_when_unresolved(self, mock_resolve: MagicMock) -> None:
         from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 
         mock_resolve.return_value = SeerResolutionResult(
@@ -322,7 +322,7 @@ class RouteSlackSeerEventTest(TestCase):
             slack_user_id="U_SLACK",
         )
 
-        assert cell_response.call_count == 1
+        assert cell_response.call_count == 0
 
     @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
     def test_missing_integration_is_noop(self, mock_resolve: MagicMock) -> None:
