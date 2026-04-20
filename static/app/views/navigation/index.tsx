@@ -104,15 +104,15 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const topOffset = useTopOffset();
+  const {barTop} = useTopOffset();
 
   return (
     <Flex
-      top={topOffset}
+      top={barTop}
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : `calc(100dvh - ${topOffset})`}
+      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',

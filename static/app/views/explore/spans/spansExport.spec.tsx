@@ -84,11 +84,11 @@ describe('SpansExport', () => {
   });
 
   it('should render export button with large size data', async () => {
-    aggregatesTableResult.result.data = new Array(100).fill({
+    aggregatesTableResult.result.data = Array.from({length: 100}).fill({
       'browser.name': 'Chrome',
       count: 1,
     });
-    spansTableResult.result.data = new Array(100).fill({
+    spansTableResult.result.data = Array.from({length: 100}).fill({
       id: '1',
       'browser.name': 'Chrome',
     });
@@ -130,11 +130,11 @@ describe('SpansExport', () => {
   });
 
   it('should use data-export endpoint for large data volume', async () => {
-    aggregatesTableResult.result.data = new Array(100).fill({
+    aggregatesTableResult.result.data = Array.from({length: 100}).fill({
       'browser.name': 'Chrome',
       count: 1,
     });
-    spansTableResult.result.data = new Array(100).fill({
+    spansTableResult.result.data = Array.from({length: 100}).fill({
       id: '1',
       'browser.name': 'Chrome',
     });

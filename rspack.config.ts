@@ -255,11 +255,6 @@ const appConfig: Configuration = {
      */
     app: ['sentry/utils/statics-setup', 'sentry'],
 
-    /**
-     * Pipeline View for integrations
-     */
-    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
-
     // admin interface
     gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 

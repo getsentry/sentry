@@ -6,14 +6,10 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useMutation} from 'sentry/utils/queryClient';
 import {
   useBulkMutateSelectedAgent,
-  useFetchPreferredAgent,
   useFetchAgentOptions,
-  getPreferredAgentMutationOptions,
 } from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 describe('seerPreferredAgent', () => {
@@ -43,90 +39,6 @@ describe('seerPreferredAgent', () => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ProjectsStore.reset();
-  });
-
-  describe('useFetchPreferredAgent', () => {
-    it('returns "seer" when no defaultCodingAgent or defaultCodingAgentIntegrationId', () => {
-      mockIntegrationsEndpoint();
-      const org = OrganizationFixture({
-        slug: 'org-slug',
-        defaultCodingAgent: null,
-        defaultCodingAgentIntegrationId: null,
-      });
-
-      const {result} = renderHookWithProviders(useFetchPreferredAgent, {
-        initialProps: {organization: org},
-      });
-
-      expect(result.current.data).toBe('seer');
-    });
-
-    it('uses defaultCodingAgentIntegrationId when set', async () => {
-      mockIntegrationsEndpoint();
-      const org = OrganizationFixture({
-        slug: 'org-slug',
-        defaultCodingAgentIntegrationId: 42,
-        defaultCodingAgent: null,
-      });
-
-      const {result} = renderHookWithProviders(useFetchPreferredAgent, {
-        initialProps: {organization: org},
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(result.current.data).toMatchObject({id: '42', name: 'Cursor'});
-    });
-
-    it('falls back to defaultCodingAgent when no defaultCodingAgentIntegrationId', async () => {
-      mockIntegrationsEndpoint();
-      const org = OrganizationFixture({
-        slug: 'org-slug',
-        defaultCodingAgent: 'claude_code',
-        defaultCodingAgentIntegrationId: null,
-      });
-
-      const {result} = renderHookWithProviders(useFetchPreferredAgent, {
-        initialProps: {organization: org},
-      });
-
-      // 'claude_code' won't match any integration id (ids are '42', '99'), so returns 'seer'
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(result.current.data).toBe('seer');
-    });
-
-    it('returns matching integration when defaultCodingAgent matches integration id', async () => {
-      mockIntegrationsEndpoint({
-        integrations: [{id: 'cursor', name: 'Cursor', provider: 'cursor'}],
-      });
-      const org = OrganizationFixture({
-        slug: 'org-slug',
-        defaultCodingAgent: 'cursor',
-        defaultCodingAgentIntegrationId: null,
-      });
-
-      const {result} = renderHookWithProviders(useFetchPreferredAgent, {
-        initialProps: {organization: org},
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(result.current.data).toMatchObject({id: 'cursor', name: 'Cursor'});
-    });
-
-    it('returns "seer" when no integration matches the value', async () => {
-      mockIntegrationsEndpoint({integrations: []});
-      const org = OrganizationFixture({
-        slug: 'org-slug',
-        defaultCodingAgent: 'nonexistent',
-        defaultCodingAgentIntegrationId: null,
-      });
-
-      const {result} = renderHookWithProviders(useFetchPreferredAgent, {
-        initialProps: {organization: org},
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(result.current.data).toBe('seer');
-    });
   });
 
   describe('useFetchPreferredAgentOptions', () => {
@@ -185,77 +97,6 @@ describe('seerPreferredAgent', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toHaveLength(1);
       expect(result.current.data![0]).toEqual({value: 'seer', label: expect.any(String)});
-    });
-  });
-
-  describe('usePreferredAgentMutationOptions', () => {
-    function mockOrgPutRequest() {
-      return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/`,
-        method: 'PUT',
-        body: OrganizationFixture({slug: organization.slug}),
-      });
-    }
-
-    beforeEach(() => {
-      OrganizationsStore.addOrReplace(organization);
-    });
-
-    it('sends PUT with seer payload when integration is "seer"', async () => {
-      mockIntegrationsEndpoint();
-      const orgPutRequest = mockOrgPutRequest();
-
-      const options = getPreferredAgentMutationOptions({organization});
-      const {result} = renderHookWithProviders(useMutation, {
-        initialProps: options,
-      });
-
-      act(() => {
-        result.current.mutateAsync({integration: 'seer'});
-      });
-
-      await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
-      expect(orgPutRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            defaultCodingAgent: 'seer',
-            defaultCodingAgentIntegrationId: null,
-          },
-        })
-      );
-    });
-
-    it('sends PUT with integration payload when integration is a CodingAgentIntegration', async () => {
-      mockIntegrationsEndpoint();
-      const orgPutRequest = mockOrgPutRequest();
-      const integration: CodingAgentIntegration = {
-        id: '42',
-        name: 'Cursor',
-        provider: 'cursor',
-      };
-
-      const options = getPreferredAgentMutationOptions({organization});
-      const {result} = renderHookWithProviders(useMutation, {
-        initialProps: options,
-      });
-
-      act(() => {
-        result.current.mutateAsync({integration});
-      });
-
-      await waitFor(() => expect(orgPutRequest).toHaveBeenCalledTimes(1));
-      expect(orgPutRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: expect.objectContaining({
-            defaultCodingAgent: 'cursor',
-            defaultCodingAgentIntegrationId: '42',
-          }),
-        })
-      );
     });
   });
 

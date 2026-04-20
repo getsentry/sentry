@@ -47,8 +47,10 @@ type MetricsTabProps = {
 };
 
 export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
+  const organization = useOrganization();
+  const hasEquations = canUseMetricsEquations(organization);
   return (
-    <MultiMetricsQueryParamsProvider>
+    <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
       <MetricsTabContentInner datePageFilterProps={datePageFilterProps} />
     </MultiMetricsQueryParamsProvider>
   );

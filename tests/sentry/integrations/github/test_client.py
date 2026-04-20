@@ -199,7 +199,7 @@ class GitHubApiClientTest(TestCase):
 
         mock_get_cached.assert_called_once_with(
             f"/repos/{self.repo.name}/commits",
-            params={"sha": "abc"},
+            params={"sha": "abc", "per_page": 20},
             endpoint=GitHubApiEndpoint.GET_COMMITS,
         )
 

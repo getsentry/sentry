@@ -29,7 +29,7 @@ export function RecoveryCodes({
 }: Props) {
   const printCodes = () => {
     // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    // eslint-disable-next-line dot-notation
+    // eslint-disable-next-line @typescript-eslint/dot-notation
     const iframe = window.frames['printable'];
     iframe.document.write(codes.join('<br>'));
     iframe.print();

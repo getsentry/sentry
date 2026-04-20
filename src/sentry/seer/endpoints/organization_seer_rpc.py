@@ -50,6 +50,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.snapshot_indexes import export_explorer_indexes
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
@@ -119,6 +120,9 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_issues_stats": map_org_id_param(get_issues_stats),
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
+    #
+    # Explorer eval tooling
+    "export_explorer_indexes": map_org_id_param(export_explorer_indexes),
 }
 
 

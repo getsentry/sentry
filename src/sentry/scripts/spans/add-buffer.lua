@@ -43,6 +43,28 @@ RETURNS:
 
 local project_and_trace = KEYS[1]
 
+-- Lua's unpack() has a stack limit (typically ~7998 elements in Lua 5.1).
+-- When merging member-keys sets that have accumulated across many EVALSHA calls,
+-- we use SSCAN to stream members in batches to avoid both memory issues from
+-- large smembers results and "too many results to unpack" errors.
+local SCAN_BATCH_SIZE = 1000
+
+local function merge_set(source_key, dest_key)
+    local cursor = "0"
+    repeat
+        local result = redis.call("sscan", source_key, cursor, "COUNT", SCAN_BATCH_SIZE)
+        cursor = result[1]
+        local members = result[2]
+        if #members > 0 then
+            -- we do not use SUNIONSTORE here because we assume the target set
+            -- at dest_key can be massive. if it is, SUNIONSTORE will copy the
+            -- entire target set again, which appears to be _worse_ than
+            -- copying the source set into lua memory and out again.
+            redis.call("sadd", dest_key, unpack(members))
+        end
+    until cursor == "0"
+end
+
 local num_spans = ARGV[1]
 local parent_span_id = ARGV[2]
 local has_root_span = ARGV[3] == "true"
@@ -150,9 +172,8 @@ if salt ~= "" then
             end
 
             local child_members_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
-            local child_members = redis.call("smembers", child_members_key)
-            if #child_members > 0 then
-                redis.call("sadd", members_key, unpack(child_members))
+            if redis.call("exists", child_members_key) == 1 then
+                merge_set(child_members_key, members_key)
                 redis.call("del", child_members_key)
             end
         end
@@ -191,9 +212,8 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
         local child_mk_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, span_id)
-        local child_members = redis.call("smembers", child_mk_key)
-        if #child_members > 0 then
-            redis.call("sadd", member_keys_key, unpack(child_members))
+        if redis.call("exists", child_mk_key) == 1 then
+            merge_set(child_mk_key, member_keys_key)
             redis.call("del", child_mk_key)
         end
     end
@@ -202,9 +222,8 @@ end
 -- Merge parent's tracking set if parent_span_id redirected to a different root.
 if set_span_id ~= parent_span_id then
     local parent_mk_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, parent_span_id)
-    local parent_members = redis.call("smembers", parent_mk_key)
-    if #parent_members > 0 then
-        redis.call("sadd", member_keys_key, unpack(parent_members))
+    if redis.call("exists", parent_mk_key) == 1 then
+        merge_set(parent_mk_key, member_keys_key)
         redis.call("del", parent_mk_key)
     end
 end

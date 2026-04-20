@@ -1490,8 +1490,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'environment', kind: FieldValueKind.FIELD},
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1524,7 +1524,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1557,8 +1557,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'environment', kind: FieldValueKind.FIELD} as Column,
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'environment', kind: FieldValueKind.FIELD},
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['count_errored', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1593,7 +1593,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_FIELDS,
           payload: [
-            {field: 'project', kind: FieldValueKind.FIELD} as Column,
+            {field: 'project', kind: FieldValueKind.FIELD},
             {
               function: ['crash_free_rate', 'session', undefined, undefined, undefined],
               kind: FieldValueKind.FUNCTION,
@@ -1953,13 +1953,7 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: [
-                'avg' as AggregationKeyWithAlias,
-                'value',
-                'other.metric',
-                'gauge',
-                '-',
-              ],
+              function: ['avg', 'value', 'other.metric', 'gauge', '-'],
             },
           ] as Column[],
         });
@@ -1995,23 +1989,11 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: [
-                'sum' as AggregationKeyWithAlias,
-                'value',
-                'my.metric',
-                'counter',
-                '-',
-              ],
+              function: ['sum', 'value', 'my.metric', 'counter', '-'],
             },
             {
               kind: 'function',
-              function: [
-                'avg' as AggregationKeyWithAlias,
-                'value',
-                'my.metric',
-                'counter',
-                '-',
-              ],
+              function: ['avg', 'value', 'my.metric', 'counter', '-'],
             },
           ] as Column[],
         });

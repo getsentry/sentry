@@ -72,7 +72,7 @@ function mergeReleaseAndDebugIdBundles(
     id: release.name,
   }));
 
-  return [...debugIdUploads, ...releaseUploads] as SourceMapUpload[];
+  return [...debugIdUploads, ...releaseUploads];
 }
 
 interface UseSourceMapUploadsProps {

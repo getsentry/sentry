@@ -2496,3 +2496,33 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert not Dashboard.objects.filter(
             organization=self.organization, title="Invalid Dashboard"
         ).exists()
+
+    def test_post_with_deprecated_display_type_rejected(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Deprecated Widget",
+            "widgets": [
+                {
+                    "displayType": "stacked_area",
+                    "interval": "5m",
+                    "title": "Stacked area",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert (
+            "stacked_area is no longer a supported display type."
+            in response.data["widgets"][0]["displayType"][0]
+        )
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Dashboard with Deprecated Widget"
+        ).exists()
