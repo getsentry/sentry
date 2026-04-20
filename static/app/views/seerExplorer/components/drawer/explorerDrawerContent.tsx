@@ -46,7 +46,7 @@ export function ExplorerDrawerContent({
   >(new Map());
   const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
-  const allowHoverFocusChange = useRef<boolean>(true);
+  const allowHoverFocusChange = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
   const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -211,14 +211,21 @@ export function ExplorerDrawerContent({
   // - Input section handlers -------------------------------------------------
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (readOnly || e.nativeEvent.isComposing) return;
+      if (readOnly || e.nativeEvent.isComposing) {
+        return;
+      }
+
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         if (inputValue.trim() && !isPolling) {
           sendMessage(inputValue.trim());
           setInputValue('');
+          // Reset scroll state so we auto-scroll to show the response
           userScrolledUpRef.current = false;
-          if (textareaRef.current) textareaRef.current.style.height = 'auto';
+          // Reset textarea height
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
         }
       }
     },
@@ -240,19 +247,24 @@ export function ExplorerDrawerContent({
     closeMenu();
   }, [focusInput, closeMenu]);
 
-  // - Scroll Effects ---------------------------------------------------------
+  // - Scroll effects ---------------------------------------------------------
 
-  // Track scroll position to detect if user scrolled up
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return undefined;
-    const handleScroll = () => {
-      const {scrollTop, scrollHeight, clientHeight} = container;
-      userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight >= 50;
-    };
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    // Scroll to bottom and focus input when drawer opens
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+      textareaRef.current?.focus();
+    }, 100);
   }, []);
+
+  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  useEffect(() => {
+    if (!userScrolledUpRef.current && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [blocks]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -348,6 +360,7 @@ export function ExplorerDrawerContent({
   // Block keyboard navigation
   useBlockNavigation({
     isOpen: true, // Drawer content is always visible when rendered
+    isMinimized: false,
     focusedBlockIndex,
     blocks,
     blockRefs,
