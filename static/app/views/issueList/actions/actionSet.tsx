@@ -72,6 +72,23 @@ export function ActionSet({
           area,
         });
       }
+      if ('status' in data && data.status === 'resolved') {
+        const statusDetails =
+          'inRelease' in data.statusDetails
+            ? 'inRelease'
+            : 'inNextRelease' in data.statusDetails
+              ? 'inNextRelease'
+              : 'inCommit' in data.statusDetails
+                ? 'inCommit'
+                : 'inUpcomingRelease' in data.statusDetails
+                  ? 'inUpcomingRelease'
+                  : undefined;
+        trackAnalytics('issues_stream.resolved', {
+          organization,
+          action_status_details: statusDetails,
+          area,
+        });
+      }
       if ('priority' in data) {
         trackAnalytics('issues_stream.updated_priority', {
           organization,
