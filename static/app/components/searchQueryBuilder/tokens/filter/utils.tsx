@@ -108,8 +108,21 @@ export function getValidOpsForFilter({
   return [...validOps];
 }
 
+function shouldEscapeTagValue(
+  value: string,
+  options: EscapeTagValueOptions = {}
+): boolean {
+  const {allowArrayValue = true, forceQuote = false} = options;
+  return (
+    forceQuote ||
+    SHOULD_ESCAPE_REGEX.test(value) ||
+    (allowArrayValue && value.startsWith('[') && value.endsWith(']'))
+  );
+}
+
 interface EscapeTagValueOptions {
   allowArrayValue?: boolean;
+  forceQuote?: boolean;
 }
 
 export function escapeTagValue(
@@ -120,13 +133,44 @@ export function escapeTagValue(
     return '';
   }
 
-  const {allowArrayValue = true} = options;
-
   // Wrap in quotes if there is a space or parens
-  const shouldEscape =
-    SHOULD_ESCAPE_REGEX.test(value) ||
-    (allowArrayValue && value.startsWith('[') && value.endsWith(']'));
+  const shouldEscape = shouldEscapeTagValue(value, {...options, allowArrayValue: true});
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
+}
+
+export function escapeTagValueForSearch(
+  value: string,
+  options: EscapeTagValueOptions = {}
+): string {
+  if (!value) {
+    return '';
+  }
+
+  let escapedValue = '';
+  let consecutiveBackslashes = 0;
+
+  for (const char of value) {
+    if (char === '\\') {
+      consecutiveBackslashes += 1;
+      escapedValue += char;
+      continue;
+    }
+
+    if (char === '*' && consecutiveBackslashes % 2 === 0) {
+      escapedValue += '\\';
+    }
+
+    escapedValue += char;
+    consecutiveBackslashes = 0;
+  }
+
+  const shouldEscape = shouldEscapeTagValue(escapedValue, {
+    ...options,
+    allowArrayValue: true,
+    forceQuote: false,
+  });
+
+  return shouldEscape ? `"${escapeDoubleQuotes(escapedValue)}"` : escapedValue;
 }
 
 export function unescapeTagValue(value: string): string {

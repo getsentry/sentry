@@ -1,6 +1,12 @@
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
-import {areWildcardOperatorsAllowed} from './utils';
+import {
+  areWildcardOperatorsAllowed,
+  escapeTagValueForSearch,
+  formatFilterValue,
+  unescapeTagValue,
+} from './utils';
 
 describe('areWildcardOperatorsAllowed', () => {
   it('returns false when fieldDefinition is null', () => {
@@ -64,5 +70,40 @@ describe('areWildcardOperatorsAllowed', () => {
     };
 
     expect(areWildcardOperatorsAllowed(fieldDefinition)).toBe(false);
+  });
+});
+
+describe('escapeTagValueForSearch', () => {
+  it('escapes unescaped asterisks', () => {
+    expect(escapeTagValueForSearch('foo*bar')).toBe('foo\\*bar');
+  });
+
+  it('does not double escape escaped asterisks', () => {
+    expect(escapeTagValueForSearch('foo\\*bar')).toBe('foo\\*bar');
+  });
+
+  it('preserves quoting when forced', () => {
+    expect(escapeTagValueForSearch('foo*bar', {forceQuote: true})).toBe('"foo\\*bar"');
+  });
+});
+
+describe('unescapeTagValue', () => {
+  it('only unescapes quotes', () => {
+    expect(unescapeTagValue('foo\\*bar')).toBe('foo\\*bar');
+  });
+});
+
+describe('formatFilterValue', () => {
+  it('renders escaped asterisks exactly as saved for unquoted values', () => {
+    expect(
+      formatFilterValue({
+        token: {
+          type: Token.VALUE_TEXT,
+          text: '\\*\\*\\*\\*',
+          value: '\\*\\*\\*\\*',
+          quoted: false,
+        } as any,
+      })
+    ).toBe('\\*\\*\\*\\*');
   });
 });
