@@ -119,6 +119,46 @@ class TestGetMetricMetadata(TestCase):
         assert len(result["candidates"]) == 2
 
     @patch("sentry.seer.assisted_query.metrics_tools.client")
+    def test_has_more_uses_raw_row_count_not_filtered_count(self, mock_client: MagicMock) -> None:
+        """Regression: has_more must be computed from what Sentry returned, not
+        from what survived our local parse filter. We over-fetch by 1 specifically
+        to detect \"Sentry has more matches than you asked for\"; filtering a
+        malformed row shouldn't hide that signal from the caller."""
+        # limit=2, per_page=3. Return 3 rows where one is malformed.
+        # Post-filter: 2 candidates (== limit). Pre-filter: 3 rows (> limit).
+        # has_more must be True because Sentry had 3 matches, caller asked for 2.
+        response = MagicMock()
+        response.data = {
+            "data": [
+                {
+                    "metric.name": "a",
+                    "metric.type": "counter",
+                    "metric.unit": "none",
+                    "count()": 30,
+                },
+                # Malformed — will be filtered out locally.
+                {"metric.name": None, "metric.type": "counter", "metric.unit": "none"},
+                {
+                    "metric.name": "b",
+                    "metric.type": "counter",
+                    "metric.unit": "none",
+                    "count()": 20,
+                },
+            ]
+        }
+        mock_client.get.return_value = response
+
+        result = get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["x"],
+            limit=2,
+        )
+
+        assert result["has_more"] is True
+        assert len(result["candidates"]) == 2
+
+    @patch("sentry.seer.assisted_query.metrics_tools.client")
     def test_skips_rows_missing_name_or_type(self, mock_client: MagicMock) -> None:
         response = MagicMock()
         response.data = {

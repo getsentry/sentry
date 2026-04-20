@@ -123,6 +123,13 @@ def get_metric_metadata(
 
     raw_rows = (resp.data or {}).get("data") or []
 
+    # We over-fetch by 1 (per_page = limit + 1) specifically to detect whether
+    # Sentry has more matches than the caller asked for. That signal must be
+    # derived from what the API returned, not from what survived our local
+    # parse filter — if we filter a malformed row we would otherwise under-
+    # report `has_more` and hide the existence of further matches.
+    has_more = len(raw_rows) > limit
+
     candidates: list[MetricMetadataRow] = []
     for row in raw_rows:
         name = row.get("metric.name")
@@ -143,5 +150,4 @@ def get_metric_metadata(
             )
         )
 
-    has_more = len(candidates) > limit
     return {"candidates": candidates[:limit], "has_more": has_more}
