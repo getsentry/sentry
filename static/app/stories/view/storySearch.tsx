@@ -115,14 +115,11 @@ export function StorySearch() {
                       >
                     )[subcategoryKey]?.label
                   : undefined;
-                const searchText = [storyItem.label, meta?.title, meta?.description]
-                  .filter(Boolean)
-                  .join(' ');
 
                 return (
                   <Item
                     key={storyItem.filesystemPath}
-                    textValue={searchText}
+                    textValue={storyItem.label}
                     {...({
                       label: storyItem.label,
                       trailingItems: subcategoryLabel ? (
