@@ -12,6 +12,7 @@ resources:
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {IconCommand, IconControl, IconShift, IconOption, IconReturn} from 'sentry/icons';
 
 import * as Storybook from 'sentry/stories';
 
@@ -50,13 +51,15 @@ The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elem
 
 Modifiers are automatically mapped per platform. No fallback arrays needed for standard modifier differences.
 
-| Key name  | Mac | Other platforms |
-| --------- | --- | --------------- |
-| `command` | `⌘` | `CTRL`          |
-| `ctrl`    | `⌃` | `CTRL`          |
-| `alt`     | `⌥` | `ALT`           |
-| `option`  | `⌥` | `ALT`           |
-| `shift`   | `⇧` | `⇧`             |
+| Key name  | Mac             | Other platforms |
+| --------- | --------------- | --------------- |
+| `command` | <IconCommand /> | `ctrl`          |
+| `ctrl`    | <IconControl /> | `ctrl`          |
+| `alt`     | <IconOption />  | `alt`           |
+| `option`  | <IconOption />  | `alt`           |
+| `shift`   | <IconShift />   | <IconShift />   |
+| `enter`   | <IconReturn />  | <IconReturn />  |
+| `return`  | <IconReturn />  | <IconReturn />  |
 
 ### Complex Shortcuts
 
@@ -72,7 +75,7 @@ Modifiers are automatically mapped per platform. No fallback arrays needed for s
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Navigate:</Text>
-      <Hotkey value="shift+up" />
+      <Hotkey value="shift+right" />
     </Flex>
   </Flex>
 </Storybook.Demo>
@@ -80,7 +83,7 @@ Modifiers are automatically mapped per platform. No fallback arrays needed for s
 ```jsx
 <Hotkey value="command+z" />
 <Hotkey value="command+shift+z" />
-<Hotkey value="shift+up" />
+<Hotkey value="shift+right" />
 ```
 
 ### Array Form
