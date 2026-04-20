@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -180,7 +181,9 @@ def cleanup_seer_automation_handoff_for_integration(
         ]
     else:
         candidate_project_ids = list(
-            Project.objects.filter(organization_id=organization.id).values_list("id", flat=True)
+            Project.objects.filter(
+                organization_id=organization.id, status=ObjectStatus.ACTIVE
+            ).values_list("id", flat=True)
         )
 
     if not candidate_project_ids:
