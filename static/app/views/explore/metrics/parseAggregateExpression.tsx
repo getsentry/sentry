@@ -13,7 +13,12 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {
+  getFunctionLabel,
+  getVisualizeLabel,
+} from 'sentry/views/explore/toolbar/toolbarVisualize';
+
+export const EQUATION_LABEL = getVisualizeLabel(1, true);
 
 interface ParsedAggregateExpression {
   /**
@@ -89,6 +94,7 @@ function makeEquationRow(prefixedEquation: string): BaseMetricQuery {
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeEquation(prefixedEquation)],
     }),
+    label: EQUATION_LABEL,
   };
 }
 
