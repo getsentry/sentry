@@ -81,7 +81,7 @@ class AlertRuleListDeltaTest(APITestCase):
 @with_feature(
     [
         "organizations:incidents",
-        "organizations:organizations:workflow-engine-metric-alert-endpoints-get",
+        "organizations:workflow-engine-metric-alert-endpoints-get",
     ]
 )
 class AlertRuleListEndpointWorkflowEngineMethodFlagTest(APITestCase):

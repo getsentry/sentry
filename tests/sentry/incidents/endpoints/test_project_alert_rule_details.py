@@ -160,7 +160,7 @@ class AlertRuleDetailsGetDeltaTest(AlertRuleDetailsBase):
 @with_feature(
     [
         "organizations:incidents",
-        "organizations:organizations:workflow-engine-metric-alert-endpoints-get",
+        "organizations:workflow-engine-metric-alert-endpoints-get",
     ]
 )
 class AlertRuleDetailsGetEndpointWorkflowEngineMethodFlagTest(AlertRuleDetailsBase):
