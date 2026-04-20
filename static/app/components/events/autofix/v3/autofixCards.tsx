@@ -34,6 +34,7 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -447,7 +448,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
         marginTop="md"
         ref={containerRef}
         maxHeight="200px"
-        overflowY="scroll"
+        overflowY="auto"
       >
         {messages.map((message, index) => {
           if (message.role === 'user') {
@@ -456,11 +457,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
           }
 
           if (message.content && message.content !== 'Thinking...') {
-            return (
-              <Text key={index} variant="muted">
-                {message.content}
-              </Text>
-            );
+            return <MarkedText key={index} text={message.content} inline as="span" />;
           }
 
           return null;
