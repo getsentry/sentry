@@ -322,7 +322,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
         return prepared_request
 
-    def is_error_fatal(self, error: Exception) -> bool:
+    def is_error_fatal(self, error: BaseException) -> bool:
         if (
             hasattr(error, "response")
             and hasattr(error.response, "text")
