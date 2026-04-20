@@ -101,12 +101,17 @@ If pre-commit fails, fix the reported issues and run it again until it passes. D
 #### Testing
 
 ```bash
+# Preferred for local backend changes: run only tests affected by your diff (fast)
+make test-selective
+
 # Run Python tests (always use these parameters)
 pytest -svv --reuse-db
 
 # Run specific test file
 pytest -svv --reuse-db tests/sentry/api/test_base.py
 ```
+
+For backend-scoped changes, always try `make test-selective` first. It detects which tests are affected by your local diff and runs only those, making the feedback loop much faster. Fall back to `pytest` when you need to run a specific file or `test-selective` doesn't cover your case.
 
 #### Database Operations
 

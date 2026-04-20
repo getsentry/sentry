@@ -207,6 +207,23 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         )
         assert response.status_code == 400
 
+    def test_invalid_mappings_detail_message(self) -> None:
+        response = self.make_post(
+            {
+                "mappings": [
+                    {"stackRoot": "valid/path", "sourceRoot": "also/valid"},
+                    {"stackRoot": "has space", "sourceRoot": "valid/path"},
+                    {"stackRoot": "valid/path", "sourceRoot": "has'quote"},
+                ],
+            }
+        )
+        assert response.status_code == 400
+        assert "invalid format" in response.data["detail"]
+        assert "[1, 2]" in response.data["detail"]
+        assert response.data["mappings"][0] == {}
+        assert "stackRoot" in response.data["mappings"][1]
+        assert "sourceRoot" in response.data["mappings"][2]
+
     def test_invalid_branch_name(self) -> None:
         response = self.make_post({"defaultBranch": "/leading-slash"})
         assert response.status_code == 400

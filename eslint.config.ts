@@ -308,7 +308,6 @@ export default typescript.config([
     rules: {
       'array-callback-return': 'error',
       'block-scoped-var': 'error',
-      'dot-notation': 'error',
       eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
       'multiline-comment-style': ['error', 'separate-lines'],
@@ -401,13 +400,10 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
-      'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
-      'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
       radix: 'error',
-      'require-await': 'off', // Disabled in favor of @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -597,35 +593,55 @@ export default typescript.config([
     },
   },
   {
+    extends: enableTypeAwareLinting
+      ? [typescript.configs.strictTypeChecked, typescript.configs.stylisticTypeChecked]
+      : [],
     name: 'plugin/typescript-eslint/type-aware-linting',
     ignores: [globMDX],
-    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict-type-checked.ts
-    // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic-type-checked.ts
     rules: enableTypeAwareLinting
       ? {
-          '@typescript-eslint/await-thenable': 'error',
+          // Customization
+          '@sentry/no-default-exports': 'error',
+          '@sentry/no-unnecessary-type-annotation': 'error',
+          '@sentry/no-unnecessary-type-narrowing': 'error',
           '@typescript-eslint/consistent-type-exports': 'error',
-          '@typescript-eslint/no-array-delete': 'error',
-          '@typescript-eslint/no-base-to-string': 'error',
-          '@typescript-eslint/no-duplicate-type-constituents': 'error',
-          '@typescript-eslint/no-for-in-array': 'error',
-          '@typescript-eslint/no-unnecessary-template-expression': 'error',
-          '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-          '@typescript-eslint/no-unnecessary-type-parameters': 'error',
           '@typescript-eslint/switch-exhaustiveness-check': [
             'error',
             {considerDefaultExhaustiveForUnions: true},
           ],
-          '@typescript-eslint/only-throw-error': 'error',
-          '@typescript-eslint/prefer-as-const': 'error',
-          '@typescript-eslint/prefer-optional-chain': 'error',
-          '@typescript-eslint/prefer-promise-reject-errors': 'error',
-          '@typescript-eslint/prefer-reduce-type-parameter': 'error',
-          '@typescript-eslint/require-await': 'error',
-          '@typescript-eslint/no-meaningless-void-operator': 'error',
-          '@sentry/no-default-exports': 'error',
-          '@sentry/no-unnecessary-type-annotation': 'error',
-          '@sentry/no-unnecessary-type-narrowing': 'error',
+
+          // TODO: Evaluate which rules we could practically fix violations from & enable
+          '@typescript-eslint/no-confusing-void-expression': 'off',
+          '@typescript-eslint/no-deprecated': 'off',
+          '@typescript-eslint/no-floating-promises': 'off',
+          '@typescript-eslint/no-misused-promises': 'off',
+          '@typescript-eslint/no-misused-spread': 'off',
+          '@typescript-eslint/no-mixed-enums': 'off',
+          '@typescript-eslint/no-redundant-type-constituents': 'off',
+          '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
+          '@typescript-eslint/no-unnecessary-condition': 'off',
+          '@typescript-eslint/no-unnecessary-type-arguments': 'off',
+          '@typescript-eslint/no-unnecessary-type-conversion': 'off',
+          '@typescript-eslint/no-unsafe-argument': 'off',
+          '@typescript-eslint/no-unsafe-assignment': 'off',
+          '@typescript-eslint/no-unsafe-call': 'off',
+          '@typescript-eslint/no-unsafe-enum-comparison': 'off',
+          '@typescript-eslint/no-unsafe-member-access': 'off',
+          '@typescript-eslint/no-unsafe-return': 'off',
+          '@typescript-eslint/no-useless-default-assignment': 'off',
+          '@typescript-eslint/non-nullable-type-assertion-style': 'off',
+          '@typescript-eslint/prefer-array-find': 'off',
+          '@typescript-eslint/prefer-array-index-of': 'off',
+          '@typescript-eslint/prefer-find': 'off',
+          '@typescript-eslint/prefer-includes': 'off',
+          '@typescript-eslint/prefer-nullish-coalescing': 'off',
+          '@typescript-eslint/prefer-regexp-exec': 'off',
+          '@typescript-eslint/prefer-return-this-type': 'off',
+          '@typescript-eslint/prefer-string-starts-ends-with': 'off',
+          '@typescript-eslint/restrict-plus-operands': 'off',
+          '@typescript-eslint/restrict-template-expressions': 'off',
+          '@typescript-eslint/unbound-method': 'off',
+          '@typescript-eslint/use-unknown-in-catch-callback-variable': 'off',
         }
       : {},
   },
@@ -647,9 +663,6 @@ export default typescript.config([
     name: 'plugin/typescript-eslint/custom',
     ignores: [globMDX],
     rules: {
-      'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
-      'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
-
       '@typescript-eslint/naming-convention': [
         'error',
         {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
@@ -682,44 +695,15 @@ export default typescript.config([
       '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/base.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/recommended.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/strict.ts
-  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/flat/stylistic.ts
-  ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
-  ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
   {
+    extends: [typescript.configs.strict, typescript.configs.stylistic],
     name: 'plugin/typescript-eslint/overrides',
-    // https://typescript-eslint.io/rules/
-    plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      'prefer-spread': 'off',
-      '@typescript-eslint/prefer-enum-initializers': 'error',
-      'no-unused-expressions': 'off', // Disabled in favor of @typescript-eslint/no-unused-expressions
-      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
-
-      // Recommended overrides
-      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-namespace': 'off',
-      '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
-
-      // Strict overrides
-      '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/unified-signatures': 'off',
-
-      // Stylistic overrides
-      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
-      '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
-
       // Customization
+      'prefer-spread': 'off',
+      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
+      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
+      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
       '@typescript-eslint/no-unused-vars':
         // Favor "noUnusedLocals": true in CI, but enable in pre-commit to catch unused imports without running tsc
         IS_PRECOMMIT && !IS_CI
@@ -741,6 +725,21 @@ export default typescript.config([
               },
             ]
           : 'off',
+      '@typescript-eslint/prefer-enum-initializers': 'error',
+
+      // TODO: Evaluate which rules we could practically fix violations from & enable
+      '@typescript-eslint/class-literal-property-style': 'off',
+      '@typescript-eslint/consistent-type-definitions': 'off',
+      '@typescript-eslint/no-dynamic-delete': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-invalid-void-type': 'off',
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-this-alias': 'off',
+      '@typescript-eslint/unified-signatures': 'off',
     },
   },
   {

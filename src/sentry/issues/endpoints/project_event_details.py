@@ -34,6 +34,7 @@ def wrap_event_response(
     environments: list[str],
     include_full_release_data: bool = False,
     conditions: list[Condition] | None = None,
+    legacy_conditions: list[Any] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEventDetailsResponse | None:
@@ -54,6 +55,8 @@ def wrap_event_response(
 
     if conditions is None:
         conditions = []
+    if legacy_conditions is None:
+        legacy_conditions = []
 
     if event.group_id:
         if options.get("eventstore.adjacent_event_ids_use_snql"):
@@ -68,12 +71,19 @@ def wrap_event_response(
                 end=end,
             )
         else:
-            legacy_conditions = []
+            filter_conditions: list[Any] = []
             if environments:
-                legacy_conditions.append(["environment", "IN", environments])
+                filter_conditions.append(["environment", "IN", environments])
+
+            if legacy_conditions:
+                apply_query_conditions_org_ids = options.get(
+                    "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids"
+                )
+                if event.project.organization_id in apply_query_conditions_org_ids:
+                    filter_conditions.extend(legacy_conditions)
 
             _filter = eventstore.Filter(
-                conditions=legacy_conditions,
+                conditions=filter_conditions,
                 project_ids=[event.project_id],
                 group_ids=[event.group_id],
                 start=start,

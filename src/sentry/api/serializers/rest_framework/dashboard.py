@@ -383,6 +383,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"widget_type": "Text widgets don't have a widget type or dataset"}
             )
 
+        description = data.get("description")
+        if description is not None and len(description) > 15000:
+            raise serializers.ValidationError(
+                {"description": "Description must not exceed 15,000 characters"}
+            )
+
         queries = data.get("queries")
         if queries and len(queries) > 0:
             raise serializers.ValidationError({"queries": "Text widgets don't have queries"})

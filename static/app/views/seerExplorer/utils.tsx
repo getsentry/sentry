@@ -416,7 +416,9 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  // Allows multi-hyphen project slugs like FRONTEND-REACT-59A or BACKEND-RUBY-ON-RAILS-58
+  const shortIdPattern =
+    /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -481,24 +483,6 @@ export function postProcessLLMMarkdown(text: string | null | undefined): string 
   // Add more processing rules here as needed
 
   return processed;
-}
-
-/**
- * Simulates the keyboard shortcut to toggle the Seer Explorer panel.
- * This dispatches a keyboard event that matches the Cmd+/ (Mac) or Ctrl+/ (non-Mac) shortcut.
- */
-export function toggleSeerExplorerPanel(): void {
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-  const keyboardEvent = new KeyboardEvent('keydown', {
-    key: '/',
-    code: 'Slash',
-    keyCode: 191,
-    which: 191,
-    metaKey: isMac,
-    ctrlKey: !isMac,
-    bubbles: true,
-  });
-  document.dispatchEvent(keyboardEvent);
 }
 
 /**

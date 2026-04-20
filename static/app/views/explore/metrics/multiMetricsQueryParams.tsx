@@ -6,33 +6,16 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DEFAULT_YAXIS_BY_TYPE,
-  OPTIONS_BY_TYPE,
-} from 'sentry/views/explore/metrics/constants';
-import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
-import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
-import {
-  getNextLabel,
-  useStableLabels,
-} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type BaseMetricQuery,
-  type MetricQuery,
-  type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
-import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  isVisualizeEquation,
-  isVisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+  useMetricQueriesController,
+  type MetricQueriesControllerValue,
+} from 'sentry/views/explore/metrics/useMetricQueriesController';
 
 export const MAX_METRICS_ALLOWED = 8;
 
@@ -43,159 +26,43 @@ function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
     .filter(Boolean);
 }
 
-function syncUpdatedMetricQueries(
-  previousMetricQueries: BaseMetricQuery[],
-  nextMetricQueries: BaseMetricQuery[]
-): BaseMetricQuery[] {
-  return syncEquationMetricQueries(
-    nextMetricQueries,
-    getMetricReferences(previousMetricQueries),
-    getMetricReferences(nextMetricQueries)
-  );
-}
-
-interface MultiMetricsQueryParamsContextValue {
-  insertLabelAtIndex: (position: number, label: string) => void;
-  metricQueries: MetricQuery[];
-  reorderLabels: (from: number, to: number) => void;
-}
-
 const [
   _MultiMetricsQueryParamsContextProvider,
   useMultiMetricsQueryParamsContext,
   MultiMetricsQueryParamsContext,
-] = createDefinedContext<MultiMetricsQueryParamsContextValue>({
+] = createDefinedContext<MetricQueriesControllerValue>({
   name: 'QueryParamsContext',
 });
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
   allowUpTo?: number;
+  hasEquations?: boolean;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
   allowUpTo,
+  hasEquations,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const rawQueries = useMemo(
+
+  const queries = useMemo(
     () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
     [location, allowUpTo]
   );
 
-  const labels = useStableLabels(rawQueries);
-
-  const value = useMemo(() => {
-    const metricQueries = rawQueries.map((query, i) => ({
-      ...query,
-      // Labels are injected adhoc so each session maintains a label for each query
-      // but the labels will compact sequentially on fresh page loads.
-      label: labels.getLabel(i),
-    }));
-
-    function navigateToMetricQueries(nextMetricQueries: BaseMetricQuery[]) {
+  const setQueries = useCallback(
+    (nextQueries: BaseMetricQuery[]) => {
       const target = {...location, query: {...location.query}};
-      target.query.metric = encodeMetricQueries(nextMetricQueries);
+      target.query.metric = encodeMetricQueries(nextQueries);
       navigate(target);
-    }
+    },
+    [location, navigate]
+  );
 
-    function setQueryParamsForIndex(i: number) {
-      return function (newQueryParams: ReadableQueryParams) {
-        const newMetricQueries = metricQueries.map(
-          (metricQuery: BaseMetricQuery, j: number) => {
-            if (i !== j) {
-              return metricQuery;
-            }
-            return {
-              metric: metricQuery.metric,
-              queryParams: newQueryParams,
-              label: metricQuery.label,
-            };
-          }
-        );
-        navigateToMetricQueries(
-          syncUpdatedMetricQueries(metricQueries, newMetricQueries)
-        );
-      };
-    }
-
-    function setTraceMetricForIndex(i: number) {
-      return function (newTraceMetric: TraceMetric) {
-        const newMetricQueries = metricQueries.map(
-          (metricQuery: BaseMetricQuery, j: number) => {
-            if (i !== j) {
-              return metricQuery;
-            }
-
-            // when changing trace metrics, we need to look at the currently selected
-            // aggregation and make necessary adjustments
-            const visualize = metricQuery.queryParams.visualizes[0];
-            let aggregateFields = undefined;
-            if (visualize && isVisualizeFunction(visualize)) {
-              const selectedAggregation = visualize.parsedFunction?.name;
-              const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
-
-              if (
-                selectedAggregation &&
-                allowedAggregations?.find(option => option.value === selectedAggregation)
-              ) {
-                // the currently selected aggregation changed types
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              } else {
-                // the currently selected aggregation isn't supported on the new metric
-                const defaultAggregation =
-                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              }
-            }
-
-            return {
-              queryParams: metricQuery.queryParams.replace({aggregateFields}),
-              metric: newTraceMetric,
-              label: metricQuery.label,
-            };
-          }
-        );
-        navigateToMetricQueries(
-          syncUpdatedMetricQueries(metricQueries, newMetricQueries)
-        );
-      };
-    }
-
-    function removeMetricQueryForIndex(i: number) {
-      return function () {
-        // Don't allow removing the last metric query
-        if (metricQueries.length <= 1) {
-          return;
-        }
-
-        // Update labels before navigating so they stay stable
-        labels.remove(i);
-
-        navigateToMetricQueries(metricQueries.filter((_, j) => i !== j));
-      };
-    }
-
-    return {
-      insertLabelAtIndex: labels.insert,
-      reorderLabels: labels.move,
-      metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
-        return {
-          ...metric,
-          setQueryParams: setQueryParamsForIndex(index),
-          setTraceMetric: setTraceMetricForIndex(index),
-          removeMetric: removeMetricQueryForIndex(index),
-        };
-      }),
-    };
-  }, [labels, location, navigate, rawQueries]);
+  const value = useMetricQueriesController({queries, setQueries, hasEquations});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -227,59 +94,11 @@ export function useMultiMetricsQueryParams() {
 export function useAddMetricQuery({
   type = 'aggregate',
 }: {type?: 'aggregate' | 'equation'} = {}) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const organization = useOrganization();
-  const {metricQueries, insertLabelAtIndex}: MultiMetricsQueryParamsContextValue =
-    useMultiMetricsQueryParamsContext();
-  const hasEquations = canUseMetricsEquations(organization);
-
-  return function () {
-    const nextLabel = getNextLabel(metricQueries, type);
-
-    const target = {...location, query: {...location.query}};
-    const equationStart = metricQueries.findIndex(metricQuery =>
-      isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
-    );
-    const insertAt =
-      hasEquations && equationStart !== -1 && type === 'aggregate'
-        ? equationStart
-        : metricQueries.length;
-    const lastAggregate = metricQueries.at(insertAt - 1) ?? defaultMetricQuery();
-    const canDuplicate =
-      type === 'aggregate' &&
-      lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
-    const newQuery = canDuplicate
-      ? {...lastAggregate, label: nextLabel}
-      : defaultMetricQuery({type});
-
-    // Update label ref before navigating so labels stay stable
-    insertLabelAtIndex(insertAt, nextLabel);
-
-    const baseQueries: BaseMetricQuery[] = metricQueries;
-    const newMetricQueries = baseQueries.toSpliced(insertAt, 0, newQuery);
-    target.query.metric = encodeMetricQueries(newMetricQueries);
-
-    navigate(target);
-  };
+  const {addMetricQuery} = useMultiMetricsQueryParamsContext();
+  return useCallback(() => addMetricQuery({type}), [addMetricQuery, type]);
 }
 
 export function useReorderMetricQueries() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const {reorderLabels}: MultiMetricsQueryParamsContextValue =
-    useMultiMetricsQueryParamsContext();
-
-  return useCallback(
-    (reorderedQueries: BaseMetricQuery[], oldIndex: number, newIndex: number) => {
-      // Keep labels attached to query identity during drag reorder.
-      reorderLabels(oldIndex, newIndex);
-
-      const target = {...location, query: {...location.query}};
-      target.query.metric = encodeMetricQueries(reorderedQueries);
-
-      navigate(target);
-    },
-    [location, navigate, reorderLabels]
-  );
+  const {reorderMetricQueries} = useMultiMetricsQueryParamsContext();
+  return reorderMetricQueries;
 }
