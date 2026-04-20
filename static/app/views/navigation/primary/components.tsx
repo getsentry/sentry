@@ -255,11 +255,10 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
 }
 
 interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
-  label: string;
+  label: React.ReactNode;
   buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
   children?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
-  tooltipTitle?: React.ReactNode;
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
@@ -268,9 +267,16 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const hasPageFrame = useHasPageFrameFeature();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
+  const ariaLabel =
+    layout === 'mobile'
+      ? undefined
+      : typeof props.label === 'string'
+        ? props.label
+        : undefined;
+
   return (
     <Tooltip
-      title={props.tooltipTitle ?? props.label}
+      title={props.label}
       disabled={layout === 'mobile'}
       position="right"
       skipWrapper
@@ -279,7 +285,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
       <NavigationButton
         {...props.buttonProps}
         analyticsParams={props.analyticsParams}
-        aria-label={layout === 'mobile' ? undefined : props.label}
+        aria-label={ariaLabel}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
             item: props.analyticsKey,

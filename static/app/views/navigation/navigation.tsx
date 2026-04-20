@@ -315,14 +315,15 @@ export function PrimaryNavigationFooterItems() {
     <Fragment>
       {hasPageFrame ? (
         <PrimaryNavigation.Button
-          label={t('Search support, docs and more')}
-          tooltipTitle={
+          label={
             organization.features.includes('cmd-k-supercharged') ? (
               <Flex gap="xs" align="center">
                 {t('Open command palette')}
                 <Hotkey value="command+k" />
               </Flex>
-            ) : undefined
+            ) : (
+              t('Search support, docs and more')
+            )
           }
           analyticsKey="search"
           buttonProps={{
