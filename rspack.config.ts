@@ -843,7 +843,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
