@@ -319,7 +319,7 @@ export function PrimaryNavigationFooterItems() {
             organization.features.includes('cmd-k-supercharged') ? (
               <Flex gap="xs" align="center">
                 {t('Open command palette')}
-                <Hotkey value="command+k" />
+                <Hotkey value="command+k" variant="debossed" />
               </Flex>
             ) : (
               t('Search support, docs and more')
