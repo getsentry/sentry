@@ -1,21 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconEllipsis, IconMegaphone, IconNext, IconPrevious} from 'sentry/icons';
+import {IconEllipsis, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,13 +28,26 @@ type Props = {
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
+  showFeedbackButton?: boolean;
 };
 
-export function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
+export const releaseFeedbackOptions = {
+  messagePlaceholder: t('How can we improve the Releases experience?'),
+  tags: {
+    ['feedback.source']: 'release-detail',
+  },
+};
+
+export function ReleaseActions({
+  projectSlug,
+  release,
+  releaseMeta,
+  refetchData,
+  showFeedbackButton = true,
+}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const openFeedbackForm = useFeedbackForm();
 
   async function handleArchive() {
     try {
@@ -185,23 +198,10 @@ export function ReleaseActions({projectSlug, release, releaseMeta, refetchData}:
 
   return (
     <Flex gap="sm" align="center">
-      {openFeedbackForm ? (
-        <Container display={{'2xs': 'none', xs: 'block'}}>
-          <Button
-            size="sm"
-            icon={<IconMegaphone />}
-            onClick={() =>
-              openFeedbackForm({
-                messagePlaceholder: t('How can we improve the Releases experience?'),
-                tags: {
-                  ['feedback.source']: 'release-detail',
-                },
-              })
-            }
-          >
-            {t('Give Feedback')}
-          </Button>
-        </Container>
+      {showFeedbackButton ? (
+        <FeedbackButton feedbackOptions={releaseFeedbackOptions}>
+          {t('Give Feedback')}
+        </FeedbackButton>
       ) : null}
       <ButtonBar>
         <LinkButton

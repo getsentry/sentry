@@ -31,6 +31,7 @@ export function ReplayIndexTimestampPrefPicker() {
           icon={<IconSettings />}
           size={hasPageFrameFeature ? 'sm' : undefined}
           aria-label={t('Configure timestamp settings')}
+          tooltipProps={{title: t('Configure timestamp settings')}}
         />
       )}
       value={prefs.timestampType}
