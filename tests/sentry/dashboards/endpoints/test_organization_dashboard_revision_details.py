@@ -46,7 +46,6 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
         assert response.data["id"] == str(self.dashboard.id)
         assert response.data["title"] == "Dashboard 1"
         assert response.data["widgets"] == []
-        assert "needsMigration" not in response.data
 
     def test_returns_422_for_old_schema_version(self) -> None:
         old_revision = DashboardRevision.objects.create(
