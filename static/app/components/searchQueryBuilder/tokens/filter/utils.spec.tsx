@@ -85,6 +85,12 @@ describe('escapeTagValueForSearch', () => {
   it('preserves quoting when forced', () => {
     expect(escapeTagValueForSearch('foo*bar', {forceQuote: true})).toBe('"foo\\*bar"');
   });
+
+  it('respects allowArrayValue when disabled by the caller', () => {
+    expect(escapeTagValueForSearch('[foo*bar]', {allowArrayValue: false})).toBe(
+      '[foo\\*bar]'
+    );
+  });
 });
 
 describe('unescapeTagValue', () => {

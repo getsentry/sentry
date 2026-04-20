@@ -134,7 +134,7 @@ export function escapeTagValue(
   }
 
   // Wrap in quotes if there is a space or parens
-  const shouldEscape = shouldEscapeTagValue(value, {...options, allowArrayValue: true});
+  const shouldEscape = shouldEscapeTagValue(value, options);
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
@@ -164,10 +164,7 @@ export function escapeTagValueForSearch(
     consecutiveBackslashes = 0;
   }
 
-  const shouldEscape = shouldEscapeTagValue(escapedValue, {
-    ...options,
-    allowArrayValue: true,
-  });
+  const shouldEscape = shouldEscapeTagValue(escapedValue, options);
 
   return shouldEscape ? `"${escapeDoubleQuotes(escapedValue)}"` : escapedValue;
 }
