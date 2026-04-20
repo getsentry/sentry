@@ -56,7 +56,7 @@ export function StorySearch() {
       // For components section, consolidate all subcategories into a single section
       if (section === 'core') {
         const allCoreNodes = data.stories.flatMap(subcategoryFolder =>
-          Object.values(subcategoryFolder.children)
+          subcategoryFolder.flat()
         );
 
         if (allCoreNodes.length > 0) {
@@ -105,10 +105,8 @@ export function StorySearch() {
               }
             >
               {item.options.map(storyItem => {
-                const subcategoryKey =
-                  item.key === 'core'
-                    ? storyFrontmatterIndex[storyItem.filesystemPath]?.category
-                    : undefined;
+                const meta = storyFrontmatterIndex[storyItem.filesystemPath];
+                const subcategoryKey = item.key === 'core' ? meta?.category : undefined;
                 const subcategoryLabel = subcategoryKey
                   ? (
                       COMPONENT_SUBCATEGORY_CONFIG as Record<
@@ -117,11 +115,14 @@ export function StorySearch() {
                       >
                     )[subcategoryKey]?.label
                   : undefined;
+                const searchText = [storyItem.label, meta?.title, meta?.description]
+                  .filter(Boolean)
+                  .join(' ');
 
                 return (
                   <Item
                     key={storyItem.filesystemPath}
-                    textValue={storyItem.label}
+                    textValue={searchText}
                     {...({
                       label: storyItem.label,
                       trailingItems: subcategoryLabel ? (
