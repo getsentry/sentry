@@ -152,7 +152,7 @@ def bulk_cleanup_seer_repository_preferences(
     processing_deadline_duration=60 * 10,
     silo_mode=SiloMode.CELL,
 )
-def cleanup_seer_automation_handoff_for_integration(
+def cleanup_seer_automation_handoffs_for_integration(
     organization_id: int, integration_id: int
 ) -> None:
     """

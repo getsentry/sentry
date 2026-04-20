@@ -9,7 +9,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.cleanup import (
     bulk_cleanup_seer_repository_preferences,
-    cleanup_seer_automation_handoff_for_integration,
+    cleanup_seer_automation_handoffs_for_integration,
     cleanup_seer_repository_preferences,
 )
 from sentry.testutils.cases import TestCase
@@ -193,7 +193,7 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
         mock_request.return_value.status = 200
         self._mock_handoff_options(self.project, self.integration_id)
 
-        cleanup_seer_automation_handoff_for_integration(
+        cleanup_seer_automation_handoffs_for_integration(
             organization_id=self.organization.id,
             integration_id=self.integration_id,
         )
@@ -214,7 +214,7 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
         self._mock_handoff_options(self.project, self.integration_id)
         self._mock_handoff_options(other_project, 999)
 
-        cleanup_seer_automation_handoff_for_integration(
+        cleanup_seer_automation_handoffs_for_integration(
             organization_id=self.organization.id,
             integration_id=self.integration_id,
         )
@@ -231,7 +231,7 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
         self._mock_handoff_options(self.project, self.integration_id)
         self._mock_handoff_options(other_org_project, self.integration_id)
 
-        cleanup_seer_automation_handoff_for_integration(
+        cleanup_seer_automation_handoffs_for_integration(
             organization_id=self.organization.id,
             integration_id=self.integration_id,
         )
@@ -246,7 +246,7 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
         self._mock_handoff_options(self.project, self.integration_id)
 
         with pytest.raises(SeerApiError):
-            cleanup_seer_automation_handoff_for_integration(
+            cleanup_seer_automation_handoffs_for_integration(
                 organization_id=self.organization.id,
                 integration_id=self.integration_id,
             )
@@ -257,7 +257,7 @@ class TestCleanupSeerAutomationHandoffForIntegration(TestCase):
     def test_organization_not_found_skips_clearing_options(self, mock_request: MagicMock) -> None:
         mock_request.return_value.status = 200
 
-        cleanup_seer_automation_handoff_for_integration(
+        cleanup_seer_automation_handoffs_for_integration(
             organization_id=99999,
             integration_id=self.integration_id,
         )
