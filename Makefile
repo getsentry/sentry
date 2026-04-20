@@ -156,10 +156,10 @@ test-backend-ci-with-coverage:
 test-selective:
 	@echo "--> Running selective tests based on branch changes"
 	python3 .github/workflows/scripts/selective-testing/fetch-coverage.py \
-		--output /tmp/sentry-selective-testing-cache/coverage.db
+		--output .cache/coverage.db
 	mkdir -p .cache && > .cache/selected-tests.txt
 	python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
-		--coverage-db /tmp/sentry-selective-testing-cache/coverage.db \
+		--coverage-db .cache/coverage.db \
 		--changed-files "$$(git diff --name-only $$(git merge-base origin/master HEAD))" \
 		--output .cache/selected-tests.txt
 	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
