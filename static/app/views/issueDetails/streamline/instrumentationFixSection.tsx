@@ -27,7 +27,7 @@ import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {openSeerExplorer} from 'sentry/views/seerExplorer/hooks/openSeerExplorerPanel';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface InstrumentationFixSectionProps {

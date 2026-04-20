@@ -3,13 +3,16 @@ import {createContext, useContext, type ReactNode} from 'react';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {
+  type OpenSeerExplorerDrawerOptions,
+  useSeerExplorerDrawer,
+} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isMinimized: boolean;
   isOpen: boolean;
-  openSeerExplorer: () => void;
+  openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   setIsMinimized: (value: boolean) => void;
   toggleSeerExplorer: () => void;
 };

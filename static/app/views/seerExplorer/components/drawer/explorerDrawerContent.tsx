@@ -382,18 +382,6 @@ export function ExplorerDrawerContent({
     },
   });
 
-  // ── External open (programmatic openSeerExplorer() calls) ─────────────────
-  // TODO: migrate external open event listening to global level
-  // const {isWaitingForSessionData} = useExternalOpen({
-  //   isVisible,
-  //   sendMessage,
-  //   startNewSession,
-  //   switchToRun,
-  //   sessionRunId: runId ?? undefined,
-  //   sessionBlocks: sessionData?.blocks,
-  //   onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]),
-  // });
-
   return (
     <DrawerContentContainer>
       <TopBar

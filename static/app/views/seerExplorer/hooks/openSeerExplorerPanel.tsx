@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {simulateSeerExplorerKeyboardShortcut} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Utilities for programmatically opening the Seer Explorer panel from anywhere in the app.
@@ -126,6 +126,8 @@ interface UseExternalOpenOptions {
 /**
  * Hook to handle external open events for the Seer Explorer panel.
  * Manages pending options, run creation callbacks, and session ready events.
+ *
+ * DEPRECATED in drawer version; use useSeerExplorerContext callbacks instead.
  */
 export function useExternalOpen({
   isVisible,
@@ -136,7 +138,6 @@ export function useExternalOpen({
   sessionBlocks,
   onUnminimize,
 }: UseExternalOpenOptions) {
-  const {openSeerExplorer: globalOpenSeerExplorer} = useSeerExplorerContext();
   const pendingOptionsRef = useRef<OpenSeerExplorerOptions | null>(null);
   const onRunCreatedRef = useRef<((runId: number) => void) | null>(null);
   const prevRunIdRef = useRef<number | null | undefined>(undefined);
@@ -184,7 +185,7 @@ export function useExternalOpen({
         processPendingOptions(storedOptions);
       } else {
         // Panel is closed - open it, then the visibility effect will process options
-        globalOpenSeerExplorer();
+        simulateSeerExplorerKeyboardShortcut();
       }
     };
 
@@ -192,7 +193,7 @@ export function useExternalOpen({
     return () => {
       document.removeEventListener(SEER_EXPLORER_OPEN_EVENT, handleOpenEvent);
     };
-  }, [isVisible, onUnminimize, processPendingOptions, globalOpenSeerExplorer]);
+  }, [isVisible, onUnminimize, processPendingOptions]);
 
   // Handle pending options when the panel becomes visible
   useEffect(() => {

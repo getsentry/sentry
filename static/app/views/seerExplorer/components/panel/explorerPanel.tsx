@@ -34,11 +34,11 @@ import {
 } from 'sentry/views/seerExplorer/components/panel/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
+import {useExternalOpen} from 'sentry/views/seerExplorer/hooks/openSeerExplorerPanel';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
@@ -67,7 +67,7 @@ export function ExplorerFloatingActionButton() {
   return createPortal(
     <SeerFloatingActionButton
       visible={!isSeerExplorerDrawerOpen}
-      onClick={openSeerExplorer}
+      onClick={() => openSeerExplorer()}
     />,
     document.body
   );
@@ -801,7 +801,7 @@ export function ExplorerPanel() {
       {!hasPageFrame && (
         <SeerFloatingActionButton
           visible={!isVisible && !isSeerDrawerOpen}
-          onClick={openSeerExplorer}
+          onClick={() => openSeerExplorer()}
         />
       )}
     </Fragment>,
