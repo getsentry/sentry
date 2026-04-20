@@ -6,9 +6,9 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Placeholder} from 'sentry/components/placeholder';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';

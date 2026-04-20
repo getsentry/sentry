@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -23,7 +24,6 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';

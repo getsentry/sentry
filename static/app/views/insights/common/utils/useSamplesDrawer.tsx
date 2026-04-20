@@ -1,9 +1,9 @@
 import {useCallback, useEffect} from 'react';
 import type {Location} from 'history';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';

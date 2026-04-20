@@ -22,8 +22,9 @@ import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
+
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';

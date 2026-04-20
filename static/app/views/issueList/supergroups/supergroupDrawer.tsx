@@ -5,6 +5,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -18,7 +19,6 @@ import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';

@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {t} from 'sentry/locale';
 import type {VitalItem} from 'sentry/views/insights/mobile/screens/utils';
 

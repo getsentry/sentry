@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AutofixFeedback} from 'sentry/components/events/autofix/autofixFeedback';
 import {getReferrerConfig} from 'sentry/components/events/autofix/autofixReferrer';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
