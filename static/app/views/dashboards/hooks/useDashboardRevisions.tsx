@@ -11,21 +11,19 @@ export type DashboardRevision = {
   title: string;
 };
 
-export function makeDashboardRevisionsQueryOptions(orgSlug: string, dashboardId: string) {
-  return apiOptions.as<DashboardRevision[]>()(
-    '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/',
-    {
-      path: {organizationIdOrSlug: orgSlug, dashboardId},
-      staleTime: 30_000,
-    }
-  );
-}
-
 interface UseDashboardRevisionsOptions {
   dashboardId: string;
 }
 
 export function useDashboardRevisions({dashboardId}: UseDashboardRevisionsOptions) {
   const organization = useOrganization();
-  return useQuery(makeDashboardRevisionsQueryOptions(organization.slug, dashboardId));
+  return useQuery(
+    apiOptions.as<DashboardRevision[]>()(
+      '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/',
+      {
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
+        staleTime: 30_000,
+      }
+    )
+  );
 }
