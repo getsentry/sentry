@@ -8,7 +8,6 @@ import {OnboardingStepId} from 'sentry/views/onboarding/types';
 jest.mock('sentry/utils/analytics');
 
 type MappedCase = {
-  analyticsSource: string;
   referrer: string;
   sidebarSource: string;
   stepId: OnboardingStepId;
@@ -17,31 +16,26 @@ type MappedCase = {
 const MAPPED_CASES: MappedCase[] = [
   {
     stepId: OnboardingStepId.WELCOME,
-    analyticsSource: 'targeted_onboarding',
     sidebarSource: 'targeted_onboarding_welcome_skip',
     referrer: 'onboarding-welcome-skip',
   },
   {
     stepId: OnboardingStepId.SCM_CONNECT,
-    analyticsSource: 'targeted_onboarding_scm_connect',
     sidebarSource: 'targeted_onboarding_scm_connect_skip',
     referrer: 'onboarding-scm-connect-skip',
   },
   {
     stepId: OnboardingStepId.SCM_PLATFORM_FEATURES,
-    analyticsSource: 'targeted_onboarding_scm_platform_features',
     sidebarSource: 'targeted_onboarding_scm_platform_features_skip',
     referrer: 'onboarding-scm-platform-features-skip',
   },
   {
     stepId: OnboardingStepId.SCM_PROJECT_DETAILS,
-    analyticsSource: 'targeted_onboarding_scm_project_details',
     sidebarSource: 'targeted_onboarding_scm_project_details_skip',
     referrer: 'onboarding-scm-project-details-skip',
   },
   {
     stepId: OnboardingStepId.SETUP_DOCS,
-    analyticsSource: 'targeted_onboarding_first_event_footer',
     sidebarSource: 'targeted_onboarding_first_event_footer_skip',
     referrer: 'onboarding-first-event-footer-skip',
   },
@@ -54,7 +48,7 @@ describe('OnboardingSkipButton', () => {
 
   it.each(MAPPED_CASES)(
     'renders and fires the expected analytics for $stepId',
-    async ({stepId, analyticsSource, sidebarSource, referrer}) => {
+    async ({stepId, sidebarSource, referrer}) => {
       jest.useFakeTimers();
       const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
 
@@ -70,8 +64,8 @@ describe('OnboardingSkipButton', () => {
         await userEvent.click(button, {delay: null});
 
         expect(trackAnalytics).toHaveBeenCalledWith(
-          'growth.onboarding_clicked_skip',
-          expect.objectContaining({source: analyticsSource})
+          'onboarding.scm_header_skip_clicked',
+          expect.objectContaining({step: stepId})
         );
 
         jest.runAllTimers();

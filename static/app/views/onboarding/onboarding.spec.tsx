@@ -792,9 +792,9 @@ describe('Onboarding', () => {
       await userEvent.click(buttons[0]!);
 
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_clicked_skip',
+        'onboarding.scm_header_skip_clicked',
         expect.objectContaining({
-          source: 'targeted_onboarding_scm_connect',
+          step: 'scm-connect',
         })
       );
     });
