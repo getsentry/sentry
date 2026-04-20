@@ -82,6 +82,10 @@ describe('escapeTagValueForSearch', () => {
     expect(escapeTagValueForSearch('foo\\*bar')).toBe('foo\\*bar');
   });
 
+  it('preserves representable backslashes before escaped asterisks', () => {
+    expect(escapeTagValueForSearch('foo\\\\*bar')).toBe('foo\\\\\\*bar');
+  });
+
   it('preserves quoting when forced', () => {
     expect(escapeTagValueForSearch('foo*bar', {forceQuote: true})).toBe('"foo\\*bar"');
   });

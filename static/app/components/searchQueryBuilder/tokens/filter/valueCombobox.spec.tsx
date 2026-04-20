@@ -28,4 +28,10 @@ describe('getSelectedValuesFromText', () => {
       {value: '****', selected: true},
     ]);
   });
+
+  it('round-trips representable backslashes before literal asterisks', () => {
+    expect(getSelectedValuesFromText('foo\\\\\\*bar,', {escaped: false})).toEqual([
+      {value: 'foo\\\\*bar', selected: true},
+    ]);
+  });
 });

@@ -148,6 +148,9 @@ export function prepareInputValueForSaving(
     : (uniqueValues[0] ?? '""');
 }
 
+// This only inverts the query builder's wildcard escaping for search values that
+// the search syntax can actually represent. In search syntax, `\*` already means
+// a literal `*`, so odd backslash counts before `*` are not distinct raw values.
 function unescapeAsteriskSearchValue(value: string) {
   let unescapedValue = '';
 
