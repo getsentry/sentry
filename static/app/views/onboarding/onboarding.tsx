@@ -122,18 +122,22 @@ interface ContainerVariableProps {
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
   const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
-  const Component =
-    newWelcomeUIStep && !props.hasScmOnboarding
-      ? OnboardingContainerNewWelcomeUI
-      : OnboardingContainer;
+
+  if (newWelcomeUIStep && !props.hasScmOnboarding) {
+    return (
+      <OnboardingContainerNewWelcomeUI hasFooter>
+        {props.children}
+      </OnboardingContainerNewWelcomeUI>
+    );
+  }
 
   return (
-    <Component
+    <OnboardingContainer
       hasFooter={props.hasFooter || newWelcomeUIStep}
       hasScmOnboarding={props.hasScmOnboarding}
     >
       {props.children}
-    </Component>
+    </OnboardingContainer>
   );
 }
 
@@ -452,7 +456,6 @@ function Onboarding() {
 
 const OnboardingContainerNewWelcomeUI = styled('div')<{
   hasFooter: boolean;
-  hasScmOnboarding: boolean;
 }>`
   flex-grow: 1;
   display: flex;
