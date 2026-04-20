@@ -27,11 +27,11 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent({
-  handleClose,
+  onClose,
   getPageReferrer,
 }: {
   getPageReferrer: () => string;
-  handleClose: () => void;
+  onClose: () => void;
 }) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -399,7 +399,7 @@ export function ExplorerDrawerContent({
       <TopBar
         isCopyLinkEnabled={false} // TODO: disabled for drawer, may remove in favor copy URL
         onCopyLinkClick={() => {}}
-        handleClose={handleClose}
+        onClose={onClose}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}

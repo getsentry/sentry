@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
@@ -65,7 +65,7 @@ export const useSeerExplorerDrawer = () => {
     openDrawer(
       () => (
         <ExplorerDrawerContent
-          handleClose={closeSeerExplorerDrawer}
+          onClose={closeSeerExplorerDrawer}
           getPageReferrer={getPageReferrer}
         />
       ),
@@ -95,18 +95,23 @@ export const useSeerExplorerDrawer = () => {
     }
   }, [closeSeerExplorerDrawer, openSeerExplorerDrawer]);
 
+  const disabledReturn = useMemo(
+    () => ({
+      openSeerExplorerDrawer: () => {},
+      closeSeerExplorerDrawer: () => {},
+      toggleSeerExplorerDrawer: () => {},
+      isOpen: false as const,
+    }),
+    []
+  );
+
   if (
     !organization ||
     organization.hideAiFeatures ||
     !organization.features.includes('gen-ai-features') ||
     !isSeerExplorerEnabled(organization)
   ) {
-    return {
-      openSeerExplorerDrawer: () => {},
-      closeSeerExplorerDrawer: () => {},
-      toggleSeerExplorerDrawer: () => {},
-      isOpen: false,
-    };
+    return disabledReturn;
   }
 
   return {

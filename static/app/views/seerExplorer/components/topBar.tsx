@@ -21,12 +21,12 @@ import {
 import {t} from 'sentry/locale';
 
 interface TopBarProps {
-  handleClose: () => void;
   isCopyLinkEnabled: boolean;
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
   isPolling: boolean;
   isSessionHistoryOpen: boolean;
+  onClose: () => void;
   onCopyLinkClick: () => void;
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
@@ -46,7 +46,7 @@ interface TopBarProps {
 }
 
 export function TopBar({
-  handleClose,
+  onClose,
   isCopyLinkEnabled,
   isCopySessionEnabled,
   isEmptyState,
@@ -207,7 +207,7 @@ export function TopBar({
         )}
         <Button
           icon={<IconClose />}
-          onClick={handleClose}
+          onClick={onClose}
           priority="transparent"
           size="sm"
           aria-label={t('Close panel')}

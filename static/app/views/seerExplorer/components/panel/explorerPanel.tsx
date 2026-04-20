@@ -624,7 +624,7 @@ export function ExplorerPanel() {
       onUnminimize={handleUnminimize}
     >
       <TopBar
-        handleClose={closeSeerExplorer}
+        onClose={closeSeerExplorer}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
         isSeerDrawerOpen={isSeerDrawerOpen}
