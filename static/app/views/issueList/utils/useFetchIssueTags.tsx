@@ -10,6 +10,7 @@ import {
   IssueCategory,
   PriorityLevel,
   VALID_ISSUE_CATEGORIES,
+  AI_DETECTED_ISSUE_TYPES,
   VISIBLE_ISSUE_TYPES,
   type TagCollection,
 } from 'sentry/types/group';
@@ -204,6 +205,7 @@ export const useFetchIssueTags = ({
       currentTags: renamedTags,
       assigneeFieldValues: assignedValues,
       bookmarksValues: usernames,
+      organization: org,
     });
 
     return {
@@ -216,6 +218,7 @@ export const useFetchIssueTags = ({
     featureFlagTagsQuery.data,
     usernames,
     assignedValues,
+    org,
   ]);
 
   return {
@@ -235,10 +238,12 @@ function builtInIssuesFields({
   currentTags,
   assigneeFieldValues = [],
   bookmarksValues = [],
+  organization,
 }: {
   assigneeFieldValues: SearchGroup[] | string[];
   bookmarksValues: string[];
   currentTags: TagCollection;
+  organization: Organization;
 }): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
@@ -322,7 +327,12 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_TYPE]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
-      values: VISIBLE_ISSUE_TYPES.map(value => ({
+      values: [
+        ...VISIBLE_ISSUE_TYPES,
+        ...(organization.features.includes('ai-issue-detection')
+          ? [...AI_DETECTED_ISSUE_TYPES]
+          : []),
+      ].map(value => ({
         icon: null,
         title: value,
         name: value,
