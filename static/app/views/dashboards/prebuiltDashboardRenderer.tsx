@@ -2,7 +2,7 @@ import {useLayoutEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {useDismissable} from 'sentry/components/banner';
@@ -127,51 +127,55 @@ export function PrebuiltDashboardRenderer({
     !dismissed &&
     pageFilters.selection.projects.includes(6178942) &&
     isAiAgentsOverview;
+  const showDashboardMigrationAlert = Boolean(dashboardId);
+  const hasPageAlerts = showDashboardMigrationAlert || showSeerDataBanner;
+
+  const pageAlerts = hasPageAlerts ? (
+    <Stack gap="lg">
+      {showDashboardMigrationAlert ? (
+        <Alert variant="info" showIcon>
+          {tct(
+            'Insights pages are moving to Dashboards. Same functionality you love with more customization (and a less cheesy name). [link:View this page on Dashboards]',
+            {
+              link: (
+                <Link
+                  to={{
+                    pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/`,
+                    query: extractSelectionParameters(location.query),
+                  }}
+                />
+              ),
+            }
+          )}
+        </Alert>
+      ) : null}
+
+      {showSeerDataBanner ? (
+        <Alert
+          variant="warning"
+          trailingItems={
+            <Button
+              aria-label="Dismiss"
+              icon={<IconClose />}
+              size="xs"
+              onClick={dismiss}
+            />
+          }
+        >
+          SENTRY EMPLOYEES: Transaction size limits make seer instrumentation incomplete.
+          Data shown here does not reflect actual state.
+        </Alert>
+      ) : null}
+    </Stack>
+  ) : null;
 
   return (
     <LoadingContainer isLoading={isLoading} showChildrenWhileLoading={false}>
-      {dashboardId && (
-        <Container padding="xl 3xl 0">
-          <Alert variant="info" showIcon>
-            {tct(
-              'Insights pages are moving to Dashboards. Same functionality you love with more customization (and a less cheesy name). [link:View this page on Dashboards]',
-              {
-                link: (
-                  <Link
-                    to={{
-                      pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/`,
-                      query: extractSelectionParameters(location.query),
-                    }}
-                  />
-                ),
-              }
-            )}
-          </Alert>
-        </Container>
-      )}
-
-      {showSeerDataBanner && (
-        <Container padding="xl 3xl 0">
-          <Alert
-            variant="warning"
-            trailingItems={
-              <Button
-                aria-label="Dismiss"
-                icon={<IconClose />}
-                size="xs"
-                onClick={dismiss}
-              />
-            }
-          >
-            SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
-            incomplete. Data shown here does not reflect actual state.
-          </Alert>
-        </Container>
-      )}
       <DashboardDetail
         dashboard={dashboard}
         dashboards={[]}
         initialState={DashboardState.EMBEDDED}
+        pageAlerts={pageAlerts}
         storageNamespace={storageNamespace}
       />
     </LoadingContainer>

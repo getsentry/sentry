@@ -19,6 +19,7 @@ export function SettingsPageTabs() {
           [t('Repositories'), '/seer/scm/'],
           [t('Autofix'), '/seer/projects/'],
           [t('Code Review'), '/seer/repos/'],
+          [t('Advanced Settings'), '/seer/advanced/'],
         ]
       : [
           [t('Autofix'), '/seer/'],

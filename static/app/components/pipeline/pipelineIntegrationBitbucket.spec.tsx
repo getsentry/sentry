@@ -103,6 +103,16 @@ describe('BitbucketAuthorizeStep', () => {
     expect(screen.getByRole('button', {name: 'Authorize Bitbucket'})).toBeDisabled();
   });
 
+  it('disables authorize button when isInitializing', () => {
+    render(
+      <BitbucketAuthorizeStep
+        {...makeStepProps({stepData: null, isInitializing: true})}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Authorize Bitbucket'})).toBeDisabled();
+  });
+
   it('shows popup blocked notice when popup fails to open', async () => {
     jest.spyOn(window, 'open').mockReturnValue(null);
     render(

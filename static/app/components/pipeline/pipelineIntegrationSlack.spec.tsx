@@ -76,4 +76,12 @@ describe('SlackOAuthLoginStep', () => {
 
     expect(screen.getByRole('button', {name: 'Authorize Slack'})).toBeDisabled();
   });
+
+  it('disables authorize button when isInitializing', () => {
+    render(
+      <SlackOAuthLoginStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Authorize Slack'})).toBeDisabled();
+  });
 });

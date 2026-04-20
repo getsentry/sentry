@@ -261,6 +261,19 @@ describe('InstallationConfigStep', () => {
 
     expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
   });
+
+  it('disables submit button when isInitializing', async () => {
+    render(
+      <InstallationConfigStep
+        {...makeStepProps({stepData: null, isInitializing: true})}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
 });
 
 describe('GitLabOAuthLoginStep', () => {

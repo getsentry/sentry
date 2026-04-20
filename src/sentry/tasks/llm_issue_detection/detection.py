@@ -31,11 +31,13 @@ from sentry.seer.explorer.utils import normalize_description
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
+SEER_CHECK_BUDGET_ENDPOINT_PATH = "/v1/automation/issue-detection/check-budget"
 SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
@@ -178,6 +180,9 @@ GROUP_TYPE_TO_SETTING: dict[type[GroupType], str] = {
 }
 
 
+FALLBACK_ISSUE_TITLE = "AI-Detected Application Issue"
+
+
 def get_group_type_for_title(title: str) -> type[GroupType]:
     return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
 
@@ -227,7 +232,9 @@ def create_issue_occurrence_from_detection(
         event_id=event_id,
         project_id=project.id,
         fingerprint=fingerprint,
-        issue_title=detected_issue.title,
+        issue_title=(
+            FALLBACK_ISSUE_TITLE if detected_issue.title == "Other" else detected_issue.title
+        ),
         subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
         resource_id=None,
         evidence_data=evidence_data,
@@ -328,6 +335,26 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     perf_settings = project.get_option("sentry:performance_issue_settings", default={})
     if not perf_settings.get("ai_issue_detection_enabled", True):
         return
+
+    budget_response = make_signed_seer_api_request(
+        seer_issue_detection_connection_pool,
+        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{organization_id}",
+        body=b"",
+        method="GET",
+        timeout=SEER_TIMEOUT_S,
+    )
+    if budget_response.status == 200:
+        # fail-open since there is an additional budget check on the seer side
+        try:
+            body = json.loads(budget_response.data)
+            if not body.get("has_budget", True):
+                logger.info(
+                    "llm_issue_detection.budget_exceeded",
+                    extra={"organization_id": organization_id},
+                )
+                return
+        except json.JSONDecodeError:
+            pass
 
     evidence_traces = get_project_top_transaction_traces_for_llm_detection(
         project_id, limit=TRANSACTION_BATCH_SIZE, start_time_delta_minutes=START_TIME_DELTA_MINUTES

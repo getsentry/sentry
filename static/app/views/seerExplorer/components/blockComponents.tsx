@@ -20,8 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-
-import type {Block, TodoItem} from './types';
+import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
   getExplorerUrl,
@@ -29,7 +28,7 @@ import {
   getToolsStringFromBlock,
   getValidToolLinks,
   postProcessLLMMarkdown,
-} from './utils';
+} from 'sentry/views/seerExplorer/utils';
 
 interface BlockProps {
   block: Block;
@@ -473,7 +472,7 @@ export function BlockComponent({
                           )}
                         </ToolCallTextContainer>
                         {showTodoList && (
-                          <TodoListContent text={todosToMarkdown(block.todos!)} />
+                          <TodoListContent text={todosToMarkdown(block.todos ?? [])} />
                         )}
                       </Stack>
                     );

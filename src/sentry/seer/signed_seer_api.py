@@ -215,6 +215,10 @@ class ExplorerIndexRequest(TypedDict):
     projects: list[ExplorerIndexProject]
 
 
+class ExplorerExportIndexesRequest(TypedDict):
+    org_id: int
+
+
 class ExplorerIndexSentryKnowledgeRequest(TypedDict):
     replace_existing: bool
 
@@ -309,6 +313,20 @@ def make_bulk_remove_repositories_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/bulk-remove-repositories",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_explorer_export_indexes_request(
+    body: ExplorerExportIndexesRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/export-indexes",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

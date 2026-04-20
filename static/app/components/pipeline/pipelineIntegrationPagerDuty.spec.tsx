@@ -76,4 +76,12 @@ describe('PagerDutyInstallStep', () => {
 
     expect(screen.getByRole('button', {name: 'Install PagerDuty App'})).toBeDisabled();
   });
+
+  it('disables install button when isInitializing', () => {
+    render(
+      <PagerDutyInstallStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Install PagerDuty App'})).toBeDisabled();
+  });
 });

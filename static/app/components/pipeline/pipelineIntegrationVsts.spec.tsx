@@ -64,6 +64,14 @@ describe('VstsOAuthLoginStep', () => {
       state: 'state-xyz',
     });
   });
+
+  it('disables authorize button when isInitializing', () => {
+    render(
+      <VstsOAuthLoginStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Authorize Azure DevOps'})).toBeDisabled();
+  });
 });
 
 describe('VstsAccountSelectionStep', () => {

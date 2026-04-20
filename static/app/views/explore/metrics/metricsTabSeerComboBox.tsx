@@ -11,6 +11,7 @@ import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +19,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
+  defaultAggregateSortBys,
   encodeMetricQueryParams,
   type BaseMetricQuery,
   type TraceMetric,
@@ -25,9 +27,8 @@ import {
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface MetricsTabSeerComboBoxProps {
@@ -201,49 +202,53 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             ? Mode.AGGREGATE
             : Mode.SAMPLES;
 
-      // Build aggregateFields array (same merge logic as LogsTabSeerComboBox)
-      // This combines groupBys with existing visualizations
-      let seenVisualizes = false;
-      let groupByAfterVisualizes = false;
+      // Convert Seer visualizations to VisualizeFunction objects
+      const seerVisualizes = visualizations.flatMap(viz =>
+        viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+      );
 
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isGroupBy(aggregateField) && seenVisualizes) {
-          groupByAfterVisualizes = true;
-          break;
-        } else if (isVisualize(aggregateField)) {
-          seenVisualizes = true;
-        }
-      }
-
+      // Build aggregateFields: groupBys first, then visualizes
       const aggregateFields: AggregateField[] = [];
-      const iter = groupBys[Symbol.iterator]();
 
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isVisualize(aggregateField)) {
-          if (!groupByAfterVisualizes) {
-            // Insert group bys before visualizes
-            for (const groupBy of iter) {
-              aggregateFields.push({groupBy});
-            }
-          }
-          aggregateFields.push(aggregateField);
-        } else if (isGroupBy(aggregateField)) {
-          const {value: groupBy, done} = iter.next();
-          if (!done) {
-            aggregateFields.push({groupBy});
-          }
-        }
-      }
-
-      // Add any remaining group bys
-      for (const groupBy of iter) {
+      for (const groupBy of groupBys) {
         aggregateFields.push({groupBy});
       }
+
+      // Use Seer visualizes if provided, otherwise preserve existing
+      if (seerVisualizes.length > 0) {
+        for (const viz of seerVisualizes) {
+          aggregateFields.push(viz);
+        }
+      } else {
+        for (const field of queryParams.aggregateFields) {
+          if (isVisualize(field)) {
+            aggregateFields.push(field);
+          }
+        }
+      }
+
+      // Parse and apply sort from Seer response
+      const parseSeerSort = (sortStr: string): Sort => {
+        if (sortStr.startsWith('-')) {
+          return {field: sortStr.slice(1), kind: 'desc'};
+        }
+        return {field: sortStr, kind: 'asc'};
+      };
+
+      const seerSort = result.sort ? parseSeerSort(result.sort) : undefined;
+      const aggregateSortBys =
+        mode === Mode.AGGREGATE && seerSort
+          ? [seerSort]
+          : defaultAggregateSortBys(aggregateFields);
+      const sortBys =
+        mode === Mode.SAMPLES && seerSort ? [seerSort] : queryParams.sortBys;
 
       // Build updated ReadableQueryParams for this metric
       const newQueryParams = queryParams.replace({
         query: queryToUse,
         aggregateFields,
+        aggregateSortBys,
+        sortBys,
         mode,
       });
 

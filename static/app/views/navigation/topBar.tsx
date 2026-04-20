@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {
@@ -29,7 +29,7 @@ function TopBarContent() {
   const hasPageFrame = useHasPageFrameFeature();
   const topOffset = useTopOffset();
 
-  const {openExplorerPanel} = useExplorerPanel();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   if (!hasPageFrame) {
     return null;
@@ -63,7 +63,7 @@ function TopBarContent() {
           </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+            <Button icon={<IconSeer />} onClick={openSeerExplorer}>
               {t('Ask Seer')}
             </Button>
           ) : null}

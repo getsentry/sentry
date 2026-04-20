@@ -37,6 +37,7 @@ function ProjectSelectStep({
   advance,
   advanceError,
   isAdvancing,
+  isInitializing,
 }: PipelineStepProps<Record<string, never>, ProjectSelectAdvanceData>) {
   const {projects} = useProjects();
   const sortedProjects = useMemo(
@@ -100,7 +101,7 @@ function ProjectSelectStep({
           {t('Currently only supports Node and Python Lambda functions.')}
         </Text>
         <Flex>
-          <form.SubmitButton disabled={isAdvancing}>
+          <form.SubmitButton disabled={isAdvancing || isInitializing}>
             {isAdvancing ? t('Submitting...') : t('Continue')}
           </form.SubmitButton>
         </Flex>
@@ -155,23 +156,6 @@ function CloudFormationStep({
   const [showExternalId, setShowExternalId] = useState(false);
   const [defaultExternalId] = useState<string>(() => crypto.randomUUID());
 
-  const cloudFormationParams = new URLSearchParams({
-    templateURL: stepData.templateUrl,
-    stackName: stepData.stackName,
-    param_ExternalId: defaultExternalId,
-  });
-  const cloudFormationUrl = `${stepData.baseCloudformationUrl}?${cloudFormationParams}`;
-
-  const regionOptions = stepData.regionList.map(r => ({value: r, label: r}));
-
-  const trackCloudFormationClick = () => {
-    trackIntegrationAnalytics('integrations.cloudformation_link_clicked', {
-      integration: 'aws_lambda',
-      integration_type: 'first_party',
-      organization,
-    });
-  };
-
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -188,6 +172,27 @@ function CloudFormationStep({
       setFieldErrors(form, advanceError);
     }
   }, [advanceError, form]);
+
+  if (stepData === null) {
+    return null;
+  }
+
+  const cloudFormationParams = new URLSearchParams({
+    templateURL: stepData.templateUrl,
+    stackName: stepData.stackName,
+    param_ExternalId: defaultExternalId,
+  });
+  const cloudFormationUrl = `${stepData.baseCloudformationUrl}?${cloudFormationParams}`;
+
+  const regionOptions = stepData.regionList.map(r => ({value: r, label: r}));
+
+  const trackCloudFormationClick = () => {
+    trackIntegrationAnalytics('integrations.cloudformation_link_clicked', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      organization,
+    });
+  };
 
   return (
     <form.AppForm form={form}>
@@ -324,14 +329,18 @@ function InstrumentationStep({
   advance,
   isAdvancing,
 }: PipelineStepProps<InstrumentationStepData, InstrumentationAdvanceData>) {
-  const functions = stepData.functions;
-  const failures = stepData.failures;
+  const functions = stepData?.functions ?? [];
+  const failures = stepData?.failures;
 
   const failedNames = useMemo(() => new Set(failures?.map(f => f.name)), [failures]);
 
   const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(functions.map(fn => [fn.name, true]))
   );
+
+  if (stepData === null) {
+    return null;
+  }
 
   const enabledCount = Object.values(enabled).filter(Boolean).length;
   const allEnabled = enabledCount === functions.length;
