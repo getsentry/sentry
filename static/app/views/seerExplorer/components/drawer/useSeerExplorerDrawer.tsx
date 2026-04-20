@@ -65,7 +65,7 @@ export const useSeerExplorerDrawer = () => {
         `,
         resizable: true,
         closeOnOutsideClick: false,
-        shouldLockScroll: false,
+        shouldLockScroll: true,
         onClose,
       }
     );

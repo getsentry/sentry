@@ -1,17 +1,18 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
+import {useExplorerMenu} from 'sentry/views/seerExplorer/components/panel/explorerMenu';
 import {BlocksContainer} from 'sentry/views/seerExplorer/components/panel/panelContainers';
+import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
@@ -30,6 +31,10 @@ export function ExplorerDrawerContent({
   getPageReferrer: () => string;
   handleClose: () => void;
 }) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const user = useUser();
+
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1);
 
@@ -42,9 +47,16 @@ export function ExplorerDrawerContent({
   const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
   const allowHoverFocusChange = useRef<boolean>(true);
-  const prWidgetButtonRef = useRef<HTMLButtonElement>(null); // TODO:
+  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
+  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
 
-  // ── Session data ──────────────────────────────────────────────────────────
+  const focusInput = useCallback(() => {
+    hoveredBlockIndex.current = -1;
+    setFocusedBlockIndex(-1);
+    textareaRef.current?.focus();
+  }, []);
+
+  // - Session data and mutators ----------------------------------------------
   const {
     runId,
     sessionData,
@@ -53,6 +65,7 @@ export function ExplorerDrawerContent({
     sendMessage,
     deleteFromIndex,
     startNewSession,
+    switchToRun,
     respondToUserInput,
     createPR,
     interruptRun,
@@ -63,64 +76,15 @@ export function ExplorerDrawerContent({
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
-  const organization = useOrganization({allowNull: true});
-  const {projects} = useProjects();
-  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
-  const [isSessionHistoryOpen, setIsSessionHistoryOpen] = useState(false);
-
-  const copySessionEnabled = Boolean(runId && organization?.slug);
-  const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks,
-    status: sessionData?.status,
-    organization,
-    projects,
-    enabled: copySessionEnabled,
-  });
-
-  const openFeedbackForm = useFeedbackForm();
-  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-
-  const handleFeedback = useCallback(() => {
-    if (openFeedbackForm) {
-      openFeedbackForm({
-        formTitle: 'Seer Agent Feedback',
-        messagePlaceholder: 'How can we make Seer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-          ['feedback.owner']: 'ml-ai',
-          ...(runId === null ? {} : {['seer.run_id']: runId}),
-          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
-        },
-      });
-    }
-  }, [openFeedbackForm, runId, langfuseUrl]);
-
-  const handleCopyLink = useCallback(async () => {
-    if (!runId) {
-      return;
-    }
-    try {
-      const url = getExplorerUrl(runId);
-      await navigator.clipboard.writeText(url);
-      addSuccessMessage('Copied link to current chat');
-    } catch {
-      addErrorMessage('Failed to copy link to current chat');
-    }
-    trackAnalytics('seer.explorer.session_link_copied', {organization});
-  }, [runId, organization]);
-
-  const repoPRStates = useMemo(
-    () => sessionData?.repo_pr_states ?? {},
-    [sessionData?.repo_pr_states]
-  );
-  const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
-
-  const user = useUser();
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
     sessionData.owner_user_id.toString() !== user.id;
+
+  const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
+  const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
+  const pendingInput = sessionData?.pending_user_input;
+  const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -130,30 +94,7 @@ export function ExplorerDrawerContent({
     return -1;
   }, [blocks]);
 
-  const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
-  const pendingInput = sessionData?.pending_user_input;
-  const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
-
-  // ── Stable callbacks ──────────────────────────────────────────────────────
-  const focusInput = useCallback(() => {
-    hoveredBlockIndex.current = -1;
-    setFocusedBlockIndex(-1);
-    textareaRef.current?.focus();
-  }, []);
-
-  // ── External open (programmatic openSeerExplorer() calls) ─────────────────
-  // TODO: migrate external open event listening to global level
-  // const {isWaitingForSessionData} = useExternalOpen({
-  //   isVisible,
-  //   sendMessage,
-  //   startNewSession,
-  //   switchToRun,
-  //   sessionRunId: runId ?? undefined,
-  //   sessionBlocks: sessionData?.blocks,
-  //   onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]),
-  // });
-
-  // ── Pending user input (file approval + questions) ────────────────────────
+  // - Pending user input (file approval + questions) -------------------------
   const {
     isFileApprovalPending,
     fileApprovalIndex,
@@ -182,7 +123,92 @@ export function ExplorerDrawerContent({
     userScrolledUpRef,
   });
 
-  // ── Input handlers ────────────────────────────────────────────────────────
+  // - Topbar, menu, and slash command handlers -------------------------------
+  const copySessionEnabled = Boolean(runId && organization?.slug);
+  const {copySessionToClipboard} = useCopySessionDataToClipboard({
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
+    organization,
+    projects,
+    enabled: copySessionEnabled,
+  });
+
+  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
+  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
+
+  const handleOpenLangfuse = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (langfuseUrl) {
+      window.open(langfuseUrl, '_blank');
+    }
+  }, [langfuseUrl]);
+
+  const handleOpenConversations = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (conversationsUrl) {
+      window.open(conversationsUrl, '_blank');
+    }
+  }, [conversationsUrl]);
+
+  const openFeedbackForm = useFeedbackForm();
+  const handleFeedback = useCallback(() => {
+    if (openFeedbackForm) {
+      openFeedbackForm({
+        formTitle: 'Seer Agent Feedback',
+        messagePlaceholder: 'How can we make Seer better for you?',
+        tags: {
+          ['feedback.source']: 'seer_explorer',
+          ['feedback.owner']: 'ml-ai',
+          ...(runId === null ? {} : {['seer.run_id']: runId}),
+          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+        },
+      });
+    }
+  }, [openFeedbackForm, runId, langfuseUrl]);
+
+  // - Pop-up menu component --------------------------------------------------
+
+  // Extract repo_pr_states from session
+  const repoPRStates = useMemo(
+    () => sessionData?.repo_pr_states ?? {},
+    [sessionData?.repo_pr_states]
+  );
+
+  // Get PR widget data for menu
+  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
+    blocks,
+    repoPRStates,
+    onCreatePR: createPR,
+  });
+
+  // Menu component
+  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
+    useExplorerMenu({
+      clearInput: () => setInputValue(''),
+      inputValue,
+      focusInput,
+      textAreaRef: textareaRef,
+      panelSize: 'max',
+      slashCommandHandlers: {
+        onNew: startNewSession,
+        onFeedback: openFeedbackForm ? handleFeedback : undefined,
+        onLangfuse: handleOpenLangfuse,
+        onConversations: handleOpenConversations,
+      },
+      onChangeSession: switchToRun,
+      menuAnchorRef: sessionHistoryButtonRef,
+      inputAnchorRef: textareaRef,
+      prWidgetAnchorRef: prWidgetButtonRef,
+      prWidgetItems,
+      prWidgetFooter,
+    });
+
+  const handleBlocksClick = useCallback(() => {
+    closeMenu();
+  }, [closeMenu]);
+
+  // - Input section handlers -------------------------------------------------
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (readOnly || e.nativeEvent.isComposing) return;
@@ -211,10 +237,10 @@ export function ExplorerDrawerContent({
 
   const handleInputClick = useCallback(() => {
     focusInput();
-    // closeMenu(); //TODO:
-  }, [focusInput]);
+    closeMenu();
+  }, [focusInput, closeMenu]);
 
-  // ── Effects ───────────────────────────────────────────────────────────────
+  // - Scroll Effects ---------------------------------------------------------
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -228,31 +254,96 @@ export function ExplorerDrawerContent({
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Auto-scroll to bottom when new blocks are added, unless user scrolled up
+  // Track scroll position to detect if user scrolled up
   useEffect(() => {
-    if (!userScrolledUpRef.current && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    const handleScroll = () => {
+      const container = scrollContainerRef.current;
+      if (!container) {
+        return;
+      }
+
+      const {scrollTop, scrollHeight, clientHeight} = container;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
+
+      // If user is at/near bottom, mark that they haven't scrolled up
+      if (isAtBottom) {
+        userScrolledUpRef.current = false;
+      } else {
+        userScrolledUpRef.current = true;
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
     }
-  }, [blocks]);
+    return undefined;
+  }, [focusedBlockIndex]);
 
-  // Keep blockRefs array trimmed to current blocks length
+  // Reset scroll state when navigating to input (which is at the bottom)
   useEffect(() => {
-    blockRefs.current = blockRefs.current.slice(0, blocks.length);
-  }, [blocks]);
-
-  // Reset scroll tracking when focus returns to input (which is at the bottom)
-  useEffect(() => {
-    if (focusedBlockIndex === -1) {
+    if (focusedBlockIndex === -1 && scrollContainerRef.current) {
+      // Small delay to let scrollIntoView complete
       setTimeout(() => {
         const container = scrollContainerRef.current;
-        if (!container) return;
-        const {scrollTop, scrollHeight, clientHeight} = container;
-        if (scrollHeight - scrollTop - clientHeight < 50) {
-          userScrolledUpRef.current = false;
+        if (container) {
+          const {scrollTop, scrollHeight, clientHeight} = container;
+          const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+          if (isAtBottom) {
+            userScrolledUpRef.current = false;
+          }
         }
       }, 100);
     }
   }, [focusedBlockIndex]);
+
+  // - Keyboard listeners -----------------------------------------------------
+
+  // Keyboard event listeners for when the menu is closed.
+  // Menu keyboard listeners are in the menu component.
+  useEffect(() => {
+    if (isMenuOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+      if (isPrintableChar) {
+        // If a block is focused, auto-focus input when user starts typing.
+        // Don't do this if file approval or question is pending (textarea isn't visible)
+        if (
+          !readOnly &&
+          focusedBlockIndex !== -1 &&
+          !isFileApprovalPending &&
+          !isQuestionPending
+        ) {
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          setInputValue(prev => prev + e.key);
+        }
+      }
+      // TODO: support pressing tab to focus input (info msg in placeholder when unfocused)
+    };
+
+    // Re-enable hover focus changes when mouse actually moves
+    const handleMouseMove = () => {
+      allowHoverFocusChange.current = true;
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isMenuOpen, readOnly, focusedBlockIndex, isFileApprovalPending, isQuestionPending]);
+
+  // Update block refs array when blocks change
+  useEffect(() => {
+    blockRefs.current = blockRefs.current.slice(0, blocks.length);
+  }, [blocks]);
 
   // Block keyboard navigation
   useBlockNavigation({
@@ -276,36 +367,51 @@ export function ExplorerDrawerContent({
     },
   });
 
+  // ── External open (programmatic openSeerExplorer() calls) ─────────────────
+  // TODO: migrate external open event listening to global level
+  // const {isWaitingForSessionData} = useExternalOpen({
+  //   isVisible,
+  //   sendMessage,
+  //   startNewSession,
+  //   switchToRun,
+  //   sessionRunId: runId ?? undefined,
+  //   sessionBlocks: sessionData?.blocks,
+  //   onUnminimize: useCallback(() => setIsMinimized(false), [setIsMinimized]),
+  // });
+
   return (
     <Fragment>
       <TopBar
         handleClose={handleClose}
-        isCopyLinkEnabled={false} // TODO: add back once deep links are supported by drawer (!!runId)
-        isCopySessionEnabled={copySessionEnabled}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
-        isSessionHistoryOpen={isSessionHistoryOpen}
-        onCopyLinkClick={handleCopyLink}
-        onCopySessionClick={copySessionToClipboard}
+        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
         onFeedbackClick={handleFeedback}
-        onNewChatClick={startNewSession}
-        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
-        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
-        onSessionHistoryClick={() => setIsSessionHistoryOpen(prev => !prev)}
-        overrideCodeModeEnable={overrideCodeModeEnable}
-        overrideCtxEngEnable={overrideCtxEngEnable}
+        onNewChatClick={() => {
+          startNewSession();
+          focusInput();
+        }}
+        onCopySessionClick={copySessionToClipboard}
+        onCopyLinkClick={() => {}}
+        onSessionHistoryClick={openSessionHistory}
+        isCopySessionEnabled={copySessionEnabled}
+        isCopyLinkEnabled={!!runId}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
-        showCodeModeToggle={
-          !!organization?.features.includes('seer-explorer-code-mode-tools')
-        }
+        overrideCtxEngEnable={overrideCtxEngEnable}
+        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={
           !!organization?.features.includes(
             'seer-explorer-context-engine-fe-override-ui-flag'
           )
         }
+        overrideCodeModeEnable={overrideCodeModeEnable}
+        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
+        showCodeModeToggle={
+          !!organization?.features.includes('seer-explorer-code-mode-tools')
+        }
       />
-      <BlocksContainer ref={scrollContainerRef}>
-        {/* TODO: onClick={handlePanelBackgroundClick} */}
+      {menu}
+      <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
           <EmptyState isLoading={isPolling} isError={isError} runId={runId} />
         ) : (
@@ -329,30 +435,30 @@ export function ExplorerDrawerContent({
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
                 readOnly={readOnly}
-                onClick={() => {
-                  textareaRef.current?.blur();
-                  setFocusedBlockIndex(index);
-                }}
                 onMouseEnter={() => {
+                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
                   if (
-                    // isMenuOpen ||  //TODO:
+                    isMenuOpen ||
                     hoveredBlockIndex.current === index ||
                     !allowHoverFocusChange.current
                   ) {
                     return;
                   }
+
                   hoveredBlockIndex.current = index;
                   setFocusedBlockIndex(index);
                   textareaRef.current?.blur();
                 }}
                 onMouseLeave={() => {
-                  if (hoveredBlockIndex.current === index) hoveredBlockIndex.current = -1;
+                  if (hoveredBlockIndex.current === index) {
+                    hoveredBlockIndex.current = -1;
+                  }
                 }}
                 onDelete={() => {
                   deleteFromIndex(index);
                   focusInput();
                 }}
-                onNavigate={() => {}} // TODO: setIsMinimized(true)
+                onNavigate={undefined} // TODO: close drawer on link navigate?
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}
@@ -387,17 +493,17 @@ export function ExplorerDrawerContent({
         enabled={!readOnly}
         inputValue={inputValue}
         waitingForInterrupt={waitingForInterrupt}
-        isVisible // Drawer content is always visible when rendered
         isMinimized={false} // Drawer doesn't have a minimized state
         isPolling={isPolling}
+        isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
-        onPRWidgetClick={() => {} /* TODO: openPRWidget */}
-        prWidgetButtonRef={prWidgetButtonRef /* TODO */}
+        onPRWidgetClick={openPRWidget}
+        prWidgetButtonRef={prWidgetButtonRef}
         repoPRStates={repoPRStates}
         textAreaRef={textareaRef}
         fileApprovalActions={
