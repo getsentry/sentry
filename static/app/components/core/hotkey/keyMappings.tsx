@@ -122,11 +122,18 @@ const universalGlyphs: Record<string, KeyGlyph> = {
   tab: {label: 'Tab'},
   escape: {label: 'Esc'},
   space: {label: 'Space'},
+  home: {label: 'Home'},
+  end: {label: 'End'},
+  pageup: {label: 'PageUp'},
+  pagedown: {label: 'PageDown'},
+  insert: {label: 'Insert'},
+  clear: {label: 'Clear'},
+  capslock: {label: 'CapsLock'},
 };
 
 /**
  * Resolve a key name to its display glyph for the given platform.
- * Non-special keys are uppercased.
+ * Non-special keys fall through to title-cased text (e.g. `'k'` → `'K'`).
  */
 export function resolveKeyGlyph(keyName: string, isMac: boolean): KeyGlyph {
   const key = canonicalize(keyName);
@@ -146,5 +153,5 @@ export function resolveKeyGlyph(keyName: string, isMac: boolean): KeyGlyph {
     Sentry.logger.warn('Missing key glyph mapping', {keyName});
   }
 
-  return {label: toTitleCase(keyName)};
+  return {label: toTitleCase(keyName, {allowInnerUpperCase: true})};
 }
