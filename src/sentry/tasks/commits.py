@@ -398,6 +398,12 @@ def fetch_commits(
     # TODO: Need a better way to error handle no user_id. We need the SDK to be able to call this without user context
     # to autoassociate commits to releases
     user = user_service.get_user(user_id) if user_id is not None else None
+    prev_release = None
+    if prev_release_id is not None:
+        try:
+            prev_release = Release.objects.get(id=prev_release_id)
+        except Release.DoesNotExist:
+            pass
     organization = release.organization
     github_compare_commits_cache_feature_enabled = features.has(
         GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE, organization, actor=user
@@ -412,12 +418,6 @@ def fetch_commits(
         "github_compare_commits_cache_feature_enabled": github_compare_commits_cache_feature_enabled,
     }
     logger.info("fetch_commits.start", extra=extra)
-    prev_release = None
-    if prev_release_id is not None:
-        try:
-            prev_release = Release.objects.get(id=prev_release_id)
-        except Release.DoesNotExist:
-            pass
 
     for ref in refs:
         resolved = resolve_ref(ref=ref, release=release, prev_release=prev_release, user_id=user_id)
