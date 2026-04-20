@@ -237,7 +237,7 @@ class CursoredScheduler[M: Model]:
                 "cursored_scheduler.pk_list_not_empty",
                 extra={"scheduler": self.name, "existing_len": existing_len},
             )
-        client.delete(self.pk_list_cache_key)
+            client.delete(self.pk_list_cache_key)
 
         for chunk in chunked(all_pks, RPUSH_CHUNK_SIZE):
             client.rpush(self.pk_list_cache_key, *chunk)
