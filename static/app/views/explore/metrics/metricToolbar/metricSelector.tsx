@@ -248,6 +248,7 @@ export function MetricSelector({
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
+        searchRef.current?.focus({preventScroll: true});
       });
       return;
     }
@@ -446,7 +447,6 @@ export function MetricSelector({
                         {...comboBoxInputProps}
                         placeholder={t('Search metrics\u2026')}
                         size="xs"
-                        autoFocus
                         ref={searchRef}
                       />
                     </InputGroup>
