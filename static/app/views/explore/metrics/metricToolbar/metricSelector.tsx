@@ -94,9 +94,13 @@ interface MetricSelectOption {
 export function MetricSelector({
   traceMetric,
   onChange,
+  projectIds,
+  environments,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  environments?: string[];
+  projectIds?: number[];
 }) {
   const triggerId = useId();
 
@@ -111,6 +115,8 @@ export function MetricSelector({
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
+    projectIds,
+    environments,
   });
 
   const metricSelectValue = makeMetricSelectValue(
