@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
@@ -25,7 +28,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
@@ -56,10 +58,6 @@ function TokenList({
   tokenList: OrgAuthToken[];
   revokeToken?: (data: {token: OrgAuthToken}) => void;
 }) {
-  const apiEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
-
   const projectIds = tokenList
     .map(token => token.projectLastUsedId)
     .filter(id => !!id) as string[];
@@ -68,13 +66,14 @@ function TokenList({
 
   const hasProjects = projectIds.length > 0;
 
-  const {data: projects, isPending: isLoadingProjects} = useApiQuery<Project[]>(
-    [apiEndpoint, {query: {query: idQueryParams}}],
-    {
+  const {data: projects, isPending: isLoadingProjects} = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {query: idQueryParams},
       staleTime: 0,
-      enabled: hasProjects,
-    }
-  );
+    }),
+    enabled: hasProjects,
+  });
 
   return (
     <Fragment>
@@ -172,21 +171,27 @@ export function OrganizationAuthTokensIndex({
             title={t('Organization Tokens')}
             orgSlug={organization.slug}
           />
-          <SettingsPageHeader title={t('Organization Tokens')} action={createNewToken} />
-
-          <TextBlock>
-            {t(
-              'Organization Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-            )}
-          </TextBlock>
-          <TextBlock>
-            {tct(
-              'For more information on how to use the web API, see our [link:documentation].',
-              {
-                link: <ExternalLink href="https://docs.sentry.io/api/" />,
-              }
-            )}
-          </TextBlock>
+          <SettingsPageHeader
+            title={t('Organization Tokens')}
+            action={createNewToken}
+            subtitle={
+              <Stack gap="md">
+                <div>
+                  {t(
+                    'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                  )}
+                </div>
+                <div>
+                  {tct(
+                    'For more information on how to use the web API, see our [link:documentation].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                    }
+                  )}
+                </div>
+              </Stack>
+            }
+          />
 
           <ResponsivePanelTable
             isLoading={isPending || isError}

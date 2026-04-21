@@ -87,7 +87,7 @@ export function SortBySelectors({
   const timeseriesSortOptions = useMemo(() => {
     let options: Record<string, SelectValue<FieldValue>> = {};
     if (displayType !== DisplayType.TABLE) {
-      options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
+      options = datasetConfig.getTimeseriesSortOptions(organization, widgetQuery, tags);
       const parsedFunction = parseFunction(values.sortBy);
       if (
         widgetType === WidgetType.SPANS &&

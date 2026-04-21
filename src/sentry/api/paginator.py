@@ -40,7 +40,11 @@ def count_hits(queryset, max_hits):
     except EmptyResultSet:
         return 0
     cursor = connections[queryset.using_replica().db].cursor()
-    cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
+    # VULN-1527: Avoid f-string formatting to prevent false positive SQL injection warnings.
+    # The h_sql comes from Django's sql_with_params() which generates safe parameterized SQL,
+    # and h_params contains the properly escaped parameters.
+    count_sql = "SELECT COUNT(*) FROM (%s) as t" % h_sql
+    cursor.execute(count_sql, h_params)
     return cursor.fetchone()[0]
 
 

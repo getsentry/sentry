@@ -3,11 +3,7 @@
 {% block main %}
   <h3>Action Required</h3>
   <p>An identity with a third party service provider ({{ identity.provider }}) failed to authenticate and has been removed.</p>
-  {% if commit_failure %} }
-    <p>You will need to <a href="{{ auth_url }}">associate your account with {{ identity.provider }}</a> to continue automatically fetching commits for your releases.</p>
-  {% else %}
-    <p>You will need to <a href="{{ auth_url }}">associate your account with {{ identity.provider }}</a> to continue using the integration.</p>
-  {% endif %}
+  <p>You will need to <a href="{{ auth_url }}">associate your account with {{ identity.provider }}</a> to continue using the integration.</p>
   <p><a href="{{ auth_url }}" class="btn">Associate Identity</a></p>
 {% endblock %}
 

@@ -246,4 +246,48 @@ describe('getHighlightedSpanAttributes', () => {
       }
     );
   });
+
+  it('should include context utilization when attribute is present', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.context.utilization': '0.45',
+      'gen_ai.context.window_size': '128000',
+      'gen_ai.usage.total_tokens': '57600',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Context Utilization')).toBeDefined();
+  });
+
+  it('should not include context utilization when attribute is absent', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
+  });
+
+  it('should not include context utilization when value is 0', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.context.utilization': '0',
+      'gen_ai.context.window_size': '128000',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
+  });
 });

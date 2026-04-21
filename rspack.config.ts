@@ -255,11 +255,6 @@ const appConfig: Configuration = {
      */
     app: ['sentry/utils/statics-setup', 'sentry'],
 
-    /**
-     * Pipeline View for integrations
-     */
-    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
-
     // admin interface
     gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 
@@ -304,6 +299,18 @@ const appConfig: Configuration = {
      * Please remember to test it.
      */
     rules: [
+      {
+        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: path.resolve(
+              import.meta.dirname,
+              './build-utils/frontmatter-index-loader.ts'
+            ),
+          },
+        ],
+      },
       {
         test: /\.(js|jsx|ts|tsx)$/,
         // core-js: Avoids recompiling core-js based on usage imports

@@ -158,6 +158,21 @@ function getAISpanAttributes({
     });
   }
 
+  const contextUtilization = attributes[SpanFields.GEN_AI_CONTEXT_UTILIZATION];
+  if (contextUtilization && Number(contextUtilization) > 0) {
+    const windowSize = attributes[SpanFields.GEN_AI_CONTEXT_WINDOW_SIZE];
+    highlightedAttributes.push({
+      name: t('Context Utilization'),
+      value: (
+        <HighlightedContextUtilization
+          utilization={Number(contextUtilization)}
+          windowSize={windowSize ? Number(windowSize) : undefined}
+          totalTokens={totalTokens ? Number(totalTokens) : undefined}
+        />
+      ),
+    });
+  }
+
   const captureRules: CaptureRule[] = [
     {
       shouldCapture: Boolean(
@@ -421,6 +436,60 @@ function HighlightedTokenAttributes({
           <Count value={breakdown.total} /> {t('total')}
         </span>
       </TokensSpan>
+    </Tooltip>
+  );
+}
+
+function HighlightedContextUtilization({
+  utilization,
+  totalTokens,
+  windowSize,
+}: {
+  utilization: number;
+  totalTokens?: number;
+  windowSize?: number;
+}) {
+  const percentage = Math.round(utilization * 100);
+  const tokensUsed =
+    windowSize === undefined ? totalTokens : Math.round(utilization * windowSize);
+
+  const inlineValue = (
+    <Fragment>
+      {percentage}%
+      {tokensUsed !== undefined && windowSize !== undefined && (
+        <Fragment>
+          {' ('}
+          <Count value={tokensUsed} />
+          {' / '}
+          <Count value={windowSize} />
+          {')'}
+        </Fragment>
+      )}
+    </Fragment>
+  );
+
+  const tooltipContent = (
+    <TokensTooltipTitle>
+      {windowSize !== undefined && (
+        <Fragment>
+          <span>{t('Window Size')}</span>
+          <span>{windowSize.toLocaleString()}</span>
+        </Fragment>
+      )}
+      {tokensUsed !== undefined && (
+        <Fragment>
+          <span>{t('Tokens Used')}</span>
+          <span>{tokensUsed.toLocaleString()}</span>
+        </Fragment>
+      )}
+      <span>{t('Utilization')}</span>
+      <span>{percentage}%</span>
+    </TokensTooltipTitle>
+  );
+
+  return (
+    <Tooltip title={tooltipContent}>
+      <TokensSpan>{inlineValue}</TokensSpan>
     </Tooltip>
   );
 }

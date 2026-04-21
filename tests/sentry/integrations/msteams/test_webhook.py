@@ -490,7 +490,26 @@ class MsTeamsWebhookTest(APITestCase):
                 tags={"integration": "msteams", "status": 200},
             ),
         ] * 4
-        assert self.metrics.incr.mock_calls == calls
+        assert [
+            c for c in self.metrics.incr.mock_calls if c.args[0] == "integrations.http_request"
+        ] == [c for c in calls if c.args[0] == "integrations.http_request"]
+        assert [
+            c for c in self.metrics.incr.mock_calls if c.args[0] == "integrations.http_response"
+        ] == [c for c in calls if c.args[0] == "integrations.http_response"]
+        assert [
+            c for c in self.metrics.incr.mock_calls if c.args[0] == "integrations.get_cached"
+        ] == [
+            call(
+                "integrations.get_cached",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "api_request_type": "unknown", "result": "miss"},
+            ),
+            call(
+                "integrations.get_cached",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "api_request_type": "unknown", "result": "miss"},
+            ),
+        ]
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 

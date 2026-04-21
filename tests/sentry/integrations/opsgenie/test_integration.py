@@ -11,7 +11,6 @@ from rest_framework.serializers import ValidationError
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.integrations.opsgenie.tasks import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
@@ -20,8 +19,8 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
-from sentry.testutils.asserts import assert_slo_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -35,105 +34,8 @@ METADATA = {
 
 
 @control_silo_test
-class OpsgenieIntegrationTest(IntegrationTestCase):
-    provider = OpsgenieIntegrationProvider
-    config_no_key = {
-        "base_url": "https://api.opsgenie.com/",
-        "provider": "cool-name",
-        "api_key": "",
-    }
-    config_with_key = {
-        "base_url": "https://api.opsgenie.com/",
-        "provider": "cool-name",
-        "api_key": "123-key",
-    }
-    eu_config_no_key = {
-        "base_url": "https://api.eu.opsgenie.com/",
-        "provider": "chill-name",
-        "api_key": "",
-    }
-    eu_config_with_key = {
-        "base_url": "https://api.eu.opsgenie.com/",
-        "provider": "chill-name",
-        "api_key": "123-key",
-    }
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
-
-    def assert_setup_flow(self, config):
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 200
-
-        resp = self.client.post(self.init_path, data=config)
-        assert resp.status_code == 200
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_installation_no_key(self, mock_record: MagicMock) -> None:
-        self.assert_setup_flow(self.config_no_key)
-
-        # SLO assertions
-        assert_success_metric(mock_record)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
-
-        assert org_integration.config["team_table"] == []
-        assert org_integration.organization_id == self.organization.id
-        assert org_integration.config == {"team_table": []}
-        assert integration.external_id == "cool-name"
-        assert integration.name == "cool-name"
-        assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
-
-    def test_eu_installation_no_key(self) -> None:
-        self.assert_setup_flow(self.eu_config_no_key)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
-
-        assert org_integration.config["team_table"] == []
-        assert org_integration.organization_id == self.organization.id
-        assert org_integration.config == {"team_table": []}
-        assert integration.external_id == "chill-name"
-        assert integration.name == "chill-name"
-        assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
-
-    def test_installation_with_key(self) -> None:
-        self.assert_setup_flow(self.config_with_key)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
-
-        assert org_integration.config["team_table"] == [
-            {
-                "team": "my-first-key",
-                "id": f"{org_integration.id}-my-first-key",
-                "integration_key": "123-key",
-            }
-        ]
-        assert org_integration.organization_id == self.organization.id
-        assert integration.external_id == "cool-name"
-        assert integration.name == "cool-name"
-        assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
-
-    def test_eu_installation_with_key(self) -> None:
-        self.assert_setup_flow(self.eu_config_with_key)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
-
-        assert org_integration.config["team_table"] == [
-            {
-                "team": "my-first-key",
-                "id": f"{org_integration.id}-my-first-key",
-                "integration_key": "123-key",
-            }
-        ]
-        assert org_integration.organization_id == self.organization.id
-        assert integration.external_id == "chill-name"
-        assert integration.name == "chill-name"
-        assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
+class OpsgenieUpdateConfigTest(TestCase):
+    provider = "opsgenie"
 
     @responses.activate
     def test_update_config_valid(self) -> None:
@@ -144,7 +46,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         integration.add_organization(self.organization, self.user)
         installation = integration.get_installation(self.organization.id)
 
-        integration = Integration.objects.get(provider=self.provider.key)
+        integration = Integration.objects.get(provider=self.provider)
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
 
         responses.add(
@@ -231,20 +133,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         with pytest.raises(ApiUnauthorized):
             installation.update_organization_config(data)
-
-    @with_feature(
-        {
-            "organizations:integrations-enterprise-alert-rule": False,
-            "organizations:integrations-enterprise-incident-management": False,
-        }
-    )
-    def test_disallow_when_no_business_plan(self) -> None:
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 200
-        assert (
-            b"At least one feature from this list has to be enabled in order to setup the integration"
-            in resp.content
-        )
 
 
 @control_silo_test

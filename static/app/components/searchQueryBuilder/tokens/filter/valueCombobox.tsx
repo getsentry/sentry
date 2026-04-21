@@ -27,9 +27,10 @@ import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/t
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
-  escapeTagValue,
+  escapeTagValueForSearch,
   formatFilterValue,
   getFilterValueType,
+  unescapeAsteriskSearchValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
@@ -139,10 +140,7 @@ export function prepareInputValueForSaving(
     : (uniqueValues[0] ?? '""');
 }
 
-export function getSelectedValuesFromText(
-  text: string,
-  {escaped = true}: {escaped?: boolean} = {}
-) {
+export function getSelectedValuesFromText(text: string) {
   const parsed = parseMultiSelectFilterValue(text);
 
   if (!parsed) {
@@ -152,17 +150,18 @@ export function getSelectedValuesFromText(
   return parsed.items
     .filter(item => item.value?.value)
     .map(item => {
-      const value =
-        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? '';
+      const valueText = item.value?.text ?? '';
+      const value = unescapeAsteriskSearchValue(
+        unescapeTagValue(item.value?.value ?? '')
+      );
 
       // Check if this value is selected by looking at the character after the value in
       // the text. If there's a comma after the value, it means this value is selected.
       // We need to check the text content to ensure that we account for any quotes the
       // user may have added.
-      const valueText = item.value?.text ?? '';
       const selected = text.charAt(text.indexOf(valueText) + valueText.length) === ',';
 
-      return {value, selected};
+      return {value, text: valueText, selected};
     });
 }
 
@@ -509,7 +508,7 @@ function ItemCheckbox({
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
               token,
-              value: escapeTagValue(value),
+              value: escapeTagValueForSearch(value),
             });
           }}
           aria-label={t('Toggle %s', value)}
@@ -626,15 +625,14 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = canSelectMultipleValues
-    ? getValueAtCursorPosition(inputValue, selectionIndex)
-    : inputValue;
+  const filterValue = unescapeAsteriskSearchValue(
+    canSelectMultipleValues
+      ? getValueAtCursorPosition(inputValue, selectionIndex)
+      : inputValue
+  );
 
-  const selectedValuesUnescaped = useMemo(
-    () =>
-      canSelectMultipleValues
-        ? getSelectedValuesFromText(inputValue, {escaped: false})
-        : [],
+  const selectedValues = useMemo(
+    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
     [canSelectMultipleValues, inputValue]
   );
 
@@ -643,8 +641,8 @@ export function SearchQueryBuilderValueCombobox({
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(
-    () => new Map(selectedValuesUnescaped.map(v => [v.value, v.selected] as const)),
-    [selectedValuesUnescaped]
+    () => new Map(selectedValues.map(v => [v.value, v.selected] as const)),
+    [selectedValues]
   );
   const valueComboboxContextValue = useMemo(
     () => ({token, ctrlKeyPressed, selectedValueMap}),
@@ -674,7 +672,7 @@ export function SearchQueryBuilderValueCombobox({
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
-    selectedValues: selectedValuesUnescaped,
+    selectedValues,
   });
 
   const analyticsData = useMemo(
@@ -751,7 +749,11 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const updateFilterValue = useCallback(
-    (value: string, op?: TermOperator) => {
+    (
+      value: string,
+      op?: TermOperator,
+      {escapeSearchValue = false}: {escapeSearchValue?: boolean} = {}
+    ) => {
       if (token.filter === FilterType.HAS) {
         const suggested = getSuggestedFilterKey(value);
         if (suggested) {
@@ -765,9 +767,15 @@ export function SearchQueryBuilderValueCombobox({
         }
       }
 
+      const valueType = getFilterValueType(token, fieldDefinition);
+      const valueForSaving =
+        escapeSearchValue && valueType === FieldValueType.STRING
+          ? escapeTagValueForSearch(value)
+          : value;
+
       const cleanedValue = cleanFilterValue({
-        valueType: getFilterValueType(token, fieldDefinition),
-        value,
+        valueType,
+        value: valueForSaving,
         token,
       });
 
@@ -782,12 +790,12 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValuesUnescaped.map(v => v.value).includes(value)) {
+        if (selectedValues.map(v => v.value).includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            selectedValuesUnescaped
+            selectedValues
               .filter(v => (v.selected ? v.value !== value : true))
-              .map(v => escapeTagValue(v.value, {allowArrayValue: false}))
+              .map(v => v.text)
               .join(',')
           );
 
@@ -810,7 +818,11 @@ export function SearchQueryBuilderValueCombobox({
           token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
+            replaceCommaSeparatedValue(
+              inputValue,
+              selectionIndex,
+              escapeSearchValue ? escapeTagValueForSearch(value) : value
+            )
           ),
           op,
         });
@@ -836,7 +848,7 @@ export function SearchQueryBuilderValueCombobox({
       getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
-      selectedValuesUnescaped,
+      selectedValues,
       dispatch,
       inputValue,
       selectionIndex,
@@ -875,7 +887,7 @@ export function SearchQueryBuilderValueCombobox({
         newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
       }
 
-      updateFilterValue(value, newOp);
+      updateFilterValue(value, newOp, {escapeSearchValue: true});
       trackAnalytics('search.value_autocompleted', {
         ...analyticsData,
         filter_value: value,

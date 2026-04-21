@@ -245,7 +245,7 @@ export function ReleaseCardProjectRow({
                   path: `/${encodeURIComponent(releaseVersion)}/`,
                 }),
                 query: {
-                  ...extractSelectionParameters(location.query),
+                  environment: location.query.environment,
                   project: project.id,
                   yAxis: undefined,
                 },
