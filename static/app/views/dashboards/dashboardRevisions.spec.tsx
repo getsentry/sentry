@@ -23,11 +23,8 @@ function makeRevision(overrides = {}) {
   };
 }
 
-function renderButton(
-  dashboardOverrides = {},
-  orgFeatures: string[] = ['dashboards-revisions']
-) {
-  const organization = OrganizationFixture({features: orgFeatures});
+function renderButton(dashboardOverrides = {}) {
+  const organization = OrganizationFixture({features: ['dashboards-revisions']});
   const dashboard = DashboardFixture([], {
     id: '1',
     title: 'My Dashboard',
@@ -41,31 +38,24 @@ describe('DashboardRevisionsButton', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('does not render when dashboards-revisions feature flag is off', () => {
-    renderButton({}, []);
-    expect(
-      screen.queryByRole('button', {name: 'Dashboard Revisions'})
-    ).not.toBeInTheDocument();
+  it('renders the button', () => {
+    MockApiClient.addMockResponse({url: REVISIONS_URL, body: []});
+    renderButton();
+    expect(screen.getByRole('button', {name: 'Dashboard Revisions'})).toBeInTheDocument();
   });
 
-  it('does not render for the default-overview dashboard', () => {
+  it('renders nothing for the default-overview dashboard', () => {
     renderButton({id: 'default-overview'});
     expect(
       screen.queryByRole('button', {name: 'Dashboard Revisions'})
     ).not.toBeInTheDocument();
   });
 
-  it('does not render for prebuilt dashboards', () => {
-    renderButton({prebuiltId: 'some-prebuilt-id'});
+  it('renders nothing for a prebuilt dashboard', () => {
+    renderButton({prebuiltId: 'default-overview'});
     expect(
       screen.queryByRole('button', {name: 'Dashboard Revisions'})
     ).not.toBeInTheDocument();
-  });
-
-  it('renders the button for a valid custom dashboard', () => {
-    MockApiClient.addMockResponse({url: REVISIONS_URL, body: []});
-    renderButton();
-    expect(screen.getByRole('button', {name: 'Dashboard Revisions'})).toBeInTheDocument();
   });
 
   it('does not call the revisions endpoint until the button is clicked', () => {

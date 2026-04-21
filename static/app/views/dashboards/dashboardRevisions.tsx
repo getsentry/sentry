@@ -15,7 +15,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {defined} from 'sentry/utils';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisions} from './hooks/useDashboardRevisions';
@@ -26,19 +26,17 @@ interface DashboardRevisionsButtonProps {
 }
 
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
-  const organization = useOrganization();
-
-  const hasFeatureFlag = organization.features.includes('dashboards-revisions');
-  const isValidDashboard =
-    !!dashboard.id && dashboard.id !== 'default-overview' && !dashboard.prebuiltId;
+  if (
+    !dashboard.id ||
+    dashboard.id === 'default-overview' ||
+    defined(dashboard.prebuiltId)
+  ) {
+    return null;
+  }
 
   const handleClick = () => {
     openModal(props => <DashboardRevisionsModal {...props} dashboardId={dashboard.id} />);
   };
-
-  if (!hasFeatureFlag || !isValidDashboard) {
-    return null;
-  }
 
   return (
     <Tooltip title={t('Dashboard Revisions')}>
