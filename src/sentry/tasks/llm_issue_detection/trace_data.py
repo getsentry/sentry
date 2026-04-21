@@ -13,6 +13,7 @@ from sentry.seer.explorer.utils import normalize_description
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount
+from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +76,6 @@ def get_next_project_id(
 
     Returns None if there are no active projects with traffic.
     """
-    from sentry.utils.redis import redis_clusters
-
     client = redis_clusters.get("default")
     cache_key = f"{PROJECT_PLAYLIST_CACHE_KEY_PREFIX}:{organization.id}"
 
