@@ -4,7 +4,6 @@ from collections.abc import Sequence
 
 import orjson
 
-from sentry import features
 from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
@@ -21,16 +20,11 @@ def get_supergroups_by_group_ids(
     *,
     user_id: int | None = None,
 ) -> SupergroupsByGroupIdsResponse:
-    rca_source = (
-        RCASource.LIGHTWEIGHT
-        if features.has("organizations:supergroups-lightweight-rca-clustering-read", organization)
-        else RCASource.EXPLORER
-    )
     response = make_supergroups_get_by_group_ids_request(
         {
             "organization_id": organization.id,
             "group_ids": list(group_ids),
-            "rca_source": rca_source,
+            "rca_source": RCASource.LIGHTWEIGHT,
         },
         SeerViewerContext(organization_id=organization.id, user_id=user_id),
         timeout=10,

@@ -35,19 +35,11 @@ class OrganizationSupergroupDetailsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:top-issues-ui", organization, actor=request.user):
             return Response({"detail": "Feature not available"}, status=403)
 
-        rca_source = (
-            RCASource.LIGHTWEIGHT
-            if features.has(
-                "organizations:supergroups-lightweight-rca-clustering-read", organization
-            )
-            else RCASource.EXPLORER
-        )
-
         response = make_supergroups_get_request(
             {
                 "organization_id": organization.id,
                 "supergroup_id": supergroup_id,
-                "rca_source": rca_source,
+                "rca_source": RCASource.LIGHTWEIGHT,
             },
             SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
             timeout=10,
