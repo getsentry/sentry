@@ -168,7 +168,7 @@ const _SlideOverPanel = styled(motion.div, {
               position: fixed;
 
               width: ${p.panelWidth ?? RIGHT_SIDE_PANEL_WIDTH};
-              height: 100%;
+              height: ${p.mode === 'passive' ? `calc(100% - ${p.top})` : '100%'};
 
               top: ${p.mode === 'passive' ? p.top : 0};
               right: 0;
@@ -180,7 +180,7 @@ const _SlideOverPanel = styled(motion.div, {
 
               width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
               min-width: 450px;
-              height: 100%;
+              height: ${p.mode === 'passive' ? `calc(100% - ${p.top})` : '100%'};
 
               top: ${p.mode === 'passive' ? p.top : 0};
               right: auto;
