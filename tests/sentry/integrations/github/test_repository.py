@@ -1,5 +1,6 @@
 import datetime
 from functools import cached_property
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -65,7 +66,7 @@ class GitHubAppsProviderTest(TestCase):
                 config={"name": "getsentry/example-repo"},
             )
 
-    def _build_compare_commit_payload(self, count: int) -> list[dict[str, object]]:
+    def _build_compare_commit_payload(self, count: int) -> list[dict[str, Any]]:
         commits = []
         for index in range(count):
             commits.append(
