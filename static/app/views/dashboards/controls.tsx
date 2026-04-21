@@ -327,9 +327,11 @@ export function Controls({
               </Tooltip>
             )}
             {renderEditButton(hasFeature)}
-            <Feature features="dashboards-revisions">
-              <DashboardRevisionsButton dashboard={dashboard} />
-            </Feature>
+            {hasFeature && (
+              <Feature features="dashboards-revisions">
+                <DashboardRevisionsButton dashboard={dashboard} />
+              </Feature>
+            )}
             {hasFeature && !isPrebuiltDashboard && (
               <Tooltip
                 title={tooltipMessage}
