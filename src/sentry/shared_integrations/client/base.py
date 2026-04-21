@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, overload
+from types import TracebackType
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -42,6 +43,9 @@ class SessionSettings(TypedDict, total=False):
     stream: bool | None
     verify: bool | str | None
     cert: str | tuple[str, str] | None
+
+
+_TPaginatedResult = TypeVar("_TPaginatedResult")
 
 
 class BaseApiClient:
@@ -88,7 +92,7 @@ class BaseApiClient:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        traceback: Any,
+        traceback: TracebackType | None,
     ) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
@@ -182,7 +186,7 @@ class BaseApiClient:
         path: str,
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, Any] | None = None,
-        params: Mapping[str, str | int | bool] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -202,7 +206,7 @@ class BaseApiClient:
         path: str,
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, Any] | None = None,
-        params: Mapping[str, str | int | bool] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -221,7 +225,7 @@ class BaseApiClient:
         path: str,
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, Any] | None = None,
-        params: Mapping[str, str | int | bool] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -351,8 +355,8 @@ class BaseApiClient:
         )
 
     # subclasses should override ``request``
-    def request(self, method: str, path: str, *args: Any, **kwargs: Any) -> Any:
-        return self._request(method, path, *args, **kwargs)
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        return self._request(*args, **kwargs)
 
     def delete(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("DELETE", path, *args, **kwargs)
@@ -427,12 +431,12 @@ class BaseApiClient:
         self,
         path: str,
         gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
-        get_results: Callable[[Any], Sequence[Any]],
+        get_results: Callable[[Any], Sequence[_TPaginatedResult]],
         *args: Any,
         **kwargs: Any,
-    ) -> list[Any]:
+    ) -> list[_TPaginatedResult]:
         page_size = self.page_size
-        output: list[Any] = []
+        output: list[_TPaginatedResult] = []
 
         for i in range(self.page_number_limit):
             resp = self.get(path, params=gen_params(i, page_size))
