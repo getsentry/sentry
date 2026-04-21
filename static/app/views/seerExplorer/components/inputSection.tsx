@@ -7,8 +7,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconPause} from 'sentry/icons';
+import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -42,6 +41,7 @@ interface InputSectionProps {
   onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onPRWidgetClick: () => void;
+  onSend: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -66,6 +66,7 @@ export function InputSection({
   onInterrupt,
   onKeyDown,
   onPRWidgetClick,
+  onSend,
   prWidgetButtonRef,
   repoPRStates,
   textAreaRef,
@@ -255,29 +256,35 @@ export function InputSection({
     );
   }
 
-  const renderActionButton = () => {
-    if (waitingForInterrupt) {
-      return (
-        <ActionButtonWrapper title={t('Winding down...')} isDanger>
-          <LoadingIndicator size={16} />
-        </ActionButtonWrapper>
-      );
-    }
+  const lastBlock = blocks[blocks.length - 1];
+  const isAwaitingResponse = Boolean(lastBlock?.loading);
 
-    if (isPolling) {
+  const renderActionButton = () => {
+    if (isPolling || waitingForInterrupt || isAwaitingResponse) {
       return (
-        <Button
-          icon={<IconPause variant="muted" />}
+        <PauseButton
+          icon={<IconPause />}
           onClick={onInterrupt}
-          size="sm"
-          priority="transparent"
+          size="md"
+          priority="primary"
+          disabled={waitingForInterrupt}
           aria-label={t('Interrupt')}
-          tooltipProps={{title: t('Press Esc to interrupt')}}
+          tooltipProps={{
+            title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+          }}
         />
       );
     }
 
-    return null;
+    return (
+      <SendButton
+        icon={<IconArrow direction="right" />}
+        onClick={onSend}
+        size="md"
+        disabled={!inputValue.trim()}
+        aria-label={t('Send message')}
+      />
+    );
   };
 
   return (
@@ -290,12 +297,12 @@ export function InputSection({
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Type your message or / command and press Enter ↵')}
+            placeholder={t('Ask Seer a question, or press / for commands.')}
             rows={1}
             data-test-id="seer-explorer-input"
           />
-          <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
         </StyledInputGroup>
+        {renderActionButton()}
         {enabled && hasCodeChanges && (
           <PRWidget
             ref={prWidgetButtonRef}
@@ -349,22 +356,27 @@ const ActionBar = styled(motion.div)`
   bottom: 0;
 `;
 
-const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+const SendButton = styled(Button)`
+  width: ${p => p.theme.form.md.height};
+  flex-shrink: 0;
+  background: #ffffff;
+  color: #000000;
 
-  .loading-indicator {
-    margin: 0;
-    padding: 0;
-    ${p =>
-      p.isDanger &&
-      `
-      border-color: ${p.theme.tokens.content.warning};
-      border-left-color: transparent;
-    `}
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    background: #ffffff;
+    color: #000000;
+  }
+`;
+
+const PauseButton = styled(Button)`
+  width: ${p => p.theme.form.md.height};
+  flex-shrink: 0;
+  background: ${p => p.theme.tokens.background.promotion.vibrant};
+  border-color: ${p => p.theme.tokens.border.promotion.vibrant};
+
+  &:disabled {
+    opacity: 0.5;
   }
 `;
 

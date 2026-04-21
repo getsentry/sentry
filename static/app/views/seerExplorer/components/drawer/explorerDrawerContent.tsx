@@ -212,6 +212,18 @@ export function ExplorerDrawerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
+  const handleSend = useCallback(() => {
+    if (readOnly || isPolling || !inputValue.trim()) {
+      return;
+    }
+    sendMessage(inputValue.trim());
+    setInputValue('');
+    userScrolledUpRef.current = false;
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [readOnly, inputValue, isPolling, sendMessage]);
+
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (readOnly || e.nativeEvent.isComposing) {
@@ -220,19 +232,10 @@ export function ExplorerDrawerContent({
 
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (inputValue.trim() && !isPolling) {
-          sendMessage(inputValue.trim());
-          setInputValue('');
-          // Reset scroll state so we auto-scroll to show the response
-          userScrolledUpRef.current = false;
-          // Reset textarea height
-          if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-          }
-        }
+        handleSend();
       }
     },
-    [readOnly, inputValue, isPolling, sendMessage]
+    [readOnly, handleSend]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -506,6 +509,7 @@ export function ExplorerDrawerContent({
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        onSend={handleSend}
         onPRWidgetClick={openPRWidget}
         prWidgetButtonRef={prWidgetButtonRef}
         repoPRStates={repoPRStates}

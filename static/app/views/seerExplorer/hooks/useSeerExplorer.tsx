@@ -537,6 +537,7 @@ export const useSeerExplorer = () => {
   useEffect(() => {
     if (isSessionComplete(apiData?.session)) {
       setWaitingForInterrupt(false);
+      setOptimistic(null);
     }
   }, [apiData?.session]);
 
