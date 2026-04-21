@@ -78,6 +78,51 @@ describe('SeerWorkflows', () => {
     );
   });
 
+  it('links to Seer Explorer when agent_run_id is present in extras', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {agent_run_id: 42},
+          issues: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    const link = await screen.findByRole('button', {name: 'Explorer'});
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/?explorerRunId=42`
+    );
+  });
+
+  it('omits Explorer link when agent_run_id is missing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await screen.findByText('Night Shift');
+    expect(screen.queryByRole('button', {name: 'Explorer'})).not.toBeInTheDocument();
+  });
+
   it('shows empty state when no runs', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,

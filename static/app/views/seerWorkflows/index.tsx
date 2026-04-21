@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -12,7 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -81,6 +81,7 @@ function SeerWorkflows() {
               <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell />
             </SimpleTable.Header>
 
             {data?.length === 0 ? (
@@ -89,6 +90,7 @@ function SeerWorkflows() {
               (data ?? []).map(run => {
                 const isExpanded = expanded.has(run.id);
                 const status = run.errorMessage ? t('Error') : t('Completed');
+                const explorerRunId = getExplorerRunId(run);
                 return (
                   <Fragment key={run.id}>
                     <SimpleTable.Row>
@@ -112,6 +114,20 @@ function SeerWorkflows() {
                         </Text>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>{run.issues.length}</SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
+                        {explorerRunId === null ? null : (
+                          <LinkButton
+                            size="xs"
+                            icon={<IconOpen />}
+                            to={{
+                              pathname: `/organizations/${organization.slug}/issues/`,
+                              query: {explorerRunId},
+                            }}
+                          >
+                            {t('Explorer')}
+                          </LinkButton>
+                        )}
+                      </SimpleTable.RowCell>
                     </SimpleTable.Row>
 
                     {isExpanded && (
@@ -205,7 +221,15 @@ function RunDetail({
 }
 
 const RunsTable = styled(SimpleTable)`
-  grid-template-columns: min-content 1fr 1fr 1fr 1fr min-content;
+  grid-template-columns: min-content 1fr 1fr 1fr 1fr min-content min-content;
 `;
+
+function getExplorerRunId(run: SeerNightShiftRun): number | string | null {
+  const value = run.extras.agent_run_id;
+  if (typeof value === 'number' || typeof value === 'string') {
+    return value;
+  }
+  return null;
+}
 
 export default SeerWorkflows;
