@@ -237,7 +237,7 @@ function ToggleConsolePlatformsModal({
 
   return (
     <Form
-      onSubmit={data => handleSubmit(data as Record<string, boolean | number>)}
+      onSubmit={data => handleSubmit(data)}
       onCancel={closeModal}
       saveOnBlur={false}
       initialData={{

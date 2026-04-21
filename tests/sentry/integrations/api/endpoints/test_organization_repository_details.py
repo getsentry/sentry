@@ -288,6 +288,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_called_once_with(
             kwargs={
                 "organization_id": org.id,
+                "repo_id": repo.id,
                 "repo_external_id": "uuid-external-id",
                 "repo_provider": "github",
             }
@@ -317,6 +318,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_called_once_with(
             kwargs={
                 "organization_id": org.id,
+                "repo_id": repo.id,
                 "repo_external_id": "abc123",
                 "repo_provider": "github",
             }
@@ -373,6 +375,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_called_once_with(
             kwargs={
                 "organization_id": org.id,
+                "repo_id": repo.id,
                 "repo_external_id": "github-123",
                 "repo_provider": "github",
             }

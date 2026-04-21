@@ -40,7 +40,7 @@ export function withTags<P extends InjectedTagsProps>(
         <WrappedComponent
           tags={tags ?? this.state.tags}
           // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-          {...(props as P as any)}
+          {...(props as any)}
         />
       );
     }

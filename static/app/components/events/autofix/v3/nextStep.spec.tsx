@@ -14,19 +14,18 @@ import {SeerDrawerNextStep} from './nextStep';
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
 ): ReturnType<typeof useExplorerAutofix> {
-  return {
+  const base: ReturnType<typeof useExplorerAutofix> = {
     runState: {run_id: 1} as any,
     startStep: jest.fn(),
     createPR: jest.fn(),
-    sendMessage: jest.fn(),
     reset: jest.fn(),
     triggerCodingAgentHandoff: jest.fn(),
+    codingAgentErrors: [],
+    dismissCodingAgentError: jest.fn(),
     isLoading: false,
     isPolling: false,
-    isReady: true,
-    isStreaming: false,
-    ...overrides,
-  } as ReturnType<typeof useExplorerAutofix>;
+  };
+  return {...base, ...overrides};
 }
 
 function defaultArtifacts(step: string): AutofixSection['artifacts'] {

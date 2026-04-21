@@ -86,6 +86,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
 // routes do not have organization information.
 export const CrumbLink = styled(RouterLink)`
   display: block;
+  line-height: ${p => p.theme.font.lineHeight.default};
 
   color: ${p => p.theme.tokens.content.secondary};
   &:hover {

@@ -101,18 +101,16 @@ export default function AccountSecurityWrapper() {
 
   return (
     <Outlet
-      context={
-        {
-          authenticators,
-          countEnrolled,
-          deleteDisabled,
-          handleRefresh,
-          hasVerifiedEmail,
-          onDisable: disableAuthenticatorMutation.mutate,
-          onRegenerateBackupCodes: regenerateBackupCodesMutation.mutate,
-          orgsRequire2fa,
-        } as OutletContext
-      }
+      context={{
+        authenticators,
+        countEnrolled,
+        deleteDisabled,
+        handleRefresh,
+        hasVerifiedEmail,
+        onDisable: disableAuthenticatorMutation.mutate,
+        onRegenerateBackupCodes: regenerateBackupCodesMutation.mutate,
+        orgsRequire2fa,
+      }}
     />
   );
 }

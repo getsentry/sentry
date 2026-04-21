@@ -14,7 +14,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -309,7 +308,7 @@ const makeEventViewForWidget = (
   widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
   widgetEventView.display = DisplayModes.PREVIOUS;
   widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
-    fieldName => ({field: fieldName}) as Field
+    fieldName => ({field: fieldName})
   );
 
   return widgetEventView;

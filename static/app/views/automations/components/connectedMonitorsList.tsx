@@ -13,7 +13,9 @@ import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -24,18 +26,22 @@ const DEFAULT_DETECTORS_PER_PAGE = 10;
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   cursor: string | undefined;
-  /**
-   * If null, all detectors will be fetched.
-   */
-  detectorIds: Automation['detectorIds'] | null;
   onCursor: CursorHandler;
   connectedDetectorIds?: Set<string>;
+  /**
+   * Filters detectors to those with the given IDs.
+   */
+  detectorIds?: Automation['detectorIds'];
   emptyMessage?: string;
   limit?: number | null;
   openInNewTab?: boolean;
   projectIds?: number[];
   query?: string;
   toggleConnected?: (params: {detector: Detector}) => void;
+  /**
+   * Filters detectors by those connected to the given workflow.
+   */
+  workflowId?: string;
 };
 
 function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: number}) {
@@ -80,22 +86,26 @@ export function ConnectedMonitorsList({
   query,
   openInNewTab,
   projectIds,
+  workflowId,
   ...props
 }: Props) {
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
+  const emptySelection = defined(detectorIds) && detectorIds.length === 0;
 
   const {data, isLoading, isError, isSuccess} = useQuery({
     ...detectorListApiOptions(organization, {
-      ids: detectorIds ?? undefined,
+      ids: detectorIds,
       limit: limit ?? undefined,
       cursor,
-      query,
+      query: workflowId
+        ? new MutableSearch([query ?? '', `workflow:${workflowId}`]).formatString()
+        : query,
       includeIssueStreamDetectors: true,
       projects: projectIds,
     }),
     select: selectJsonWithHeaders,
-    enabled: detectorIds === null || detectorIds.length > 0,
+    enabled: !defined(detectorIds) || !emptySelection,
   });
 
   const detectors = data?.json;
@@ -132,19 +142,18 @@ export function ConnectedMonitorsList({
           <Skeletons
             canEdit={canEdit}
             numberOfRows={
-              detectorIds === null
-                ? (limit ?? DEFAULT_DETECTORS_PER_PAGE)
-                : Math.min(detectorIds?.length ?? 0, DEFAULT_DETECTORS_PER_PAGE)
+              defined(detectorIds)
+                ? Math.min(detectorIds.length, DEFAULT_DETECTORS_PER_PAGE)
+                : (limit ?? DEFAULT_DETECTORS_PER_PAGE)
             }
           />
         )}
         {isError && <LoadingError />}
-        {((isSuccess && detectors?.length === 0) ||
-          (detectorIds !== null && detectorIds.length === 0)) && (
+        {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
-          (detectorIds === null || detectorIds.length > 0) &&
+          !emptySelection &&
           detectors?.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>

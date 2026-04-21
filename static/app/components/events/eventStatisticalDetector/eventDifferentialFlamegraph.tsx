@@ -336,28 +336,30 @@ function DifferentialFlamegraphChangedFunctions(
         onPreviousPageClick={onPreviousPaginationClick}
       />
       {props.loading
-        ? new Array(5).fill(0).map((_, idx) => {
-            return (
-              <DifferentialFlamegraphChangedFunctionContainer key={idx}>
-                <div>
-                  <Placeholder
-                    height="16px"
-                    width="66%"
-                    style={MARGIN_BOTTOM_PLACEHOLDER_STYLES}
-                  />
-                  <Placeholder height="16px" width="48%" />
-                </div>
-                <DifferentialFlamegraphChangedFunctionStats>
-                  <Placeholder
-                    height="16px"
-                    width="32px"
-                    style={RIGHT_ALIGN_PLACEHOLDER_STYLES}
-                  />
-                  <Placeholder height="16px" width="56px" />
-                </DifferentialFlamegraphChangedFunctionStats>
-              </DifferentialFlamegraphChangedFunctionContainer>
-            );
-          })
+        ? Array.from({length: 5})
+            .fill(0)
+            .map((_, idx) => {
+              return (
+                <DifferentialFlamegraphChangedFunctionContainer key={idx}>
+                  <div>
+                    <Placeholder
+                      height="16px"
+                      width="66%"
+                      style={MARGIN_BOTTOM_PLACEHOLDER_STYLES}
+                    />
+                    <Placeholder height="16px" width="48%" />
+                  </div>
+                  <DifferentialFlamegraphChangedFunctionStats>
+                    <Placeholder
+                      height="16px"
+                      width="32px"
+                      style={RIGHT_ALIGN_PLACEHOLDER_STYLES}
+                    />
+                    <Placeholder height="16px" width="56px" />
+                  </DifferentialFlamegraphChangedFunctionStats>
+                </DifferentialFlamegraphChangedFunctionContainer>
+              );
+            })
         : props.functions
             .slice(
               state.page * state.pageSize,

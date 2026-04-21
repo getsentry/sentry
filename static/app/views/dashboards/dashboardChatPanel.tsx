@@ -11,7 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 

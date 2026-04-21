@@ -50,7 +50,12 @@ function ErrorsHeader() {
       <Layout.HeaderActions>
         {hasPageFrameFeature ? (
           <TopBar.Slot name="feedback">
-            <FeedbackButton>{null}</FeedbackButton>
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
           </TopBar.Slot>
         ) : (
           <FeedbackButton />

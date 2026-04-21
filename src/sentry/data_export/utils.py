@@ -3,19 +3,27 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Iterator
+from typing import Any, Iterator, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import ExportTraceItemsResponse
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.data_export.base import ExportError
+from sentry.search.eap.constants import PROTOBUF_TYPE_TO_SEARCH_TYPE
+from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+
+_SCALAR_SEARCH_TYPES: list[Literal["string", "number", "boolean"]] = [
+    "string",
+    "number",
+    "boolean",
+]
 
 
 # Adapted into decorator from 'src/sentry/api/endpoints/organization_events.py'
@@ -106,15 +114,63 @@ def _ts_to_epoch(ts: Timestamp) -> float:
     return ts.seconds + ts.nanos / 1e9
 
 
-def trace_item_to_row(item: TraceItem) -> dict[str, Any]:
+def _merge_trace_export_cell(out: dict[str, Any], new_key: str, value: Any) -> None:
+    if new_key not in out:
+        out[new_key] = value
+    elif out[new_key] is None and value is not None:
+        out[new_key] = value
+
+
+def _export_column_name_for_trace_attribute(
+    internal_key: str,
+    eap_storage_type: Literal["string", "number", "boolean"],
+    item_type: SupportedTraceItemType,
+) -> str:
+    """Map a scalar trace item attribute to its public export column name.
+    Use search_type as type to filter public name for attribute.
+    Usually search_type is same as eap_storage_type, so start with eap_storage_type.
+    Else fallback to remaining types.
+    """
+
+    for storage_type in [eap_storage_type] + [
+        t for t in _SCALAR_SEARCH_TYPES if t != eap_storage_type
+    ]:
+        public_alias, public_name, _ = translate_internal_to_public_alias(
+            internal_key, storage_type, item_type
+        )
+        if public_alias is not None and public_name is not None:
+            return public_name
+    return internal_key
+
+
+def trace_item_to_row(
+    item: TraceItem,
+    *,
+    item_type: SupportedTraceItemType,
+) -> dict[str, Any]:
     row: dict[str, Any] = {}
-    for key, av in item.attributes.items():
-        row[key] = None if av.WhichOneof("value") is None else anyvalue_to_python(av)
-    row["organization_id"] = item.organization_id
-    row["project_id"] = item.project_id
-    row["trace_id"] = item.trace_id
-    row["item_id"] = item.item_id.hex() if item.item_id else None
-    row["item_type"] = TraceItemType.Name(item.item_type)
+    _merge_trace_export_cell(row, "organization.id", item.organization_id)
+    _merge_trace_export_cell(row, "project.id", item.project_id)
+    _merge_trace_export_cell(row, "trace", item.trace_id)
+    _merge_trace_export_cell(row, "id", item.item_id.hex() if item.item_id else None)
+
+    for internal_key, av in item.attributes.items():
+        if not can_expose_attribute(internal_key, item_type, include_internal=False):
+            continue
+        which = av.WhichOneof("value")
+        value = anyvalue_to_python(av)
+        if which is None:
+            eap_storage_type = None
+        else:
+            eap_storage_type = PROTOBUF_TYPE_TO_SEARCH_TYPE.get(which)
+        if eap_storage_type is None:
+            new_key = internal_key
+        else:
+            new_key = _export_column_name_for_trace_attribute(
+                internal_key, eap_storage_type, item_type
+            )
+        _merge_trace_export_cell(row, new_key, value)
+
     if item.HasField("timestamp"):
         row["timestamp"] = _ts_to_epoch(item.timestamp)
     if item.HasField("received"):
@@ -123,12 +179,12 @@ def trace_item_to_row(item: TraceItem) -> dict[str, Any]:
     row["server_sample_rate"] = item.server_sample_rate
     row["retention_days"] = item.retention_days
     row["downsampled_retention_days"] = item.downsampled_retention_days
-
     return row
 
 
 def iter_export_trace_items_rows(
     resp: ExportTraceItemsResponse,
+    item_type: SupportedTraceItemType,
 ) -> Iterator[dict[str, Any]]:
     for item in resp.trace_items:
-        yield trace_item_to_row(item)
+        yield trace_item_to_row(item, item_type=item_type)

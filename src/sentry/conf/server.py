@@ -1216,7 +1216,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
+        "schedule": timedelta(minutes=15),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",

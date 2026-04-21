@@ -254,5 +254,5 @@ function parseSortBys(value: unknown, fields: string[]): Sort[] {
     return defaultSortBys(fields);
   }
 
-  return value as Sort[];
+  return value;
 }
