@@ -539,19 +539,19 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
         )}
 
         <MotionContainer layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
-          <Separator orientation="horizontal" border="primary" />
+          {availableFeatures.length > 0 && (
+            <Separator orientation="horizontal" border="primary" />
+          )}
         </MotionContainer>
 
-        <MotionStack layout="position" width="100%" align="center">
+        <MotionStack layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
           {availableFeatures.length > 0 && (
-            <Container width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
-              <ScmFeatureSelectionCards
-                availableFeatures={availableFeatures}
-                selectedFeatures={currentFeatures}
-                disabledProducts={disabledProducts}
-                onToggleFeature={handleToggleFeature}
-              />
-            </Container>
+            <ScmFeatureSelectionCards
+              availableFeatures={availableFeatures}
+              selectedFeatures={currentFeatures}
+              disabledProducts={disabledProducts}
+              onToggleFeature={handleToggleFeature}
+            />
           )}
         </MotionStack>
       </LayoutGroup>
