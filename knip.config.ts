@@ -24,6 +24,8 @@ const productionEntryPoints = [
   'static/app/components/pipeline/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when used by organizationRepositoriesV2
+  'static/app/views/settings/organizationRepositories/noIntegrationsEmptyState.tsx',
 ];
 
 const testingEntryPoints = [
