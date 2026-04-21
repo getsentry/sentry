@@ -100,20 +100,14 @@ class AppMentionEventTest(BaseEventTest):
         assert_halt_metric(mock_record, SeerSlackHaltReason.NO_VALID_ORGANIZATION)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.integrations.slack.webhooks.event.send_identity_link_prompt")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_no_identity_prompt_linkage(
-        self, mock_apply_async, mock_send_link, mock_record
-    ):
+    def test_app_mention_no_identity_halts(self, mock_apply_async, mock_record):
         self.unlink_identity()
 
         resp = self.post_webhook(event_data=APP_MENTION_EVENT)
 
         assert resp.status_code == 200
         mock_apply_async.assert_not_called()
-        mock_send_link.assert_called_once()
-        assert mock_send_link.call_args[1]["slack_user_id"] == "U1234567890"
-        assert mock_send_link.call_args[1].get("is_welcome_message", False) is False
         assert_halt_metric(mock_record, SeerSlackHaltReason.IDENTITY_NOT_LINKED)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

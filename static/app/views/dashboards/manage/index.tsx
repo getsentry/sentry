@@ -589,6 +589,10 @@ function ManageDashboards() {
                                           </Flex>
                                         ),
                                         onAction: () => onGenerateDashboard(),
+                                        disabled:
+                                          hasReachedDashboardLimit ||
+                                          isLoadingDashboardsLimit,
+                                        details: limitMessage,
                                       },
                                     ]}
                                     trigger={triggerProps => (
@@ -693,6 +697,10 @@ function ManageDashboards() {
                                           </Flex>
                                         ),
                                         onAction: () => onGenerateDashboard(),
+                                        disabled:
+                                          hasReachedDashboardLimit ||
+                                          isLoadingDashboardsLimit,
+                                        details: limitMessage,
                                       },
                                     ]}
                                     trigger={triggerProps => (

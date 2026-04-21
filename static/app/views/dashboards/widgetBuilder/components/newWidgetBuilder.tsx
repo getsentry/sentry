@@ -50,6 +50,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -104,29 +105,7 @@ export function WidgetBuilderV2({
     }
   }, []);
 
-  const [mainContentPosition, setMainContentPosition] = useState<{
-    left: number;
-    top: number;
-  } | null>(null);
-  useEffect(() => {
-    const mainContentElement = document.querySelector('main');
-
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        if (entry.target === mainContentElement) {
-          const rect = entry.target.getBoundingClientRect();
-          setMainContentPosition({top: rect.top, left: rect.left});
-        }
-      }
-    });
-    if (mainContentElement) {
-      observer.observe(mainContentElement);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
+  const {contentTop} = useTopOffset();
 
   const dimensions = useDimensions({elementRef: navigationElementRef});
 
@@ -192,12 +171,12 @@ export function WidgetBuilderV2({
                     ? isMediumScreen
                       ? {
                           left: 0,
-                          top: `${mainContentPosition?.top ?? 0}px`,
+                          top: contentTop,
                           willChange: 'top',
                         }
                       : {
                           left: `${dimensions.width ?? 0}px`,
-                          top: `${mainContentPosition?.top ?? 0}px`,
+                          top: contentTop,
                           willChange: 'left',
                         }
                     : undefined

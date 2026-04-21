@@ -81,6 +81,7 @@ class ProcessMentionForSlackTest(TestCase):
             mock_record,
             SlackSeerAgentResponded(
                 org_slug=self.organization.slug,
+                user_id=self.user.id,
                 username="alice",
                 thread_ts="1234567890.123456",
                 prompt_length=len("What is causing this issue?"),
@@ -251,6 +252,7 @@ class ProcessMentionForSlackTest(TestCase):
             mock_record,
             SlackSeerAgentResponded(
                 org_slug=self.organization.slug,
+                user_id=self.user.id,
                 username="alice",
                 thread_ts="1234567890.000001",
                 prompt_length=len("What is causing this issue?"),
@@ -320,6 +322,7 @@ class ProcessMentionForSlackTest(TestCase):
             mock_record,
             SlackSeerAgentResponded(
                 org_slug=self.organization.slug,
+                user_id=self.user.id,
                 username="alice",
                 thread_ts="1234567890.654321",
                 prompt_length=len("What is causing this issue?"),

@@ -49,7 +49,7 @@ export function DiffImageDisplay({
   const baseImageUrl = `${imageBaseUrl}${pair.base_image.key}/`;
   const headImageUrl = `${imageBaseUrl}${pair.head_image.key}/`;
   const diffImageUrl = pair.diff_image_key
-    ? `${diffImageBaseUrl}${pair.diff_image_key}`
+    ? `${diffImageBaseUrl}${pair.diff_image_key}/`
     : null;
 
   useEffect(() => {

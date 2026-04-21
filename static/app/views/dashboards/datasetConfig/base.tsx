@@ -153,6 +153,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     displayType?: DisplayType
   ) => Record<string, SelectValue<FieldValue>>;
   /**
+   * Generate the list of sort options for timeseries
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
+  getTimeseriesSortOptions: (
+    organization: Organization,
+    widgetQuery: WidgetQuery,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
    * List of supported display types for dataset.
    */
   supportedDisplayTypes: DisplayType[];
@@ -274,15 +283,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     widgetQuery: WidgetQuery
   ) => Array<SelectValue<string>>;
-  /**
-   * Generate the list of sort options for timeseries
-   * displays on the 'Sort by' step of the Widget Builder.
-   */
-  getTimeseriesSortOptions?: (
-    organization: Organization,
-    widgetQuery: WidgetQuery,
-    tags?: TagCollection
-  ) => Record<string, SelectValue<FieldValue>>;
   /**
    * Apply dataset specific overrides to the logic that handles
    * column updates for tables in the Widget Builder.
