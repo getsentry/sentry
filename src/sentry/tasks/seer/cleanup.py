@@ -178,7 +178,12 @@ def cleanup_seer_automation_handoffs_for_integration(
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
+        logger.info(
+            "cleanup_seer_automation_handoffs_for_integration.success",
+            extra={"organization_id": organization_id, "integration_id": integration_id},
+        )
         return
+
     if features.has("organizations:seer-project-settings-dual-write", organization):
         affected_project_ids = ProjectOption.objects.filter(
             project__organization_id=organization.id,
