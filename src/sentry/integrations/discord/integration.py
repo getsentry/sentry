@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
-from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 
@@ -234,8 +232,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [DiscordInstallPipeline(self.get_params_for_oauth())]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [
@@ -351,16 +349,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Failed to get Discord user ID from key.")
         return user_id
 
-    def get_params_for_oauth(
-        self,
-    ):
-        return {
-            "client_id": self.application_id,
-            "permissions": self.bot_permissions,
-            "scope": " ".join(self.oauth_scopes),
-            "response_type": "code",
-        }
-
     def _credentials_exist(self) -> bool:
         has_credentials = all(
             (self.application_id, self.public_key, self.bot_token, self.client_secret)
@@ -376,30 +364,3 @@ class DiscordIntegrationProvider(IntegrationProvider):
                 },
             )
         return has_credentials
-
-
-class DiscordInstallPipeline:
-    def __init__(self, params):
-        self.params = params
-        super().__init__()
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if "guild_id" not in request.GET or "code" not in request.GET:
-            state = pipeline.fetch_state(key=IntegrationProviderSlug.DISCORD.value) or {}
-            redirect_uri = (
-                absolute_uri("extensions/discord/configure/")
-                if state.get("use_configure") == "1"
-                else absolute_uri("extensions/discord/setup/")
-            )
-            params = urlencode(
-                {
-                    "redirect_uri": redirect_uri,
-                    **self.params,
-                }
-            )
-            redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return HttpResponseRedirect(redirect_uri)
-
-        pipeline.bind_state("guild_id", request.GET["guild_id"])
-        pipeline.bind_state("code", request.GET["code"])
-        return pipeline.next_step()

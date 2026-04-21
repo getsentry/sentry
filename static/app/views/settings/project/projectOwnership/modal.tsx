@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {fetchIssueTagApiOptions} from 'sentry/actionCreators/group';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -13,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
@@ -119,13 +122,12 @@ export function ProjectOwnershipModal({
     isPending: isUrlTagDataPending,
     isError: isUrlTagDataError,
     error,
-  } = useApiQuery<TagWithTopValues>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/', {
-        path: {organizationIdOrSlug: organization.slug, issueId, key: 'url'},
-      }),
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    fetchIssueTagApiOptions<TagWithTopValues>({
+      organization,
+      groupId: issueId,
+      tagKey: 'url',
+    })
   );
 
   const {
@@ -147,7 +149,10 @@ export function ProjectOwnershipModal({
     return <LoadingIndicator />;
   }
 
-  if (isOwnershipError || (isUrlTagDataError && error.status !== 404)) {
+  if (
+    isOwnershipError ||
+    (isUrlTagDataError && (!(error instanceof RequestError) || error.status !== 404))
+  ) {
     return <LoadingError />;
   }
 

@@ -337,7 +337,7 @@ def _check_project_access[T](
 @cell_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEndpoint):
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-orgalertruledetails-get",
+        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
         "DELETE": "organizations:workflow-engine-orgalertruledetails-delete",
     }
     owner = ApiOwner.ISSUES

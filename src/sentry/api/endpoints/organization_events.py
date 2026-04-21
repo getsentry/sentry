@@ -109,7 +109,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         feature_names = [
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
             "organizations:on-demand-metrics-extraction-experimental",

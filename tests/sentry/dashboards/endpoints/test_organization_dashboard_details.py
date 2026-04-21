@@ -1332,6 +1332,28 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert response.status_code == 200, response.data
             assert response.data["widgets"][1]["description"] == "x" * 256
 
+    def test_update_text_widget_description_exceeds_15000_chars(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "First dashboard",
+                "widgets": [
+                    {"id": str(self.widget_1.id)},
+                    {
+                        "id": str(self.widget_2.id),
+                        "title": "Text Widget",
+                        "displayType": "text",
+                        "description": "x" * 15001,
+                    },
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400, response.data
+            assert "description" in response.data["widgets"][1], response.data
+            assert (
+                response.data["widgets"][1]["description"][0]
+                == "Description must not exceed 15,000 characters"
+            )
+
     def test_add_widget_with_limit(self) -> None:
         data = {
             "title": "First dashboard",

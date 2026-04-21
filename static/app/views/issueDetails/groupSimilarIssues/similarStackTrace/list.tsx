@@ -9,25 +9,24 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
-import type {SimilarItem} from 'sentry/stores/groupingStore';
 import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SimilarStackTraceItem} from './item';
 import {SimilarToolbar} from './toolbar';
-
-type DefaultProps = {
-  filteredItems: SimilarItem[];
-};
+import type {SimilarItem} from './types';
 
 type Props = {
+  busyIds: ReadonlySet<string>;
+  checkedIds: ReadonlySet<string>;
+  filteredItems: SimilarItem[];
   groupId: string;
   hasSimilarityEmbeddingsFeature: boolean;
   items: SimilarItem[];
   onMerge: () => void;
+  onToggle: (id: string) => void;
   pageLinks: string | null;
   project: Project;
-} & DefaultProps;
+};
 
 function Empty() {
   return (
@@ -48,6 +47,9 @@ export function List({
   filteredItems = [],
   pageLinks,
   onMerge,
+  onToggle,
+  checkedIds,
+  busyIds,
   hasSimilarityEmbeddingsFeature,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
@@ -55,13 +57,6 @@ export function List({
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
-  const organization = useOrganization();
-  const itemsWouldGroup = hasSimilarityEmbeddingsFeature
-    ? itemsWithFiltered.map(item => ({
-        id: item.issue.id,
-        shouldBeGrouped: item.aggregate?.shouldBeGrouped,
-      }))
-    : undefined;
 
   if (!hasResults) {
     return <Empty />;
@@ -86,10 +81,7 @@ export function List({
       <Panel>
         <SimilarToolbar
           onMerge={onMerge}
-          groupId={groupId}
-          project={project}
-          organization={organization}
-          itemsWouldGroup={itemsWouldGroup}
+          mergeCount={checkedIds.size}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
 
@@ -100,6 +92,9 @@ export function List({
               groupId={groupId}
               project={project}
               hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
+              checked={checkedIds.has(item.issue.id)}
+              busy={busyIds.has(item.issue.id)}
+              onToggle={onToggle}
               {...item}
             />
           ))}

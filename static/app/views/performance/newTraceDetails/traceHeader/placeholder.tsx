@@ -40,16 +40,31 @@ export function PlaceHolder({
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <TraceHeaderComponents.HeaderRow>
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs({
-              organization,
-              location,
-              moduleURLBuilder,
-              traceSlug,
-              project,
-              view,
-            })}
-          />
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={getTraceViewBreadcrumbs({
+                  organization,
+                  location,
+                  moduleURLBuilder,
+                  traceSlug,
+                  project,
+                  view,
+                })}
+              />
+            </TopBar.Slot>
+          ) : (
+            <Breadcrumbs
+              crumbs={getTraceViewBreadcrumbs({
+                organization,
+                location,
+                moduleURLBuilder,
+                traceSlug,
+                project,
+                view,
+              })}
+            />
+          )}
           <Grid flow="column" align="center" gap="md">
             {hasPageFrameFeature ? (
               <TopBar.Slot name="feedback">

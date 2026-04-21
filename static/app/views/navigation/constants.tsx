@@ -22,6 +22,8 @@ export const NAVIGATION_SIDEBAR_RESET_DELAY_MS = 300;
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT = 40;
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME = 48;
 
+export const TOP_BAR_HEIGHT_CSS_VAR = '--top-bar-height';
+
 // To be passed as the `source` parameter in router navigation state
 // e.g. {pathname: '/issues/', state: {source: `sidebar`}}
 export const SIDEBAR_NAVIGATION_SOURCE = 'sidebar';

@@ -22,8 +22,9 @@ import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {generateFieldAsString, isEquation} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -64,6 +65,7 @@ import {
   getMetricDetectorSuffix,
   getStaticDetectorThresholdPlaceholder,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -395,6 +397,7 @@ function IntervalPicker() {
 }
 
 function CustomizeMetricSection({step}: {step?: number}) {
+  const organization = useOrganization();
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
@@ -403,6 +406,10 @@ function CustomizeMetricSection({step}: {step?: number}) {
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
+
+  const aggregateFunction = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
 
   return (
     <Container>
@@ -475,15 +482,20 @@ function CustomizeMetricSection({step}: {step?: number}) {
             <Visualize />
           </DisabledSection>
         </Tooltip>
-        <Tooltip
-          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
-          disabled={!isTransactionsDataset}
-        >
-          <FilterRow disabled={isTransactionsDataset}>
-            <DetectorQueryFilterBuilder />
-          </FilterRow>
-        </Tooltip>
+        {canUseMetricsEquationsInAlerts(organization) &&
+        dataset === DetectorDataset.METRICS &&
+        aggregateFunction &&
+        isEquation(aggregateFunction) ? null : (
+          <Tooltip
+            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+            isHoverable
+            disabled={!isTransactionsDataset}
+          >
+            <FilterRow disabled={isTransactionsDataset}>
+              <DetectorQueryFilterBuilder />
+            </FilterRow>
+          </Tooltip>
+        )}
       </FormSection>
     </Container>
   );

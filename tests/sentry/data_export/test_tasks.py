@@ -784,11 +784,11 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "tags[code.line.number,number]": 148.0,
                 "logger.name": "sentry.access.api",
                 "origin": "auto.log.stdlib",
-                "sentry.body": "api.access.alpha",
+                "message": "api.access.alpha",
                 "rate_limited": "False",
-                "sentry.severity_text": "info",
+                "severity": "info",
                 "environment": "prod",
-                "sentry.severity_number": 9.0,
+                "severity_number": 9.0,
                 "payload_size": 981.0,
                 "tags[process.pid,number]": 6639.0,
                 "response": "200",
@@ -802,13 +802,13 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "tags[code.line.number,number]": 148.0,
                 "logger.name": "sentry.access.api",
                 "origin": "auto.log.stdlib",
-                "sentry.body": "api.access.beta",
+                "message": "api.access.beta",
                 "rate_limited": "False",
-                "sentry.severity_text": "info",
+                "severity": "info",
                 "environment": "prod",
                 "payload_size": 2048.0,
                 "tags[process.pid,number]": 6639.0,
-                "sentry.severity_number": 9.0,
+                "severity_number": 9.0,
                 "response": "201",
             },
         ]
@@ -823,15 +823,10 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
                 "observed_timestamp",
                 "trace",
                 "id",
-                "item_id",
-                "sentry.timestamp_precise",
-                "sentry.observed_timestamp_nanos",
-                "organization_id",
-                "project_id",
-                "trace_id",
+                "organization.id",
+                "project.id",
                 "item_type",
                 "timestamp",
-                "sentry._internal.ingested_at",
                 "client_sample_rate",
                 "server_sample_rate",
                 "retention_days",
@@ -1089,7 +1084,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
 
         lines = [ln for ln in content.split(b"\n") if ln]
         assert len(lines) == rows_exported
-        message_key = "log.body" if len(fields) else "sentry.body"
+        message_key = "log.body" if len(fields) else "message"
         bodies = {json.loads(ln.decode("utf-8"))[message_key] for ln in lines}
         assert bodies == {
             "jsonl log message",
