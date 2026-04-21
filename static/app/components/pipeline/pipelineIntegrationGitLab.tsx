@@ -4,10 +4,10 @@ import {z} from 'zod';
 import {CodeBlock} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
