@@ -184,8 +184,7 @@ def get_repo_for_ref(
 def get_provider_for_repo(
     *,
     repo: Repository,
-) -> tuple[Any, bool, str] | None:
-    is_integration_repo_provider = repo.has_integration_provider()
+) -> tuple[Any, str] | None:
     binding_key = (
         "integration-repository.provider"
         if repo.has_integration_provider()
@@ -199,7 +198,7 @@ def get_provider_for_repo(
     provider = provider_cls(id=repo.provider)
     provider_key = provider.get_scm_provider_key() or provider.id
 
-    return provider, is_integration_repo_provider, provider_key
+    return provider, provider_key
 
 
 def get_start_sha_for_ref(
@@ -228,7 +227,6 @@ def get_start_sha_for_ref(
 class ResolvedRef(NamedTuple):
     repo: Repository
     provider: Any
-    is_integration_repo_provider: bool
     provider_key: str
     start_sha: str | None
     end_sha: str
@@ -254,7 +252,7 @@ def resolve_ref(
     provider_values = get_provider_for_repo(repo=repo)
     if provider_values is None:
         return None
-    provider, is_integration_repo_provider, provider_key = provider_values
+    provider, provider_key = provider_values
 
     start_sha = get_start_sha_for_ref(
         ref=ref,
@@ -265,7 +263,6 @@ def resolve_ref(
     return ResolvedRef(
         repo=repo,
         provider=provider,
-        is_integration_repo_provider=is_integration_repo_provider,
         provider_key=provider_key,
         start_sha=start_sha,
         end_sha=ref["commit"],
