@@ -3046,18 +3046,27 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
+        # Use a unique fingerprint so the Redis noise counter key is isolated
+        # from other tests that use the same event fixture.  Without this, a
+        # prior test that left the counter at 1 or 2 can cause event_3 to be
+        # the 4th or 5th increment, which resets the counter mid-test and makes
+        # event_3.group None.
+        unique_fp = f"noise-{self.id()}"
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
                 noise_limit=3,
+                fingerprint=unique_fp,
             )
             event_2 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
                 noise_limit=3,
+                fingerprint=unique_fp,
             )
             event_3 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view")),
                 noise_limit=3,
+                fingerprint=unique_fp,
             )
             assert event_1.get_event_type() == "transaction"
             assert event_2.get_event_type() == "transaction"

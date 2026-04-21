@@ -402,6 +402,13 @@ class GroupHashCachingTest(TestCase):
         # We don't want the cache invalidation triggered by saving, updating, or deleting a
         # grouphash to ever make those processes crash
 
+        # Eagerly initialise the lazy fixtures before the cache.delete patch is
+        # active. Organization/Team/Project creation also call cache.delete via
+        # post_save signals; if they are initialised inside the patch context
+        # (which happens when this test runs first in a shuffled order) the
+        # patched Exception escapes and the test fails.
+        _ = self.project
+
         with (
             # Called by the grouphash `save` hook
             patch("sentry.grouping.ingest.caching.cache.delete", side_effect=Exception),
