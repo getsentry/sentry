@@ -77,7 +77,7 @@ export function MetricsEquationVisualize() {
   // discarded so unsaved row edits survive form writes. Remounting the provider
   // (via a `key` on this component) is the escape hatch for true re-hydration.
   const initialQueries = useMemo(() => {
-    const parsed = parseAggregateExpression(aggregateFunction, query);
+    const parsed = parseAggregateExpression(aggregateFunction ?? '', query);
     return parsed.equationRow
       ? [...parsed.metricQueries, parsed.equationRow]
       : parsed.metricQueries;
