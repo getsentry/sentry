@@ -13,14 +13,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   // TODO(msun): Add tests for this component
   const organization = useOrganization();
   const [isEditing, setIsEditing] = useState(false);
   const user = useUser();
-  const hasPageFrame = useHasPageFrameFeature();
 
   const {mutate: updateGroupSearchView} = useUpdateGroupSearchView();
 
@@ -64,13 +62,10 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
       stopEditing={() => {
         setIsEditing(false);
       }}
-      isCompact={hasPageFrame}
     />
   ) : (
-    <ViewTitleWrapper isCompact={hasPageFrame}>
-      <ViewTitle onDoubleClick={handleBeginEditing} isCompact={hasPageFrame}>
-        {view.name}
-      </ViewTitle>
+    <ViewTitleWrapper>
+      <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
       <Button
         icon={<IconEdit />}
         onClick={handleBeginEditing}
@@ -86,10 +81,8 @@ function EditingViewTitle({
   initialTitle,
   onSave,
   stopEditing,
-  isCompact,
 }: {
   initialTitle: string;
-  isCompact: boolean;
   onSave: (title: string) => void;
   stopEditing: () => void;
 }) {
@@ -128,17 +121,14 @@ function EditingViewTitle({
       onKeyDown={handleOnKeyDown}
       onBlur={() => stopEditing()}
       maxLength={128}
-      isCompact={isCompact}
     />
   );
 }
 
-const ViewTitleWrapper = styled(Layout.Title)<{isCompact?: boolean}>`
+const ViewTitleWrapper = styled(Layout.Title)`
   display: flex;
   align-items: center;
   width: min-content;
-
-  ${p => p.isCompact && `font-size: inherit; font-weight: inherit;`}
 
   :not(:hover, :focus-within) {
     button {
@@ -151,14 +141,13 @@ const ViewTitleWrapper = styled(Layout.Title)<{isCompact?: boolean}>`
   }
 `;
 
-const ViewTitle = styled('div')<{isCompact?: boolean}>`
-  height: ${p => (p.isCompact ? 'auto' : '40px')};
+const ViewTitle = styled('div')`
+  height: 40px;
   letter-spacing: normal;
   margin-right: ${p => p.theme.space['2xs']};
   font-size: inherit;
   align-items: center;
-  border-bottom: ${p =>
-    p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
 
   display: block;
   width: 100%;
@@ -167,22 +156,22 @@ const ViewTitle = styled('div')<{isCompact?: boolean}>`
   text-overflow: ellipsis;
 `;
 
-const StyledGrowingInput = styled(Input)<{isCompact?: boolean}>`
+const StyledGrowingInput = styled(Input)`
   position: relative;
   border: none;
   margin: 0;
   padding: 0;
   background: transparent;
   min-height: 0px;
-  height: ${p => (p.isCompact ? 'auto' : '40px')};
+  height: 40px;
   border-radius: 0px;
   text-overflow: ellipsis;
   cursor: text;
 
   /* <Layout.Title /> styles */
-  font-size: ${p => (p.isCompact ? 'inherit' : '1.625rem')};
-  font-weight: ${p => (p.isCompact ? 'inherit' : '600')};
-  line-height: ${p => (p.isCompact ? 'inherit' : '40px')};
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 40px;
 
   &,
   &:focus,
