@@ -94,12 +94,17 @@ describe('AutoSaveForm', () => {
     });
 
     it('propagates field validation errors from RequestError responses', async () => {
-      const requestError = new RequestError('PUT', '/test-endpoint/', new Error('Bad Request'), {
-        status: 400,
-        responseJSON: {
-          testField: ['Cannot save this value'],
-        },
-      });
+      const requestError = new RequestError(
+        'PUT',
+        '/test-endpoint/',
+        new Error('Bad Request'),
+        {
+          status: 400,
+          responseJSON: {
+            testField: ['Cannot save this value'],
+          },
+        }
+      );
       const mutationFn = jest.fn(() => Promise.reject(requestError));
 
       render(

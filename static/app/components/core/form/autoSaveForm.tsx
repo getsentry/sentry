@@ -2,8 +2,6 @@ import {useId, useRef} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import type {DeepKeys, DeepValue, FieldApi} from '@tanstack/react-form';
 import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
-
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
@@ -15,6 +13,7 @@ import {
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
