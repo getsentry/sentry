@@ -6,11 +6,13 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  Fragment,
 } from 'react';
 import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';
 
+import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -209,20 +211,25 @@ export function GlobalDrawer({children}: any) {
         message={t('There was a problem rendering the drawer.')}
       >
         <AnimatePresence>
+          {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
+            <Backdrop />
+          ) : null}
           {isDrawerOpen && (
-            <DrawerComponents.DrawerPanel
-              ariaLabel={currentDrawerConfig.options.ariaLabel}
-              onClose={handleClose}
-              ref={panelRef}
-              headerContent={currentDrawerConfig?.options?.headerContent ?? null}
-              transitionProps={currentDrawerConfig?.options?.transitionProps}
-              drawerWidth={currentDrawerConfig?.options?.drawerWidth}
-              drawerKey={currentDrawerConfig?.options?.drawerKey}
-              resizable={currentDrawerConfig?.options?.resizable}
-              drawerCss={currentDrawerConfig?.options?.drawerCss}
-            >
-              {renderedChild}
-            </DrawerComponents.DrawerPanel>
+            <Fragment>
+              <DrawerComponents.DrawerPanel
+                ariaLabel={currentDrawerConfig.options.ariaLabel}
+                onClose={handleClose}
+                ref={panelRef}
+                headerContent={currentDrawerConfig?.options?.headerContent ?? null}
+                transitionProps={currentDrawerConfig?.options?.transitionProps}
+                drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+                drawerKey={currentDrawerConfig?.options?.drawerKey}
+                resizable={currentDrawerConfig?.options?.resizable}
+                drawerCss={currentDrawerConfig?.options?.drawerCss}
+              >
+                {renderedChild}
+              </DrawerComponents.DrawerPanel>
+            </Fragment>
           )}
         </AnimatePresence>
       </ErrorBoundary>
