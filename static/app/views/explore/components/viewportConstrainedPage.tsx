@@ -1,5 +1,4 @@
-import {css} from '@emotion/react';
-import classNames from 'classnames';
+import {ClassNames} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -27,47 +26,52 @@ export function ViewportConstrainedPage({
   hideFooter,
   ...rest
 }: ViewportConstrainedPageProps) {
-  const layoutMain = (className?: string) => (
-    <Layout.Main
-      width="full"
-      {...rest}
-      className={classNames(rest.className, className)}
-    />
-  );
-
   if (!constrained) {
     return (
       <Flex direction="column" minHeight="0">
-        {({className}) => layoutMain(className)}
+        {({className}) => (
+          <Layout.Main
+            width="full"
+            {...rest}
+            className={[rest.className, className].filter(Boolean).join(' ')}
+          />
+        )}
       </Flex>
     );
   }
 
   return (
-    <Flex direction="column" minHeight="0" overflow="hidden">
-      {({className}) =>
-        layoutMain(
-          classNames(
-            className,
-            css`
-              contain: size;
+    <ClassNames>
+      {({css, cx}) => (
+        <Flex direction="column" minHeight="0" overflow="hidden">
+          {({className}) => (
+            <Layout.Main
+              width="full"
+              {...rest}
+              className={cx(
+                rest.className,
+                className,
+                css`
+                  contain: size;
 
-              @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-                ~ footer {
-                  display: none;
-                }
-              }
+                  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
+                    ~ footer {
+                      display: none;
+                    }
+                  }
 
-              ${hideFooter &&
-              css`
-                ~ footer {
-                  display: none;
-                }
-              `}
-            `
-          )
-        )
-      }
-    </Flex>
+                  ${hideFooter &&
+                  css`
+                    ~ footer {
+                      display: none;
+                    }
+                  `}
+                `
+              )}
+            />
+          )}
+        </Flex>
+      )}
+    </ClassNames>
   );
 }
