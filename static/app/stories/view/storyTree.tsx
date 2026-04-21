@@ -384,10 +384,6 @@ function isComponentSubcategory(
   return value !== undefined && value in COMPONENT_SUBCATEGORY_CONFIG;
 }
 
-export function inferComponentSubcategory(_componentName: string): ComponentSubcategory {
-  return 'shared';
-}
-
 function isOverviewFile(file: string) {
   return file.includes('components/core/overview');
 }
