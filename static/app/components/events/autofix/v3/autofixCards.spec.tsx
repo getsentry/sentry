@@ -185,6 +185,43 @@ describe('RootCauseCard', () => {
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
     expect(screen.queryByText('Why did this happen?')).not.toBeInTheDocument();
   });
+
+  it('copies markdown when copy button is clicked', async () => {
+    jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Null pointer in user handler',
+      five_whys: ['Missing null check'],
+      reproduction_steps: ['Open page'],
+    });
+
+    render(
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Null pointer in user handler')
+    );
+  });
+
+  it('does not show copy button when artifact data is null', () => {
+    const artifact = makeRootCauseArtifact(null);
+
+    render(
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Copy as Markdown'})
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('SolutionCard', () => {
@@ -245,6 +282,42 @@ describe('SolutionCard', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
+  });
+
+  it('copies markdown when copy button is clicked', async () => {
+    jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    const artifact = makeSolutionArtifact({
+      one_line_summary: 'Add null check before accessing user',
+      steps: [{title: 'Add guard', description: 'Check input'}],
+    });
+
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Add null check before accessing user')
+    );
+  });
+
+  it('does not show copy button when artifact data is null', () => {
+    const artifact = makeSolutionArtifact(null);
+
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Copy as Markdown'})
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -330,6 +403,37 @@ describe('CodeChangesCard', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
+
+  it('copies markdown when copy button is clicked', async () => {
+    jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(
+      <CodeChangesCard
+        autofix={mockAutofix}
+        section={makeSection('code_changes', 'completed', [
+          [makePatch('org/repo', 'src/app.py')],
+        ])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Code Changes')
+    );
+  });
+
+  it('does not show copy button when no patches', () => {
+    render(
+      <CodeChangesCard
+        autofix={mockAutofix}
+        section={makeSection('code_changes', 'completed', [])}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Copy as Markdown'})
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('PullRequestsCard', () => {
@@ -394,6 +498,22 @@ describe('PullRequestsCard', () => {
     expect(screen.getByRole('button', {name: /View org\/valid#55/})).toHaveAttribute(
       'href',
       'https://pr/55'
+    );
+  });
+
+  it('copies markdown when copy button is clicked', async () => {
+    jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(
+      <PullRequestsCard
+        autofix={mockAutofix}
+        section={makeSection('pull_request', 'completed', [[makePR()]])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Pull Requests')
     );
   });
 });
@@ -619,5 +739,40 @@ describe('CodingAgentCard', () => {
     expect(screen.getByText('Agent Two')).toBeInTheDocument();
     expect(screen.getByText('completed')).toBeInTheDocument();
     expect(screen.getByText('running')).toBeInTheDocument();
+  });
+
+  it('copies markdown when copy button is clicked', async () => {
+    jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({
+              agent_url: 'https://cursor.com/agent/1',
+            }),
+          ],
+        ])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Coding Agents')
+    );
+  });
+
+  it('does not show copy button when no artifacts', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [])}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Copy as Markdown'})
+    ).not.toBeInTheDocument();
   });
 });
