@@ -142,7 +142,13 @@ function LogsHeader() {
             </TopBar.Slot>
           )}
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={logsFeedbackOptions}>{null}</FeedbackButton>
+            <FeedbackButton
+              feedbackOptions={logsFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
           </TopBar.Slot>
         </Fragment>
       ) : (

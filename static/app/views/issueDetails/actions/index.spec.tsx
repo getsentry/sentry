@@ -110,6 +110,19 @@ describe('GroupActions', () => {
       url: `/projects/${organization.slug}/${project.slug}/events//owners/`,
       body: {owners: [], rules: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {
+        billing: null,
+        integration: {ok: false, reason: null},
+        seerReposLinked: false,
+        githubWriteIntegration: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();

@@ -69,7 +69,7 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.5 sh
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.4.0 sh
 
       - name: Upload snapshots
         id: upload
@@ -89,6 +89,6 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
         run: |
           sentry-cli send-event \
-            --message "Frontend snapshot upload failed"
+            --message "Frontend snapshot upload failed" \
             --tag workflow:frontend-snapshots \
             --tag commit:"${{ github.sha }}"
