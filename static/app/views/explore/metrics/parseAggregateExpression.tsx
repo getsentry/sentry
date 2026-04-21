@@ -86,7 +86,7 @@ function makeMetricQuery(
     label,
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeFunction(plainAggregate)],
-      query: token.text.endsWith(IF_SUFFIX) ? filterQuery : defaultFilter,
+      query: token.function.endsWith(IF_SUFFIX) ? filterQuery : defaultFilter,
     }),
   };
 }
