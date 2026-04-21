@@ -7,6 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
@@ -224,9 +225,12 @@ function InstallationConfigStep({
           <Stack gap="xs">
             <Text density="comfortable">
               {tct(
-                'Navigate to [bold:User Settings \u203A Access \u203A Applications] in GitLab.',
+                'Navigate to [bold:User Settings \u203A Access \u203A Applications] in GitLab. [link:Open GitLab settings].',
                 {
                   bold: <strong />,
+                  link: (
+                    <ExternalLink href="https://gitlab.com/-/user_settings/applications" />
+                  ),
                 }
               )}
             </Text>
