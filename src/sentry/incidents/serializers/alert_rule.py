@@ -16,6 +16,7 @@ from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
+from sentry.api.bases.organization import LEGACY_ALERT_MUTATION_PROJECT_SCOPES
 from sentry.api.exceptions import BadRequest, RequestTimeout
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
@@ -62,7 +63,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
     environment = serializers.CharField(required=False, allow_null=True)
     projects = serializers.ListField(
-        child=ProjectField(scope="project:read"),
+        child=ProjectField(scope=LEGACY_ALERT_MUTATION_PROJECT_SCOPES),
         required=False,
         max_length=1,
     )

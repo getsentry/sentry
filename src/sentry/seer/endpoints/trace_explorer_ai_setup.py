@@ -27,6 +27,9 @@ from rest_framework.request import Request
 
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Trace explorer POST helpers are read-like actions and need separate cleanup.",
+    }
     scope_map = {
         "GET": ["org:read"],
         "POST": ["org:read"],

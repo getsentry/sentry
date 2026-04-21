@@ -1,6 +1,7 @@
 from contextlib import AbstractContextManager
 
 import responses
+from django.urls import reverse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -34,6 +35,10 @@ class OrganizationWorkflowDetailsBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+
+    def _auth_header(self, *scopes: str) -> bytes:
+        api_key = self.create_api_key(organization=self.organization, scope_list=list(scopes))
+        return self.create_basic_auth_header(api_key.key)
 
 
 @cell_silo_test
@@ -81,6 +86,32 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             {"name": "teamId", "value": "1"},
             {"name": "assigneeId", "value": "3"},
         ]
+
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # public workflow clients have migrated to alerts:write.
+    def test_update_allows_legacy_org_write_scope_for_api_keys(self) -> None:
+        updated_workflow = {**self.valid_workflow, "name": "Updated Workflow"}
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, self.workflow.id]),
+            data=updated_workflow,
+            format="json",
+            HTTP_AUTHORIZATION=self._auth_header("org:write"),
+        )
+
+        assert response.status_code == 200
+
+    def test_update_allows_alerts_write_scope_for_api_keys(self) -> None:
+        updated_workflow = {**self.valid_workflow, "name": "Updated Workflow"}
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, self.workflow.id]),
+            data=updated_workflow,
+            format="json",
+            HTTP_AUTHORIZATION=self._auth_header("alerts:write"),
+        )
+
+        assert response.status_code == 200
 
     def test_simple(self) -> None:
         self.valid_workflow["name"] = "Updated Workflow"
@@ -794,6 +825,26 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
+
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # public workflow clients have migrated to alerts:write.
+    def test_delete_allows_legacy_org_write_scope_for_api_keys(self) -> None:
+        with outbox_runner():
+            response = self.client.delete(
+                reverse(self.endpoint, args=[self.organization.slug, self.workflow.id]),
+                HTTP_AUTHORIZATION=self._auth_header("org:write"),
+            )
+
+        assert response.status_code == 204
+
+    def test_delete_allows_alerts_write_scope_for_api_keys(self) -> None:
+        with outbox_runner():
+            response = self.client.delete(
+                reverse(self.endpoint, args=[self.organization.slug, self.workflow.id]),
+                HTTP_AUTHORIZATION=self._auth_header("alerts:write"),
+            )
+
+        assert response.status_code == 204
 
     def test_simple(self) -> None:
         with outbox_runner():

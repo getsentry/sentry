@@ -134,3 +134,121 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
         )
 
         assert response.status_code == 200, response.content
+
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # uptime preview clients have migrated to alerts:write.
+    @responses.activate
+    def test_org_read_scope_can_run_preview_check(self) -> None:
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        responses.add(
+            responses.POST,
+            "http://pop-st-1.uptime-checker.s4s.sentry.internal:80/validate_check",
+            status=200,
+            json={"succeeded": True},
+        )
+        responses.add(
+            responses.POST,
+            "http://pop-st-1.uptime-checker.s4s.sentry.internal:80/execute_config",
+            status=200,
+            json={"succeeded": True},
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-uptime-alert-preview-check",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "test",
+                "environment": "uptime-prod",
+                "owner": f"user:{self.user.id}",
+                "url": "http://sentry.io",
+                "timeoutMs": 1500,
+                "body": None,
+                "region": "default",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+        )
+
+        assert response.status_code == 200
+
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # uptime preview clients have migrated to alerts:write.
+    @responses.activate
+    def test_org_write_scope_can_run_preview_check(self) -> None:
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:write"])
+
+        responses.add(
+            responses.POST,
+            "http://pop-st-1.uptime-checker.s4s.sentry.internal:80/validate_check",
+            status=200,
+            json={"succeeded": True},
+        )
+        responses.add(
+            responses.POST,
+            "http://pop-st-1.uptime-checker.s4s.sentry.internal:80/execute_config",
+            status=200,
+            json={"succeeded": True},
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-uptime-alert-preview-check",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "test",
+                "environment": "uptime-prod",
+                "owner": f"user:{self.user.id}",
+                "url": "http://sentry.io",
+                "timeoutMs": 1500,
+                "body": None,
+                "region": "default",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+        )
+
+        assert response.status_code == 200
+
+    @responses.activate
+    def test_team_admin_can_run_preview_check_when_member_alert_write_disabled(self) -> None:
+        team_admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=team_admin_user,
+            organization=self.organization,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+
+        responses.add(
+            responses.POST,
+            "http://pop-st-1.uptime-checker.s4s.sentry.internal:80/validate_check",
+            status=200,
+            json={"succeeded": True},
+        )
+        responses.add(
+            responses.POST,
+            "http://pop-st-1.uptime-checker.s4s.sentry.internal:80/execute_config",
+            status=200,
+            json={"succeeded": True},
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            name="test",
+            environment="uptime-prod",
+            owner=f"user:{team_admin_user.id}",
+            url="http://sentry.io",
+            timeout_ms=1500,
+            body=None,
+            region="default",
+        )
+
+        assert response.status_code == 200

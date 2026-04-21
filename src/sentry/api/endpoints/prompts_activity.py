@@ -40,6 +40,9 @@ class PromptsActivityPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Prompt activity updates only change the requesting member's prompt state.",
+    }
 
 
 @cell_silo_endpoint

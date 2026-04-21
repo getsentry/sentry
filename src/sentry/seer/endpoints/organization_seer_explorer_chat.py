@@ -65,6 +65,9 @@ class SeerExplorerChatSerializer(serializers.Serializer):
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Seer explorer chat is a read-like POST helper and needs separate cleanup.",
+    }
     scope_map = {
         "GET": ["org:read"],
         "POST": ["org:read"],

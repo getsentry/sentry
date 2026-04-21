@@ -29,6 +29,9 @@ MAX_QUERY_LENGTH = 500
 
 
 class IssueViewTitleGeneratePermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Issue title generation is a read-like POST helper and needs separate cleanup.",
+    }
     scope_map = {
         "POST": ["org:read"],
     }

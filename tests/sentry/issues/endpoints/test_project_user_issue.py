@@ -6,9 +6,11 @@ from django.urls import reverse
 
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.producer import PayloadType
+from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import cell_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 
 @cell_silo_test
@@ -30,6 +32,10 @@ class ProjectUserIssueEndpointTest(APITestCase):
                 "project_id_or_slug": self.project.slug,
             },
         )
+
+    def _create_token(self, scope: str) -> ApiToken:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return ApiToken.objects.create(user=self.user, scope_list=[scope])
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     def test_create_web_vitals_issue_success(self) -> None:
@@ -109,6 +115,52 @@ class ProjectUserIssueEndpointTest(APITestCase):
         )
 
         assert response.status_code == 404
+
+    @with_feature("organizations:performance-web-vitals-seer-suggestions")
+    def test_create_web_vitals_issue_allows_event_read_scope(self) -> None:
+        token = self._create_token("event:read")
+
+        with patch(
+            "sentry.issues.endpoints.project_user_issue.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            response = self.client.post(
+                self.url,
+                data={
+                    "transaction": "/test-transaction",
+                    "issueType": WebVitalsGroup.slug,
+                    "score": 75,
+                    "value": 1000,
+                    "vital": "lcp",
+                },
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 200
+        assert response.data == {"event_id": mock_produce.call_args[1]["occurrence"].event_id}
+
+    @with_feature("organizations:performance-web-vitals-seer-suggestions")
+    def test_create_web_vitals_issue_allows_event_write_scope(self) -> None:
+        token = self._create_token("event:write")
+
+        with patch(
+            "sentry.issues.endpoints.project_user_issue.produce_occurrence_to_kafka"
+        ) as mock_produce:
+            response = self.client.post(
+                self.url,
+                data={
+                    "transaction": "/test-transaction",
+                    "issueType": WebVitalsGroup.slug,
+                    "score": 75,
+                    "value": 1000,
+                    "vital": "lcp",
+                },
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 200
+        assert response.data == {"event_id": mock_produce.call_args[1]["occurrence"].event_id}
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     def test_missing_required_fields(self) -> None:

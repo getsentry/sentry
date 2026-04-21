@@ -15,6 +15,9 @@ from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingT
 
 class OnboardingTaskPermission(OrganizationPermission):
     scope_map = {"POST": ["org:read"], "GET": ["org:read"]}
+    readonly_mutation_scope_exceptions = {
+        "POST": "Members may update their own onboarding task state.",
+    }
 
 
 @cell_silo_endpoint

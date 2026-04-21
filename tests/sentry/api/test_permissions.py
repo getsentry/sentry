@@ -1,5 +1,11 @@
+from collections.abc import Generator
+
+from django.test import SimpleTestCase
+from django.urls import URLPattern, URLResolver
+from django.urls.resolvers import get_resolver
 from rest_framework.views import APIView
 
+from sentry.api.base import Endpoint
 from sentry.api.permissions import (
     DemoSafePermission,
     DisallowImpersonatedTokenCreation,
@@ -8,10 +14,32 @@ from sentry.api.permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
+from sentry.conf.server import SENTRY_READONLY_SCOPES
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import no_silo_test
+
+MUTATION_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def _iter_endpoint_view_classes(urlpatterns) -> Generator[type[Endpoint]]:
+    for pattern in urlpatterns:
+        if isinstance(pattern, URLResolver):
+            yield from _iter_endpoint_view_classes(pattern.url_patterns)
+        elif isinstance(pattern, URLPattern):
+            callback = pattern.callback
+            if hasattr(callback, "view_class") and issubclass(callback.view_class, Endpoint):
+                yield callback.view_class
+
+
+def _get_class_path(cls: type[object]) -> str:
+    return f"{cls.__module__}.{cls.__name__}"
+
+
+def _get_readonly_mutation_scope_exceptions(cls: type[object]) -> dict[str, str]:
+    return getattr(cls, "readonly_mutation_scope_exceptions", {}) or {}
 
 
 class PermissionsTest(DRFPermissionTestCase):
@@ -223,3 +251,62 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             )
 
             assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+
+
+@no_silo_test
+class PublishedMutationScopeTest(SimpleTestCase):
+    def test_readonly_mutation_scope_exceptions_are_notes(self) -> None:
+        for view_cls in sorted(
+            set(_iter_endpoint_view_classes(get_resolver().url_patterns)), key=_get_class_path
+        ):
+            for cls in (view_cls, *getattr(view_cls, "permission_classes", ())):
+                exceptions = getattr(cls, "readonly_mutation_scope_exceptions", None)
+                if exceptions is None:
+                    continue
+
+                assert isinstance(exceptions, dict), (
+                    f"{_get_class_path(cls)} readonly_mutation_scope_exceptions must be a dict"
+                )
+
+                for method, note in exceptions.items():
+                    assert method in MUTATION_METHODS, (
+                        f"{_get_class_path(cls)} readonly_mutation_scope_exceptions[{method!r}] "
+                        "must target a mutation method"
+                    )
+                    assert isinstance(note, str) and note.strip(), (
+                        f"{_get_class_path(cls)} readonly_mutation_scope_exceptions[{method!r}] "
+                        "must be a non-empty note"
+                    )
+
+    def test_published_mutation_endpoints_require_readonly_scope_notes(self) -> None:
+        missing_notes = []
+
+        for view_cls in sorted(
+            set(_iter_endpoint_view_classes(get_resolver().url_patterns)), key=_get_class_path
+        ):
+            publish_status = getattr(view_cls, "publish_status", {}) or {}
+            permission_classes = getattr(view_cls, "permission_classes", ()) or ()
+            view_exceptions = _get_readonly_mutation_scope_exceptions(view_cls)
+
+            for method in MUTATION_METHODS & set(publish_status):
+                for permission_cls in permission_classes:
+                    readonly_scopes = (
+                        set(getattr(permission_cls, "scope_map", {}).get(method, ()))
+                        & SENTRY_READONLY_SCOPES
+                    )
+                    if not readonly_scopes:
+                        continue
+
+                    if view_exceptions.get(method) or _get_readonly_mutation_scope_exceptions(
+                        permission_cls
+                    ).get(method):
+                        continue
+
+                    missing_notes.append(
+                        f"{_get_class_path(view_cls)} {method} accepts readonly scopes "
+                        f"{sorted(readonly_scopes)} via {_get_class_path(permission_cls)}. "
+                        "Remove the readonly scopes or add "
+                        "readonly_mutation_scope_exceptions[method] with a justification note."
+                    )
+
+        assert not missing_notes, "\n".join(missing_notes)

@@ -27,7 +27,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization import (
+    OrganizationAlertingMutationPermission,
+)
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -88,16 +90,17 @@ workflow_search_config = SearchConfig.create_from(
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
 
 
-class OrganizationWorkflowPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        "POST": ["org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
-        "DELETE": ["org:write", "org:admin", "alerts:write"],
-    }
+class OrganizationWorkflowPermission(OrganizationAlertingMutationPermission):
+    pass
 
 
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
+    # TODO(api-write-scope-compat): Remove legacy org:* support once public
+    # workflow clients have migrated to alerts:write.
+    legacy_alert_mutation_scope_map = {
+        "PUT": ("org:write", "org:admin"),
+        "DELETE": ("org:write", "org:admin"),
+    }
     permission_classes = (OrganizationWorkflowPermission,)
 
     def convert_args(
@@ -141,6 +144,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    # TODO(api-write-scope-compat): Remove legacy org:* support once public
+    # workflow clients have migrated to alerts:write.
+    legacy_alert_mutation_scope_map = {
+        "POST": ("org:write", "org:admin"),
+        "PUT": ("org:write", "org:admin"),
+        "DELETE": ("org:write", "org:admin"),
+    }
     permission_classes = (OrganizationWorkflowPermission,)
 
     def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:

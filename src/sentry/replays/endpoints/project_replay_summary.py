@@ -52,6 +52,13 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": (
+            "POST starts replay-summary generation but only derives summary data from existing "
+            "replay/event data. It intentionally follows replay read access instead of requiring "
+            "a separate write capability."
+        )
+    }
     permission_classes = (ReplaySummaryPermission,)
 
     def __init__(self, **kw) -> None:

@@ -31,6 +31,9 @@ class OrganizationConduitDemoPermission(OrganizationPermission):
     This is a demo-only feature and doesn't modify organization state.
     """
 
+    readonly_mutation_scope_exceptions = {
+        "POST": "Demo credential generation preserves read-only token access for now.",
+    }
     scope_map = {
         "POST": ["org:read", "org:write", "org:admin"],
     }

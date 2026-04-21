@@ -55,6 +55,9 @@ class OrgProjectPermission(OrganizationPermission):
     scope_map = {
         "POST": ["project:read", "project:write", "project:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Experimental team-plus-project creation remains available to members when org settings allow it.",
+    }
 
 
 class AuditData(TypedDict):

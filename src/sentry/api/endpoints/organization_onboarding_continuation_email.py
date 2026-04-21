@@ -43,6 +43,9 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
 
 class OnboardingContinuationPermission(OrganizationPermission):
     scope_map = {"POST": ["org:read", "org:write", "org:admin"]}
+    readonly_mutation_scope_exceptions = {
+        "POST": "Members may trigger their own onboarding continuation email.",
+    }
 
 
 @cell_silo_endpoint

@@ -33,6 +33,10 @@ class BasePreprodArtifactResourceDoesNotExist(APIException):
 
 # This is not a general permission. It specifically for triggering comparisons.
 class ProjectPreprodArtifactPermission(OrganizationEventPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Preprod comparison triggers preserve read-only token access for now.",
+        "PUT": "Preprod comparison triggers preserve read-only token access for now.",
+    }
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
         # Some simple actions, like triggering comparisons, should be allowed

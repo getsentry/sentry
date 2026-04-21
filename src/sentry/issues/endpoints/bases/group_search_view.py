@@ -14,6 +14,10 @@ class GroupSearchViewPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Group search view edits remain available to creators and org managers without requiring org:write in the scope map.",
+        "DELETE": "Group search view deletes remain available to creators and org managers without requiring org:write in the scope map.",
+    }
 
     def has_object_permission(self, request: Request, view: APIView, obj: object) -> bool:
         if isinstance(obj, Organization):

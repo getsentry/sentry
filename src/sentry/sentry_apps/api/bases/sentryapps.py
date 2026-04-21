@@ -432,6 +432,9 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
 
 class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "This endpoint creates an external issue link for an issue the caller can already read.",
+    }
     scope_map = {
         "POST": ("event:read", "event:write", "event:admin"),
         "DELETE": ("event:admin",),

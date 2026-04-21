@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 
 
 class NotificationActionsPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Notification action writes also rely on project-scoped checks; cleanup is deferred.",
+        "PUT": "Notification action writes also rely on project-scoped checks; cleanup is deferred.",
+        "DELETE": "Notification action writes also rely on project-scoped checks; cleanup is deferred.",
+    }
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],

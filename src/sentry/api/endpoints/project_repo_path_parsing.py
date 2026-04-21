@@ -98,6 +98,9 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
     scope_map = {
         "POST": ["org:read", "project:write", "project:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Repo path parsing validates a suggested mapping and does not persist project state.",
+    }
 
 
 @cell_silo_endpoint

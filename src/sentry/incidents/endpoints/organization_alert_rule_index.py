@@ -914,6 +914,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    # TODO(api-write-scope-compat): Remove legacy org:write support once public
+    # metric alert clients have migrated to alerts:write.
+    legacy_alert_mutation_scope_map = {"POST": ("org:write",)}
     permission_classes = (OrganizationAlertRulePermission,)
     workflow_engine_method_flags = {
         "GET": "organizations:workflow-engine-metric-alert-endpoints-get",

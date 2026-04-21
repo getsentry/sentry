@@ -7,8 +7,11 @@ import requests
 from django.conf import settings
 from django.urls import reverse
 
+from sentry.models.apitoken import ApiToken
 from sentry.replays.testutils import mock_replay
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 
@@ -139,6 +142,41 @@ class ProjectReplaySummaryTestCase(
         assert body["organization_id"] == self.organization.id
         assert body["project_id"] == self.project.id
         assert body.get("temperature") is None
+
+    @patch("sentry.replays.endpoints.project_replay_summary.make_replay_summary_start_request")
+    def test_post_allows_event_read_scope_for_api_tokens(self, mock_seer_request: Mock) -> None:
+        mock_seer_request.return_value = MockSeerResponse(200, json_data={"hello": "world"})
+        self.store_replay()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"num_segments": 1},
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 200
+        assert response.json() == {"hello": "world"}
+
+    def test_post_requires_replay_read_scope_for_api_tokens(self) -> None:
+        self.store_replay()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"num_segments": 1},
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
 
     def test_post_replay_not_found(self) -> None:
         with self.feature(self.features):

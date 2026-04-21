@@ -16,6 +16,9 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "POST": ["member:read"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "View visit timestamps only update the requesting member's last-visited state.",
+    }
 
 
 @cell_silo_endpoint

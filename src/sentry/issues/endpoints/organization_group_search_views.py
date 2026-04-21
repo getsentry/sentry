@@ -28,6 +28,9 @@ class MemberPermission(OrganizationPermission):
         "GET": ["member:read", "member:write"],
         "POST": ["member:read", "member:write"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Creating a custom group search view is allowed for organization members.",
+    }
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         if isinstance(obj, Organization):

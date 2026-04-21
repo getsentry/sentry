@@ -23,6 +23,9 @@ class MemberPermission(OrganizationPermission):
         "GET": ["member:read", "member:write"],
         "PUT": ["member:read", "member:write"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Starred dashboard ordering only updates the requesting member's preferences.",
+    }
 
 
 @cell_silo_endpoint

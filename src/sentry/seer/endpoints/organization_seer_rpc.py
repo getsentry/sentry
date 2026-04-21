@@ -151,6 +151,9 @@ public_project_seer_method_registry: dict[str, Callable] = {
 class SeerRpcPermission(OrganizationPermission):
     # Seer RPCs uses POST requests but is actually read only
     # So relax the permissions here.
+    readonly_mutation_scope_exceptions = {
+        "POST": "Seer RPC POST is intentionally read-only and tracked separately.",
+    }
     scope_map = {
         "POST": ["org:read", "org:write", "org:admin"],
     }

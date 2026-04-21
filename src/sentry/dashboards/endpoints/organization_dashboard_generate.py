@@ -49,6 +49,9 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class OrganizationDashboardGeneratePermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Dashboard generation is a POST helper/action and needs separate contract cleanup.",
+    }
     scope_map = {
         "POST": ["org:read"],
     }

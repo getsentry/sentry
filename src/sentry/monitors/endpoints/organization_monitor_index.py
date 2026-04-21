@@ -18,7 +18,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationAlertRulePermission
+from sentry.api.bases.organization import (
+    ALERT_MUTATION_SCOPES,
+    OrganizationAlertRulePermission,
+    get_legacy_alert_mutation_scopes,
+)
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -40,6 +44,7 @@ from sentry.db.models.query import in_iexact
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.monitors.models import (
     DEFAULT_STATUS_ORDER,
     MONITOR_ENVIRONMENT_ORDERING,
@@ -86,6 +91,12 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
+    # TODO(api-write-scope-compat): Remove legacy org:write support once public
+    # cron monitor clients have migrated to alerts:write.
+    legacy_alert_mutation_scope_map = {
+        "POST": ("org:write", "org:admin"),
+        "PUT": ("org:write", "org:admin"),
+    }
     permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
@@ -325,12 +336,22 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = dict(validator.validated_data)
+        monitor_edit_scopes = ALERT_MUTATION_SCOPES | frozenset(
+            get_legacy_alert_mutation_scopes(self, request.method)
+        )
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
         monitor_guids = result.pop("ids", [])
         monitors = list(Monitor.objects.filter(guid__in=monitor_guids, project_id__in=project_ids))
+        projects_by_id = Project.objects.in_bulk({monitor.project_id for monitor in monitors})
+        if not all(
+            project is not None
+            and request.access.has_any_project_scope(project, monitor_edit_scopes)
+            for project in (projects_by_id.get(monitor.project_id) for monitor in monitors)
+        ):
+            return self.respond(status=403)
 
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward

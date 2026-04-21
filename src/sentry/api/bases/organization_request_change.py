@@ -7,6 +7,9 @@ from sentry.api.bases.organization import OrganizationEndpoint
 
 
 class OrganizationRequestChangeEndpointPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "This endpoint only files a request for an organization change; members use it without organization write access.",
+    }
     # just requesting so read permission is enough
     scope_map = {
         "POST": ["org:read"],

@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
+from sentry.api.bases.organization import get_organization_id
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -31,6 +32,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
@@ -123,6 +125,45 @@ def get_detector_validator(
 @cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
+    allow_any_team_alert_write_fallback = True
+    # TODO(api-write-scope-compat): Remove legacy org:* support once public
+    # detector clients have migrated to alerts:write.
+    legacy_alert_mutation_scope_map = {
+        "PUT": ("org:read", "org:write", "org:admin"),
+        "DELETE": ("org:read", "org:write", "org:admin"),
+    }
+
+    def get_alert_mutation_projects(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> list[Project] | None:
+        if request.method not in {"PUT", "DELETE"}:
+            return None
+
+        raw_detector_id = self.kwargs.get("detector_id")
+        if raw_detector_id is None:
+            return None
+
+        try:
+            validated_detector_id = to_valid_int_id("detector_id", raw_detector_id)
+        except ValidationError:
+            return None
+
+        organization_id = get_organization_id(organization)
+        detector = (
+            Detector.objects.select_related("project")
+            .filter(
+                id=validated_detector_id,
+                project__organization_id=organization_id,
+            )
+            .first()
+        )
+        if detector is None:
+            return None
+
+        return [detector.project]
+
     def convert_args(
         self, request: Request, detector_id: str, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Organization | Detector]]:

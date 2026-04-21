@@ -346,6 +346,12 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    # TODO(api-write-scope-compat): Remove legacy org:write support once public
+    # metric alert clients have migrated to alerts:write.
+    legacy_alert_mutation_scope_map = {
+        "DELETE": ("org:write",),
+        "PUT": ("org:write",),
+    }
 
     @extend_schema(
         operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",

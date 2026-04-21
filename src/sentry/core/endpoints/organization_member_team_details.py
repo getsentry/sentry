@@ -72,6 +72,11 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
 
 
 class OrganizationTeamMemberPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Team membership writes keep current mixed org/member/team token semantics for now.",
+        "PUT": "Team membership writes keep current mixed org/member/team token semantics for now.",
+        "DELETE": "Team membership writes keep current mixed org/member/team token semantics for now.",
+    }
     scope_map = {
         "GET": [
             "org:read",

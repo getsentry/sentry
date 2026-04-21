@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationSeerExplorerUpdatePermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Seer explorer updates are POST helpers and need separate contract cleanup.",
+    }
     scope_map = {
         "POST": ["org:read"],
     }

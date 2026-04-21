@@ -23,6 +23,10 @@ class MemberPermission(OrganizationPermission):
         "POST": ["member:read", "member:write"],
         "DELETE": ["member:read", "member:write"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Starring an insights segment only changes the requesting member's preferences.",
+        "DELETE": "Unstarring an insights segment only changes the requesting member's preferences.",
+    }
 
 
 @cell_silo_endpoint

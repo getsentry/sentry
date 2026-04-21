@@ -133,6 +133,9 @@ class ProjectOwnershipPermission(ProjectPermission):
         "PUT": ["project:read", "project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Project ownership rules allow project:read for legacy ownership config edits.",
+    }
 
 
 class ProjectEndpoint(Endpoint):

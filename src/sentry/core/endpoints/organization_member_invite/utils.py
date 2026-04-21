@@ -6,6 +6,9 @@ ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
 
 class MemberInviteDetailsPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "DELETE": "Invite deletion keeps current member-read token semantics for now.",
+    }
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "PUT": ["member:write", "member:admin"],

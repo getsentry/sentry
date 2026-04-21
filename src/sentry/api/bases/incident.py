@@ -24,6 +24,9 @@ class IncidentPermission(OrganizationPermission):
         "PUT": ["org:write", "org:admin", "project:read", "project:write", "project:admin"],
         "DELETE": ["org:write", "org:admin", "project:read", "project:write", "project:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Incident updates still allow project-scoped members with access to the incident's projects.",
+    }
 
 
 class IncidentEndpoint(OrganizationEndpoint):

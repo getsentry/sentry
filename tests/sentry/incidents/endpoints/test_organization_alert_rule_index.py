@@ -40,6 +40,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectteam import ProjectTeam
@@ -417,6 +418,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         )
         self.login_as(self.user)
 
+    def _create_token(self, scope: str) -> ApiToken:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return ApiToken.objects.create(user=self.user, scope_list=[scope])
+
     def test_simple(self) -> None:
         with (
             outbox_runner(),
@@ -440,6 +445,59 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_create_requires_alerts_write_scope_for_tokens(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        token = self._create_token("org:read")
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            response = self.client.post(
+                f"/api/0/organizations/{self.organization.slug}/alert-rules/",
+                data=self.alert_rule_dict,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
+
+    # TODO(api-write-scope-compat): Remove this legacy org:write coverage once
+    # public metric alert clients have migrated to alerts:write.
+    def test_create_allows_legacy_org_write_scope_for_tokens(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        token = self._create_token("org:write")
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            response = self.client.post(
+                f"/api/0/organizations/{self.organization.slug}/alert-rules/",
+                data=self.alert_rule_dict,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 201
+
+    def test_create_allows_alerts_write_scope_for_tokens(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        token = self._create_token("alerts:write")
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            response = self.client.post(
+                f"/api/0/organizations/{self.organization.slug}/alert-rules/",
+                data=self.alert_rule_dict,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 201
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_count_automatically_converted_to_upsampled_count_for_upsampled_projects(

@@ -11,6 +11,7 @@ import responses
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import override_settings
+from django.urls import reverse
 from httpx import HTTPError
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
@@ -45,6 +46,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -85,6 +87,10 @@ class AlertRuleDetailsBase(AlertRuleBase):
     __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
+
+    def _create_token(self, scope: str, user=None) -> ApiToken:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return ApiToken.objects.create(user=user or self.user, scope_list=[scope])
 
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -1045,6 +1051,118 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
+
+    def test_team_admin_can_update_with_project_scoped_alerts_write(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        team_admin_user = self.create_user()
+        self.create_member(
+            user=team_admin_user,
+            organization=self.organization,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+
+        with self.feature("organizations:incidents"):
+            response = self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, self.alert_rule.id]),
+                data=self.valid_params,
+                format="json",
+            )
+
+        assert response.status_code == 200
+        self.alert_rule.refresh_from_db()
+        assert self.alert_rule.name == self.valid_params["name"]
+
+    def test_update_requires_alerts_write_scope_for_tokens(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        token = self._create_token("org:read")
+
+        with self.feature("organizations:incidents"):
+            response = self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, self.alert_rule.id]),
+                data=self.valid_params,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
+
+    # TODO(api-write-scope-compat): Remove this legacy org:write coverage once
+    # public metric alert clients have migrated to alerts:write.
+    def test_update_allows_legacy_org_write_scope_for_tokens(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        token = self._create_token("org:write")
+
+        with self.feature("organizations:incidents"):
+            response = self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, self.alert_rule.id]),
+                data=self.valid_params,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 200
+        self.alert_rule.refresh_from_db()
+        assert self.alert_rule.name == self.valid_params["name"]
+
+    def test_update_allows_alerts_write_scope_for_tokens(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        token = self._create_token("alerts:write")
+
+        with self.feature("organizations:incidents"):
+            response = self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, self.alert_rule.id]),
+                data=self.valid_params,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 200
+        self.alert_rule.refresh_from_db()
+        assert self.alert_rule.name == self.valid_params["name"]
+
+    def test_update_denies_alerts_write_scope_for_other_team_projects(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        team_admin_user = self.create_user()
+        self.create_member(
+            user=team_admin_user,
+            organization=self.organization,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+        other_project = self.create_project(
+            organization=self.organization, teams=[other_team], name="other-project"
+        )
+        other_alert_rule = self.new_alert_rule(
+            data={**deepcopy(self.alert_rule_dict), "projects": [other_project.slug]}
+        )
+
+        token = self._create_token("alerts:write", user=team_admin_user)
+
+        with self.feature("organizations:incidents"):
+            response = self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, other_alert_rule.id]),
+                data={**self.valid_params, "projects": [other_project.slug]},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
 
     def test_simple(self) -> None:
         self.create_member(
@@ -2672,6 +2790,74 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
+
+    def test_team_admin_can_delete_workflow_engine_detector_with_project_scoped_alerts_write(
+        self,
+    ) -> None:
+        team_admin_user = self.create_user()
+        self.create_member(
+            user=team_admin_user,
+            organization=self.organization,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        data_source = self.create_data_source()
+        self.create_data_source_detector(data_source, detector)
+        fake_detector_id = get_fake_id_from_object_id(detector.id)
+
+        with self.feature({"organizations:workflow-engine-rule-serializers": True}):
+            self.get_success_response(self.organization.slug, fake_detector_id, status_code=204)
+
+    def test_delete_denies_alerts_write_scope_for_other_team_projects(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        team_admin_user = self.create_user()
+        self.create_member(
+            user=team_admin_user,
+            organization=self.organization,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+        other_project = self.create_project(
+            organization=self.organization, teams=[other_team], name="other-project"
+        )
+        other_alert_rule = self.new_alert_rule(
+            data={**deepcopy(self.alert_rule_dict), "projects": [other_project.slug]}
+        )
+
+        token = self._create_token("alerts:write", user=team_admin_user)
+
+        with self.feature("organizations:incidents"):
+            response = self.client.delete(
+                reverse(self.endpoint, args=[self.organization.slug, other_alert_rule.id]),
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
+
+    # TODO(api-write-scope-compat): Remove this legacy org:write coverage once
+    # public metric alert clients have migrated to alerts:write.
+    def test_delete_allows_legacy_org_write_scope_for_tokens(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        token = self._create_token("org:write")
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            response = self.client.delete(
+                reverse(self.endpoint, args=[self.organization.slug, self.alert_rule.id]),
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 204
 
     def test_simple(self) -> None:
         self.create_member(

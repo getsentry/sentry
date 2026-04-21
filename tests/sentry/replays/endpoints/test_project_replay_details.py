@@ -5,13 +5,16 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.models.apitoken import ApiToken
 from sentry.models.files.file import File
 from sentry.replays.lib import kafka
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import kafka_config
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
@@ -191,6 +194,79 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert False, "File was not deleted."
         except File.DoesNotExist:
             pass
+
+    def test_delete_denies_event_read_scope_for_api_tokens(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.delete(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+            )
+
+        assert response.status_code == 403
+
+    def test_delete_allows_project_read_scope_for_api_tokens(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
+
+        with self.feature(REPLAYS_FEATURES):
+            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
+                response = self.client.delete(
+                    self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+                )
+
+        assert response.status_code == 204
+
+    def test_delete_allows_project_write_scope_for_api_tokens(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+
+        with self.feature(REPLAYS_FEATURES):
+            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
+                response = self.client.delete(
+                    self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+                )
+
+        assert response.status_code == 204
+
+    def test_delete_denies_event_write_scope_for_api_tokens(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:write"])
+
+        with self.feature(REPLAYS_FEATURES):
+            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
+                response = self.client.delete(
+                    self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+                )
+
+        assert response.status_code == 403
+
+    def test_delete_denies_event_admin_scope_for_api_tokens(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:admin"])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.delete(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+            )
+
+        assert response.status_code == 403
+
+    def test_delete_members_do_not_require_event_admin(self) -> None:
+        self.organization.update_option("sentry:events_member_admin", False)
+
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user=member_user)
+
+        with self.feature(REPLAYS_FEATURES):
+            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
+                response = self.client.delete(self.url)
+
+        assert response.status_code == 204
 
     def test_delete_replay_from_clickhouse_data(self) -> None:
         """Test deleting files uploaded through the direct storage interface."""

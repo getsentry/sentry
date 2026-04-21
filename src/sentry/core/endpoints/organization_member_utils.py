@@ -61,6 +61,9 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 
 class RelaxedMemberPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "DELETE": "Member deletion keeps self-service and role-comparison semantics for now.",
+    }
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "POST": ["member:write", "member:admin"],

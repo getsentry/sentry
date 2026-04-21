@@ -18,6 +18,9 @@ from sentry.integrations.services.integration.model import RpcIntegration
 
 
 class RepositoryTokenRegeneratePermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Codecov token regeneration preserves read-only token access for now.",
+    }
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],

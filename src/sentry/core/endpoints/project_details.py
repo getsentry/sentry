@@ -507,6 +507,9 @@ class RelaxedProjectPermission(ProjectPermission):
         "PUT": ["project:read", "project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Project detail updates still allow project:read for legacy field-level permission checks.",
+    }
 
 
 class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermission):

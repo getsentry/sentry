@@ -29,6 +29,7 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -162,12 +163,19 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin", "org:integrations"],
         "DELETE": ["org:admin", "org:integrations"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Legacy integration setup helpers still allow org:read and enforce narrower checks in the view.",
+        "PUT": "Legacy integration edit helpers still allow org:read and enforce narrower checks in the view.",
+    }
 
 
 class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
+    }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Bulk code mapping suggestions remain available to org members with repository access.",
     }
 
 
@@ -198,6 +206,10 @@ class OrganizationPinnedSearchPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "PUT": "Pinned search changes only update the requesting member's personal pinned state.",
+        "DELETE": "Pinned search removal only updates the requesting member's personal pinned state.",
+    }
 
 
 class OrganizationSearchPermission(OrganizationPermission):
@@ -207,35 +219,130 @@ class OrganizationSearchPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Members may manage personal saved searches without org:write.",
+        "PUT": "Members may edit personal saved searches without org:write.",
+        "DELETE": "Members may delete personal saved searches without org:write.",
+    }
 
 
 class OrganizationDataExportPermission(OrganizationPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
-        "POST": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
     }
 
 
-class OrganizationAlertRulePermission(OrganizationPermission):
+def get_organization_id(
+    organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+) -> int:
+    if isinstance(organization, RpcUserOrganizationContext):
+        return organization.organization.id
+
+    return organization.id
+
+
+def _has_any_team_scope(request: Request, scope: str) -> bool:
+    if not request.access.team_ids_with_membership:
+        return False
+
+    teams = Team.objects.filter(id__in=request.access.team_ids_with_membership)
+    return any(request.access.has_team_scope(team, scope) for team in teams)
+
+
+# Project-scoped alert authoring should rely on the alert-specific write scope.
+ALERT_MUTATION_SCOPES = frozenset({"alerts:write"})
+LEGACY_ALERT_MUTATION_PROJECT_SCOPES = ("project:read", "org:write", "alerts:write")
+
+
+def _has_project_alert_write_access(request: Request, projects: Sequence[Project]) -> bool:
+    return bool(projects) and all(
+        request.access.has_any_project_scope(project, ALERT_MUTATION_SCOPES) for project in projects
+    )
+
+
+def _has_view_project_scoped_alert_write(
+    request: Request,
+    view: APIView,
+    organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+) -> bool | None:
+    get_projects = getattr(view, "get_alert_mutation_projects", None)
+    if not callable(get_projects):
+        return None
+
+    projects = get_projects(request, organization)
+    if projects is None:
+        return None
+
+    return _has_project_alert_write_access(request, projects)
+
+
+def get_legacy_alert_mutation_scopes(view: APIView, method: str | None) -> tuple[str, ...]:
+    if method is None:
+        return ()
+
+    legacy_scope_map = getattr(view, "legacy_alert_mutation_scope_map", None)
+    if legacy_scope_map is None:
+        return ()
+
+    scopes = legacy_scope_map.get(method, ())
+    return tuple(scopes)
+
+
+class OrganizationAlertingMutationPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        # grant org:read permission, but raise permission denied if the members aren't allowed
-        # to create alerts and the user isn't a team admin
-        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
-        "DELETE": ["org:write", "org:admin", "alerts:write"],
+        "POST": ["alerts:write"],
+        "PUT": ["alerts:write"],
+        "DELETE": ["alerts:write"],
     }
 
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if super().has_permission(request, view):
+            return True
 
-class OrganizationDetectorPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        # grant org:read permission, but raise permission denied if the members aren't allowed
-        # to create alerts and the user isn't a team admin
-        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
-    }
+        if not request.auth:
+            return False
+
+        current_scopes = request.auth.get_scopes()
+        return any(
+            scope in current_scopes
+            for scope in get_legacy_alert_mutation_scopes(view, request.method)
+        )
+
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        if super().has_object_permission(request, view, organization):
+            return True
+
+        if request.method not in {"POST", "PUT", "DELETE"}:
+            return False
+
+        if any(
+            request.access.has_scope(scope)
+            for scope in get_legacy_alert_mutation_scopes(view, request.method)
+        ):
+            return True
+
+        project_scoped_access = _has_view_project_scoped_alert_write(request, view, organization)
+        if project_scoped_access is not None:
+            return project_scoped_access
+
+        return bool(getattr(view, "allow_any_team_alert_write_fallback", False)) and (
+            _has_any_team_scope(request, "alerts:write")
+        )
+
+
+class OrganizationAlertRulePermission(OrganizationAlertingMutationPermission):
+    pass
+
+
+class OrganizationDetectorPermission(OrganizationAlertingMutationPermission):
+    pass
 
 
 class OrgAuthTokenPermission(OrganizationPermission):
@@ -245,6 +352,10 @@ class OrgAuthTokenPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Organization auth token creation is a legacy org:read mutation.",
+        "PUT": "Organization auth token updates are a legacy org:read mutation.",
+    }
 
 
 class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):
@@ -252,6 +363,9 @@ class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Webhook signing secret writes allow org:read but the view restricts updates to creators or org writers.",
     }
 
 

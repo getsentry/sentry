@@ -307,6 +307,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Dashboard creation remains available to org members.",
+        "PUT": "Dashboard edits remain available to org members with object-level edit access.",
+        "DELETE": "Dashboard deletion remains available to org members with object-level edit access.",
+    }
 
     def has_object_permission(
         self,

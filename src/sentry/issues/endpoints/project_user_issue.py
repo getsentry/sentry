@@ -184,6 +184,12 @@ class ProjectUserIssuePermission(ProjectPermission):
         "PUT": [],
         "DELETE": [],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": (
+            "User-defined issue creation derives a new issue from event data the caller can "
+            "already inspect, so it intentionally follows event read access."
+        ),
+    }
 
 
 class ProjectUserIssueResponseSerializer(serializers.Serializer):

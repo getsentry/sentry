@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationTraceSummaryPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Trace summary is a read-like POST helper and needs separate contract cleanup.",
+    }
     scope_map = {
         "POST": ["org:read"],
     }

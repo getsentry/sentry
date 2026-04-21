@@ -3,6 +3,7 @@ from typing import Any
 from unittest import mock
 
 import responses
+from django.urls import reverse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -37,6 +38,10 @@ class OrganizationWorkflowAPITestCase(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+
+    def _auth_header(self, *scopes: str) -> bytes:
+        api_key = self.create_api_key(organization=self.organization, scope_list=list(scopes))
+        return self.create_basic_auth_header(api_key.key)
 
 
 @cell_silo_test
@@ -614,6 +619,28 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             {"name": "teamId", "value": "1"},
             {"name": "assigneeId", "value": "3"},
         ]
+
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # public workflow clients have migrated to alerts:write.
+    def test_create_allows_legacy_org_write_scope_for_api_keys(self) -> None:
+        response = self.client.post(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            data=self.valid_workflow,
+            format="json",
+            HTTP_AUTHORIZATION=self._auth_header("org:write"),
+        )
+
+        assert response.status_code == 201
+
+    def test_create_allows_alerts_write_scope_for_api_keys(self) -> None:
+        response = self.client.post(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            data=self.valid_workflow,
+            format="json",
+            HTTP_AUTHORIZATION=self._auth_header("alerts:write"),
+        )
+
+        assert response.status_code == 201
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -1195,6 +1222,32 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow", enabled=False
         )
 
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # public workflow clients have migrated to alerts:write.
+    def test_bulk_enable_allows_legacy_org_write_scope_for_api_keys(self) -> None:
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={self.workflow.id}",
+            data={"enabled": True},
+            format="json",
+            HTTP_AUTHORIZATION=self._auth_header("org:write"),
+        )
+
+        assert response.status_code == 200
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+    def test_bulk_enable_allows_alerts_write_scope_for_api_keys(self) -> None:
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={self.workflow.id}",
+            data={"enabled": True},
+            format="json",
+            HTTP_AUTHORIZATION=self._auth_header("alerts:write"),
+        )
+
+        assert response.status_code == 200
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
     def test_bulk_enable_workflows_by_ids_success(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
@@ -1347,6 +1400,24 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_three = self.create_workflow(
             organization_id=self.organization.id, name="Third Workflow"
         )
+
+    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # public workflow clients have migrated to alerts:write.
+    def test_delete_workflows_allows_legacy_org_write_scope_for_api_keys(self) -> None:
+        response = self.client.delete(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={self.workflow.id}",
+            HTTP_AUTHORIZATION=self._auth_header("org:write"),
+        )
+
+        assert response.status_code == 204
+
+    def test_delete_workflows_allows_alerts_write_scope_for_api_keys(self) -> None:
+        response = self.client.delete(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={self.workflow.id}",
+            HTTP_AUTHORIZATION=self._auth_header("alerts:write"),
+        )
+
+        assert response.status_code == 204
 
     def test_delete_workflows_by_ids_success(self) -> None:
         """Test successful deletion of workflows by specific IDs"""

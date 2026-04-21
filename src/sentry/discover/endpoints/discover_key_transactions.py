@@ -30,6 +30,10 @@ class KeyTransactionPermission(OrganizationPermission):
         "PUT": ["org:read"],
         "DELETE": ["org:read"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Key transaction writes are additionally constrained by project and team membership checks.",
+        "DELETE": "Key transaction deletes are additionally constrained by project and team membership checks.",
+    }
 
 
 @cell_silo_endpoint

@@ -18,6 +18,9 @@ from sentry.integrations.services.integration.model import RpcIntegration
 
 
 class SyncReposPermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Codecov sync preserves read-only token access pending integration-scope cleanup.",
+    }
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],

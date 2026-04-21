@@ -1,16 +1,25 @@
+from collections.abc import Sequence
 from typing import Any
 
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ValidationError as RestFrameworkValidationError
 from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
-from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationAlertRulePermission,
+    OrganizationEndpoint,
+    get_legacy_alert_mutation_scopes,
+    get_organization_id,
+)
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector import Detector
@@ -24,6 +33,8 @@ class OrganizationAlertRuleBaseEndpoint(OrganizationEndpoint):
     org-level permissions and team admin project-scoped permissions.
     """
 
+    allow_any_team_alert_write_fallback = True
+
     def check_can_create_alert(self, request: Request, organization: Organization) -> None:
         """
         Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
@@ -31,23 +42,21 @@ class OrganizationAlertRuleBaseEndpoint(OrganizationEndpoint):
         in their request.
         """
 
-        # if the requesting user has any of these org-level permissions, then they can create an alert
-        if (
-            request.access.has_scope("alerts:write")
-            or request.access.has_scope("org:admin")
-            or request.access.has_scope("org:write")
+        if request.access.has_scope("alerts:write") or any(
+            request.access.has_scope(scope)
+            for scope in get_legacy_alert_mutation_scopes(self, request.method)
         ):
             return
 
         # team admins should be able to create alerts for the projects they have access to
         projects = self.get_projects(request, organization)
         # team admins will have alerts:write scoped to their projects, members will not
-        team_admin_has_access = all(
-            [request.access.has_project_scope(project, "alerts:write") for project in projects]
-        )
-        # all() returns True for empty list, so include a check for it
-        if not team_admin_has_access or not projects:
-            raise PermissionDenied
+        if projects and all(
+            request.access.has_project_scope(project, "alerts:write") for project in projects
+        ):
+            return
+
+        raise PermissionDenied
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
@@ -82,6 +91,37 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
 
 class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
+
+    def get_alert_mutation_projects(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> Sequence[Project] | None:
+        if request.method not in {"PUT", "DELETE"}:
+            return None
+
+        raw_alert_rule_id = self.kwargs.get("alert_rule_id")
+        if raw_alert_rule_id is None:
+            return None
+
+        try:
+            validated_alert_rule_id = to_valid_int_id("alert_rule_id", raw_alert_rule_id)
+        except RestFrameworkValidationError:
+            return None
+
+        try:
+            organization_id = get_organization_id(organization)
+            alert_rule = AlertRule.objects.prefetch_related("projects").get(
+                organization_id=organization_id, id=validated_alert_rule_id
+            )
+            return [alert_rule.projects.get()]
+        except (
+            AlertRule.DoesNotExist,
+            AlertRule.MultipleObjectsReturned,
+            Project.DoesNotExist,
+            Project.MultipleObjectsReturned,
+        ):
+            return None
 
     def convert_args(
         self, request: Request, alert_rule_id: int, *args: Any, **kwargs: Any
@@ -164,6 +204,57 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
     # Subclasses may set a per-method granular flag (e.g. for GET) that is OR'd
     # with the broad workflow-engine-rule-serializers flag.
     workflow_engine_method_flags: dict[str, str] = {}
+
+    def get_alert_mutation_projects(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> Sequence[Project] | None:
+        projects = super().get_alert_mutation_projects(request, organization)
+        if projects is not None:
+            return projects
+
+        if request.method not in {"PUT", "DELETE"}:
+            return None
+
+        raw_alert_rule_id = self.kwargs.get("alert_rule_id")
+        if raw_alert_rule_id is None:
+            return None
+
+        try:
+            validated_alert_rule_id = to_valid_int_id("alert_rule_id", raw_alert_rule_id)
+        except RestFrameworkValidationError:
+            return None
+
+        organization_id = get_organization_id(organization)
+        ard = (
+            AlertRuleDetector.objects.select_related("detector__project")
+            .filter(
+                alert_rule_id=validated_alert_rule_id,
+                detector__project__organization_id=organization_id,
+            )
+            .first()
+        )
+        if ard is not None:
+            return [ard.detector.project]
+
+        try:
+            detector_id = get_object_id_from_fake_id(validated_alert_rule_id)
+        except ValueError:
+            return None
+
+        detector = (
+            Detector.objects.select_related("project")
+            .filter(
+                id=detector_id,
+                project__organization_id=organization_id,
+            )
+            .first()
+        )
+        if detector is None:
+            return None
+
+        return [detector.project]
 
     def convert_args(
         self, request: Request, alert_rule_id: int, *args: Any, **kwargs: Any

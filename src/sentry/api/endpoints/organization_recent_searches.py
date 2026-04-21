@@ -22,6 +22,9 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Recent search writes only affect the requesting member's history.",
+    }
 
 
 @cell_silo_endpoint

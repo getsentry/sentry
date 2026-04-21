@@ -38,6 +38,9 @@ from sentry.utils.audit import create_audit_entry
 
 
 class MemberInvitePermission(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Members can create invite requests on this endpoint even when they cannot send invites directly.",
+    }
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         # We will do an additional check to see if a user can invite members. If

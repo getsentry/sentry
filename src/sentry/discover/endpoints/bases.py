@@ -11,6 +11,11 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    readonly_mutation_scope_exceptions = {
+        "POST": "Discover saved query mutations remain available for personal or otherwise permitted queries.",
+        "PUT": "Discover saved query mutations remain available for personal or otherwise permitted queries.",
+        "DELETE": "Discover saved query mutations remain available for personal or otherwise permitted queries.",
+    }
 
     def has_object_permission(self, request, view, obj):
         if isinstance(obj, Organization):

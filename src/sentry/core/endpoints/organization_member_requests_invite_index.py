@@ -20,6 +20,9 @@ from sentry.notifications.utils.tasks import async_send_notification
 
 
 class InviteRequestPermissions(OrganizationPermission):
+    readonly_mutation_scope_exceptions = {
+        "POST": "Invite request creation keeps member-read token access for now.",
+    }
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "POST": ["member:read", "member:write", "member:admin"],
