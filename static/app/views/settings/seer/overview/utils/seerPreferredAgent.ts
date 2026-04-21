@@ -51,9 +51,6 @@ export function useFetchAgentOptions({
 export function useBulkMutateSelectedAgent() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
-    organization,
-  });
 
   return useCallback(
     async (projects: Project[], integration: PreferredAgent) => {
@@ -109,8 +106,15 @@ export function useBulkMutateSelectedAgent() {
 
       // Always invalidate to sync cache with whatever the server actually saved
       queryClient.invalidateQueries({
-        queryKey: autofixSettingsQueryOptions.queryKey,
+        queryKey: bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        }).queryKey,
       });
+      for (const project of projects) {
+        queryClient.invalidateQueries({
+          queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+        });
+      }
 
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length) {
@@ -131,6 +135,6 @@ export function useBulkMutateSelectedAgent() {
         }
       }
     },
-    [organization, queryClient, autofixSettingsQueryOptions.queryKey]
+    [organization, queryClient]
   );
 }

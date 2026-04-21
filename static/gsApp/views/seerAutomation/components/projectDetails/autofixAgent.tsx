@@ -57,7 +57,6 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
 
   const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
     organization,
-    project,
     queryClient,
   });
 
@@ -124,7 +123,27 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
         })}
         initialValue={stoppingPointValue}
-        mutationOptions={stoppingPointMutationOptions}
+        mutationOptions={{
+          mutationFn: (vars, fnCtx) =>
+            stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
+          onMutate: (vars, fnCtx) =>
+            stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
+          onError: (error, vars, mutateResult, fnCtx) =>
+            stoppingPointMutationOptions.onError?.(
+              error,
+              {...vars, project},
+              mutateResult,
+              fnCtx
+            ),
+          onSettled: (data, error, vars, mutateResult, fnCtx) =>
+            stoppingPointMutationOptions.onSettled?.(
+              data,
+              error,
+              {...vars, project},
+              mutateResult,
+              fnCtx
+            ),
+        }}
       >
         {field => (
           <field.Layout.Row
