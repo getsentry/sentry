@@ -359,13 +359,13 @@ const ActionBar = styled(motion.div)`
 const SendButton = styled(Button)`
   width: ${p => p.theme.form.md.height};
   flex-shrink: 0;
-  background: #ffffff;
-  color: #000000;
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
 
   &:hover:not(:disabled),
   &:focus-visible:not(:disabled) {
-    background: #ffffff;
-    color: #000000;
+    background: ${p => p.theme.tokens.background.primary};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
