@@ -87,6 +87,13 @@ const globMDX = '**/*.mdx';
 const CHARTCUTERIE_MESSAGE =
   'Chartcuterie runs server-side in Node.js. This import is not available.';
 
+const restrictedThemeImportPattern = {
+  group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+  importNames: ['lightTheme', 'darkTheme', 'default'],
+  message:
+    "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+};
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -338,14 +345,7 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
+          patterns: [restrictedThemeImportPattern],
           paths: restrictedImportPaths,
         },
       ],
@@ -651,13 +651,7 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            // Keep global theme restriction
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
+            restrictedThemeImportPattern,
             // Chartcuterie runs server-side in Node.js via the chartcuterie
             // rendering service. Browser-only APIs are not available.
             {
@@ -1011,14 +1005,7 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
+          patterns: [restrictedThemeImportPattern],
           // Allow color package only in the components/core directory
           paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
         },
@@ -1046,14 +1033,7 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
+          patterns: [restrictedThemeImportPattern],
           paths: [
             ...restrictedImportPaths,
             {
@@ -1098,14 +1078,7 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
+          patterns: [restrictedThemeImportPattern],
           paths: restrictedImportPaths,
         },
       ],
@@ -1127,12 +1100,7 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
+            restrictedThemeImportPattern,
             {
               group: ['sentry/locale'],
               message: 'Do not import locale into gsAdmin. No translations required.',
