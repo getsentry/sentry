@@ -6,6 +6,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
+import {RequestError} from 'sentry/utils/requestError/requestError';
+
 const testSchema = z.object({
   testField: z.string(),
 });
@@ -51,7 +53,6 @@ describe('AutoSaveForm', () => {
 
   describe('reset after save', () => {
     it('shows server-transformed value after successful save', async () => {
-      // Simulates a server that uppercases the value
       function TestComponent() {
         const [serverState, setServerState] = useState('initial');
 
@@ -83,15 +84,47 @@ describe('AutoSaveForm', () => {
       const input = screen.getByRole('textbox', {name: 'Name'});
       expect(input).toHaveValue('initial');
 
-      // Type a lowercase value and blur to trigger auto-save
       await userEvent.clear(input);
       await userEvent.type(input, 'hello');
       await userEvent.tab();
 
-      // After save, the form should reset and show the server's uppercased value
       await waitFor(() => {
         expect(input).toHaveValue('HELLO');
       });
+    });
+
+    it('propagates field validation errors from RequestError responses', async () => {
+      const requestError = new RequestError('PUT', '/test-endpoint/', new Error('Bad Request'), {
+        status: 400,
+        responseJSON: {
+          testField: ['Cannot save this value'],
+        },
+      });
+      const mutationFn = jest.fn(() => Promise.reject(requestError));
+
+      render(
+        <AutoSaveForm
+          name="testField"
+          schema={testSchema}
+          initialValue="initial"
+          mutationOptions={{mutationFn}}
+        >
+          {field => (
+            <field.Layout.Row label="Name">
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Meta />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+      );
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'hello');
+      await userEvent.tab();
+
+      expect(await screen.findByText('Cannot save this value')).toBeInTheDocument();
+      expect(screen.queryByText('Failed to save')).not.toBeInTheDocument();
     });
   });
 });
