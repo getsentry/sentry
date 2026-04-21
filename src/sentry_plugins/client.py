@@ -102,7 +102,8 @@ class AuthApiClient(ApiClient):
 
         # refresh token
         self.logger.info(
-            "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
+            "token.refresh",
+            extra={"auth_id": self.auth.id, "provider": self.auth.provider},
         )
         usersocialauth_service.refresh_token(filter={"id": self.auth.id})
         kwargs = self.bind_auth(**kwargs)

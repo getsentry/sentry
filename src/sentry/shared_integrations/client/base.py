@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from types import TracebackType
-from typing import Any, Literal, Self, TypedDict, TypeVar, overload
+from typing import Any, Literal, NotRequired, Self, TypedDict, TypeVar, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -27,14 +27,14 @@ from ..exceptions import (
 from ..response.base import BaseApiResponse
 
 
-class SessionSettings(TypedDict, total=False):
+class SessionSettings(TypedDict):
     timeout: int
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
-    proxies: MutableMapping[str, str]
-    stream: bool | None
-    verify: bool | str | None
-    cert: str | tuple[str, str] | None
+    proxies: NotRequired[MutableMapping[str, str]]
+    stream: NotRequired[bool | None]
+    verify: NotRequired[bool | str | None]
+    cert: NotRequired[str | tuple[str, str] | None]
 
 
 _TPaginatedResult = TypeVar("_TPaginatedResult")
