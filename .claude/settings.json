@@ -48,7 +48,7 @@
       "Bash(pnpm test:*)",
       "Bash(pnpm typecheck:*)",
       "Bash(pnpm why:*)",
-      "Bash(pre-commit run:*)",
+      "Bash(prek run:*)",
       "Bash(pwd:*)",
       "Bash(pytest:*)",
       "Bash(python --version:*)",

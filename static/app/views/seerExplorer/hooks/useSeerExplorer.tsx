@@ -12,6 +12,7 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -56,7 +57,11 @@ type SeerExplorerUpdateResponse = {
 const POLL_INTERVAL = 500; // Poll every 500ms
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
+const STRUCTURED_CONTEXT_ROUTES = new Set([
+  '/dashboard/:dashboardId/',
+  '/dashboard/:dashboardId/widget-builder/widget/new/',
+  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+]);
 
 const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Looking around...',
@@ -127,8 +132,12 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
-  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useState<boolean>(true);
+  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState<boolean>(
+    'seer-explorer.override.ctx-eng',
+    true
+  );
+  const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
+    useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',

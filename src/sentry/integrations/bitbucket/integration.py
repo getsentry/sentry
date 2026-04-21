@@ -5,18 +5,15 @@ from itertools import chain
 from typing import Any
 
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 from rest_framework.serializers import Serializer
 
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
-    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -33,18 +30,12 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_jwt,
-    get_integration_from_request,
-)
-from sentry.integrations.utils.metrics import (
-    IntegrationPipelineViewEvent,
-    IntegrationPipelineViewType,
 )
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
@@ -276,15 +267,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     )
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [
-            NestedPipelineView(
-                bind_key="identity",
-                provider_key=IntegrationProviderSlug.BITBUCKET.value,
-                pipeline_cls=IdentityPipeline,
-                config={"redirect_url": absolute_uri("/extensions/bitbucket/setup/")},
-            ),
-            VerifyInstallation(),
-        ]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [BitbucketAuthorizeApiStep()]
@@ -352,22 +335,3 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             BitbucketRepositoryProvider,
             id=f"integrations:{self.key}",
         )
-
-
-class VerifyInstallation:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with IntegrationPipelineViewEvent(
-            IntegrationPipelineViewType.VERIFY_INSTALLATION,
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            BitbucketIntegrationProvider.key,
-        ).capture() as lifecycle:
-            try:
-                integration = get_integration_from_request(
-                    request, BitbucketIntegrationProvider.key
-                )
-            except AtlassianConnectValidationError as e:
-                lifecycle.record_failure(str(e))
-                return pipeline.error("Unable to verify installation.")
-
-            pipeline.bind_state("external_id", integration.external_id)
-            return pipeline.next_step()

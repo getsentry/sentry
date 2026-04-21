@@ -34,8 +34,12 @@ export interface Conversation {
   user: ConversationUser | null;
 }
 
-interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
+interface ConversationApiResponse extends Omit<
+  Conversation,
+  'firstInput' | 'lastOutput'
+> {
   firstInput?: Array<{text: string; type: string}> | string | null;
+  lastOutput?: Array<{text: string; type: string}> | string | null;
 }
 
 export function useConversations() {
@@ -70,13 +74,23 @@ export function useConversations() {
 
   const data = useMemo(() => {
     return (response?.json ?? [])
-      .map(({firstInput: rawFirstInput, ...rest}): Conversation => {
-        const firstInput =
-          typeof rawFirstInput === 'string'
-            ? rawFirstInput
-            : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
-        return {...rest, firstInput};
-      })
+      .map(
+        ({
+          firstInput: rawFirstInput,
+          lastOutput: rawLastOutput,
+          ...rest
+        }): Conversation => {
+          const firstInput =
+            typeof rawFirstInput === 'string'
+              ? rawFirstInput
+              : (rawFirstInput?.find(content => content.type === 'text')?.text ?? null);
+          const lastOutput =
+            typeof rawLastOutput === 'string'
+              ? rawLastOutput
+              : (rawLastOutput?.find(content => content.type === 'text')?.text ?? null);
+          return {...rest, firstInput, lastOutput};
+        }
+      )
       .sort((a, b) => b.endTimestamp - a.endTimestamp);
   }, [response?.json]);
 

@@ -10,7 +10,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -22,11 +21,9 @@ import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
-import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
-import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
-import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
+import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {
@@ -71,16 +68,8 @@ export function MetricPanel({
   onEquationLabelsChange,
   ...rest
 }: MetricPanelProps) {
-  const organization = useOrganization();
-  const {
-    orientation,
-    setOrientation: setUserPreferenceOrientation,
-    canChangeOrientation,
-  } = useTableOrientationControl();
-  const [infoContentHidden, setInfoContentHidden] = useState(false);
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
 
-  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const fields = getTraceSamplesTableFields(TraceSamplesTableColumns);
 
   const mode = useQueryParamsMode();
@@ -137,86 +126,58 @@ export function MetricPanel({
 
   const contentHeightRef = useRef<number | null>(null);
 
-  if (hasMetricsUIRefresh) {
-    return (
-      <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
-        <PanelBody>
-          <Stack gap="sm">
-            <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
-              <MetricToolbar
-                traceMetric={traceMetric}
-                queryLabel={queryLabel}
-                referenceMap={referenceMap}
-                dragListeners={dragListeners}
-                dragAttributes={dragAttributes}
-                referencedMetricLabels={referencedMetricLabels}
-                onEquationLabelsChange={onEquationLabelsChange}
-                onTitleChange={setTitle}
-              />
-            </Container>
-            {visualize.visible ? (
-              <Fragment>
-                {isAnyDragging ? (
-                  <DnDPlaceholder
-                    isDragging={isDragging}
-                    contentHeight={contentHeightRef.current}
-                  />
-                ) : null}
-                <Activity mode={isAnyDragging ? 'hidden' : 'visible'}>
-                  <Container
-                    ref={containerRef => {
-                      if (!isAnyDragging && containerRef) {
-                        contentHeightRef.current = containerRef.offsetHeight ?? null;
-                      }
-                    }}
-                  >
-                    <SideBySideOrientation
-                      timeseriesResult={timeseriesResult}
-                      traceMetric={traceMetric}
-                      setOrientation={setUserPreferenceOrientation}
-                      orientation={orientation}
-                      infoContentHidden={infoContentHidden}
-                      setInfoContentHidden={setInfoContentHidden}
-                      isMetricOptionsEmpty={isMetricOptionsEmpty}
-                      title={title}
-                    />
-                  </Container>
-                </Activity>
-              </Fragment>
-            ) : null}
-          </Stack>
-        </PanelBody>
-      </Panel>
-    );
-  }
-
   return (
-    <Panel data-test-id="metric-panel">
+    <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
       <PanelBody>
-        {orientation === 'right' ? (
-          <SideBySideOrientation
-            timeseriesResult={timeseriesResult}
-            traceMetric={traceMetric}
-            setOrientation={setUserPreferenceOrientation}
-            orientation={orientation}
-            infoContentHidden={infoContentHidden}
-            setInfoContentHidden={setInfoContentHidden}
-            isMetricOptionsEmpty={isMetricOptionsEmpty}
-            title={title}
-          />
-        ) : (
-          <StackedOrientation
-            timeseriesResult={timeseriesResult}
-            traceMetric={traceMetric}
-            setOrientation={setUserPreferenceOrientation}
-            orientation={orientation}
-            canChangeOrientation={canChangeOrientation}
-            infoContentHidden={infoContentHidden}
-            setInfoContentHidden={setInfoContentHidden}
-            isMetricOptionsEmpty={isMetricOptionsEmpty}
-            title={title}
-          />
-        )}
+        <Stack gap="sm">
+          <Container paddingBottom={visualize.visible ? undefined : 'sm'}>
+            <MetricToolbar
+              traceMetric={traceMetric}
+              queryLabel={queryLabel}
+              referenceMap={referenceMap}
+              dragListeners={dragListeners}
+              dragAttributes={dragAttributes}
+              referencedMetricLabels={referencedMetricLabels}
+              onEquationLabelsChange={onEquationLabelsChange}
+              onTitleChange={setTitle}
+            />
+          </Container>
+          {visualize.visible ? (
+            <Fragment>
+              {isAnyDragging ? (
+                <DnDPlaceholder
+                  isDragging={isDragging}
+                  contentHeight={contentHeightRef.current}
+                />
+              ) : null}
+              <Activity mode={isAnyDragging ? 'hidden' : 'visible'}>
+                <Container
+                  ref={containerRef => {
+                    if (!isAnyDragging && containerRef) {
+                      contentHeightRef.current = containerRef.offsetHeight ?? null;
+                    }
+                  }}
+                >
+                  <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
+                    <Container minWidth="0">
+                      <MetricsGraph
+                        timeseriesResult={timeseriesResult}
+                        isMetricOptionsEmpty={isMetricOptionsEmpty}
+                        title={title}
+                      />
+                    </Container>
+                    <Container minWidth="0">
+                      <MetricInfoTabs
+                        traceMetric={traceMetric}
+                        isMetricOptionsEmpty={isMetricOptionsEmpty}
+                      />
+                    </Container>
+                  </Grid>
+                </Container>
+              </Activity>
+            </Fragment>
+          ) : null}
+        </Stack>
       </PanelBody>
     </Panel>
   );

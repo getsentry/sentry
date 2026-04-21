@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
@@ -31,6 +32,11 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleRestart = useHandleRestart({aiAutofix});
 
+  const referrer = useMemo(
+    () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
+    [aiAutofix.runState?.blocks]
+  );
+
   return (
     <Flex
       className="seer-drawer-container"
@@ -40,7 +46,11 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       direction="column"
       background="secondary"
     >
-      <SeerDrawerHeader onCopyMarkdown={handleCopyMarkdown} onReset={handleRestart} />
+      <SeerDrawerHeader
+        onCopyMarkdown={handleCopyMarkdown}
+        onReset={handleRestart}
+        referrer={referrer}
+      />
       <SeerDrawerBody>
         {aiConfig.isAutofixSetupLoading ? (
           <Flex data-test-id="ai-setup-loading-indicator" direction="column" gap="xl">

@@ -51,7 +51,7 @@ describe('replayDetailsUserBadge', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },
@@ -109,7 +109,7 @@ describe('replayDetailsUserBadge', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -19,7 +20,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -119,6 +120,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            if e.status == 404:
+                return Response({"session": None}, status=404)
+            return Response(
+                {"detail": "Failed to fetch run state"},
+                status=500,
+            )
         except ValueError:
             logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
@@ -215,3 +224,9 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"run_id": result_run_id})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"detail": "Failed to start or continue chat session"},
+                status=500,
+            )

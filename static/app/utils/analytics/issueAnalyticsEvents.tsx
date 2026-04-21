@@ -146,13 +146,6 @@ export type IssueEventParameters = {
     group_id: string;
     project_id: string;
   };
-  'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
-    groupId: string;
-    parentGroupId: string;
-    value: string;
-    projectId?: string;
-    wouldGroup?: string;
-  };
   'issue_details.streamline_ui_toggle': {
     enforced_streamline_ui: boolean;
     isEnabled: boolean;
@@ -338,8 +331,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
-    'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',

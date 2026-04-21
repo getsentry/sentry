@@ -553,7 +553,7 @@ class IntegrationInstallation(abc.ABC):
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:
-        raise NotImplementedError
+        return False
 
     @property
     def metadata(self) -> dict[str, Any]:

@@ -12,6 +12,7 @@ from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironm
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.silo.base import SiloMode
 from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
@@ -120,6 +121,24 @@ class FetchCommitsTest(TestCase):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
+
+    def test_simple_passes_actor_to_plugin_provider(self, mock_record: MagicMock) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        original_compare_commits = DummyRepositoryProvider.compare_commits
+
+        with patch.object(
+            DummyRepositoryProvider,
+            "compare_commits",
+            autospec=True,
+            side_effect=original_compare_commits,
+        ) as mock_compare_commits:
+            self._test_simple_action(user=self.user, org=org)
+
+        assert any(
+            (actor := call.kwargs.get("actor")) is not None and actor.id == self.user.id
+            for call in mock_compare_commits.call_args_list
+        )
 
     def test_duplicate_repositories(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
