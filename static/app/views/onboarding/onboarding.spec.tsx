@@ -691,11 +691,14 @@ describe('Onboarding', () => {
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/scm-connect/`
-        );
-      });
+      // Wait for scm-connect to render and its queries to resolve so the
+      // mounted-effect fetches hit the mocked endpoints before afterEach
+      // clears responses.
+      expect(await screen.findByText('GitHub')).toBeInTheDocument();
+
+      expect(router.location.pathname).toBe(
+        `/onboarding/${scmOrganization.slug}/scm-connect/`
+      );
     });
 
     it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
@@ -712,7 +715,7 @@ describe('Onboarding', () => {
     });
 
     it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
-      const {router} = renderOnboarding('welcome');
+      renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
@@ -725,13 +728,10 @@ describe('Onboarding', () => {
         expect.anything()
       );
 
-      // Wait for the scm-connect navigation to settle so its mounted-effect
-      // fetches hit the mocked endpoints before afterEach clears responses.
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/scm-connect/`
-        );
-      });
+      // Wait for scm-connect to render and its queries to resolve so the
+      // mounted-effect fetches hit the mocked endpoints before afterEach
+      // clears responses.
+      expect(await screen.findByText('GitHub')).toBeInTheDocument();
     });
 
     it('auto-selects existing integration and shows connected view', async () => {
