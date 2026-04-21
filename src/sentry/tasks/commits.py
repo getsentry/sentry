@@ -9,7 +9,6 @@ from django.urls import reverse
 from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.source_code_management.metrics import (
@@ -38,9 +37,6 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
-GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE = (
-    "organizations:integrations-github-fetch-commits-compare-cache"
-)
 GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 3600
 GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
     ("integrations:github", "integrations:github_enterprise")
@@ -103,7 +99,6 @@ def get_github_compare_commits_cache_key(
 
 def fetch_commits_for_compare_range(
     *,
-    github_compare_commits_cache_feature_enabled: bool,
     repo: Repository,
     provider: Any,
     start_sha: str,
@@ -111,9 +106,7 @@ def fetch_commits_for_compare_range(
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
     cache_enabled = (
-        github_compare_commits_cache_feature_enabled
-        and isinstance(repo.provider, str)
-        and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
+        isinstance(repo.provider, str) and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
     )
     set_tag("compare_commits_cache_enabled", cache_enabled)
     if cache_enabled:
@@ -275,7 +268,6 @@ def fetch_commits_for_ref_with_lifecycle(
     release: Release,
     user_id: int,
     user: RpcUser | None,
-    github_compare_commits_cache_feature_enabled: bool,
     task_extra: Mapping[str, Any],
 ) -> list[dict[str, Any]] | None:
     repo = resolved.repo
@@ -316,7 +308,6 @@ def fetch_commits_for_ref_with_lifecycle(
                     )
                 else:
                     repo_commits = fetch_commits_for_compare_range(
-                        github_compare_commits_cache_feature_enabled=github_compare_commits_cache_feature_enabled,
                         repo=repo,
                         provider=resolved.provider,
                         start_sha=start_sha,
@@ -383,10 +374,6 @@ def fetch_commits(
             prev_release = Release.objects.get(id=prev_release_id)
         except Release.DoesNotExist:
             pass
-    organization = release.organization
-    github_compare_commits_cache_feature_enabled = features.has(
-        GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE, organization, actor=user
-    )
     set_tag("organization.slug", release.organization.slug)
     extra = {
         "organization_id": release.organization_id,
@@ -394,7 +381,6 @@ def fetch_commits(
         "refs": refs,
         "num_refs": len(refs),
         "prev_release_id": prev_release_id,
-        "github_compare_commits_cache_feature_enabled": github_compare_commits_cache_feature_enabled,
     }
     logger.info("fetch_commits.start", extra=extra)
 
@@ -408,7 +394,6 @@ def fetch_commits(
             release=release,
             user_id=user_id,
             user=user,
-            github_compare_commits_cache_feature_enabled=github_compare_commits_cache_feature_enabled,
             task_extra=extra,
         )
         if repo_commits is None:
