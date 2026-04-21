@@ -17,7 +17,6 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
-from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.exceptions import ReleaseCommitError
@@ -43,40 +42,23 @@ GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
 )
 
 
-def generate_invalid_identity_email(identity: Any, commit_failure: bool = False) -> MessageBuilder:
+def generate_invalid_identity_email(identity: Any) -> MessageBuilder:
     new_context = {
         "identity": identity,
         "auth_url": absolute_uri(reverse("socialauth_associate", args=[identity.provider])),
-        "commit_failure": commit_failure,
     }
 
     return MessageBuilder(
-        subject="Unable to Fetch Commits" if commit_failure else "Action Required",
+        subject="Action Required",
         context=new_context,
         template="sentry/emails/identity-invalid.txt",
         html_template="sentry/emails/identity-invalid.html",
     )
 
 
-def generate_fetch_commits_error_email(
-    release: Release, repo: Repository, error_message: str
-) -> MessageBuilder:
-    new_context = {"release": release, "error_message": error_message, "repo": repo}
-
-    return MessageBuilder(
-        subject="Unable to Fetch Commits",
-        context=new_context,
-        template="sentry/emails/unable-to-fetch-commits.txt",
-        html_template="sentry/emails/unable-to-fetch-commits.html",
-    )
-
-
-# we're future proofing this function a bit so it could be used with other code
-
-
-def handle_invalid_identity(identity: Any, commit_failure: bool = False) -> None:
+def handle_invalid_identity(identity: Any) -> None:
     # email the user
-    msg = generate_invalid_identity_email(identity, commit_failure)
+    msg = generate_invalid_identity_email(identity)
     msg.send_async(to=[identity.user.email])
 
     # now remove the identity, as its invalid
@@ -265,7 +247,6 @@ def resolve_ref(
 def fetch_commits_for_ref_with_lifecycle(
     *,
     resolved: ResolvedRef,
-    release: Release,
     user_id: int,
     user: RpcUser | None,
     task_extra: Mapping[str, Any],
@@ -324,19 +305,11 @@ def fetch_commits_for_ref_with_lifecycle(
                     span.set_status("unknown_error")
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
-                    handle_invalid_identity(identity=e.identity, commit_failure=True)
+                    handle_invalid_identity(identity=e.identity)
                     lifecycle.record_halt(e)
                 elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
-                    msg = generate_fetch_commits_error_email(release, repo, str(e))
-                    emails = get_emails_for_user_or_org(user, release.organization_id)
-                    msg.send_async(to=emails)
                     lifecycle.record_halt(e)
                 else:
-                    msg = generate_fetch_commits_error_email(
-                        release, repo, "An internal system error occurred."
-                    )
-                    emails = get_emails_for_user_or_org(user, release.organization_id)
-                    msg.send_async(to=emails)
                     lifecycle.record_failure(e)
                 repo_commits = None
         return repo_commits
@@ -391,7 +364,6 @@ def fetch_commits(
 
         repo_commits = fetch_commits_for_ref_with_lifecycle(
             resolved=resolved,
-            release=release,
             user_id=user_id,
             user=user,
             task_extra=extra,
@@ -457,18 +429,3 @@ def fetch_commits(
         Deploy.notify_if_ready(deploy_id, fetch_complete=True)
 
     logger.info("fetch_commits.complete", extra=extra)
-
-
-def get_emails_for_user_or_org(user: RpcUser | None, orgId: int) -> list[str]:
-    emails: list[str] = []
-    if not user:
-        return []
-    if user.is_sentry_app:
-        organization = Organization.objects.get(id=orgId)
-        members = organization.get_members_with_org_roles(roles=["owner"])
-        user_ids = [m.user_id for m in members if m.user_id]
-        emails = list({u.email for u in user_service.get_many_by_id(ids=user_ids) if u.email})
-    else:
-        emails = [user.email]
-
-    return emails
