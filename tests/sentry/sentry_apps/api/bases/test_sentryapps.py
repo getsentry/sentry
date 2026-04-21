@@ -264,5 +264,5 @@ class IntegrationPlatformEndpointTest(TestCase):
 
         assert response.status_code == 500
         assert response.data == {
-            "detail": f"An issue occured during the integration platform process. Sentry error ID: {None}"
+            "detail": f"An issue occurred during the integration platform process. Sentry error ID: {None}"
         }

@@ -100,7 +100,11 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
         <div>{t('Error loading Trace Summary')}</div>
         {hasPageFrameFeature ? (
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={traceSummaryFeedbackOptions}>
+            <FeedbackButton
+              feedbackOptions={traceSummaryFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
               {null}
             </FeedbackButton>
           </TopBar.Slot>

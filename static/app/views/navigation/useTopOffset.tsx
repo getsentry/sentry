@@ -32,10 +32,10 @@ export function useTopOffset(): TopOffset {
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   if (!hasPageFrame) {
-    if (isMobile) {
-      return {barTop: '0px', contentTop: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`};
-    }
-    return {barTop: '0px', contentTop: '0px'};
+    return {
+      barTop: '0px',
+      contentTop: `${isMobile ? NAVIGATION_MOBILE_TOPBAR_HEIGHT : 0}px`,
+    };
   }
 
   const superuserOffset = showSuperuserWarning ? SUPERUSER_MARQUEE_HEIGHT : 0;
