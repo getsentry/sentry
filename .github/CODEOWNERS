@@ -684,6 +684,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/coding-workflows-sentry-backend
+/src/sentry/tasks/commits.py                                @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/commit_context.py                         @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/seer/delete_seer_grouping_records.py      @getsentry/issue-detection-backend
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend

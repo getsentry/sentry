@@ -48,6 +48,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -88,6 +89,7 @@ function ConfigureIntegration() {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
   const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
@@ -530,18 +532,9 @@ function ConfigureIntegration() {
       <SentryDocumentTitle
         title={integration ? integration.provider.name : 'Configure Integration'}
       />
-      <BackButtonWrapper>
-        <LinkButton
-          icon={<IconArrow direction="left" size="sm" />}
-          size="sm"
-          to={`/settings/${organization.slug}/integrations/${provider.key}/`}
-        >
-          {t('Back')}
-        </LinkButton>
-      </BackButtonWrapper>
       <SettingsPageHeader
         noTitleStyles
-        title={<IntegrationItem integration={integration} />}
+        title={<IntegrationItem integration={integration} compact={hasPageFrame} />}
         action={getAction()}
       />
       {renderMainContent()}
@@ -583,8 +576,3 @@ const TabsContainer = styled('div')`
 `;
 
 export default ConfigureIntegration;
-
-const BackButtonWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  width: 100%;
-`;

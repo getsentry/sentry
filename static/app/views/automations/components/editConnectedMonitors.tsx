@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
@@ -22,6 +23,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
@@ -283,6 +285,8 @@ function SpecificMonitorsSection({
   );
 }
 
+export const CONNECTED_MONITORS_ERROR_ID = 'connectedMonitors';
+
 function EditConnectedMonitorsContent({
   initialMode,
   connectedIds,
@@ -290,6 +294,7 @@ function EditConnectedMonitorsContent({
 }: ContentProps) {
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
+  const errorContext = useContext(AutomationBuilderErrorContext);
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
@@ -301,11 +306,23 @@ function EditConnectedMonitorsContent({
   );
   const handleProjectChange = useCallback(
     (projectIds: string[]) => {
-      if (!projectIds.length) {
+      if (projectIds.length) {
+        errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
+      } else {
         setConnectedIds([]);
       }
     },
-    [setConnectedIds]
+    [setConnectedIds, errorContext]
+  );
+
+  const handleSetConnectedIds = useCallback(
+    (ids: Automation['detectorIds']) => {
+      setConnectedIds(ids);
+      if (ids.length) {
+        errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
+      }
+    },
+    [setConnectedIds, errorContext]
   );
 
   return (
@@ -331,8 +348,13 @@ function EditConnectedMonitorsContent({
           ) : (
             <SpecificMonitorsSection
               connectedIds={connectedIds}
-              setConnectedIds={setConnectedIds}
+              setConnectedIds={handleSetConnectedIds}
             />
+          )}
+          {errorContext?.errors[CONNECTED_MONITORS_ERROR_ID] && (
+            <Alert variant="danger">
+              {errorContext.errors[CONNECTED_MONITORS_ERROR_ID]}
+            </Alert>
           )}
         </Stack>
       </FormSection>

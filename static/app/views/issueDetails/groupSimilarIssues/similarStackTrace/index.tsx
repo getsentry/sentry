@@ -1,206 +1,174 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
+import {mergeGroups} from 'sentry/actionCreators/group';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import type {SimilarItem} from 'sentry/stores/groupingStore';
-import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import {List} from './list';
+import {processSimilarItem} from './types';
+import type {SimilarApiResponse} from './types';
 
 type Props = {
   project: Project;
-};
-
-type ItemState = {
-  filtered: SimilarItem[];
-  pageLinks: string | null;
-  similar: SimilarItem[];
 };
 
 const DataConsentBanner = HookOrDefault({
   hookName: 'component:data-consent-banner',
   defaultComponent: null,
 });
+
+const LONG_STACKTRACE_PLATFORMS = ['go', 'javascript', 'node', 'php', 'python', 'ruby'];
+const EMPTY_SET: ReadonlySet<string> = new Set();
+
 export function SimilarStackTrace({project}: Props) {
+  const api = useApi({persistInFlight: true});
   const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{groupId: string; orgId: string}>();
-
-  const [items, setItems] = useState<ItemState>({
-    similar: [],
-    filtered: [],
-    pageLinks: null,
-  });
-  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
-
   const navigate = useNavigate();
-  const prevLocationSearch = usePrevious(location.search);
+
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+
   const hasSimilarityFeature = project.features.includes('similarity-view');
-  const {data: projectData, isPending} = useDetailedProject({
+  const {data: projectData, isPending: isProjectPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
   // similarity-embeddings feature is only available on project details
-  const hasSimilarityEmbeddingsFeature =
+  const hasEmbeddings =
     projectData?.features.includes('similarity-embeddings') ||
     location.query.similarityEmbeddings === '1';
-  const fetchData = useCallback(() => {
-    if (isPending) {
-      return;
-    }
-    setStatus('loading');
 
-    const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
+  const canFetch = !isProjectPending && (hasSimilarityFeature || hasEmbeddings);
 
-    if (hasSimilarityEmbeddingsFeature) {
-      reqs.push({
-        endpoint: `/organizations/${organization.slug}/issues/${params.groupId}/similar-issues-embeddings/?${qs.stringify(
-          {
-            k: 10,
-            threshold: 0.01,
-          }
-        )}`,
-        dataKey: 'similar',
-      });
-    } else if (hasSimilarityFeature) {
-      reqs.push({
-        endpoint: `/organizations/${organization.slug}/issues/${params.groupId}/similar/?${qs.stringify(
-          {
-            ...location.query,
-            limit: 50,
-          }
-        )}`,
-        dataKey: 'similar',
-      });
-    }
-
-    GroupingStore.onFetch(reqs);
-  }, [
-    location.query,
-    params.groupId,
-    organization.slug,
-    hasSimilarityFeature,
-    hasSimilarityEmbeddingsFeature,
+  const {
+    data: result,
     isPending,
-  ]);
-
-  const onGroupingChange = useCallback(
-    ({
-      mergedParent,
-      similarItems: updatedSimilarItems,
-      filteredSimilarItems: updatedFilteredSimilarItems,
-      similarLinks: updatedSimilarLinks,
-      loading,
-      error,
-    }: any) => {
-      if (updatedSimilarItems) {
-        setItems({
-          similar: updatedSimilarItems,
-          filtered: updatedFilteredSimilarItems,
-          pageLinks: updatedSimilarLinks,
-        });
-        setStatus(error ? 'error' : loading ? 'loading' : 'ready');
-        return;
+    isError,
+    refetch,
+  } = useQuery({
+    ...apiOptions.as<SimilarApiResponse>()(
+      hasEmbeddings
+        ? '/organizations/$organizationIdOrSlug/issues/$issueId/similar-issues-embeddings/'
+        : '/organizations/$organizationIdOrSlug/issues/$issueId/similar/',
+      {
+        path: {organizationIdOrSlug: organization.slug, issueId: params.groupId},
+        query: hasEmbeddings ? {k: 10, threshold: 0.01} : {...location.query, limit: 50},
+        staleTime: 0,
       }
-
-      if (mergedParent && mergedParent !== params.groupId) {
-        // Merge success, since we can't specify target, we need to redirect to new parent
-        navigate(`/organizations/${organization.slug}/issues/${mergedParent}/similar/`);
-      }
+    ),
+    enabled: canFetch,
+    select: response => {
+      const items = response.json.map(tuple => processSimilarItem(tuple, hasEmbeddings));
+      return {
+        similar: items.filter(item => !item.isBelowThreshold),
+        filtered: items.filter(item => item.isBelowThreshold),
+        pageLinks: response.headers.Link ?? null,
+      };
     },
-    [navigate, params.groupId, organization.slug]
-  );
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (prevLocationSearch !== location.search) {
-      fetchData();
-    }
-  }, [fetchData, prevLocationSearch, location.search]);
-
-  useEffect(() => {
-    const unsubscribe = GroupingStore.listen(onGroupingChange, undefined);
-    return () => {
-      unsubscribe();
-    };
-  }, [onGroupingChange]);
-
-  const handleMerge = useCallback(() => {
-    if (!params) {
-      return;
-    }
-
-    // You need at least 1 similarItem OR filteredSimilarItems to be able to merge,
-    // so `firstIssue` should always exist from one of those lists.
-    //
-    // Similar issues API currently does not return issues across projects,
-    // so we can assume that the first issues project slug is the project in
-    // scope
-    const [firstIssue] = items.similar.length ? items.similar : items.filtered;
-
-    GroupingStore.onMerge({
-      params,
-      query: location.query.query as string,
-      projectId: firstIssue!.issue.project.slug,
-    });
-  }, [params, location.query, items]);
-
-  const hasSimilarItems =
-    (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
-    (items.similar.length > 0 || items.filtered.length > 0);
-
-  const {data: event} = useGroupEvent({
-    groupId: params.groupId,
-    eventId: 'latest',
   });
 
-  const platformSupportsLongStacktraces = [
-    'go',
-    'javascript',
-    'node',
-    'php',
-    'python',
-    'ruby',
-  ].includes(event?.platform ?? '');
+  // During an in-flight merge, the ids being merged are frozen on the mutation's
+  // `variables`; we derive the "busy" set from that instead of a second useState.
+  const {
+    mutate: mergeMutate,
+    isPending: isMerging,
+    variables,
+  } = useMutation<
+    {merge?: {parent?: string}} | undefined,
+    Error,
+    {ids: string[]; projectSlug: string; query?: string}
+  >({
+    mutationFn: ({ids, projectSlug, query}) =>
+      new Promise((resolve, reject) => {
+        mergeGroups(
+          api,
+          {
+            orgId: organization.slug,
+            projectId: projectSlug,
+            itemIds: [...ids, params.groupId],
+            query,
+          },
+          {
+            success: (data: any) => resolve(data),
+            error: (err: any) =>
+              reject(err instanceof Error ? err : new Error('Failed to merge issues')),
+          }
+        );
+      }),
+    onSuccess: data => {
+      if (data?.merge?.parent && data.merge.parent !== params.groupId) {
+        navigate(
+          `/organizations/${organization.slug}/issues/${data.merge.parent}/similar/`
+        );
+      }
+      setCheckedIds(new Set());
+    },
+  });
 
-  function getEmptyStateWarning() {
-    let message = '';
-    if (!hasSimilarityEmbeddingsFeature && platformSupportsLongStacktraces) {
-      message = t("There don't seem to be any similar issues.");
-    } else if (hasSimilarityEmbeddingsFeature && platformSupportsLongStacktraces) {
-      message = t(
-        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
-      );
-    } else if (!platformSupportsLongStacktraces) {
-      message = t(
-        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
-      );
+  const busyIds = isMerging && variables ? new Set(variables.ids) : EMPTY_SET;
+  const {similar = [], filtered = [], pageLinks = null} = result ?? {};
+
+  const handleToggle = useCallback(
+    (id: string) => {
+      if (isMerging) {
+        return;
+      }
+      setCheckedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+    },
+    [isMerging]
+  );
+
+  const handleMerge = useCallback(() => {
+    if (checkedIds.size === 0) {
+      return;
     }
-    return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{message}</p>
-        </EmptyStateWarning>
-      </Panel>
-    );
-  }
+    // Similar issues API does not return issues across projects, so the first
+    // item's project slug is the project in scope.
+    const [firstIssue] = similar.length ? similar : filtered;
+    if (!firstIssue) {
+      return;
+    }
+    mergeMutate({
+      ids: Array.from(checkedIds),
+      projectSlug: firstIssue.issue.project.slug,
+      query: location.query.query as string,
+    });
+  }, [checkedIds, similar, filtered, location.query, mergeMutate]);
+
+  const {data: event} = useGroupEvent({groupId: params.groupId, eventId: 'latest'});
+  const platformSupportsLongStacktraces = LONG_STACKTRACE_PLATFORMS.includes(
+    event?.platform ?? ''
+  );
+
+  const hasSimilarItems =
+    (hasSimilarityFeature || hasEmbeddings) &&
+    (similar.length > 0 || filtered.length > 0);
+
+  const loading = isPending || isProjectPending || !canFetch;
 
   return (
     <Fragment>
@@ -212,39 +180,53 @@ export function SimilarStackTrace({project}: Props) {
           )}
         </small>
       </HeaderWrapper>
-      {status === 'loading' && <LoadingIndicator />}
-      {status === 'error' && (
+      {isError ? (
         <LoadingError
           message={t('Unable to load similar issues, please try again later')}
-          onRetry={fetchData}
+          onRetry={() => refetch()}
         />
-      )}
-      {status === 'ready' && !hasSimilarItems && getEmptyStateWarning()}
-      {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+      ) : loading ? (
+        <LoadingIndicator />
+      ) : hasSimilarItems ? (
         <List
-          items={items.similar}
-          filteredItems={items.filtered}
+          items={similar}
+          filteredItems={filtered}
           onMerge={handleMerge}
+          onToggle={handleToggle}
+          checkedIds={checkedIds}
+          busyIds={busyIds}
           project={project}
           groupId={params.groupId}
-          pageLinks={items.pageLinks}
-          hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
+          pageLinks={pageLinks}
+          hasSimilarityEmbeddingsFeature={hasEmbeddings}
         />
-      )}
-      {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
-        <List
-          items={items.similar.concat(items.filtered)}
-          filteredItems={[]}
-          onMerge={handleMerge}
-          project={project}
-          groupId={params.groupId}
-          pageLinks={items.pageLinks}
-          hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
-        />
+      ) : (
+        <Panel>
+          <EmptyStateWarning>
+            <p>{getEmptyMessage(hasEmbeddings, platformSupportsLongStacktraces)}</p>
+          </EmptyStateWarning>
+        </Panel>
       )}
       <DataConsentBanner source="grouping" />
     </Fragment>
   );
+}
+
+function getEmptyMessage(
+  hasEmbeddings: boolean,
+  platformSupportsLongStacktraces: boolean
+) {
+  if (!platformSupportsLongStacktraces) {
+    return t(
+      "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
+    );
+  }
+  if (hasEmbeddings) {
+    return t(
+      "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+    );
+  }
+  return t("There don't seem to be any similar issues.");
 }
 
 const Title = styled('h4')`

@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import {parseFunction} from 'sentry/utils/discover/fields';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
@@ -32,8 +31,6 @@ export function getMetricReferences(
   );
 }
 
-export function useMetricReferences() {
-  const metricQueries = useMultiMetricsQueryParams();
-
+export function useMetricReferences(metricQueries: BaseMetricQuery[]) {
   return useMemo(() => getMetricReferences(metricQueries), [metricQueries]);
 }

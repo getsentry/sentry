@@ -1,19 +1,16 @@
-import {
-  fetchMutation,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {useQueryClient} from '@tanstack/react-query';
+
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  getStarredSavedQueriesQueryKey,
+  starredSavedQueriesApiOptions,
   type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useReorderStarredSavedQueries() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const queryKey = getStarredSavedQueriesQueryKey(organization);
+  const {queryKey} = starredSavedQueriesApiOptions(organization);
 
   const {mutate} = useMutation({
     mutationFn: (queries: SavedQuery[]) =>
@@ -25,7 +22,9 @@ export function useReorderStarredSavedQueries() {
         },
       }),
     onMutate: (queries: SavedQuery[]) => {
-      setApiQueryData<SavedQuery[]>(queryClient, queryKey, queries);
+      queryClient.setQueryData(queryKey, prevData =>
+        prevData ? {...prevData, json: queries} : prevData
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey});

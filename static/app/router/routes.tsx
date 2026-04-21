@@ -1351,17 +1351,6 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/dashboards/new/:templateId',
-      component: make(() => import('sentry/views/dashboards/create')),
-      withOrgPath: true,
-      children: [
-        {
-          path: 'widget/:widgetId/',
-          component: make(() => import('sentry/views/dashboards/create')),
-        },
-      ],
-    },
-    {
       path: '/organizations/:orgId/dashboards/:dashboardId/',
       redirectTo: '/organizations/:orgId/dashboard/:dashboardId/',
     },
