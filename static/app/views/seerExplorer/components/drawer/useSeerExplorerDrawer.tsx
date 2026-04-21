@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
@@ -80,17 +80,11 @@ export const useSeerExplorerDrawer = () => {
           />
         ),
         {
-          ariaLabel: t('Seer Explorer Drawer'),
+          ariaLabel: t('Seer Explorer drawer'),
           drawerKey: 'seer-explorer-drawer',
-          drawerCss: css`
-            height: 100%;
-            max-height: 100%;
-          `,
           resizable: true,
-          closeOnOutsideClick: false,
-          shouldLockScroll: false,
-          // XXX: be sure to update isOpenRef if closing on change is needed. useDrawer doesn't call onClose
-          shouldCloseOnLocationChange: () => false,
+          mode: 'passive',
+          // XXX: passive mode keeps drawer open on location change. Be sure to update isOpenRef if closing on change is needed - useDrawer doesn't call onClose
           onOpen,
           onClose,
         }
