@@ -238,8 +238,7 @@ function RowProvider({
 function FunctionColumnHeaders() {
   return (
     <Grid width="100%" align="center" gap="md" columns={FUNCTION_GRID_COLUMNS}>
-      <div />
-      <div />
+      <div style={{gridColumn: 'span 2'}} />
       <div>
         <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
           <SectionLabel>{t('Metric')}</SectionLabel>
@@ -266,8 +265,7 @@ function FunctionColumnHeaders() {
 function EquationColumnHeader() {
   return (
     <Grid width="100%" align="center" gap="md" columns={EQUATION_GRID_COLUMNS}>
-      <div />
-      <div />
+      <div style={{gridColumn: 'span 2'}} />
       <div>
         <Tooltip
           title={t('Combine the metrics above with an arithmetic expression.')}
