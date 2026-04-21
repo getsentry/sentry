@@ -177,23 +177,23 @@ def cleanup_seer_automation_handoffs_for_integration(
 
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            affected_project_ids = ProjectOption.objects.filter(
-                project__organization_id=organization.id,
-                key="sentry:seer_automation_handoff_integration_id",
-                value=integration_id,
-            ).values("project_id")
-            ProjectOption.objects.filter(
-                project_id__in=affected_project_ids,
-                key__in={
-                    "sentry:seer_automation_handoff_integration_id",
-                    "sentry:seer_automation_handoff_point",
-                    "sentry:seer_automation_handoff_target",
-                    "sentry:seer_automation_handoff_auto_create_pr",
-                },
-            ).delete()
     except Organization.DoesNotExist:
-        pass
+        return
+    if features.has("organizations:seer-project-settings-dual-write", organization):
+        affected_project_ids = ProjectOption.objects.filter(
+            project__organization_id=organization.id,
+            key="sentry:seer_automation_handoff_integration_id",
+            value=integration_id,
+        ).values("project_id")
+        ProjectOption.objects.filter(
+            project_id__in=affected_project_ids,
+            key__in={
+                "sentry:seer_automation_handoff_integration_id",
+                "sentry:seer_automation_handoff_point",
+                "sentry:seer_automation_handoff_target",
+                "sentry:seer_automation_handoff_auto_create_pr",
+            },
+        ).delete()
 
     logger.info(
         "cleanup_seer_automation_handoffs_for_integration.success",
