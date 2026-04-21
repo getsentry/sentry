@@ -162,6 +162,7 @@ const PageFrameViewTitleWrapper = styled('div')`
 
   > div {
     height: auto;
+    border-bottom: none;
   }
 
   :not(:hover, :focus-within) {
