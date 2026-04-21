@@ -92,7 +92,7 @@ export function FilterSelector({
     const initialValue = globalFilter.value
       ? getInitialInputValue(filterToken, true)
       : '';
-    const selectedValues = getSelectedValuesFromText(initialValue, {escaped: false});
+    const selectedValues = getSelectedValuesFromText(initialValue);
     return selectedValues.map(item => item.value);
   }, [filterToken, globalFilter.value]);
 

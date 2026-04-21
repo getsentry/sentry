@@ -33,15 +33,22 @@ describe('prepareInputValueForSaving', () => {
 });
 
 describe('getSelectedValuesFromText', () => {
-  it('returns unescaped values for internal matching without changing the saved text', () => {
-    expect(getSelectedValuesFromText('\\*\\*\\*\\*,', {escaped: false})).toEqual([
-      {value: '****', selected: true},
+  it('returns both the unescaped value and the stored text for each item', () => {
+    expect(getSelectedValuesFromText('\\*\\*\\*\\*,')).toEqual([
+      {value: '****', text: '\\*\\*\\*\\*', selected: true},
     ]);
   });
 
   it('round-trips representable backslashes before literal asterisks', () => {
-    expect(getSelectedValuesFromText('foo\\\\\\*bar,', {escaped: false})).toEqual([
-      {value: 'foo\\\\*bar', selected: true},
+    expect(getSelectedValuesFromText('foo\\\\\\*bar,')).toEqual([
+      {value: 'foo\\\\*bar', text: 'foo\\\\\\*bar', selected: true},
+    ]);
+  });
+
+  it('preserves manual wildcards as stored text while exposing the unescaped form', () => {
+    expect(getSelectedValuesFromText('foo*,bar\\*,')).toEqual([
+      {value: 'foo*', text: 'foo*', selected: true},
+      {value: 'bar*', text: 'bar\\*', selected: true},
     ]);
   });
 });
