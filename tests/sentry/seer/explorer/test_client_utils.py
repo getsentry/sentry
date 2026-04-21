@@ -245,6 +245,27 @@ class SnapshotToMarkdownTest(TestCase):
         assert "# Dashboard" in result
         assert "not an exact screenshot" in result
 
+    def test_multiple_root_nodes(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "My Dashboard"},
+                    "children": [],
+                },
+                {
+                    "nodeType": "widget-builder",
+                    "data": {"mode": "creating", "dataset": "error-events"},
+                    "children": [],
+                },
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# Dashboard" in result
+        assert "# Widget-builder" in result
+        assert '- **mode**: "creating"' in result
+
     def test_node_with_non_dict_data(self) -> None:
         snapshot = {
             "version": 1,
