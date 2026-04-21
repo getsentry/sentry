@@ -1,11 +1,14 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import noop from 'lodash/noop';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
@@ -19,11 +22,12 @@ import {
   unresolveExpression,
 } from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
-import type {MetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import type {MetricQuery, TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsQueryParamsProvider,
   useMetricVisualize,
+  useSetMetricVisualize,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
@@ -36,14 +40,30 @@ import {
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {
+  EQUATION_LABEL,
+  parseAggregateExpression,
+} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-const FUNCTION_GRID_COLUMNS = '24px 3fr 2fr 6fr 40px';
-const EQUATION_GRID_COLUMNS = '24px 5fr 6fr 40px';
+const FUNCTION_GRID_COLUMNS = '24px 24px 3fr 2fr 6fr 40px';
+const EQUATION_GRID_COLUMNS = '24px 24px 5fr 6fr 40px';
+
+function computeEquationReferencedLabels(
+  equationQuery: MetricQuery | undefined,
+  referenceMap: Record<string, string>
+): string[] {
+  const visualize = equationQuery?.queryParams.visualizes[0];
+  if (!visualize || !isVisualizeEquation(visualize)) {
+    return [];
+  }
+  const labelSet = new Set(Object.keys(referenceMap));
+  const unresolvedText = unresolveExpression(visualize.expression.text, referenceMap);
+  return extractReferenceLabels(new Expression(unresolvedText, labelSet));
+}
 
 export function MetricsEquationVisualize() {
   const organization = useOrganization();
@@ -51,12 +71,13 @@ export function MetricsEquationVisualize() {
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
 
   // Parse once at mount; subsequent aggregateFunction changes are intentionally
   // discarded so unsaved row edits survive form writes. Remounting the provider
   // (via a `key` on this component) is the escape hatch for true re-hydration.
   const initialQueries = useMemo(() => {
-    const parsed = parseAggregateExpression(aggregateFunction ?? '');
+    const parsed = parseAggregateExpression(aggregateFunction ?? '', query);
     return parsed.equationRow
       ? [...parsed.metricQueries, parsed.equationRow]
       : parsed.metricQueries;
@@ -74,10 +95,48 @@ export function MetricsEquationVisualize() {
 }
 
 function MetricsEquationVisualizeContent() {
+  const formContext = useContext(FormContext);
+  const initialAggregate = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
+  );
   const metricQueries = useMultiMetricsQueryParams();
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
   const addEquation = useAddMetricQuery({type: 'equation'});
+
+  // Track the selected row by its stable label (A, B, …)
+  const [selectedLabel, setSelectedLabel] = useState<string | undefined>(() => {
+    const match = metricQueries.find(
+      q => q.queryParams.visualizes[0]?.yAxis === initialAggregate
+    );
+    return match?.label ?? metricQueries[0]?.label;
+  });
+
+  const onRowSelection = useCallback((label: string) => {
+    setSelectedLabel(label);
+  }, []);
+
+  // Keep the form's aggregate + filter query in sync with whichever row the
+  // radio currently points at, following edits to that row.
+  useEffect(() => {
+    let selectedQuery = metricQueries.find(q => q.label === selectedLabel);
+    if (!selectedQuery && metricQueries.length > 0) {
+      selectedQuery = metricQueries[0];
+      setSelectedLabel(selectedQuery?.label);
+    }
+
+    const selectedYAxis = selectedQuery?.queryParams.visualizes[0]?.yAxis;
+    const selectedFilter = selectedQuery?.queryParams.query;
+    if (selectedYAxis !== undefined) {
+      formContext.form?.setValue(
+        METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+        selectedYAxis
+      );
+    }
+    if (selectedFilter !== undefined) {
+      formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, selectedFilter);
+    }
+  }, [metricQueries, selectedLabel, formContext.form]);
 
   const functionQueries = useMemo(
     () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),
@@ -88,27 +147,21 @@ function MetricsEquationVisualizeContent() {
     [metricQueries]
   );
 
-  // Labels (A, B, …) from the function rows that are actually used inside
-  // the equation expression. Metrics in this set cannot be deleted without
-  // leaving dangling references.
-  const referencedLabels = useMemo(() => {
-    if (!equationQuery) {
-      return new Set<string>();
+  // Labels (A, B, etc) from the function rows used inside the equation.
+  const [equationReferencedLabels, setEquationReferencedLabels] = useState<string[]>(() =>
+    computeEquationReferencedLabels(equationQuery, referenceMap)
+  );
+  const referencedLabels = useMemo(
+    () => new Set(equationReferencedLabels),
+    [equationReferencedLabels]
+  );
+
+  const hasEquationRow = Boolean(equationQuery);
+  useEffect(() => {
+    if (!hasEquationRow) {
+      setEquationReferencedLabels([]);
     }
-    const equationVisualize = equationQuery.queryParams.visualizes[0];
-    if (!equationVisualize || !isVisualizeEquation(equationVisualize)) {
-      return new Set<string>();
-    }
-    const labelSet = new Set(
-      functionQueries.map(q => q.label).filter((l): l is string => Boolean(l))
-    );
-    const unresolvedText = unresolveExpression(
-      equationVisualize.expression.text,
-      referenceMap
-    );
-    const expr = new Expression(unresolvedText, labelSet);
-    return new Set(extractReferenceLabels(expr));
-  }, [equationQuery, functionQueries, referenceMap]);
+  }, [hasEquationRow]);
 
   return (
     <Stack gap="md">
@@ -121,6 +174,8 @@ function MetricsEquationVisualizeContent() {
               metricQuery={metricQuery}
               referenceMap={referenceMap}
               canDelete={functionQueries.length > 1 && !isReferenced}
+              isSelected={selectedLabel === metricQuery.label}
+              onRowSelection={onRowSelection}
             />
           </RowProvider>
         );
@@ -133,6 +188,9 @@ function MetricsEquationVisualizeContent() {
               metricQuery={equationQuery}
               referenceMap={referenceMap}
               canDelete
+              isSelected={selectedLabel === equationQuery.label}
+              onRowSelection={onRowSelection}
+              onReferenceLabelsChange={setEquationReferencedLabels}
             />
           </RowProvider>
         </Fragment>
@@ -180,19 +238,25 @@ function RowProvider({
 function FunctionColumnHeaders() {
   return (
     <Grid width="100%" align="center" gap="md" columns={FUNCTION_GRID_COLUMNS}>
-      <div />
-      <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
-        <SectionLabel>{t('Metric')}</SectionLabel>
-      </Tooltip>
-      <Tooltip title={t('The aggregation operation to apply.')} showUnderline>
-        <SectionLabel>{t('Operation')}</SectionLabel>
-      </Tooltip>
-      <Tooltip
-        title={t('Restrict this metric to events matching a filter.')}
-        showUnderline
-      >
-        <SectionLabel>{t('Filter')}</SectionLabel>
-      </Tooltip>
+      <div style={{gridColumn: 'span 2'}} />
+      <div>
+        <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
+          <SectionLabel>{t('Metric')}</SectionLabel>
+        </Tooltip>
+      </div>
+      <div>
+        <Tooltip title={t('The aggregation operation to apply.')} showUnderline>
+          <SectionLabel>{t('Operation')}</SectionLabel>
+        </Tooltip>
+      </div>
+      <div>
+        <Tooltip
+          title={t('Restrict this metric to events matching a filter.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Filter')}</SectionLabel>
+        </Tooltip>
+      </div>
       <div />
     </Grid>
   );
@@ -201,19 +265,23 @@ function FunctionColumnHeaders() {
 function EquationColumnHeader() {
   return (
     <Grid width="100%" align="center" gap="md" columns={EQUATION_GRID_COLUMNS}>
-      <div />
-      <Tooltip
-        title={t('Combine the metrics above with an arithmetic expression.')}
-        showUnderline
-      >
-        <SectionLabel>{t('Equation')}</SectionLabel>
-      </Tooltip>
-      <Tooltip
-        title={t('Restrict this equation to events matching a filter.')}
-        showUnderline
-      >
-        <SectionLabel>{t('Filter')}</SectionLabel>
-      </Tooltip>
+      <div style={{gridColumn: 'span 2'}} />
+      <div>
+        <Tooltip
+          title={t('Combine the metrics above with an arithmetic expression.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Equation')}</SectionLabel>
+        </Tooltip>
+      </div>
+      <div>
+        <Tooltip
+          title={t('Restrict this equation to events matching a filter.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Filter')}</SectionLabel>
+        </Tooltip>
+      </div>
       <div />
     </Grid>
   );
@@ -223,18 +291,43 @@ function MetricToolbar({
   metricQuery,
   referenceMap,
   canDelete,
+  isSelected,
+  onRowSelection,
+  onReferenceLabelsChange,
 }: {
   canDelete: boolean;
+  isSelected: boolean;
   metricQuery: MetricQuery;
+  onRowSelection: (label: string) => void;
   referenceMap: Record<string, string>;
+  onReferenceLabelsChange?: (labels: string[]) => void;
 }) {
   const visualize = useMetricVisualize();
+  const setVisualize = useSetMetricVisualize();
   const traceMetric = useTraceMetric();
   const queryLabel = metricQuery.label ?? '';
 
-  const setTraceMetric = () => {};
-  const handleExpressionChange = () => {};
-  const handleReferenceLabelsChange = () => {};
+  const setTraceMetric = useCallback(
+    (newTraceMetric: TraceMetric) => {
+      metricQuery.setTraceMetric(newTraceMetric);
+    },
+    [metricQuery]
+  );
+  const handleExpressionChange = (
+    resolvedExpression: Expression,
+    internalText: string
+  ) => {
+    if (isVisualizeEquation(visualize)) {
+      setVisualize(
+        visualize.replace({yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`})
+      );
+      // Report the user's typed labels (pre-resolve) so identical rows don't
+      // collapse the lock onto whichever label sorts first in the map.
+      const labelSet = new Set(Object.keys(referenceMap));
+      const expr = new Expression(internalText, labelSet);
+      onReferenceLabelsChange?.(extractReferenceLabels(expr));
+    }
+  };
 
   return (
     <Grid
@@ -246,6 +339,15 @@ function MetricToolbar({
       }
       data-test-id="metric-toolbar"
     >
+      <Radio
+        name="metricAggregateRow"
+        checked={isSelected}
+        onChange={() =>
+          onRowSelection(isVisualizeEquation(visualize) ? EQUATION_LABEL : queryLabel)
+        }
+        aria-label={t('Use row %s as the alert aggregate', queryLabel)}
+        disabled={isVisualizeFunction(visualize) && traceMetric.name === ''}
+      />
       <VisualizeLabel
         label={queryLabel}
         visualize={visualize}
@@ -265,7 +367,6 @@ function MetricToolbar({
             expression={visualize.expression.text}
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
-            onReferenceLabelsChange={handleReferenceLabelsChange}
           />
           <Filter traceMetric={traceMetric} skipTraceMetricFilter />
           <DeleteMetricButton />

@@ -618,6 +618,8 @@ module = [
   "sentry.pipeline.*",
   "sentry.plugins.base.response",
   "sentry.plugins.base.view",
+  "sentry.plugins.providers.integration_repository",
+  "sentry.plugins.providers.repository",
   "sentry.plugins.validators.*",
   "sentry.post_process_forwarder.*",
   "sentry.preprod.*",

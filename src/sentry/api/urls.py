@@ -160,6 +160,9 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
 from sentry.dashboards.endpoints.organization_dashboard_generate import (
     OrganizationDashboardGenerateEndpoint,
 )
+from sentry.dashboards.endpoints.organization_dashboard_revision_restore import (
+    OrganizationDashboardRevisionRestoreEndpoint,
+)
 from sentry.dashboards.endpoints.organization_dashboard_revisions import (
     OrganizationDashboardRevisionsEndpoint,
 )
@@ -1617,6 +1620,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/revisions/$",
         OrganizationDashboardRevisionsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-revisions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/revisions/(?P<revision_id>[^/]+)/restore/$",
+        OrganizationDashboardRevisionRestoreEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-revision-restore",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/shortids/(?P<issue_id>[^/]+)/$",

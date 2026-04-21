@@ -758,6 +758,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "github-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "github.webhook.mailbox-bucketing.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2735,9 +2741,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("metric_alerts.extended_max_subscriptions", default=1250, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
-    "metric_alerts.extended_max_subscriptions_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+    "metric_alerts.extended_max_subscriptions",
+    default=1250,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metric_alerts.extended_max_subscriptions_orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SDK Crash Detection

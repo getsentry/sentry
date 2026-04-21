@@ -1,5 +1,6 @@
 import datetime
 from functools import cached_property
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -7,7 +8,11 @@ import pytest
 import responses
 from django.utils import timezone
 
-from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
+from fixtures.github import (
+    COMPARE_COMMITS_EXAMPLE,
+    GET_COMMIT_EXAMPLE,
+    GET_LAST_COMMITS_EXAMPLE,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.models.integration import Integration
@@ -17,7 +22,11 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+)
 
 
 @control_silo_test
@@ -56,6 +65,24 @@ class GitHubAppsProviderTest(TestCase):
                 url="https://github.com/getsentry/example-repo",
                 config={"name": "getsentry/example-repo"},
             )
+
+    def _build_compare_commit_payload(self, count: int) -> list[dict[str, Any]]:
+        commits = []
+        for index in range(count):
+            commits.append(
+                {
+                    "sha": f"{index:040x}",
+                    "commit": {
+                        "author": {
+                            "email": "jane@example.com",
+                            "name": "Jane Doe",
+                            "date": "2024-01-01T00:00:00+00:00",
+                        },
+                        "message": f"commit {index}",
+                    },
+                }
+            )
+        return commits
 
     @responses.activate
     def test_build_repository_config(self) -> None:
@@ -165,6 +192,105 @@ class GitHubAppsProviderTest(TestCase):
         assert len(result) == 2
         assert result[0]["id"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
         assert result[1]["id"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+    @mock.patch("sentry.integrations.github.repository.logger.info")
+    def test_fetch_commits_for_compare_range_truncates_over_cap(
+        self, log_info: mock.MagicMock
+    ) -> None:
+        client = mock.Mock()
+        client.compare_commits.return_value = self._build_compare_commit_payload(600)
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 500}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert len(result) == 500
+        assert client.get_commit.call_count == 500
+        log_info.assert_called_once()
+
+    def test_fetch_commits_for_compare_range_keeps_most_recent(self) -> None:
+        client = mock.Mock()
+        commits = self._build_compare_commit_payload(3)
+        client.compare_commits.return_value = commits
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 2}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert [commit["id"] for commit in result] == [
+            commits[-2]["sha"],
+            commits[-1]["sha"],
+        ]
+
+    @mock.patch("sentry.integrations.github.repository.logger.info")
+    def test_fetch_commits_for_compare_range_no_truncation_under_cap(
+        self, log_info: mock.MagicMock
+    ) -> None:
+        client = mock.Mock()
+        client.compare_commits.return_value = self._build_compare_commit_payload(499)
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 500}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert len(result) == 499
+        assert client.get_commit.call_count == 499
+        log_info.assert_not_called()
+
+    @mock.patch("sentry.integrations.github.repository.logger.info")
+    def test_fetch_commits_for_compare_range_cap_zero_disables(
+        self, log_info: mock.MagicMock
+    ) -> None:
+        client = mock.Mock()
+        client.compare_commits.return_value = self._build_compare_commit_payload(600)
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 0}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert len(result) == 600
+        assert client.get_commit.call_count == 600
+        log_info.assert_not_called()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

@@ -455,7 +455,11 @@ class DashboardRevision(DefaultFieldsModel):
 
     @classmethod
     def create_for_dashboard(
-        cls, dashboard: Dashboard, user: Any, snapshot: dict[str, Any]
+        cls,
+        dashboard: Dashboard,
+        user: Any,
+        snapshot: dict[str, Any],
+        source: str = "edit",
     ) -> DashboardRevision:
         """
         Create a revision snapshot for the given dashboard and prune any revisions
@@ -465,6 +469,7 @@ class DashboardRevision(DefaultFieldsModel):
             dashboard=dashboard,
             created_by_id=user.id if user.is_authenticated else None,
             title=dashboard.title,
+            source=source,
             snapshot=snapshot,
             snapshot_schema_version=cls.SNAPSHOT_SCHEMA_VERSION,
         )
