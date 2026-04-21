@@ -3,6 +3,7 @@ import {motion} from 'framer-motion';
 
 export function Backdrop() {
   const theme = useTheme();
+  // TODO(design-engineering): These should be exposed as `theme.tokens`
   const background = theme.type === 'light' ? '#10082845' : '#10082080';
   return (
     <motion.div
