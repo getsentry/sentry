@@ -73,7 +73,11 @@ function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
   return {plainAggregate, filterQuery};
 }
 
-function makeMetricQuery(token: TokenFunction, label: string): BaseMetricQuery {
+function makeMetricQuery(
+  token: TokenFunction,
+  label: string,
+  filterOverride?: string
+): BaseMetricQuery {
   const {plainAggregate, filterQuery} = normalizeFunctionToken(token);
   const {traceMetric} = parseMetricAggregate(plainAggregate);
   const base = defaultMetricQuery();
@@ -82,17 +86,18 @@ function makeMetricQuery(token: TokenFunction, label: string): BaseMetricQuery {
     label,
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeFunction(plainAggregate)],
-      query: filterQuery,
+      query: filterOverride ?? filterQuery,
     }),
   };
 }
 
-function makeEquationRow(prefixedEquation: string): BaseMetricQuery {
+function makeEquationRow(prefixedEquation: string, query: string): BaseMetricQuery {
   const base = defaultMetricQuery({type: 'equation'});
   return {
     metric: {name: '', type: ''},
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeEquation(prefixedEquation)],
+      query,
     }),
     label: EQUATION_LABEL,
   };
@@ -113,14 +118,17 @@ function defaultRow(label: string): BaseMetricQuery {
  * expression may repeat a label (e.g. `A + A` when the user summed a metric
  * with an equivalent version of itself).
  */
-export function parseAggregateExpression(aggregate: string): ParsedAggregateExpression {
+export function parseAggregateExpression(
+  aggregate: string,
+  query: string
+): ParsedAggregateExpression {
   if (!isEquation(aggregate)) {
     const tokens = tokenizeExpression(aggregate);
     const functionToken = tokens.find(isTokenFunction);
     const label = getFunctionLabel(0);
     return {
       metricQueries: [
-        functionToken ? makeMetricQuery(functionToken, label) : defaultRow(label),
+        functionToken ? makeMetricQuery(functionToken, label, query) : defaultRow(label),
       ],
       compactExpression: null,
       equationRow: null,
@@ -156,6 +164,6 @@ export function parseAggregateExpression(aggregate: string): ParsedAggregateExpr
   return {
     metricQueries,
     compactExpression,
-    equationRow: makeEquationRow(aggregate),
+    equationRow: makeEquationRow(aggregate, query),
   };
 }

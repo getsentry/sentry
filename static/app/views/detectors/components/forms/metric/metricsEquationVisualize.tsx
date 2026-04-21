@@ -58,12 +58,13 @@ export function MetricsEquationVisualize() {
   const aggregateFunction = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
 
   // Parse once at mount; subsequent aggregateFunction changes are intentionally
   // discarded so unsaved row edits survive form writes. Remounting the provider
   // (via a `key` on this component) is the escape hatch for true re-hydration.
   const initialQueries = useMemo(() => {
-    const parsed = parseAggregateExpression(aggregateFunction ?? '');
+    const parsed = parseAggregateExpression(aggregateFunction, query);
     return parsed.equationRow
       ? [...parsed.metricQueries, parsed.equationRow]
       : parsed.metricQueries;
