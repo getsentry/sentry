@@ -163,6 +163,12 @@ export interface ControlProps
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   menuHeight?: number | string;
   /**
+   * Minimum width for the menu overlay. By default the overlay's min-width matches
+   * the trigger's width; use this to enforce a larger floor (e.g. when the trigger
+   * is intentionally narrow but the options need more room).
+   */
+  menuMinWidth?: number | string;
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
@@ -217,6 +223,7 @@ export function Control({
   menuTitle,
   maxMenuHeight = '32rem',
   menuWidth,
+  menuMinWidth,
   menuHeight,
   menuHeaderTrailingItems,
   menuBody,
@@ -497,7 +504,11 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={overlayProps.style!.minWidth}
+              minWidth={
+                menuMinWidth === undefined
+                  ? overlayProps.style!.minWidth
+                  : `max(${withUnits(overlayProps.style!.minWidth)}, ${withUnits(menuMinWidth)})`
+              }
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
