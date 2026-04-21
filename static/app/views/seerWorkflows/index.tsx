@@ -168,17 +168,6 @@ function RunDetail({
         </Text>
       ) : null}
 
-      {Object.keys(run.extras).length > 0 ? (
-        <Flex direction="column" gap="sm">
-          <Text bold size="xs" variant="muted" uppercase>
-            {t('Extras')}
-          </Text>
-          <Text as="div" size="sm" monospace style={{whiteSpace: 'pre-wrap'}}>
-            {JSON.stringify(run.extras, null, 2)}
-          </Text>
-        </Flex>
-      ) : null}
-
       <Flex direction="column" gap="sm">
         <Text bold size="xs" variant="muted" uppercase>
           {t('Issues (%s)', run.issues.length)}
