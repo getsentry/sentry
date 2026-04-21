@@ -9,12 +9,12 @@ import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar
 
 type SidebarSource = QuickStartEventParameters['quick_start.opened']['source'];
 
-interface SkipConfig {
+interface SkipAnalyticsConfig {
   referrer: string;
   sidebarSource: SidebarSource;
 }
 
-const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipConfig>> = {
+const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipAnalyticsConfig>> = {
   [OnboardingStepId.WELCOME]: {
     sidebarSource: 'targeted_onboarding_welcome_skip',
     referrer: 'onboarding-welcome-skip',

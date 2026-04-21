@@ -1,15 +1,14 @@
-import type {ComponentProps} from 'react';
-
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import type {HeadingSize, TextSize} from 'sentry/utils/theme';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 interface ScmStepHeaderProps {
   heading: string;
   subtitle: string;
-  headingSize?: ComponentProps<typeof Heading>['size'];
-  subtitleSize?: ComponentProps<typeof Text>['size'];
+  headingSize?: HeadingSize;
+  subtitleSize?: TextSize;
 }
 
 export function ScmStepHeader({
