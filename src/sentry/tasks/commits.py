@@ -185,7 +185,7 @@ def get_provider_for_repo(
     *,
     repo: Repository,
 ) -> tuple[Any, bool, str] | None:
-    is_integration_repo_provider = is_integration_provider(repo.provider)
+    is_integration_repo_provider = repo.has_integration_provider()
     binding_key = (
         "integration-repository.provider"
         if repo.has_integration_provider()
