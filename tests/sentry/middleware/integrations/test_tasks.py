@@ -287,13 +287,14 @@ class RouteSlackSeerEventTest(TestCase):
             slack_user_id="U_SLACK",
             channel_id="C1",
             thread_ts="",
+            event_type="app_mention",
         )
 
     @responses.activate
     @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
     def test_forwards_to_resolved_cell(self, mock_resolve: MagicMock) -> None:
         mock_resolve.return_value = SeerResolutionResult(
-            organization_id=self.organization.id, error_reason=None
+            organization_id=self.organization.id, halt_reason=None
         )
         cell_response = responses.add(
             responses.POST,
@@ -315,7 +316,7 @@ class RouteSlackSeerEventTest(TestCase):
         from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 
         mock_resolve.return_value = SeerResolutionResult(
-            organization_id=None, error_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
+            organization_id=None, halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
         )
         cell_response = responses.add(
             responses.POST,
