@@ -118,7 +118,9 @@ export function AutomationBuilderDrawerForm({
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
-      const errors = validateAutomationBuilderState(state);
+      const errors = validateAutomationBuilderState(state, data as AutomationFormData, {
+        validateConnectedMonitors: false,
+      });
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length > 0) {

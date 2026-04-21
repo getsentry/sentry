@@ -695,6 +695,34 @@ describe('Onboarding', () => {
       });
     });
 
+    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
+      renderOnboarding('welcome');
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_step_viewed',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'growth.onboarding_start_onboarding',
+        expect.anything()
+      );
+    });
+
+    it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
+      renderOnboarding('welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_continue_clicked',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'growth.onboarding_clicked_instrument_app',
+        expect.anything()
+      );
+    });
+
     it('auto-selects existing integration and shows connected view', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({

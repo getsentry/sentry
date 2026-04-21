@@ -145,6 +145,8 @@ def run_night_shift_for_org(
         candidates, agent_run_id = agentic_triage_strategy(
             eligible_projects, organization, resolved_max_candidates
         )
+        if agent_run_id is not None:
+            run.update(extras={**run.extras, "agent_run_id": agent_run_id})
 
         if candidates:
             SeerNightShiftRunIssue.objects.bulk_create(

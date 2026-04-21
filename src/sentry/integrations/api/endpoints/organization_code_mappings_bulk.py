@@ -141,7 +141,26 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            errors = serializer.errors
+            mapping_errors = errors.get("mappings")
+            invalid_indices: list[int] = []
+            if isinstance(mapping_errors, list):
+                invalid_indices = [
+                    i
+                    for i, item_errors in enumerate(mapping_errors)
+                    if isinstance(item_errors, dict) and item_errors
+                ]
+            if invalid_indices:
+                detail = (
+                    "Some of the submitted mappings have an invalid format. "
+                    f"Check the mappings at the following indices: {invalid_indices}. "
+                    "See the 'mappings' field below for per-mapping validation errors."
+                )
+                return Response(
+                    {"detail": detail, **errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
 

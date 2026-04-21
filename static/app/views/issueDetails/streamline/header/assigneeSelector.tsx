@@ -11,7 +11,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {IconSettings, IconUser} from 'sentry/icons';
+import {IconClose, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
@@ -154,6 +154,12 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         icon: currentAssigneeIcon,
       }}
     >
+      {group.assignedTo && (
+        <CMDKAction
+          display={{label: t('Unassign'), icon: <IconClose />}}
+          onAction={() => handleAssigneeChange(null)}
+        />
+      )}
       {user && (
         <CMDKAction
           display={{

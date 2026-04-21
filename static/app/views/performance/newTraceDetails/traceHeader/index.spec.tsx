@@ -2,11 +2,12 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   TraceMetaDataHeader,
   type TraceMetadataHeaderProps,
@@ -177,6 +178,44 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsLinks[1]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsItems).toHaveLength(1);
       expect(breadcrumbsItems[0]).toHaveTextContent(/trace-slug/);
+    });
+
+    it('renders loading-state breadcrumbs in the top bar when page frame is enabled', () => {
+      const pageFrameOrganization = OrganizationFixture({
+        features: ['page-frame'],
+      });
+
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar.Slot.Outlet name="title">
+            {props => <div {...props} data-test-id="topbar-title-slot" />}
+          </TopBar.Slot.Outlet>
+          <TraceMetaDataHeader
+            {...({
+              ...baseProps,
+              metaResults: {
+                data: undefined,
+                errors: [],
+                status: 'pending',
+              },
+            } as TraceMetadataHeaderProps)}
+            organization={pageFrameOrganization}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      const topbarSlot = screen.getByTestId('topbar-title-slot');
+      expect(within(topbarSlot).getByTestId('breadcrumb-list')).toBeInTheDocument();
+      expect(screen.getAllByTestId('breadcrumb-list')).toHaveLength(1);
     });
   });
 

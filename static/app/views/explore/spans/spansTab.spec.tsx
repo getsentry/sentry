@@ -461,8 +461,11 @@ describe('SpansTabContent', () => {
 
       const input = screen.getByRole('combobox');
       await userEvent.click(input);
-      await userEvent.type(input, 'span.duration:>10ms{enter}');
-      await userEvent.type(input, ' random');
+      await userEvent.paste('span.duration:>10ms');
+      await userEvent.keyboard('{Enter}');
+
+      await userEvent.click(input);
+      await userEvent.paste(' random');
 
       const askSeer = await screen.findByText(/Ask AI to build your query/);
       await userEvent.click(askSeer);

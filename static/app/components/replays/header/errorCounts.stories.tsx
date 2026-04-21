@@ -3,6 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplaySlugChooser} from 'sentry/components/replays/player/__stories__/replaySlugChooser';
 import * as Storybook from 'sentry/stories';
+import {toEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ErrorFrame, RawReplayError} from 'sentry/utils/replays/types';
 
@@ -13,7 +14,7 @@ function fixture(projectName: string): RawReplayError {
     issue: 'JS-374',
     'issue.id': 3740335939,
     'project.name': projectName,
-    timestamp: new Date().toISOString(),
+    timestamp_ms: toEventTimestampMs(new Date()),
     level: 'error',
     title: 'A Redirect with :orgId param on customer domain',
   };
@@ -30,7 +31,7 @@ function errorFramesToRawReplayErrors(errorFrames: ErrorFrame[]): RawReplayError
     id: errorFrame.data.eventId,
     issue: errorFrame.data.label,
     'issue.id': errorFrame.data.groupId,
-    timestamp: errorFrame.timestamp.toISOString(),
+    timestamp_ms: toEventTimestampMs(errorFrame.timestamp),
     level: errorFrame.data.level,
     title: errorFrame.data.label,
   }));

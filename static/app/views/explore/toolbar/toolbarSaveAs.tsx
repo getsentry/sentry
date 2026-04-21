@@ -289,7 +289,7 @@ export function ToolbarSaveAs() {
   const canCompareQueries = visualizeFunctions.length >= 2;
 
   return (
-    <StyledToolbarSection data-test-id="section-save-as">
+    <SaveStyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
         <Tooltip
           disabled={!hasCrossEvents}
@@ -347,7 +347,7 @@ export function ToolbarSaveAs() {
           {t('Compare Queries')}
         </WideLinkButton>
       </Grid>
-    </StyledToolbarSection>
+    </SaveStyledToolbarSection>
   );
 }
 
@@ -359,7 +359,7 @@ const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-const StyledToolbarSection = styled(ToolbarSection)`
+export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${p => p.theme.space['2xl']};
 `;
