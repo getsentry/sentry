@@ -33,7 +33,7 @@ export function ExplorerDrawerContent({
   getPageReferrer: () => string;
   onClose: () => void;
 }) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
 
