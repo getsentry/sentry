@@ -76,7 +76,7 @@ function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
 function makeMetricQuery(
   token: TokenFunction,
   label: string,
-  filterOverride?: string
+  defaultFilter?: string
 ): BaseMetricQuery {
   const {plainAggregate, filterQuery} = normalizeFunctionToken(token);
   const {traceMetric} = parseMetricAggregate(plainAggregate);
@@ -86,7 +86,7 @@ function makeMetricQuery(
     label,
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeFunction(plainAggregate)],
-      query: filterOverride ?? filterQuery,
+      query: token.text.endsWith(IF_SUFFIX) ? filterQuery : defaultFilter,
     }),
   };
 }
