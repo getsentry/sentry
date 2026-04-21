@@ -25,7 +25,6 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
-    deduplicate_repositories,
     get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
@@ -286,7 +285,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "repositories": deduplicate_repositories(repositories) or [],
+                "repositories": repositories,
                 "automated_run_stopping_point": stopping_point,
                 "automation_handoff": handoff,
             }
