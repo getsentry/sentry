@@ -38,7 +38,6 @@ export function useDrawerContentContext() {
 interface DrawerPanelProps {
   ariaLabel: DrawerContentContextType['ariaLabel'];
   children: React.ReactNode;
-  headerContent: React.ReactNode;
   mode: 'blocking' | 'passive';
   onClose: DrawerContentContextType['onClose'];
   drawerCss?: DrawerOptions['drawerCss'];

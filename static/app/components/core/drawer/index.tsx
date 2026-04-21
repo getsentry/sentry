@@ -220,7 +220,6 @@ export function GlobalDrawer({children}: any) {
               onClose={handleClose}
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
-              headerContent={currentDrawerConfig?.options?.headerContent ?? null}
               transitionProps={currentDrawerConfig?.options?.transitionProps}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
