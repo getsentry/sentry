@@ -86,7 +86,7 @@ def cleanup_seer_repository_preferences(
 @instrumented_task(
     name="sentry.tasks.seer.bulk_cleanup_seer_repository_preferences",
     namespace=seer_tasks,
-    processing_deadline_duration=60 * 10,
+    processing_deadline_duration=60 * 5,
     silo_mode=SiloMode.CELL,
 )
 def bulk_cleanup_seer_repository_preferences(
@@ -149,11 +149,11 @@ def bulk_cleanup_seer_repository_preferences(
 @instrumented_task(
     name="sentry.tasks.seer.cleanup_seer_automation_handoffs_for_integration",
     namespace=seer_tasks,
-    processing_deadline_duration=60 * 10,
+    processing_deadline_duration=60 * 5,
     silo_mode=SiloMode.CELL,
 )
 def cleanup_seer_automation_handoffs_for_integration(
-    organization_id: int, integration_id: int
+    organization_id: int, integration_id: int, **kwargs: Any
 ) -> None:
     """
     Clear automation_handoff from all project preferences in an organization that
