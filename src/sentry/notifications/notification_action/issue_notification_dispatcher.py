@@ -69,7 +69,11 @@ class IssueNotificationDispatcher:
     def _dispatch_issue_alert(self) -> None:
         issue_notification_data = issue_notification_data_factory(self.invocation)
         notification_service = NotificationService(data=issue_notification_data)
-        notification_service.notify_sync(targets=[self._extract_notification_target()])
+        target = self._extract_notification_target()
+        threading_options = ThreadingOptions(
+            thread_key=self._get_issue_alert_thread_key(), reply_broadcast=False
+        )
+        notification_service.notify_sync(targets=[target], threading_options=threading_options)
 
     # General helper methods
     def _extract_notification_target(self) -> NotificationTarget:
@@ -93,11 +97,13 @@ class IssueNotificationDispatcher:
             event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
         )
         is_metric_issue = self.invocation.event_data.group.type == MetricIssue.type_id
+        # TODO: Double check that this assumption is correct. The notification
+        #  paths currently used in the legacy path appears to be mostly the same.
         created_by_metric_detector = self.invocation.detector.type == MetricIssue.slug
 
-        return (
-            is_supported_activity_notification and is_metric_issue
-        ) or created_by_metric_detector
+        return is_supported_activity_notification and (
+            is_metric_issue or created_by_metric_detector
+        )
 
     def _is_activity_action_invocation(self) -> bool:
         return isinstance(self.invocation.event_data.event, Activity)
@@ -111,7 +117,7 @@ class IssueNotificationDispatcher:
             key_type=NotificationSource.ISSUE,
             key_data={
                 "action_id": self.invocation.action.id,  # debatable whether we should use actionID as part of the key
-                "group_id": self.invocation.event_data.group.id,
+                "group_id": self.issue_notification_context.group.id,
             },
         )
 
