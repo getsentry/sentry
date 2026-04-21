@@ -437,29 +437,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
 
-    @patch("sentry.tasks.seer.autofix.get_autofix_repos_from_project_code_mappings")
-    @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
-    @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
-    def test_uses_code_mappings_when_no_existing_preferences(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
-    ) -> None:
-        """Test that code mappings are used as fallback when no preferences exist."""
-        project = self.create_project(organization=self.organization)
-        mock_bulk_get.return_value = {}
-        mock_repos = [{"provider": "github", "owner": "test-org", "name": "test-repo"}]
-        mock_get_code_mappings.return_value = mock_repos
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        mock_get_code_mappings.assert_called_once_with(project)
-        preferences = mock_bulk_set.call_args[0][1]
-        assert preferences[0]["repositories"] == mock_repos
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_repos_from_project_code_mappings")
     @patch("sentry.tasks.seer.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.seer.autofix.bulk_get_project_preferences")
     def test_preserves_existing_repositories_when_preferences_exist(
-        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock, mock_get_code_mappings: MagicMock
+        self, mock_bulk_get: MagicMock, mock_bulk_set: MagicMock
     ) -> None:
         """Test that existing repositories are preserved when preferences exist."""
         project = self.create_project(organization=self.organization)
@@ -468,7 +449,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
-        mock_get_code_mappings.assert_not_called()
         preferences = mock_bulk_set.call_args[0][1]
         assert preferences[0]["repositories"] == existing_repos
 
