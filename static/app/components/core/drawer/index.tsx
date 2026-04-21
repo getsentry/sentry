@@ -6,7 +6,6 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  Fragment,
 } from 'react';
 import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
@@ -212,25 +211,24 @@ export function GlobalDrawer({children}: any) {
       >
         <AnimatePresence>
           {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
-            <Backdrop />
+            <Backdrop key="backdrop" />
           ) : null}
           {isDrawerOpen && (
-            <Fragment>
-              <DrawerComponents.DrawerPanel
-                ariaLabel={currentDrawerConfig.options.ariaLabel}
-                onClose={handleClose}
-                ref={panelRef}
-                mode={currentDrawerConfig.options.mode ?? 'blocking'}
-                headerContent={currentDrawerConfig?.options?.headerContent ?? null}
-                transitionProps={currentDrawerConfig?.options?.transitionProps}
-                drawerWidth={currentDrawerConfig?.options?.drawerWidth}
-                drawerKey={currentDrawerConfig?.options?.drawerKey}
-                resizable={currentDrawerConfig?.options?.resizable}
-                drawerCss={currentDrawerConfig?.options?.drawerCss}
-              >
-                {renderedChild}
-              </DrawerComponents.DrawerPanel>
-            </Fragment>
+            <DrawerComponents.DrawerPanel
+              key="panel"
+              ariaLabel={currentDrawerConfig.options.ariaLabel}
+              onClose={handleClose}
+              ref={panelRef}
+              mode={currentDrawerConfig.options.mode ?? 'blocking'}
+              headerContent={currentDrawerConfig?.options?.headerContent ?? null}
+              transitionProps={currentDrawerConfig?.options?.transitionProps}
+              drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerKey={currentDrawerConfig?.options?.drawerKey}
+              resizable={currentDrawerConfig?.options?.resizable}
+              drawerCss={currentDrawerConfig?.options?.drawerCss}
+            >
+              {renderedChild}
+            </DrawerComponents.DrawerPanel>
           )}
         </AnimatePresence>
       </ErrorBoundary>
