@@ -16,6 +16,7 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
+import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {
   IconAdd,
   IconCompass,
@@ -28,6 +29,7 @@ import {
   IconList,
   IconLock,
   IconOpen,
+  IconProject,
   IconSearch,
   IconSeer,
   IconSettings,
@@ -45,13 +47,22 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {DashboardFilter} from 'sentry/views/dashboards/types';
+import {
+  MAX_STARRED_SAVED_QUERIES_IN_NAV,
+  useGetSavedQueries,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
@@ -93,13 +104,25 @@ export function GlobalCommandPaletteActions() {
     onSuccess: () => window.location.reload(),
   });
 
+  const {data: starredSavedQueries = []} = useGetSavedQueries({
+    starred: true,
+    perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+  });
+
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
   );
   const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-
+  const hasPrebuiltDashboards = organization.features.includes(
+    'dashboards-prebuilt-insights-dashboards'
+  );
+  const hasMetricsSupportedPlatform = projects.some(project =>
+    Array.from(limitedMetricsSupportPrefixes).some(metricsPrefix =>
+      (project.platform || 'unknown').startsWith(metricsPrefix)
+    )
+  );
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -121,6 +144,12 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}
           />
+          {organization.features.includes('seer-autopilot') && (
+            <CMDKAction
+              display={{label: t('Instrumentation')}}
+              to={`${prefix}/issues/instrumentation/`}
+            />
+          )}
           <CMDKAction display={{label: t('All Views')}} to={`${prefix}/issues/views/`} />
           {starredViews.map(starredView => (
             <CMDKAction
@@ -129,12 +158,30 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
+          {organization.features.includes('seer-issue-view') && (
+            <CMDKAction display={{label: t('Autofix')}}>
+              <CMDKAction
+                display={{label: t('Recently Run')}}
+                to={`${prefix}/issues/autofix/recent/`}
+              />
+            </CMDKAction>
+          )}
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}}>
           <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
+          )}
+          {hasMetricsSupportedPlatform &&
+            organization.features.includes('tracemetrics-enabled') && (
+              <CMDKAction
+                display={{label: t('Metrics')}}
+                to={`${prefix}/explore/metrics/`}
+              />
+            )}
+          {organization.features.includes('explore-errors') && (
+            <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
           )}
           <CMDKAction
             display={{label: t('Discover')}}
@@ -156,10 +203,23 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('Releases')}}
             to={`${prefix}/explore/releases/`}
           />
+          {organization.features.includes('gen-ai-conversations') && (
+            <CMDKAction
+              display={{label: t('Conversations')}}
+              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`}
+            />
+          )}
           <CMDKAction
             display={{label: t('All Queries')}}
             to={`${prefix}/explore/saved-queries/`}
           />
+          {starredSavedQueries.map(query => (
+            <CMDKAction
+              key={query.id}
+              display={{label: query.name, icon: <IconStar />}}
+              to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+            />
+          ))}
         </CMDKAction>
 
         <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
@@ -167,6 +227,12 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
           />
+          {hasPrebuiltDashboards && (
+            <CMDKAction
+              display={{label: t('Sentry Built')}}
+              to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+            />
+          )}
           <CMDKAction display={{label: t('Starred Dashboards'), icon: <IconStar />}}>
             {starredDashboards.map(dashboard => (
               <CMDKAction
@@ -243,6 +309,19 @@ export function GlobalCommandPaletteActions() {
 
         {hasWorkflowEngineUI && (
           <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}}>
+            <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
+            <CMDKAction
+              display={{label: t('My Monitors')}}
+              to={`${prefix}/monitors/my-monitors/`}
+            />
+            <CMDKAction
+              display={{label: t('Errors')}}
+              to={`${prefix}/monitors/errors/`}
+            />
+            <CMDKAction
+              display={{label: t('Metrics')}}
+              to={`${prefix}/monitors/metrics/`}
+            />
             <CMDKAction display={{label: t('Crons')}} to={`${prefix}/monitors/crons/`} />
             {organization.features.includes('uptime') && (
               <CMDKAction
@@ -250,8 +329,38 @@ export function GlobalCommandPaletteActions() {
                 to={`${prefix}/monitors/uptime/`}
               />
             )}
+            {organization.features.includes('preprod-size-monitors-frontend') && (
+              <CMDKAction
+                display={{label: t('Mobile Builds')}}
+                to={`${prefix}/monitors/mobile-builds/`}
+              />
+            )}
+            <CMDKAction
+              display={{label: t('Alerts')}}
+              to={`${prefix}/monitors/alerts/`}
+            />
           </CMDKAction>
         )}
+
+        <CMDKAction display={{label: t('Projects'), icon: <IconProject />}}>
+          <CMDKAction
+            display={{label: t('All Projects')}}
+            to={makeProjectsPathname({path: '/', organization})}
+          />
+          {projects
+            .filter(project => project.isBookmarked)
+            .slice(0, 8)
+            .map(project => (
+              <CMDKAction
+                key={project.id}
+                display={{
+                  label: project.name,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                }}
+                to={makeProjectsPathname({path: `/${project.slug}/`, organization})}
+              />
+            ))}
+        </CMDKAction>
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
           {getUserOrgNavigationConfiguration().flatMap(section =>

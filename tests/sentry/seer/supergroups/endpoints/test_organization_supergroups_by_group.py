@@ -27,9 +27,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         )
         self.resolved_group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
 
-    @patch(
-        "sentry.seer.supergroups.endpoints.organization_supergroups_by_group.make_supergroups_get_by_group_ids_request"
-    )
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_status_filter_strips_resolved_from_response(self, mock_seer):
         extra_unresolved = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
         mock_seer.return_value = mock_seer_response(
@@ -75,9 +73,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
                 status_code=400,
             )
 
-    @patch(
-        "sentry.seer.supergroups.endpoints.organization_supergroups_by_group.make_supergroups_get_by_group_ids_request"
-    )
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_rca_source_defaults_to_explorer(self, mock_seer):
         mock_seer.return_value = mock_seer_response({"data": []})
 
@@ -90,9 +86,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         body = mock_seer.call_args.args[0]
         assert body["rca_source"] == "EXPLORER"
 
-    @patch(
-        "sentry.seer.supergroups.endpoints.organization_supergroups_by_group.make_supergroups_get_by_group_ids_request"
-    )
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_rca_source_lightweight_when_flag_enabled(self, mock_seer):
         mock_seer.return_value = mock_seer_response({"data": []})
 

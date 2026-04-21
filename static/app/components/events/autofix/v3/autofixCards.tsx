@@ -34,6 +34,7 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -59,7 +60,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <Text>{artifact.data.one_line_description}</Text>
+          <StyledMarkedText text={artifact.data.one_line_description} />
           {artifact.data.five_whys?.length ? (
             <Fragment>
               <ArtifactDetails>
@@ -67,7 +68,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                 <Container as="ul" margin="0">
                   {artifact.data.five_whys.map((why, index) => (
                     <li key={index}>
-                      <Text>{why}</Text>
+                      <StyledMarkedText text={why} />
                     </li>
                   ))}
                 </Container>
@@ -78,7 +79,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                   <Container as="ol" margin="0">
                     {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <Text>{step}</Text>
+                        <StyledMarkedText text={step} />
                       </li>
                     ))}
                   </Container>
@@ -127,7 +128,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <Text>{artifact.data.one_line_summary}</Text>
+          <StyledMarkedText text={artifact.data.one_line_summary} />
           {artifact.data.steps ? (
             <ArtifactDetails>
               <Text bold>{t('Steps to Resolve')}</Text>
@@ -135,7 +136,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
                     <Flex direction="column">
-                      <Text>{step.title}</Text>
+                      <StyledMarkedText text={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>
@@ -447,7 +448,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
         marginTop="md"
         ref={containerRef}
         maxHeight="200px"
-        overflowY="scroll"
+        overflowY="auto"
       >
         {messages.map((message, index) => {
           if (message.role === 'user') {
@@ -456,11 +457,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
           }
 
           if (message.content && message.content !== 'Thinking...') {
-            return (
-              <Text key={index} variant="muted">
-                {message.content}
-              </Text>
-            );
+            return <StyledMarkedText key={index} text={message.content} />;
           }
 
           return null;
@@ -476,4 +473,10 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const StyledMarkedText = styled(MarkedText)`
+  p {
+    margin: 0;
+  }
 `;

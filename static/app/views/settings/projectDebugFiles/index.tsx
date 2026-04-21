@@ -130,15 +130,14 @@ export default function ProjectDebugSymbols() {
 
   return (
     <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), project.slug, false)}>
-      <SettingsPageHeader title={t('Debug Information Files')} />
-
-      <TextBlock>
-        {t(`
+      <SettingsPageHeader
+        title={t('Debug Information Files')}
+        subtitle={t(`
           Debug information files are used to convert addresses and minified
           function names from native crash reports into function names and
           locations.
         `)}
-      </TextBlock>
+      />
 
       {organization.features.includes('symbol-sources') && (
         <Fragment>

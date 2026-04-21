@@ -79,7 +79,7 @@ Always review the diff after `--fix` before committing. If the rule is partially
 - If the rule is new and not yet in `eslint.config.ts`, **fix all violations first**, then enable the rule in a follow-up PR
 - Run pre-commit on changed files before committing:
   ```bash
-  .venv/bin/pre-commit run --files <file1> [file2 ...]
+  .venv/bin/prek run -q --files <file1> [file2 ...]
   ```
 
 ## Verification

@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
@@ -232,6 +232,8 @@ class LlmGenerateRequest(TypedDict):
     temperature: float
     max_tokens: int
     response_schema: NotRequired[dict[str, Any]]
+    timeout: NotRequired[float | None]
+    reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
 
 
 class RepoDetails(TypedDict):

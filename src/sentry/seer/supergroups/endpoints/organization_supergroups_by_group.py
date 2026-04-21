@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import orjson
 from rest_framework import status as status_codes
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,12 +13,8 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import (
-    RCASource,
-    SeerViewerContext,
-    SupergroupsByGroupIdsResponse,
-    make_supergroups_get_by_group_ids_request,
-)
+from sentry.seer.models import SeerApiError
+from sentry.seer.supergroups.by_group import get_supergroups_by_group_ids
 
 logger = logging.getLogger(__name__)
 
@@ -78,36 +73,16 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_404_NOT_FOUND,
             )
 
-        rca_source = (
-            RCASource.LIGHTWEIGHT
-            if features.has(
-                "organizations:supergroups-lightweight-rca-clustering-read", organization
-            )
-            else RCASource.EXPLORER
-        )
-
-        response = make_supergroups_get_by_group_ids_request(
-            {"organization_id": organization.id, "group_ids": group_ids, "rca_source": rca_source},
-            SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
-            timeout=10,
-        )
-
-        if response.status >= 400:
-            return Response(
-                {"detail": "Failed to fetch supergroups"},
-                status=response.status,
-            )
-
-        data: SupergroupsByGroupIdsResponse = orjson.loads(response.data)
+        try:
+            data = get_supergroups_by_group_ids(organization, group_ids, user_id=request.user.id)
+        except SeerApiError as exc:
+            return Response({"detail": "Failed to fetch supergroups"}, status=exc.status)
 
         if not status_param:
             return Response(data)
 
-        # Seer returns all group_ids per supergroup regardless of status.
-        # We can't filter before the Seer call because Seer expands group_ids
-        # to include the full supergroup membership, not just the requested IDs.
-        # Instead, collect every group_id from the response, check status in
-        # bulk, and strip out non-matching ones.
+        # Seer returns every group_id in each supergroup regardless of request,
+        # so apply the status filter after the call.
         all_response_group_ids: list[int] = []
         for sg in data["data"]:
             all_response_group_ids.extend(sg["group_ids"])
@@ -122,7 +97,6 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
 
         for sg in data["data"]:
             sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
-        # Drop supergroups that have no matching groups after filtering
         data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
 
         return Response(data)

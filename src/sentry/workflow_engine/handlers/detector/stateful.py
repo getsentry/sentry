@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db.models import Q
+from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry.api.serializers import serialize
@@ -231,6 +232,7 @@ class DetectorStateManager:
                         detector=self.detector,
                         is_triggered=is_triggered,
                         state=priority,
+                        date_added=timezone.now(),
                     )
                 )
             elif (
@@ -239,13 +241,16 @@ class DetectorStateManager:
             ):
                 detector_state.is_triggered = is_triggered
                 detector_state.state = priority
+                detector_state.date_updated = timezone.now()
                 updated_detector_states.append(detector_state)
 
         if created_detector_states:
             DetectorState.objects.bulk_create(created_detector_states)
 
         if updated_detector_states:
-            DetectorState.objects.bulk_update(updated_detector_states, ["is_triggered", "state"])
+            DetectorState.objects.bulk_update(
+                updated_detector_states, ["is_triggered", "state", "date_updated"]
+            )
 
         self.state_updates.clear()
 

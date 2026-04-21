@@ -19,7 +19,6 @@ EMAILS = (
     ("/debug/mail/resolved-in-release/", "resolved in release"),
     ("/debug/mail/resolved-in-release/upcoming/", "resolved in release upcoming"),
     ("/debug/mail/unassigned/", "unassigned"),
-    ("/debug/mail/unable-to-fetch-commits/", "unable to fetch commits"),
     ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
     ("/debug/mail/error-alert/", "alert"),
     ("/debug/mail/performance-alert/transaction-n-plus-one", "performance"),

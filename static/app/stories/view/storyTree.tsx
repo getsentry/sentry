@@ -6,6 +6,8 @@ import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
+import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
+import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -109,18 +111,7 @@ export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
 
 type StorySection = 'overview' | StoryCategory;
 
-type ComponentSubcategory =
-  | 'typography'
-  | 'layout'
-  | 'buttons'
-  | 'controls'
-  | 'forms'
-  | 'navigation'
-  | 'status'
-  | 'display'
-  | 'overlays'
-  | 'utilities'
-  | 'shared';
+type ComponentSubcategory = NonNullable<MDXFrontmatter['category']>;
 
 export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   overview: {label: 'Overview'},
@@ -131,7 +122,6 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
 };
 
 interface SubcategoryConfig {
-  components: string[];
   label: string;
   subgroups?: Array<{components: string[]; label: string}>;
 }
@@ -140,33 +130,12 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   ComponentSubcategory,
   SubcategoryConfig
 > = {
-  layout: {
-    label: 'Layout',
-    components: [
-      'composition',
-      'container',
-      'flex',
-      'grid',
-      'stack',
-      'surface',
-      'disclosure',
-    ],
-  },
-  typography: {
-    label: 'Typography',
-    components: ['heading', 'prose', 'text', 'inlinecode', 'quote'],
-  },
-  buttons: {
-    label: 'Buttons',
-    components: ['button', 'linkbutton', 'avatarbutton'],
-  },
-  controls: {
-    label: 'Controls',
-    components: ['buttonbar', 'compactselect', 'composite', 'segmentedcontrol'],
-  },
+  layout: {label: 'Layout'},
+  typography: {label: 'Typography'},
+  buttons: {label: 'Buttons'},
+  controls: {label: 'Controls'},
   forms: {
     label: 'Forms',
-    components: ['form', 'fields', 'autosaveform'],
     subgroups: [
       {
         label: 'Primitives',
@@ -185,30 +154,12 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
       },
     ],
   },
-  navigation: {
-    label: 'Navigation',
-    components: ['link', 'tabs', 'menulistitem'],
-  },
-  status: {
-    label: 'Status',
-    components: ['alert', 'badge', 'tag', 'toast', 'statusindicator'],
-  },
-  display: {
-    label: 'Display',
-    components: ['avatar', 'image', 'codeblock'],
-  },
-  overlays: {
-    label: 'Overlays',
-    components: ['slideoverpanel', 'tooltip', 'infotext', 'infotip'],
-  },
-  utilities: {
-    label: 'Utilities',
-    components: ['separator', 'hotkey', 'interactionstatelayer'],
-  },
-  shared: {
-    label: 'Shared',
-    components: [],
-  },
+  navigation: {label: 'Navigation'},
+  status: {label: 'Status'},
+  display: {label: 'Display'},
+  overlays: {label: 'Overlays'},
+  utilities: {label: 'Utilities'},
+  shared: {label: 'Shared'},
 };
 
 export const SECTION_ORDER: StorySection[] = [
@@ -293,31 +244,9 @@ export function useFlatStoryList(): StoryTreeNode[] {
             continue;
           }
 
-          const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
-          const allConfigured = [
-            ...config.components,
-            ...(config.subgroups?.flatMap(sg => sg.components) ?? []),
-          ];
-          const added = new Set<string>();
-
-          // Add configured components in config order
-          for (const componentName of allConfigured) {
-            const file = subcategoryFiles.find(
-              f => inferComponentName(f).toLowerCase() === componentName
-            );
-            if (file) {
-              const name = inferComponentName(file);
-              result.push(new StoryTreeNode(formatName(name), 'core', file));
-              added.add(file);
-            }
-          }
-
-          // Add remaining files not in config (sorted)
           for (const file of subcategoryFiles.sort()) {
-            if (!added.has(file)) {
-              const name = inferComponentName(file);
-              result.push(new StoryTreeNode(formatName(name), 'core', file));
-            }
+            const name = inferComponentName(file);
+            result.push(new StoryTreeNode(formatName(name), 'core', file));
           }
         }
       }
@@ -438,10 +367,10 @@ function inferStoryLocation(path: string): StoryLocation {
     return {section: 'patterns'};
   }
 
-  // Components - determine subcategory
+  // Components - determine subcategory from frontmatter, fall back to 'shared'
   if (isCoreFile(path)) {
-    const componentName = inferComponentName(path).toLowerCase();
-    const subcategory = inferComponentSubcategory(componentName);
+    const category = storyFrontmatterIndex[path]?.category;
+    const subcategory = isComponentSubcategory(category) ? category : 'shared';
     return {section: 'core', subcategory};
   }
 
@@ -449,16 +378,10 @@ function inferStoryLocation(path: string): StoryLocation {
   return {section: 'product'};
 }
 
-export function inferComponentSubcategory(componentName: string): ComponentSubcategory {
-  for (const [subcategory, config] of Object.entries(COMPONENT_SUBCATEGORY_CONFIG)) {
-    if (config.components.includes(componentName)) {
-      return subcategory as ComponentSubcategory;
-    }
-    if (config.subgroups?.some(subgroup => subgroup.components.includes(componentName))) {
-      return subcategory as ComponentSubcategory;
-    }
-  }
-  return 'shared';
+function isComponentSubcategory(
+  value: string | undefined
+): value is ComponentSubcategory {
+  return value !== undefined && value in COMPONENT_SUBCATEGORY_CONFIG;
 }
 
 function isOverviewFile(file: string) {
@@ -604,28 +527,10 @@ function buildComponentTree(
       config.subgroups?.flatMap(sg => sg.components) ?? []
     );
 
-    // Add top-level components in config order
-    for (const componentName of config.components) {
-      const file = files.find(f => inferComponentName(f).toLowerCase() === componentName);
-      if (file) {
-        const name = inferComponentName(file);
-        folderNode.children[componentName] = new StoryTreeNode(
-          formatName(name),
-          'core',
-          file
-        );
-      }
-    }
-
-    // Add remaining top-level files not in config.components or subgroups (sorted)
+    // Add top-level files (those not in any subgroup), sorted alphabetically
     for (const file of files.sort()) {
       const name = inferComponentName(file);
-      const lowerName = name.toLowerCase();
-      if (
-        !config.components.includes(lowerName) &&
-        !subgroupComponents.has(lowerName) &&
-        !folderNode.children[name]
-      ) {
+      if (!subgroupComponents.has(name.toLowerCase())) {
         folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
       }
     }

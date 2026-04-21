@@ -221,6 +221,7 @@
     "ts-checker-rspack-plugin": "1.2.6",
     "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
+    "yaml": "2.8.3",
     "zod": "4.3.5",
     "zrender": "6.0.0",
     "zxcvbn": "^4.4.2"
@@ -277,7 +278,7 @@
     "jest-fail-on-console": "3.3.4",
     "jest-junit": "16.0.0",
     "knip": "6.4.1",
-    "odiff-bin": "^4.3.2",
+    "odiff-bin": "4.3.8",
     "oxfmt": "^0.41.0",
     "playwright": "^1.58.2",
     "postcss-styled-syntax": "0.7.0",
