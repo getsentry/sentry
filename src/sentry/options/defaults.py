@@ -344,12 +344,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Per-organization POST rate-limit overrides for ProjectTransferEndpoint.
-# Keyed by organization id or slug (as string), value is {"limit": int, "window": int}.
+# POST rate limit for ProjectTransferEndpoint, overridable via automator.
 register(
     "api.project-transfer.rate-limit-overrides",
-    type=Dict,
-    default={},
+    type=Int,
+    default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -39,19 +39,14 @@ class ProjectTransferEndpoint(ProjectEndpoint):
 
     enforce_rate_limit = True
 
-    @property
     def rate_limits(*args: Any, **kwargs: Any) -> RateLimitConfig:
-        override = options.get("api.project-transfer.rate-limit-overrides").get(
-            str(kwargs.get("organization_id_or_slug", "")), {}
-        )
-        if not isinstance(override, dict):
-            override = {}
+        limit = options.get("api.project-transfer.rate-limit-overrides")
         return RateLimitConfig(
             limit_overrides={
                 "POST": {
                     RateLimitCategory.USER: RateLimit(
-                        limit=override.get("limit", 3),
-                        window=override.get("window", 60 * 60),
+                        limit=limit,
+                        window=60 * 60,
                     ),
                 },
             },
