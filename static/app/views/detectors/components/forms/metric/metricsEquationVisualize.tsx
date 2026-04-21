@@ -174,9 +174,7 @@ function MetricsEquationVisualizeContent() {
               metricQuery={metricQuery}
               referenceMap={referenceMap}
               canDelete={functionQueries.length > 1 && !isReferenced}
-              isSelected={
-                selectedLabel !== undefined && selectedLabel === metricQuery.label
-              }
+              isSelected={selectedLabel === metricQuery.label}
               onRowSelection={onRowSelection}
             />
           </RowProvider>
@@ -190,9 +188,7 @@ function MetricsEquationVisualizeContent() {
               metricQuery={equationQuery}
               referenceMap={referenceMap}
               canDelete
-              isSelected={
-                selectedLabel !== undefined && selectedLabel === equationQuery.label
-              }
+              isSelected={selectedLabel === equationQuery.label}
               onRowSelection={onRowSelection}
               onReferenceLabelsChange={setEquationReferencedLabels}
             />
