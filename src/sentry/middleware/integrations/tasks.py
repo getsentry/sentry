@@ -193,7 +193,7 @@ def route_slack_seer_event(
     slack_user_id: str,
     channel_id: str,
     thread_ts: str,
-    event_type: str,
+    event_type: str = "",
     text: str = "",
 ) -> None:
     """

@@ -343,6 +343,7 @@ class SlackRequestParser(BaseRequestParser):
                     "channel_id": self.slack_request.channel_id,
                     "thread_ts": self.slack_request.thread_ts,
                     "text": self.slack_request.text,
+                    "event_type": self.slack_request.type,
                 }
             )
             logger.info(
