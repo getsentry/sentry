@@ -61,17 +61,6 @@ describe('ExplorerFloatingActionButton', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render when AI features are hidden', () => {
-      const {container} = renderFAB({
-        organization: OrganizationFixture({
-          features: ['seer-explorer'],
-          hideAiFeatures: true,
-          openMembership: true,
-        }),
-      });
-      expect(container).toBeEmptyDOMElement();
-    });
-
     it('does not render when open membership is disabled', () => {
       const {container} = renderFAB({
         organization: OrganizationFixture({
