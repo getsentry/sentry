@@ -3,13 +3,13 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';

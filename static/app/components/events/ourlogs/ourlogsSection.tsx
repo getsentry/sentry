@@ -2,10 +2,10 @@ import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

@@ -19,7 +19,7 @@ import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo
 import {FirstEventFooter} from './components/firstEventFooter';
 import type {StepProps} from './types';
 
-export function SetupDocs({recentCreatedProject: project}: StepProps) {
+export function SetupDocs({recentCreatedProject: project, genBackButton}: StepProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,6 +66,7 @@ export function SetupDocs({recentCreatedProject: project}: StepProps) {
         project={project}
         organization={organization}
         isLast
+        leading={genBackButton?.()}
         onClickSetupLater={() => {
           trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
             organization,

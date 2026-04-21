@@ -11,6 +11,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 export function ReplayIndexTimestampPrefPicker() {
   const [prefs, setPrefs] = useReplayPrefs();
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const label = t('Configure timestamp settings');
 
   return (
     <CompactSelect
@@ -30,8 +31,8 @@ export function ReplayIndexTimestampPrefPicker() {
           {...triggerProps}
           icon={<IconSettings />}
           size={hasPageFrameFeature ? 'sm' : undefined}
-          aria-label={t('Configure timestamp settings')}
-          tooltipProps={{title: t('Configure timestamp settings')}}
+          aria-label={label}
+          tooltipProps={{title: label}}
         />
       )}
       value={prefs.timestampType}

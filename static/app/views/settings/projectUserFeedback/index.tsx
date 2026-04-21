@@ -19,7 +19,6 @@ import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -83,6 +82,11 @@ export default function ProjectUserFeedback() {
       <SentryDocumentTitle title={t('User Feedback')} projectSlug={project.slug}>
         <SettingsPageHeader
           title={t('User Feedback')}
+          subtitle={t(
+            `Don't rely on stack traces and graphs alone to understand
+            the cause and impact of errors. Enable the User Feedback Widget to collect
+            your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs.`
+          )}
           action={
             <Flex gap="md" align="center">
               <LinkButton href="https://docs.sentry.io/product/user-feedback/" external>
@@ -94,13 +98,6 @@ export default function ProjectUserFeedback() {
             </Flex>
           }
         />
-        <TextBlock>
-          {t(
-            `Don't rely on stack traces and graphs alone to understand
-            the cause and impact of errors. Enable the User Feedback Widget to collect
-            your users' comments at anytime, or enable the Crash Report Modal to collect additional context only when an error occurs.`
-          )}
-        </TextBlock>
         <ProjectPermissionAlert project={project} />
 
         <Access access={['project:write']} project={project}>

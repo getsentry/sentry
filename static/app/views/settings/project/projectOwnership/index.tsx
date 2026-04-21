@@ -27,7 +27,6 @@ import {
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
@@ -141,6 +140,14 @@ export default function ProjectOwnership() {
       <SentryDocumentTitle title={routeTitleGen(ownershipTitle, project.slug, false)}>
         <SettingsPageHeader
           title={t('Ownership Rules')}
+          subtitle={tct(
+            'Auto-assign issues to users and teams. To learn more, [link:read the docs].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
+            }
+          )}
           action={
             <Grid flow="column" align="center" gap="md">
               {hasCodeowners && (
@@ -178,16 +185,6 @@ export default function ProjectOwnership() {
             </Grid>
           }
         />
-        <TextBlock>
-          {tct(
-            'Auto-assign issues to users and teams. To learn more, [link:read the docs].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-            }
-          )}
-        </TextBlock>
         <ProjectPermissionAlert
           access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
           project={project}

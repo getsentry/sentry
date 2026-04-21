@@ -13,6 +13,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -183,6 +184,7 @@ export function IssueListActions({
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const area = useAnalyticsArea();
   const theme = useTheme();
 
   const disableActions = useMedia(
@@ -247,6 +249,7 @@ export function IssueListActions({
           project_id: trackProject?.id,
           platform: trackProject?.platform,
           items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
+          area,
         });
       }
     });
@@ -273,29 +276,6 @@ export function IssueListActions({
   }
 
   function handleUpdate(data: IssueUpdateData) {
-    if ('status' in data && data.status === 'ignored') {
-      const statusDetails =
-        'ignoreCount' in data.statusDetails
-          ? 'ignoreCount'
-          : 'ignoreDuration' in data.statusDetails
-            ? 'ignoreDuration'
-            : 'ignoreUserCount' in data.statusDetails
-              ? 'ignoreUserCount'
-              : undefined;
-      trackAnalytics('issues_stream.archived', {
-        action_status_details: statusDetails,
-        action_substatus: data.substatus,
-        organization,
-      });
-    }
-
-    if ('priority' in data) {
-      trackAnalytics('issues_stream.updated_priority', {
-        organization,
-        priority: data.priority,
-      });
-    }
-
     actionSelectedGroups(itemIds => {
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.

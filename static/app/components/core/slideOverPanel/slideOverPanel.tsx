@@ -2,9 +2,11 @@ import {useEffect, useId, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, type Transition} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
+
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
@@ -33,22 +35,19 @@ type SlideOverPanelProps = {
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
+  mode?: 'blocking' | 'passive';
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
-   */
-  transitionProps?: Transition;
 };
 
 export function SlideOverPanel({
   'data-test-id': testId,
+  mode = 'blocking',
   ariaLabel,
   children,
   className,
   position,
-  transitionProps = {},
   panelWidth,
   ref,
 }: SlideOverPanelProps) {
@@ -74,7 +73,7 @@ export function SlideOverPanel({
   // is displayed.
   // Subsequent updates of the `children` are not deferred.
   const [isContentVisible, setIsContentVisible] = useState<boolean>(false);
-
+  const {contentTop} = useTopOffset();
   useEffect(() => {
     startTransition(() => {
       setIsContentVisible(true);
@@ -96,14 +95,13 @@ export function SlideOverPanel({
       <_SlideOverPanel
         ref={ref}
         id={id}
+        mode={mode}
+        top={contentTop}
         initial={collapsedStyle}
         animate={openStyle}
         exit={collapsedStyle}
         position={position}
-        transition={{
-          ...theme.motion.framer.spring.moderate,
-          ...transitionProps,
-        }}
+        transition={theme.motion.framer.spring.moderate}
         role="complementary"
         aria-hidden={false}
         aria-label={ariaLabel ?? 'slide out drawer'}
@@ -129,12 +127,14 @@ const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['initial', 'animate', 'exit', 'transition'].includes(prop) || isPropValid(prop),
 })<{
+  mode?: 'blocking' | 'passive';
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
+  top?: string | number;
 }>`
   position: fixed;
 
-  top: ${p => (p.position === 'left' ? '54px' : p.theme.space.xl)};
+  top: ${p => (p.position === 'left' || p.mode === 'passive' ? p.top : p.theme.space.xl)};
   right: ${p => (p.position === 'left' ? p.theme.space.xl : 0)};
   bottom: ${p => p.theme.space.xl};
   left: ${p => (p.position === 'left' ? 0 : p.theme.space.xl)};
@@ -144,7 +144,6 @@ const _SlideOverPanel = styled(motion.div, {
   overscroll-behavior: contain;
 
   z-index: ${p => p.theme.zIndex.modal - 1};
-
   background: ${p => p.theme.tokens.background.overlay};
   box-shadow: ${p => p.theme.shadow.high};
   color: ${p => p.theme.tokens.content.primary};
@@ -171,7 +170,7 @@ const _SlideOverPanel = styled(motion.div, {
               width: ${p.panelWidth ?? RIGHT_SIDE_PANEL_WIDTH};
               height: 100%;
 
-              top: 0;
+              top: ${p.mode === 'passive' ? p.top : 0};
               right: 0;
               bottom: 0;
               left: auto;
@@ -183,7 +182,7 @@ const _SlideOverPanel = styled(motion.div, {
               min-width: 450px;
               height: 100%;
 
-              top: 0;
+              top: ${p.mode === 'passive' ? p.top : 0};
               right: auto;
               bottom: 0;
               left: auto;

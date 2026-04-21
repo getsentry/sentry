@@ -1,0 +1,198 @@
+---
+title: GlobalDrawer
+description: Application-wide singleton slide-out drawer, opened and closed via React hooks.
+category: overlays
+source: '@sentry/scraps/drawer'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/drawer/index.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {
+  BasicDemo,
+  ClosingDemo,
+  HelperComponentsDemo,
+  PassiveModeDemo,
+  ShouldCloseDemo,
+} from './__stories__/demos';
+
+export const documentation = import('!!type-loader!@sentry/scraps/drawer');
+
+`GlobalDrawer` is an application-wide singleton drawer that slides in from the right side of the page. Only one drawer can be open at a time. The drawer is controlled via the `useDrawer()` hook — no JSX required at the call site.
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+
+function MyPage() {
+  const {openDrawer, isDrawerOpen} = useDrawer();
+
+  const showDetails = () => {
+    if (!isDrawerOpen) {
+      openDrawer(() => <MyDrawer title="Hello!" />, {ariaLabel: 'Details'});
+    }
+  };
+
+  return <button onClick={showDetails}>Open Drawer</button>;
+}
+
+function MyDrawer({title}: {title: string}) {
+  return (
+    <div>
+      <DrawerHeader>{title}</DrawerHeader>
+      <DrawerBody>Lorem, ipsum...</DrawerBody>
+    </div>
+  );
+}
+```
+
+> [!WARNING]
+> Calling `openDrawer` updates a global context. All subscribed components re-render on every call, which can cause infinite loops. Guard with `isDrawerOpen` (as above), or wrap `openDrawer` in `useCallback` with stable dependencies.
+
+## Modes
+
+The `mode` option on `openDrawer` controls scroll locking, click-outside, and URL-change behavior.
+
+| Mode                   | Scroll     | Height       | Click outside | URL change | Escape |
+| ---------------------- | ---------- | ------------ | ------------- | ---------- | ------ |
+| `'blocking'` (default) | Locked     | Full Page    | Closes        | Closes     | Closes |
+| `'passive'`            | Not locked | Below TopBar | Stays open    | Stays open | Closes |
+
+### `'blocking'`
+
+The default. Use when the drawer requires the user's full attention. The intro example above uses blocking mode — clicking outside the panel closes it.
+
+```jsx
+openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
+  ariaLabel: 'My Drawer',
+  // mode defaults to 'blocking'
+});
+```
+
+### `'passive'`
+
+Use when the drawer should coexist with page interaction — for example, a details panel open alongside a live data table.
+
+<Storybook.Demo>
+  <PassiveModeDemo />
+</Storybook.Demo>
+
+```jsx
+openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
+  ariaLabel: 'My Drawer',
+  mode: 'passive',
+});
+```
+
+## Closing the Drawer
+
+### Escape
+
+The drawer always closes on Escape in both modes.
+
+### Manual Close
+
+Use `closeDrawer` from `useDrawer()` to close the drawer programmatically. The close button can be placed inside or outside the drawer.
+
+<Storybook.Demo>
+  <ClosingDemo />
+</Storybook.Demo>
+
+```jsx
+function MyPage() {
+  const {openDrawer, closeDrawer} = useDrawer();
+
+  return (
+    <div>
+      <button onClick={() => openDrawer(() => <p>Details</p>, {ariaLabel: 'Details'})}>
+        Open
+      </button>
+      <button onClick={closeDrawer}>Close</button>
+    </div>
+  );
+}
+```
+
+### Click Outside
+
+In `'blocking'` mode, clicking outside the drawer closes it. For fine-grained control, use `shouldCloseOnInteractOutside` — a function that receives the interacted element and returns `false` to prevent closing.
+
+```jsx
+// Don't close when clicking links:
+openDrawer(() => null, {
+  ariaLabel: 'My Drawer',
+  shouldCloseOnInteractOutside: element => element.tagName !== 'A',
+});
+```
+
+### URL Change
+
+In `'blocking'` mode, the drawer closes when the URL changes. Override with `shouldCloseOnLocationChange` — a function that accepts the new `Location` and returns whether to close.
+
+<Storybook.Demo>
+  <ShouldCloseDemo />
+</Storybook.Demo>
+
+```jsx
+openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
+  ariaLabel: 'My Drawer',
+  shouldCloseOnLocationChange: () => false,
+});
+```
+
+## Opening on URL State
+
+Represent drawer state in the URL so the drawer reopens when the URL is shared or visited directly. Use `useEffect` to watch the URL and open the drawer when a query param is present.
+
+```jsx
+import {useEffect} from 'react';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {useLocation} from 'sentry/utils/useLocation';
+
+function OverviewPage() {
+  const location = useLocation();
+  const {openDrawer, isDrawerOpen} = useDrawer();
+
+  useEffect(() => {
+    if (!isDrawerOpen && location.query.drawer) {
+      openDrawer(() => <ModalContent />, {ariaLabel: 'Hello Modal'});
+    }
+  }, [isDrawerOpen, location.query.drawer, openDrawer]);
+
+  return <p>Hello</p>;
+}
+```
+
+The drawer closes automatically on URL change in `'blocking'` mode, so no explicit close logic is needed. If the drawer contents update the URL themselves, specify `shouldCloseOnLocationChange` to prevent the drawer from closing unexpectedly.
+
+## Helper Components
+
+### `DrawerHeader`
+
+`DrawerHeader` renders a sticky header at the top of the drawer with a built-in close button. Pass children as the title content.
+
+### `DrawerBody`
+
+`DrawerBody` wraps drawer content with the correct padding, font size, scrolling, and overflow behavior.
+
+<Storybook.Demo>
+  <HelperComponentsDemo />
+</Storybook.Demo>
+
+```jsx
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+
+openDrawer(
+  () => (
+    <Fragment>
+      <DrawerHeader>My Drawer</DrawerHeader>
+      <DrawerBody>Lorem, ipsum...</DrawerBody>
+    </Fragment>
+  ),
+  {ariaLabel: 'My Drawer', onClose: () => alert('Called my handler!')}
+);
+```

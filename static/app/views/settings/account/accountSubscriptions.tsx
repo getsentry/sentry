@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -74,20 +74,25 @@ function AccountSubscriptions() {
   return (
     <div>
       <SentryDocumentTitle title={subscriptionText} />
-      <SettingsPageHeader title={subscriptionText} />
-
-      <TextBlock>
-        {t(`Sentry is committed to respecting your inbox. Our goal is to
+      <SettingsPageHeader
+        title={subscriptionText}
+        subtitle={
+          <Stack gap="md">
+            <div>
+              {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
               painful. Enjoyable even.`)}
-      </TextBlock>
+            </div>
 
-      <TextBlock>
-        {t(`As part of our compliance with the EU's General Data Protection
+            <div>
+              {t(`As part of our compliance with the EU's General Data Protection
               Regulation (GDPR), starting on 25 May 2018, we'll only email you
               according to the marketing categories to which you've explicitly
               opted-in.`)}
-      </TextBlock>
+            </div>
+          </Stack>
+        }
+      />
 
       {subscriptions.length ? (
         <FormSearch route="/settings/account/subscriptions/">

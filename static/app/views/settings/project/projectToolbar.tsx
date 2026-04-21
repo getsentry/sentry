@@ -15,7 +15,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -39,17 +38,15 @@ export default function ProjectToolbarSettings() {
       <SentryDocumentTitle title={t('Toolbar Settings')} projectSlug={project.slug}>
         <SettingsPageHeader
           title={t('Dev Toolbar')}
+          subtitle={t(
+            'Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.'
+          )}
           action={
             <LinkButton href="https://docs.sentry.io/product/sentry-toolbar/" external>
               {t('Read the Docs')}
             </LinkButton>
           }
         />
-        <TextBlock>
-          {t(
-            'Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.'
-          )}
-        </TextBlock>
         <ProjectPermissionAlert project={project} />
         {domain && (
           <Alert.Container>

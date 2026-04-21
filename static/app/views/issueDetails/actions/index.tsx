@@ -52,6 +52,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
 import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -465,6 +466,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               project={project}
             />
+            <SeerCommandPaletteActions event={event} group={group} project={project} />
           </CMDKAction>
         </CommandPaletteSlot>
       )}

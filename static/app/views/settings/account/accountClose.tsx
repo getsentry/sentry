@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -141,14 +141,19 @@ function AccountClose() {
   return (
     <div>
       <SentryDocumentTitle title={t('Close Account')} />
-      <SettingsPageHeader title={t('Close Account')} />
-
-      <TextBlock>
-        {t(
-          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
-        )}
-        <strong>{t('Closing your account is permanent and cannot be undone')}!</strong>
-      </TextBlock>
+      <SettingsPageHeader
+        title={t('Close Account')}
+        subtitle={
+          <Fragment>
+            {t(
+              'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
+            )}
+            <strong>
+              {t('Closing your account is permanent and cannot be undone')}!
+            </strong>
+          </Fragment>
+        }
+      />
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
