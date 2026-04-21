@@ -144,7 +144,7 @@ function MetricsTabBodySection({
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
-  const referenceMap = useMetricReferences();
+  const referenceMap = useMetricReferences(metricQueries);
   const aggregateMetricQueries = useSortableMetricQueries({
     predicate: metricQuery =>
       !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!),

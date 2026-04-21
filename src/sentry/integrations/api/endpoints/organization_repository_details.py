@@ -103,6 +103,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                         cleanup_seer_repository_preferences.apply_async(
                             kwargs={
                                 "organization_id": repo.organization_id,
+                                "repo_id": repo.id,
                                 "repo_external_id": repo.external_id,
                                 "repo_provider": repo.provider,
                             }

@@ -91,6 +91,8 @@ class BaseApiClient:
         extra: Mapping[str, str] | None = None,
     ) -> None:
         tags: dict[str, str | int] = {self.integration_type: self.name, "status": code}
+        if extra and "api_request_type" in extra:
+            tags["api_request_type"] = extra["api_request_type"]
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
@@ -177,7 +179,7 @@ class BaseApiClient:
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
         raw_response: Literal[True] = ...,
-        endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Response: ...
 
     @overload
@@ -197,7 +199,7 @@ class BaseApiClient:
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
         raw_response: bool = ...,
-        endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Any: ...
 
     def _request(
@@ -216,7 +218,7 @@ class BaseApiClient:
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
         raw_response: bool = False,
-        endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
@@ -229,7 +231,11 @@ class BaseApiClient:
 
         full_url = self.build_url(path)
 
+        api_request_type_tag = str(api_request_type) if api_request_type is not None else None
+
         request_tags: dict[str, str] = {self.integration_type: self.name}
+        if api_request_type_tag is not None:
+            request_tags["api_request_type"] = api_request_type_tag
         metrics.incr(
             f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
@@ -257,8 +263,8 @@ class BaseApiClient:
         integration_id = getattr(self, "integration_id", None)
         if integration_id is not None:
             extra["integration_id"] = str(integration_id)
-        if endpoint is not None:
-            extra["endpoint"] = endpoint
+        if api_request_type_tag is not None:
+            extra["api_request_type"] = api_request_type_tag
 
         try:
             with self.build_session() as session:
@@ -360,6 +366,21 @@ class BaseApiClient:
 
         key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
+        api_request_type = kwargs.get("api_request_type")
+        if api_request_type is None:
+            api_request_type_tag = "unknown"
+        else:
+            api_request_type_tag = str(api_request_type)
+        integration_tag_key = self.integration_type or "integration"
+        metrics.incr(
+            f"{self.metrics_prefix}.get_cached",
+            sample_rate=1.0,
+            tags={
+                integration_tag_key: self.name,
+                "api_request_type": str(api_request_type_tag),
+                "result": "hit" if result is not None else "miss",
+            },
+        )
         if result is None:
             cache_time = kwargs.pop("cache_time", None) or self.cache_time
             result = self.request(method, path, *args, **kwargs)

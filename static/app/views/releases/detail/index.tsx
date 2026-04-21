@@ -308,6 +308,7 @@ function ReleasesDetailContainer() {
 
   return (
     <PageFiltersContainer
+      skipInitializeUrlParams
       shouldForceProject={projects.length === 1}
       forceProject={
         projects.length === 1 ? {...projects[0]!, id: String(projects[0]!.id)} : undefined

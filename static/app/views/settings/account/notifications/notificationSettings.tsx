@@ -27,7 +27,6 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const NOTIFICATIONS_ENDPOINT = getApiUrl('/users/$userId/notifications/', {
   path: {userId: 'me'},
@@ -116,16 +115,16 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Notifications')} />
-      <SettingsPageHeader title={t('Notifications')} />
+      <SettingsPageHeader
+        title={t('Notifications')}
+        subtitle={tct(
+          'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
+          {
+            link: <Link to="/settings/account/emails" />,
+          }
+        )}
+      />
       <FormSearch route="/settings/account/notifications/">
-        <TextBlock>
-          {tct(
-            'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
-            {
-              link: <Link to="/settings/account/emails" />,
-            }
-          )}
-        </TextBlock>
         {isError && <LoadingError onRetry={refetch} />}
         <Panel>
           <PanelHeader>{t('Notification')}</PanelHeader>

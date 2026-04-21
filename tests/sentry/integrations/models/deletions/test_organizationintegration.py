@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
@@ -9,7 +11,6 @@ from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
@@ -58,8 +59,8 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-    @with_feature("organizations:seer-project-settings-dual-write")
-    def test_repository_and_identity(self) -> None:
+    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
+    def test_repository_and_identity(self, mock_repo_cleanup: MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -77,9 +78,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             external_issue = ExternalIssue.objects.create(
                 organization_id=org.id, integration_id=integration.id, key="ABC-123"
             )
-            seer_project_repo = SeerProjectRepository.objects.create(
-                project=project, repository=repository
-            )
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
@@ -96,7 +94,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             assert ExternalIssue.objects.filter(id=external_issue.id).exists()
             repo = Repository.objects.get(id=repository.id)
             assert repo.integration_id is None
-            assert not SeerProjectRepository.objects.filter(id=seer_project_repo.id).exists()
 
     def test_codeowner_links(self) -> None:
         org = self.create_organization()

@@ -94,9 +94,13 @@ interface MetricSelectOption {
 export function MetricSelector({
   traceMetric,
   onChange,
+  projectIds,
+  environments,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  environments?: string[];
+  projectIds?: number[];
 }) {
   const triggerId = useId();
 
@@ -111,6 +115,8 @@ export function MetricSelector({
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
+    projectIds,
+    environments,
   });
 
   const metricSelectValue = makeMetricSelectValue(
@@ -248,6 +254,7 @@ export function MetricSelector({
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
+        searchRef.current?.focus({preventScroll: true});
       });
       return;
     }
@@ -446,7 +453,6 @@ export function MetricSelector({
                         {...comboBoxInputProps}
                         placeholder={t('Search metrics\u2026')}
                         size="xs"
-                        autoFocus
                         ref={searchRef}
                       />
                     </InputGroup>

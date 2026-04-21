@@ -45,3 +45,18 @@ export const slackIntegrationPipeline = {
     },
   ],
 } as const satisfies PipelineDefinition;
+
+export const slackStagingIntegrationPipeline = {
+  type: 'integration',
+  provider: 'slack_staging',
+  actionTitle: t('Installing Slack (Staging) Integration'),
+  getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
+  steps: [
+    {
+      stepId: 'oauth_login',
+      shortDescription: t('Authorizing via Slack OAuth'),
+      component: SlackOAuthLoginStep,
+    },
+  ],
+} as const satisfies PipelineDefinition;

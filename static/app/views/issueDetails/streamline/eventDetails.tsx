@@ -1,5 +1,4 @@
 import {useLayoutEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -8,7 +7,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   EventDetailsContent,
   type EventDetailsContentProps,
@@ -16,7 +14,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
@@ -46,12 +44,11 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 }
 
 function StickyEventNav({event, group}: {event: Event; group: Group}) {
-  const theme = useTheme();
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
-  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {dispatch} = useIssueDetails();
-  const sidebarHeight = isScreenMedium ? NAVIGATION_MOBILE_TOPBAR_HEIGHT : 0;
+  const {contentTop} = useTopOffset();
+  const stickyTopOffset = Number.parseInt(contentTop, 10);
 
   useLayoutEffect(() => {
     if (!nav) {
@@ -60,9 +57,9 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
     const navHeight = nav.offsetHeight ?? 0;
     dispatch({
       type: 'UPDATE_NAV_SCROLL_MARGIN',
-      margin: navHeight + sidebarHeight,
+      margin: navHeight + stickyTopOffset,
     });
-  }, [nav, isScreenMedium, dispatch, sidebarHeight]);
+  }, [nav, dispatch, stickyTopOffset]);
 
   return (
     <FloatingEventNavigation
@@ -70,7 +67,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
       group={group}
       ref={setNav}
       data-stuck={isStuck}
-      style={{top: sidebarHeight}}
+      style={{top: stickyTopOffset}}
     />
   );
 }
