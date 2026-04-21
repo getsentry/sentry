@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
@@ -333,6 +333,8 @@ def send_halt_message(
             # This assumes the slack event is malformed, or unexpected.
             # Avoid sending irrelevant messages for what could be inconsequential.
             return
+        case _:
+            assert_never(halt_reason)
 
     renderable = SlackRenderable(
         blocks=[
