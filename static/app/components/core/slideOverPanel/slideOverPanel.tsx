@@ -138,7 +138,7 @@ const _SlideOverPanel = styled(motion.div, {
   mode?: 'blocking' | 'passive';
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
-  top?: number;
+  top?: string | number;
 }>`
   position: fixed;
 
