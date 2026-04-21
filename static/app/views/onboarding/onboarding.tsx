@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Hook from 'sentry/components/hook';
@@ -358,29 +358,39 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header>
+      <Header columns={{'2xs': 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}>
         <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
-          <StyledStepper
-            numSteps={onboardingSteps.length}
-            currentStepIndex={stepIndex}
-            onClick={i => {
-              if (i < stepIndex && shallProjectBeDeleted) {
-                handleGoBack(i);
-                return;
-              }
-
-              goToStep(onboardingSteps[i]!);
+          <Flex
+            justify="center"
+            display={{
+              '2xs': 'none',
+              xs: 'none',
+              sm: 'none',
+              md: 'flex',
             }}
-          />
+          >
+            <Stepper
+              numSteps={onboardingSteps.length}
+              currentStepIndex={stepIndex}
+              onClick={i => {
+                if (i < stepIndex && shallProjectBeDeleted) {
+                  handleGoBack(i);
+                  return;
+                }
+
+                goToStep(onboardingSteps[i]!);
+              }}
+            />
+          </Flex>
         )}
-        <HeaderActions>
+        <Flex align="center" justify="end" gap="md">
           <Hook
             name="onboarding:targeted-onboarding-header"
             source="targeted-onboarding"
           />
           {hasScmOnboarding && <OnboardingSkipButton stepId={stepObj.id} />}
-        </HeaderActions>
+        </Flex>
       </Header>
       <ContainerVariable
         hasFooter={containerHasFooter}
@@ -491,7 +501,7 @@ const OnboardingContainer = styled('div')<{
   margin-bottom: ${p => p.hasFooter && '72px'};
 `;
 
-const Header = styled('header')`
+const Header = styled(Grid)`
   background: ${p => p.theme.tokens.background.primary};
   padding-left: ${p => p.theme.space['3xl']};
   padding-right: ${p => p.theme.space['3xl']};
@@ -501,12 +511,6 @@ const Header = styled('header')`
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  justify-items: stretch;
-  @media (max-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: min-content 1fr;
-  }
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -535,13 +539,6 @@ const AdaptivePageCorners = styled(PageCorners)`
   }
 `;
 
-const StyledStepper = styled(Stepper)`
-  justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.xl}) {
-    display: none;
-  }
-`;
-
 const BackMotionDiv = styled(motion.div)`
   position: absolute;
   top: 40px;
@@ -554,14 +551,6 @@ const BackMotionDiv = styled(motion.div)`
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${p => p.theme.space['3xl']};
-`;
-
-const HeaderActions = styled('div')`
-  grid-column: 3;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.md};
 `;
 
 export default Onboarding;
