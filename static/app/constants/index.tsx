@@ -635,7 +635,7 @@ export const DATA_CATEGORY_INFO = {
     plural: DataCategory.TRACE_METRICS,
     singular: 'applicationMetric',
     displayName: 'application metric',
-    titleName: t('Application Metrics Counts'), // Only currently visible internally, this name should change if we expose this to users.
+    titleName: t('Application Metric Counts'), // Only currently visible internally, this name should change if we expose this to users.
     productName: t('Application Metrics'),
     uid: 33,
     isBilledCategory: false,
