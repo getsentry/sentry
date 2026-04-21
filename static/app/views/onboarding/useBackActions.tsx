@@ -10,6 +10,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {StepDescriptor} from 'sentry/views/onboarding/types';
 
@@ -33,6 +34,10 @@ export function useBackActions({
   const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
   const currentStep = onboardingSteps[stepIndex];
 
   const deleteRecentCreatedProject = useCallback(
@@ -118,7 +123,7 @@ export function useBackActions({
         // store data and skip project creation.
         // In the SCM flow, preserve context so the user keeps their SCM
         // connection, repo selection, and feature choices.
-        await deleteRecentCreatedProject(prevStep.id === 'scm-project-details');
+        await deleteRecentCreatedProject(hasScmOnboarding);
       }
 
       if (!browserBackButton) {
@@ -126,13 +131,14 @@ export function useBackActions({
       }
     },
     [
-      goToStep,
+      currentStep,
       organization,
-      onboardingContext,
       isRecentCreatedProjectActive,
       recentCreatedProject,
-      currentStep,
+      onboardingContext,
+      goToStep,
       deleteRecentCreatedProject,
+      hasScmOnboarding,
     ]
   );
 

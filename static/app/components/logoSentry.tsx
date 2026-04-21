@@ -16,7 +16,7 @@ export function LogoSentry({showWordmark = true, height = '32px', className}: Pr
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 200 44"
+      viewBox={showWordmark ? '0 0 200 44' : '0 0 50 44'}
       height={height}
       className={className}
       fill="currentColor"

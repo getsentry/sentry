@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -27,7 +25,7 @@ export default function ErrorsContent() {
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
-      <ErrorsPageMain width="full">
+      <Layout.Page>
         <ErrorsHeader />
         <PageFiltersContainer>
           <ExploreBodySearch>
@@ -35,7 +33,7 @@ export default function ErrorsContent() {
           </ExploreBodySearch>
         </PageFiltersContainer>
         <ErrorsBody />
-      </ErrorsPageMain>
+      </Layout.Page>
     </SentryDocumentTitle>
   );
 }
@@ -84,9 +82,3 @@ export function ErrorsBody() {
     </ExploreBodyContent>
   );
 }
-
-const ErrorsPageMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-`;

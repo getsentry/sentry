@@ -13,7 +13,11 @@ interface AddIntegrationButtonProps
     Omit<ButtonProps, 'children' | 'analyticsParams'>,
     Pick<
       AddIntegrationParams,
-      'provider' | 'organization' | 'analyticsParams' | 'modalParams'
+      | 'provider'
+      | 'organization'
+      | 'analyticsParams'
+      | 'modalParams'
+      | 'suppressSuccessMessage'
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
@@ -30,6 +34,7 @@ export function AddIntegrationButton({
   analyticsParams,
   modalParams,
   installStatus,
+  suppressSuccessMessage,
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
@@ -63,6 +68,7 @@ export function AddIntegrationButton({
             onInstall: onAddIntegration,
             analyticsParams,
             modalParams,
+            suppressSuccessMessage,
           });
         }}
         aria-label={t('Add integration')}

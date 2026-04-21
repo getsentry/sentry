@@ -23,15 +23,17 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconRefresh} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
+import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconList} from 'sentry/icons/iconList';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -49,10 +51,23 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const {startStep} = autofix;
 
   return (
-    <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
+    <ArtifactCard
+      icon={<IconBug />}
+      title={t('Root Cause')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
           messages={section.messages}
@@ -116,11 +131,24 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
     return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconList />} title={t('Plan')}>
+    <ArtifactCard
+      icon={<IconList />}
+      title={t('Plan')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
           messages={section.messages}
@@ -175,6 +203,12 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
+
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
@@ -203,7 +237,15 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
+    <ArtifactCard
+      icon={<IconCode />}
+      title={t('Code Changes')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
           messages={section.messages}
@@ -262,9 +304,21 @@ export function PullRequestsCard({section}: AutofixCardProps) {
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
   const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
 
   return (
-    <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
+    <ArtifactCard
+      icon={<IconPullRequest />}
+      title={t('Pull Requests')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {artifact?.map(pullRequest => {
         if (pullRequest.pr_creation_status === 'creating') {
           return (
@@ -320,12 +374,25 @@ export function CodingAgentCard({section}: AutofixCardProps) {
     return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const provider = artifact?.[0]?.provider;
 
   const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
 
   return (
-    <ArtifactCard icon={<IconBot />} title={agentName}>
+    <ArtifactCard
+      icon={<IconBot />}
+      title={agentName}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {artifact?.map(codingAgent => {
         const statusVariant =
           codingAgent.status === CodingAgentStatus.PENDING
@@ -383,13 +450,27 @@ interface ArtifactCardProps {
   children: ReactNode;
   icon: ReactNode;
   title: ReactNode;
+  onCopy?: () => void;
 }
 
-function ArtifactCard({children, icon, title}: ArtifactCardProps) {
+function ArtifactCard({children, icon, title, onCopy}: ArtifactCardProps) {
   return (
     <Container border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
-        <Disclosure.Title>
+        <Disclosure.Title
+          trailingItems={
+            onCopy ? (
+              <Button
+                size="xs"
+                priority="transparent"
+                icon={<IconCopy size="xs" />}
+                aria-label={t('Copy as Markdown')}
+                tooltipProps={{title: t('Copy as Markdown')}}
+                onClick={onCopy}
+              />
+            ) : null
+          }
+        >
           <Flex gap="md" align="center">
             {icon}
             <Text bold>{title}</Text>

@@ -44,6 +44,9 @@ export type OnboardingEventParameters = {
     repo: string;
   };
   'onboarding.scm_connect_step_viewed': Record<string, unknown>;
+  'onboarding.scm_header_skip_clicked': {
+    step: string;
+  };
   'onboarding.scm_platform_change_platform_clicked': Record<string, unknown>;
   'onboarding.scm_platform_feature_toggled': {
     enabled: boolean;
@@ -136,6 +139,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
+  'onboarding.scm_header_skip_clicked': 'Onboarding: SCM Header Skip Clicked',
   'onboarding.scm_platform_change_platform_clicked':
     'Onboarding: SCM Platform Change Platform Clicked',
   'onboarding.scm_platform_feature_toggled': 'Onboarding: SCM Platform Feature Toggled',
