@@ -2,7 +2,7 @@ import {useEffect, useId, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, type Transition} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 
@@ -39,10 +39,6 @@ type SlideOverPanelProps = {
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
-   */
-  transitionProps?: Transition;
 };
 
 export function SlideOverPanel({
@@ -52,7 +48,6 @@ export function SlideOverPanel({
   children,
   className,
   position,
-  transitionProps = {},
   panelWidth,
   ref,
 }: SlideOverPanelProps) {
@@ -106,10 +101,7 @@ export function SlideOverPanel({
         animate={openStyle}
         exit={collapsedStyle}
         position={position}
-        transition={{
-          ...theme.motion.framer.spring.moderate,
-          ...transitionProps,
-        }}
+        transition={theme.motion.framer.spring.moderate}
         role="complementary"
         aria-hidden={false}
         aria-label={ariaLabel ?? 'slide out drawer'}

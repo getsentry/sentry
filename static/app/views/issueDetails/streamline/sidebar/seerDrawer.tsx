@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {css} from '@emotion/react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -56,10 +55,6 @@ export const useOpenSeerDrawer = ({
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
       resizable: true,
       mode: 'passive',
       onClose: () => {

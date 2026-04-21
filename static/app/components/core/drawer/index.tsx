@@ -7,8 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type {Interpolation, Theme} from '@emotion/react';
-import {AnimatePresence, type Transition} from 'framer-motion';
+import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
@@ -29,10 +28,6 @@ export interface DrawerOptions {
    */
   ariaLabel: string;
   /**
-   * Custom CSS for the drawer
-   */
-  drawerCss?: Interpolation<Theme>;
-  /**
    * Key to identify the drawer and enable persistence of the drawer width
    */
   drawerKey?: string;
@@ -40,10 +35,6 @@ export interface DrawerOptions {
    * Custom width for the drawer
    */
   drawerWidth?: string;
-  /**
-   * Custom content for the header of the drawer
-   */
-  headerContent?: React.ReactNode;
   /**
    * Controls scroll locking, click-outside close, and location-change close behavior.
    * - 'blocking' (default): scroll locked, click outside closes, location change closes
@@ -73,10 +64,6 @@ export interface DrawerOptions {
    * Defaults to closing in 'blocking' mode, staying open in 'passive' mode.
    */
   shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
-  //
-  // Custom framer motion transition for the drawer
-  //
-  transitionProps?: Transition;
 }
 
 interface DrawerRenderProps {
@@ -220,11 +207,9 @@ export function GlobalDrawer({children}: any) {
               onClose={handleClose}
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
-              transitionProps={currentDrawerConfig?.options?.transitionProps}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               resizable={currentDrawerConfig?.options?.resizable}
-              drawerCss={currentDrawerConfig?.options?.drawerCss}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

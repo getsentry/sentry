@@ -1,5 +1,4 @@
 import {memo, useCallback, useEffect} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -123,9 +122,6 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
           onClose,
           shouldCloseOnInteractOutside: () => true,
           drawerWidth: `${DRAWER_WIDTH}px`,
-          drawerCss: css`
-            min-width: ${DRAWER_WIDTH}px;
-          `,
           resizable: true,
           traceSlug,
           timestamp,
