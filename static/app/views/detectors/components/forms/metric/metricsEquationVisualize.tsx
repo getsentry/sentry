@@ -240,18 +240,24 @@ function FunctionColumnHeaders() {
     <Grid width="100%" align="center" gap="md" columns={FUNCTION_GRID_COLUMNS}>
       <div />
       <div />
-      <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
-        <SectionLabel>{t('Metric')}</SectionLabel>
-      </Tooltip>
-      <Tooltip title={t('The aggregation operation to apply.')} showUnderline>
-        <SectionLabel>{t('Operation')}</SectionLabel>
-      </Tooltip>
-      <Tooltip
-        title={t('Restrict this metric to events matching a filter.')}
-        showUnderline
-      >
-        <SectionLabel>{t('Filter')}</SectionLabel>
-      </Tooltip>
+      <div>
+        <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
+          <SectionLabel>{t('Metric')}</SectionLabel>
+        </Tooltip>
+      </div>
+      <div>
+        <Tooltip title={t('The aggregation operation to apply.')} showUnderline>
+          <SectionLabel>{t('Operation')}</SectionLabel>
+        </Tooltip>
+      </div>
+      <div>
+        <Tooltip
+          title={t('Restrict this metric to events matching a filter.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Filter')}</SectionLabel>
+        </Tooltip>
+      </div>
       <div />
     </Grid>
   );
@@ -262,18 +268,22 @@ function EquationColumnHeader() {
     <Grid width="100%" align="center" gap="md" columns={EQUATION_GRID_COLUMNS}>
       <div />
       <div />
-      <Tooltip
-        title={t('Combine the metrics above with an arithmetic expression.')}
-        showUnderline
-      >
-        <SectionLabel>{t('Equation')}</SectionLabel>
-      </Tooltip>
-      <Tooltip
-        title={t('Restrict this equation to events matching a filter.')}
-        showUnderline
-      >
-        <SectionLabel>{t('Filter')}</SectionLabel>
-      </Tooltip>
+      <div>
+        <Tooltip
+          title={t('Combine the metrics above with an arithmetic expression.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Equation')}</SectionLabel>
+        </Tooltip>
+      </div>
+      <div>
+        <Tooltip
+          title={t('Restrict this equation to events matching a filter.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Filter')}</SectionLabel>
+        </Tooltip>
+      </div>
       <div />
     </Grid>
   );
