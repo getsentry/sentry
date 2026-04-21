@@ -225,9 +225,8 @@ function InstallationConfigStep({
           <Stack gap="xs">
             <Text density="comfortable">
               {tct(
-                'Navigate to [bold:User Settings \u203A Access \u203A Applications] in GitLab. [link:Open GitLab settings].',
+                'Navigate to [link:User Settings \u203A Access \u203A Applications] in GitLab.',
                 {
-                  bold: <strong />,
                   link: (
                     <ExternalLink href="https://gitlab.com/-/user_settings/applications" />
                   ),
