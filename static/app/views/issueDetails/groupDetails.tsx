@@ -5,10 +5,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';

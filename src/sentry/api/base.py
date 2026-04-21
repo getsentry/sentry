@@ -226,7 +226,7 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
 

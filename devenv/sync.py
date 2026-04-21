@@ -9,7 +9,7 @@ import tempfile
 import urllib.request
 import zipfile
 
-from devenv.lib import colima, config, fs, limactl, proc
+from devenv.lib import brew, colima, config, fs, limactl, proc
 
 from devenv import constants
 
@@ -187,6 +187,14 @@ def main(context: dict[str, str]) -> int:
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
     IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
+
+    if constants.DARWIN:
+        brew.install()
+
+        proc.run(
+            (f"{constants.homebrew_bin}/brew", "bundle"),
+            cwd=reporoot,
+        )
 
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"

@@ -243,6 +243,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         run = SeerNightShiftRun.objects.get(organization=org)
         assert run.triage_strategy == "agentic_triage"
         assert run.error_message is None
+        assert run.extras == {"agent_run_id": 1}
 
         issues = list(SeerNightShiftRunIssue.objects.filter(run=run))
         assert len(issues) == 2

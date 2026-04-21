@@ -226,7 +226,12 @@ export default function FeedbackListPage() {
               <LinkButton {...createAlertAction}>{t('Create Alert')}</LinkButton>
             </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton size="sm" feedbackOptions={userFeedbackFeedbackOptions}>
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={userFeedbackFeedbackOptions}
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
                 {null}
               </FeedbackButton>
             </TopBar.Slot>

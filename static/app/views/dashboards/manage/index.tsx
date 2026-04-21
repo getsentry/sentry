@@ -589,6 +589,10 @@ function ManageDashboards() {
                                           </Flex>
                                         ),
                                         onAction: () => onGenerateDashboard(),
+                                        disabled:
+                                          hasReachedDashboardLimit ||
+                                          isLoadingDashboardsLimit,
+                                        details: limitMessage,
                                       },
                                     ]}
                                     trigger={triggerProps => (
@@ -651,7 +655,12 @@ function ManageDashboards() {
                         </Feature>
                       </TopBar.Slot>
                       <TopBar.Slot name="feedback">
-                        <FeedbackButton>{null}</FeedbackButton>
+                        <FeedbackButton
+                          aria-label={t('Give Feedback')}
+                          tooltipProps={{title: t('Give Feedback')}}
+                        >
+                          {null}
+                        </FeedbackButton>
                       </TopBar.Slot>
                     </Fragment>
                   ) : (
@@ -688,6 +697,10 @@ function ManageDashboards() {
                                           </Flex>
                                         ),
                                         onAction: () => onGenerateDashboard(),
+                                        disabled:
+                                          hasReachedDashboardLimit ||
+                                          isLoadingDashboardsLimit,
+                                        details: limitMessage,
                                       },
                                     ]}
                                     trigger={triggerProps => (

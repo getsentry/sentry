@@ -423,7 +423,12 @@ export default function IssueViewsList() {
                 </Feature>
               </TopBar.Slot>
               <TopBar.Slot name="feedback">
-                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions}>
+                <FeedbackButton
+                  size="sm"
+                  feedbackOptions={issueViewsFeedbackOptions}
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
                   {null}
                 </FeedbackButton>
               </TopBar.Slot>

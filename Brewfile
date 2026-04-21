@@ -1,15 +1,14 @@
 brew 'uv'
 
-# required to run devservices
-# colima is a docker-compatible container runtime
-# devenv installs and manages it as we want control over the version,
-# but we leave the qemu part to brew
-brew 'qemu'
 # while not needed by devservices, the docker cli itself is still useful
 # (not docker desktop/daemon which is provided by the cask)
 # and is used by some make targets
 brew 'docker'
 brew 'docker-buildx'
+
+# required for make test-selective
+# greedy forces cask updates
+cask 'gcloud-cli', greedy: true
 
 ### If updating below this line, please also update REQUIRED_APT_PKGS in devenv/post_fetch.py ###
 

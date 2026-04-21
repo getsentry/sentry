@@ -1,4 +1,4 @@
-import {createContext, useContext, type ReactNode} from 'react';
+import {createContext, useContext, useMemo, type ReactNode} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
@@ -10,10 +10,10 @@ import {
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
-  isMinimized: boolean;
+  isMinimized: boolean; // for backward compatibility with ExplorerPanel.
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
-  setIsMinimized: (value: boolean) => void;
+  setIsMinimized: (value: boolean) => void; // for backward compatibility with ExplorerPanel.
   toggleSeerExplorer: () => void;
 };
 
@@ -34,14 +34,17 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     isOpen,
   } = useSeerExplorerDrawer();
 
-  const contextValue = {
-    isOpen,
-    isMinimized: false, // for backward compatibility, do not use.
-    setIsMinimized: () => {}, // for backward compatibility, do not use.
-    openSeerExplorer: openSeerExplorerDrawer,
-    closeSeerExplorer: closeSeerExplorerDrawer,
-    toggleSeerExplorer: toggleSeerExplorerDrawer,
-  };
+  const contextValue = useMemo(
+    () => ({
+      isOpen,
+      isMinimized: false,
+      setIsMinimized: () => {},
+      openSeerExplorer: openSeerExplorerDrawer,
+      closeSeerExplorer: closeSeerExplorerDrawer,
+      toggleSeerExplorer: toggleSeerExplorerDrawer,
+    }),
+    [isOpen, openSeerExplorerDrawer, closeSeerExplorerDrawer, toggleSeerExplorerDrawer]
+  );
 
   const {visible: isModalOpen} = useGlobalModal();
 

@@ -21,7 +21,6 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {Add} from './modals/add';
@@ -61,6 +60,10 @@ export function RelayWrapper() {
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
         title={t('Relay')}
+        subtitle={tct(
+          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+        )}
         action={
           <Button
             tooltipProps={{
@@ -125,12 +128,6 @@ export function RelayWrapper() {
           </AutoSaveForm>
         </FieldGroup>
       )}
-      <TextBlock>
-        {tct(
-          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-        )}
-      </TextBlock>
       {relays.length === 0 ? (
         <EmptyState />
       ) : (

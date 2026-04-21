@@ -115,7 +115,11 @@ function MetricsHeader() {
       <Layout.HeaderActions>
         {hasPageFrameFeature ? (
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={metricsFeedbackOptions}>
+            <FeedbackButton
+              feedbackOptions={metricsFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
               {null}
             </FeedbackButton>
           </TopBar.Slot>

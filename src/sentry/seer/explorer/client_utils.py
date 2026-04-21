@@ -388,11 +388,16 @@ def _render_node(node: dict[str, Any], depth: int) -> str:
     return "\n".join(lines)
 
 
+_MAX_ROOT_NODES = 10
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
     Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
-    The top-level nodes list contains a single root node (the page).
+    The top-level nodes list may contain multiple root nodes (e.g. a dashboard
+    and a widget-builder sidebar rendered as siblings).  At most ``_MAX_ROOT_NODES``
+    are rendered to guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
     if not nodes:
@@ -400,4 +405,4 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    return preamble + _render_node(nodes[0], 0)
+    return preamble + "\n".join(_render_node(node, 0) for node in nodes[:_MAX_ROOT_NODES])

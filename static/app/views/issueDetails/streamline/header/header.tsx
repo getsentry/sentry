@@ -275,14 +275,16 @@ function HeaderActions({group}: {group: Group}) {
     messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
     tags: {['feedback.source']: feedbackSource},
   };
+  const feedbackLabel = t('Give feedback on the issue Sentry detected');
 
   if (hasFeedbackForm && feedback) {
     return (
       <MaybeTopBarSlot name="feedback">
         <FeedbackButton
-          aria-label={t('Give feedback on the issue Sentry detected')}
+          aria-label={feedbackLabel}
           size={hasPageFrameFeature ? undefined : 'xs'}
           feedbackOptions={feedbackOptions}
+          tooltipProps={hasPageFrameFeature ? {title: feedbackLabel} : undefined}
         >
           {hasPageFrameFeature ? null : t('Give Feedback')}
         </FeedbackButton>
