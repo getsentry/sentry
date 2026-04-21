@@ -13,7 +13,7 @@ const frontmatterIndexLoader: LoaderDefinitionFunction = function () {
     string,
     {category?: string; description?: string; title?: string}
   > = {};
-  for (const relPath of fs.globSync('static/app/**/*.mdx', {cwd: staticAppDir})) {
+  for (const relPath of fs.globSync('**/*.mdx', {cwd: staticAppDir})) {
     const absPath = path.join(staticAppDir, relPath);
     this.addDependency(absPath);
 
