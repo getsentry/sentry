@@ -29,6 +29,11 @@ type Props = {
    */
   placeholder?: string;
   successMessage?: React.ReactNode;
+  /**
+   * "compact" removes fixed heights so the component inherits font-size and
+   * line-height from its context (e.g. when rendered inside a breadcrumb row).
+   */
+  variant?: 'compact';
 };
 
 export function EditableText({
@@ -44,6 +49,7 @@ export function EditableText({
   'aria-label': ariaLabel,
   placeholder,
   allowEmpty = false,
+  variant,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   // Immediately reflect the last committed value while we wait for the parent prop update
@@ -187,6 +193,8 @@ export function EditableText({
     [handleCancel, handleCommit]
   );
 
+  const isCompact = variant === 'compact';
+
   return (
     <Wrapper isDisabled={isDisabled} isEditing={isEditing} className={className}>
       {isEditing ? (
@@ -205,6 +213,7 @@ export function EditableText({
             onFocus={event => autoSelect && event.target.select()}
             maxLength={maxLength}
             placeholder={placeholder}
+            isCompact={isCompact}
           />
           <InputLabel>{currentDraft}</InputLabel>
         </InputWrapper>
@@ -215,7 +224,7 @@ export function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel>{currentValue || placeholder}</InnerLabel>
+          <InnerLabel isCompact={isCompact}>{currentValue || placeholder}</InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}
@@ -231,10 +240,11 @@ const Label = styled('div')<{isDisabled: boolean}>`
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
-const InnerLabel = styled(TextOverflow)`
+const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
-  line-height: 38px;
+  border-bottom: ${p =>
+    p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
+  line-height: ${p => (p.isCompact ? 'inherit' : '38px')};
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
@@ -246,11 +256,11 @@ const InputWrapper = styled('div')<{isEmpty: boolean}>`
   max-width: calc(100% + ${p => p.theme.space.xl});
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(Input)<{isCompact?: boolean}>`
   border: none !important;
   background: transparent;
   height: auto;
-  min-height: 40px;
+  min-height: ${p => (p.isCompact ? 'auto' : '40px')};
   padding: 0;
   font-size: inherit;
   &,
