@@ -76,6 +76,11 @@ describe('ProjectSettingsCommandPaletteActions', () => {
             }),
           ]),
         }),
+      ])
+    );
+
+    expect(sections).not.toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           items: expect.arrayContaining([
             expect.objectContaining({

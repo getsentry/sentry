@@ -6,6 +6,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {IconCode, IconProject, IconStack} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
@@ -63,11 +64,11 @@ export function getProjectSettingsCommandPaletteSections({
     organization,
     project,
   };
-  const groupedSectionLabels = new Set([
-    'General',
-    'Processing',
-    'SDK setup',
-    'Legacy Integrations',
+  const groupedSectionIds = new Set([
+    'settings-project',
+    'settings-processing',
+    'settings-sdk',
+    'settings-legacy-integrations',
   ]);
 
   const sections = getNavigationConfiguration({
@@ -77,19 +78,20 @@ export function getProjectSettingsCommandPaletteSections({
   })
     .map(section => {
       const label =
-        section.name === 'Project'
-          ? 'General'
-          : section.name === 'SDK Setup'
-            ? 'SDK setup'
+        section.id === 'settings-project'
+          ? t('General')
+          : section.id === 'settings-sdk'
+            ? t('SDK setup')
             : section.name;
 
       return {
-        icon: groupedSectionLabels.has(label) ? (
-          label === 'General' ? (
+        id: section.id,
+        icon: groupedSectionIds.has(section.id) ? (
+          section.id === 'settings-project' ? (
             <IconProject />
-          ) : label === 'Processing' ? (
+          ) : section.id === 'settings-processing' ? (
             <IconStack />
-          ) : label === 'SDK setup' ? (
+          ) : section.id === 'settings-sdk' ? (
             <IconCode />
           ) : undefined
         ) : (
@@ -111,11 +113,9 @@ export function getProjectSettingsCommandPaletteSections({
       };
     })
     .filter(section => section.items.length > 0);
-  const groupedSections = sections.filter(section =>
-    groupedSectionLabels.has(section.label)
-  );
+  const groupedSections = sections.filter(section => groupedSectionIds.has(section.id));
   const ungroupedSections = sections.filter(
-    section => !groupedSectionLabels.has(section.label)
+    section => !groupedSectionIds.has(section.id)
   );
 
   if (groupedSections.length === 0) {
@@ -125,9 +125,9 @@ export function getProjectSettingsCommandPaletteSections({
   return [
     {
       icon: <ProjectAvatar project={project} size={16} />,
-      label: 'Project Settings',
+      label: t('Project Settings'),
       items: groupedSections.map(section =>
-        section.label === 'Legacy Integrations' && section.items.length > 0
+        section.id === 'settings-legacy-integrations' && section.items.length > 0
           ? section.items[0]!
           : section
       ),
