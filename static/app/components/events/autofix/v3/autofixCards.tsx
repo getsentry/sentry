@@ -23,17 +23,20 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconRefresh} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
+import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconList} from 'sentry/icons/iconList';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -48,10 +51,23 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const {startStep} = autofix;
 
   return (
-    <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
+    <ArtifactCard
+      icon={<IconBug />}
+      title={t('Root Cause')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
           messages={section.messages}
@@ -59,7 +75,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <Text>{artifact.data.one_line_description}</Text>
+          <StyledMarkedText text={artifact.data.one_line_description} />
           {artifact.data.five_whys?.length ? (
             <Fragment>
               <ArtifactDetails>
@@ -67,7 +83,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                 <Container as="ul" margin="0">
                   {artifact.data.five_whys.map((why, index) => (
                     <li key={index}>
-                      <Text>{why}</Text>
+                      <StyledMarkedText text={why} />
                     </li>
                   ))}
                 </Container>
@@ -78,7 +94,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                   <Container as="ol" margin="0">
                     {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <Text>{step}</Text>
+                        <StyledMarkedText text={step} />
                       </li>
                     ))}
                   </Container>
@@ -115,11 +131,24 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
     return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconList />} title={t('Plan')}>
+    <ArtifactCard
+      icon={<IconList />}
+      title={t('Plan')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
           messages={section.messages}
@@ -127,7 +156,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
         />
       ) : artifact?.data ? (
         <Fragment>
-          <Text>{artifact.data.one_line_summary}</Text>
+          <StyledMarkedText text={artifact.data.one_line_summary} />
           {artifact.data.steps ? (
             <ArtifactDetails>
               <Text bold>{t('Steps to Resolve')}</Text>
@@ -135,7 +164,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
                     <Flex direction="column">
-                      <Text>{step.title}</Text>
+                      <StyledMarkedText text={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>
@@ -174,6 +203,12 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
+
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
@@ -202,7 +237,15 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
+    <ArtifactCard
+      icon={<IconCode />}
+      title={t('Code Changes')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
           messages={section.messages}
@@ -261,9 +304,21 @@ export function PullRequestsCard({section}: AutofixCardProps) {
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
   const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
 
   return (
-    <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
+    <ArtifactCard
+      icon={<IconPullRequest />}
+      title={t('Pull Requests')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {artifact?.map(pullRequest => {
         if (pullRequest.pr_creation_status === 'creating') {
           return (
@@ -319,12 +374,25 @@ export function CodingAgentCard({section}: AutofixCardProps) {
     return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const provider = artifact?.[0]?.provider;
 
   const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
 
   return (
-    <ArtifactCard icon={<IconBot />} title={agentName}>
+    <ArtifactCard
+      icon={<IconBot />}
+      title={agentName}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {artifact?.map(codingAgent => {
         const statusVariant =
           codingAgent.status === CodingAgentStatus.PENDING
@@ -382,13 +450,27 @@ interface ArtifactCardProps {
   children: ReactNode;
   icon: ReactNode;
   title: ReactNode;
+  onCopy?: () => void;
 }
 
-function ArtifactCard({children, icon, title}: ArtifactCardProps) {
+function ArtifactCard({children, icon, title, onCopy}: ArtifactCardProps) {
   return (
     <Container border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
-        <Disclosure.Title>
+        <Disclosure.Title
+          trailingItems={
+            onCopy ? (
+              <Button
+                size="xs"
+                priority="transparent"
+                icon={<IconCopy size="xs" />}
+                aria-label={t('Copy as Markdown')}
+                tooltipProps={{title: t('Copy as Markdown')}}
+                onClick={onCopy}
+              />
+            ) : null
+          }
+        >
           <Flex gap="md" align="center">
             {icon}
             <Text bold>{title}</Text>
@@ -447,7 +529,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
         marginTop="md"
         ref={containerRef}
         maxHeight="200px"
-        overflowY="scroll"
+        overflowY="auto"
       >
         {messages.map((message, index) => {
           if (message.role === 'user') {
@@ -456,11 +538,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
           }
 
           if (message.content && message.content !== 'Thinking...') {
-            return (
-              <Text key={index} variant="muted">
-                {message.content}
-              </Text>
-            );
+            return <StyledMarkedText key={index} text={message.content} />;
           }
 
           return null;
@@ -476,4 +554,10 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const StyledMarkedText = styled(MarkedText)`
+  p {
+    margin: 0;
+  }
 `;

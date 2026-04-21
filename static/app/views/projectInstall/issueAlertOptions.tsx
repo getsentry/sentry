@@ -13,7 +13,7 @@ import {
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-enum MetricValues {
+export enum MetricValues {
   ERRORS = 0,
   USERS = 1,
 }

@@ -34,7 +34,11 @@ function extractFromOutputMessages(outputMessages: string): AIOutputData {
 
   try {
     const parsed = JSON.parse(outputMessages);
+    // Handle non-array format: extract "content" from the object directly
     if (!Array.isArray(parsed)) {
+      if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
+        result.responseText = parsed.content;
+      }
       return result;
     }
 

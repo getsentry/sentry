@@ -300,6 +300,18 @@ const appConfig: Configuration = {
      */
     rules: [
       {
+        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: path.resolve(
+              import.meta.dirname,
+              './build-utils/frontmatter-index-loader.ts'
+            ),
+          },
+        ],
+      },
+      {
         test: /\.(js|jsx|ts|tsx)$/,
         // core-js: Avoids recompiling core-js based on usage imports
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
@@ -831,7 +843,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,

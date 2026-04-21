@@ -116,11 +116,11 @@ const StretchedButton = styled(Button)`
   padding-left: ${p => p.theme.space.xs};
 `;
 
-interface DisclosureContentProps {
+interface DisclosureContentProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
 }
 
-function Content({children}: DisclosureContentProps) {
+function Content({children, ...props}: DisclosureContentProps) {
   const {panelProps, panelRef, context} = useDisclosureContext();
 
   return (
@@ -130,6 +130,7 @@ function Content({children}: DisclosureContentProps) {
       padding={context.size}
       size={context.size}
       width="100%"
+      {...props}
     >
       <Text as="div" size={context.size}>
         {children}

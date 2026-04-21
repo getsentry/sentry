@@ -9,6 +9,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
@@ -290,6 +291,7 @@ export function StreamGroup({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const area = useAnalyticsArea();
   const selectionEnabled =
     canSelect && !!issueSelectionSummary && !!issueSelectionActions;
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
@@ -334,6 +336,7 @@ export function StreamGroup({
                 assigned_suggestion_reason:
                   newAssignee.suggestedAssignee?.suggestedReason,
                 assigned_type: newAssignee.type,
+                area,
               });
             }
             onAssigneeChange?.(newAssignee);
@@ -341,7 +344,15 @@ export function StreamGroup({
         }
       );
     },
-    [assignMutate, groupId, onAssigneeChange, organization.slug, query, sharedAnalytics]
+    [
+      area,
+      assignMutate,
+      groupId,
+      onAssigneeChange,
+      organization.slug,
+      query,
+      sharedAnalytics,
+    ]
   );
 
   const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLDivElement>) => {

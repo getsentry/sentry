@@ -1,5 +1,5 @@
 import {useCallback, useEffect} from 'react';
-import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
+import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -13,18 +13,17 @@ import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 
-import {ScmBenefitsCard} from './components/scmBenefitsCard';
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
-import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
 import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
 
-export function ScmConnect({onComplete}: StepProps) {
+export function ScmConnect({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
   const {
     selectedIntegration,
@@ -63,8 +62,10 @@ export function ScmConnect({onComplete}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
-        heading={t('Connect a repository')}
-        subtitle={t('Link your source control for enhanced debugging features')}
+        heading={t('Connect a repo')}
+        subtitle={t(
+          'Connect a repo to auto-detect your platform and unlock stack trace linking, suspect commits, suggested assignees, and Seer.'
+        )}
       />
 
       <LayoutGroup>
@@ -94,16 +95,6 @@ export function ScmConnect({onComplete}: StepProps) {
               </Tag>
             </Container>
             <ScmRepoSelector integration={effectiveIntegration} />
-            <AnimatePresence>
-              {selectedRepository ? (
-                <MotionScmBenefitsCard
-                  exit={{opacity: 0}}
-                  initial={{opacity: 0}}
-                  animate={{opacity: 1}}
-                  key="benefits"
-                />
-              ) : null}
-            </AnimatePresence>
           </MotionStack>
         ) : (
           <MotionStack
@@ -113,48 +104,48 @@ export function ScmConnect({onComplete}: StepProps) {
             maxWidth={SCM_STEP_CONTENT_WIDTH}
           >
             <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
-            <ScmBenefitsCard showTitle />
           </MotionStack>
         )}
-
-        <MotionStack layout="position" width="100%" align="center">
-          <ScmStepFooter>
-            {!selectedRepository && (
-              <Button
-                analyticsEventKey="onboarding.scm_connect_skip_clicked"
-                analyticsEventName="Onboarding: SCM Connect Skip Clicked"
-                analyticsParams={{
-                  has_integration: !!effectiveIntegration,
-                }}
-                onClick={() => onComplete()}
-              >
-                {t('Skip for now')}
-              </Button>
-            )}
-            <Button
-              priority="primary"
-              analyticsEventKey="onboarding.scm_connect_continue_clicked"
-              analyticsEventName="Onboarding: SCM Connect Continue Clicked"
-              analyticsParams={{
-                provider: effectiveIntegration?.provider.key ?? '',
-                repo: selectedRepository?.name ?? '',
-              }}
-              onClick={() => {
-                if (effectiveIntegration && !selectedIntegration) {
-                  setSelectedIntegration(effectiveIntegration);
-                }
-                onComplete();
-              }}
-              disabled={!selectedRepository?.id}
-            >
-              {t('Continue')}
-            </Button>
-          </ScmStepFooter>
-        </MotionStack>
       </LayoutGroup>
+
+      <GenericFooter gap="3xl" padding="0 3xl">
+        <Flex align="center">{genBackButton?.()}</Flex>
+        <Flex align="center" gap="md">
+          {!selectedRepository && (
+            <Button
+              analyticsEventKey="onboarding.scm_connect_skip_clicked"
+              analyticsEventName="Onboarding: SCM Connect Skip Clicked"
+              analyticsParams={{
+                has_integration: !!effectiveIntegration,
+              }}
+              onClick={() => onComplete()}
+            >
+              {t('Skip for now')}
+            </Button>
+          )}
+
+          <Button
+            priority="primary"
+            analyticsEventKey="onboarding.scm_connect_continue_clicked"
+            analyticsEventName="Onboarding: SCM Connect Continue Clicked"
+            analyticsParams={{
+              provider: effectiveIntegration?.provider.key ?? '',
+              repo: selectedRepository?.name ?? '',
+            }}
+            onClick={() => {
+              if (effectiveIntegration && !selectedIntegration) {
+                setSelectedIntegration(effectiveIntegration);
+              }
+              onComplete();
+            }}
+            disabled={!selectedRepository?.id}
+          >
+            {t('Continue')}
+          </Button>
+        </Flex>
+      </GenericFooter>
     </Flex>
   );
 }
 
 const MotionStack = motion.create(Stack);
-const MotionScmBenefitsCard = motion.create(ScmBenefitsCard);

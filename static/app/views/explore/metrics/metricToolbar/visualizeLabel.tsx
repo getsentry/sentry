@@ -11,18 +11,26 @@ interface VisualizeLabelProps {
   label: string;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
+  disableCollapse?: boolean;
 }
 
-export function VisualizeLabel({label, onClick, visualize}: VisualizeLabelProps) {
+export function VisualizeLabel({
+  label,
+  onClick,
+  visualize,
+  disableCollapse,
+}: VisualizeLabelProps) {
   return (
     <Container
       display="flex"
-      cursor="pointer"
+      cursor={disableCollapse ? 'default' : 'pointer'}
       onClick={onClick}
       style={{userSelect: 'none', WebkitTapHighlightColor: 'transparent'}}
     >
       <Flex align="center" gap="xs">
-        <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+        {!disableCollapse && (
+          <IconChevron size="md" direction={visualize.visible ? 'down' : 'right'} />
+        )}
         <VisualizeLabelBadge
           justify="center"
           align="center"

@@ -56,6 +56,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                 view: 'onboarding_scm',
                 already_installed: false,
               },
+              suppressSuccessMessage: true,
             }}
           >
             <IntegrationButton
@@ -86,6 +87,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                     view: 'onboarding_scm',
                     already_installed: false,
                   },
+                  suppressSuccessMessage: true,
                 }),
             }))}
           />

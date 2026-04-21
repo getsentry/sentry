@@ -7,53 +7,19 @@ import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/pre
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
-import {
-  fetchDataQuery,
-  fetchMutation,
-  useQueryClient,
-  useQuery,
-} from 'sentry/utils/queryClient';
+import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type PreferredAgent = 'seer' | CodingAgentIntegration;
 
-export function useFetchAgentOptions({
-  organization,
-  enabled = true,
-}: {
-  organization: Organization;
-  enabled?: boolean;
-}) {
-  return useQuery({
-    ...organizationIntegrationsCodingAgents(organization),
-    enabled,
-    select: (data): Array<{label: string; value: PreferredAgent}> => {
-      return [
-        {value: 'seer', label: t('Seer Agent')},
-        ...(data.json.integrations ?? [])
-          .filter(integration => integration.id)
-          .map(integration => ({
-            value: integration,
-            label: integration.name,
-          })),
-      ];
-    },
-  });
-}
-
 export function useBulkMutateSelectedAgent() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
-    organization,
-  });
 
   return useCallback(
     async (projects: Project[], integration: PreferredAgent) => {
@@ -109,8 +75,15 @@ export function useBulkMutateSelectedAgent() {
 
       // Always invalidate to sync cache with whatever the server actually saved
       queryClient.invalidateQueries({
-        queryKey: autofixSettingsQueryOptions.queryKey,
+        queryKey: bulkAutofixAutomationSettingsInfiniteOptions({
+          organization,
+        }).queryKey,
       });
+      for (const project of projects) {
+        queryClient.invalidateQueries({
+          queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+        });
+      }
 
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length) {
@@ -131,6 +104,6 @@ export function useBulkMutateSelectedAgent() {
         }
       }
     },
-    [organization, queryClient, autofixSettingsQueryOptions.queryKey]
+    [organization, queryClient]
   );
 }

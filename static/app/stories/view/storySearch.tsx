@@ -16,10 +16,10 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
-  inferComponentSubcategory,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -56,7 +56,7 @@ export function StorySearch() {
       // For components section, consolidate all subcategories into a single section
       if (section === 'core') {
         const allCoreNodes = data.stories.flatMap(subcategoryFolder =>
-          Object.values(subcategoryFolder.children)
+          subcategoryFolder.flat()
         );
 
         if (allCoreNodes.length > 0) {
@@ -105,12 +105,15 @@ export function StorySearch() {
               }
             >
               {item.options.map(storyItem => {
-                const subcategoryKey =
-                  item.key === 'core'
-                    ? inferComponentSubcategory(storyItem.name.toLowerCase())
-                    : undefined;
+                const meta = storyFrontmatterIndex[storyItem.filesystemPath];
+                const subcategoryKey = item.key === 'core' ? meta?.category : undefined;
                 const subcategoryLabel = subcategoryKey
-                  ? COMPONENT_SUBCATEGORY_CONFIG[subcategoryKey].label
+                  ? (
+                      COMPONENT_SUBCATEGORY_CONFIG as Record<
+                        string,
+                        {label: string} | undefined
+                      >
+                    )[subcategoryKey]?.label
                   : undefined;
 
                 return (

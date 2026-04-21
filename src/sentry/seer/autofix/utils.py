@@ -885,7 +885,6 @@ def has_project_connected_repos(
 ) -> bool:
     """
     Check if a project has connected repositories for Seer automation.
-    Checks Seer preferences first, then falls back to Sentry code mappings.
     Results are cached for 15 minutes to minimize API calls.
     """
     cache_key = f"seer-project-has-repos:{organization.id}:{project.id}"
@@ -903,10 +902,6 @@ def has_project_connected_repos(
             has_repos = bool(preference and preference.repositories)
         except (SeerApiError, SeerApiResponseValidationError):
             pass
-
-    if not has_repos:
-        # If it's the first autofix run of project we check code mapping.
-        has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
 
     logger.info(
         "Checking if project has repositories connected",

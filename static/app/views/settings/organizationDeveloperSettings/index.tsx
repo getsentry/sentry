@@ -156,7 +156,7 @@ function OrganizationDeveloperSettings() {
       <SentryDocumentTitle title={t('Custom Integrations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Custom Integrations')}
-        body={
+        subtitle={
           <Fragment>
             {t(
               'Create integrations that interact with Sentry using the REST API and webhooks. '

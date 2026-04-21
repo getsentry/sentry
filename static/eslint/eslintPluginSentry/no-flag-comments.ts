@@ -4,7 +4,8 @@ export const noFlagComments = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'suggestion',
     docs: {
-      description: 'Disallow flag-style section separator comments (e.g. // ----------)',
+      description:
+        'Disallow flag-style section separator comments (e.g. // ---------- or // ==========)',
     },
     schema: [],
     messages: {
@@ -16,7 +17,10 @@ export const noFlagComments = ESLintUtils.RuleCreator.withoutDocs({
     return {
       Program() {
         for (const comment of context.sourceCode.getAllComments()) {
-          if (comment.type === 'Line' && /^-{3,}\s*$/.test(comment.value.trim())) {
+          if (
+            comment.type === 'Line' &&
+            /^([-=*_#~─])\1{2,}\s*$/u.test(comment.value.trim())
+          ) {
             context.report({
               loc: comment.loc,
               messageId: 'noFlagComment',

@@ -51,23 +51,6 @@ describe('ScmFeatureSelectionCards', () => {
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
-  it('shows correct selected count', () => {
-    render(
-      <ScmFeatureSelectionCards
-        availableFeatures={ALL_FEATURES}
-        selectedFeatures={[
-          ProductSolution.ERROR_MONITORING,
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
-        disabledProducts={NO_DISABLED}
-        onToggleFeature={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText('3 of 6 selected')).toBeInTheDocument();
-  });
-
   it('error monitoring card is always disabled', async () => {
     const onToggleFeature = jest.fn();
 

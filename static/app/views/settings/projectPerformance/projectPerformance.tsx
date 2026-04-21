@@ -202,7 +202,8 @@ export function ProjectPerformance() {
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
   const hasAIIssueDetection =
     organization.features.includes('gen-ai-features') &&
-    organization.features.includes('ai-issue-detection');
+    organization.features.includes('ai-issue-detection') &&
+    !organization.hideAiFeatures;
 
   const {
     data: threshold,

@@ -91,6 +91,7 @@ const ActiveTrialHeader = styled('div')`
   font-size: 14px;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.accent};
+  white-space: nowrap;
 `;
 
 const ActiveTrialWrapper = styled('div')`

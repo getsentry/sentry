@@ -67,12 +67,15 @@ function AccountAuthorizations() {
   const isEmpty = data.length === 0;
   return (
     <SentryDocumentTitle title={t('Approved Applications')}>
-      <SettingsPageHeader title="Authorized Applications" />
-      <Description>
-        {tct('You can manage your own applications via the [link:API dashboard].', {
-          link: <Link to="/settings/account/api/" />,
-        })}
-      </Description>
+      <SettingsPageHeader
+        title="Authorized Applications"
+        subtitle={tct(
+          'You can manage your own applications via the [link:API dashboard].',
+          {
+            link: <Link to="/settings/account/api/" />,
+          }
+        )}
+      />
 
       <Panel>
         <PanelHeader>{t('Approved Applications')}</PanelHeader>
@@ -123,11 +126,6 @@ function AccountAuthorizations() {
 }
 
 export default AccountAuthorizations;
-
-const Description = styled('p')`
-  font-size: ${p => p.theme.font.size.sm};
-  margin-bottom: ${p => p.theme.space['3xl']};
-`;
 
 const PanelItemCenter = styled(PanelItem)`
   align-items: center;

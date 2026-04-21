@@ -12,14 +12,11 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.services.organization_mapping.service import organization_mapping_service
-from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
-from sentry.integrations.slack.requests.event import SeerResolutionResult
 from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
@@ -374,56 +371,31 @@ class SlackRequestParserTest(TestCase):
         assert self.organization.id in organization_ids
         assert other_organization.id in organization_ids
 
-    def test_seer_filter_returns_orgs_unchanged_when_no_slack_request(self):
-        request = self.factory.post(
-            path=reverse("sentry-integration-slack-commands"),
-            data=urlencode({"team_id": self.integration.external_id}).encode("utf-8"),
-            content_type="application/x-www-form-urlencoded",
-        )
-        parser = SlackRequestParser(request, self.get_response)
-        orgs = [self.org_mapping]
-        assert parser._filter_organizations_for_seer_event(orgs) is orgs
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_acks_200_and_enqueues_routing_task(self, mock_apply):
+        parser = self._make_parser_with_seer_event(event_type="app_mention")
+        response = parser.get_response()
 
-    def test_seer_filter_returns_orgs_unchanged_for_non_seer_event(self):
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        mock_apply.assert_called_once()
+        kwargs = mock_apply.call_args.kwargs["kwargs"]
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["slack_user_id"] == "U1234567890"
+        assert kwargs["payload"]["method"] == "POST"
+        assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
+
+    @responses.activate
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_non_seer_event_not_routed_through_task(self, mock_apply):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/slack/event/",
+            status=status.HTTP_200_OK,
+            body=b"",
+        )
         parser = self._make_parser_with_seer_event(event_type="link_shared")
-        parser.get_integration_from_request()
-        orgs = [self.org_mapping]
-        assert parser._filter_organizations_for_seer_event(orgs) is orgs
+        response = parser.get_response()
 
-    @patch(
-        "sentry.integrations.slack.requests.event.SlackEventRequest.resolve_seer_organization",
-    )
-    def test_seer_filter_filters_to_resolved_organization(self, mock_resolve):
-        mock_resolve.return_value = SeerResolutionResult(
-            organization_id=self.organization.id, error_reason=None
-        )
-        other_org = RpcOrganizationMapping(id=99999, slug="other")
-        parser = self._make_parser_with_seer_event(event_type="app_mention")
-        parser.get_integration_from_request()
-
-        result = parser._filter_organizations_for_seer_event([other_org, self.org_mapping])
-        assert result == [self.org_mapping]
-
-    @patch(
-        "sentry.integrations.slack.requests.event.SlackEventRequest.resolve_seer_organization",
-    )
-    def test_seer_filter_returns_orgs_unchanged_on_resolution_error(self, mock_resolve):
-        mock_resolve.return_value = SeerResolutionResult(
-            organization_id=None, error_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
-        )
-        parser = self._make_parser_with_seer_event(event_type="app_mention")
-        parser.get_integration_from_request()
-        orgs = [self.org_mapping]
-        assert parser._filter_organizations_for_seer_event(orgs) is orgs
-
-    @patch(
-        "sentry.integrations.slack.requests.event.SlackEventRequest.resolve_seer_organization",
-    )
-    def test_seer_filter_returns_orgs_unchanged_when_mapping_not_in_list(self, mock_resolve):
-        mock_resolve.return_value = SeerResolutionResult(
-            organization_id=self.organization.id, error_reason=None
-        )
-        parser = self._make_parser_with_seer_event(event_type="app_mention")
-        parser.get_integration_from_request()
-        other_orgs = [RpcOrganizationMapping(id=99999, slug="other")]
-        assert parser._filter_organizations_for_seer_event(other_orgs) is other_orgs
+        assert isinstance(response, HttpResponse)
+        mock_apply.assert_not_called()

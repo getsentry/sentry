@@ -229,9 +229,6 @@ function ReleasesDetail({
   );
 }
 
-// ========================================================================
-// RELEASE DETAIL CONTAINER
-// ========================================================================
 function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
@@ -308,6 +305,7 @@ function ReleasesDetailContainer() {
 
   return (
     <PageFiltersContainer
+      skipInitializeUrlParams
       shouldForceProject={projects.length === 1}
       forceProject={
         projects.length === 1 ? {...projects[0]!, id: String(projects[0]!.id)} : undefined
