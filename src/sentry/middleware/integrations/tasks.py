@@ -193,6 +193,8 @@ def route_slack_seer_event(
     slack_user_id: str,
     channel_id: str,
     thread_ts: str,
+    event_type: str,
+    text: str = "",
 ) -> None:
     """
     Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
@@ -205,7 +207,7 @@ def route_slack_seer_event(
     Now control will respond immediately, and schedule this task. We can take our time routing,
     and then allow the identified cell to actually handle the event.
     """
-    logging_ctx = {
+    logging_ctx: dict[str, Any] = {
         "integration_id": integration_id,
         "slack_user_id": slack_user_id,
         "channel_id": channel_id,
@@ -218,19 +220,25 @@ def route_slack_seer_event(
         logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
-    organization_id, error_reason = resolve_seer_organization_for_slack_user(
-        integration=integration, slack_user_id=slack_user_id
+    organization_id, halt_reason = resolve_seer_organization_for_slack_user(
+        integration=integration,
+        slack_user_id=slack_user_id,
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        text="placeholder",
+        message_ts="placeholder",
+        event_type="placeholder",
     )
     logging_ctx["organization_id"] = organization_id
-    logging_ctx["error_reason"] = error_reason
+    logging_ctx["halt_reason"] = halt_reason
 
-    if error_reason:
+    if halt_reason:
         send_halt_message(
             integration=integration,
             slack_user_id=slack_user_id,
             channel_id=channel_id,
             thread_ts=thread_ts or None,
-            halt_reason=error_reason,
+            halt_reason=halt_reason,
         )
         logger.info("route_slack_seer_event.halt_message_sent", extra=logging_ctx)
         return

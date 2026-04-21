@@ -41,11 +41,11 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ("http://invalid_link", (None, None)),
         (
             "https://sentry.io/organizations/org1/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://org1.sentry.io/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
