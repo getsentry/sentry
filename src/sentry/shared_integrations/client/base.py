@@ -31,7 +31,7 @@ class SessionSettings(TypedDict, total=False):
     timeout: int
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
-    proxies: dict[str, Any]
+    proxies: Mapping[str, str]
     stream: bool | None
     verify: bool | str | None
     cert: str | tuple[str, str] | None
@@ -171,6 +171,55 @@ class BaseApiClient:
         """
         return build_session()
 
+    @staticmethod
+    def _is_valid_cert_setting(cert_setting: object) -> bool:
+        # ``requests`` accepts cert as None, a single cert path, or a
+        # (cert_file, key_file) tuple.
+        if cert_setting is None or isinstance(cert_setting, str):
+            return True
+        if (
+            isinstance(cert_setting, tuple)
+            and len(cert_setting) == 2
+            and all(isinstance(item, str) for item in cert_setting)
+        ):
+            return True
+        return False
+
+    def _build_session_settings(
+        self,
+        timeout: int,
+        allow_redirects: bool,
+        environment_settings: Mapping[str, object],
+    ) -> SessionSettings:
+        # Build a typed subset of settings returned by
+        # ``merge_environment_settings`` before splatting into ``session.send``.
+        session_settings: SessionSettings = {
+            "timeout": timeout,
+            "allow_redirects": allow_redirects,
+        }
+
+        proxies_setting = environment_settings.get("proxies")
+        if isinstance(proxies_setting, Mapping):
+            session_settings["proxies"] = proxies_setting
+
+        stream_setting = environment_settings.get("stream")
+        if isinstance(stream_setting, bool) or stream_setting is None:
+            session_settings["stream"] = stream_setting
+
+        verify_setting = environment_settings.get("verify")
+        if (
+            isinstance(verify_setting, bool)
+            or isinstance(verify_setting, str)
+            or verify_setting is None
+        ):
+            session_settings["verify"] = verify_setting
+
+        cert_setting = environment_settings.get("cert")
+        if self._is_valid_cert_setting(cert_setting):
+            session_settings["cert"] = cert_setting
+
+        return session_settings
+
     @overload
     def _request(
         self,
@@ -285,11 +334,11 @@ class BaseApiClient:
                     verify=self.verify_ssl,
                     cert=None,
                 )
-                session_settings: SessionSettings = {
-                    "timeout": timeout,
-                    "allow_redirects": allow_redirects,
-                    **environment_settings,  # type: ignore[typeddict-item]
-                }
+                session_settings = self._build_session_settings(
+                    timeout=timeout,
+                    allow_redirects=allow_redirects,
+                    environment_settings=environment_settings,
+                )
                 resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
                     return resp
