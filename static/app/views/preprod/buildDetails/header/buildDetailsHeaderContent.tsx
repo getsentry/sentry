@@ -200,6 +200,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {project && (
               <LinkButton
                 icon={<IconSettings />}
+                tooltipProps={{title: t('Settings')}}
                 aria-label={t('Settings')}
                 to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
               />
@@ -294,7 +295,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             </ConfirmDelete>
           </TopBar.Slot>
           <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={buildDetailsFeedbackOptions}>
+            <FeedbackButton
+              feedbackOptions={buildDetailsFeedbackOptions}
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
               {null}
             </FeedbackButton>
           </TopBar.Slot>

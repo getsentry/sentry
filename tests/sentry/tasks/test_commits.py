@@ -12,6 +12,7 @@ from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironm
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
+from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.silo.base import SiloMode
 from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
@@ -121,6 +122,24 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
 
+    def test_simple_passes_actor_to_plugin_provider(self, mock_record: MagicMock) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        original_compare_commits = DummyRepositoryProvider.compare_commits
+
+        with patch.object(
+            DummyRepositoryProvider,
+            "compare_commits",
+            autospec=True,
+            side_effect=original_compare_commits,
+        ) as mock_compare_commits:
+            self._test_simple_action(user=self.user, org=org)
+
+        assert any(
+            (actor := call.kwargs.get("actor")) is not None and actor.id == self.user.id
+            for call in mock_compare_commits.call_args_list
+        )
+
     def test_duplicate_repositories(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
@@ -133,7 +152,7 @@ class FetchCommitsTest(TestCase):
     @patch(
         "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
     )
-    def test_github_compare_commits_cache_flag_disabled(
+    def test_github_compare_commits_cache_enabled_by_default(
         self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
@@ -160,41 +179,6 @@ class FetchCommitsTest(TestCase):
                 prev_release_id=previous_release.id,
             )
 
-        assert mock_fetch_commits_for_compare_range.call_count == 2
-
-    @patch(
-        "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"
-    )
-    def test_github_compare_commits_cache_flag_enabled(
-        self, mock_fetch_commits_for_compare_range: MagicMock, mock_record: MagicMock
-    ) -> None:
-        self.login_as(user=self.user)
-        cache.clear()
-
-        org, repo, previous_release, first_release, second_release, refs = (
-            self._setup_github_compare_commits_cache_context()
-        )
-        mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
-            repo.name, "b" * 40
-        )
-
-        with self.feature(
-            {"organizations:integrations-github-fetch-commits-compare-cache": [org.slug]}
-        ):
-            with self.tasks():
-                fetch_commits(
-                    release_id=first_release.id,
-                    user_id=self.user.id,
-                    refs=refs,
-                    prev_release_id=previous_release.id,
-                )
-                fetch_commits(
-                    release_id=second_release.id,
-                    user_id=self.user.id,
-                    refs=refs,
-                    prev_release_id=previous_release.id,
-                )
-
         assert mock_fetch_commits_for_compare_range.call_count == 1
 
     @patch(
@@ -206,7 +190,7 @@ class FetchCommitsTest(TestCase):
         self.login_as(user=self.user)
         cache.clear()
 
-        org, repo, previous_release, first_release, second_release, refs_first = (
+        _, repo, previous_release, first_release, second_release, refs_first = (
             self._setup_github_compare_commits_cache_context()
         )
         refs_second = [{"repository": repo.name, "commit": "c" * 40}]
@@ -215,22 +199,19 @@ class FetchCommitsTest(TestCase):
             self._github_compare_commits_result(repo.name, "c" * 40),
         ]
 
-        with self.feature(
-            {"organizations:integrations-github-fetch-commits-compare-cache": [org.slug]}
-        ):
-            with self.tasks():
-                fetch_commits(
-                    release_id=first_release.id,
-                    user_id=self.user.id,
-                    refs=refs_first,
-                    prev_release_id=previous_release.id,
-                )
-                fetch_commits(
-                    release_id=second_release.id,
-                    user_id=self.user.id,
-                    refs=refs_second,
-                    prev_release_id=previous_release.id,
-                )
+        with self.tasks():
+            fetch_commits(
+                release_id=first_release.id,
+                user_id=self.user.id,
+                refs=refs_first,
+                prev_release_id=previous_release.id,
+            )
+            fetch_commits(
+                release_id=second_release.id,
+                user_id=self.user.id,
+                refs=refs_second,
+                prev_release_id=previous_release.id,
+            )
 
         assert mock_fetch_commits_for_compare_range.call_count == 2
 
@@ -245,24 +226,21 @@ class FetchCommitsTest(TestCase):
         self.login_as(user=self.user)
         cache.clear()
 
-        org, repo, previous_release, first_release, _, refs = (
+        _, repo, previous_release, first_release, _, refs = (
             self._setup_github_compare_commits_cache_context()
         )
         mock_fetch_commits_for_compare_range.return_value = self._github_compare_commits_result(
             repo.name, "b" * 40
         )
 
-        with self.feature(
-            {"organizations:integrations-github-fetch-commits-compare-cache": [org.slug]}
-        ):
-            with patch("sentry.tasks.commits.cache.set", wraps=cache.set) as mock_cache_set:
-                with self.tasks():
-                    fetch_commits(
-                        release_id=first_release.id,
-                        user_id=self.user.id,
-                        refs=refs,
-                        prev_release_id=previous_release.id,
-                    )
+        with patch("sentry.tasks.commits.cache.set", wraps=cache.set) as mock_cache_set:
+            with self.tasks():
+                fetch_commits(
+                    release_id=first_release.id,
+                    user_id=self.user.id,
+                    refs=refs,
+                    prev_release_id=previous_release.id,
+                )
 
         expected_cache_key = get_github_compare_commits_cache_key(
             organization_id=repo.organization_id,

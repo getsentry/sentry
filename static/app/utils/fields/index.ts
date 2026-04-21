@@ -2606,6 +2606,46 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
+  image_count: {
+    desc: t('The number of images in the snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_added: {
+    desc: t('Number of images added compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_changed: {
+    desc: t('Number of images changed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_removed: {
+    desc: t('Number of images removed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_renamed: {
+    desc: t('Number of images renamed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_skipped: {
+    desc: t('Number of images skipped during snapshot comparison'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_unchanged: {
+    desc: t('Number of images unchanged compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  is_approved: {
+    desc: t('Whether the snapshot comparison has been approved'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
 };
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
