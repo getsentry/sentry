@@ -8,9 +8,10 @@ class SlackSeerAgentConversation(str, Enum):
     APP_MENTION = "app_mention"
 
 
-@analytics.eventclass("ai.explorer.slack.responded")
+@analytics.eventclass("ai.agent.slack.responded")
 class SlackSeerAgentResponded(analytics.Event):
     org_slug: str
+    user_id: int
     username: str
     thread_ts: str
     prompt_length: int
