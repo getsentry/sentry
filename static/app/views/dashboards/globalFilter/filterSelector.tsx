@@ -22,7 +22,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {
-  escapeTagValue,
+  escapeTagValueForSearch,
   getFilterValueType,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -287,7 +287,7 @@ export function FilterSelector({
     if (opts.length !== 0) {
       const cleanedValue = prepareInputValueForSaving(
         getFilterValueType(filterToken, fieldDefinition),
-        opts.map(opt => escapeTagValue(opt, {allowArrayValue: false})).join(',')
+        opts.map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false})).join(',')
       );
       newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
     }
