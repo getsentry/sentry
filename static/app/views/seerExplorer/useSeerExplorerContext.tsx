@@ -10,10 +10,10 @@ import {
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
-  isMinimized: boolean;
+  isMinimized: boolean; // for backward compatibility with ExplorerPanel.
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
-  setIsMinimized: (value: boolean) => void;
+  setIsMinimized: (value: boolean) => void; // for backward compatibility with ExplorerPanel.
   toggleSeerExplorer: () => void;
 };
 
@@ -37,8 +37,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo(
     () => ({
       isOpen,
-      isMinimized: false, // for backward compatibility, do not use.
-      setIsMinimized: () => {}, // for backward compatibility, do not use.
+      isMinimized: false,
+      setIsMinimized: () => {},
       openSeerExplorer: openSeerExplorerDrawer,
       closeSeerExplorer: closeSeerExplorerDrawer,
       toggleSeerExplorer: toggleSeerExplorerDrawer,
