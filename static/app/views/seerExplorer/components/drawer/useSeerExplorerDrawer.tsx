@@ -23,7 +23,7 @@ export type OpenSeerExplorerDrawerOptions = {
 };
 
 export const useSeerExplorerDrawer = () => {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
 
   const {openDrawer, closeDrawer} = useDrawer();
   const {getPageReferrer} = usePageReferrer();
