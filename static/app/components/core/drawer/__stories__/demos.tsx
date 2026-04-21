@@ -1,20 +1,8 @@
-/**
- * Demo components for drawer.mdx documentation.
- *
- * Extracted into a .tsx file because prettier's MDX parser flattens JSX
- * indentation inside exported functions when JSX is passed as a function
- * argument (e.g. openDrawer(() => <Component />, {...})).
- */
-
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
-
-// ──────────────────────────────────────────────
-// drawer.mdx demos
-// ──────────────────────────────────────────────
 
 export function BasicDemo() {
   const {openDrawer, isDrawerOpen} = useDrawer();
