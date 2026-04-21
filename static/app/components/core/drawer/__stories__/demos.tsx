@@ -48,7 +48,6 @@ export function ClosingDemo() {
         onClick={() =>
           openDrawer(() => <Button onClick={closeDrawer}>Close Drawer</Button>, {
             ariaLabel: 'test drawer',
-            mode: 'passive',
           })
         }
       >
@@ -56,6 +55,30 @@ export function ClosingDemo() {
       </Button>
       <Button onClick={closeDrawer}>Close Drawer</Button>
     </Flex>
+  );
+}
+
+export function PassiveModeDemo() {
+  const {openDrawer} = useDrawer();
+  return (
+    <Button
+      onClick={() =>
+        openDrawer(
+          () => (
+            <Fragment>
+              <DrawerHeader>Passive Mode</DrawerHeader>
+              <DrawerBody>
+                Scroll is not locked and clicking outside will not close this drawer.
+                Press Escape or the close button to dismiss.
+              </DrawerBody>
+            </Fragment>
+          ),
+          {ariaLabel: 'passive mode demo', mode: 'passive'}
+        )
+      }
+    >
+      Open Passive Drawer
+    </Button>
   );
 }
 
