@@ -712,7 +712,7 @@ describe('Onboarding', () => {
     });
 
     it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
-      renderOnboarding('welcome');
+      const {router} = renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
@@ -724,6 +724,14 @@ describe('Onboarding', () => {
         'growth.onboarding_clicked_instrument_app',
         expect.anything()
       );
+
+      // Wait for the scm-connect navigation to settle so its mounted-effect
+      // fetches hit the mocked endpoints before afterEach clears responses.
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-connect/`
+        );
+      });
     });
 
     it('auto-selects existing integration and shows connected view', async () => {
