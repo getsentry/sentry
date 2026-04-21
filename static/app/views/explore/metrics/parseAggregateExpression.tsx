@@ -91,13 +91,13 @@ function makeMetricQuery(
   };
 }
 
-function makeEquationRow(prefixedEquation: string, query: string): BaseMetricQuery {
+function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQuery {
   const base = defaultMetricQuery({type: 'equation'});
   return {
     metric: {name: '', type: ''},
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeEquation(prefixedEquation)],
-      query,
+      query: query ?? '',
     }),
     label: EQUATION_LABEL,
   };
@@ -120,7 +120,7 @@ function defaultRow(label: string): BaseMetricQuery {
  */
 export function parseAggregateExpression(
   aggregate: string,
-  query: string
+  query?: string
 ): ParsedAggregateExpression {
   if (!isEquation(aggregate)) {
     const tokens = tokenizeExpression(aggregate);
