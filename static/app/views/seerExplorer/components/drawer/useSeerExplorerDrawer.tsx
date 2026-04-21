@@ -117,12 +117,7 @@ export const useSeerExplorerDrawer = () => {
     []
   );
 
-  if (
-    !organization ||
-    organization.hideAiFeatures ||
-    !organization.features.includes('gen-ai-features') ||
-    !isSeerExplorerEnabled(organization)
-  ) {
+  if (!organization || !isSeerExplorerEnabled(organization)) {
     return disabledReturn;
   }
 
