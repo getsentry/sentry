@@ -98,6 +98,8 @@ If a hook fails, fix the issues, stage changes, then re-run until it passes.
 
 #### Testing
 
+For backend-scoped changes, always try `make test-selective` first. It detects which tests are affected by your local diff and runs only those, making the feedback loop much faster. Fall back to `pytest` when you need to run a specific file or `test-selective` doesn't cover your case.
+
 ```bash
 # Run a specific test file.
 # Do not run pytest by itself; it'll take forever!
