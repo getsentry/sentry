@@ -15,6 +15,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.event import resolve_seer_organization_for_slack_user
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.seer.entrypoints.slack.messaging import send_halt_message
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
@@ -190,6 +191,8 @@ def route_slack_seer_event(
     payload: dict[str, Any],
     integration_id: int,
     slack_user_id: str,
+    channel_id: str,
+    thread_ts: str,
 ) -> None:
     """
     Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
@@ -202,7 +205,12 @@ def route_slack_seer_event(
     Now control will respond immediately, and schedule this task. We can take our time routing,
     and then allow the identified cell to actually handle the event.
     """
-    logging_ctx = {"integration_id": integration_id, "slack_user_id": slack_user_id}
+    logging_ctx = {
+        "integration_id": integration_id,
+        "slack_user_id": slack_user_id,
+        "channel_id": channel_id,
+        "thread_ts": thread_ts,
+    }
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
     )
@@ -210,15 +218,28 @@ def route_slack_seer_event(
         logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
-    result = resolve_seer_organization_for_slack_user(
+    organization_id, error_reason = resolve_seer_organization_for_slack_user(
         integration=integration, slack_user_id=slack_user_id
     )
-    if result.organization_id is None:
-        logger.warning("route_slack_seer_event.no_organization_found", extra=logging_ctx)
+    logging_ctx["organization_id"] = organization_id
+    logging_ctx["error_reason"] = error_reason
+
+    if error_reason:
+        send_halt_message(
+            integration=integration,
+            slack_user_id=slack_user_id,
+            channel_id=channel_id,
+            thread_ts=thread_ts or None,
+            halt_reason=error_reason,
+        )
+        logger.info("route_slack_seer_event.halt_message_sent", extra=logging_ctx)
+        return
+
+    if organization_id is None:
         return
 
     try:
-        cell = get_cell_for_organization(str(result.organization_id))
+        cell = get_cell_for_organization(str(organization_id))
     except CellResolutionError:
         logger.exception("route_slack_seer_event.cell_resolution_error", extra=logging_ctx)
         return

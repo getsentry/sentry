@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TypeGuard
 from urllib.parse import parse_qs
 
 import orjson
@@ -296,6 +296,15 @@ class SlackRequestParser(BaseRequestParser):
 
         return organizations
 
+    def _is_seer_agent_request(
+        self, slack_request: SlackRequest | None
+    ) -> TypeGuard[SlackEventRequest]:
+        return (
+            self.view_class == SlackEventEndpoint
+            and isinstance(slack_request, SlackEventRequest)
+            and slack_request.is_seer_agent_request
+        )
+
     def get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
@@ -325,16 +334,14 @@ class SlackRequestParser(BaseRequestParser):
             # this request until it succeeds.
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        if (
-            self.slack_request
-            and isinstance(self.slack_request, SlackEventRequest)
-            and self.slack_request.is_seer_agent_request
-        ):
+        if self._is_seer_agent_request(self.slack_request):
             route_slack_seer_event.apply_async(
                 kwargs={
                     "payload": create_async_request_payload(self.request),
                     "integration_id": self.slack_request.integration.id,
                     "slack_user_id": self.slack_request.user_id,
+                    "channel_id": self.slack_request.channel_id,
+                    "thread_ts": self.slack_request.thread_ts,
                 }
             )
             logger.info(
