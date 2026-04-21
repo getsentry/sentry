@@ -164,10 +164,11 @@ export function ExplorerDrawerContent({
           ...(runId === null ? {} : {['seer.run_id']: runId}),
           ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
           ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
         },
       });
     }
-  }, [openFeedbackForm, runId, langfuseUrl]);
+  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
 
   // - Pop-up menu component --------------------------------------------------
 
