@@ -163,9 +163,9 @@ export interface ControlProps
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   menuHeight?: number | string;
   /**
-   * Minimum width for the menu overlay. By default the overlay's min-width matches
-   * the trigger's width; use this to enforce a larger floor (e.g. when the trigger
-   * is intentionally narrow but the options need more room).
+   * Minimum width for the menu overlay. When unset, the overlay's min-width matches
+   * the trigger's width (popper default). When set, this value is used instead —
+   * useful when the trigger is intentionally narrow but the options need more room.
    */
   menuMinWidth?: number | string;
   /**
@@ -504,7 +504,7 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={`max(${withUnits(overlayProps.style!.minWidth)}, ${withUnits(menuMinWidth ?? 0)})`}
+              minWidth={menuMinWidth ?? overlayProps.style!.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
