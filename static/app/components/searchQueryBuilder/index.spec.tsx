@@ -2144,6 +2144,31 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('unescapes asterisks before fetching tag value suggestions', async () => {
+      const mockGetTagValues = jest.fn().mockResolvedValue([]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+      await userEvent.type(screen.getByRole('combobox'), '\\*\\*\\*\\*');
+
+      await waitFor(() => {
+        expect(mockGetTagValues).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tag: expect.objectContaining({key: 'custom_tag_name'}),
+            searchQuery: '****',
+          })
+        );
+      });
+    });
+
     it('sets the value as not selected when no comma is present', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />

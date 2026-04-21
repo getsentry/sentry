@@ -625,9 +625,11 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = canSelectMultipleValues
-    ? getValueAtCursorPosition(inputValue, selectionIndex)
-    : inputValue;
+  const filterValue = unescapeAsteriskSearchValue(
+    canSelectMultipleValues
+      ? getValueAtCursorPosition(inputValue, selectionIndex)
+      : inputValue
+  );
 
   const selectedValues = useMemo(
     () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
