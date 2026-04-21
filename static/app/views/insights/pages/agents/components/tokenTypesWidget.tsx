@@ -121,11 +121,11 @@ export function TokenTypesWidget() {
 
     // Calculate total tokens for each time point to convert to percentages
     const dataLength = adjustedSeries[0]?.values.length || 0;
-    const totalsPerTimePoint = new Array(dataLength).fill(0);
+    const totalsPerTimePoint = Array.from<number>({length: dataLength}).fill(0);
 
     adjustedSeries.forEach(series => {
       series.values.forEach((point, index) => {
-        totalsPerTimePoint[index] += point.value || 0;
+        totalsPerTimePoint[index]! += point.value || 0;
       });
     });
 
@@ -140,8 +140,8 @@ export function TokenTypesWidget() {
       values: series.values.map((point, index) => ({
         ...point,
         value:
-          totalsPerTimePoint[index] > 0
-            ? (point.value || 0) / totalsPerTimePoint[index]
+          totalsPerTimePoint[index]! > 0
+            ? (point.value || 0) / totalsPerTimePoint[index]!
             : 0,
       })),
     }));

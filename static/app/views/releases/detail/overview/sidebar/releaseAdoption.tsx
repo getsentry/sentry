@@ -166,7 +166,7 @@ export function ReleaseAdoption({
       // Link each x-axis together.
       link: [{xAxisIndex: [sessionsAxisIndex, usersAxisIndex]}],
     },
-    xAxes: Array.from(new Array(2)).map((_i, index) => ({
+    xAxes: Array.from(Array.from({length: 2})).map((_i, index) => ({
       gridIndex: index,
       type: 'time' as const,
       show: false,

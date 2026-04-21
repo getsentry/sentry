@@ -131,9 +131,9 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples = new Array<Array<Exclude<Profiling.ProfileReference, string>>>(
-      frames.length
-    );
+    const examples = Array.from<
+      Array<Profiling.ContinuousProfileReference | Profiling.TransactionProfileReference>
+    >({length: frames.length});
 
     for (const profile of flamegraphQuery.data?.profiles ?? []) {
       if (isSampledProfile(profile)) {

@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -32,7 +33,8 @@ import {DataCategory} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useProfileEventsApiOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -284,7 +286,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
 
   const cursor = decodeScalar(location.query.cursor);
 
-  const transactions = useProfileEvents<FieldType>({
+  const transactionsOptions = useProfileEventsApiOptions<FieldType>({
     cursor,
     fields,
     query,
@@ -292,11 +294,17 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
     limit: 50,
     referrer: 'api.profiling.landing-table',
   });
+  const transactions = useQuery({
+    ...transactionsOptions,
+    select: selectJsonWithHeaders,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   const transactionsError =
     transactions.status === 'error' ? formatError(transactions.error) : '';
 
-  const hasData = (transactions.data?.data?.length || 0) > 0;
+  const hasData = (transactions.data?.json?.data?.length || 0) > 0;
   const isLoading = transactions.isPending;
   const isError = transactions.isError;
 
@@ -332,7 +340,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
       )}
       <ProfileEventsTable
         columns={fields.slice()}
-        data={transactions.status === 'success' ? transactions.data : null}
+        data={transactions.status === 'success' ? transactions.data.json : null}
         error={transactions.status === 'error' ? t('Unable to load profiles') : null}
         isLoading={transactions.status === 'pending'}
         sort={sort}
@@ -340,9 +348,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
       />
       <StyledPagination
         pageLinks={
-          transactions.status === 'success'
-            ? (transactions.getResponseHeader?.('Link') ?? null)
-            : null
+          transactions.status === 'success' ? transactions.data.headers.Link : null
         }
       />
     </Fragment>

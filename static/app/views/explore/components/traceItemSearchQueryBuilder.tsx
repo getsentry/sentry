@@ -48,14 +48,14 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
     return {};
   }
 
-  return supportedAggregates.reduce((acc, item) => {
+  return supportedAggregates.reduce<TagCollection>((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
       kind: FieldKind.FUNCTION,
     };
     return acc;
-  }, {} as TagCollection);
+  }, {});
 };
 
 const typeMap: Partial<

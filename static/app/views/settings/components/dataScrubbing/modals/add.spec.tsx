@@ -1,6 +1,6 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {createMockAttributeResults} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {createMockTraceItemAttributesResponse} from 'sentry-fixture/traceItemAttributeKeys';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
@@ -14,11 +14,7 @@ import {
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {Add} from 'sentry/views/settings/components/dataScrubbing/modals/add';
-import {
-  AllowedDataScrubbingDatasets,
-  MethodType,
-  RuleType,
-} from 'sentry/views/settings/components/dataScrubbing/types';
+import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
@@ -32,7 +28,6 @@ const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
-const defaultAttributeResults = createMockAttributeResults();
 
 describe('Add Modal', () => {
   beforeEach(() => {
@@ -878,20 +873,13 @@ describe('Add Modal with ourlogs-enabled', () => {
   const organization = OrganizationFixture({
     features: ['ourlogs-enabled'],
   });
-  const mockAttributeResults = defaultAttributeResults;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/trace-items/attributes/`,
       method: 'GET',
-      body: Object.values(
-        mockAttributeResults[AllowedDataScrubbingDatasets.LOGS]?.attributes || {}
-      ).map(attr => ({
-        key: attr.key,
-        name: attr.name,
-        kind: attr.kind,
-      })),
+      body: createMockTraceItemAttributesResponse(),
     });
   });
 
@@ -928,13 +916,7 @@ describe('Add Modal with ourlogs-enabled', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [
-        {key: 'user.email', name: 'user.email', kind: 'tag'},
-        {key: 'user.id', name: 'user.id', kind: 'tag'},
-        {key: 'custom.field', name: 'custom.field', kind: 'tag'},
-        {key: 'request.method', name: 'request.method', kind: 'tag'},
-        {key: 'response.status', name: 'response.status', kind: 'tag'},
-      ],
+      body: createMockTraceItemAttributesResponse(),
     });
 
     render(
@@ -958,6 +940,8 @@ describe('Add Modal with ourlogs-enabled', () => {
     await userEvent.click(screen.getByLabelText('Logs'));
 
     expect(screen.getByText('Attribute')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Attribute'));
+    expect(await screen.findByText('user.email')).toBeInTheDocument();
     expect(screen.queryByText('Source')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Use event ID for auto-completion'})
@@ -1002,13 +986,7 @@ describe('Add Modal with ourlogs-enabled', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [
-        {key: 'user.email', name: 'user.email', kind: 'tag'},
-        {key: 'user.id', name: 'user.id', kind: 'tag'},
-        {key: 'custom.field', name: 'custom.field', kind: 'tag'},
-        {key: 'request.method', name: 'request.method', kind: 'tag'},
-        {key: 'response.status', name: 'response.status', kind: 'tag'},
-      ],
+      body: createMockTraceItemAttributesResponse(),
     });
 
     render(

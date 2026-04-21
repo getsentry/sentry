@@ -1216,7 +1216,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
+        "schedule": timedelta(minutes=15),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -2294,6 +2294,8 @@ if SENTRY_DEV_DSN:
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
     SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
+SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
 # The sample rate to use for profiles. This is conditional on the usage of
 # traces_sample_rate. So that means the true sample rate will be approximately

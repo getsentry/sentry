@@ -513,17 +513,16 @@ def trigger_coding_agent_handoff(
     repo_definitions: list[SeerRepoDefinition] = []
     if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
         preference = read_preference_from_sentry_db(group.project)
-        if preference:
-            repo_definitions = preference.repositories
-            if preference.automation_handoff:
-                auto_create_pr = preference.automation_handoff.auto_create_pr
+        repo_definitions = preference.repositories
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
     else:
         try:
-            preference = get_project_seer_preferences(group.project_id).preference
-            if preference:
-                repo_definitions = preference.repositories
-                if preference.automation_handoff:
-                    auto_create_pr = preference.automation_handoff.auto_create_pr
+            pref = get_project_seer_preferences(group.project_id).preference
+            if pref:
+                repo_definitions = pref.repositories
+                if pref.automation_handoff:
+                    auto_create_pr = pref.automation_handoff.auto_create_pr
         except Exception:
             logger.exception(
                 "autofix.coding_agent_handoff.get_preferences_error",

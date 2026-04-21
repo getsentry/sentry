@@ -383,6 +383,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"widget_type": "Text widgets don't have a widget type or dataset"}
             )
 
+        description = data.get("description")
+        if description is not None and len(description) > 15000:
+            raise serializers.ValidationError(
+                {"description": "Description must not exceed 15,000 characters"}
+            )
+
         queries = data.get("queries")
         if queries and len(queries) > 0:
             raise serializers.ValidationError({"queries": "Text widgets don't have queries"})
@@ -405,6 +411,16 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("display_type") == DashboardWidgetDisplayTypes.TEXT:
             return self._validate_text_widget(data)
+
+        if (
+            not data.get("id")
+            and data.get("display_type") in DashboardWidgetDisplayTypes.DEPRECATED_TYPES
+        ):
+            raise serializers.ValidationError(
+                {
+                    "display_type": f"{DashboardWidgetDisplayTypes.get_type_name(data['display_type'])} is no longer a supported display type."
+                }
+            )
 
         query_errors = []
         all_columns: set[str] = set()
@@ -549,7 +565,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Dashboard Widget limit was not set. Suggested maximum limit is {limit}."
             )
             raise serializers.ValidationError(
-                {"limit": f"limit is required. The maximum limit is ${limit}."}
+                {"limit": f"limit is required. The maximum limit is {limit}."}
             )
         # Validate limit based on display type: categorical bar charts allow up to 25,
         # all other chart types allow up to 10.

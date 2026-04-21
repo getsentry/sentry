@@ -31,8 +31,8 @@ export function ReplayIndexTimestampPrefPicker() {
           {...triggerProps}
           icon={<IconSettings />}
           size={hasPageFrameFeature ? 'sm' : undefined}
-          tooltipProps={hasPageFrameFeature ? {title: label} : undefined}
           aria-label={label}
+          tooltipProps={{title: label}}
         />
       )}
       value={prefs.timestampType}

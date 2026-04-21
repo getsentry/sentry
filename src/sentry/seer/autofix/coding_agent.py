@@ -54,6 +54,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
     StoreCodingAgentStatesRequest,
+    extract_api_error_message,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
@@ -237,7 +238,7 @@ def _launch_agents_for_repos(
         try:
             project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
             preference = read_preference_from_sentry_db(project)
-            if preference and preference.automation_handoff:
+            if preference.automation_handoff:
                 auto_create_pr = preference.automation_handoff.auto_create_pr
         except Project.DoesNotExist:
             logger.exception(
@@ -250,9 +251,9 @@ def _launch_agents_for_repos(
             )
     else:
         try:
-            preference = get_project_seer_preferences(autofix_state.request.project_id).preference
-            if preference and preference.automation_handoff:
-                auto_create_pr = preference.automation_handoff.auto_create_pr
+            pref = get_project_seer_preferences(autofix_state.request.project_id).preference
+            if pref and pref.automation_handoff:
+                auto_create_pr = pref.automation_handoff.auto_create_pr
         except (SeerApiError, SeerApiResponseValidationError):
             logger.exception(
                 "coding_agent.get_project_seer_preferences_error",
@@ -393,7 +394,10 @@ def _launch_agents_for_repos(
                 if status_code == 401:
                     error_message = "Authentication failed. Please check that your API credentials are correct and have access to the required API endpoints."
                 else:
-                    error_message = f"Failed to launch coding agent: {status_code} Error: {e}"
+                    error_message = (
+                        extract_api_error_message(e.response)
+                        or f"Failed to launch coding agent ({status_code})"
+                    )
 
             failure: dict = {
                 "repo_name": repo_name,

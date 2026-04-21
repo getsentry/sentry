@@ -1483,7 +1483,7 @@ const TraceStylingWrapper = styled('div')`
     line-height: 0;
     z-index: 1;
     font-size: 10px;
-    box-shadow: ${p => p.theme.dropShadowLight};
+    box-shadow: ${p => p.theme.shadow.low};
     margin-right: 8px;
 
     .TraceChildrenCountContent {

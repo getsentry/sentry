@@ -9,7 +9,7 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
-  generateProfileFlamechartRoute,
+  generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -181,14 +181,17 @@ export function generateProfileLink() {
     tableRow: TableDataRow,
     _location: Location | undefined
   ) => {
-    const projectSlug = tableRow['project.name'];
+    // The preferred attribute for EAP spans is `project`, but the old discover
+    // dataset rows use `project.name`.
+    const projectSlug = tableRow.project ?? tableRow['project.name'];
 
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
-      return generateProfileFlamechartRoute({
+      return generateProfileFlamechartRouteWithQuery({
         organization,
-        projectSlug: String(tableRow['project.name']),
+        projectSlug: String(projectSlug),
         profileId: String(profileId),
+        query: {referrer: 'performance'},
       });
     }
 
@@ -202,11 +205,20 @@ export function generateProfileLink() {
       typeof tableRow['precise.finish_ts'] === 'number'
         ? getDateFromTimestamp(tableRow['precise.finish_ts'] * 1000)
         : null;
-    if (projectSlug && profilerId && threadId && start && finish) {
-      const query: Record<string, string> = {tid: String(threadId)};
+    const hasThreadId =
+      typeof threadId === 'number' ||
+      (typeof threadId === 'string' && threadId.length > 0);
+    if (projectSlug && profilerId && hasThreadId && start && finish) {
+      const query: Record<string, string> = {
+        tid: String(threadId),
+        referrer: 'performance',
+      };
       if (tableRow.id && tableRow.trace) {
         query.eventId = String(tableRow.id);
         query.traceId = String(tableRow.trace);
+      }
+      if (tableRow['transaction.span_id']) {
+        query.transactionId = String(tableRow['transaction.span_id']);
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({

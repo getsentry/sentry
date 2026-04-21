@@ -142,13 +142,14 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
-      const errors = validateAutomationBuilderState(state);
+      const automationFormData = data as AutomationFormData;
+      const errors = validateAutomationBuilderState(state, automationFormData);
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length > 0) {
         const analyticsPayload = getAutomationAnalyticsPayload(
           getNewAutomationData({
-            data: data as AutomationFormData,
+            data: automationFormData,
             state,
           })
         );
@@ -167,7 +168,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       formModel.setFormSaving();
 
       const formData = await resolveDetectorIdsForProjects({
-        formData: data as AutomationFormData,
+        formData: automationFormData,
         onSubmitError,
         organization,
         projectIds: data.projectIds,

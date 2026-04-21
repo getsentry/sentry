@@ -1,110 +1,47 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import {GroupingStore} from 'sentry/stores/groupingStore';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
   hasSimilarityEmbeddingsFeature: boolean;
+  mergeCount: number;
   onMerge: () => void;
-  groupId?: string;
-  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
-  organization?: Organization;
-  project?: Project;
 };
 
-const initialState = {
-  mergeCount: 0,
-  mergeList: [] as string[],
-};
+export function SimilarToolbar({
+  hasSimilarityEmbeddingsFeature,
+  mergeCount,
+  onMerge,
+}: Props) {
+  return (
+    <PanelHeader hasButtons>
+      <Flex gap="md">
+        <Confirm
+          disabled={mergeCount === 0}
+          message={t('Are you sure you want to merge these issues?')}
+          onConfirm={onMerge}
+        >
+          <Button size="xs" tooltipProps={{title: t('Merging %s issues', mergeCount)}}>
+            {t('Merge %s', `(${mergeCount || 0})`)}
+          </Button>
+        </Confirm>
+      </Flex>
 
-type State = typeof initialState;
-
-export class SimilarToolbar extends Component<Props, State> {
-  state: State = initialState;
-
-  componentWillUnmount() {
-    this.listener?.();
-  }
-
-  onGroupChange = ({mergeList}: any) => {
-    if (!mergeList?.length) {
-      this.setState({mergeCount: 0});
-      return;
-    }
-
-    if (mergeList.length !== this.state.mergeCount) {
-      this.setState({mergeCount: mergeList.length, mergeList});
-    }
-  };
-
-  listener = GroupingStore.listen(this.onGroupChange, undefined);
-
-  handleSimilarityEmbeddings = (value: string) => {
-    if (
-      this.state.mergeList.length === 0 ||
-      !this.props.organization ||
-      !this.props.groupId
-    ) {
-      return;
-    }
-    for (const parentGroupId of this.state.mergeList) {
-      const itemWouldGroup = this.props.itemsWouldGroup?.find(
-        item => item.id === parentGroupId
-      );
-      trackAnalytics(
-        'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
-        {
-          organization: this.props.organization,
-          projectId: this.props.project?.id,
-          parentGroupId,
-          groupId: this.props.groupId,
-          value,
-          wouldGroup: itemWouldGroup?.shouldBeGrouped,
-        }
-      );
-    }
-    addSuccessMessage('Sent analytic for similarity embeddings grouping');
-  };
-
-  render() {
-    const {onMerge, hasSimilarityEmbeddingsFeature} = this.props;
-    const {mergeCount} = this.state;
-
-    return (
-      <PanelHeader hasButtons>
-        <Flex gap="md">
-          <Confirm
-            disabled={mergeCount === 0}
-            message={t('Are you sure you want to merge these issues?')}
-            onConfirm={onMerge}
-          >
-            <Button size="xs" tooltipProps={{title: t('Merging %s issues', mergeCount)}}>
-              {t('Merge %s', `(${mergeCount || 0})`)}
-            </Button>
-          </Confirm>
-        </Flex>
-
-        <Flex align="center" flexShrink={0} width="325px" minWidth="325px">
-          <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
-          <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
-          {!hasSimilarityEmbeddingsFeature && (
-            <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
-          )}
-        </Flex>
-      </PanelHeader>
-    );
-  }
+      <Flex align="center" flexShrink={0} width="325px" minWidth="325px">
+        <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
+        <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
+        {!hasSimilarityEmbeddingsFeature && (
+          <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
+        )}
+      </Flex>
+    </PanelHeader>
+  );
 }
 
 const StyledToolbarHeader = styled(ToolbarHeader)`

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -17,7 +18,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -34,10 +35,7 @@ import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCrea
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {
-  makeFetchGroupSearchViewsKey,
-  useFetchGroupSearchViews,
-} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
@@ -103,24 +101,7 @@ function IssueViewSection({
   const queryClient = useQueryClient();
   const endpointSort = getEndpointSort(sort);
 
-  const {
-    data: views = [],
-    isPending,
-    isError,
-    getResponseHeader,
-  } = useFetchGroupSearchViews(
-    {
-      orgSlug: organization.slug,
-      createdBy,
-      limit,
-      sort: endpointSort,
-      cursor,
-      query,
-    },
-    {staleTime: 0}
-  );
-
-  const tableQueryKey = makeFetchGroupSearchViewsKey({
+  const tableQueryOptions = groupSearchViewsApiOptions({
     orgSlug: organization.slug,
     createdBy,
     limit,
@@ -129,36 +110,62 @@ function IssueViewSection({
     query,
   });
 
+  const {data, isPending, isError} = useQuery({
+    ...tableQueryOptions,
+    select: selectJsonWithHeaders,
+    staleTime: 0,
+  });
+  const views = data?.json ?? [];
+
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-        return data?.map(view =>
-          view.id === variables.id ? {...view, starred: variables.starred} : view
-        );
-      });
+      queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+        prevData
+          ? {
+              ...prevData,
+              json: prevData.json.map(view =>
+                view.id === variables.id ? {...view, starred: variables.starred} : view
+              ),
+            }
+          : prevData
+      );
     },
     onError: (_error, variables) => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-        return data?.map(view =>
-          view.id === variables.id ? {...view, starred: !variables.starred} : view
-        );
-      });
+      queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+        prevData
+          ? {
+              ...prevData,
+              json: prevData.json.map(view =>
+                view.id === variables.id ? {...view, starred: !variables.starred} : view
+              ),
+            }
+          : prevData
+      );
     },
   });
   const {mutate: deleteView} = useDeleteGroupSearchView({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-        return data?.filter(v => v.id !== variables.id);
-      });
+      queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+        prevData
+          ? {...prevData, json: prevData.json.filter(v => v.id !== variables.id)}
+          : prevData
+      );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: tableQueryKey});
+      queryClient.invalidateQueries({queryKey: tableQueryOptions.queryKey});
     },
   });
   const updateViewName = (view: GroupSearchView) => {
-    setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-      return data?.map(v => (v.id === view.id ? {...v, name: view.name} : v));
-    });
+    queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(v =>
+              v.id === view.id ? {...v, name: view.name} : v
+            ),
+          }
+        : prevData
+    );
   };
 
   useRouteAnalyticsParams(
@@ -169,7 +176,7 @@ function IssueViewSection({
         }
   );
 
-  const pageLinks = getResponseHeader?.('Link');
+  const pageLinks = data?.headers.Link;
 
   if (emptyState && !isPending && views.length === 0) {
     return emptyState;

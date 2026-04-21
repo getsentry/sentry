@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +9,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
+import {
+  issueTagValuesApiOptions,
+  fetchIssueTagApiOptions,
+} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -22,6 +26,7 @@ import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -47,27 +52,26 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
 
   const {
-    data: tagValues,
+    data: tagValuesResponse,
     isError: tagValuesIsError,
     isPending: tagValuesIsPending,
-    getResponseHeader,
-  } = useFetchIssueTagValues({
-    orgSlug: organization.slug,
-    groupId: group.id,
-    tagKey,
-    sort,
-    cursor: location.query.tagDrawerCursor as string | undefined,
+  } = useQuery({
+    ...issueTagValuesApiOptions({
+      organization,
+      groupId: group.id,
+      tagKey,
+      sort,
+      cursor: location.query.tagDrawerCursor as string | undefined,
+    }),
+    select: selectJsonWithHeaders,
   });
+  const tagValues = tagValuesResponse?.json;
 
   const {
     data: tag,
     isError: tagIsError,
     isPending: tagIsPending,
-  } = useFetchIssueTag({
-    orgSlug: organization.slug,
-    groupId: group.id,
-    tagKey,
-  });
+  } = useQuery(fetchIssueTagApiOptions({organization, groupId: group.id, tagKey}));
 
   const isError = tagValuesIsError || tagIsError;
   const isPending = tagValuesIsPending || tagIsPending;
@@ -143,7 +147,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
           })
         }
         size="xs"
-        pageLinks={getResponseHeader?.('Link')}
+        pageLinks={tagValuesResponse?.headers.Link}
       />
     </Fragment>
   );

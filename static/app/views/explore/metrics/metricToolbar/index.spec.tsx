@@ -55,11 +55,7 @@ describe('MetricToolbar', () => {
 
   it('renders group by selector for equation visualizations', async () => {
     const organization = OrganizationFixture({
-      features: [
-        'tracemetrics-enabled',
-        'tracemetrics-ui-refresh',
-        'tracemetrics-equations-in-explore',
-      ],
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
     });
 
     const queryParams = new ReadableQueryParams({
@@ -91,24 +87,21 @@ describe('MetricToolbar', () => {
     expect(await screen.findByRole('button', {name: /Group by/})).toBeInTheDocument();
 
     // The query is left undefined for the attributes request because
-    // we currently don't filter the attributes for equations
-    ['string', 'number', 'boolean'].forEach(attributeType => {
-      expect(mockAttributesRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/trace-items/attributes/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            itemType: 'tracemetrics',
-            attributeType,
-            query: undefined,
-          }),
-        })
-      );
-    });
+    // we currently don't filter the attributes for equations.
+    expect(mockAttributesRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/trace-items/attributes/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          itemType: 'tracemetrics',
+          attributeType: ['string', 'number', 'boolean'],
+        }),
+      })
+    );
   });
 
   it('renders group by selector for function visualizations', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-ui-refresh'],
+      features: ['tracemetrics-enabled'],
     });
 
     const queryParams = new ReadableQueryParams({

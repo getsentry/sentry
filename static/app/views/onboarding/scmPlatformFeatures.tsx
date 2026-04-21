@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
@@ -84,6 +84,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
+    setProjectDetailsForm,
   } = useOnboardingContext();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
@@ -130,6 +131,27 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   const detectedPlatformKey = resolvedPlatforms[0]?.platform;
   // Derive platform from explicit selection, falling back to first detected
   const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
+
+  // Fire scm_platform_selected once when detection auto-resolves a platform
+  // and the user hasn't explicitly chosen one. Otherwise a user who accepts
+  // the recommendation and clicks Continue never emits the event, leaving
+  // the funnel without a platform-selected step.
+  const autoDetectionTrackedRef = useRef(false);
+  useEffect(() => {
+    if (
+      autoDetectionTrackedRef.current ||
+      !detectedPlatformKey ||
+      selectedPlatform?.key
+    ) {
+      return;
+    }
+    autoDetectionTrackedRef.current = true;
+    trackAnalytics('onboarding.scm_platform_selected', {
+      organization,
+      platform: detectedPlatformKey,
+      source: 'detected',
+    });
+  }, [detectedPlatformKey, selectedPlatform?.key, organization]);
 
   const availableFeatures = useMemo(
     () =>
@@ -200,6 +222,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
     setSelectedPlatform(sdk);
     setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
   };
 
   const handleManualPlatformSelect = async (option: {value: string}) => {
@@ -267,6 +290,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
     setPlatform(platformKey);
     setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
 
     trackAnalytics('onboarding.scm_platform_selected', {
       organization,
@@ -281,6 +305,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     }
     setPlatform(platformKey);
     setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    setProjectDetailsForm(undefined);
 
     trackAnalytics('onboarding.scm_platform_selected', {
       organization,
@@ -303,6 +328,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     if (detectedPlatformKey) {
       setPlatform(detectedPlatformKey);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+      setProjectDetailsForm(undefined);
     }
   }
 

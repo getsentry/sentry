@@ -21,7 +21,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
+import {IconBookmark, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -431,25 +431,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     // Is a new query enable saveas
     return this.renderButtonSaveAs(disabled);
-  }
-
-  renderButtonDelete(disabled: boolean) {
-    const {isNewQuery} = this.state;
-
-    if (isNewQuery) {
-      return null;
-    }
-
-    return (
-      <Button
-        data-test-id="discover2-savedquery-button-delete"
-        onClick={this.handleDeleteQuery}
-        disabled={disabled}
-        size="sm"
-        icon={<IconDelete />}
-        aria-label={t('Delete')}
-      />
-    );
   }
 
   renderButtonCreateAlert() {
