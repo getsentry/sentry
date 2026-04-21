@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -39,34 +40,33 @@ export default function SubscriptionSettingsLayout() {
   };
 
   return (
-    <SettingsColumn direction="column" flex={1} minWidth="0">
-      <StyledSettingsHeader>
-        <Flex align="center" justify="between" gap="xl">
-          <StyledSettingsBreadcrumb params={params} routes={routes} />
-          <Flex align="center" gap="xl">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton feedbackOptions={feedbackOptions}>{null}</FeedbackButton>
-              </TopBar.Slot>
-            ) : (
-              <FeedbackButton feedbackOptions={feedbackOptions} />
-            )}
+    <Flex direction="column" flex={1} minWidth="0">
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+          </TopBar.Slot>
+          <TopBar.Slot name="actions">
             <SettingsSearch />
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <StyledSettingsHeader>
+          <Flex align="center" justify="between" gap="xl">
+            <StyledSettingsBreadcrumb params={params} routes={routes} />
+            <Flex align="center" gap="xl">
+              <FeedbackButton feedbackOptions={feedbackOptions} />
+              <SettingsSearch />
+            </Flex>
           </Flex>
-        </Flex>
-      </StyledSettingsHeader>
+        </StyledSettingsHeader>
+      )}
       <Flex minWidth={0} flex="1" direction="column">
         <Outlet />
       </Flex>
-    </SettingsColumn>
+    </Flex>
   );
 }
-
-const SettingsColumn = styled(Flex)`
-  footer {
-    margin-top: 0;
-  }
-`;
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
