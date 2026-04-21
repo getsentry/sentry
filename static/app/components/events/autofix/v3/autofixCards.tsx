@@ -26,7 +26,6 @@ import {
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconRefresh} from 'sentry/iconRefresh';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -34,6 +33,7 @@ import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconList} from 'sentry/icons/iconList';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {MarkedText} from 'sentry/utils/marked/markedText';
