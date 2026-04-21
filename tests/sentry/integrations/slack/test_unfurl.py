@@ -2209,6 +2209,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2233,6 +2234,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2254,6 +2256,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2278,6 +2281,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2307,6 +2311,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2359,6 +2364,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2385,6 +2391,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2410,6 +2417,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
@@ -2438,6 +2446,7 @@ class UnfurlTest(TestCase):
             f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
         )
         link_type, args = match_link(url)
+        assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
         with self.feature(["organizations:dashboards-widget-unfurl"]):
