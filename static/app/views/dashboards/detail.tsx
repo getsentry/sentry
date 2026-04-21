@@ -61,6 +61,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRouter} from 'sentry/utils/useRouter';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
+import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -561,7 +562,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
+    const {organization, dashboard, api, onDashboardUpdate, location, queryClient} =
+      this.props;
     const {modifiedDashboard} = this.state;
 
     // Use the new widgets for calculating layout because widgets has
@@ -582,6 +584,9 @@ class DashboardDetail extends Component<Props, State> {
     }
     return updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
+        queryClient.invalidateQueries({
+          queryKey: getDashboardRevisionsQueryKey(organization.slug, newDashboard.id),
+        });
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
           this.setState({
@@ -837,7 +842,8 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onCommit = () => {
-    const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
+    const {api, organization, location, dashboard, onDashboardUpdate, queryClient} =
+      this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -918,6 +924,12 @@ class DashboardDetail extends Component<Props, State> {
           });
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
+              queryClient.invalidateQueries({
+                queryKey: getDashboardRevisionsQueryKey(
+                  organization.slug,
+                  newDashboard.id
+                ),
+              });
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
@@ -1153,6 +1165,7 @@ class DashboardDetail extends Component<Props, State> {
       onDashboardUpdate,
       pageAlerts,
       projects,
+      queryClient,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1325,6 +1338,12 @@ class DashboardDetail extends Component<Props, State> {
                                   newModifiedDashboard
                                 ).then(
                                   (newDashboard: DashboardDetails) => {
+                                    queryClient.invalidateQueries({
+                                      queryKey: getDashboardRevisionsQueryKey(
+                                        organization.slug,
+                                        newDashboard.id
+                                      ),
+                                    });
                                     addSuccessMessage(t('Dashboard filters updated'));
                                     trackAnalytics('dashboards2.filter.save', {
                                       organization,

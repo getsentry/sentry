@@ -112,6 +112,7 @@ export type IntegrationRepository = {
   isInstalled: boolean;
   name: string;
   defaultBranch?: string | null;
+  url?: string | null;
 };
 
 export type Commit = {

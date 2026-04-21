@@ -122,7 +122,7 @@ class IssueLinkRequester:
                 )
 
                 raise SentryAppIntegratorError(
-                    message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
+                    message=f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
                     webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
                     status_code=500,
                 )

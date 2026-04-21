@@ -17,7 +17,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {
   makeFetchSecretQueryKey,
   type Secret,
@@ -65,10 +64,9 @@ function OrganizationFeatureFlagsNewSecret() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Add New Provider')} />
-      <SettingsPageHeader title={t('Add New Provider')} />
-
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Add New Provider')}
+        subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
@@ -76,7 +74,7 @@ function OrganizationFeatureFlagsNewSecret() {
             ),
           }
         )}
-      </TextBlock>
+      />
       <Alert.Container>
         <Alert variant="info">
           {t('Note that each provider can only have one associated signing secret.')}

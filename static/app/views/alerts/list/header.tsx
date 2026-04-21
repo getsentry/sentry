@@ -88,11 +88,17 @@ export function AlertHeader({activeTab}: Props) {
               onClick={handleNavigateToSettings}
               href="#"
               icon={<IconSettings size="sm" />}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
             />
           </TopBar.Slot>
           <TopBar.Slot name="feedback">
-            <FeedbackButton>{null}</FeedbackButton>
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
           </TopBar.Slot>
         </Fragment>
       ) : (

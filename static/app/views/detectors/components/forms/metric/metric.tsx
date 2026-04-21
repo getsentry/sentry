@@ -22,7 +22,7 @@ import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
-import {generateFieldAsString, isEquation} from 'sentry/utils/discover/fields';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -407,10 +407,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
   const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
 
-  const aggregateFunction = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-
   return (
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
@@ -483,9 +479,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
           </DisabledSection>
         </Tooltip>
         {canUseMetricsEquationsInAlerts(organization) &&
-        dataset === DetectorDataset.METRICS &&
-        aggregateFunction &&
-        isEquation(aggregateFunction) ? null : (
+        dataset === DetectorDataset.METRICS ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
             isHoverable

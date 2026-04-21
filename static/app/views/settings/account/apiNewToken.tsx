@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -31,7 +31,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {
   PermissionSelection,
   permissionStateToList,
@@ -121,20 +120,26 @@ export default function ApiNewToken() {
   return (
     <SentryDocumentTitle title={t('Create New Personal Token')}>
       <div>
-        <SettingsPageHeader title={t('Create New Personal Token')} />
-        <TextBlock>
-          {t(
-            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-          )}
-        </TextBlock>
-        <TextBlock>
-          {tct(
-            'For more information on how to use the web API, see our [link:documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/api/" />,
-            }
-          )}
-        </TextBlock>
+        <SettingsPageHeader
+          title={t('Create New Personal Token')}
+          subtitle={
+            <Stack gap="md">
+              <div>
+                {t(
+                  "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+                )}
+              </div>
+              <div>
+                {tct(
+                  'For more information on how to use the web API, see our [link:documentation].',
+                  {
+                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                  }
+                )}
+              </div>
+            </Stack>
+          }
+        />
         <form.AppForm form={form}>
           <form.FieldGroup title={t('General')}>
             <form.AppField name="name">
