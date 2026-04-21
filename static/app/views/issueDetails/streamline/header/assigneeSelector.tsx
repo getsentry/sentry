@@ -11,7 +11,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {IconClose, IconSettings, IconUser} from 'sentry/icons';
+import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
@@ -146,6 +146,11 @@ export function GroupHeaderAssigneeCommandPaletteAction({
   const additionalOwners = owners.filter(
     owner => !assignableActorKeys.has(`${owner.type}:${owner.id}`)
   );
+  const currentAssigneeLabel = group.assignedTo
+    ? group.assignedTo.type === 'team'
+      ? `#${group.assignedTo.name}`
+      : group.assignedTo.name
+    : null;
 
   return (
     <CMDKAction
@@ -154,12 +159,6 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         icon: currentAssigneeIcon,
       }}
     >
-      {group.assignedTo && (
-        <CMDKAction
-          display={{label: t('Unassign'), icon: <IconClose />}}
-          onAction={() => handleAssigneeChange(null)}
-        />
-      )}
       {user && (
         <CMDKAction
           display={{
@@ -179,6 +178,15 @@ export function GroupHeaderAssigneeCommandPaletteAction({
               type: 'user',
             })
           }
+        />
+      )}
+      {group.assignedTo && (
+        <CMDKAction
+          display={{
+            label: t('Unassign from %s', currentAssigneeLabel),
+            icon: <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />,
+          }}
+          onAction={() => handleAssigneeChange(null)}
         />
       )}
       {assignableUsers.map(member => (
