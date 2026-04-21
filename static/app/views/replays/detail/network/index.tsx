@@ -86,9 +86,7 @@ export function NetworkList() {
 
   const handleScrollToTableRow = useCallback(
     (row: number) => {
-      setTimeout(() => {
-        virtualizer.scrollToIndex(row - 1, {align: 'auto'});
-      }, 50);
+      virtualizer.scrollToIndex(row - 1, {align: 'center', behavior: 'smooth'});
     },
     [virtualizer]
   );
