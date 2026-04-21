@@ -9,6 +9,7 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
@@ -284,7 +285,7 @@ def _is_org_eligible(org_id: int) -> bool:
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.run_llm_issue_detection",
     namespace=issues_tasks,
-    processing_deadline_duration=120,  # 2 minutes
+    processing_deadline_duration=300,  # 5 minutes
 )
 def run_llm_issue_detection() -> None:
     """
@@ -299,7 +300,10 @@ def run_llm_issue_detection() -> None:
     scheduler = CursoredScheduler(
         name="llm_issue_detection",
         schedule_key="llm-issue-detection",
-        queryset=Organization.objects.filter(status=OrganizationStatus.ACTIVE),
+        queryset=Organization.objects.filter(
+            status=OrganizationStatus.ACTIVE,
+            flags=F("flags").bitor(Organization.flags.early_adopter),
+        ),
         task=detect_llm_issues_for_org,
         cycle_duration=DETECTION_CYCLE_DURATION,
         validate_item=_is_org_eligible,
