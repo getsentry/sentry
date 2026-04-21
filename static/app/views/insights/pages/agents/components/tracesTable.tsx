@@ -1,11 +1,9 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -25,7 +23,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {isOverflown} from 'sentry/utils/useHoverOverlay';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
@@ -40,45 +39,47 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
-import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
+import {decodeUnicodeEscapes} from 'sentry/views/insights/pages/agents/utils/decodeUnicodeEscapes';
 import {
   getAgentRunsFilter,
-  getHasAgentNameFilter,
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
+import {extractTextFromMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
-  agents: string[];
-  duration: number;
   errors: number;
   llmCalls: number;
+  output: string | null;
   timestamp: number;
   toolCalls: number;
   totalCost: number | null;
   totalTokens: number;
   traceId: string;
-  transaction: string;
-  isAgentDataLoading?: boolean;
+  isOutputLoading?: boolean;
   isSpanDataLoading?: boolean;
+}
+
+interface OutputMessage {
+  role: string;
+  content?: string | Array<{text: string}>;
+  parts?: Array<{type: string; content?: string; text?: string}>;
 }
 
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
-  {key: 'agents', name: t('Agents / Trace Root'), width: COL_WIDTH_UNDEFINED},
-  {key: 'duration', name: t('Root Duration'), width: 130},
+  {key: 'output', name: t('Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
@@ -88,7 +89,6 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 ];
 
 const rightAlignColumns = new Set([
-  'duration',
   'errors',
   'llmCalls',
   'totalTokens',
@@ -169,31 +169,34 @@ export function TracesTable({
     Referrer.TRACES_TABLE
   );
 
-  const agentsRequest = useSpans(
+  const outputRequest = useSpans(
     {
-      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}]`,
-      fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
-      sorts: [{field: 'timestamp', kind: 'asc'}],
+      search: `gen_ai.operation.type:ai_client (has:gen_ai.output.messages OR has:gen_ai.response.text) trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}]`,
+      fields: ['trace', 'gen_ai.output.messages', 'gen_ai.response.text', 'timestamp'],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       enabled: Boolean(tracesData && tracesData.length > 0),
     },
     Referrer.TRACES_TABLE
   );
 
-  const traceAgents = useMemo<Map<string, Set<string>>>(() => {
-    if (!agentsRequest.data) {
+  const traceOutputs = useMemo<Map<string, string>>(() => {
+    if (!outputRequest.data) {
       return new Map();
     }
-    return agentsRequest.data.reduce((acc, span) => {
-      const agentName = resolveAgentName(span);
-      if (agentName) {
-        const agentsSet = acc.get(span.trace) ?? new Set();
-        agentsSet.add(agentName);
-        acc.set(span.trace, agentsSet);
+    const map = new Map<string, string>();
+    for (const span of outputRequest.data) {
+      const traceId = span.trace;
+      if (map.has(traceId)) {
+        continue;
       }
-      return acc;
-    }, new Map<string, Set<string>>());
-  }, [agentsRequest.data]);
+      const output = extractOutputFromSpan(span);
+      if (output) {
+        map.set(traceId, output);
+      }
+    }
+    return map;
+  }, [outputRequest.data]);
 
   const traceErrorRequest = useSpans(
     {
@@ -247,16 +250,14 @@ export function TracesTable({
 
     return tracesData.map(span => ({
       traceId: span.trace,
-      transaction: span.name ?? '',
-      duration: span.duration,
       errors: spanDataMap[span.trace]?.totalErrors ?? 0,
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
       totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
-      agents: Array.from(traceAgents.get(span.trace) ?? []),
-      isAgentDataLoading: agentsRequest.isLoading,
+      output: traceOutputs.get(span.trace) ?? null,
+      isOutputLoading: outputRequest.isLoading,
       isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
   }, [
@@ -264,8 +265,8 @@ export function TracesTable({
     spanDataMap,
     spansRequest.isLoading,
     traceErrorRequest.isLoading,
-    traceAgents,
-    agentsRequest.isLoading,
+    traceOutputs,
+    outputRequest.isLoading,
   ]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
@@ -273,7 +274,7 @@ export function TracesTable({
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'agents' && <CellExpander />}
+        {column.key === 'output' && <CellExpander />}
       </HeadCell>
     );
   }, []);
@@ -379,26 +380,26 @@ const BodyCell = memo(function BodyCell({
           </TraceIdButton>
         </span>
       );
-    case 'agents':
-      if (dataRow.isAgentDataLoading) {
+    case 'output':
+      if (dataRow.isOutputLoading) {
         return <Placeholder width="100%" height="16px" />;
       }
-      return dataRow.agents.length > 0 ? (
-        <AgentTags agents={dataRow.agents} />
-      ) : (
-        <Container paddingLeft="xs">
-          <Tooltip
-            title={dataRow.transaction}
-            maxWidth={500}
-            showOnlyOnOverflow
-            skipWrapper
-          >
-            <Text ellipsis>{dataRow.transaction}</Text>
-          </Tooltip>
-        </Container>
+      if (!dataRow.output) {
+        return <Text variant="muted">&mdash;</Text>;
+      }
+      return (
+        <Tooltip
+          title={<OutputTooltipContent text={dataRow.output} />}
+          showOnlyOnOverflow
+          maxWidth={800}
+          isHoverable
+          delay={500}
+          skipWrapper
+          position="right"
+        >
+          <OutputCellContent text={dataRow.output} />
+        </Tooltip>
       );
-    case 'duration':
-      return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
       return (
         <ErrorCell
@@ -435,100 +436,56 @@ const BodyCell = memo(function BodyCell({
   }
 });
 
-function AgentTags({agents}: {agents: string[]}) {
-  const [showAll, setShowAll] = useState(false);
-  const location = useLocation();
-  const [agentFilters] = useQueryState(
-    'agent',
-    parseAsArrayOf(parseAsString).withDefault([])
-  );
-  const [showToggle, setShowToggle] = useState(false);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+const TOOLTIP_MAX_CHARS = 2048;
+const CELL_MAX_CHARS = 256;
 
-  const handleShowAll = () => {
-    setShowAll(!showAll);
-
-    if (!containerRef.current) return;
-    // While the all tags are visible, observe the container to see if it displays more than one line (22px)
-    // so we can reset the show all state accordingly
-    const observer = new ResizeObserver(entries => {
-      const containerElement = entries[0]?.target;
-      if (!containerElement || containerElement.clientHeight > 22) return;
-      setShowToggle(false);
-      setShowAll(false);
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    });
-    resizeObserverRef.current = observer;
-    observer.observe(containerRef.current);
-  };
-
-  // Cleanup the resize observer when the component unmounts
-  useEffect(() => {
-    return () => {
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
+function OutputTooltipContent({text}: {text: string}) {
   return (
-    <Flex
-      align="start"
-      direction="row"
-      gap="sm"
-      wrap={showAll ? 'wrap' : 'nowrap'}
-      overflow="hidden"
-      position="relative"
-      ref={containerRef}
-      onMouseEnter={event => {
-        setShowToggle(isOverflown(event.currentTarget));
-      }}
-      onMouseLeave={() => setShowToggle(false)}
-    >
-      {agents.map(agent => {
-        const isAgentInUrl = agentFilters.includes(agent);
-        return (
-          <Tooltip
-            key={agent}
-            title={isAgentInUrl ? t('Remove from filter') : t('Add to filter')}
-            maxWidth={500}
-            skipWrapper
-          >
-            <Link
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  agent: isAgentInUrl
-                    ? agentFilters.filter(urlAgent => urlAgent !== agent)
-                    : [...agentFilters, agent],
-                  [TableUrlParams.CURSOR]: null,
-                },
-              }}
-            >
-              <Tag key={agent} variant="muted">
-                {agent}
-              </Tag>
-            </Link>
-          </Tooltip>
-        );
-      })}
-      {/* Placeholder for floating button */}
-      <Container width="100px" height="20px" flexShrink={0} />
-      <Container
-        display={showToggle || showAll ? 'block' : 'none'}
-        position="absolute"
-        background="primary"
-        padding="2xs xs 0 xl"
-        style={{bottom: '0', right: '0'}}
-      >
-        <Button variant="link" size="xs" onClick={handleShowAll}>
-          {showAll ? t('Show less') : t('Show all')}
-        </Button>
-      </Container>
-    </Flex>
+    <TooltipTextContainer>
+      <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
+    </TooltipTextContainer>
   );
+}
+
+function cleanMarkdownForCell(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function OutputCellContent({
+  text,
+  ...props
+}: {text: string} & React.ComponentPropsWithRef<'div'>) {
+  const cleanedText = cleanMarkdownForCell(text);
+  return (
+    <SingleLineMarkdown {...props}>
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+    </SingleLineMarkdown>
+  );
+}
+
+function extractOutputFromSpan(span: Record<string, unknown>): string | null {
+  const outputMessages = span['gen_ai.output.messages'];
+  if (typeof outputMessages === 'string') {
+    try {
+      const messagesArray: OutputMessage[] = JSON.parse(outputMessages);
+      const assistantMessage = messagesArray.findLast(
+        msg => msg.role === 'assistant' && (msg.content || msg.parts)
+      );
+      if (assistantMessage) {
+        const text = extractTextFromMessage(assistantMessage);
+        return text ? decodeUnicodeEscapes(text) : null;
+      }
+    } catch {
+      // Invalid JSON, fall through
+    }
+  }
+
+  const responseText = span['gen_ai.response.text'];
+  return typeof responseText === 'string' ? decodeUnicodeEscapes(responseText) : null;
 }
 
 const FramelessContainer = styled('div')`
@@ -573,6 +530,34 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
 const TraceIdButton = styled(Button)`
   font-weight: normal;
   padding: 0;
+`;
+
+const TooltipTextContainer = styled('div')`
+  text-align: left;
+  max-width: min(800px, 60vw);
+  max-height: 50vh;
+  overflow: hidden;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit;
+    font-weight: bold;
+    margin: 0;
+  }
+`;
+
+const SingleLineMarkdown = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  * {
+    display: inline;
+  }
 `;
 
 const StyledPagination = styled(Pagination)`
