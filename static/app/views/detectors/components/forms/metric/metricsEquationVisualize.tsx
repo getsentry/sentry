@@ -52,6 +52,19 @@ import {
 const FUNCTION_GRID_COLUMNS = '24px 24px 3fr 2fr 6fr 40px';
 const EQUATION_GRID_COLUMNS = '24px 24px 5fr 6fr 40px';
 
+function computeEquationReferencedLabels(
+  equationQuery: MetricQuery | undefined,
+  referenceMap: Record<string, string>
+): string[] {
+  const visualize = equationQuery?.queryParams.visualizes[0];
+  if (!visualize || !isVisualizeEquation(visualize)) {
+    return [];
+  }
+  const labelSet = new Set(Object.keys(referenceMap));
+  const unresolvedText = unresolveExpression(visualize.expression.text, referenceMap);
+  return extractReferenceLabels(new Expression(unresolvedText, labelSet));
+}
+
 export function MetricsEquationVisualize() {
   const organization = useOrganization();
   const hasEquations = canUseMetricsEquationsInAlerts(organization);
@@ -134,27 +147,21 @@ function MetricsEquationVisualizeContent() {
     [metricQueries]
   );
 
-  // Labels (A, B, …) from the function rows that are actually used inside
-  // the equation expression. Metrics in this set cannot be deleted without
-  // leaving dangling references.
-  const referencedLabels = useMemo(() => {
-    if (!equationQuery) {
-      return new Set<string>();
+  // Labels (A, B, etc) from the function rows used inside the equation.
+  const [equationReferencedLabels, setEquationReferencedLabels] = useState<string[]>(() =>
+    computeEquationReferencedLabels(equationQuery, referenceMap)
+  );
+  const referencedLabels = useMemo(
+    () => new Set(equationReferencedLabels),
+    [equationReferencedLabels]
+  );
+
+  const hasEquationRow = Boolean(equationQuery);
+  useEffect(() => {
+    if (!hasEquationRow) {
+      setEquationReferencedLabels([]);
     }
-    const equationVisualize = equationQuery.queryParams.visualizes[0];
-    if (!equationVisualize || !isVisualizeEquation(equationVisualize)) {
-      return new Set<string>();
-    }
-    const labelSet = new Set(
-      functionQueries.map(q => q.label).filter((l): l is string => Boolean(l))
-    );
-    const unresolvedText = unresolveExpression(
-      equationVisualize.expression.text,
-      referenceMap
-    );
-    const expr = new Expression(unresolvedText, labelSet);
-    return new Set(extractReferenceLabels(expr));
-  }, [equationQuery, functionQueries, referenceMap]);
+  }, [hasEquationRow]);
 
   return (
     <Stack gap="md">
@@ -187,6 +194,7 @@ function MetricsEquationVisualizeContent() {
                 selectedLabel !== undefined && selectedLabel === equationQuery.label
               }
               onRowSelection={onRowSelection}
+              onReferenceLabelsChange={setEquationReferencedLabels}
             />
           </RowProvider>
         </Fragment>
@@ -281,12 +289,14 @@ function MetricToolbar({
   canDelete,
   isSelected,
   onRowSelection,
+  onReferenceLabelsChange,
 }: {
   canDelete: boolean;
   isSelected: boolean;
   metricQuery: MetricQuery;
   onRowSelection: (label: string) => void;
   referenceMap: Record<string, string>;
+  onReferenceLabelsChange?: (labels: string[]) => void;
 }) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
@@ -299,11 +309,19 @@ function MetricToolbar({
     },
     [metricQuery]
   );
-  const handleExpressionChange = (resolvedExpression: Expression) => {
+  const handleExpressionChange = (
+    resolvedExpression: Expression,
+    internalText: string
+  ) => {
     if (isVisualizeEquation(visualize)) {
       setVisualize(
         visualize.replace({yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`})
       );
+      // Report the user's typed labels (pre-resolve) so identical rows don't
+      // collapse the lock onto whichever label sorts first in the map.
+      const labelSet = new Set(Object.keys(referenceMap));
+      const expr = new Expression(internalText, labelSet);
+      onReferenceLabelsChange?.(extractReferenceLabels(expr));
     }
   };
 
