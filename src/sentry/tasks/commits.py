@@ -429,7 +429,3 @@ def fetch_commits(
         Deploy.notify_if_ready(deploy_id, fetch_complete=True)
 
     logger.info("fetch_commits.complete", extra=extra)
-
-
-def is_integration_provider(provider: str | None) -> bool:
-    return bool(provider and provider.startswith("integrations:"))
