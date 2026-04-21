@@ -39,7 +39,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
 
     enforce_rate_limit = True
 
-    @staticmethod
+    @property
     def rate_limits(*args: Any, **kwargs: Any) -> RateLimitConfig:
         override = options.get("api.project-transfer.rate-limit-overrides").get(
             str(kwargs.get("organization_id_or_slug", "")), {}
