@@ -11,6 +11,8 @@ ruleTester.run('no-flag-comments', noFlagComments, {
     {code: '/** JSDoc comment */'},
     {code: '// a - b - c'},
     {code: '// --strict flag enables strict mode'},
+    {code: '// =='},
+    {code: '// -=-=-=-=-'},
   ],
   invalid: [
     {
@@ -24,6 +26,38 @@ ruleTester.run('no-flag-comments', noFlagComments, {
     {
       code: '// ----------',
       errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: '// ========================================================================',
+      errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: '// ***',
+      errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: '// ___',
+      errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: '// ###',
+      errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: '// ~~~',
+      errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: '// ─────────',
+      errors: [{messageId: 'noFlagComment'}],
+    },
+    {
+      code: [
+        '// ========================================================================',
+        '// RELEASE DETAIL CONTAINER',
+        '// ========================================================================',
+      ].join('\n'),
+      errors: [{messageId: 'noFlagComment'}, {messageId: 'noFlagComment'}],
     },
     {
       code: [
