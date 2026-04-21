@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from types import TracebackType
 from typing import Any, Literal, Self, TypedDict, TypeVar, overload
 
@@ -31,7 +31,7 @@ class SessionSettings(TypedDict, total=False):
     timeout: int
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
-    proxies: Mapping[str, str]
+    proxies: MutableMapping[str, str]
     stream: bool | None
     verify: bool | str | None
     cert: str | tuple[str, str] | None
@@ -172,18 +172,18 @@ class BaseApiClient:
         return build_session()
 
     @staticmethod
-    def _is_valid_cert_setting(cert_setting: object) -> bool:
+    def _normalize_cert_setting(cert_setting: object) -> str | tuple[str, str] | None:
         # ``requests`` accepts cert as None, a single cert path, or a
         # (cert_file, key_file) tuple.
         if cert_setting is None or isinstance(cert_setting, str):
-            return True
+            return cert_setting
         if (
             isinstance(cert_setting, tuple)
             and len(cert_setting) == 2
             and all(isinstance(item, str) for item in cert_setting)
         ):
-            return True
-        return False
+            return cert_setting
+        return None
 
     def _build_session_settings(
         self,
@@ -199,7 +199,7 @@ class BaseApiClient:
         }
 
         proxies_setting = environment_settings.get("proxies")
-        if isinstance(proxies_setting, Mapping):
+        if isinstance(proxies_setting, MutableMapping):
             session_settings["proxies"] = proxies_setting
 
         stream_setting = environment_settings.get("stream")
@@ -214,9 +214,8 @@ class BaseApiClient:
         ):
             session_settings["verify"] = verify_setting
 
-        cert_setting = environment_settings.get("cert")
-        if self._is_valid_cert_setting(cert_setting):
-            session_settings["cert"] = cert_setting
+        cert_setting = self._normalize_cert_setting(environment_settings.get("cert"))
+        session_settings["cert"] = cert_setting
 
         return session_settings
 
