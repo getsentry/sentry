@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from concurrent.futures import as_completed
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, get_args
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -44,7 +44,8 @@ logger = logging.getLogger(__name__)
 
 MAX_THREADS = 4
 
-SUPPORTED_ITEM_TYPES = ["spans", "occurrences"]
+SupportedItemType = Literal["spans", "occurrences"]
+SUPPORTED_ITEM_TYPES: tuple[SupportedItemType, ...] = get_args(SupportedItemType)
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,7 @@ class TraceItemStatsConfig:
     id_column: str
 
 
-def get_trace_item_stats_config(item_type: str) -> TraceItemStatsConfig:
+def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsConfig:
     if item_type == "occurrences":
         return TraceItemStatsConfig(
             rpc_class=Occurrences,
