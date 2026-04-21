@@ -89,6 +89,7 @@ function TopBarContent() {
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                    tooltipProps={{title: t('Give Feedback')}}
                   >
                     {null}
                   </FeedbackButton>

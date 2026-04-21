@@ -5,6 +5,7 @@ import logging
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
 from taskbroker_client.retry import Retry
 
+from sentry import analytics
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -15,6 +16,10 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointInteractionType,
 )
 from sentry.seer.entrypoints.operator import SeerExplorerOperator
+from sentry.seer.entrypoints.slack.analytics import (
+    SlackSeerAgentConversation,
+    SlackSeerAgentResponded,
+)
 from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
 from sentry.seer.entrypoints.slack.metrics import (
@@ -26,7 +31,7 @@ from sentry.taskworker.namespaces import integrations_tasks
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -45,6 +50,7 @@ def process_mention_for_slack(
     text: str,
     slack_user_id: str,
     bot_user_id: str,
+    conversation_type: SlackSeerAgentConversation = SlackSeerAgentConversation.DIRECT_MESSAGE,
 ) -> None:
     """
     Process a Slack @mention for Seer Explorer.
@@ -132,6 +138,7 @@ def process_mention_for_slack(
         prompt = extract_prompt(text, bot_user_id)
 
         # Only fetch thread context when actually in a thread.
+        messages: list[dict] = []
         thread_context: str | None = None
         if thread_ts:
             messages = entrypoint.install.get_thread_history(
@@ -140,7 +147,7 @@ def process_mention_for_slack(
             thread_context = build_thread_context(messages) or None
 
         operator = SeerExplorerOperator(entrypoint=entrypoint)
-        operator.trigger_explorer(
+        run_id = operator.trigger_explorer(
             organization=organization,
             user=user,
             prompt=prompt,
@@ -148,6 +155,43 @@ def process_mention_for_slack(
             category_key="slack_thread",
             category_value=f"{channel_id}:{entrypoint.thread_ts}",
         )
+
+        if run_id is None:
+            return
+
+        slack_user_ids_in_thread = {
+            msg_user
+            for msg in messages
+            if isinstance(msg_user := msg.get("user"), str) and msg_user != bot_user_id
+        } | {slack_user_id}
+
+        try:
+            linked_user_count = _count_linked_users(
+                integration=entrypoint.integration,
+                slack_user_ids=slack_user_ids_in_thread,
+            )
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.count_linked_users_failed", exc_info=e)
+            linked_user_count = 0
+
+        analytics_event = SlackSeerAgentResponded(
+            org_slug=organization.slug,
+            username=user.username,
+            thread_ts=thread_ts or ts,
+            prompt_length=len(prompt),
+            run_id=run_id,
+            integration_id=integration_id,
+            messages_in_thread=max(len(messages), 1),
+            seer_msgs_in_thread=sum(1 for m in messages if m.get("user") == bot_user_id),
+            unique_users_in_thread=len(slack_user_ids_in_thread),
+            linked_users_in_thread=linked_user_count,
+            conversation_type=conversation_type,
+        )
+
+        try:
+            analytics.record(analytics_event)
+        except Exception as e:
+            _logger.warning("seer.slack.process_mention.analytics_failed", exc_info=e)
 
 
 def _resolve_user(
@@ -173,6 +217,31 @@ def _resolve_user(
         return None
 
     return user_service.get_user(identity.user_id)
+
+
+def _count_linked_users(
+    *,
+    integration: RpcIntegration,
+    slack_user_ids: set[str],
+) -> int:
+    """Count how many of the given Slack user IDs have a linked Sentry identity."""
+    if not slack_user_ids:
+        return 0
+
+    provider = identity_service.get_provider(
+        provider_type=integration.provider,
+        provider_ext_id=integration.external_id,
+    )
+    if not provider:
+        return 0
+
+    identities = identity_service.get_identities(
+        filter={
+            "provider_id": provider.id,
+            "identity_ext_ids": list(slack_user_ids),
+        }
+    )
+    return len(identities)
 
 
 def _send_link_identity_prompt(

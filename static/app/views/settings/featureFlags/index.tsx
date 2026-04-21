@@ -14,7 +14,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 function OrganizationFeatureFlagsIndex() {
   const organization = useOrganization();
@@ -23,9 +22,9 @@ function OrganizationFeatureFlagsIndex() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Feature Flags')} />
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Feature Flags')}
+        subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. To learn more about our feature flag features, [link:read our docs].',
           {
             link: (
@@ -33,7 +32,7 @@ function OrganizationFeatureFlagsIndex() {
             ),
           }
         )}
-      </TextBlock>
+      />
 
       <Panel>
         <PanelHeader>{t('Features')}</PanelHeader>

@@ -155,9 +155,9 @@ function OrganizationFeatureFlagsChangeTracking() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Change Tracking')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Change Tracking')} />
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Change Tracking')}
+        subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
@@ -165,7 +165,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             ),
           }
         )}
-      </TextBlock>
+      />
 
       <Flex justify="between">
         <h5>{t('Providers')}</h5>

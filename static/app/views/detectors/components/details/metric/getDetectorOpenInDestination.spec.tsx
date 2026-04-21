@@ -230,6 +230,59 @@ describe('getDetectorOpenInDestination', () => {
         expect(result?.to).toContain('my_metric');
         expect(result?.to).toContain('sum%28value%2Cmy_metric%2Ccounter%2C-%29');
       });
+
+      it('expands equation aggregates into per-function rows plus an equation row', () => {
+        const detector = MetricDetectorFixture({
+          dataSources: [
+            SnubaQueryDataSourceFixture({
+              queryObj: {
+                id: '1',
+                status: 1,
+                subscription: '1',
+                snubaQuery: {
+                  id: '1',
+                  aggregate: 'equation|sum(value,a,counter,-) + sum(value,b,counter,-)',
+                  dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                  eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+                  query: 'foo:bar',
+                  timeWindow: 300,
+                  environment: 'prod',
+                },
+              },
+            }),
+          ],
+        });
+
+        const result = getDetectorOpenInDestination({
+          detectorName: detector.name,
+          organization,
+          projectId: detector.projectId,
+          snubaQuery: detector.dataSources[0].queryObj.snubaQuery,
+          statsPeriod: '7d',
+        });
+
+        expect(result?.buttonText).toBe('Open in Metrics');
+        const to = result?.to as string;
+        const metricParams = new URL(`https://example.com${to}`).searchParams.getAll(
+          'metric'
+        );
+        expect(metricParams).toHaveLength(3);
+
+        const parsedMetrics = metricParams.map(value => JSON.parse(value));
+        expect(parsedMetrics[0].metric.name).toBe('a');
+        expect(parsedMetrics[0].aggregateFields[0].yAxes).toEqual([
+          'sum(value,a,counter,-)',
+        ]);
+        expect(parsedMetrics[1].metric.name).toBe('b');
+        expect(parsedMetrics[1].aggregateFields[0].yAxes).toEqual([
+          'sum(value,b,counter,-)',
+        ]);
+        // Equation row carries the top-level filter and the full equation text.
+        expect(parsedMetrics[2].query).toBe('foo:bar');
+        expect(parsedMetrics[2].aggregateFields[0].yAxes[0]).toBe(
+          'equation|sum(value,a,counter,-) + sum(value,b,counter,-)'
+        );
+      });
     });
 
     describe('Releases dataset', () => {

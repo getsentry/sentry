@@ -16,7 +16,6 @@ import {
 } from 'sentry/utils/project/useDetailedProject';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {
   projectSlug: any;
@@ -57,11 +56,6 @@ export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProp
   };
   return (
     <Form {...formProps}>
-      <TextBlock>
-        {t(
-          'Setup Highlights to promote your event data to the top of the issue page for quicker debugging.'
-        )}
-      </TextBlock>
       <JsonForm
         access={access}
         disabled={!hasEveryAccess(['project:write'], {organization, project})}

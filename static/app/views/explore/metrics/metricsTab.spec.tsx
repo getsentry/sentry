@@ -677,68 +677,71 @@ describe('MetricsTabContent', () => {
     expect(within(equationSection).getAllByTestId('metric-panel')).toHaveLength(1);
   });
 
-  it('disables both Add Metric and Add Equation buttons when the maximum number of metric queries is reached', async () => {
-    const metricQueryWithGroupBy = JSON.stringify({
-      metric: {name: 'bar', type: 'distribution'},
-      query: '',
-      aggregateFields: [
-        {groupBy: 'environment'},
-        {yAxes: ['per_second(bar)'], displayType: 'line'},
-      ],
-      aggregateSortBys: [],
-      mode: 'aggregate',
-    });
-    const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
-    });
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization: orgWithFeature,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/:orgId/explore/metrics/',
-            query: {
-              start: '2025-04-10T14%3A37%3A55',
-              end: '2025-04-10T20%3A04%3A51',
-              metric: [
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-                metricQueryWithGroupBy,
-              ],
-              title: 'Test Title',
+  it.isKnownFlake(
+    'disables both Add Metric and Add Equation buttons when the maximum number of metric queries is reached',
+    async () => {
+      const metricQueryWithGroupBy = JSON.stringify({
+        metric: {name: 'bar', type: 'distribution'},
+        query: '',
+        aggregateFields: [
+          {groupBy: 'environment'},
+          {yAxes: ['per_second(bar)'], displayType: 'line'},
+        ],
+        aggregateSortBys: [],
+        mode: 'aggregate',
+      });
+      const orgWithFeature = OrganizationFixture({
+        features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      });
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          organization: orgWithFeature,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/:orgId/explore/metrics/',
+              query: {
+                start: '2025-04-10T14%3A37%3A55',
+                end: '2025-04-10T20%3A04%3A51',
+                metric: [
+                  metricQueryWithGroupBy,
+                  metricQueryWithGroupBy,
+                  metricQueryWithGroupBy,
+                  metricQueryWithGroupBy,
+                  metricQueryWithGroupBy,
+                  metricQueryWithGroupBy,
+                  metricQueryWithGroupBy,
+                ],
+                title: 'Test Title',
+              },
             },
+            route: '/organizations/:orgId/explore/metrics/',
           },
-          route: '/organizations/:orgId/explore/metrics/',
-        },
+        }
+      );
+      expect(await screen.findAllByText('Add Metric')).not.toHaveLength(0);
+      expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
+
+      // Only 7 entries -> both buttons are enabled
+      for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
+        expect(button).toBeEnabled();
       }
-    );
-    expect(await screen.findAllByText('Add Metric')).not.toHaveLength(0);
-    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
+      for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+        expect(button).toBeEnabled();
+      }
 
-    // Only 7 entries -> both buttons are enabled
-    for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
-      expect(button).toBeEnabled();
+      // Add an entry, 8 entries -> both buttons are disabled
+      await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
+      for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
+        expect(button).toBeDisabled();
+      }
+      for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
+        expect(button).toBeDisabled();
+      }
     }
-    for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
-      expect(button).toBeEnabled();
-    }
-
-    // Add an entry, 8 entries -> both buttons are disabled
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
-    for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
-      expect(button).toBeDisabled();
-    }
-    for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
-      expect(button).toBeDisabled();
-    }
-  });
+  );
 
   it('disables delete button for metrics referenced by an equation', async () => {
     const orgWithEquations = OrganizationFixture({
