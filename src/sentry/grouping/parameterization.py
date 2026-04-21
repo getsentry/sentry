@@ -179,9 +179,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # Date
             (\d{4}-[01]\d-[0-3]\d)
             |
-            # Time
-            ([0-2]\d:[0-5]\d:[0-5]\d)
-            |
             # Old Date Formats, TODO: possibly safe to remove?
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
