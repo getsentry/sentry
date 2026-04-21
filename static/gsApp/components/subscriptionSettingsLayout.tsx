@@ -40,7 +40,7 @@ export default function SubscriptionSettingsLayout() {
   };
 
   return (
-    <Flex direction="column" flex={1} minWidth="0">
+    <SettingsColumn direction="column" flex={1} minWidth="0">
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="title">
@@ -64,9 +64,15 @@ export default function SubscriptionSettingsLayout() {
       <Flex minWidth={0} flex="1" direction="column">
         <Outlet />
       </Flex>
-    </Flex>
+    </SettingsColumn>
   );
 }
+
+const SettingsColumn = styled(Flex)`
+  footer {
+    margin-top: 0;
+  }
+`;
 
 const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
   flex: 1;
