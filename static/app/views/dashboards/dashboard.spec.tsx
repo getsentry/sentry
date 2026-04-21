@@ -420,9 +420,7 @@ describe('Dashboards > Dashboard', () => {
   describe('Interval selection', () => {
     // Use a SPANS widget with LINE display: both are required by
     // widgetCanUseTimeSeriesVisualization, which gates widgetInterval propagation.
-    const orgWithFlag = OrganizationFixture({
-      features: ['dashboards-interval-selection'],
-    });
+    const org = OrganizationFixture();
     const spansWidget: Widget = {
       id: '3',
       title: 'Test Spans Widget',
@@ -558,7 +556,7 @@ describe('Dashboards > Dashboard', () => {
         // No interval in the URL — the 10m default (second-biggest of [5m, 10m, 30m])
         // is derived from the dashboard's saved 24h period via useDashboardChartInterval.
         const {router} = render(<DashboardWithIntervalSelector />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/'}},
         });
 
@@ -600,7 +598,7 @@ describe('Dashboards > Dashboard', () => {
         });
 
         const {router} = render(<DashboardWithIntervalSelector />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '30m'}}},
         });
 
@@ -647,7 +645,7 @@ describe('Dashboards > Dashboard', () => {
 
         // 5m is in the URL but is not a valid interval for a 30d window.
         render(<DashboardWithIntervalSelector dashboard={thirtyDayDashboard} />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
         });
 
@@ -696,7 +694,7 @@ describe('Dashboards > Dashboard', () => {
         });
 
         render(<DashboardWithIntervalSelector dashboard={thirtyDayReleaseDashboard} />, {
-          organization: orgWithFlag,
+          organization: org,
           initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
         });
 

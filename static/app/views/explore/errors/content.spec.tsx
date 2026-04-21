@@ -65,9 +65,9 @@ describe('ErrorsBody', () => {
     localStorage.clear();
   });
 
-  it('renders with sidebar expanded by default', () => {
+  it('renders with sidebar expanded by default', async () => {
     render(<ErrorsBody />);
-    const collapseButton = screen.getByRole('button', {name: 'Collapse sidebar'});
+    const collapseButton = await screen.findByRole('button', {name: 'Collapse sidebar'});
     expect(collapseButton).toBeInTheDocument();
     expect(collapseButton).not.toHaveTextContent('Advanced');
   });
@@ -75,7 +75,7 @@ describe('ErrorsBody', () => {
   it('collapses sidebar when chevron button is clicked', async () => {
     render(<ErrorsBody />);
 
-    const collapseButton = screen.getByRole('button', {name: 'Collapse sidebar'});
+    const collapseButton = await screen.findByRole('button', {name: 'Collapse sidebar'});
     await userEvent.click(collapseButton);
 
     const expandButton = screen.getByRole('button', {name: 'Expand sidebar'});

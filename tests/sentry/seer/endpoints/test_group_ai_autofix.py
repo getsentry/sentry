@@ -1062,13 +1062,15 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_explorer_state_response.status = 200
         mock_explorer_state_response.json = Mock(
             return_value={
-                "session": SeerRunState(
-                    run_id=123,
-                    blocks=[],
-                    status="completed",
-                    updated_at="2023-07-18T12:00:00Z",
-                    metadata={"group_id": group.id},
-                ).dict()
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
             }
         )
         mock_explorer_state_request.return_value = mock_explorer_state_response
@@ -1103,13 +1105,15 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_explorer_state_response.status = 200
         mock_explorer_state_response.json = Mock(
             return_value={
-                "session": SeerRunState(
-                    run_id=123,
-                    blocks=[],
-                    status="completed",
-                    updated_at="2023-07-18T12:00:00Z",
-                    metadata={"group_id": group.id},
-                ).dict()
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
             }
         )
         mock_explorer_state_request.return_value = mock_explorer_state_response
@@ -1147,13 +1151,15 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_explorer_state_response.status = 200
         mock_explorer_state_response.json = Mock(
             return_value={
-                "session": SeerRunState(
-                    run_id=123,
-                    blocks=[],
-                    status="completed",
-                    updated_at="2023-07-18T12:00:00Z",
-                    metadata={"group_id": group.id},
-                ).dict()
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
             }
         )
         mock_explorer_state_request.return_value = mock_explorer_state_response

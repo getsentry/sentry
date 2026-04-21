@@ -3,6 +3,8 @@ import {Fragment} from 'react';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -20,6 +22,11 @@ import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/co
 import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -82,7 +89,23 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
     <DetailLayout>
       {hasPageFrameFeature ? (
         <Fragment>
-          <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Monitors'),
+                  to: makeMonitorBasePathname(organization.slug),
+                },
+                {
+                  label: getDetectorTypeLabel(detector.type),
+                  to: makeMonitorTypePathname(organization.slug, detector.type),
+                },
+                {
+                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                },
+              ]}
+            />
+          </TopBar.Slot>
           <TopBar.Slot name="actions">
             <EditDetectorAction detector={detector} canEdit={canEdit} />
           </TopBar.Slot>

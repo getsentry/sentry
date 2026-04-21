@@ -524,28 +524,36 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    integrations = [
+        DjangoAtomicIntegration(),
+        DjangoIntegration(
+            signals_spans=False,
+            cache_spans=True,
+            middleware_spans=False,
+            db_transaction_spans=True,
+        ),
+        # This makes it so all levels of logging are recorded as breadcrumbs,
+        # but none are captured as events (that's handled by the `internal`
+        # logger defined in `server.py`, which ignores the levels set
+        # in the integration and goes straight to the underlying handler class).
+        LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
+        RustInfoIntegration(),
+        RedisIntegration(),
+    ]
+    disabled_integrations = []
+
+    if settings.SENTRY_SDK_THREADING_INTEGRATION:
+        integrations.append(ThreadingIntegration())
+    else:
+        disabled_integrations.append(ThreadingIntegration())
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,
         transport=MultiplexingTransport,
-        integrations=[
-            DjangoAtomicIntegration(),
-            DjangoIntegration(
-                signals_spans=False,
-                cache_spans=True,
-                middleware_spans=False,
-                db_transaction_spans=True,
-            ),
-            # This makes it so all levels of logging are recorded as breadcrumbs,
-            # but none are captured as events (that's handled by the `internal`
-            # logger defined in `server.py`, which ignores the levels set
-            # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
-            RustInfoIntegration(),
-            RedisIntegration(),
-            ThreadingIntegration(),
-        ],
+        integrations=integrations,
+        disabled_integrations=disabled_integrations,
         **sdk_options,
     )
 

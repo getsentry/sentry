@@ -29,6 +29,7 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointInteractionType,
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.utils.registry import NoRegistrationExistsError
@@ -265,6 +266,7 @@ def update_existing_message(
             lifecycle.record_halt(halt_reason=e)
 
 
+@all_silo_function
 def send_identity_link_prompt(
     *,
     integration: RpcIntegration,

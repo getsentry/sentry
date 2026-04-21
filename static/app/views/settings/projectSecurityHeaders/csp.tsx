@@ -14,15 +14,13 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+  makeDetailedProjectQueryKey,
+  useDetailedProject,
+} from 'sentry/utils/project/useDetailedProject';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
+import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -82,15 +80,9 @@ export default function ProjectCspReports() {
     isPending: isLoadingProject,
     isError: isProjectError,
     refetch: refetchProject,
-  } = useApiQuery<Project>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+  } = useDetailedProject(
+    {orgSlug: organization.slug, projectSlug: projectId},
+    {staleTime: 0}
   );
 
   if (isLoadingKeyList || isLoadingProject) {
@@ -109,11 +101,10 @@ export default function ProjectCspReports() {
   }
 
   const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
-  const projectQueryKey: ApiQueryKey = [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
-    }),
-  ];
+  const projectQueryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug: projectId,
+  });
 
   const cspMutationOptions = mutationOptions({
     mutationFn: (data: Partial<CspSchema>) =>
@@ -123,15 +114,16 @@ export default function ProjectCspReports() {
         data: {options: data},
       }),
     onSuccess: (updatedProject: Project) => {
-      setApiQueryData<Project>(queryClient, projectQueryKey, previousData => {
-        if (!previousData) {
-          return updatedProject;
-        }
-        return {
-          ...previousData,
-          ...updatedProject,
-          options: {...previousData.options, ...updatedProject.options},
-        };
+      queryClient.setQueryData<ApiResponse<Project>>(projectQueryKey, prev => {
+        const previous = prev?.json;
+        const merged = previous
+          ? {
+              ...previous,
+              ...updatedProject,
+              options: {...previous.options, ...updatedProject.options},
+            }
+          : updatedProject;
+        return {headers: prev?.headers ?? {}, json: merged};
       });
     },
   });

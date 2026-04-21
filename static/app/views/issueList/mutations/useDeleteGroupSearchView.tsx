@@ -1,17 +1,17 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {
-  setApiQueryData,
+  fetchMutation,
   useMutation,
-  useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
-import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
+import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
+import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type DeleteGroupSearchViewVariables = {
   id: string;
@@ -22,35 +22,36 @@ export const useDeleteGroupSearchView = (
     'mutationFn'
   > = {}
 ) => {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  return useMutation<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>({
+  return useMutation({
     ...options,
     mutationFn: ({id}: DeleteGroupSearchViewVariables) =>
-      api.requestPromise(
-        `/organizations/${organization.slug}/group-search-views/${id}/`,
-        {
-          method: 'DELETE',
-        }
-      ),
+      fetchMutation<GroupSearchView>({
+        url: `/organizations/${organization.slug}/group-search-views/${id}/`,
+        method: 'DELETE',
+      }),
     onSuccess: (data, parameters, onMutateResult, context) => {
       // Invalidate the view in cache
-      queryClient.invalidateQueries({
-        queryKey: makeFetchGroupSearchViewKey({
+      queryClient.invalidateQueries(
+        groupSearchViewApiOptions({
           orgSlug: organization.slug,
           id: parameters.id,
-        }),
-      });
+        })
+      );
 
       // Update any matching starred views in cache
-      setApiQueryData<StarredGroupSearchView[]>(
-        queryClient,
-        makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-        oldGroupSearchViews => {
-          return oldGroupSearchViews?.filter(view => view.id !== parameters.id) ?? [];
-        }
+      const starredKey = starredGroupSearchViewsApiOptions({
+        orgSlug: organization.slug,
+      }).queryKey;
+      queryClient.setQueryData(starredKey, prevData =>
+        prevData
+          ? {
+              ...prevData,
+              json: prevData.json.filter(view => view.id !== parameters.id),
+            }
+          : prevData
       );
       options.onSuccess?.(data, parameters, onMutateResult, context);
     },

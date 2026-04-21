@@ -357,7 +357,7 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
                     "repo_name": repo["name"],
                     "identifier": str(repo["id"]),
                     "external_id": self.get_repo_external_id(repo),
-                    "url": repo["_links"]["web"]["href"],
+                    "url": repo.get("webUrl", ""),
                     "instance": self.instance,
                     "project": repo["project"]["name"],
                 }

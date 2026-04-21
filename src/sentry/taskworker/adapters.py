@@ -30,7 +30,12 @@ from sentry.utils import json
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.memory import track_memory_usage as sentry_track_memory_usage
-from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    ViewerContext,
+    get_viewer_context,
+    observe_viewer_context_propagation,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -170,12 +175,21 @@ class ViewerContextHook:
 
     def on_execute(self, headers: dict[str, str]) -> contextlib.AbstractContextManager[None]:
         raw = headers.get(self.HEADER)
-        if not raw:
-            return contextlib.nullcontext()
-        try:
-            ctx = ViewerContext.deserialize(orjson.loads(raw))
-        except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
-            logger.exception("Failed to deserialize viewer context header")
+        ctx: ViewerContext | None = None
+        if raw:
+            try:
+                ctx = ViewerContext.deserialize(orjson.loads(raw))
+            except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
+                logger.exception("Failed to deserialize viewer context header")
+        # Only `expected=True` when dispatch actually sent the header. That distinguishes
+        # the noise case (system task with no VC, header genuinely absent) from the bug
+        # case (header sent but deserialization failed → ctx is None).
+        observe_viewer_context_propagation(
+            "task_execute",
+            ctx=ctx,
+            expected=bool(raw),
+        )
+        if ctx is None:
             return contextlib.nullcontext()
         return viewer_context_scope(ctx)
 

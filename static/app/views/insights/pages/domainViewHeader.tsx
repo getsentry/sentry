@@ -11,6 +11,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -142,7 +143,13 @@ export function DomainViewHeader({
               <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
             )}
             <TopBar.Slot name="feedback">
-              <FeedbackButton feedbackOptions={feedbackOptions}>{null}</FeedbackButton>
+              <FeedbackButton
+                feedbackOptions={feedbackOptions}
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
             </TopBar.Slot>
           </Fragment>
         ) : (

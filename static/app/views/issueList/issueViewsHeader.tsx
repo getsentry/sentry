@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -10,7 +11,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -24,8 +24,7 @@ import {
 } from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
-import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -71,31 +70,28 @@ function IssueViewStarButton() {
   const queryClient = useQueryClient();
 
   const {data: groupSearchView} = useSelectedGroupSearchView();
+  const starViewLabel = groupSearchView?.starred ? t('Unstar view') : t('Star view');
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView>(
-        queryClient,
-        makeFetchGroupSearchViewKey({
-          orgSlug: organization.slug,
-          id: variables.id,
-        }),
-        oldGroupSearchView =>
-          oldGroupSearchView
-            ? {...oldGroupSearchView, starred: variables.starred}
-            : oldGroupSearchView
+      const viewKey = groupSearchViewApiOptions({
+        orgSlug: organization.slug,
+        id: variables.id,
+      }).queryKey;
+      queryClient.setQueryData(viewKey, prevData =>
+        prevData
+          ? {...prevData, json: {...prevData.json, starred: variables.starred}}
+          : prevData
       );
     },
     onError: (_error, variables) => {
-      setApiQueryData<GroupSearchView>(
-        queryClient,
-        makeFetchGroupSearchViewKey({
-          orgSlug: organization.slug,
-          id: variables.id,
-        }),
-        oldGroupSearchView =>
-          oldGroupSearchView
-            ? {...oldGroupSearchView, starred: !variables.starred}
-            : oldGroupSearchView
+      const viewKey = groupSearchViewApiOptions({
+        orgSlug: organization.slug,
+        id: variables.id,
+      }).queryKey;
+      queryClient.setQueryData(viewKey, prevData =>
+        prevData
+          ? {...prevData, json: {...prevData.json, starred: !variables.starred}}
+          : prevData
       );
     },
   });
@@ -128,7 +124,8 @@ function IssueViewStarButton() {
           }
         );
       }}
-      aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
+      tooltipProps={{title: starViewLabel}}
+      aria-label={starViewLabel}
       icon={
         <IconStar
           isSolid={groupSearchView?.starred}
@@ -146,6 +143,7 @@ function IssueViewEditMenu() {
   const user = useUser();
   const {mutateAsync: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
+  const moreOptionsLabel = t('More issue view options');
 
   if (!groupSearchView) {
     return null;
@@ -194,8 +192,9 @@ function IssueViewEditMenu() {
         <Button
           size="sm"
           {...props}
+          tooltipProps={{title: moreOptionsLabel}}
           icon={<IconEllipsis />}
-          aria-label={t('More issue view options')}
+          aria-label={moreOptionsLabel}
         />
       )}
       position="bottom-end"
@@ -217,6 +216,17 @@ export function IssueViewsHeader({
   const realtimeLabel = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
+  const realtimeButton = viewId ? null : (
+    <DisableInDemoMode>
+      <Button
+        size="sm"
+        tooltipProps={{title: realtimeLabel}}
+        aria-label={realtimeLabel}
+        icon={realtimeActive ? <IconPause /> : <IconPlay />}
+        onClick={() => onRealtimeChange(!realtimeActive)}
+      />
+    </DisableInDemoMode>
+  );
 
   if (hasPageFrameFeature) {
     return (
@@ -226,17 +236,7 @@ export function IssueViewsHeader({
         </Layout.HeaderContent>
         <TopBar.Slot name="actions">
           {headerActions}
-          {!viewId && (
-            <DisableInDemoMode>
-              <Button
-                size="sm"
-                tooltipProps={{title: realtimeLabel}}
-                aria-label={realtimeLabel}
-                icon={realtimeActive ? <IconPause /> : <IconPlay />}
-                onClick={() => onRealtimeChange(!realtimeActive)}
-              />
-            </DisableInDemoMode>
-          )}
+          {realtimeButton}
           <IssueViewStarButton />
           <IssueViewEditMenu />
         </TopBar.Slot>
@@ -251,17 +251,7 @@ export function IssueViewsHeader({
           <PageTitle title={title} description={description} />
           <Flex align="center" gap="md">
             {headerActions}
-            {!viewId && (
-              <DisableInDemoMode>
-                <Button
-                  size="sm"
-                  tooltipProps={{title: realtimeLabel}}
-                  aria-label={realtimeLabel}
-                  icon={realtimeActive ? <IconPause /> : <IconPlay />}
-                  onClick={() => onRealtimeChange(!realtimeActive)}
-                />
-              </DisableInDemoMode>
-            )}
+            {realtimeButton}
             <IssueViewStarButton />
             <IssueViewEditMenu />
           </Flex>

@@ -22,7 +22,7 @@ function SlackOAuthLoginStep({
 
   return (
     <OAuthLoginStep
-      oauthUrl={stepData.oauthUrl}
+      oauthUrl={stepData?.oauthUrl}
       isLoading={isAdvancing}
       serviceName="Slack"
       onOAuthCallback={handleOAuthCallback}
@@ -35,6 +35,21 @@ export const slackIntegrationPipeline = {
   type: 'integration',
   provider: 'slack',
   actionTitle: t('Installing Slack Integration'),
+  getCompletionData: pipelineComplete<IntegrationWithConfig>,
+  completionView: null,
+  steps: [
+    {
+      stepId: 'oauth_login',
+      shortDescription: t('Authorizing via Slack OAuth'),
+      component: SlackOAuthLoginStep,
+    },
+  ],
+} as const satisfies PipelineDefinition;
+
+export const slackStagingIntegrationPipeline = {
+  type: 'integration',
+  provider: 'slack_staging',
+  actionTitle: t('Installing Slack (Staging) Integration'),
   getCompletionData: pipelineComplete<IntegrationWithConfig>,
   completionView: null,
   steps: [

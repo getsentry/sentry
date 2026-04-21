@@ -21,6 +21,7 @@ from sentry.search.eap.types import (
     EAPResponse,
     FieldsACL,
     SearchResolverConfig,
+    SupportedTraceItemType,
 )
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -75,6 +76,11 @@ class ExploreProcessor:
             TraceItemType.TRACE_ITEM_TYPE_SPAN
             if dataset == "spans"
             else TraceItemType.TRACE_ITEM_TYPE_LOG
+        )
+        self._supported_trace_item_type = (
+            SupportedTraceItemType.LOGS
+            if self.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
+            else SupportedTraceItemType.SPANS
         )
 
         use_aggregate_conditions = explore_query.get("allowAggregateConditions", "1") == "1"
@@ -215,10 +221,10 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             token.ParseFromString(self.page_token)
             request.page_token.CopyFrom(token)
         http_resp = export_logs_rpc(request)
-        rows = list(iter_export_trace_items_rows(http_resp))
+        rows = list(iter_export_trace_items_rows(http_resp, self._supported_trace_item_type))
 
         if self._last_emitted_item_id_hex is not None:
-            while rows and rows[0].get("item_id") == self._last_emitted_item_id_hex:
+            while rows and rows[0].get("id") == self._last_emitted_item_id_hex:
                 rows = rows[1:]
 
         self._sync_page_token_from_snuba_response(http_resp)
@@ -226,7 +232,7 @@ class TraceItemFullExportProcessor(ExploreProcessor):
         if not rows:
             return []
 
-        last_id = rows[-1].get("item_id")
+        last_id = rows[-1].get("id")
         if isinstance(last_id, str):
             self._last_emitted_item_id_hex = last_id
         return rows

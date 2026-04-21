@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 
@@ -52,7 +53,7 @@ export function useLoadReplayReader({
   // if we don't have a clip window, we'll use the error time to create a clip window
   const memoizedClipWindow = useMemo(() => {
     const errorTime = firstMatchingError
-      ? new Date(firstMatchingError.timestamp)
+      ? parseEventTimestampMs(firstMatchingError.timestamp_ms)
       : undefined;
 
     return (

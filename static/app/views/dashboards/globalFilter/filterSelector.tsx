@@ -22,7 +22,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {
-  escapeTagValue,
+  escapeTagValueForSearch,
   getFilterValueType,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -92,7 +92,7 @@ export function FilterSelector({
     const initialValue = globalFilter.value
       ? getInitialInputValue(filterToken, true)
       : '';
-    const selectedValues = getSelectedValuesFromText(initialValue, {escaped: false});
+    const selectedValues = getSelectedValuesFromText(initialValue);
     return selectedValues.map(item => item.value);
   }, [filterToken, globalFilter.value]);
 
@@ -213,6 +213,7 @@ export function FilterSelector({
       const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
+        textValue: value,
       };
 
       // Only add checkboxes for multi-select mode
@@ -286,7 +287,7 @@ export function FilterSelector({
     if (opts.length !== 0) {
       const cleanedValue = prepareInputValueForSaving(
         getFilterValueType(filterToken, fieldDefinition),
-        opts.map(opt => escapeTagValue(opt, {allowArrayValue: false})).join(',')
+        opts.map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false})).join(',')
       );
       newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
     }
@@ -484,10 +485,16 @@ const translateKnownFilterOptions = (
   const dataset = globalFilter.dataset;
 
   if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
-    return options.map(option => ({
-      ...option,
-      label: subregionCodeToName[option.value as SubregionCode] || option.label,
-    }));
+    return options.map(option => {
+      const translatedLabel =
+        subregionCodeToName[option.value as SubregionCode] || option.label;
+      return {
+        ...option,
+        label: translatedLabel,
+        textValue:
+          typeof translatedLabel === 'string' ? translatedLabel : option.textValue,
+      };
+    });
   }
   return options;
 };
