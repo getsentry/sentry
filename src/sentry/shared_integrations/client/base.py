@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, overload
+from typing import Any, Literal, Self, TypedDict, TypeVar, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -25,14 +25,6 @@ from ..exceptions import (
     ApiTimeoutError,
 )
 from ..response.base import BaseApiResponse
-
-if TYPE_CHECKING:
-    from ..response.mapping import MappingApiResponse
-    from ..response.sequence import SequenceApiResponse
-    from ..response.text import TextApiResponse
-
-    # Type alias for API response data
-    ApiResponseData = MappingApiResponse | SequenceApiResponse | TextApiResponse
 
 
 class SessionSettings(TypedDict, total=False):
