@@ -383,7 +383,7 @@ export function ExplorerDrawerContent({
   });
 
   return (
-    <DrawerContentContainer>
+    <DrawerContentContainer data-seer-explorer-root="">
       <TopBar
         isCopyLinkEnabled={false} // TODO: disabled for drawer, may remove in favor copy URL
         onCopyLinkClick={() => {}}
