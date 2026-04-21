@@ -185,37 +185,35 @@ class BaseApiClient:
             return cert_setting
         return None
 
+    # Keep this helper as a typed boundary between requests'
+    # ``merge_environment_settings`` output and ``session.send`` kwargs. This
+    # prevents forwarding unexpected keys while keeping _request readable.
     def _build_session_settings(
         self,
         timeout: int,
         allow_redirects: bool,
-        environment_settings: Mapping[str, object],
+        *,
+        proxies: object | None = None,
+        stream: object | None = None,
+        verify: object | None = None,
+        cert: object | None = None,
     ) -> SessionSettings:
-        # Build a typed subset of settings returned by
-        # ``merge_environment_settings`` before splatting into ``session.send``.
+        # Build a typed subset of session.send kwargs.
         session_settings: SessionSettings = {
             "timeout": timeout,
             "allow_redirects": allow_redirects,
         }
 
-        proxies_setting = environment_settings.get("proxies")
-        if isinstance(proxies_setting, MutableMapping):
-            session_settings["proxies"] = proxies_setting
+        if isinstance(proxies, MutableMapping):
+            session_settings["proxies"] = proxies
 
-        stream_setting = environment_settings.get("stream")
-        if isinstance(stream_setting, bool) or stream_setting is None:
-            session_settings["stream"] = stream_setting
+        if isinstance(stream, bool) or stream is None:
+            session_settings["stream"] = stream
 
-        verify_setting = environment_settings.get("verify")
-        if (
-            isinstance(verify_setting, bool)
-            or isinstance(verify_setting, str)
-            or verify_setting is None
-        ):
-            session_settings["verify"] = verify_setting
+        if isinstance(verify, bool) or isinstance(verify, str) or verify is None:
+            session_settings["verify"] = verify
 
-        cert_setting = self._normalize_cert_setting(environment_settings.get("cert"))
-        session_settings["cert"] = cert_setting
+        session_settings["cert"] = self._normalize_cert_setting(cert)
 
         return session_settings
 
@@ -336,7 +334,10 @@ class BaseApiClient:
                 session_settings = self._build_session_settings(
                     timeout=timeout,
                     allow_redirects=allow_redirects,
-                    environment_settings=environment_settings,
+                    proxies=environment_settings.get("proxies"),
+                    stream=environment_settings.get("stream"),
+                    verify=environment_settings.get("verify"),
+                    cert=environment_settings.get("cert"),
                 )
                 resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
