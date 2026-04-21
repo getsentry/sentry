@@ -39,6 +39,7 @@ interface DrawerPanelProps {
   ariaLabel: DrawerContentContextType['ariaLabel'];
   children: React.ReactNode;
   headerContent: React.ReactNode;
+  mode: 'blocking' | 'passive';
   onClose: DrawerContentContextType['onClose'];
   drawerCss?: DrawerOptions['drawerCss'];
   drawerKey?: string;
@@ -50,6 +51,7 @@ interface DrawerPanelProps {
 
 function DrawerPanel({
   ref,
+  mode,
   ariaLabel,
   children,
   transitionProps,
@@ -74,6 +76,7 @@ function DrawerPanel({
     <DrawerContainer>
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
+          mode={mode}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref)}
