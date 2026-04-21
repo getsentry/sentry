@@ -504,11 +504,7 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={
-                menuMinWidth === undefined
-                  ? overlayProps.style!.minWidth
-                  : `max(${withUnits(overlayProps.style!.minWidth)}, ${withUnits(menuMinWidth)})`
-              }
+              minWidth={`max(${withUnits(overlayProps.style!.minWidth)}, ${withUnits(menuMinWidth ?? 0)})`}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
