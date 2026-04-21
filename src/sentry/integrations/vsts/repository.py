@@ -137,5 +137,5 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider["VstsIntegrationType"
             for c in commit_list
         ]
 
-    def repository_external_slug(self, repo: Repository) -> str:
-        return repo.external_id or repo.name
+    def repository_external_slug(self, repo: Repository) -> str | None:
+        return repo.external_id

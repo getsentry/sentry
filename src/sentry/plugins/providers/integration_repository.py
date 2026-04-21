@@ -434,7 +434,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         """
         return None
 
-    def repository_external_slug(self, repo: Any) -> str:
+    def repository_external_slug(self, repo: Any) -> str | None:
         """
         Generate the public facing 'external_slug' for a repository
         The shape of this id must match the `identifier` returned by
