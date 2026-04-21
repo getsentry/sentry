@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-import {ExplorerFloatingActionButton} from './explorerFAB';
+import {ExplorerFloatingActionButton} from './explorerPanel';
 
 // Mock createPortal to render content directly
 jest.mock('react-dom', () => ({
