@@ -20,7 +20,6 @@ from sentry.seer.autofix.constants import (
     SeerAutomationSource,
 )
 from sentry.seer.autofix.utils import (
-    bulk_get_project_preferences,
     bulk_read_preferences_from_sentry_db,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
@@ -247,14 +246,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     default_handoff_dict = default_handoff.dict() if default_handoff else None
     valid_stopping_points = get_valid_automated_run_stopping_points(organization)
 
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-        preferences_by_id = {
-            str(project_id): preference.dict() if preference else None
-            for project_id, preference in preferences.items()
-        }
-    else:
-        preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
+    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+    preferences_by_id = {
+        str(project_id): preference.dict() for project_id, preference in preferences.items()
+    }
 
     # Determine which projects need updates
     preferences_to_set = []

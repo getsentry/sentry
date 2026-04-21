@@ -894,16 +894,7 @@ def has_project_connected_repos(
         if cached_value is not None:
             return cached_value
 
-    has_repos = False
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        has_repos = bool(read_preference_from_sentry_db(project).repositories)
-    else:
-        try:
-            preference = get_project_seer_preferences(project.id).preference
-            has_repos = bool(preference and preference.repositories)
-        except (SeerApiError, SeerApiResponseValidationError):
-            pass
-
+    has_repos = bool(read_preference_from_sentry_db(project).repositories)
     if not has_repos:
         # If it's the first autofix run of project we check code mapping.
         has_repos = bool(get_autofix_repos_from_project_code_mappings(project))

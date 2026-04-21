@@ -21,7 +21,7 @@ from sentry.seer.autofix.issue_summary import (
     auto_run_source_map,
     referrer_map,
 )
-from sentry.seer.autofix.utils import bulk_read_preferences
+from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
 from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
@@ -265,7 +265,7 @@ def _trigger_autofix_for_candidate(
 
 def _get_eligible_projects(
     organization: Organization,
-) -> tuple[list[Project], dict[int, SeerProjectPreference | None]]:
+) -> tuple[list[Project], dict[int, SeerProjectPreference]]:
     """Return active projects that have automation enabled and connected repos."""
     project_map = {
         p.id: p
@@ -274,13 +274,12 @@ def _get_eligible_projects(
     if not project_map:
         return [], {}
 
-    preferences = bulk_read_preferences(organization, list(project_map))
+    preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
     candidates = [
         project_map[pid]
         for pid, pref in preferences.items()
-        if pref is not None
-        and pref.repositories
+        if pref.repositories
         and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
     ]
     if not candidates:
