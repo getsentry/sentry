@@ -57,10 +57,10 @@ function MyDrawer({title}: {title: string}) {
 
 The `mode` option on `openDrawer` controls scroll locking, click-outside, and URL-change behavior.
 
-| Mode                   | Scroll     | Click outside | URL change | Escape |
-| ---------------------- | ---------- | ------------- | ---------- | ------ |
-| `'blocking'` (default) | Locked     | Closes        | Closes     | Closes |
-| `'passive'`            | Not locked | Stays open    | Stays open | Closes |
+| Mode                   | Scroll     | Height       | Click outside | URL change | Escape |
+| ---------------------- | ---------- | ------------ | ------------- | ---------- | ------ |
+| `'blocking'` (default) | Locked     | Full Page    | Closes        | Closes     | Closes |
+| `'passive'`            | Not locked | Below TopBar | Stays open    | Stays open | Closes |
 
 ### `'blocking'`
 
