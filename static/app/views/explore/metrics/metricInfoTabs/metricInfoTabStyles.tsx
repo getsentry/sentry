@@ -126,13 +126,6 @@ export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
   justify-content: flex-end;
 `;
 
-export const BodyContainer = styled('div')`
-  padding: ${p => p.theme.space.md};
-  padding-top: 0;
-  height: 320px;
-  container-type: inline-size;
-`;
-
 export const StyledTabPanels = styled(TabPanels)`
   overflow: auto;
 `;

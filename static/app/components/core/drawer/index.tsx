@@ -253,12 +253,15 @@ export function GlobalDrawer({children}: any) {
 export function useDrawer() {
   const context = useContext(DrawerContext);
   const callerId = useId();
+  const openDrawerRef = useRef(context.openDrawer);
+  useEffect(() => {
+    openDrawerRef.current = context.openDrawer;
+  });
   const openDrawer = useCallback(
     (renderer: DrawerConfig['renderer'], options: DrawerConfig['options']) => {
-      context.openDrawer(renderer, options, callerId);
+      openDrawerRef.current(renderer, options, callerId);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only depend on context.openDrawer, not the entire context object, to prevent unnecessary re-renders
-    [context.openDrawer, callerId]
+    [callerId]
   );
   return {
     openDrawer,

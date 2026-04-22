@@ -1,10 +1,9 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import {
-  BodyContainer,
   StyledTabPanels,
   TabListWrapper,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
@@ -67,7 +66,7 @@ export function MetricInfoTabs({
         </Flex>
       ) : null}
       {visualize.visible && !contentsHidden ? (
-        <BodyContainer>
+        <Container paddingRight="lg" paddingBottom="md" paddingTop="0" height="320px">
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
               <AggregatesTab
@@ -82,7 +81,7 @@ export function MetricInfoTabs({
               />
             </TabPanels.Item>
           </StyledTabPanels>
-        </BodyContainer>
+        </Container>
       ) : null}
     </TabStateProvider>
   );

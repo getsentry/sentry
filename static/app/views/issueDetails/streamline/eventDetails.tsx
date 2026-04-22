@@ -2,11 +2,11 @@ import {useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {
   EventDetailsContent,
   type EventDetailsContentProps,
@@ -45,7 +45,6 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 
 function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
-  const isStuck = useIsStuck(nav);
   const {dispatch} = useIssueDetails();
   const {contentTop} = useTopOffset();
   const stickyTopOffset = Number.parseInt(contentTop, 10);
@@ -62,23 +61,18 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   }, [nav, dispatch, stickyTopOffset]);
 
   return (
-    <FloatingEventNavigation
-      event={event}
-      group={group}
-      ref={setNav}
-      data-stuck={isStuck}
-      style={{top: stickyTopOffset}}
-    />
+    <FloatingEventNavigation>
+      <EventTitle event={event} group={group} ref={setNav} />
+    </FloatingEventNavigation>
   );
 }
 
-const FloatingEventNavigation = styled(EventTitle)`
-  position: sticky;
+const FloatingEventNavigation = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 
-  &[data-stuck='true'] {
+  &[data-stuck] {
     border-radius: 0;
   }
 `;

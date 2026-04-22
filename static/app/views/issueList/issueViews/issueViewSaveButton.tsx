@@ -40,13 +40,13 @@ function SegmentedIssueViewSaveButton({
   const location = useLocation();
   const navigate = useNavigate();
   const {hasUnsavedChanges} = useIssueViewUnsavedChanges();
-  const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
   const user = useUser();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
+  const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -107,7 +107,7 @@ function SegmentedIssueViewSaveButton({
             }}
             disabled={isSaving || !hasFeature}
           >
-            {canEdit ? t('Save') : t('Save As')}
+            {canEdit ? t('Save') : t('Save as')}
           </PrimarySaveButton>
           <DropdownMenu
             items={[
@@ -199,7 +199,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
           >
-            {t('Save As')}
+            {t('Save as')}
           </Button>
         )}
       </Feature>

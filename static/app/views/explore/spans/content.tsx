@@ -175,22 +175,22 @@ function SpansTabHeader() {
                 savedQueryName={savedQuery?.name}
               />
               <PageHeadingQuestionTooltip
-                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
                 title={t(
                   'Find problematic spans/traces or compute real-time metrics via aggregation.'
                 )}
-                linkLabel={t('Read the Discussion')}
+                linkLabel={t('Read the Docs')}
               />
             </TopBar.Slot>
           ) : (
             <TopBar.Slot name="title">
               {title ? title : t('Traces')}
               <PageHeadingQuestionTooltip
-                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
                 title={t(
                   'Find problematic spans/traces or compute real-time metrics via aggregation.'
                 )}
-                linkLabel={t('Read the Discussion')}
+                linkLabel={t('Read the Docs')}
               />
             </TopBar.Slot>
           )
@@ -205,11 +205,11 @@ function SpansTabHeader() {
             <Layout.Title>
               {title ? title : t('Traces')}
               <PageHeadingQuestionTooltip
-                docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
                 title={t(
                   'Find problematic spans/traces or compute real-time metrics via aggregation.'
                 )}
-                linkLabel={t('Read the Discussion')}
+                linkLabel={t('Read the Docs')}
               />
             </Layout.Title>
           </Fragment>

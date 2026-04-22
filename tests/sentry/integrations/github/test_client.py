@@ -379,6 +379,76 @@ class GitHubApiClientTest(TestCase):
             files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert files == ["src/foo.py"]
 
+    @responses.activate
+    def test_get_cached_repo_files_caches_not_found(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        repo_key = f"github:repo:{self.repo.name}:source-code"
+        assert cache.get(repo_key) is None
+
+        files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
+        assert files == []
+        assert cache.get(repo_key) == []
+
+        # Negative-cache hit should avoid an additional API request.
+        files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
+        assert files == []
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_get_cached_repo_files_not_found_cache_ttl_is_staggered(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=404,
+            json={"message": "Not Found"},
+        )
+
+        shifted_seconds = 3600
+        repo_key = f"github:repo:{self.repo.name}:source-code"
+        with mock.patch(
+            "sentry.integrations.source_code_management.repo_trees.cache.set"
+        ) as cache_set:
+            self.install.get_cached_repo_files(self.repo.name, "master", shifted_seconds)
+
+        cache_set.assert_called_once_with(
+            repo_key,
+            [],
+            self.install.CACHE_SECONDS + shifted_seconds,
+        )
+
+    @responses.activate
+    def test_get_cached_repo_files_raises_non_not_found_api_error(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=500,
+            json={"message": "Server Error"},
+        )
+
+        with pytest.raises(ApiError):
+            self.install.get_cached_repo_files(self.repo.name, "master", 0)
+
+    @responses.activate
+    def test_get_cached_repo_files_raises_403_with_not_found_body(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=403,
+            json={"message": "Not Found."},
+        )
+        repo_key = f"github:repo:{self.repo.name}:source-code"
+
+        with pytest.raises(ApiError):
+            self.install.get_cached_repo_files(self.repo.name, "master", 0)
+
+        # Do not cache permission failures as missing resources.
+        assert cache.get(repo_key) is None
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_update_comment(self, get_jwt) -> None:
