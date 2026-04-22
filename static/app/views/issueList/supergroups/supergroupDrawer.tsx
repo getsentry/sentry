@@ -137,7 +137,7 @@ const PAGE_SIZE = 25;
  * scan window (top stream results we inspect when the id list is too big to
  * inline).
  */
-const HOIST_LIMIT = 100;
+const HOIST_LIMIT = 50;
 
 function SupergroupIssueList({
   groupIds,
