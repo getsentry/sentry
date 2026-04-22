@@ -1,9 +1,12 @@
 import {
   cloneElement,
+  createContext,
   isValidElement,
   useCallback,
+  useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -60,14 +63,89 @@ function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: nu
 }
 
 /**
- * How long to wait before opening the overlay
+ * How long to wait before opening the overlay.
  */
-const OPEN_DELAY = 50;
+const OPEN_DELAY = 400;
 
 /**
- * How long to wait before closing the overlay when isHoverable is set
+ * How long to wait before closing the overlay when isHoverable or
+ * displayTimeout is set.
  */
-const CLOSE_DELAY = 50;
+const CLOSE_DELAY = 150;
+
+/**
+ * While one overlay is open (or was recently open), newly-hovered overlays
+ * skip the open delay so the user can scan a row of triggers without paying
+ * the warmup each time. The cooldown starts when the last open overlay
+ * closes; if no other overlay opens within this window, the group goes cold.
+ */
+const SKIP_DELAY_WINDOW = 600;
+
+// A delay group tracks whether any overlay inside it is currently (or was
+// recently) open. Reading/writing these fields at hover events is intentional
+// — we don't need (and don't want) React re-renders driven by this state;
+// consumers only read it at the moment of a HOVER transition. Open-listeners
+// exist so siblings can snap-close mid-exit-animation when another overlay
+// takes over.
+interface DelayGroup {
+  coolDownTimer: number | undefined;
+  isWarm: boolean;
+  openListeners: Set<() => void>;
+}
+
+function createDelayGroup(): DelayGroup {
+  return {isWarm: false, coolDownTimer: undefined, openListeners: new Set()};
+}
+
+// Default group used when no <HoverOverlayGroupProvider> is present. In
+// production the whole app shares this group — which is what we want, since
+// tooltip delay semantics are naturally global.
+const defaultDelayGroup = createDelayGroup();
+
+const DelayGroupContext = createContext<DelayGroup>(defaultDelayGroup);
+
+/**
+ * Scopes a delay group to a React subtree. Overlays inside the provider share
+ * warmth and snap-close coordination only with each other. Intended for tests
+ * (each `render()` gets a fresh group automatically) and any future scenario
+ * that needs isolated groups (e.g. a fullscreen modal).
+ */
+export function HoverOverlayGroupProvider({children}: {children: React.ReactNode}) {
+  const group = useMemo(createDelayGroup, []);
+  useEffect(() => {
+    return () => {
+      if (group.coolDownTimer !== undefined) {
+        window.clearTimeout(group.coolDownTimer);
+      }
+    };
+  }, [group]);
+  return (
+    <DelayGroupContext.Provider value={group}>{children}</DelayGroupContext.Provider>
+  );
+}
+
+function warmUpGroup(group: DelayGroup) {
+  if (group.coolDownTimer !== undefined) {
+    window.clearTimeout(group.coolDownTimer);
+    group.coolDownTimer = undefined;
+  }
+  group.isWarm = true;
+  for (const listener of group.openListeners) {
+    listener();
+  }
+}
+
+function startGroupCoolDown(group: DelayGroup) {
+  if (group.coolDownTimer !== undefined) {
+    window.clearTimeout(group.coolDownTimer);
+  }
+  group.coolDownTimer = window.setTimeout(() => {
+    group.isWarm = false;
+    group.coolDownTimer = undefined;
+  }, SKIP_DELAY_WINDOW);
+}
+
+type OverlayStatus = 'idle' | 'warming' | 'open' | 'cooling';
 
 interface UseHoverOverlayProps {
   /**
@@ -204,17 +282,63 @@ function useHoverOverlay({
 }: UseHoverOverlayProps) {
   const theme = useTheme();
   const describeById = useId();
+  const group = useContext(DelayGroupContext);
 
-  const [isVisible, setIsVisible] = useState(forceVisible ?? false);
-  const isOpen = forceVisible ?? isVisible;
-
-  useEffect(() => {
-    if (isOpen) {
-      onHover?.();
-    } else {
-      onBlur?.();
+  const [status, setStatus] = useState<OverlayStatus>('idle');
+  const statusRef = useRef<OverlayStatus>('idle');
+  // When another overlay in the group opens while we are closing (or already
+  // closed-but-still-animating-out), we snap-close rather than letting the
+  // exit animation trail alongside the incoming overlay.
+  const [snapClosed, setSnapClosed] = useState(false);
+  const commitStatus = useCallback((next: OverlayStatus) => {
+    statusRef.current = next;
+    setStatus(next);
+    if (next === 'open' || next === 'warming') {
+      setSnapClosed(false);
     }
-  }, [isOpen, onBlur, onHover]);
+  }, []);
+
+  // Subscribe to group-open events. If another overlay opens while we are not
+  // ourselves opening (our status is anything other than 'open' or 'warming'
+  // — i.e. we're idle or mid-cooling), snap shut immediately.
+  useEffect(() => {
+    const listener = () => {
+      if (statusRef.current === 'open' || statusRef.current === 'warming') {
+        return;
+      }
+      setSnapClosed(true);
+    };
+    group.openListeners.add(listener);
+    return () => {
+      group.openListeners.delete(listener);
+    };
+  }, [group]);
+
+  const isOpen = forceVisible ?? (status === 'open' || status === 'cooling');
+
+  // Fire onHover / onBlur on open/close transitions only. Read the callbacks
+  // from refs so that a new callback identity on re-render does not retrigger
+  // the effect (bug: previously re-fired the current-state branch whenever an
+  // inline callback was passed), and skip the initial render so onBlur does
+  // not fire spuriously on mount.
+  const onHoverRef = useRef(onHover);
+  const onBlurRef = useRef(onBlur);
+  useLayoutEffect(() => {
+    onHoverRef.current = onHover;
+    onBlurRef.current = onBlur;
+  });
+  const prevIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (prevIsOpenRef.current === isOpen) {
+      return;
+    }
+    prevIsOpenRef.current = isOpen;
+    if (isOpen) {
+      onHoverRef.current?.();
+    } else {
+      onBlurRef.current?.();
+    }
+  }, [isOpen]);
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -230,52 +354,77 @@ function useHoverOverlay({
     placement: position,
   });
 
-  // Delayed open and close time handles
-  const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
-  const delayHideTimeoutRef = useRef<number | undefined>(undefined);
+  const openTimerRef = useRef<number | undefined>(undefined);
+  const hideTimerRef = useRef<number | undefined>(undefined);
 
-  // When the component is unmounted, make sure to stop the timeouts
-  // No need to reset value of refs to undefined since they will be garbage collected anyways
   useEffect(() => {
     return () => {
-      maybeClearRefTimeout(delayHideTimeoutRef);
-      maybeClearRefTimeout(delayOpenTimeoutRef);
+      maybeClearRefTimeout(openTimerRef);
+      maybeClearRefTimeout(hideTimerRef);
     };
   }, []);
 
   const handleMouseEnter = useCallback(() => {
-    // Do nothing if showOnlyOnOverflow and we're not overflowing.
     if (showOnlyOnOverflow && triggerElement && !isOverflown(triggerElement)) {
       return;
     }
 
-    maybeClearRefTimeout(delayHideTimeoutRef);
-    maybeClearRefTimeout(delayOpenTimeoutRef);
+    maybeClearRefTimeout(openTimerRef);
+    maybeClearRefTimeout(hideTimerRef);
 
-    if (delay === 0 || NODE_ENV === 'test') {
-      setIsVisible(true);
+    // Re-entering an already-visible trigger (e.g. during the cooling grace
+    // window, or a nested hover target): keep it open.
+    if (statusRef.current === 'open' || statusRef.current === 'cooling') {
+      commitStatus('open');
+      warmUpGroup(group);
       return;
     }
 
-    delayOpenTimeoutRef.current = window.setTimeout(
-      () => setIsVisible(true),
-      delay ?? OPEN_DELAY
-    );
-  }, [delay, showOnlyOnOverflow, triggerElement]);
+    // Skip the warmup delay if the caller asked for instant open, we're in a
+    // test environment, or the delay-group is already warm from a recently
+    // open overlay.
+    if (delay === 0 || NODE_ENV === 'test' || group.isWarm) {
+      commitStatus('open');
+      warmUpGroup(group);
+      return;
+    }
+
+    commitStatus('warming');
+    openTimerRef.current = window.setTimeout(() => {
+      commitStatus('open');
+      warmUpGroup(group);
+    }, delay ?? OPEN_DELAY);
+  }, [delay, showOnlyOnOverflow, triggerElement, commitStatus, group]);
 
   const handleMouseLeave = useCallback(() => {
-    maybeClearRefTimeout(delayHideTimeoutRef);
-    maybeClearRefTimeout(delayOpenTimeoutRef);
+    maybeClearRefTimeout(openTimerRef);
+    maybeClearRefTimeout(hideTimerRef);
 
-    if (!isHoverable && !displayTimeout) {
-      setIsVisible(false);
+    // If we never made it to 'open' (still warming or already idle), cancel
+    // the pending open — no cooldown starts because the group was never warmed
+    // by this instance.
+    if (statusRef.current !== 'open' && statusRef.current !== 'cooling') {
+      commitStatus('idle');
       return;
     }
 
-    delayHideTimeoutRef.current = window.setTimeout(() => {
-      setIsVisible(false);
+    // Note: the NODE_ENV === 'test' bypass is intentionally only applied on
+    // the open path. Tests that want to verify close-delay behavior (the
+    // `cooling` grace window) can do so by asserting isOpen mid-timeout,
+    // which requires the timer to actually run.
+    const hasCloseDelay = isHoverable || displayTimeout !== undefined;
+    if (!hasCloseDelay) {
+      commitStatus('idle');
+      startGroupCoolDown(group);
+      return;
+    }
+
+    commitStatus('cooling');
+    hideTimerRef.current = window.setTimeout(() => {
+      commitStatus('idle');
+      startGroupCoolDown(group);
     }, displayTimeout ?? CLOSE_DELAY);
-  }, [isHoverable, displayTimeout]);
+  }, [isHoverable, displayTimeout, commitStatus, group]);
 
   /**
    * Wraps the passed in react elements with a container that has the proper
@@ -359,10 +508,14 @@ function useHoverOverlay({
   );
 
   const reset = useCallback(() => {
-    setIsVisible(false);
-    maybeClearRefTimeout(delayHideTimeoutRef);
-    maybeClearRefTimeout(delayOpenTimeoutRef);
-  }, []);
+    maybeClearRefTimeout(openTimerRef);
+    maybeClearRefTimeout(hideTimerRef);
+    const wasVisible = statusRef.current === 'open' || statusRef.current === 'cooling';
+    commitStatus('idle');
+    if (wasVisible) {
+      startGroupCoolDown(group);
+    }
+  }, [commitStatus, group]);
 
   const overlayProps = useMemo(() => {
     return {
@@ -392,6 +545,10 @@ function useHoverOverlay({
   return {
     wrapTrigger,
     isOpen,
+    // True when another overlay took over while this one was closing —
+    // consumers should render null (bypassing any exit animation) so the
+    // incoming overlay doesn't trail alongside a fading-out sibling.
+    snapClosed,
     overlayProps,
     arrowProps,
     placement: state?.placement,
