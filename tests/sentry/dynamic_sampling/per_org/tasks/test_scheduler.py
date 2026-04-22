@@ -170,10 +170,11 @@ class NextBucketIndexTest(TestCase):
 
     def test_cursor_persists_across_calls(self) -> None:
         first = _next_bucket_index()
-        stored = int(self.redis.get(BUCKET_CURSOR_KEY))
+        raw = self.redis.get(BUCKET_CURSOR_KEY)
+        assert raw is not None
         # Stored counter is one ahead of the last returned index because we
         # INCR first and subtract 1 on the way out.
-        assert stored == first + 1
+        assert int(raw) == first + 1
 
     def test_falls_back_when_redis_value_is_not_an_integer(self) -> None:
         # INCR on a non-integer string raises ResponseError. Use that to drive
