@@ -470,7 +470,11 @@ function extractOutputFromSpan(span: Record<string, unknown>): string | null {
   const outputMessages = span['gen_ai.output.messages'];
   if (typeof outputMessages === 'string') {
     try {
-      const messagesArray: OutputMessage[] = JSON.parse(outputMessages);
+      const parsed: unknown = JSON.parse(outputMessages);
+      if (!Array.isArray(parsed)) {
+        return null;
+      }
+      const messagesArray: OutputMessage[] = parsed;
       const assistantMessage = messagesArray.findLast(
         msg => msg.role === 'assistant' && (msg.content || msg.parts)
       );
