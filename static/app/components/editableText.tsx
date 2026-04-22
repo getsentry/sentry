@@ -262,7 +262,7 @@ const StyledInput = styled(Input)<{isCompact?: boolean}>`
   background: transparent;
   height: auto;
   min-height: ${p => (p.isCompact ? 'auto' : '40px')};
-  padding: 0;
+  padding: ${p => (p.isCompact ? `0 ${p.theme.space.xs}` : '0')};
   font-size: inherit;
   &,
   &:focus,
@@ -276,7 +276,7 @@ const InputLabel = styled('div')<{isCompact: boolean}>`
   height: 0;
   opacity: 0;
   white-space: pre;
-  padding: 0 ${p => (p.isCompact ? 0 : p.theme.space.md)};
+  padding: 0 ${p => (p.isCompact ? p.theme.space.xs : p.theme.space.md)};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
