@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
-import type {FlexProps} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
-interface ViewportConstrainedPageProps extends FlexProps<'main'> {
+interface ViewportConstrainedPageProps extends FlexProps<'div'> {
   constrained?: boolean;
   hideFooter?: boolean;
 }
@@ -20,6 +19,9 @@ interface ViewportConstrainedPageProps extends FlexProps<'main'> {
  *
  * When constrained, the global footer sibling is hidden on smaller
  * viewport heights and when `hideFooter` is set.
+ *
+ * Renders as a `<div>` — the surrounding `<main>` is provided by the
+ * root `Layout.Page` in `OrganizationLayout`.
  */
 export function ViewportConstrainedPage({
   constrained = true,
@@ -27,11 +29,13 @@ export function ViewportConstrainedPage({
   ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return <Layout.Page {...rest} />;
+    return <Stack flex="1" background="primary" {...rest} />;
   }
 
   return (
     <ConstrainedPage
+      flex="1"
+      background="primary"
       minHeight="0"
       overflow="hidden"
       data-hide-footer={hideFooter ? '' : undefined}
@@ -40,7 +44,7 @@ export function ViewportConstrainedPage({
   );
 }
 
-const ConstrainedPage = styled(Layout.Page)`
+const ConstrainedPage = styled(Stack)`
   contain: size;
 
   @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
