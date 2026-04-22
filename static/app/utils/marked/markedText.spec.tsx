@@ -117,4 +117,11 @@ console.log("Hello, world!");
       expect(codeElement).toBeInTheDocument();
     });
   });
+
+  it('sanitizes image src', async () => {
+    render(<MarkedText text="![image](https://example.com)" />);
+
+    const image = await screen.findByAltText('image');
+    expect(image).not.toHaveAttribute('src');
+  });
 });
