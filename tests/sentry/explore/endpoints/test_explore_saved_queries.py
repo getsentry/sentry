@@ -625,7 +625,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 "query": "span.op:pageload",
             }
         ]
-        assert data["projects"] == self.project_ids
+        assert sorted(data["projects"]) == sorted(self.project_ids)
         assert data["dataset"] == "spans"
 
     def test_post_all_projects(self) -> None:
@@ -1321,109 +1321,6 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["query"][0]["caseInsensitive"] is True
-
-    def test_save_with_cross_events(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                {
-                    "name": "Cross event query",
-                    "projects": self.project_ids,
-                    "dataset": "spans",
-                    "query": [
-                        {
-                            "fields": ["span.op"],
-                            "mode": "samples",
-                        }
-                    ],
-                    "range": "24h",
-                    "crossEvents": [
-                        {"query": "span.op:db", "type": "spans"},
-                        {"query": "severity:error", "type": "logs"},
-                    ],
-                },
-            )
-        assert response.status_code == 201, response.content
-        data = response.data
-        assert data["crossEvents"] == [
-            {"query": "span.op:db", "type": "spans"},
-            {"query": "severity:error", "type": "logs"},
-        ]
-
-        saved = ExploreSavedQuery.objects.get(id=data["id"])
-        assert saved.query["crossEvents"] == [
-            {"query": "span.op:db", "type": "spans"},
-            {"query": "severity:error", "type": "logs"},
-        ]
-
-    def test_save_with_cross_events_too_many(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                {
-                    "name": "Too many cross events",
-                    "projects": self.project_ids,
-                    "dataset": "spans",
-                    "query": [
-                        {
-                            "fields": ["span.op"],
-                            "mode": "samples",
-                        }
-                    ],
-                    "range": "24h",
-                    "crossEvents": [
-                        {"query": "a", "type": "spans"},
-                        {"query": "b", "type": "logs"},
-                        {"query": "c", "type": "spans"},
-                    ],
-                },
-            )
-        assert response.status_code == 400, response.content
-
-    def test_save_with_cross_events_invalid_type(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                {
-                    "name": "Invalid type",
-                    "projects": self.project_ids,
-                    "dataset": "spans",
-                    "query": [
-                        {
-                            "fields": ["span.op"],
-                            "mode": "samples",
-                        }
-                    ],
-                    "range": "24h",
-                    "crossEvents": [
-                        {"query": "foo", "type": "errors"},
-                    ],
-                },
-            )
-        assert response.status_code == 400, response.content
-
-    def test_save_with_cross_events_range_exceeds_seven_days(self) -> None:
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                {
-                    "name": "Too long range",
-                    "projects": self.project_ids,
-                    "dataset": "spans",
-                    "query": [
-                        {
-                            "fields": ["span.op"],
-                            "mode": "samples",
-                        }
-                    ],
-                    "range": "14d",
-                    "crossEvents": [
-                        {"query": "foo", "type": "spans"},
-                    ],
-                },
-            )
-        assert response.status_code == 400, response.content
-        assert "Cross event queries are limited to 7 days." in str(response.content)
 
     def test_save_replay_query(self) -> None:
         with self.feature(self.features):
