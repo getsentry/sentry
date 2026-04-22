@@ -39,7 +39,7 @@ export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbP
 
     // It's possible there is no route without route params (e.g. organization settings index),
     // in which case, we can use the org settings index route (e.g. `route`)
-    if (!hasProjectParam && typeof destinationRoute === 'undefined') {
+    if (!hasProjectParam && destinationRoute === undefined) {
       destinationRoute = route;
     }
 
