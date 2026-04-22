@@ -1325,7 +1325,7 @@ function DiscoverPageFilters({
 
   return (
     <Wrapper>
-      <PageFilterBar condensed>
+      <PageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
@@ -1388,8 +1388,7 @@ const Wrapper = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: grid;
-    grid-auto-flow: row;
+    flex-direction: column;
   }
 `;
 
