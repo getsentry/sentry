@@ -258,16 +258,11 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     org_repo_definitions: dict[tuple[str, str, str], RepoDetails] = {}
 
     preferences = bulk_read_preferences_from_sentry_db(organization_id, list(project_map.keys()))
-    preferences_by_id = {
-        str(project_id): preference.dict() for project_id, preference in preferences.items()
-    }
 
     for project_id, project in project_map.items():
-        existing_pref = preferences_by_id.get(str(project_id))
-        if not existing_pref:
+        preference = preferences.get(project_id)
+        if preference is None:
             continue
-
-        project_pref_repos = existing_pref.get("repositories") or []
 
         autofix_repos = get_autofix_repos_from_project_code_mappings(project)
         # Use autofix repos to get repo languages
@@ -276,20 +271,20 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
             key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
             language_map[key] = autofix_repo["languages"]
 
-        for repo in project_pref_repos:
-            key = (repo["provider"], repo["owner"], repo["name"])
+        for repo in preference.repositories:
+            key = (repo.provider, repo.owner, repo.name)
             if key in org_repo_definitions:
                 repo_definition = org_repo_definitions[key]
                 repo_definition["project_ids"].append(project_id)
             else:
                 org_repo_definitions[key] = {
                     "project_ids": [project_id],
-                    "provider": repo["provider"],
-                    "owner": repo["owner"],
-                    "name": repo["name"],
-                    "external_id": repo["external_id"],
+                    "provider": repo.provider,
+                    "owner": repo.owner,
+                    "name": repo.name,
+                    "external_id": repo.external_id,
                     "languages": language_map.get(key, []),
-                    "integration_id": repo.get("integration_id"),
+                    "integration_id": repo.integration_id,
                 }
 
     viewer_context = SeerViewerContext(organization_id=organization_id)

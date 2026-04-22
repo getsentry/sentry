@@ -6,7 +6,7 @@ from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.seer.explorer.client_models import SeerRunState
-from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -316,10 +316,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference")
     def test_ai_autofix_post_endpoint(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -332,18 +330,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         release = self.create_release(project=self.project, version="1.0.0")
 
-        mock_resolve_pref.return_value = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                {
-                    "provider": "integrations:github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                    "external_id": "123",
-                }
-            ],
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="getsentry/sentry",
         )
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -374,17 +367,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         call_kwargs = mock_call.call_args.kwargs
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
-        # Check that the repos parameter contains the expected data
-        expected_repo_fields = {
-            "provider": "integrations:github",
-            "owner": "getsentry",
-            "name": "sentry",
-            "external_id": "123",
-        }
-        assert any(
-            all(repo.get(key) == value for key, value in expected_repo_fields.items())
-            for repo in call_kwargs["repos"]
-        )
+        # Check that the preference's repositories contain the expected repo.
+        repositories = call_kwargs["preference"].repositories
+        assert len(repositories) == 1
+        assert repositories[0].provider == "integrations:github"
+        assert repositories[0].owner == "getsentry"
+        assert repositories[0].name == "sentry"
+        assert repositories[0].external_id == "123"
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -409,10 +398,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_ai_autofix_post_without_code_mappings(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -454,8 +441,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         call_kwargs = mock_call.call_args.kwargs
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
-        # Check that the repos parameter is an empty list (no code mappings)
-        assert call_kwargs["repos"] == []
+        # No SeerProjectRepository → preference has no repos.
+        assert call_kwargs["preference"].repositories == []
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -480,10 +467,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference")
     def test_ai_autofix_post_without_event_id(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -496,18 +481,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         release = self.create_release(project=self.project, version="1.0.0")
 
-        mock_resolve_pref.return_value = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                {
-                    "provider": "integrations:github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                    "external_id": "123",
-                }
-            ],
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="getsentry/sentry",
         )
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -536,17 +516,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         call_kwargs = mock_call.call_args.kwargs
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
-        # Check that the repos parameter contains the expected data
-        expected_repo_fields = {
-            "provider": "integrations:github",
-            "owner": "getsentry",
-            "name": "sentry",
-            "external_id": "123",
-        }
-        assert any(
-            all(repo.get(key) == value for key, value in expected_repo_fields.items())
-            for repo in call_kwargs["repos"]
-        )
+        # Check that the preference's repositories contain the expected repo.
+        repositories = call_kwargs["preference"].repositories
+        assert len(repositories) == 1
+        assert repositories[0].provider == "integrations:github"
+        assert repositories[0].owner == "getsentry"
+        assert repositories[0].name == "sentry"
+        assert repositories[0].external_id == "123"
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -571,10 +547,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference")
     def test_ai_autofix_post_without_event_id_no_recommended_event(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call,
@@ -587,18 +561,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         release = self.create_release(project=self.project, version="1.0.0")
 
-        mock_resolve_pref.return_value = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                {
-                    "provider": "integrations:github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                    "external_id": "123",
-                }
-            ],
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="getsentry/sentry",
         )
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -627,17 +596,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         call_kwargs = mock_call.call_args.kwargs
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
-        # Check that the repos parameter contains the expected data
-        expected_repo_fields = {
-            "provider": "integrations:github",
-            "owner": "getsentry",
-            "name": "sentry",
-            "external_id": "123",
-        }
-        assert any(
-            all(repo.get(key) == value for key, value in expected_repo_fields.items())
-            for repo in call_kwargs["repos"]
-        )
+        # Check that the preference's repositories contain the expected repo.
+        repositories = call_kwargs["preference"].repositories
+        assert len(repositories) == 1
+        assert repositories[0].provider == "integrations:github"
+        assert repositories[0].owner == "getsentry"
+        assert repositories[0].name == "sentry"
+        assert repositories[0].external_id == "123"
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -991,10 +956,8 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.tasks.seer.autofix.check_autofix_status.apply_async")
-    @patch("sentry.seer.autofix.autofix._resolve_project_preference", return_value=None)
     def test_post_routes_to_legacy_with_mode_param(
         self,
-        mock_resolve_pref,
         mock_check_autofix_status,
         mock_get_trace_tree,
         mock_call_autofix,

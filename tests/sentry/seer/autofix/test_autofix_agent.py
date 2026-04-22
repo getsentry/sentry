@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from rest_framework.exceptions import PermissionDenied
@@ -20,16 +20,10 @@ from sentry.seer.explorer.client_models import (
     Message,
     SeerRunState,
 )
-from sentry.seer.models import (
-    AutofixHandoffPoint,
-    PreferenceResponse,
-    SeerAutomationHandoffConfiguration,
-    SeerProjectPreference,
-    SeerRepoDefinition,
-)
+from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -394,42 +388,39 @@ class TestTriggerCodingAgentHandoff(TestCase):
             repo_pr_states={},
         )
 
-    def _make_preference(self, repos=None, auto_create_pr=False):
-        """Helper to create a SeerProjectPreference with repos."""
-        if repos is None:
-            repos = [
-                SeerRepoDefinition(provider="github", owner="owner", name="repo", external_id="123")
-            ]
-
-        handoff_config = (
-            SeerAutomationHandoffConfiguration(
-                handoff_point=AutofixHandoffPoint.ROOT_CAUSE,
-                target="cursor_background_agent",
-                integration_id=456,
-                auto_create_pr=auto_create_pr,
-            )
-            if auto_create_pr
-            else None
+    def _make_repo_and_projectrepo(
+        self,
+        *,
+        owner: str = "owner",
+        name: str = "repo",
+        external_id: str = "123",
+        branch_name: str | None = None,
+    ) -> None:
+        """Create a Repository and link it to self.project via SeerProjectRepository."""
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id=external_id,
+            name=f"{owner}/{name}",
+        )
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=repository,
+            branch_name=branch_name,
         )
 
-        return SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=repos,
-            automation_handoff=handoff_config,
+    def _make_handoff(self, *, auto_create_pr: bool) -> None:
+        """Set project options so read_preference_from_sentry_db populates automation_handoff."""
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
-
-    def _make_preference_response(self, repos=None, auto_create_pr=False) -> PreferenceResponse:
-        """Helper to create a PreferenceResponse with repos."""
-        preference = self._make_preference(repos, auto_create_pr)
-        return PreferenceResponse(preference=preference, code_mapping_repos=[])
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", auto_create_pr)
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_success(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
-    ):
+    def test_trigger_coding_agent_handoff_success(self, mock_client_class, mock_get_autofix_state):
         """Test successful coding agent handoff."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -446,7 +437,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             "successes": [{"repo_name": "owner/repo"}],
             "failures": [],
         }
-        mock_get_prefs.return_value = self._make_preference_response()
+        self._make_repo_and_projectrepo()
         mock_get_autofix_state.return_value = None
 
         result = trigger_coding_agent_handoff(
@@ -466,14 +457,11 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].owner == "owner"
         assert repos[0].name == "repo"
 
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_no_repos(self, mock_client_class, mock_get_prefs):
+    def test_trigger_coding_agent_handoff_no_repos(self, mock_client_class):
         """Test handoff with no repositories in preferences returns failure."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        # Preferences with no repos
-        mock_get_prefs.return_value = self._make_preference_response(repos=[])
 
         result = trigger_coding_agent_handoff(
             group=self.group,
@@ -487,10 +475,9 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client.launch_coding_agents.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_generates_prompt_from_artifacts(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that prompt is generated from run state artifacts."""
         mock_client = MagicMock()
@@ -513,7 +500,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             "successes": [],
             "failures": [],
         }
-        mock_get_prefs.return_value = self._make_preference_response()
+        self._make_repo_and_projectrepo()
         mock_get_autofix_state.return_value = None
 
         trigger_coding_agent_handoff(
@@ -530,10 +517,9 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert "Add TTL to cache" in prompt
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_uses_group_title_for_branch(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that branch_name_base is set to the group title."""
         mock_client = MagicMock()
@@ -543,7 +529,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             "successes": [],
             "failures": [],
         }
-        mock_get_prefs.return_value = self._make_preference_response()
+        self._make_repo_and_projectrepo()
         mock_get_autofix_state.return_value = None
 
         # Set a specific title on the group
@@ -561,10 +547,9 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert call_kwargs["branch_name_base"] == self.group.title
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_fetches_auto_create_pr_from_preferences(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that auto_create_pr is fetched from project preferences."""
         mock_client = MagicMock()
@@ -574,9 +559,8 @@ class TestTriggerCodingAgentHandoff(TestCase):
             "successes": [],
             "failures": [],
         }
-
-        # Set up preferences with auto_create_pr=True
-        mock_get_prefs.return_value = self._make_preference_response(auto_create_pr=True)
+        self._make_repo_and_projectrepo()
+        self._make_handoff(auto_create_pr=True)
         mock_get_autofix_state.return_value = None
 
         trigger_coding_agent_handoff(
@@ -590,10 +574,9 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert call_kwargs["auto_create_pr"] is True
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_defaults_auto_create_pr_false(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that auto_create_pr defaults to False when automation_handoff not configured."""
         mock_client = MagicMock()
@@ -603,8 +586,8 @@ class TestTriggerCodingAgentHandoff(TestCase):
             "successes": [],
             "failures": [],
         }
-        # Use helper with default args: repos are set but auto_create_pr=False (no handoff config)
-        mock_get_prefs.return_value = self._make_preference_response()
+        # Repos are set but auto_create_pr=False (no handoff config)
+        self._make_repo_and_projectrepo()
         mock_get_autofix_state.return_value = None
 
         trigger_coding_agent_handoff(
@@ -617,32 +600,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
         assert call_kwargs["auto_create_pr"] is False
 
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
-    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_no_preferences_returns_failure(
-        self, mock_client_class, mock_get_prefs
-    ):
-        """Test handoff with None preference response returns failure."""
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_get_prefs.return_value = Mock(preference=None)
-
-        result = trigger_coding_agent_handoff(
-            group=self.group,
-            run_id=123,
-            referrer=AutofixReferrer.UNKNOWN,
-            integration_id=456,
-        )
-
-        assert len(result["failures"]) == 1
-        assert "No repositories configured" in result["failures"][0]["error_message"]
-        mock_client.launch_coding_agents.assert_not_called()
-
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_filters_to_relevant_repo(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that only the repo named in relevant_repo is passed to launch_coding_agents."""
         mock_client = MagicMock()
@@ -657,16 +618,8 @@ class TestTriggerCodingAgentHandoff(TestCase):
             ]
         )
         mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        mock_get_prefs.return_value = self._make_preference_response(
-            repos=[
-                SeerRepoDefinition(
-                    provider="github", owner="owner", name="relevant-repo", external_id="1"
-                ),
-                SeerRepoDefinition(
-                    provider="github", owner="owner", name="other-repo", external_id="2"
-                ),
-            ]
-        )
+        self._make_repo_and_projectrepo(name="relevant-repo", external_id="1")
+        self._make_repo_and_projectrepo(name="other-repo", external_id="2")
         mock_get_autofix_state.return_value = None
 
         trigger_coding_agent_handoff(
@@ -682,10 +635,9 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.logger")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_falls_back_to_first_repo_when_no_relevant_repo(
-        self, mock_client_class, mock_get_prefs, mock_logger, mock_get_autofix_state
+        self, mock_client_class, mock_logger, mock_get_autofix_state
     ):
         """Test that when relevant_repo is absent, first configured repo is used and a warning is logged."""
         mock_client = MagicMock()
@@ -694,16 +646,8 @@ class TestTriggerCodingAgentHandoff(TestCase):
             [Artifact(key="root_cause", data={"one_line_description": "Bug"}, reason="test")]
         )
         mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        mock_get_prefs.return_value = self._make_preference_response(
-            repos=[
-                SeerRepoDefinition(
-                    provider="github", owner="owner", name="first-repo", external_id="1"
-                ),
-                SeerRepoDefinition(
-                    provider="github", owner="owner", name="second-repo", external_id="2"
-                ),
-            ]
-        )
+        self._make_repo_and_projectrepo(name="first-repo", external_id="1")
+        self._make_repo_and_projectrepo(name="second-repo", external_id="2")
         mock_get_autofix_state.return_value = None
 
         trigger_coding_agent_handoff(
@@ -727,10 +671,9 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
     @patch("sentry.seer.autofix.autofix_agent.logger")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_falls_back_when_relevant_repo_doesnt_match(
-        self, mock_client_class, mock_get_prefs, mock_logger, mock_get_autofix_state
+        self, mock_client_class, mock_logger, mock_get_autofix_state
     ):
         """Test that when relevant_repo doesn't match any configured repo, first repo is used."""
         mock_client = MagicMock()
@@ -745,16 +688,8 @@ class TestTriggerCodingAgentHandoff(TestCase):
             ]
         )
         mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        mock_get_prefs.return_value = self._make_preference_response(
-            repos=[
-                SeerRepoDefinition(
-                    provider="github", owner="owner", name="first-repo", external_id="1"
-                ),
-                SeerRepoDefinition(
-                    provider="github", owner="owner", name="second-repo", external_id="2"
-                ),
-            ]
-        )
+        self._make_repo_and_projectrepo(name="first-repo", external_id="1")
+        self._make_repo_and_projectrepo(name="second-repo", external_id="2")
         mock_get_autofix_state.return_value = None
 
         trigger_coding_agent_handoff(
@@ -789,21 +724,16 @@ class TestTriggerCodingAgentHandoff(TestCase):
             )
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_enriches_branch_name_from_autofix_state(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that branch_name is resolved from autofix state when unset in preferences."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        mock_get_prefs.return_value = self._make_preference_response(
-            repos=[
-                SeerRepoDefinition(provider="github", owner="owner", name="repo", external_id="1")
-            ]
-        )
+        self._make_repo_and_projectrepo(external_id="1", branch_name="main")
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
             request=AutofixRequest(
@@ -817,7 +747,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 },
                 repos=[
                     SeerRepoDefinition(
-                        provider="github",
+                        provider="integrations:github",
                         owner="owner",
                         name="repo",
                         external_id="1",
@@ -840,27 +770,16 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].branch_name == "main"
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_coding_agent_handoff_keeps_branch_name_from_preferences_when_set(
-        self, mock_client_class, mock_get_prefs, mock_get_autofix_state
+        self, mock_client_class, mock_get_autofix_state
     ):
         """Test that branch_name from preferences is used as-is when already set."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        mock_get_prefs.return_value = self._make_preference_response(
-            repos=[
-                SeerRepoDefinition(
-                    provider="github",
-                    owner="owner",
-                    name="repo",
-                    external_id="1",
-                    branch_name="release/v2",
-                )
-            ]
-        )
+        self._make_repo_and_projectrepo(external_id="1", branch_name="release/v2")
 
         trigger_coding_agent_handoff(
             group=self.group,
@@ -872,45 +791,6 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_get_autofix_state.assert_not_called()
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
-
-    @with_feature("organizations:seer-project-settings-read-from-sentry")
-    @patch("sentry.seer.autofix.autofix_agent.get_autofix_state")
-    @patch("sentry.seer.autofix.autofix_agent.read_preference_from_sentry_db")
-    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
-    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_reads_from_sentry_db(
-        self, mock_client_class, mock_get_prefs, mock_read_db, mock_get_autofix_state
-    ):
-        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
-        mock_read_db.return_value = self._make_preference(
-            repos=[
-                SeerRepoDefinition(
-                    provider="github",
-                    owner="owner",
-                    name="repo",
-                    external_id="123",
-                    branch_name="main",
-                )
-            ],
-            auto_create_pr=True,
-        )
-
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.get_run.return_value = self._make_run_state()
-        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        mock_get_autofix_state.return_value = None
-
-        trigger_coding_agent_handoff(
-            group=self.group, run_id=123, referrer=AutofixReferrer.UNKNOWN, integration_id=456
-        )
-
-        mock_get_prefs.assert_not_called()
-
-        call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
-        assert len(call_kwargs["repos"]) == 1
-        assert call_kwargs["repos"][0].branch_name == "main"
-        assert call_kwargs["auto_create_pr"] is True
 
 
 class TestTriggerPushChanges(TestCase):
