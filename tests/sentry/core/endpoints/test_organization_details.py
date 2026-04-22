@@ -1641,7 +1641,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
 
     def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
         other_org = self.create_organization()
@@ -1665,7 +1665,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
 
     def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
         # Tests the create path (no OrganizationOption row exists yet): sending null
@@ -1935,8 +1935,14 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"replayAccessMembers": [valid_member.user_id, nonexistent_id]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert "replayAccessMembers" in response.data
-        assert str(nonexistent_id) in response.data["replayAccessMembers"]
-        assert str(valid_member.user_id) not in response.data["replayAccessMembers"]
+        # The error field is a string-like ErrorDetail containing the invalid IDs.
+        # Use word-boundary matching to avoid false positives when the valid user's
+        # ID is a substring of the nonexistent ID (e.g. user_id=9 vs 999999999).
+        import re
+
+        error_str = str(response.data["replayAccessMembers"])
+        assert re.search(r"\b" + str(nonexistent_id) + r"\b", error_str)
+        assert not re.search(r"\b" + str(valid_member.user_id) + r"\b", error_str)
 
         access_count = OrganizationMemberReplayAccess.objects.filter(
             organizationmember__organization=self.organization
